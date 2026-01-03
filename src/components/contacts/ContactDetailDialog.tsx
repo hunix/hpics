@@ -15,11 +15,12 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Edit, Trash2, Star, MessageSquare, 
-  Calendar, Building, Briefcase, Brain, MessagesSquare
+  Calendar, Building, Briefcase, Brain, MessagesSquare, History
 } from 'lucide-react';
 import { ContactDialog } from './ContactDialog';
 import { ContactMethodsManager } from './ContactMethodsManager';
 import { ConversationsManager } from '@/components/conversations/ConversationsManager';
+import { ContactTimeline } from './ContactTimeline';
 import { AIAnalysisPanel } from '@/components/ai/AIAnalysisPanel';
 import { formatDistanceToNow } from 'date-fns';
 import type { Tables } from '@/integrations/supabase/types';
@@ -217,9 +218,10 @@ export function ContactDetailDialog({ contact, open, onOpenChange }: ContactDeta
               <div className={`grid gap-6 ${showAIPanel ? 'lg:grid-cols-2' : ''}`}>
                 <div>
                   <Tabs defaultValue="contact">
-                    <TabsList className="grid w-full grid-cols-5">
+                    <TabsList className="grid w-full grid-cols-6">
                       <TabsTrigger value="contact">Contact</TabsTrigger>
                       <TabsTrigger value="messages">Messages</TabsTrigger>
+                      <TabsTrigger value="timeline">Timeline</TabsTrigger>
                       <TabsTrigger value="communications">Activity</TabsTrigger>
                       <TabsTrigger value="events">Events</TabsTrigger>
                       <TabsTrigger value="notes">Notes</TabsTrigger>
@@ -237,6 +239,10 @@ export function ContactDetailDialog({ contact, open, onOpenChange }: ContactDeta
                         profileId={contact.id} 
                         profileName={`${contact.first_name} ${contact.last_name || ''}`.trim()}
                       />
+                    </TabsContent>
+
+                    <TabsContent value="timeline" className="space-y-4 mt-4">
+                      <ContactTimeline profileId={contact.id} />
                     </TabsContent>
 
                     <TabsContent value="communications" className="space-y-4 mt-4">
