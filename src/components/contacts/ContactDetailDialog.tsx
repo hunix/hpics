@@ -15,7 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Edit, Trash2, Star, MessageSquare, 
-  Calendar, Building, Briefcase, Brain, MessagesSquare, History, GraduationCap, Sparkles
+  Calendar, Building, Briefcase, Brain, MessagesSquare, History, GraduationCap, Sparkles, FileText, Gift, Heart, Target
 } from 'lucide-react';
 import { ContactDialog } from './ContactDialog';
 import { ContactMethodsManager } from './ContactMethodsManager';
@@ -26,6 +26,11 @@ import { EducationManager } from './EducationManager';
 import { CertificationsManager } from './CertificationsManager';
 import { SkillsManager } from './SkillsManager';
 import { AIAnalysisPanel } from '@/components/ai/AIAnalysisPanel';
+import { MeetingBriefing } from './MeetingBriefing';
+import { GiftSuggestions } from './GiftSuggestions';
+import { InterestsManager } from './InterestsManager';
+import { RelationshipGoals } from './RelationshipGoals';
+import { SharedExperiences } from './SharedExperiences';
 import { formatDistanceToNow } from 'date-fns';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -222,21 +227,58 @@ export function ContactDetailDialog({ contact, open, onOpenChange }: ContactDeta
               <div className={`grid gap-6 ${showAIPanel ? 'lg:grid-cols-2' : ''}`}>
                 <div>
                   <Tabs defaultValue="contact">
-                    <TabsList className="grid w-full grid-cols-8">
+                    <TabsList className="flex flex-wrap h-auto gap-1">
                       <TabsTrigger value="contact">Contact</TabsTrigger>
+                      <TabsTrigger value="briefing">Briefing</TabsTrigger>
+                      <TabsTrigger value="interests">Interests</TabsTrigger>
+                      <TabsTrigger value="gifts">Gifts</TabsTrigger>
+                      <TabsTrigger value="goals">Goals</TabsTrigger>
+                      <TabsTrigger value="experiences">Experiences</TabsTrigger>
                       <TabsTrigger value="education">Education</TabsTrigger>
-                      <TabsTrigger value="enrich">Enrich</TabsTrigger>
                       <TabsTrigger value="messages">Messages</TabsTrigger>
                       <TabsTrigger value="timeline">Timeline</TabsTrigger>
-                      <TabsTrigger value="communications">Activity</TabsTrigger>
-                      <TabsTrigger value="events">Events</TabsTrigger>
-                      <TabsTrigger value="notes">Notes</TabsTrigger>
+                      <TabsTrigger value="enrich">Enrich</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="contact" className="space-y-4 mt-4">
                       <ContactMethodsManager 
                         profileId={contact.id} 
                         contactMethods={contactMethods || []} 
+                      />
+                    </TabsContent>
+
+                    <TabsContent value="briefing" className="mt-4">
+                      <MeetingBriefing 
+                        profileId={contact.id}
+                        contactName={`${contact.first_name} ${contact.last_name || ''}`.trim()}
+                      />
+                    </TabsContent>
+
+                    <TabsContent value="interests" className="mt-4">
+                      <InterestsManager 
+                        profileId={contact.id}
+                        contactName={`${contact.first_name} ${contact.last_name || ''}`.trim()}
+                      />
+                    </TabsContent>
+
+                    <TabsContent value="gifts" className="mt-4">
+                      <GiftSuggestions 
+                        profileId={contact.id}
+                        contactName={`${contact.first_name} ${contact.last_name || ''}`.trim()}
+                      />
+                    </TabsContent>
+
+                    <TabsContent value="goals" className="mt-4">
+                      <RelationshipGoals 
+                        profileId={contact.id}
+                        contactName={`${contact.first_name} ${contact.last_name || ''}`.trim()}
+                      />
+                    </TabsContent>
+
+                    <TabsContent value="experiences" className="mt-4">
+                      <SharedExperiences 
+                        profileId={contact.id}
+                        contactName={`${contact.first_name} ${contact.last_name || ''}`.trim()}
                       />
                     </TabsContent>
 
@@ -255,8 +297,6 @@ export function ContactDetailDialog({ contact, open, onOpenChange }: ContactDeta
                         linkedinUrl={contact.linkedin_url}
                       />
                     </TabsContent>
-
-                    <TabsContent value="messages" className="space-y-4 mt-4">
                       <ConversationsManager 
                         profileId={contact.id} 
                         profileName={`${contact.first_name} ${contact.last_name || ''}`.trim()}

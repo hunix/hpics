@@ -149,6 +149,53 @@ export type Database = {
           },
         ]
       }
+      contact_interests: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          id: string
+          interest_type: string
+          name: string
+          notes: string | null
+          profile_id: string
+          source: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          interest_type: string
+          name: string
+          notes?: string | null
+          profile_id: string
+          source?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          interest_type?: string
+          name?: string
+          notes?: string | null
+          profile_id?: string
+          source?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_interests_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_methods: {
         Row: {
           contact_type: Database["public"]["Enums"]["contact_type"]
@@ -443,6 +490,65 @@ export type Database = {
           },
         ]
       }
+      gift_ideas: {
+        Row: {
+          ai_reasoning: string | null
+          category: string | null
+          created_at: string
+          description: string | null
+          given_date: string | null
+          id: string
+          is_given: boolean | null
+          occasion: string | null
+          price_range: string | null
+          profile_id: string
+          source: string | null
+          title: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          ai_reasoning?: string | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          given_date?: string | null
+          id?: string
+          is_given?: boolean | null
+          occasion?: string | null
+          price_range?: string | null
+          profile_id: string
+          source?: string | null
+          title: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          ai_reasoning?: string | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          given_date?: string | null
+          id?: string
+          is_given?: boolean | null
+          occasion?: string | null
+          price_range?: string | null
+          profile_id?: string
+          source?: string | null
+          title?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_ideas_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       media: {
         Row: {
           caption: string | null
@@ -594,6 +700,165 @@ export type Database = {
         }
         Relationships: []
       }
+      relationship_goals: {
+        Row: {
+          created_at: string
+          current_streak: number | null
+          description: string | null
+          frequency: string
+          goal_type: string
+          id: string
+          is_active: boolean | null
+          last_completed_at: string | null
+          longest_streak: number | null
+          next_due_at: string | null
+          profile_id: string | null
+          target_count: number | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_streak?: number | null
+          description?: string | null
+          frequency: string
+          goal_type: string
+          id?: string
+          is_active?: boolean | null
+          last_completed_at?: string | null
+          longest_streak?: number | null
+          next_due_at?: string | null
+          profile_id?: string | null
+          target_count?: number | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_streak?: number | null
+          description?: string | null
+          frequency?: string
+          goal_type?: string
+          id?: string
+          is_active?: boolean | null
+          last_completed_at?: string | null
+          longest_streak?: number | null
+          next_due_at?: string | null
+          profile_id?: string | null
+          target_count?: number | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relationship_goals_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      relationship_trends: {
+        Row: {
+          communication_count: number | null
+          created_at: string
+          health_score: number
+          id: string
+          profile_id: string
+          recorded_at: string
+          sentiment_avg: number | null
+          user_id: string
+        }
+        Insert: {
+          communication_count?: number | null
+          created_at?: string
+          health_score: number
+          id?: string
+          profile_id: string
+          recorded_at?: string
+          sentiment_avg?: number | null
+          user_id: string
+        }
+        Update: {
+          communication_count?: number | null
+          created_at?: string
+          health_score?: number
+          id?: string
+          profile_id?: string
+          recorded_at?: string
+          sentiment_avg?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relationship_trends_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_experiences: {
+        Row: {
+          created_at: string
+          description: string | null
+          experience_date: string | null
+          experience_type: string
+          id: string
+          location: string | null
+          media_urls: string[] | null
+          profile_id: string
+          sentiment: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          experience_date?: string | null
+          experience_type: string
+          id?: string
+          location?: string | null
+          media_urls?: string[] | null
+          profile_id: string
+          sentiment?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          experience_date?: string | null
+          experience_type?: string
+          id?: string
+          location?: string | null
+          media_urls?: string[] | null
+          profile_id?: string
+          sentiment?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_experiences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_preferences: {
         Row: {
           created_at: string
@@ -621,6 +886,39 @@ export type Database = {
           theme?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      weekly_summaries: {
+        Row: {
+          generated_at: string
+          highlights: string[] | null
+          id: string
+          recommendations: string[] | null
+          summary_data: Json
+          user_id: string
+          week_end: string
+          week_start: string
+        }
+        Insert: {
+          generated_at?: string
+          highlights?: string[] | null
+          id?: string
+          recommendations?: string[] | null
+          summary_data: Json
+          user_id: string
+          week_end: string
+          week_start: string
+        }
+        Update: {
+          generated_at?: string
+          highlights?: string[] | null
+          id?: string
+          recommendations?: string[] | null
+          summary_data?: Json
+          user_id?: string
+          week_end?: string
+          week_start?: string
         }
         Relationships: []
       }

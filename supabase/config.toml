@@ -11,3 +11,18 @@ verify_jwt = true
 
 [functions.enrich-contact]
 verify_jwt = true
+
+[functions.generate-briefing]
+verify_jwt = true
+
+[functions.suggest-gifts]
+verify_jwt = true
+
+[functions.predict-risks]
+verify_jwt = true
+
+[functions.generate-weekly-summary]
+verify_jwt = true
+
+[functions.detect-interests]
+verify_jwt = true
