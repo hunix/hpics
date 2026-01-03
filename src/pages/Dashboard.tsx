@@ -9,6 +9,7 @@ import { DecayAlertWidget } from '@/components/dashboard/DecayAlertWidget';
 import { FollowUpSuggestions } from '@/components/dashboard/FollowUpSuggestions';
 import { RelationshipHealthWidget } from '@/components/dashboard/RelationshipHealthWidget';
 import { WeeklySummaryWidget } from '@/components/dashboard/WeeklySummaryWidget';
+import { IntroductionSuggestions } from '@/components/dashboard/IntroductionSuggestions';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -165,9 +166,10 @@ export default function Dashboard() {
           <RelationshipHealthWidget />
         </div>
 
-        {/* Weekly Summary */}
-        <div className="grid gap-6 md:grid-cols-2">
+        {/* Weekly Summary & Introduction Suggestions */}
+        <div className="grid gap-6 lg:grid-cols-2">
           <WeeklySummaryWidget />
+          <IntroductionSuggestions />
         </div>
 
         {/* AI Follow-up Suggestions */}
