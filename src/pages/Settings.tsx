@@ -11,11 +11,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Sun, Bell, Mail, Loader2, Smartphone, Link2, Bot } from 'lucide-react';
+import { Moon, Sun, Bell, Mail, Loader2, Smartphone, Link2, Bot, Cpu } from 'lucide-react';
 import { AnalyticsExport } from '@/components/analytics/AnalyticsExport';
 import { EmailIntegration } from '@/components/settings/EmailIntegration';
 import { PushNotifications } from '@/components/settings/PushNotifications';
 import { LocalAIEndpoints } from '@/components/settings/LocalAIEndpoints';
+import { AIModelPreferences } from '@/components/settings/AIModelPreferences';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -82,7 +83,7 @@ export default function Settings() {
   return (
     <AppLayout title="Settings">
       <Tabs defaultValue="general" className="max-w-4xl">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="general">
             <Sun className="h-4 w-4 mr-2" />
             General
@@ -95,7 +96,11 @@ export default function Settings() {
             <Link2 className="h-4 w-4 mr-2" />
             Integrations
           </TabsTrigger>
-          <TabsTrigger value="ai">
+          <TabsTrigger value="ai-models">
+            <Cpu className="h-4 w-4 mr-2" />
+            AI Models
+          </TabsTrigger>
+          <TabsTrigger value="local-ai">
             <Bot className="h-4 w-4 mr-2" />
             Local AI
           </TabsTrigger>
@@ -198,7 +203,11 @@ export default function Settings() {
           <EmailIntegration />
         </TabsContent>
 
-        <TabsContent value="ai" className="space-y-6 mt-6">
+        <TabsContent value="ai-models" className="space-y-6 mt-6">
+          <AIModelPreferences />
+        </TabsContent>
+
+        <TabsContent value="local-ai" className="space-y-6 mt-6">
           <LocalAIEndpoints />
         </TabsContent>
 
