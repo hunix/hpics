@@ -11,10 +11,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Sun, Bell, Mail, Loader2, Smartphone, Link2 } from 'lucide-react';
+import { Moon, Sun, Bell, Mail, Loader2, Smartphone, Link2, Bot } from 'lucide-react';
 import { AnalyticsExport } from '@/components/analytics/AnalyticsExport';
 import { EmailIntegration } from '@/components/settings/EmailIntegration';
 import { PushNotifications } from '@/components/settings/PushNotifications';
+import { LocalAIEndpoints } from '@/components/settings/LocalAIEndpoints';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -80,8 +81,8 @@ export default function Settings() {
 
   return (
     <AppLayout title="Settings">
-      <Tabs defaultValue="general" className="max-w-3xl">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="general" className="max-w-4xl">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="general">
             <Sun className="h-4 w-4 mr-2" />
             General
@@ -93,6 +94,10 @@ export default function Settings() {
           <TabsTrigger value="integrations">
             <Link2 className="h-4 w-4 mr-2" />
             Integrations
+          </TabsTrigger>
+          <TabsTrigger value="ai">
+            <Bot className="h-4 w-4 mr-2" />
+            Local AI
           </TabsTrigger>
           <TabsTrigger value="mobile">
             <Smartphone className="h-4 w-4 mr-2" />
@@ -191,6 +196,10 @@ export default function Settings() {
 
         <TabsContent value="integrations" className="space-y-6 mt-6">
           <EmailIntegration />
+        </TabsContent>
+
+        <TabsContent value="ai" className="space-y-6 mt-6">
+          <LocalAIEndpoints />
         </TabsContent>
 
         <TabsContent value="mobile" className="space-y-6 mt-6">
