@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/hooks/use-toast';
 import { Moon, Sun, Bell, Mail, Loader2 } from 'lucide-react';
+import { AnalyticsExport } from '@/components/analytics/AnalyticsExport';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -150,6 +151,8 @@ export default function Settings() {
             Save Settings
           </Button>
         </div>
+
+        <AnalyticsExport />
 
         <Card className="bg-muted/50">
           <CardContent className="py-4">
