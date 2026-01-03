@@ -38,3 +38,18 @@ verify_jwt = false
 
 [functions.calculate-relationship-scores]
 verify_jwt = false
+
+[functions.transcribe-audio]
+verify_jwt = false
+
+[functions.analyze-behavioral]
+verify_jwt = false
+
+[functions.analyze-facial]
+verify_jwt = false
+
+[functions.analyze-body-language]
+verify_jwt = false
+
+[functions.analyze-vocal]
+verify_jwt = false

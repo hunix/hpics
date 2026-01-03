@@ -14,7 +14,8 @@ import {
   ArrowLeft, Edit, Trash2, Star, Brain, 
   User, MessageSquare, Briefcase, GraduationCap,
   FileText, Image, Target, Gift, Heart, Clock,
-  Calendar, Sparkles, Users, ChevronRight, Building
+  Calendar, Sparkles, Users, ChevronRight, Building,
+  Mic, Eye, Activity, Volume2
 } from 'lucide-react';
 import { ContactDialog } from '@/components/contacts/ContactDialog';
 import { ContactMethodsManager } from '@/components/contacts/ContactMethodsManager';
@@ -35,16 +36,22 @@ import { MessageTemplates } from '@/components/contacts/MessageTemplates';
 import { ContactDocumentsManager } from '@/components/contacts/ContactDocumentsManager';
 import { ContactMediaManager } from '@/components/contacts/ContactMediaManager';
 import { ContactGroupSelector } from '@/components/contacts/ContactGroupSelector';
+import { RecordingsManager } from '@/components/recordings/RecordingsManager';
+import { BehavioralAnalysis } from '@/components/analysis/BehavioralAnalysis';
+import { FacialAnalysis } from '@/components/analysis/FacialAnalysis';
+import { BodyLanguageAnalysis } from '@/components/analysis/BodyLanguageAnalysis';
+import { VocalAnalysis } from '@/components/analysis/VocalAnalysis';
 import { cn } from '@/lib/utils';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Profile = Tables<'profiles'>;
 
 type SectionId = 
-  | 'overview' | 'contact' | 'documents' | 'media' 
+  | 'overview' | 'contact' | 'documents' | 'media' | 'recordings'
   | 'outreach' | 'templates' | 'briefing' 
   | 'interests' | 'gifts' | 'goals' | 'experiences' 
-  | 'education' | 'messages' | 'timeline' | 'groups' | 'enrich';
+  | 'education' | 'messages' | 'timeline' | 'groups' | 'enrich'
+  | 'behavioral' | 'facial' | 'body-language' | 'vocal';
 
 interface NavSection {
   id: SectionId;
@@ -58,10 +65,15 @@ const sections: NavSection[] = [
   { id: 'contact', label: 'Contact Methods', icon: MessageSquare, group: 'General' },
   { id: 'documents', label: 'Documents', icon: FileText, group: 'Files' },
   { id: 'media', label: 'Media', icon: Image, group: 'Files' },
+  { id: 'recordings', label: 'Recordings', icon: Mic, group: 'Files' },
   { id: 'outreach', label: 'Outreach Timing', icon: Clock, group: 'Communication' },
   { id: 'templates', label: 'Message Templates', icon: Sparkles, group: 'Communication' },
   { id: 'messages', label: 'Conversations', icon: MessageSquare, group: 'Communication' },
   { id: 'briefing', label: 'Meeting Briefing', icon: Calendar, group: 'AI Insights' },
+  { id: 'behavioral', label: 'Behavioral', icon: Brain, group: 'Analysis' },
+  { id: 'facial', label: 'Facial/Micro-Expressions', icon: Eye, group: 'Analysis' },
+  { id: 'body-language', label: 'Body Language', icon: Activity, group: 'Analysis' },
+  { id: 'vocal', label: 'Vocal Analysis', icon: Volume2, group: 'Analysis' },
   { id: 'interests', label: 'Interests', icon: Heart, group: 'Relationship' },
   { id: 'gifts', label: 'Gifts', icon: Gift, group: 'Relationship' },
   { id: 'goals', label: 'Goals', icon: Target, group: 'Relationship' },
@@ -72,7 +84,7 @@ const sections: NavSection[] = [
   { id: 'enrich', label: 'Enrichment', icon: Sparkles, group: 'Tools' },
 ];
 
-const groupOrder = ['General', 'Files', 'Communication', 'AI Insights', 'Relationship', 'Professional', 'History', 'Tools'];
+const groupOrder = ['General', 'Files', 'Communication', 'AI Insights', 'Analysis', 'Relationship', 'Professional', 'History', 'Tools'];
 
 export default function ContactDetail() {
   const { id } = useParams<{ id: string }>();
@@ -244,6 +256,16 @@ export default function ContactDetail() {
         return <ContactDocumentsManager profileId={contact.id} contactName={contactName} />;
       case 'media':
         return <ContactMediaManager profileId={contact.id} contactName={contactName} />;
+      case 'recordings':
+        return <RecordingsManager profileId={contact.id} profileName={contactName} />;
+      case 'behavioral':
+        return <BehavioralAnalysis profileId={contact.id} profileName={contactName} />;
+      case 'facial':
+        return <FacialAnalysis profileId={contact.id} profileName={contactName} />;
+      case 'body-language':
+        return <BodyLanguageAnalysis profileId={contact.id} profileName={contactName} />;
+      case 'vocal':
+        return <VocalAnalysis profileId={contact.id} profileName={contactName} />;
       case 'outreach':
         return <OptimalOutreach profileId={contact.id} contactName={contactName} />;
       case 'templates':
