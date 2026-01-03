@@ -49,6 +49,56 @@ export type Database = {
           },
         ]
       }
+      certifications: {
+        Row: {
+          created_at: string
+          credential_id: string | null
+          credential_url: string | null
+          expiration_date: string | null
+          id: string
+          issue_date: string | null
+          issuing_organization: string | null
+          linkedin_id: string | null
+          name: string
+          profile_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credential_id?: string | null
+          credential_url?: string | null
+          expiration_date?: string | null
+          id?: string
+          issue_date?: string | null
+          issuing_organization?: string | null
+          linkedin_id?: string | null
+          name: string
+          profile_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credential_id?: string | null
+          credential_url?: string | null
+          expiration_date?: string | null
+          id?: string
+          issue_date?: string | null
+          issuing_organization?: string | null
+          linkedin_id?: string | null
+          name?: string
+          profile_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certifications_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communications: {
         Row: {
           channel: Database["public"]["Enums"]["communication_channel"]
@@ -130,6 +180,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "contact_methods_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_skills: {
+        Row: {
+          created_at: string
+          endorsement_count: number | null
+          id: string
+          linkedin_id: string | null
+          proficiency_level: string | null
+          profile_id: string
+          skill_name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          endorsement_count?: number | null
+          id?: string
+          linkedin_id?: string | null
+          proficiency_level?: string | null
+          profile_id: string
+          skill_name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          endorsement_count?: number | null
+          id?: string
+          linkedin_id?: string | null
+          proficiency_level?: string | null
+          profile_id?: string
+          skill_name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_skills_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -224,6 +315,68 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "documents_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      education: {
+        Row: {
+          activities: string | null
+          created_at: string
+          degree_type: string | null
+          description: string | null
+          end_date: string | null
+          field_of_study: string | null
+          grade_or_gpa: string | null
+          id: string
+          institution_name: string
+          is_current: boolean | null
+          linkedin_id: string | null
+          profile_id: string
+          start_date: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activities?: string | null
+          created_at?: string
+          degree_type?: string | null
+          description?: string | null
+          end_date?: string | null
+          field_of_study?: string | null
+          grade_or_gpa?: string | null
+          id?: string
+          institution_name: string
+          is_current?: boolean | null
+          linkedin_id?: string | null
+          profile_id: string
+          start_date?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activities?: string | null
+          created_at?: string
+          degree_type?: string | null
+          description?: string | null
+          end_date?: string | null
+          field_of_study?: string | null
+          grade_or_gpa?: string | null
+          id?: string
+          institution_name?: string
+          is_current?: boolean | null
+          linkedin_id?: string | null
+          profile_id?: string
+          start_date?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "education_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -386,6 +539,7 @@ export type Database = {
           job_title: string | null
           last_contact_date: string | null
           last_name: string | null
+          linkedin_url: string | null
           nickname: string | null
           notes: string | null
           organization: string | null
@@ -406,6 +560,7 @@ export type Database = {
           job_title?: string | null
           last_contact_date?: string | null
           last_name?: string | null
+          linkedin_url?: string | null
           nickname?: string | null
           notes?: string | null
           organization?: string | null
@@ -426,6 +581,7 @@ export type Database = {
           job_title?: string | null
           last_contact_date?: string | null
           last_name?: string | null
+          linkedin_url?: string | null
           nickname?: string | null
           notes?: string | null
           organization?: string | null

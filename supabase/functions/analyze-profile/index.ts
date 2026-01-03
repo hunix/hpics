@@ -77,6 +77,25 @@ serve(async (req) => {
       allMessages = messages || [];
     }
 
+    // Fetch education data
+    const { data: education } = await supabase
+      .from("education")
+      .select("*")
+      .eq("profile_id", profileId)
+      .order("end_date", { ascending: false });
+
+    // Fetch certifications
+    const { data: certifications } = await supabase
+      .from("certifications")
+      .select("*")
+      .eq("profile_id", profileId);
+
+    // Fetch skills
+    const { data: skills } = await supabase
+      .from("contact_skills")
+      .select("*")
+      .eq("profile_id", profileId);
+
     // Build context for AI
     const context = {
       profile: {
@@ -87,7 +106,30 @@ serve(async (req) => {
         bio: profile.bio,
         notes: profile.notes,
         tags: profile.tags,
+        linkedInUrl: profile.linkedin_url,
       },
+      education: (education || []).map((e: any) => ({
+        institution: e.institution_name,
+        degree: e.degree_type,
+        field: e.field_of_study,
+        startDate: e.start_date,
+        endDate: e.end_date,
+        isCurrent: e.is_current,
+        gpa: e.grade_or_gpa,
+        activities: e.activities,
+        description: e.description,
+      })),
+      certifications: (certifications || []).map((c: any) => ({
+        name: c.name,
+        issuer: c.issuing_organization,
+        issueDate: c.issue_date,
+        expirationDate: c.expiration_date,
+      })),
+      skills: (skills || []).map((s: any) => ({
+        name: s.skill_name,
+        proficiency: s.proficiency_level,
+        endorsements: s.endorsement_count,
+      })),
       communications: (communications || []).map((c: any) => ({
         channel: c.channel,
         direction: c.direction,
