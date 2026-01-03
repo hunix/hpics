@@ -5,13 +5,18 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Grid3X3, 
   Loader2, 
   Image as ImageIcon,
   Clock,
   Layers,
-  Maximize2
+  Maximize2,
+  Save,
+  Check
 } from 'lucide-react';
 import { 
   generateTemporalMosaic, 
@@ -20,18 +25,62 @@ import {
   getModelSpec
 } from '@/lib/temporalMosaic';
 
+interface SavedMosaic {
+  id: string;
+  mosaic_url: string;
+  frame_count: number;
+  grid_cols: number;
+  grid_rows: number;
+  model_key: string;
+  frames_per_second: number;
+}
+
 interface MosaicPreviewProps {
   videoElement: HTMLVideoElement | null;
   modelKey: string;
+  mediaId: string;
+  profileId: string;
   onMosaicGenerated?: (mosaic: MosaicResult) => void;
+  onMosaicSelected?: (mosaicUrl: string | null) => void;
 }
 
-export function MosaicPreview({ videoElement, modelKey, onMosaicGenerated }: MosaicPreviewProps) {
+export function MosaicPreview({ 
+  videoElement, 
+  modelKey, 
+  mediaId, 
+  profileId,
+  onMosaicGenerated,
+  onMosaicSelected 
+}: MosaicPreviewProps) {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [targetFps, setTargetFps] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [progress, setProgress] = useState(0);
   const [generatedMosaic, setGeneratedMosaic] = useState<MosaicResult | null>(null);
   const [previewInfo, setPreviewInfo] = useState<ReturnType<typeof getMosaicPreviewInfo> | null>(null);
+  const [savedMosaics, setSavedMosaics] = useState<SavedMosaic[]>([]);
+  const [selectedSavedMosaic, setSelectedSavedMosaic] = useState<string | null>(null);
+
+  // Fetch existing mosaics for this media
+  useEffect(() => {
+    if (mediaId && user) {
+      fetchSavedMosaics();
+    }
+  }, [mediaId, user]);
+
+  const fetchSavedMosaics = async () => {
+    const { data, error } = await supabase
+      .from('video_mosaics')
+      .select('id, mosaic_url, frame_count, grid_cols, grid_rows, model_key, frames_per_second')
+      .eq('media_id', mediaId)
+      .order('created_at', { ascending: false });
+    
+    if (!error && data) {
+      setSavedMosaics(data);
+    }
+  };
 
   useEffect(() => {
     if (videoElement && videoElement.duration && videoElement.videoWidth) {
@@ -63,13 +112,89 @@ export function MosaicPreview({ videoElement, modelKey, onMosaicGenerated }: Mos
       );
       
       setGeneratedMosaic(mosaic);
+      setSelectedSavedMosaic(null);
       if (onMosaicGenerated) {
         onMosaicGenerated(mosaic);
       }
+      if (onMosaicSelected) {
+        onMosaicSelected(mosaic.imageDataUrl);
+      }
     } catch (error) {
       console.error('Failed to generate mosaic:', error);
+      toast({ title: 'Failed to generate mosaic', variant: 'destructive' });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleSaveMosaic = async () => {
+    if (!generatedMosaic || !user || !mediaId || !profileId) return;
+
+    setIsSaving(true);
+    try {
+      // Convert base64 to blob
+      const response = await fetch(generatedMosaic.imageDataUrl);
+      const blob = await response.blob();
+      
+      // Upload to storage
+      const fileName = `${user.id}/${mediaId}_${Date.now()}.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from('mosaics')
+        .upload(fileName, blob, { contentType: 'image/jpeg' });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('mosaics')
+        .getPublicUrl(fileName);
+
+      // Save to database
+      const { error: dbError } = await supabase
+        .from('video_mosaics')
+        .insert({
+          user_id: user.id,
+          media_id: mediaId,
+          profile_id: profileId,
+          mosaic_url: urlData.publicUrl,
+          frame_count: generatedMosaic.frameCount,
+          grid_cols: generatedMosaic.gridCols,
+          grid_rows: generatedMosaic.gridRows,
+          cell_width: generatedMosaic.cellWidth,
+          cell_height: generatedMosaic.cellHeight,
+          canvas_width: generatedMosaic.canvasWidth,
+          canvas_height: generatedMosaic.canvasHeight,
+          video_duration: generatedMosaic.videoDuration,
+          frames_per_second: generatedMosaic.framesPerSecond,
+          model_key: modelKey,
+          file_size: blob.size,
+        });
+
+      if (dbError) throw dbError;
+
+      toast({ title: 'Mosaic saved successfully' });
+      fetchSavedMosaics();
+    } catch (error: any) {
+      console.error('Failed to save mosaic:', error);
+      toast({ title: 'Failed to save mosaic', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSelectSavedMosaic = (mosaic: SavedMosaic) => {
+    setSelectedSavedMosaic(mosaic.id);
+    setGeneratedMosaic(null);
+    if (onMosaicSelected) {
+      onMosaicSelected(mosaic.mosaic_url);
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedSavedMosaic(null);
+    setGeneratedMosaic(null);
+    if (onMosaicSelected) {
+      onMosaicSelected(null);
     }
   };
 
@@ -98,6 +223,48 @@ export function MosaicPreview({ videoElement, modelKey, onMosaicGenerated }: Mos
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Saved mosaics */}
+        {savedMosaics.length > 0 && (
+          <div className="space-y-2">
+            <Label>Previously Saved Mosaics</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {savedMosaics.map((mosaic) => (
+                <button
+                  key={mosaic.id}
+                  onClick={() => handleSelectSavedMosaic(mosaic)}
+                  className={`p-2 border rounded-lg text-left transition-all ${
+                    selectedSavedMosaic === mosaic.id 
+                      ? 'ring-2 ring-primary bg-primary/5' 
+                      : 'hover:border-primary/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {selectedSavedMosaic === mosaic.id && (
+                      <Check className="h-4 w-4 text-primary" />
+                    )}
+                    <div>
+                      <p className="text-xs font-medium">{mosaic.frame_count} frames</p>
+                      <p className="text-xs text-muted-foreground">
+                        {mosaic.grid_cols}×{mosaic.grid_rows} • {mosaic.frames_per_second} fps
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+            {(selectedSavedMosaic || generatedMosaic) && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleClearSelection}
+                className="w-full"
+              >
+                Clear Selection (Use Video URL)
+              </Button>
+            )}
+          </div>
+        )}
+
         {/* Model specs */}
         <div className="p-3 bg-muted/50 rounded-lg space-y-2">
           <p className="text-sm font-medium">AI Model: {modelKey}</p>
@@ -182,7 +349,7 @@ export function MosaicPreview({ videoElement, modelKey, onMosaicGenerated }: Mos
           ) : (
             <>
               <Grid3X3 className="mr-2 h-4 w-4" />
-              Generate Mosaic
+              Generate New Mosaic
             </>
           )}
         </Button>
@@ -211,6 +378,24 @@ export function MosaicPreview({ videoElement, modelKey, onMosaicGenerated }: Mos
               {generatedMosaic.canvasWidth}×{generatedMosaic.canvasHeight}px • 
               {generatedMosaic.gridCols}×{generatedMosaic.gridRows} grid
             </p>
+            <Button 
+              onClick={handleSaveMosaic} 
+              disabled={isSaving}
+              variant="outline"
+              className="w-full"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Mosaic for Reuse
+                </>
+              )}
+            </Button>
           </div>
         )}
       </CardContent>
