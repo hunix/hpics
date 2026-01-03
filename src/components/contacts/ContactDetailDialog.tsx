@@ -15,12 +15,15 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Edit, Trash2, Star, MessageSquare, 
-  Calendar, Building, Briefcase, Brain, MessagesSquare, History
+  Calendar, Building, Briefcase, Brain, MessagesSquare, History, GraduationCap
 } from 'lucide-react';
 import { ContactDialog } from './ContactDialog';
 import { ContactMethodsManager } from './ContactMethodsManager';
 import { ConversationsManager } from '@/components/conversations/ConversationsManager';
 import { ContactTimeline } from './ContactTimeline';
+import { EducationManager } from './EducationManager';
+import { CertificationsManager } from './CertificationsManager';
+import { SkillsManager } from './SkillsManager';
 import { AIAnalysisPanel } from '@/components/ai/AIAnalysisPanel';
 import { formatDistanceToNow } from 'date-fns';
 import type { Tables } from '@/integrations/supabase/types';
@@ -218,8 +221,9 @@ export function ContactDetailDialog({ contact, open, onOpenChange }: ContactDeta
               <div className={`grid gap-6 ${showAIPanel ? 'lg:grid-cols-2' : ''}`}>
                 <div>
                   <Tabs defaultValue="contact">
-                    <TabsList className="grid w-full grid-cols-6">
+                    <TabsList className="grid w-full grid-cols-7">
                       <TabsTrigger value="contact">Contact</TabsTrigger>
+                      <TabsTrigger value="education">Education</TabsTrigger>
                       <TabsTrigger value="messages">Messages</TabsTrigger>
                       <TabsTrigger value="timeline">Timeline</TabsTrigger>
                       <TabsTrigger value="communications">Activity</TabsTrigger>
@@ -232,6 +236,14 @@ export function ContactDetailDialog({ contact, open, onOpenChange }: ContactDeta
                         profileId={contact.id} 
                         contactMethods={contactMethods || []} 
                       />
+                    </TabsContent>
+
+                    <TabsContent value="education" className="space-y-6 mt-4">
+                      <EducationManager profileId={contact.id} />
+                      <Separator />
+                      <CertificationsManager profileId={contact.id} />
+                      <Separator />
+                      <SkillsManager profileId={contact.id} />
                     </TabsContent>
 
                     <TabsContent value="messages" className="space-y-4 mt-4">

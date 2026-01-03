@@ -9,8 +9,14 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Network, ZoomIn, ZoomOut, RotateCcw, Maximize2, Star, Users } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { 
+  Network, ZoomIn, ZoomOut, RotateCcw, Star, Users, 
+  Download, Image, FileText, AlertTriangle, Clock 
+} from 'lucide-react';
 import * as d3 from 'd3';
+import { differenceInDays } from 'date-fns';
 
 interface NetworkNode {
   id: string;
@@ -21,6 +27,8 @@ interface NetworkNode {
   messageCount: number;
   eventCount: number;
   importance: number;
+  lastContactDate: Date | null;
+  decayLevel: number; // 0-100, higher = more decay (less recent contact)
   x?: number;
   y?: number;
   fx?: number | null;
@@ -41,29 +49,32 @@ export default function NetworkPage() {
   const [filter, setFilter] = useState<string>('all');
   const [minImportance, setMinImportance] = useState([0]);
   const [selectedNode, setSelectedNode] = useState<NetworkNode | null>(null);
+  const [showDecay, setShowDecay] = useState(true);
+  const [decayThreshold, setDecayThreshold] = useState([30]); // days without contact
   const simulationRef = useRef<d3.Simulation<NetworkNode, NetworkLink> | null>(null);
 
   const { data: networkData, isLoading } = useQuery({
     queryKey: ['network-data', user?.id],
     queryFn: async () => {
-      // Fetch profiles with counts
+      // Fetch profiles with last contact date
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, relationship_type, is_favorite')
+        .select('id, first_name, last_name, relationship_type, is_favorite, last_contact_date')
         .eq('user_id', user!.id);
 
       if (!profiles || profiles.length === 0) return { nodes: [], links: [] };
 
-      // Fetch communications count per profile
-      const { data: commCounts } = await supabase
+      // Fetch communications with dates
+      const { data: commData } = await supabase
         .from('communications')
-        .select('profile_id')
-        .eq('user_id', user!.id);
+        .select('profile_id, occurred_at')
+        .eq('user_id', user!.id)
+        .order('occurred_at', { ascending: false });
 
       // Fetch message counts per profile
       const { data: msgCounts } = await supabase
         .from('messages')
-        .select('conversation_id, conversations!inner(profile_id)')
+        .select('conversation_id, sent_at, conversations!inner(profile_id)')
         .eq('user_id', user!.id);
 
       // Fetch event counts per profile
@@ -72,17 +83,35 @@ export default function NetworkPage() {
         .select('profile_id')
         .eq('user_id', user!.id);
 
-      // Count occurrences
-      const commByProfile = new Map<string, number>();
-      commCounts?.forEach((c) => {
-        commByProfile.set(c.profile_id, (commByProfile.get(c.profile_id) || 0) + 1);
+      // Count occurrences and find last contact
+      const commByProfile = new Map<string, { count: number; lastDate: Date | null }>();
+      commData?.forEach((c) => {
+        const existing = commByProfile.get(c.profile_id);
+        const date = new Date(c.occurred_at);
+        if (existing) {
+          existing.count++;
+          if (!existing.lastDate || date > existing.lastDate) {
+            existing.lastDate = date;
+          }
+        } else {
+          commByProfile.set(c.profile_id, { count: 1, lastDate: date });
+        }
       });
 
-      const msgByProfile = new Map<string, number>();
+      const msgByProfile = new Map<string, { count: number; lastDate: Date | null }>();
       msgCounts?.forEach((m) => {
         const profileId = (m.conversations as any)?.profile_id;
         if (profileId) {
-          msgByProfile.set(profileId, (msgByProfile.get(profileId) || 0) + 1);
+          const existing = msgByProfile.get(profileId);
+          const date = new Date(m.sent_at);
+          if (existing) {
+            existing.count++;
+            if (!existing.lastDate || date > existing.lastDate) {
+              existing.lastDate = date;
+            }
+          } else {
+            msgByProfile.set(profileId, { count: 1, lastDate: date });
+          }
         }
       });
 
@@ -93,15 +122,30 @@ export default function NetworkPage() {
         }
       });
 
-      // Build nodes
+      // Build nodes with decay calculation
+      const now = new Date();
       const nodes: NetworkNode[] = profiles.map((p) => {
-        const commCount = commByProfile.get(p.id) || 0;
-        const msgCount = msgByProfile.get(p.id) || 0;
+        const commInfo = commByProfile.get(p.id) || { count: 0, lastDate: null };
+        const msgInfo = msgByProfile.get(p.id) || { count: 0, lastDate: null };
         const eventCount = eventByProfile.get(p.id) || 0;
         
+        // Calculate last contact date
+        const dates = [commInfo.lastDate, msgInfo.lastDate, p.last_contact_date ? new Date(p.last_contact_date) : null]
+          .filter(Boolean) as Date[];
+        const lastContactDate = dates.length > 0 ? new Date(Math.max(...dates.map(d => d.getTime()))) : null;
+
+        // Calculate decay level (0-100, higher = more decay)
+        let decayLevel = 0;
+        if (lastContactDate) {
+          const daysSinceContact = differenceInDays(now, lastContactDate);
+          decayLevel = Math.min(100, Math.round((daysSinceContact / 90) * 100)); // Full decay after 90 days
+        } else {
+          decayLevel = 100; // No contact history = full decay
+        }
+
         // Calculate importance score (0-100)
         const importance = Math.min(100, Math.round(
-          (commCount * 5) + (msgCount * 0.5) + (eventCount * 10) + (p.is_favorite ? 20 : 0)
+          (commInfo.count * 5) + (msgInfo.count * 0.5) + (eventCount * 10) + (p.is_favorite ? 20 : 0)
         ));
 
         return {
@@ -109,14 +153,16 @@ export default function NetworkPage() {
           name: `${p.first_name} ${p.last_name || ''}`.trim(),
           type: p.relationship_type || 'other',
           isFavorite: p.is_favorite || false,
-          communicationCount: commCount,
-          messageCount: msgCount,
+          communicationCount: commInfo.count,
+          messageCount: msgInfo.count,
           eventCount: eventCount,
           importance,
+          lastContactDate,
+          decayLevel,
         };
       });
 
-      // Build links - connect nodes of same relationship type
+      // Build links
       const links: NetworkLink[] = [];
       const typeGroups = new Map<string, NetworkNode[]>();
       
@@ -130,7 +176,6 @@ export default function NetworkPage() {
       typeGroups.forEach((group, type) => {
         for (let i = 0; i < group.length; i++) {
           for (let j = i + 1; j < group.length; j++) {
-            // Weight based on combined importance
             const weight = (group[i].importance + group[j].importance) / 200;
             if (weight > 0.1) {
               links.push({
@@ -144,7 +189,7 @@ export default function NetworkPage() {
         }
       });
 
-      // Connect favorites to each other
+      // Connect favorites
       const favorites = nodes.filter((n) => n.isFavorite);
       for (let i = 0; i < favorites.length; i++) {
         for (let j = i + 1; j < favorites.length; j++) {
@@ -174,6 +219,11 @@ export default function NetworkPage() {
     favorite: '#fbbf24',
   };
 
+  const getDecayOpacity = (decayLevel: number) => {
+    if (!showDecay) return 1;
+    return Math.max(0.3, 1 - (decayLevel / 150)); // Min opacity 0.3
+  };
+
   const drawNetwork = useCallback(() => {
     if (!svgRef.current || !containerRef.current || !networkData) return;
 
@@ -193,7 +243,6 @@ export default function NetworkPage() {
              nodeIds.has(typeof l.target === 'string' ? l.target : l.target.id)
     );
 
-    // Clear previous
     d3.select(svgRef.current).selectAll('*').remove();
 
     const svg = d3.select(svgRef.current)
@@ -201,7 +250,6 @@ export default function NetworkPage() {
       .attr('height', height)
       .attr('viewBox', [0, 0, width, height]);
 
-    // Add zoom behavior
     const g = svg.append('g');
     
     const zoom = d3.zoom<SVGSVGElement, unknown>()
@@ -212,7 +260,6 @@ export default function NetworkPage() {
 
     svg.call(zoom);
 
-    // Create simulation
     const simulation = d3.forceSimulation<NetworkNode>(filteredNodes)
       .force('link', d3.forceLink<NetworkNode, NetworkLink>(filteredLinks)
         .id((d) => d.id)
@@ -224,16 +271,21 @@ export default function NetworkPage() {
 
     simulationRef.current = simulation;
 
-    // Draw links
+    // Draw links with decay effect
     const link = g.append('g')
       .selectAll('line')
       .data(filteredLinks)
       .join('line')
       .attr('stroke', (d) => relationshipColors[d.type] || '#999')
-      .attr('stroke-opacity', 0.4)
+      .attr('stroke-opacity', (d) => {
+        const sourceNode = filteredNodes.find(n => n.id === (typeof d.source === 'string' ? d.source : d.source.id));
+        const targetNode = filteredNodes.find(n => n.id === (typeof d.target === 'string' ? d.target : d.target.id));
+        const avgDecay = ((sourceNode?.decayLevel || 0) + (targetNode?.decayLevel || 0)) / 2;
+        return 0.4 * getDecayOpacity(avgDecay);
+      })
       .attr('stroke-width', (d) => Math.max(1, d.weight * 4));
 
-    // Draw nodes
+    // Draw nodes with decay effect
     const node = g.append('g')
       .selectAll('g')
       .data(filteredNodes)
@@ -255,12 +307,25 @@ export default function NetworkPage() {
           d.fy = null;
         }));
 
-    // Node circles
+    // Node circles with decay opacity
     node.append('circle')
       .attr('r', (d) => 10 + (d.importance / 10))
       .attr('fill', (d) => relationshipColors[d.type] || '#999')
+      .attr('fill-opacity', (d) => getDecayOpacity(d.decayLevel))
       .attr('stroke', (d) => d.isFavorite ? '#fbbf24' : '#fff')
       .attr('stroke-width', (d) => d.isFavorite ? 3 : 2);
+
+    // Decay warning indicator
+    if (showDecay) {
+      node.filter((d) => d.decayLevel > 50)
+        .append('circle')
+        .attr('r', 5)
+        .attr('cx', (d) => 8 + (d.importance / 20))
+        .attr('cy', (d) => -8 - (d.importance / 20))
+        .attr('fill', (d) => d.decayLevel > 75 ? '#ef4444' : '#f97316')
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 1);
+    }
 
     // Node labels
     node.append('text')
@@ -269,6 +334,7 @@ export default function NetworkPage() {
       .attr('y', (d) => -(15 + (d.importance / 10)))
       .attr('text-anchor', 'middle')
       .attr('fill', 'currentColor')
+      .attr('fill-opacity', (d) => getDecayOpacity(d.decayLevel))
       .attr('font-size', '11px')
       .attr('font-weight', (d) => d.isFavorite ? 'bold' : 'normal');
 
@@ -281,7 +347,6 @@ export default function NetworkPage() {
       .attr('fill', '#fbbf24')
       .attr('font-size', '12px');
 
-    // Click handler
     node.on('click', (event, d) => {
       event.stopPropagation();
       setSelectedNode(d);
@@ -289,7 +354,6 @@ export default function NetworkPage() {
 
     svg.on('click', () => setSelectedNode(null));
 
-    // Update positions on tick
     simulation.on('tick', () => {
       link
         .attr('x1', (d) => (d.source as NetworkNode).x!)
@@ -300,7 +364,7 @@ export default function NetworkPage() {
       node.attr('transform', (d) => `translate(${d.x},${d.y})`);
     });
 
-  }, [networkData, filter, minImportance]);
+  }, [networkData, filter, minImportance, showDecay]);
 
   useEffect(() => {
     drawNetwork();
@@ -334,7 +398,55 @@ export default function NetworkPage() {
     drawNetwork();
   };
 
+  const handleExportPNG = () => {
+    if (!svgRef.current) return;
+    
+    const svgData = new XMLSerializer().serializeToString(svgRef.current);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new window.Image();
+    
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx?.drawImage(img, 0, 0);
+      const link = document.createElement('a');
+      link.download = 'relationship-network.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    };
+    
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+  };
+
+  const handleExportCSV = () => {
+    if (!networkData) return;
+    
+    const headers = ['Name', 'Relationship Type', 'Importance', 'Communications', 'Messages', 'Events', 'Decay Level', 'Favorite'];
+    const rows = networkData.nodes.map(n => [
+      n.name,
+      n.type,
+      n.importance,
+      n.communicationCount,
+      n.messageCount,
+      n.eventCount,
+      n.decayLevel,
+      n.isFavorite ? 'Yes' : 'No'
+    ]);
+    
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const link = document.createElement('a');
+    link.download = 'relationship-network.csv';
+    link.href = URL.createObjectURL(blob);
+    link.click();
+  };
+
   const relationshipTypes = ['family', 'friend', 'colleague', 'client', 'mentor', 'mentee', 'acquaintance', 'other'];
+
+  const needsAttention = networkData?.nodes.filter(n => 
+    (n.isFavorite && n.decayLevel > 50) || n.decayLevel > 75
+  ) || [];
 
   return (
     <AppLayout title="Relationship Network">
@@ -343,10 +455,16 @@ export default function NetworkPage() {
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div>
             <p className="text-muted-foreground">
-              Visualize your relationship network with importance weights and connections
+              Visualize your relationship network with importance weights, decay indicators, and connections
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleExportPNG}>
+              <Image className="h-4 w-4 mr-1" /> PNG
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportCSV}>
+              <FileText className="h-4 w-4 mr-1" /> CSV
+            </Button>
             <Button variant="outline" size="icon" onClick={handleZoomIn}>
               <ZoomIn className="h-4 w-4" />
             </Button>
@@ -363,11 +481,11 @@ export default function NetworkPage() {
           {/* Controls */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Filters</CardTitle>
+              <CardTitle className="text-base">Filters & Options</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Relationship Type</label>
+                <Label>Relationship Type</Label>
                 <Select value={filter} onValueChange={setFilter}>
                   <SelectTrigger>
                     <SelectValue />
@@ -384,15 +502,28 @@ export default function NetworkPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  Minimum Importance: {minImportance[0]}%
-                </label>
+                <Label>Minimum Importance: {minImportance[0]}%</Label>
                 <Slider
                   value={minImportance}
                   onValueChange={setMinImportance}
                   max={100}
                   step={5}
                 />
+              </div>
+
+              <div className="pt-4 border-t space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="show-decay" className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Relationship Decay
+                  </Label>
+                  <Switch id="show-decay" checked={showDecay} onCheckedChange={setShowDecay} />
+                </div>
+                {showDecay && (
+                  <p className="text-xs text-muted-foreground">
+                    Fading nodes indicate less recent contact. Orange/red dots warn of relationship decay.
+                  </p>
+                )}
               </div>
 
               <div className="pt-4 border-t space-y-2">
@@ -415,6 +546,7 @@ export default function NetworkPage() {
                 <div className="space-y-1 text-sm text-muted-foreground">
                   <p><Users className="h-4 w-4 inline mr-1" /> {networkData?.nodes.length || 0} contacts</p>
                   <p><Star className="h-4 w-4 inline mr-1" /> {networkData?.nodes.filter((n) => n.isFavorite).length || 0} favorites</p>
+                  <p><AlertTriangle className="h-4 w-4 inline mr-1" /> {needsAttention.length} need attention</p>
                 </div>
               </div>
             </CardContent>
@@ -428,7 +560,7 @@ export default function NetworkPage() {
                 Network Graph
               </CardTitle>
               <CardDescription>
-                Drag nodes to rearrange. Scroll to zoom. Click a node for details.
+                Drag nodes to rearrange. Scroll to zoom. Fading = relationship decay.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -446,7 +578,6 @@ export default function NetworkPage() {
                 <div ref={containerRef} className="relative">
                   <svg ref={svgRef} className="w-full border rounded-lg bg-muted/20" />
                   
-                  {/* Selected Node Panel */}
                   {selectedNode && (
                     <div className="absolute top-4 right-4 w-64 bg-card border rounded-lg p-4 shadow-lg">
                       <h3 className="font-semibold flex items-center gap-2">
@@ -464,6 +595,9 @@ export default function NetworkPage() {
                         <p>Communications: {selectedNode.communicationCount}</p>
                         <p>Messages: {selectedNode.messageCount}</p>
                         <p>Events: {selectedNode.eventCount}</p>
+                        <p className={selectedNode.decayLevel > 50 ? 'text-orange-500' : ''}>
+                          Decay: {selectedNode.decayLevel}%
+                        </p>
                       </div>
                       <Button 
                         variant="outline" 
@@ -532,24 +666,26 @@ export default function NetworkPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className={needsAttention.length > 0 ? 'border-orange-500/50' : ''}>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Needs Attention</CardTitle>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <AlertTriangle className={`h-4 w-4 ${needsAttention.length > 0 ? 'text-orange-500' : ''}`} />
+                  Needs Attention
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {networkData.nodes
-                    .filter((n) => n.isFavorite && n.importance < 30)
-                    .slice(0, 5)
-                    .map((node) => (
-                      <div key={node.id} className="flex items-center justify-between">
-                        <span className="text-sm truncate">{node.name}</span>
-                        <Badge variant="destructive">Low activity</Badge>
-                      </div>
-                    ))}
-                  {networkData.nodes.filter((n) => n.isFavorite && n.importance < 30).length === 0 && (
+                  {needsAttention.slice(0, 5).map((node) => (
+                    <div key={node.id} className="flex items-center justify-between">
+                      <span className="text-sm truncate">{node.name}</span>
+                      <Badge variant={node.decayLevel > 75 ? "destructive" : "secondary"}>
+                        {node.decayLevel}% decay
+                      </Badge>
+                    </div>
+                  ))}
+                  {needsAttention.length === 0 && (
                     <p className="text-sm text-muted-foreground">
-                      All favorites are well-maintained!
+                      All relationships are well-maintained! 🎉
                     </p>
                   )}
                 </div>
