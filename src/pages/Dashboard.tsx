@@ -7,6 +7,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { formatDistanceToNow } from 'date-fns';
 import { DecayAlertWidget } from '@/components/dashboard/DecayAlertWidget';
 import { FollowUpSuggestions } from '@/components/dashboard/FollowUpSuggestions';
+import { RelationshipHealthWidget } from '@/components/dashboard/RelationshipHealthWidget';
+import { WeeklySummaryWidget } from '@/components/dashboard/WeeklySummaryWidget';
+
 export default function Dashboard() {
   const { user } = useAuth();
 
@@ -157,6 +160,14 @@ export default function Dashboard() {
 
           {/* Decay Alert Widget */}
           <DecayAlertWidget />
+
+          {/* Relationship Health */}
+          <RelationshipHealthWidget />
+        </div>
+
+        {/* Weekly Summary */}
+        <div className="grid gap-6 md:grid-cols-2">
+          <WeeklySummaryWidget />
         </div>
 
         {/* AI Follow-up Suggestions */}
