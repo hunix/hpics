@@ -11,12 +11,14 @@ import { Slider } from '@/components/ui/slider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Network, ZoomIn, ZoomOut, RotateCcw, Star, Users, 
-  Download, Image, FileText, AlertTriangle, Clock 
+  Download, Image, FileText, AlertTriangle, Clock, GitBranch
 } from 'lucide-react';
 import * as d3 from 'd3';
 import { differenceInDays } from 'date-fns';
+import { FamilyTreeGraph } from '@/components/network/FamilyTreeGraph';
 
 interface NetworkNode {
   id: string;
@@ -450,14 +452,45 @@ export default function NetworkPage() {
 
   return (
     <AppLayout title="Relationship Network">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <div>
-            <p className="text-muted-foreground">
-              Visualize your relationship network with importance weights, decay indicators, and connections
-            </p>
-          </div>
+      <Tabs defaultValue="network" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="network" className="flex items-center gap-2">
+            <Network className="h-4 w-4" />
+            Full Network
+          </TabsTrigger>
+          <TabsTrigger value="family" className="flex items-center gap-2">
+            <GitBranch className="h-4 w-4" />
+            Family Tree
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="network">
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <div>
+                <p className="text-muted-foreground">
+                  Visualize your relationship network with importance weights, decay indicators, and connections
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={handleExportPNG}>
+                  <Image className="h-4 w-4 mr-1" /> PNG
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleExportCSV}>
+                  <FileText className="h-4 w-4 mr-1" /> CSV
+                </Button>
+                <Button variant="outline" size="icon" onClick={handleZoomIn}>
+                  <ZoomIn className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="icon" onClick={handleZoomOut}>
+                  <ZoomOut className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="icon" onClick={handleReset}>
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={handleExportPNG}>
               <Image className="h-4 w-4 mr-1" /> PNG
@@ -693,7 +726,12 @@ export default function NetworkPage() {
             </Card>
           </div>
         )}
-      </div>
+        </TabsContent>
+
+        <TabsContent value="family">
+          <FamilyTreeGraph />
+        </TabsContent>
+      </Tabs>
     </AppLayout>
   );
 }
