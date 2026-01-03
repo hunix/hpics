@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/AppLayout';
@@ -8,15 +8,15 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { useAIConfirmationContext } from '@/contexts/AIConfirmationContext';
 import { useAIModelPreference } from '@/hooks/useAIModelPreference';
-import { calculateCostCents } from '@/lib/aiPricing';
+import { useAnalysisSession, AnalysisType } from '@/hooks/useAnalysisSession';
 import { VideoPreviewPlayer } from '@/components/video/VideoPreviewPlayer';
 import { MosaicPreview } from '@/components/video/MosaicPreview';
+import { AnalysisMonitor } from '@/components/video/AnalysisMonitor';
+import { AnalysisExport } from '@/components/video/AnalysisExport';
 import { MosaicResult } from '@/lib/temporalMosaic';
 import { 
   Video, 
@@ -26,23 +26,14 @@ import {
   AudioLines, 
   Loader2, 
   Play,
-  CheckCircle,
   Clock,
   User,
   Film,
   AlertTriangle,
-  Grid3X3
+  Grid3X3,
+  FileText
 } from 'lucide-react';
 import { format } from 'date-fns';
-
-type AnalysisType = 'behavioral' | 'facial' | 'body_language' | 'vocal';
-
-interface AnalysisJob {
-  id: string;
-  type: AnalysisType;
-  status: 'pending' | 'processing' | 'completed' | 'error';
-  progress: number;
-}
 
 interface MediaFile {
   id: string;
@@ -56,7 +47,6 @@ export default function VideoAnalysis() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { requestConfirmation, updateLogWithResult } = useAIConfirmationContext();
   
   const behavioralModel = useAIModelPreference('analyze-behavioral');
   const facialModel = useAIModelPreference('analyze-facial');
@@ -65,9 +55,7 @@ export default function VideoAnalysis() {
   
   const [selectedContact, setSelectedContact] = useState<string>('');
   const [selectedVideo, setSelectedVideo] = useState<string>('');
-  const [analysisType, setAnalysisType] = useState<'screening' | 'interview'>('screening');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [runningAnalyses, setRunningAnalyses] = useState<AnalysisJob[]>([]);
+  const [contextType, setContextType] = useState<'screening' | 'interview'>('screening');
   const [selectedAnalysisTypes, setSelectedAnalysisTypes] = useState<AnalysisType[]>([]);
   const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
   const [generatedMosaic, setGeneratedMosaic] = useState<MosaicResult | null>(null);
@@ -139,6 +127,9 @@ export default function VideoAnalysis() {
     enabled: !!user,
   });
 
+  const selectedVideoInfo = contactVideos?.find(v => v.id === selectedVideo);
+  const selectedContactInfo = contacts?.find(c => c.id === selectedContact);
+
   const getModelForType = (type: AnalysisType): string => {
     switch (type) {
       case 'behavioral': return behavioralModel;
@@ -148,115 +139,30 @@ export default function VideoAnalysis() {
     }
   };
 
-  const runAnalysis = async (type: AnalysisType, mediaUrl: string, logId: string, useMosaic: boolean) => {
-    const jobId = `${type}-${Date.now()}`;
-    setRunningAnalyses(prev => [...prev, { id: jobId, type, status: 'processing', progress: 0 }]);
-    const startTime = Date.now();
-
-    try {
-      const endpoints: Record<AnalysisType, string> = {
-        behavioral: 'analyze-behavioral',
-        facial: 'analyze-facial',
-        body_language: 'analyze-body-language',
-        vocal: 'analyze-vocal',
-      };
-
-      const response = await supabase.functions.invoke(endpoints[type], {
-        body: {
-          profileId: selectedContact,
-          videoUrl: useMosaic ? undefined : mediaUrl,
-          mosaicUrl: useMosaic ? mediaUrl : undefined,
-          analysisType,
-          useMosaic,
-        },
-      });
-
-      const responseTime = Date.now() - startTime;
-
-      if (response.error) {
-        await updateLogWithResult(logId, {
-          status: 'failed',
-          errorMessage: response.error.message,
-          responseTimeMs: responseTime,
-        });
-        throw response.error;
-      }
-
-      await updateLogWithResult(logId, {
-        status: 'completed',
-        responseTimeMs: responseTime,
-        actualCostCents: calculateCostCents(getModelForType(type), 3000, 1500),
-      });
-
-      setRunningAnalyses(prev => 
-        prev.map(job => job.id === jobId ? { ...job, status: 'completed', progress: 100 } : job)
-      );
-
-      queryClient.invalidateQueries({ queryKey: ['recent-analyses'] });
-      toast({ title: `${type.replace('_', ' ')} analysis completed` });
-    } catch (error: any) {
-      setRunningAnalyses(prev => 
-        prev.map(job => job.id === jobId ? { ...job, status: 'error', progress: 0 } : job)
-      );
-      toast({ title: 'Analysis failed', description: error.message, variant: 'destructive' });
-    }
-  };
-
-  const handleAnalyze = async () => {
-    if (!selectedVideo || !selectedContact || selectedAnalysisTypes.length === 0) {
-      toast({ title: 'Missing data', description: 'Please select a contact, video, and analysis types', variant: 'destructive' });
-      return;
-    }
-
-    const videoFile = contactVideos?.find(v => v.id === selectedVideo);
-    if (!videoFile) return;
-
-    // Request confirmation for each analysis
-    const approvedAnalyses: { type: AnalysisType; logId: string }[] = [];
-    
-    for (const analysisTypeItem of selectedAnalysisTypes) {
-      const contact = contacts?.find(c => c.id === selectedContact);
-      const contactName = contact ? `${contact.first_name} ${contact.last_name}` : 'Unknown';
-      const modeLabel = analysisMode === 'mosaic' ? 'temporal mosaic' : 'video/audio';
-      const promptText = `Running ${analysisTypeItem.replace('_', ' ')} analysis on ${modeLabel} for ${contactName}. This will analyze behavioral patterns, expressions, and communication style.`;
-      
-      const { approved, logId } = await requestConfirmation({
-        functionName: `analyze-${analysisTypeItem.replace('_', '-')}`,
-        modelKey: getModelForType(analysisTypeItem),
-        promptText,
-        profileId: selectedContact,
-      });
-      
-      if (approved && logId) {
-        approvedAnalyses.push({ type: analysisTypeItem, logId });
-      }
-    }
-
-    if (approvedAnalyses.length === 0) {
-      toast({ title: 'Cancelled', description: 'No analyses were approved' });
-      return;
-    }
-
-    setIsAnalyzing(true);
-
-    try {
-      // Use mosaic URL if selected, otherwise use video URL
-      const mediaUrl = analysisMode === 'mosaic' && selectedMosaicUrl 
-        ? selectedMosaicUrl 
-        : videoFile.file_url;
-      const useMosaic = analysisMode === 'mosaic' && !!selectedMosaicUrl;
-      
-      for (const { type, logId } of approvedAnalyses) {
-        await runAnalysis(type, mediaUrl, logId, useMosaic);
-      }
-
-      toast({ title: 'Analyses complete' });
-    } catch (error: any) {
-      toast({ title: 'Analysis failed', description: error.message, variant: 'destructive' });
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
+  // Initialize analysis session hook
+  const {
+    session,
+    elapsedTime,
+    currentCostEstimate,
+    start: startSession,
+    pause: pauseSession,
+    resume: resumeSession,
+    skipJob,
+    retryJob,
+    reset: resetSession,
+    isRunning,
+    isPaused,
+    isCompleted,
+  } = useAnalysisSession({
+    profileId: selectedContact,
+    mediaId: selectedVideo,
+    mediaUrl: selectedVideoInfo?.file_url || '',
+    mosaicUrl: selectedMosaicUrl,
+    analysisMode,
+    contextType,
+    selectedTypes: selectedAnalysisTypes,
+    getModelForType,
+  });
 
   const analysisOptions = [
     { type: 'behavioral' as AnalysisType, label: 'Behavioral Analysis', icon: Brain, description: 'Personality indicators, behavioral patterns, decision-making style' },
@@ -270,9 +176,6 @@ export default function VideoAnalysis() {
       prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
     );
   };
-
-  const selectedVideoInfo = contactVideos?.find(v => v.id === selectedVideo);
-  const contactName = contacts?.find(c => c.id === selectedContact);
 
   return (
     <AppLayout title="Video Analysis">
@@ -346,7 +249,7 @@ export default function VideoAnalysis() {
                     <div className="p-4 border rounded-lg bg-muted/50 text-center">
                       <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                       <p className="text-sm text-muted-foreground">
-                        No videos found in {contactName?.first_name}'s media library.
+                        No videos found in {selectedContactInfo?.first_name}'s media library.
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
                         Upload videos in the contact's Media section first.
@@ -381,7 +284,7 @@ export default function VideoAnalysis() {
               {/* Analysis Type */}
               <div className="space-y-2">
                 <Label>Context Type</Label>
-                <Select value={analysisType} onValueChange={(v: 'screening' | 'interview') => setAnalysisType(v)}>
+                <Select value={contextType} onValueChange={(v: 'screening' | 'interview') => setContextType(v)}>
                   <SelectTrigger className="w-48">
                     <SelectValue />
                   </SelectTrigger>
@@ -447,55 +350,58 @@ export default function VideoAnalysis() {
                 </div>
               )}
 
-              <Button 
-                onClick={handleAnalyze}
-                disabled={isAnalyzing || !selectedVideo || !selectedContact || selectedAnalysisTypes.length === 0}
-                className="w-full"
-                size="lg"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <Play className="mr-2 h-4 w-4" />
-                    Start Analysis ({selectedAnalysisTypes.length} selected)
-                  </>
+              {/* Start/Export buttons */}
+              <div className="flex gap-2">
+                <Button 
+                  onClick={startSession}
+                  disabled={isRunning || !selectedVideo || !selectedContact || selectedAnalysisTypes.length === 0}
+                  className="flex-1"
+                  size="lg"
+                >
+                  {isRunning ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="mr-2 h-4 w-4" />
+                      Start Analysis ({selectedAnalysisTypes.length} selected)
+                    </>
+                  )}
+                </Button>
+                
+                {isCompleted && selectedContactInfo && (
+                  <AnalysisExport
+                    profileId={selectedContact}
+                    contactName={`${selectedContactInfo.first_name} ${selectedContactInfo.last_name || ''}`}
+                    contactOrganization={selectedContactInfo.organization || undefined}
+                    contactJobTitle={selectedContactInfo.job_title || undefined}
+                    analysisMode={analysisMode}
+                    contextType={contextType}
+                    totalDuration={session?.totalDurationMs || 0}
+                    totalCost={session?.totalCostCents || 0}
+                  />
                 )}
-              </Button>
+              </div>
             </CardContent>
           </Card>
 
-          {runningAnalyses.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Analysis Progress</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {runningAnalyses.map((job) => (
-                  <div key={job.id} className="flex items-center gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium capitalize">
-                          {job.type.replace('_', ' ')} Analysis
-                        </span>
-                        <Badge variant={
-                          job.status === 'completed' ? 'default' :
-                          job.status === 'error' ? 'destructive' : 'secondary'
-                        }>
-                          {job.status === 'completed' && <CheckCircle className="h-3 w-3 mr-1" />}
-                          {job.status === 'processing' && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
-                          {job.status}
-                        </Badge>
-                      </div>
-                      <Progress value={job.status === 'completed' ? 100 : job.status === 'processing' ? 50 : 0} />
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+          {/* Analysis Monitor */}
+          {session && (
+            <AnalysisMonitor
+              session={session}
+              elapsedTime={elapsedTime}
+              currentCostEstimate={currentCostEstimate}
+              isRunning={isRunning}
+              isPaused={isPaused}
+              onStart={startSession}
+              onPause={pauseSession}
+              onResume={resumeSession}
+              onSkipJob={skipJob}
+              onRetryJob={retryJob}
+              onReset={resetSession}
+            />
           )}
         </div>
 

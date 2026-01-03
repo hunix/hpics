@@ -157,6 +157,146 @@ export type Database = {
           },
         ]
       }
+      analysis_jobs: {
+        Row: {
+          actual_cost_cents: number | null
+          analysis_type: string
+          completed_at: string | null
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          estimated_cost_cents: number | null
+          id: string
+          input_tokens: number | null
+          model_key: string
+          output_tokens: number | null
+          progress: number | null
+          result_id: string | null
+          session_id: string
+          started_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          actual_cost_cents?: number | null
+          analysis_type: string
+          completed_at?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          estimated_cost_cents?: number | null
+          id?: string
+          input_tokens?: number | null
+          model_key: string
+          output_tokens?: number | null
+          progress?: number | null
+          result_id?: string | null
+          session_id: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          actual_cost_cents?: number | null
+          analysis_type?: string
+          completed_at?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          estimated_cost_cents?: number | null
+          id?: string
+          input_tokens?: number | null
+          model_key?: string
+          output_tokens?: number | null
+          progress?: number | null
+          result_id?: string | null
+          session_id?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_jobs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analysis_sessions: {
+        Row: {
+          analysis_mode: string
+          completed_at: string | null
+          context_type: string
+          created_at: string
+          id: string
+          media_id: string
+          media_url: string
+          mosaic_url: string | null
+          profile_id: string
+          started_at: string | null
+          status: string
+          total_cost_cents: number | null
+          total_duration_ms: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis_mode?: string
+          completed_at?: string | null
+          context_type?: string
+          created_at?: string
+          id?: string
+          media_id: string
+          media_url: string
+          mosaic_url?: string | null
+          profile_id: string
+          started_at?: string | null
+          status?: string
+          total_cost_cents?: number | null
+          total_duration_ms?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis_mode?: string
+          completed_at?: string | null
+          context_type?: string
+          created_at?: string
+          id?: string
+          media_id?: string
+          media_url?: string
+          mosaic_url?: string | null
+          profile_id?: string
+          started_at?: string | null
+          status?: string
+          total_cost_cents?: number | null
+          total_duration_ms?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_sessions_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analysis_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       behavioral_analyses: {
         Row: {
           ai_model_used: string | null
