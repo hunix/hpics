@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
+import { RealtimeProvider } from "@/components/providers/RealtimeProvider";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -28,27 +29,29 @@ const App = () => (
     <AuthProvider>
       <ThemeProvider>
         <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/contacts" element={<Contacts />} />
-              <Route path="/contacts/:id" element={<ContactDetail />} />
-              <Route path="/communications" element={<Communications />} />
-              <Route path="/documents" element={<Documents />} />
-              <Route path="/media" element={<MediaPage />} />
-              <Route path="/events" element={<Events />} />
-              <Route path="/insights" element={<Insights />} />
-              <Route path="/import" element={<Import />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/network" element={<Network />} />
-              <Route path="/calendar" element={<Calendar />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
+          <RealtimeProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/contacts" element={<Contacts />} />
+                <Route path="/contacts/:id" element={<ContactDetail />} />
+                <Route path="/communications" element={<Communications />} />
+                <Route path="/documents" element={<Documents />} />
+                <Route path="/media" element={<MediaPage />} />
+                <Route path="/events" element={<Events />} />
+                <Route path="/insights" element={<Insights />} />
+                <Route path="/import" element={<Import />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/network" element={<Network />} />
+                <Route path="/calendar" element={<Calendar />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </RealtimeProvider>
         </TooltipProvider>
       </ThemeProvider>
     </AuthProvider>
