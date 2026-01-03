@@ -10,6 +10,8 @@ import { FollowUpSuggestions } from '@/components/dashboard/FollowUpSuggestions'
 import { RelationshipHealthWidget } from '@/components/dashboard/RelationshipHealthWidget';
 import { WeeklySummaryWidget } from '@/components/dashboard/WeeklySummaryWidget';
 import { IntroductionSuggestions } from '@/components/dashboard/IntroductionSuggestions';
+import { AutoScheduleFollowups } from '@/components/dashboard/AutoScheduleFollowups';
+import { NetworkGraph } from '@/components/network/NetworkGraph';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -172,8 +174,14 @@ export default function Dashboard() {
           <IntroductionSuggestions />
         </div>
 
-        {/* AI Follow-up Suggestions */}
-        <FollowUpSuggestions />
+        {/* AI Follow-up Suggestions & Auto Schedule */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <FollowUpSuggestions />
+          <AutoScheduleFollowups />
+        </div>
+
+        {/* Network Graph */}
+        <NetworkGraph />
 
         {/* Quick Actions */}
         <Card>
