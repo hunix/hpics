@@ -1,4 +1,4 @@
-import { Users, MessageSquare, FileText, Image, Calendar, Brain, LayoutDashboard, LogOut, Upload, Settings, Network } from 'lucide-react';
+import { Users, MessageSquare, FileText, Image, Calendar, Brain, LayoutDashboard, LogOut, Upload, Settings, Network, CalendarDays } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -21,6 +21,7 @@ const mainNavItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Contacts', url: '/contacts', icon: Users },
   { title: 'Communications', url: '/communications', icon: MessageSquare },
+  { title: 'Calendar', url: '/calendar', icon: CalendarDays },
   { title: 'Documents', url: '/documents', icon: FileText },
   { title: 'Media', url: '/media', icon: Image },
   { title: 'Events', url: '/events', icon: Calendar },

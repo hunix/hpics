@@ -15,10 +15,11 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Edit, Trash2, Star, MessageSquare, 
-  Calendar, Building, Briefcase, Brain, MessagesSquare, History, GraduationCap
+  Calendar, Building, Briefcase, Brain, MessagesSquare, History, GraduationCap, Sparkles
 } from 'lucide-react';
 import { ContactDialog } from './ContactDialog';
 import { ContactMethodsManager } from './ContactMethodsManager';
+import { ContactEnrichment } from './ContactEnrichment';
 import { ConversationsManager } from '@/components/conversations/ConversationsManager';
 import { ContactTimeline } from './ContactTimeline';
 import { EducationManager } from './EducationManager';
@@ -221,9 +222,10 @@ export function ContactDetailDialog({ contact, open, onOpenChange }: ContactDeta
               <div className={`grid gap-6 ${showAIPanel ? 'lg:grid-cols-2' : ''}`}>
                 <div>
                   <Tabs defaultValue="contact">
-                    <TabsList className="grid w-full grid-cols-7">
+                    <TabsList className="grid w-full grid-cols-8">
                       <TabsTrigger value="contact">Contact</TabsTrigger>
                       <TabsTrigger value="education">Education</TabsTrigger>
+                      <TabsTrigger value="enrich">Enrich</TabsTrigger>
                       <TabsTrigger value="messages">Messages</TabsTrigger>
                       <TabsTrigger value="timeline">Timeline</TabsTrigger>
                       <TabsTrigger value="communications">Activity</TabsTrigger>
@@ -244,6 +246,14 @@ export function ContactDetailDialog({ contact, open, onOpenChange }: ContactDeta
                       <CertificationsManager profileId={contact.id} />
                       <Separator />
                       <SkillsManager profileId={contact.id} />
+                    </TabsContent>
+
+                    <TabsContent value="enrich" className="space-y-4 mt-4">
+                      <ContactEnrichment 
+                        profileId={contact.id}
+                        profileName={`${contact.first_name} ${contact.last_name || ''}`.trim()}
+                        linkedinUrl={contact.linkedin_url}
+                      />
                     </TabsContent>
 
                     <TabsContent value="messages" className="space-y-4 mt-4">
