@@ -15,7 +15,7 @@ import {
   User, MessageSquare, Briefcase, GraduationCap,
   FileText, Image, Target, Gift, Heart, Clock,
   Calendar, Sparkles, Users, ChevronRight, Building,
-  Mic, Eye, Activity, Volume2
+  Mic, Eye, Activity, Volume2, UserCircle, GitCompare
 } from 'lucide-react';
 import { ContactDialog } from '@/components/contacts/ContactDialog';
 import { ContactMethodsManager } from '@/components/contacts/ContactMethodsManager';
@@ -41,6 +41,9 @@ import { BehavioralAnalysis } from '@/components/analysis/BehavioralAnalysis';
 import { FacialAnalysis } from '@/components/analysis/FacialAnalysis';
 import { BodyLanguageAnalysis } from '@/components/analysis/BodyLanguageAnalysis';
 import { VocalAnalysis } from '@/components/analysis/VocalAnalysis';
+import { AnalysisComparison } from '@/components/analysis/AnalysisComparison';
+import { ExtendedOverview } from '@/components/contacts/ExtendedOverview';
+import { ExtendedInfoSection } from '@/components/contacts/ExtendedInfoSection';
 import { cn } from '@/lib/utils';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
 import type { Tables } from '@/integrations/supabase/types';
@@ -48,11 +51,11 @@ import type { Tables } from '@/integrations/supabase/types';
 type Profile = Tables<'profiles'> & { relationship_subtype?: string; hierarchy_level?: string };
 
 type SectionId = 
-  | 'overview' | 'contact' | 'documents' | 'media' | 'recordings'
+  | 'overview' | 'personal-info' | 'contact' | 'documents' | 'media' | 'recordings'
   | 'outreach' | 'templates' | 'briefing' 
   | 'interests' | 'gifts' | 'goals' | 'experiences' 
   | 'education' | 'messages' | 'timeline' | 'groups' | 'enrich'
-  | 'behavioral' | 'facial' | 'body-language' | 'vocal';
+  | 'behavioral' | 'facial' | 'body-language' | 'vocal' | 'comparison';
 
 interface NavSection {
   id: SectionId;
@@ -63,6 +66,7 @@ interface NavSection {
 
 const sections: NavSection[] = [
   { id: 'overview', label: 'Overview', icon: User, group: 'General' },
+  { id: 'personal-info', label: 'Extended Info', icon: UserCircle, group: 'General' },
   { id: 'contact', label: 'Contact Methods', icon: MessageSquare, group: 'General' },
   { id: 'documents', label: 'Documents', icon: FileText, group: 'Files' },
   { id: 'media', label: 'Media', icon: Image, group: 'Files' },
@@ -75,6 +79,7 @@ const sections: NavSection[] = [
   { id: 'facial', label: 'Facial/Micro-Expressions', icon: Eye, group: 'Analysis' },
   { id: 'body-language', label: 'Body Language', icon: Activity, group: 'Analysis' },
   { id: 'vocal', label: 'Vocal Analysis', icon: Volume2, group: 'Analysis' },
+  { id: 'comparison', label: 'Compare Over Time', icon: GitCompare, group: 'Analysis' },
   { id: 'interests', label: 'Interests', icon: Heart, group: 'Relationship' },
   { id: 'gifts', label: 'Gifts', icon: Gift, group: 'Relationship' },
   { id: 'goals', label: 'Goals', icon: Target, group: 'Relationship' },
@@ -211,46 +216,9 @@ export default function ContactDetail() {
   const renderContent = () => {
     switch (activeSection) {
       case 'overview':
-        return (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>About</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {contact.bio && <p className="text-muted-foreground">{contact.bio}</p>}
-                <div className="grid grid-cols-2 gap-4">
-                  {contact.organization && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Building className="h-4 w-4 text-muted-foreground" />
-                      <span>{contact.organization}</span>
-                    </div>
-                  )}
-                  {contact.job_title && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Briefcase className="h-4 w-4 text-muted-foreground" />
-                      <span>{contact.job_title}</span>
-                    </div>
-                  )}
-                </div>
-                {contact.tags && contact.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {contact.tags.map((tag) => (
-                      <Badge key={tag} variant="outline">{tag}</Badge>
-                    ))}
-                  </div>
-                )}
-                {contact.notes && (
-                  <div className="pt-4 border-t">
-                    <h4 className="font-medium mb-2">Notes</h4>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{contact.notes}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            <ContactMethodsManager profileId={contact.id} contactMethods={contactMethods || []} />
-          </div>
-        );
+        return <ExtendedOverview profileId={contact.id} profile={contact} />;
+      case 'personal-info':
+        return <ExtendedInfoSection profileId={contact.id} />;
       case 'contact':
         return <ContactMethodsManager profileId={contact.id} contactMethods={contactMethods || []} />;
       case 'documents':
@@ -267,6 +235,8 @@ export default function ContactDetail() {
         return <BodyLanguageAnalysis profileId={contact.id} profileName={contactName} />;
       case 'vocal':
         return <VocalAnalysis profileId={contact.id} profileName={contactName} />;
+      case 'comparison':
+        return <AnalysisComparison profileId={contact.id} profileName={contactName} />;
       case 'outreach':
         return <OptimalOutreach profileId={contact.id} contactName={contactName} />;
       case 'templates':
