@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Users, MessageSquare, Calendar, TrendingUp, Star, Clock } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { formatDistanceToNow } from 'date-fns';
+import { DecayAlertWidget } from '@/components/dashboard/DecayAlertWidget';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -83,7 +84,7 @@ export default function Dashboard() {
           ))}
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {/* Recent Contacts */}
           <Card>
             <CardHeader>
@@ -153,6 +154,9 @@ export default function Dashboard() {
               )}
             </CardContent>
           </Card>
+
+          {/* Decay Alert Widget */}
+          <DecayAlertWidget />
         </div>
 
         {/* Quick Actions */}
