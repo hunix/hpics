@@ -1,0 +1,133 @@
+// AI Model Pricing (per 1M tokens in USD)
+export interface ModelPricing {
+  provider: string;
+  model: string;
+  inputPer1M: number;
+  outputPer1M: number;
+  displayName: string;
+}
+
+export const AI_MODEL_PRICING: Record<string, ModelPricing> = {
+  // Lovable AI Gateway (Google)
+  'google/gemini-2.5-flash': {
+    provider: 'google',
+    model: 'google/gemini-2.5-flash',
+    inputPer1M: 0.075,
+    outputPer1M: 0.30,
+    displayName: 'Gemini 2.5 Flash',
+  },
+  'google/gemini-2.5-pro': {
+    provider: 'google',
+    model: 'google/gemini-2.5-pro',
+    inputPer1M: 1.25,
+    outputPer1M: 10.00,
+    displayName: 'Gemini 2.5 Pro',
+  },
+  'google/gemini-2.5-flash-lite': {
+    provider: 'google',
+    model: 'google/gemini-2.5-flash-lite',
+    inputPer1M: 0.01875,
+    outputPer1M: 0.075,
+    displayName: 'Gemini 2.5 Flash Lite',
+  },
+  
+  // OpenAI models
+  'openai/gpt-5': {
+    provider: 'openai',
+    model: 'openai/gpt-5',
+    inputPer1M: 5.00,
+    outputPer1M: 15.00,
+    displayName: 'GPT-5',
+  },
+  'openai/gpt-5-mini': {
+    provider: 'openai',
+    model: 'openai/gpt-5-mini',
+    inputPer1M: 0.40,
+    outputPer1M: 1.60,
+    displayName: 'GPT-5 Mini',
+  },
+  'openai/gpt-5-nano': {
+    provider: 'openai',
+    model: 'openai/gpt-5-nano',
+    inputPer1M: 0.10,
+    outputPer1M: 0.40,
+    displayName: 'GPT-5 Nano',
+  },
+  'gpt-4o': {
+    provider: 'openai',
+    model: 'gpt-4o',
+    inputPer1M: 2.50,
+    outputPer1M: 10.00,
+    displayName: 'GPT-4o',
+  },
+  'gpt-4o-mini': {
+    provider: 'openai',
+    model: 'gpt-4o-mini',
+    inputPer1M: 0.15,
+    outputPer1M: 0.60,
+    displayName: 'GPT-4o Mini',
+  },
+  
+  // ElevenLabs (per character, converted to approximate tokens)
+  'elevenlabs/scribe': {
+    provider: 'elevenlabs',
+    model: 'elevenlabs/scribe',
+    inputPer1M: 0.40, // Approximate based on audio duration
+    outputPer1M: 0,
+    displayName: 'ElevenLabs Scribe',
+  },
+  
+  // Local models (free)
+  'local/llama': {
+    provider: 'local',
+    model: 'local/llama',
+    inputPer1M: 0,
+    outputPer1M: 0,
+    displayName: 'Local LLaMA',
+  },
+  'local/custom': {
+    provider: 'local',
+    model: 'local/custom',
+    inputPer1M: 0,
+    outputPer1M: 0,
+    displayName: 'Local Custom Model',
+  },
+};
+
+// Estimate tokens from text (rough approximation: 1 token ≈ 4 characters)
+export function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+// Calculate cost in cents
+export function calculateCostCents(
+  modelKey: string,
+  inputTokens: number,
+  outputTokens: number = 0
+): number {
+  const pricing = AI_MODEL_PRICING[modelKey] || AI_MODEL_PRICING['google/gemini-2.5-flash'];
+  const inputCost = (inputTokens / 1_000_000) * pricing.inputPer1M;
+  const outputCost = (outputTokens / 1_000_000) * pricing.outputPer1M;
+  return Math.ceil((inputCost + outputCost) * 100); // Convert to cents
+}
+
+// Format cents to USD display
+export function formatCentsToUSD(cents: number): string {
+  return `$${(cents / 100).toFixed(4)}`;
+}
+
+// Get provider color for UI
+export function getProviderColor(provider: string): string {
+  switch (provider) {
+    case 'google':
+      return 'bg-blue-500';
+    case 'openai':
+      return 'bg-green-500';
+    case 'elevenlabs':
+      return 'bg-purple-500';
+    case 'local':
+      return 'bg-gray-500';
+    default:
+      return 'bg-muted';
+  }
+}

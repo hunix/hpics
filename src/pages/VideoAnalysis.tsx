@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useAIConfirmationContext } from '@/contexts/AIConfirmationContext';
+import { calculateCostCents } from '@/lib/aiPricing';
 import { 
   Video, 
   Upload, 
@@ -35,10 +37,18 @@ interface AnalysisJob {
   progress: number;
 }
 
+const ANALYSIS_MODEL_KEYS: Record<AnalysisType, string> = {
+  behavioral: 'google/gemini-2.5-flash',
+  facial: 'google/gemini-2.5-flash',
+  body_language: 'google/gemini-2.5-flash',
+  vocal: 'google/gemini-2.5-flash',
+};
+
 export default function VideoAnalysis() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { requestConfirmation, updateLogWithResult } = useAIConfirmationContext();
   
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedContact, setSelectedContact] = useState<string>('');
@@ -90,9 +100,10 @@ export default function VideoAnalysis() {
     }
   };
 
-  const runAnalysis = async (type: AnalysisType, videoUrl: string) => {
+  const runAnalysis = async (type: AnalysisType, videoUrl: string, logId: string) => {
     const jobId = `${type}-${Date.now()}`;
     setRunningAnalyses(prev => [...prev, { id: jobId, type, status: 'processing', progress: 0 }]);
+    const startTime = Date.now();
 
     try {
       const endpoints: Record<AnalysisType, string> = {
@@ -110,7 +121,22 @@ export default function VideoAnalysis() {
         },
       });
 
-      if (response.error) throw response.error;
+      const responseTime = Date.now() - startTime;
+
+      if (response.error) {
+        await updateLogWithResult(logId, {
+          status: 'failed',
+          errorMessage: response.error.message,
+          responseTimeMs: responseTime,
+        });
+        throw response.error;
+      }
+
+      await updateLogWithResult(logId, {
+        status: 'completed',
+        responseTimeMs: responseTime,
+        actualCostCents: calculateCostCents(ANALYSIS_MODEL_KEYS[type], 3000, 1500),
+      });
 
       setRunningAnalyses(prev => 
         prev.map(job => job.id === jobId ? { ...job, status: 'completed', progress: 100 } : job)
@@ -132,6 +158,31 @@ export default function VideoAnalysis() {
       return;
     }
 
+    // Request confirmation for each analysis
+    const approvedAnalyses: { type: AnalysisType; logId: string }[] = [];
+    
+    for (const analysisTypeItem of selectedAnalyses) {
+      const contact = contacts?.find(c => c.id === selectedContact);
+      const contactName = contact ? `${contact.first_name} ${contact.last_name}` : 'Unknown';
+      const promptText = `Running ${analysisTypeItem.replace('_', ' ')} analysis on video/audio for ${contactName}. This will analyze behavioral patterns, expressions, and communication style.`;
+      
+      const { approved, logId } = await requestConfirmation({
+        functionName: `analyze-${analysisTypeItem.replace('_', '-')}`,
+        modelKey: ANALYSIS_MODEL_KEYS[analysisTypeItem],
+        promptText,
+        profileId: selectedContact,
+      });
+      
+      if (approved && logId) {
+        approvedAnalyses.push({ type: analysisTypeItem, logId });
+      }
+    }
+
+    if (approvedAnalyses.length === 0) {
+      toast({ title: 'Cancelled', description: 'No analyses were approved' });
+      return;
+    }
+
     setIsUploading(true);
 
     try {
@@ -148,8 +199,8 @@ export default function VideoAnalysis() {
         .from('recordings')
         .getPublicUrl(fileName);
 
-      for (const analysis of selectedAnalyses) {
-        await runAnalysis(analysis, publicUrl);
+      for (const { type, logId } of approvedAnalyses) {
+        await runAnalysis(type, publicUrl, logId);
       }
 
       setSelectedFile(null);
@@ -435,37 +486,23 @@ export default function VideoAnalysis() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Analysis Capabilities</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-xs text-muted-foreground">
-              <div className="flex items-start gap-2">
-                <Brain className="h-4 w-4 mt-0.5 text-primary" />
-                <div>
-                  <p className="font-medium text-foreground">Behavioral</p>
-                  <p>Big Five traits, decision patterns, communication style</p>
+          <Card className="bg-primary/5 border-primary/20">
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Brain className="h-8 w-8 text-primary" />
+                  <div>
+                    <h3 className="font-semibold">AI-Powered Analysis</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Get deep insights into candidate behavior
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <Eye className="h-4 w-4 mt-0.5 text-primary" />
-                <div>
-                  <p className="font-medium text-foreground">Facial</p>
-                  <p>Micro-expressions, emotional states, stress indicators</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <Hand className="h-4 w-4 mt-0.5 text-primary" />
-                <div>
-                  <p className="font-medium text-foreground">Body Language</p>
-                  <p>Posture, gestures, comfort levels, rapport signals</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <AudioLines className="h-4 w-4 mt-0.5 text-primary" />
-                <div>
-                  <p className="font-medium text-foreground">Vocal</p>
-                  <p>Speech patterns, hesitations, confidence, mood shifts</p>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>• Upload screening or interview videos</p>
+                  <p>• Run multiple analysis types simultaneously</p>
+                  <p>• View results in contact's profile</p>
+                  <p>• Track all AI usage costs in Insights</p>
                 </div>
               </div>
             </CardContent>

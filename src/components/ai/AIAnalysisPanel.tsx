@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PersonalityChart } from './PersonalityChart';
+import { useAIConfirmationContext } from '@/contexts/AIConfirmationContext';
+import { calculateCostCents } from '@/lib/aiPricing';
 import { 
   Brain, TrendingUp, Users, FileText, Loader2, Sparkles, 
   RefreshCw, CheckCircle, AlertTriangle, Lightbulb
@@ -18,10 +20,13 @@ interface AIAnalysisPanelProps {
   profileName: string;
 }
 
+const MODEL_KEY = 'google/gemini-2.5-flash';
+
 export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('personality');
+  const { requestConfirmation, updateLogWithResult } = useAIConfirmationContext();
 
   const { data: analyses, isLoading: isLoadingAnalyses } = useQuery({
     queryKey: ['ai-analyses', profileId],
@@ -37,16 +42,43 @@ export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps
   });
 
   const analyzeMutation = useMutation({
-    mutationFn: async (analysisType: string) => {
+    mutationFn: async ({ analysisType, logId }: { analysisType: string; logId: string }) => {
+      const startTime = Date.now();
+      
       const { data, error } = await supabase.functions.invoke('analyze-profile', {
         body: { profileId, analysisType }
       });
       
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      const responseTime = Date.now() - startTime;
+      
+      if (error) {
+        await updateLogWithResult(logId, {
+          status: 'failed',
+          errorMessage: error.message,
+          responseTimeMs: responseTime,
+        });
+        throw error;
+      }
+      
+      if (data.error) {
+        await updateLogWithResult(logId, {
+          status: 'failed',
+          errorMessage: data.error,
+          responseTimeMs: responseTime,
+        });
+        throw new Error(data.error);
+      }
+      
+      // Update log with success
+      await updateLogWithResult(logId, {
+        status: 'completed',
+        responseTimeMs: responseTime,
+        actualCostCents: calculateCostCents(MODEL_KEY, 2000, 1000), // Rough estimate
+      });
+      
       return data.result;
     },
-    onSuccess: (_, analysisType) => {
+    onSuccess: (_, { analysisType }) => {
       queryClient.invalidateQueries({ queryKey: ['ai-analyses', profileId] });
       toast({ 
         title: 'Analysis complete', 
@@ -61,6 +93,21 @@ export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps
       });
     },
   });
+
+  const handleAnalyze = async (analysisType: string) => {
+    const promptText = `Analyzing ${profileName}'s profile for ${analysisType} insights. This will analyze communications, events, and relationship data.`;
+    
+    const { approved, logId } = await requestConfirmation({
+      functionName: 'analyze-profile',
+      modelKey: MODEL_KEY,
+      promptText,
+      profileId,
+    });
+    
+    if (approved && logId) {
+      analyzeMutation.mutate({ analysisType, logId });
+    }
+  };
 
   const getLatestAnalysis = (type: string) => {
     return analyses?.find(a => a.analysis_type === type);
@@ -79,10 +126,10 @@ export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps
           <Brain className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <p className="text-muted-foreground mb-4">No personality analysis yet</p>
           <Button 
-            onClick={() => analyzeMutation.mutate('personality')}
+            onClick={() => handleAnalyze('personality')}
             disabled={analyzeMutation.isPending}
           >
-            {analyzeMutation.isPending && analyzeMutation.variables === 'personality' ? (
+            {analyzeMutation.isPending && analyzeMutation.variables?.analysisType === 'personality' ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <Sparkles className="mr-2 h-4 w-4" />
@@ -102,10 +149,10 @@ export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps
           <Button 
             variant="ghost" 
             size="sm"
-            onClick={() => analyzeMutation.mutate('personality')}
+            onClick={() => handleAnalyze('personality')}
             disabled={analyzeMutation.isPending}
           >
-            <RefreshCw className={`h-4 w-4 ${analyzeMutation.isPending && analyzeMutation.variables === 'personality' ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 ${analyzeMutation.isPending && analyzeMutation.variables?.analysisType === 'personality' ? 'animate-spin' : ''}`} />
           </Button>
         </div>
         
@@ -150,10 +197,10 @@ export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps
           <TrendingUp className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <p className="text-muted-foreground mb-4">No sentiment analysis yet</p>
           <Button 
-            onClick={() => analyzeMutation.mutate('sentiment')}
+            onClick={() => handleAnalyze('sentiment')}
             disabled={analyzeMutation.isPending}
           >
-            {analyzeMutation.isPending && analyzeMutation.variables === 'sentiment' ? (
+            {analyzeMutation.isPending && analyzeMutation.variables?.analysisType === 'sentiment' ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <Sparkles className="mr-2 h-4 w-4" />
@@ -181,10 +228,10 @@ export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps
           <Button 
             variant="ghost" 
             size="sm"
-            onClick={() => analyzeMutation.mutate('sentiment')}
+            onClick={() => handleAnalyze('sentiment')}
             disabled={analyzeMutation.isPending}
           >
-            <RefreshCw className={`h-4 w-4 ${analyzeMutation.isPending && analyzeMutation.variables === 'sentiment' ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 ${analyzeMutation.isPending && analyzeMutation.variables?.analysisType === 'sentiment' ? 'animate-spin' : ''}`} />
           </Button>
         </div>
 
@@ -249,10 +296,10 @@ export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps
           <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <p className="text-muted-foreground mb-4">No playbook generated yet</p>
           <Button 
-            onClick={() => analyzeMutation.mutate('playbook')}
+            onClick={() => handleAnalyze('playbook')}
             disabled={analyzeMutation.isPending}
           >
-            {analyzeMutation.isPending && analyzeMutation.variables === 'playbook' ? (
+            {analyzeMutation.isPending && analyzeMutation.variables?.analysisType === 'playbook' ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <Sparkles className="mr-2 h-4 w-4" />
@@ -272,10 +319,10 @@ export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps
           <Button 
             variant="ghost" 
             size="sm"
-            onClick={() => analyzeMutation.mutate('playbook')}
+            onClick={() => handleAnalyze('playbook')}
             disabled={analyzeMutation.isPending}
           >
-            <RefreshCw className={`h-4 w-4 ${analyzeMutation.isPending && analyzeMutation.variables === 'playbook' ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 ${analyzeMutation.isPending && analyzeMutation.variables?.analysisType === 'playbook' ? 'animate-spin' : ''}`} />
           </Button>
         </div>
 
@@ -362,10 +409,10 @@ export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps
           <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <p className="text-muted-foreground mb-4">No relationship score yet</p>
           <Button 
-            onClick={() => analyzeMutation.mutate('relationship_score')}
+            onClick={() => handleAnalyze('relationship_score')}
             disabled={analyzeMutation.isPending}
           >
-            {analyzeMutation.isPending && analyzeMutation.variables === 'relationship_score' ? (
+            {analyzeMutation.isPending && analyzeMutation.variables?.analysisType === 'relationship_score' ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <Sparkles className="mr-2 h-4 w-4" />
@@ -396,10 +443,10 @@ export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps
           <Button 
             variant="ghost" 
             size="sm"
-            onClick={() => analyzeMutation.mutate('relationship_score')}
+            onClick={() => handleAnalyze('relationship_score')}
             disabled={analyzeMutation.isPending}
           >
-            <RefreshCw className={`h-4 w-4 ${analyzeMutation.isPending && analyzeMutation.variables === 'relationship_score' ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 ${analyzeMutation.isPending && analyzeMutation.variables?.analysisType === 'relationship_score' ? 'animate-spin' : ''}`} />
           </Button>
         </div>
 
@@ -468,7 +515,7 @@ export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps
             <ul className="text-sm text-muted-foreground space-y-1">
               {data.suggestedActions.map((a: string, i: number) => (
                 <li key={i} className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 mt-0.5 text-green-500 shrink-0" />
+                  <Lightbulb className="h-4 w-4 mt-0.5 text-blue-500 shrink-0" />
                   {a}
                 </li>
               ))}
@@ -481,8 +528,8 @@ export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps
 
   return (
     <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center gap-2">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
           <Brain className="h-5 w-5" />
           AI Insights for {profileName}
         </CardTitle>
@@ -490,20 +537,36 @@ export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="personality">Personality</TabsTrigger>
-            <TabsTrigger value="sentiment">Sentiment</TabsTrigger>
-            <TabsTrigger value="playbook">Playbook</TabsTrigger>
-            <TabsTrigger value="score">Score</TabsTrigger>
+            <TabsTrigger value="personality">
+              <Brain className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Personality</span>
+            </TabsTrigger>
+            <TabsTrigger value="sentiment">
+              <TrendingUp className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Sentiment</span>
+            </TabsTrigger>
+            <TabsTrigger value="playbook">
+              <FileText className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Playbook</span>
+            </TabsTrigger>
+            <TabsTrigger value="score">
+              <Users className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Score</span>
+            </TabsTrigger>
           </TabsList>
+
           <TabsContent value="personality" className="mt-4">
             {renderPersonality()}
           </TabsContent>
+
           <TabsContent value="sentiment" className="mt-4">
             {renderSentiment()}
           </TabsContent>
+
           <TabsContent value="playbook" className="mt-4">
             {renderPlaybook()}
           </TabsContent>
+
           <TabsContent value="score" className="mt-4">
             {renderScore()}
           </TabsContent>

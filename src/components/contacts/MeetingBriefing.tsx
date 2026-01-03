@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   FileText, 
@@ -18,6 +17,8 @@ import {
   Printer
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useAIConfirmationContext } from '@/contexts/AIConfirmationContext';
+import { calculateCostCents } from '@/lib/aiPricing';
 import { toast } from 'sonner';
 
 interface BriefingData {
@@ -48,13 +49,29 @@ interface MeetingBriefingProps {
   contactName: string;
 }
 
+const MODEL_KEY = 'google/gemini-2.5-flash';
+
 export function MeetingBriefing({ profileId, contactName }: MeetingBriefingProps) {
   const { session } = useAuth();
+  const { requestConfirmation, updateLogWithResult } = useAIConfirmationContext();
   const [isLoading, setIsLoading] = useState(false);
   const [briefing, setBriefing] = useState<BriefingData | null>(null);
 
   const generateBriefing = async () => {
+    const promptText = `Generating comprehensive meeting briefing for ${contactName}. This includes executive summary, key facts, recent context, conversation starters, topics to avoid, action items, and relationship health analysis.`;
+    
+    const { approved, logId } = await requestConfirmation({
+      functionName: 'generate-briefing',
+      modelKey: MODEL_KEY,
+      promptText,
+      profileId,
+    });
+    
+    if (!approved || !logId) return;
+    
     setIsLoading(true);
+    const startTime = Date.now();
+    
     try {
       const { data, error } = await supabase.functions.invoke('generate-briefing', {
         body: { profileId },
@@ -63,7 +80,23 @@ export function MeetingBriefing({ profileId, contactName }: MeetingBriefingProps
         },
       });
 
-      if (error) throw error;
+      const responseTime = Date.now() - startTime;
+
+      if (error) {
+        await updateLogWithResult(logId, {
+          status: 'failed',
+          errorMessage: error.message,
+          responseTimeMs: responseTime,
+        });
+        throw error;
+      }
+      
+      await updateLogWithResult(logId, {
+        status: 'completed',
+        responseTimeMs: responseTime,
+        actualCostCents: calculateCostCents(MODEL_KEY, 3000, 2000),
+      });
+      
       setBriefing(data);
       toast.success('Meeting briefing generated!');
     } catch (error) {

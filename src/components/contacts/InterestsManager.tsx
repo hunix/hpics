@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Heart, Loader2, Sparkles, Plus, X, Brain } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useAIConfirmationContext } from '@/contexts/AIConfirmationContext';
+import { calculateCostCents } from '@/lib/aiPricing';
 import { toast } from 'sonner';
 
 interface Interest {
@@ -41,9 +43,12 @@ const typeEmojis: Record<string, string> = Object.fromEntries(
   interestTypes.map(t => [t.value, t.emoji])
 );
 
+const MODEL_KEY = 'google/gemini-2.5-flash';
+
 export function InterestsManager({ profileId, contactName }: InterestsManagerProps) {
   const { user, session } = useAuth();
   const queryClient = useQueryClient();
+  const { requestConfirmation, updateLogWithResult } = useAIConfirmationContext();
   const [isDetecting, setIsDetecting] = useState(false);
   const [newInterest, setNewInterest] = useState({ name: '', type: 'hobby', notes: '' });
 
@@ -102,9 +107,22 @@ export function InterestsManager({ profileId, contactName }: InterestsManagerPro
     },
   });
 
-  // AI Detection
+  // AI Detection with confirmation
   const detectInterests = async () => {
+    const promptText = `Detecting interests for ${contactName} by analyzing their profile, communications, education, skills, and shared experiences.`;
+    
+    const { approved, logId } = await requestConfirmation({
+      functionName: 'detect-interests',
+      modelKey: MODEL_KEY,
+      promptText,
+      profileId,
+    });
+    
+    if (!approved || !logId) return;
+    
     setIsDetecting(true);
+    const startTime = Date.now();
+    
     try {
       const { data, error } = await supabase.functions.invoke('detect-interests', {
         body: { profileId },
@@ -113,7 +131,22 @@ export function InterestsManager({ profileId, contactName }: InterestsManagerPro
         },
       });
 
-      if (error) throw error;
+      const responseTime = Date.now() - startTime;
+
+      if (error) {
+        await updateLogWithResult(logId, {
+          status: 'failed',
+          errorMessage: error.message,
+          responseTimeMs: responseTime,
+        });
+        throw error;
+      }
+      
+      await updateLogWithResult(logId, {
+        status: 'completed',
+        responseTimeMs: responseTime,
+        actualCostCents: calculateCostCents(MODEL_KEY, 2000, 800),
+      });
       
       queryClient.invalidateQueries({ queryKey: ['contact-interests', profileId] });
       toast.success(`Detected ${data.savedCount} new interests!`);
