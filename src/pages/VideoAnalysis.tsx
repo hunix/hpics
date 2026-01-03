@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/AppLayout';
@@ -15,6 +15,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useAIConfirmationContext } from '@/contexts/AIConfirmationContext';
 import { useAIModelPreference } from '@/hooks/useAIModelPreference';
 import { calculateCostCents } from '@/lib/aiPricing';
+import { VideoPreviewPlayer } from '@/components/video/VideoPreviewPlayer';
+import { MosaicPreview } from '@/components/video/MosaicPreview';
+import { MosaicResult } from '@/lib/temporalMosaic';
 import { 
   Video, 
   Brain, 
@@ -27,7 +30,8 @@ import {
   Clock,
   User,
   Film,
-  AlertTriangle
+  AlertTriangle,
+  Grid3X3
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -65,11 +69,21 @@ export default function VideoAnalysis() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [runningAnalyses, setRunningAnalyses] = useState<AnalysisJob[]>([]);
   const [selectedAnalysisTypes, setSelectedAnalysisTypes] = useState<AnalysisType[]>([]);
+  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
+  const [generatedMosaic, setGeneratedMosaic] = useState<MosaicResult | null>(null);
 
-  // Reset video selection when contact changes
+  // Reset video selection and mosaic when contact changes
   useEffect(() => {
     setSelectedVideo('');
+    setVideoElement(null);
+    setGeneratedMosaic(null);
   }, [selectedContact]);
+
+  // Reset mosaic when video changes
+  useEffect(() => {
+    setVideoElement(null);
+    setGeneratedMosaic(null);
+  }, [selectedVideo]);
 
   const { data: contacts } = useQuery({
     queryKey: ['contacts-for-analysis', user?.id],
@@ -328,18 +342,25 @@ export default function VideoAnalysis() {
                 </div>
               )}
 
-              {/* Selected Video Preview */}
+              {/* Video Preview Player */}
               {selectedVideoInfo && (
-                <div className="p-4 border rounded-lg bg-muted/50">
-                  <div className="flex items-center gap-3">
-                    <Film className="h-8 w-8 text-primary" />
-                    <div>
-                      <p className="font-medium">{selectedVideoInfo.caption || 'Untitled Video'}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedVideoInfo.mime_type} • Uploaded {format(new Date(selectedVideoInfo.created_at), 'PPP')}
-                      </p>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label>Video Preview</Label>
+                    <div className="flex items-center gap-2">
+                      <Film className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">
+                        {selectedVideoInfo.caption || 'Untitled Video'}
+                      </span>
                     </div>
                   </div>
+                  <VideoPreviewPlayer
+                    videoUrl={selectedVideoInfo.file_url}
+                    onVideoLoaded={(video) => setVideoElement(video)}
+                  />
+                  <p className="text-xs text-muted-foreground text-center">
+                    {selectedVideoInfo.mime_type} • Uploaded {format(new Date(selectedVideoInfo.created_at), 'PPP')}
+                  </p>
                 </div>
               )}
 
@@ -438,6 +459,14 @@ export default function VideoAnalysis() {
         </div>
 
         <div className="space-y-6">
+          {/* Temporal Mosaic Panel */}
+          {selectedVideoInfo && (
+            <MosaicPreview
+              videoElement={videoElement}
+              modelKey={facialModel} 
+              onMosaicGenerated={(mosaic) => setGeneratedMosaic(mosaic)}
+            />
+          )}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
