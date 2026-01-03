@@ -137,6 +137,53 @@ export type Database = {
           },
         ]
       }
+      conversations: {
+        Row: {
+          created_at: string
+          id: string
+          last_message_at: string | null
+          message_count: number | null
+          platform: Database["public"]["Enums"]["message_platform"]
+          profile_id: string
+          started_at: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          message_count?: number | null
+          platform: Database["public"]["Enums"]["message_platform"]
+          profile_id: string
+          started_at?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          message_count?: number | null
+          platform?: Database["public"]["Enums"]["message_platform"]
+          profile_id?: string
+          started_at?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           created_at: string
@@ -287,6 +334,47 @@ export type Database = {
           },
         ]
       }
+      messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          is_from_contact: boolean
+          metadata: Json | null
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          is_from_contact?: boolean
+          metadata?: Json | null
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          is_from_contact?: boolean
+          metadata?: Json | null
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -350,6 +438,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_preferences: {
+        Row: {
+          created_at: string
+          email_reminders: boolean | null
+          id: string
+          reminder_email: string | null
+          theme: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_reminders?: boolean | null
+          id?: string
+          reminder_email?: string | null
+          theme?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_reminders?: boolean | null
+          id?: string
+          reminder_email?: string | null
+          theme?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -389,6 +507,17 @@ export type Database = {
         | "milestone"
         | "meeting"
         | "follow_up"
+        | "other"
+      message_platform:
+        | "sms"
+        | "whatsapp"
+        | "linkedin"
+        | "telegram"
+        | "messenger"
+        | "imessage"
+        | "slack"
+        | "discord"
+        | "email_thread"
         | "other"
       relationship_type:
         | "family"
@@ -561,6 +690,18 @@ export const Constants = {
         "milestone",
         "meeting",
         "follow_up",
+        "other",
+      ],
+      message_platform: [
+        "sms",
+        "whatsapp",
+        "linkedin",
+        "telegram",
+        "messenger",
+        "imessage",
+        "slack",
+        "discord",
+        "email_thread",
         "other",
       ],
       relationship_type: [

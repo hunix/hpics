@@ -1,6 +1,7 @@
-import { Users, MessageSquare, FileText, Image, Calendar, Brain, LayoutDashboard, LogOut, Upload } from 'lucide-react';
+import { Users, MessageSquare, FileText, Image, Calendar, Brain, LayoutDashboard, LogOut, Upload, Settings } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import {
   Sidebar,
   SidebarContent,
@@ -14,6 +15,7 @@ import {
   SidebarHeader,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 
 const mainNavItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
@@ -27,6 +29,7 @@ const mainNavItems = [
 const toolsNavItems = [
   { title: 'AI Insights', url: '/insights', icon: Brain },
   { title: 'Import Data', url: '/import', icon: Upload },
+  { title: 'Settings', url: '/settings', icon: Settings },
 ];
 
 export function AppSidebar() {
@@ -94,6 +97,8 @@ export function AppSidebar() {
 
       <SidebarFooter className="border-t border-sidebar-border p-4">
         <div className="flex flex-col gap-2">
+          <ThemeToggle />
+          <Separator />
           <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
           <Button 
             variant="ghost" 

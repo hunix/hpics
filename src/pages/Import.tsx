@@ -6,10 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Loader2, Linkedin, CreditCard } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
 
 interface CSVRow {
   first_name?: string;
@@ -29,6 +31,9 @@ export default function Import() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<CSVRow[]>([]);
   const [importResult, setImportResult] = useState<{ success: number; failed: number } | null>(null);
+  const [vcardText, setVcardText] = useState('');
+  const [linkedinCsv, setLinkedinCsv] = useState<File | null>(null);
+  const [linkedinPreview, setLinkedinPreview] = useState<CSVRow[]>([]);
 
   const parseCSV = (text: string): CSVRow[] => {
     const lines = text.split('\n').filter(line => line.trim());
@@ -49,11 +54,99 @@ export default function Import() {
           else if (header.includes('email')) row.email = value;
           else if (header.includes('phone')) row.phone = value;
           else if (header.includes('org') || header.includes('company')) row.organization = value;
-          else if (header.includes('title') || header.includes('job')) row.job_title = value;
+          else if (header.includes('title') || header.includes('job') || header.includes('position')) row.job_title = value;
           else if (header.includes('relation') || header.includes('type')) row.relationship_type = value;
           else if (header.includes('note')) row.notes = value;
         }
       });
+      
+      if (row.first_name) {
+        rows.push(row);
+      }
+    }
+    
+    return rows;
+  };
+
+  const parseLinkedInCSV = (text: string): CSVRow[] => {
+    const lines = text.split('\n').filter(line => line.trim());
+    if (lines.length < 2) return [];
+    
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/['"]/g, ''));
+    const rows: CSVRow[] = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+      // Handle CSV with quoted fields containing commas
+      const values: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (const char of lines[i]) {
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          values.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      values.push(current.trim());
+      
+      const row: CSVRow = {};
+      
+      headers.forEach((header, index) => {
+        const value = values[index]?.replace(/['"]/g, '');
+        if (value) {
+          if (header === 'first name' || header === 'firstname') row.first_name = value;
+          else if (header === 'last name' || header === 'lastname') row.last_name = value;
+          else if (header === 'email address' || header === 'email') row.email = value;
+          else if (header === 'company' || header === 'organization') row.organization = value;
+          else if (header === 'position' || header === 'title') row.job_title = value;
+        }
+      });
+      
+      if (row.first_name) {
+        row.relationship_type = 'colleague'; // Default for LinkedIn connections
+        rows.push(row);
+      }
+    }
+    
+    return rows;
+  };
+
+  const parseVCard = (text: string): CSVRow[] => {
+    const vcards = text.split('END:VCARD').filter(v => v.includes('BEGIN:VCARD'));
+    const rows: CSVRow[] = [];
+    
+    for (const vcard of vcards) {
+      const row: CSVRow = {};
+      const lines = vcard.split('\n');
+      
+      for (const line of lines) {
+        const [key, ...valueParts] = line.split(':');
+        const value = valueParts.join(':').trim();
+        
+        if (key.startsWith('FN')) {
+          const parts = value.split(' ');
+          row.first_name = parts[0];
+          row.last_name = parts.slice(1).join(' ');
+        } else if (key.startsWith('N')) {
+          const parts = value.split(';');
+          if (!row.last_name) row.last_name = parts[0];
+          if (!row.first_name) row.first_name = parts[1];
+        } else if (key.startsWith('EMAIL')) {
+          row.email = value;
+        } else if (key.startsWith('TEL')) {
+          row.phone = value;
+        } else if (key.startsWith('ORG')) {
+          row.organization = value.split(';')[0];
+        } else if (key.startsWith('TITLE')) {
+          row.job_title = value;
+        } else if (key.startsWith('NOTE')) {
+          row.notes = value;
+        }
+      }
       
       if (row.first_name) {
         rows.push(row);
@@ -68,11 +161,7 @@ export default function Import() {
     if (!selectedFile) return;
     
     if (!selectedFile.name.endsWith('.csv')) {
-      toast({
-        title: 'Invalid file type',
-        description: 'Please upload a CSV file',
-        variant: 'destructive',
-      });
+      toast({ title: 'Invalid file type', description: 'Please upload a CSV file', variant: 'destructive' });
       return;
     }
     
@@ -88,19 +177,31 @@ export default function Import() {
     reader.readAsText(selectedFile);
   };
 
+  const handleLinkedInFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+    
+    setLinkedinCsv(selectedFile);
+    setImportResult(null);
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      const parsed = parseLinkedInCSV(text);
+      setLinkedinPreview(parsed.slice(0, 5));
+    };
+    reader.readAsText(selectedFile);
+  };
+
   const importMutation = useMutation({
-    mutationFn: async () => {
-      if (!file || !user) throw new Error('No file or user');
-      
-      const text = await file.text();
-      const rows = parseCSV(text);
+    mutationFn: async (rows: CSVRow[]) => {
+      if (!user) throw new Error('Not authenticated');
       
       let success = 0;
       let failed = 0;
       
       for (const row of rows) {
         try {
-          // Create profile
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .insert({
@@ -117,7 +218,6 @@ export default function Import() {
           
           if (profileError) throw profileError;
           
-          // Add contact methods if provided
           if (row.email) {
             await supabase.from('contact_methods').insert({
               profile_id: profile.id,
@@ -147,115 +247,225 @@ export default function Import() {
       setImportResult(result);
       queryClient.invalidateQueries({ queryKey: ['contacts'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-      toast({
-        title: 'Import complete',
-        description: `Successfully imported ${result.success} contacts`,
-      });
+      toast({ title: 'Import complete', description: `Successfully imported ${result.success} contacts` });
       setFile(null);
       setPreview([]);
+      setLinkedinCsv(null);
+      setLinkedinPreview([]);
+      setVcardText('');
     },
     onError: (error) => {
-      toast({
-        title: 'Import failed',
-        description: error.message,
-        variant: 'destructive',
-      });
+      toast({ title: 'Import failed', description: error.message, variant: 'destructive' });
     },
   });
+
+  const handleCSVImport = async () => {
+    if (!file) return;
+    const text = await file.text();
+    const rows = parseCSV(text);
+    importMutation.mutate(rows);
+  };
+
+  const handleLinkedInImport = async () => {
+    if (!linkedinCsv) return;
+    const text = await linkedinCsv.text();
+    const rows = parseLinkedInCSV(text);
+    importMutation.mutate(rows);
+  };
+
+  const handleVCardImport = () => {
+    if (!vcardText.trim()) return;
+    const rows = parseVCard(vcardText);
+    if (rows.length === 0) {
+      toast({ title: 'No contacts found', description: 'Please check your vCard format', variant: 'destructive' });
+      return;
+    }
+    importMutation.mutate(rows);
+  };
+
+  const PreviewTable = ({ data }: { data: CSVRow[] }) => (
+    <div className="rounded-lg border overflow-hidden">
+      <table className="w-full text-sm">
+        <thead className="bg-muted">
+          <tr>
+            <th className="text-left p-2">Name</th>
+            <th className="text-left p-2">Email</th>
+            <th className="text-left p-2">Organization</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((row, i) => (
+            <tr key={i} className="border-t">
+              <td className="p-2">{row.first_name} {row.last_name}</td>
+              <td className="p-2 text-muted-foreground">{row.email || '-'}</td>
+              <td className="p-2 text-muted-foreground">{row.organization || '-'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 
   return (
     <AppLayout title="Import Data">
       <div className="max-w-3xl space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileSpreadsheet className="h-5 w-5" />
-              Import Contacts from CSV
-            </CardTitle>
-            <CardDescription>
-              Upload a CSV file to bulk import contacts. The file should have headers like:
-              first_name, last_name, email, phone, organization, job_title, relationship_type, notes
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="csv-file">Select CSV File</Label>
-              <Input
-                id="csv-file"
-                type="file"
-                accept=".csv"
-                onChange={handleFileChange}
-                className="cursor-pointer"
-              />
-            </div>
+        <Tabs defaultValue="csv">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="csv">
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              CSV
+            </TabsTrigger>
+            <TabsTrigger value="linkedin">
+              <Linkedin className="h-4 w-4 mr-2" />
+              LinkedIn
+            </TabsTrigger>
+            <TabsTrigger value="vcard">
+              <CreditCard className="h-4 w-4 mr-2" />
+              vCard
+            </TabsTrigger>
+          </TabsList>
 
-            {preview.length > 0 && (
-              <div className="space-y-2">
-                <Label>Preview (first 5 rows)</Label>
-                <div className="rounded-lg border overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted">
-                      <tr>
-                        <th className="text-left p-2">Name</th>
-                        <th className="text-left p-2">Email</th>
-                        <th className="text-left p-2">Organization</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {preview.map((row, i) => (
-                        <tr key={i} className="border-t">
-                          <td className="p-2">{row.first_name} {row.last_name}</td>
-                          <td className="p-2 text-muted-foreground">{row.email || '-'}</td>
-                          <td className="p-2 text-muted-foreground">{row.organization || '-'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+          <TabsContent value="csv" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Import from CSV</CardTitle>
+                <CardDescription>
+                  Upload a CSV file with headers: first_name, last_name, email, phone, organization, job_title
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Select CSV File</Label>
+                  <Input type="file" accept=".csv" onChange={handleFileChange} />
                 </div>
-              </div>
-            )}
 
-            {importResult && (
-              <Alert variant={importResult.failed > 0 ? 'destructive' : 'default'}>
-                {importResult.failed > 0 ? (
-                  <AlertCircle className="h-4 w-4" />
-                ) : (
-                  <CheckCircle className="h-4 w-4" />
+                {preview.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Preview (first 5 rows)</Label>
+                    <PreviewTable data={preview} />
+                  </div>
                 )}
-                <AlertTitle>Import Complete</AlertTitle>
-                <AlertDescription>
-                  Successfully imported {importResult.success} contacts.
-                  {importResult.failed > 0 && ` ${importResult.failed} contacts failed to import.`}
-                </AlertDescription>
-              </Alert>
+
+                <Button 
+                  onClick={handleCSVImport} 
+                  disabled={!file || importMutation.isPending}
+                  className="w-full"
+                >
+                  {importMutation.isPending ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importing...</>
+                  ) : (
+                    <><Upload className="mr-2 h-4 w-4" /> Import Contacts</>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="linkedin" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Linkedin className="h-5 w-5 text-blue-600" />
+                  Import LinkedIn Connections
+                </CardTitle>
+                <CardDescription>
+                  Export your connections from LinkedIn and import them here.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Alert>
+                  <AlertTitle>How to export from LinkedIn</AlertTitle>
+                  <AlertDescription className="text-sm space-y-1">
+                    <p>1. Go to LinkedIn → Settings → Data Privacy → Get a copy of your data</p>
+                    <p>2. Select "Connections" and request the archive</p>
+                    <p>3. Download and upload the Connections.csv file here</p>
+                  </AlertDescription>
+                </Alert>
+
+                <div className="space-y-2">
+                  <Label>Select LinkedIn CSV</Label>
+                  <Input type="file" accept=".csv" onChange={handleLinkedInFileChange} />
+                </div>
+
+                {linkedinPreview.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Preview (first 5 rows)</Label>
+                    <PreviewTable data={linkedinPreview} />
+                  </div>
+                )}
+
+                <Button 
+                  onClick={handleLinkedInImport} 
+                  disabled={!linkedinCsv || importMutation.isPending}
+                  className="w-full"
+                >
+                  {importMutation.isPending ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importing...</>
+                  ) : (
+                    <><Upload className="mr-2 h-4 w-4" /> Import LinkedIn Connections</>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="vcard" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Import from vCard</CardTitle>
+                <CardDescription>
+                  Paste vCard (.vcf) content to import contacts from your phone or other apps.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>vCard Content</Label>
+                  <Textarea
+                    value={vcardText}
+                    onChange={(e) => setVcardText(e.target.value)}
+                    placeholder="Paste vCard content here (BEGIN:VCARD ... END:VCARD)"
+                    rows={8}
+                    className="font-mono text-xs"
+                  />
+                </div>
+
+                <Button 
+                  onClick={handleVCardImport} 
+                  disabled={!vcardText.trim() || importMutation.isPending}
+                  className="w-full"
+                >
+                  {importMutation.isPending ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importing...</>
+                  ) : (
+                    <><Upload className="mr-2 h-4 w-4" /> Import from vCard</>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {importResult && (
+          <Alert variant={importResult.failed > 0 ? 'destructive' : 'default'}>
+            {importResult.failed > 0 ? (
+              <AlertCircle className="h-4 w-4" />
+            ) : (
+              <CheckCircle className="h-4 w-4" />
             )}
+            <AlertTitle>Import Complete</AlertTitle>
+            <AlertDescription>
+              Successfully imported {importResult.success} contacts.
+              {importResult.failed > 0 && ` ${importResult.failed} contacts failed to import.`}
+            </AlertDescription>
+          </Alert>
+        )}
 
-            <Button 
-              onClick={() => importMutation.mutate()} 
-              disabled={!file || importMutation.isPending}
-              className="w-full"
-            >
-              {importMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Importing...
-                </>
-              ) : (
-                <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Import Contacts
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
+        <Card className="bg-muted/50">
           <CardHeader>
-            <CardTitle>CSV Format Example</CardTitle>
+            <CardTitle className="text-base">CSV Format Example</CardTitle>
           </CardHeader>
           <CardContent>
-            <pre className="p-4 bg-muted rounded-lg text-sm overflow-x-auto">
+            <pre className="p-4 bg-background rounded-lg text-sm overflow-x-auto">
 {`first_name,last_name,email,phone,organization,job_title,relationship_type
 John,Doe,john@example.com,+1234567890,Acme Inc,CEO,client
 Jane,Smith,jane@example.com,+0987654321,TechCorp,Engineer,colleague`}

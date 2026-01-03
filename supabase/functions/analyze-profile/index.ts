@@ -59,6 +59,24 @@ serve(async (req) => {
       .select("*")
       .eq("profile_id", profileId);
 
+    // Fetch conversations and messages for this profile
+    const { data: conversations } = await supabase
+      .from("conversations")
+      .select("id, platform, title")
+      .eq("profile_id", profileId);
+
+    let allMessages: any[] = [];
+    if (conversations && conversations.length > 0) {
+      const conversationIds = conversations.map(c => c.id);
+      const { data: messages } = await supabase
+        .from("messages")
+        .select("*, conversations(platform)")
+        .in("conversation_id", conversationIds)
+        .order("sent_at", { ascending: false })
+        .limit(50);
+      allMessages = messages || [];
+    }
+
     // Build context for AI
     const context = {
       profile: {
@@ -82,6 +100,12 @@ serve(async (req) => {
         type: e.event_type,
         title: e.title,
         date: e.event_date,
+      })),
+      messageThreads: allMessages.map((m: any) => ({
+        platform: m.conversations?.platform,
+        isFromContact: m.is_from_contact,
+        content: m.content,
+        date: m.sent_at,
       })),
     };
 
