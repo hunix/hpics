@@ -26,11 +26,12 @@ import { useQuery } from '@tanstack/react-query';
 interface DocumentUploadProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  preselectedProfileId?: string;
 }
 
 const documentTypes = ['resume', 'contract', 'presentation', 'notes', 'article', 'other'] as const;
 
-export function DocumentUpload({ open, onOpenChange }: DocumentUploadProps) {
+export function DocumentUpload({ open, onOpenChange, preselectedProfileId }: DocumentUploadProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -38,7 +39,7 @@ export function DocumentUpload({ open, onOpenChange }: DocumentUploadProps) {
   
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [formData, setFormData] = useState({
-    profile_id: '',
+    profile_id: preselectedProfileId || '',
     document_type: 'other' as typeof documentTypes[number],
     title: '',
     description: '',
@@ -91,6 +92,7 @@ export function DocumentUpload({ open, onOpenChange }: DocumentUploadProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
+      queryClient.invalidateQueries({ queryKey: ['contact-documents'] });
       toast({ title: 'Document uploaded successfully' });
       onOpenChange(false);
       resetForm();
@@ -103,7 +105,7 @@ export function DocumentUpload({ open, onOpenChange }: DocumentUploadProps) {
   const resetForm = () => {
     setSelectedFile(null);
     setFormData({
-      profile_id: '',
+      profile_id: preselectedProfileId || '',
       document_type: 'other',
       title: '',
       description: '',

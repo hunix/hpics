@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/AppLayout';
@@ -9,17 +10,16 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Star, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { ContactDialog } from '@/components/contacts/ContactDialog';
-import { ContactDetailDialog } from '@/components/contacts/ContactDetailDialog';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Profile = Tables<'profiles'>;
 
 export default function Contacts() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [selectedContact, setSelectedContact] = useState<Profile | null>(null);
 
   const { data: contacts, isLoading } = useQuery({
     queryKey: ['contacts', user?.id, searchQuery],
@@ -109,7 +109,7 @@ export default function Contacts() {
               <Card 
                 key={contact.id} 
                 className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => setSelectedContact(contact)}
+                onClick={() => navigate(`/contacts/${contact.id}`)}
               >
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
@@ -184,14 +184,6 @@ export default function Contacts() {
         open={isCreateDialogOpen} 
         onOpenChange={setIsCreateDialogOpen}
       />
-
-      {selectedContact && (
-        <ContactDetailDialog
-          contact={selectedContact}
-          open={!!selectedContact}
-          onOpenChange={(open) => !open && setSelectedContact(null)}
-        />
-      )}
     </AppLayout>
   );
 }
