@@ -5,9 +5,12 @@ import { AppLayout } from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, FileText, File, ExternalLink } from 'lucide-react';
+import { Plus, FileText, File, ExternalLink, Trash2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
+import { DocumentUpload } from '@/components/uploads/DocumentUpload';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Document = Tables<'documents'> & {
@@ -16,6 +19,9 @@ type Document = Tables<'documents'> & {
 
 export default function Documents() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
 
   const { data: documents, isLoading } = useQuery({
     queryKey: ['documents', user?.id],
@@ -28,6 +34,17 @@ export default function Documents() {
       return data as Document[];
     },
     enabled: !!user,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('documents').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      toast({ title: 'Document deleted' });
+    },
   });
 
   const docTypeColors: Record<string, string> = {
@@ -53,7 +70,7 @@ export default function Documents() {
           <p className="text-muted-foreground">
             Store and organize documents related to your contacts
           </p>
-          <Button disabled>
+          <Button onClick={() => setIsUploadOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Upload Document
           </Button>
@@ -78,7 +95,7 @@ export default function Documents() {
         ) : documents && documents.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {documents.map((doc) => (
-              <Card key={doc.id} className="hover:shadow-md transition-shadow">
+              <Card key={doc.id} className="hover:shadow-md transition-shadow group">
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
                     <div className="flex h-10 w-10 items-center justify-center rounded bg-muted">
@@ -105,11 +122,25 @@ export default function Documents() {
                         {format(new Date(doc.created_at), 'PP')}
                       </p>
                     </div>
-                    <Button variant="ghost" size="icon" asChild>
-                      <a href={doc.file_url} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="h-4 w-4" />
-                      </a>
-                    </Button>
+                    <div className="flex flex-col gap-1">
+                      <Button variant="ghost" size="icon" asChild>
+                        <a href={doc.file_url} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => {
+                          if (confirm('Delete this document?')) {
+                            deleteMutation.mutate(doc.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -123,7 +154,7 @@ export default function Documents() {
               <p className="text-muted-foreground text-center mb-4">
                 Upload resumes, contracts, and other important documents.
               </p>
-              <Button disabled>
+              <Button onClick={() => setIsUploadOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Upload Your First Document
               </Button>
@@ -131,6 +162,8 @@ export default function Documents() {
           </Card>
         )}
       </div>
+
+      <DocumentUpload open={isUploadOpen} onOpenChange={setIsUploadOpen} />
     </AppLayout>
   );
 }

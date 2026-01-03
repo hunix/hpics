@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Image as ImageIcon, Images } from 'lucide-react';
+import { Plus, Image as ImageIcon, Images, Trash2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { MediaUpload } from '@/components/uploads/MediaUpload';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Media = Tables<'media'> & {
@@ -15,6 +17,9 @@ type Media = Tables<'media'> & {
 
 export default function MediaPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
 
   const { data: media, isLoading } = useQuery({
     queryKey: ['media', user?.id],
@@ -29,6 +34,17 @@ export default function MediaPage() {
     enabled: !!user,
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('media').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['media'] });
+      toast({ title: 'Media deleted' });
+    },
+  });
+
   return (
     <AppLayout title="Media Gallery">
       <div className="space-y-6">
@@ -36,7 +52,7 @@ export default function MediaPage() {
           <p className="text-muted-foreground">
             Photos and images related to your contacts
           </p>
-          <Button disabled>
+          <Button onClick={() => setIsUploadOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Upload Media
           </Button>
@@ -51,7 +67,7 @@ export default function MediaPage() {
         ) : media && media.length > 0 ? (
           <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {media.map((item) => (
-              <Card key={item.id} className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+              <Card key={item.id} className="overflow-hidden hover:shadow-md transition-shadow group">
                 <div className="aspect-square bg-muted relative">
                   {item.thumbnail_url || item.file_url ? (
                     <img 
@@ -64,6 +80,18 @@ export default function MediaPage() {
                       <ImageIcon className="h-12 w-12 text-muted-foreground" />
                     </div>
                   )}
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => {
+                      if (confirm('Delete this image?')) {
+                        deleteMutation.mutate(item.id);
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
                 <CardContent className="p-3">
                   {item.caption && (
@@ -89,7 +117,7 @@ export default function MediaPage() {
               <p className="text-muted-foreground text-center mb-4">
                 Upload photos and images to build a visual memory of your relationships.
               </p>
-              <Button disabled>
+              <Button onClick={() => setIsUploadOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Upload Your First Image
               </Button>
@@ -97,6 +125,8 @@ export default function MediaPage() {
           </Card>
         )}
       </div>
+
+      <MediaUpload open={isUploadOpen} onOpenChange={setIsUploadOpen} />
     </AppLayout>
   );
 }
