@@ -49,6 +49,33 @@ export type Database = {
           },
         ]
       }
+      ai_model_preferences: {
+        Row: {
+          analysis_type: string
+          created_at: string
+          id: string
+          model_key: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis_type: string
+          created_at?: string
+          id?: string
+          model_key: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis_type?: string
+          created_at?: string
+          id?: string
+          model_key?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_usage_logs: {
         Row: {
           actual_cost_cents: number | null
@@ -1140,6 +1167,7 @@ export type Database = {
           bio: string | null
           created_at: string
           first_name: string
+          hierarchy_level: string | null
           id: string
           is_favorite: boolean | null
           job_title: string | null
@@ -1149,6 +1177,7 @@ export type Database = {
           nickname: string | null
           notes: string | null
           organization: string | null
+          relationship_subtype: string | null
           relationship_type:
             | Database["public"]["Enums"]["relationship_type"]
             | null
@@ -1161,6 +1190,7 @@ export type Database = {
           bio?: string | null
           created_at?: string
           first_name: string
+          hierarchy_level?: string | null
           id?: string
           is_favorite?: boolean | null
           job_title?: string | null
@@ -1170,6 +1200,7 @@ export type Database = {
           nickname?: string | null
           notes?: string | null
           organization?: string | null
+          relationship_subtype?: string | null
           relationship_type?:
             | Database["public"]["Enums"]["relationship_type"]
             | null
@@ -1182,6 +1213,7 @@ export type Database = {
           bio?: string | null
           created_at?: string
           first_name?: string
+          hierarchy_level?: string | null
           id?: string
           is_favorite?: boolean | null
           job_title?: string | null
@@ -1191,6 +1223,7 @@ export type Database = {
           nickname?: string | null
           notes?: string | null
           organization?: string | null
+          relationship_subtype?: string | null
           relationship_type?:
             | Database["public"]["Enums"]["relationship_type"]
             | null

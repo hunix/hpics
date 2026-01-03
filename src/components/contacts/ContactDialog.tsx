@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,6 +22,12 @@ import {
 } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import type { Tables, TablesInsert } from '@/integrations/supabase/types';
+import { 
+  RELATIONSHIP_SUBTYPES, 
+  HIERARCHY_LEVELS, 
+  getSubtypesForRelationship, 
+  needsHierarchy 
+} from '@/lib/relationshipSubtypes';
 
 type Profile = Tables<'profiles'>;
 
@@ -55,14 +61,27 @@ export function ContactDialog({ open, onOpenChange, contact }: ContactDialogProp
     organization: contact?.organization ?? '',
     job_title: contact?.job_title ?? '',
     relationship_type: contact?.relationship_type ?? 'other',
+    relationship_subtype: (contact as any)?.relationship_subtype ?? '',
+    hierarchy_level: (contact as any)?.hierarchy_level ?? '',
     bio: contact?.bio ?? '',
     notes: contact?.notes ?? '',
     tags: contact?.tags?.join(', ') ?? '',
   });
 
+  // Reset subtype and hierarchy when relationship type changes
+  useEffect(() => {
+    if (!isEditing) {
+      setFormData(prev => ({
+        ...prev,
+        relationship_subtype: '',
+        hierarchy_level: '',
+      }));
+    }
+  }, [formData.relationship_type, isEditing]);
+
   const mutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const profileData: TablesInsert<'profiles'> = {
+      const profileData: TablesInsert<'profiles'> & { relationship_subtype?: string; hierarchy_level?: string } = {
         user_id: user!.id,
         first_name: data.first_name,
         last_name: data.last_name || null,
@@ -73,6 +92,8 @@ export function ContactDialog({ open, onOpenChange, contact }: ContactDialogProp
         bio: data.bio || null,
         notes: data.notes || null,
         tags: data.tags ? data.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+        relationship_subtype: data.relationship_subtype || null,
+        hierarchy_level: data.hierarchy_level || null,
       };
 
       if (isEditing && contact) {
@@ -116,11 +137,16 @@ export function ContactDialog({ open, onOpenChange, contact }: ContactDialogProp
       organization: '',
       job_title: '',
       relationship_type: 'other',
+      relationship_subtype: '',
+      hierarchy_level: '',
       bio: '',
       notes: '',
       tags: '',
     });
   };
+
+  const subtypes = getSubtypesForRelationship(formData.relationship_type);
+  const showHierarchy = needsHierarchy(formData.relationship_type);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,7 +220,7 @@ export function ContactDialog({ open, onOpenChange, contact }: ContactDialogProp
             <Label htmlFor="relationship_type">Relationship Type</Label>
             <Select
               value={formData.relationship_type}
-              onValueChange={(value: typeof relationshipTypes[number]) => setFormData({ ...formData, relationship_type: value })}
+              onValueChange={(value: typeof relationshipTypes[number]) => setFormData({ ...formData, relationship_type: value, relationship_subtype: '', hierarchy_level: '' })}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -208,6 +234,57 @@ export function ContactDialog({ open, onOpenChange, contact }: ContactDialogProp
               </SelectContent>
             </Select>
           </div>
+
+          {subtypes.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="relationship_subtype">
+                {formData.relationship_type === 'family' ? 'Family Relation' :
+                 formData.relationship_type === 'friend' ? 'Friendship Type' :
+                 formData.relationship_type === 'colleague' ? 'Work Relationship' :
+                 formData.relationship_type === 'client' ? 'Client Type' :
+                 formData.relationship_type === 'mentor' ? 'Mentorship Area' :
+                 formData.relationship_type === 'mentee' ? 'Mentee Type' :
+                 formData.relationship_type === 'acquaintance' ? 'Connection Type' :
+                 'Subtype'}
+              </Label>
+              <Select
+                value={formData.relationship_subtype}
+                onValueChange={(value) => setFormData({ ...formData, relationship_subtype: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select specific type..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {subtypes.map((subtype) => (
+                    <SelectItem key={subtype.value} value={subtype.value}>
+                      {subtype.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {showHierarchy && (
+            <div className="space-y-2">
+              <Label htmlFor="hierarchy_level">Position / Hierarchy</Label>
+              <Select
+                value={formData.hierarchy_level}
+                onValueChange={(value) => setFormData({ ...formData, hierarchy_level: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select position level..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {HIERARCHY_LEVELS.map((level) => (
+                    <SelectItem key={level.value} value={level.value}>
+                      {level.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="bio">Bio</Label>
