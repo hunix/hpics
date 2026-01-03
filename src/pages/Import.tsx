@@ -9,9 +9,11 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Loader2, Linkedin, CreditCard } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Loader2, Linkedin, CreditCard, MessageCircle, Send } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
+import { WhatsAppImport } from '@/components/import/WhatsAppImport';
+import { TelegramImport } from '@/components/import/TelegramImport';
 
 interface CSVRow {
   first_name?: string;
@@ -310,7 +312,7 @@ export default function Import() {
     <AppLayout title="Import Data">
       <div className="max-w-3xl space-y-6">
         <Tabs defaultValue="csv">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="csv">
               <FileSpreadsheet className="h-4 w-4 mr-2" />
               CSV
@@ -322,6 +324,14 @@ export default function Import() {
             <TabsTrigger value="vcard">
               <CreditCard className="h-4 w-4 mr-2" />
               vCard
+            </TabsTrigger>
+            <TabsTrigger value="whatsapp">
+              <MessageCircle className="h-4 w-4 mr-2" />
+              WhatsApp
+            </TabsTrigger>
+            <TabsTrigger value="telegram">
+              <Send className="h-4 w-4 mr-2" />
+              Telegram
             </TabsTrigger>
           </TabsList>
 
@@ -442,6 +452,14 @@ export default function Import() {
                 </Button>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="whatsapp" className="mt-4">
+            <WhatsAppImport />
+          </TabsContent>
+
+          <TabsContent value="telegram" className="mt-4">
+            <TelegramImport />
           </TabsContent>
         </Tabs>
 
