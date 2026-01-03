@@ -2,3 +2,6 @@ project_id = "yibszncvwmefwamayfty"
 
 [functions.analyze-profile]
 verify_jwt = true
+
+[functions.send-reminders]
+verify_jwt = false
