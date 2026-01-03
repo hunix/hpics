@@ -1544,6 +1544,81 @@ export type Database = {
         }
         Relationships: []
       }
+      video_mosaics: {
+        Row: {
+          canvas_height: number
+          canvas_width: number
+          cell_height: number
+          cell_width: number
+          created_at: string
+          file_size: number | null
+          frame_count: number
+          frames_per_second: number
+          grid_cols: number
+          grid_rows: number
+          id: string
+          media_id: string
+          model_key: string
+          mosaic_url: string
+          profile_id: string
+          user_id: string
+          video_duration: number
+        }
+        Insert: {
+          canvas_height: number
+          canvas_width: number
+          cell_height: number
+          cell_width: number
+          created_at?: string
+          file_size?: number | null
+          frame_count: number
+          frames_per_second: number
+          grid_cols: number
+          grid_rows: number
+          id?: string
+          media_id: string
+          model_key: string
+          mosaic_url: string
+          profile_id: string
+          user_id: string
+          video_duration: number
+        }
+        Update: {
+          canvas_height?: number
+          canvas_width?: number
+          cell_height?: number
+          cell_width?: number
+          created_at?: string
+          file_size?: number | null
+          frame_count?: number
+          frames_per_second?: number
+          grid_cols?: number
+          grid_rows?: number
+          id?: string
+          media_id?: string
+          model_key?: string
+          mosaic_url?: string
+          profile_id?: string
+          user_id?: string
+          video_duration?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_mosaics_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_mosaics_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vocal_analyses: {
         Row: {
           ai_model_used: string | null

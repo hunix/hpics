@@ -71,18 +71,24 @@ export default function VideoAnalysis() {
   const [selectedAnalysisTypes, setSelectedAnalysisTypes] = useState<AnalysisType[]>([]);
   const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
   const [generatedMosaic, setGeneratedMosaic] = useState<MosaicResult | null>(null);
+  const [analysisMode, setAnalysisMode] = useState<'video' | 'mosaic'>('video');
+  const [selectedMosaicUrl, setSelectedMosaicUrl] = useState<string | null>(null);
 
   // Reset video selection and mosaic when contact changes
   useEffect(() => {
     setSelectedVideo('');
     setVideoElement(null);
     setGeneratedMosaic(null);
+    setSelectedMosaicUrl(null);
+    setAnalysisMode('video');
   }, [selectedContact]);
 
   // Reset mosaic when video changes
   useEffect(() => {
     setVideoElement(null);
     setGeneratedMosaic(null);
+    setSelectedMosaicUrl(null);
+    setAnalysisMode('video');
   }, [selectedVideo]);
 
   const { data: contacts } = useQuery({
@@ -142,7 +148,7 @@ export default function VideoAnalysis() {
     }
   };
 
-  const runAnalysis = async (type: AnalysisType, videoUrl: string, logId: string) => {
+  const runAnalysis = async (type: AnalysisType, mediaUrl: string, logId: string, useMosaic: boolean) => {
     const jobId = `${type}-${Date.now()}`;
     setRunningAnalyses(prev => [...prev, { id: jobId, type, status: 'processing', progress: 0 }]);
     const startTime = Date.now();
@@ -158,8 +164,10 @@ export default function VideoAnalysis() {
       const response = await supabase.functions.invoke(endpoints[type], {
         body: {
           profileId: selectedContact,
-          videoUrl,
+          videoUrl: useMosaic ? undefined : mediaUrl,
+          mosaicUrl: useMosaic ? mediaUrl : undefined,
           analysisType,
+          useMosaic,
         },
       });
 
@@ -209,7 +217,8 @@ export default function VideoAnalysis() {
     for (const analysisTypeItem of selectedAnalysisTypes) {
       const contact = contacts?.find(c => c.id === selectedContact);
       const contactName = contact ? `${contact.first_name} ${contact.last_name}` : 'Unknown';
-      const promptText = `Running ${analysisTypeItem.replace('_', ' ')} analysis on video/audio for ${contactName}. This will analyze behavioral patterns, expressions, and communication style.`;
+      const modeLabel = analysisMode === 'mosaic' ? 'temporal mosaic' : 'video/audio';
+      const promptText = `Running ${analysisTypeItem.replace('_', ' ')} analysis on ${modeLabel} for ${contactName}. This will analyze behavioral patterns, expressions, and communication style.`;
       
       const { approved, logId } = await requestConfirmation({
         functionName: `analyze-${analysisTypeItem.replace('_', '-')}`,
@@ -231,9 +240,14 @@ export default function VideoAnalysis() {
     setIsAnalyzing(true);
 
     try {
-      // Use the video URL directly - it's already in storage
+      // Use mosaic URL if selected, otherwise use video URL
+      const mediaUrl = analysisMode === 'mosaic' && selectedMosaicUrl 
+        ? selectedMosaicUrl 
+        : videoFile.file_url;
+      const useMosaic = analysisMode === 'mosaic' && !!selectedMosaicUrl;
+      
       for (const { type, logId } of approvedAnalyses) {
-        await runAnalysis(type, videoFile.file_url, logId);
+        await runAnalysis(type, mediaUrl, logId, useMosaic);
       }
 
       toast({ title: 'Analyses complete' });
@@ -406,6 +420,33 @@ export default function VideoAnalysis() {
                 </div>
               </div>
 
+              {/* Analysis Mode Indicator */}
+              {selectedVideoInfo && (
+                <div className={`p-3 rounded-lg border ${
+                  analysisMode === 'mosaic' 
+                    ? 'bg-primary/10 border-primary' 
+                    : 'bg-muted/50 border-border'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    {analysisMode === 'mosaic' ? (
+                      <Grid3X3 className="h-5 w-5 text-primary" />
+                    ) : (
+                      <Video className="h-5 w-5 text-muted-foreground" />
+                    )}
+                    <div>
+                      <p className="font-medium text-sm">
+                        {analysisMode === 'mosaic' ? 'Mosaic Mode' : 'Video Mode'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {analysisMode === 'mosaic' 
+                          ? 'Using temporal mosaic for efficient analysis' 
+                          : 'Using video URL for analysis'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <Button 
                 onClick={handleAnalyze}
                 disabled={isAnalyzing || !selectedVideo || !selectedContact || selectedAnalysisTypes.length === 0}
@@ -460,11 +501,17 @@ export default function VideoAnalysis() {
 
         <div className="space-y-6">
           {/* Temporal Mosaic Panel */}
-          {selectedVideoInfo && (
+          {selectedVideoInfo && selectedVideo && (
             <MosaicPreview
               videoElement={videoElement}
-              modelKey={facialModel} 
+              modelKey={facialModel}
+              mediaId={selectedVideo}
+              profileId={selectedContact}
               onMosaicGenerated={(mosaic) => setGeneratedMosaic(mosaic)}
+              onMosaicSelected={(url) => {
+                setSelectedMosaicUrl(url);
+                setAnalysisMode(url ? 'mosaic' : 'video');
+              }}
             />
           )}
           <Card>

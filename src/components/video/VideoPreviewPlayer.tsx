@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+import { Badge } from '@/components/ui/badge';
 import { 
   Play, 
   Pause, 
@@ -8,15 +9,26 @@ import {
   VolumeX, 
   Maximize, 
   SkipBack, 
-  SkipForward 
+  SkipForward,
+  Monitor,
+  Clock,
+  Film
 } from 'lucide-react';
+
+interface VideoMetadata {
+  duration: number;
+  width: number;
+  height: number;
+  aspectRatio: string;
+}
 
 interface VideoPreviewPlayerProps {
   videoUrl: string;
   onVideoLoaded?: (video: HTMLVideoElement) => void;
+  onMetadataLoaded?: (metadata: VideoMetadata) => void;
 }
 
-export function VideoPreviewPlayer({ videoUrl, onVideoLoaded }: VideoPreviewPlayerProps) {
+export function VideoPreviewPlayer({ videoUrl, onVideoLoaded, onMetadataLoaded }: VideoPreviewPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -24,6 +36,7 @@ export function VideoPreviewPlayer({ videoUrl, onVideoLoaded }: VideoPreviewPlay
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
+  const [metadata, setMetadata] = useState<VideoMetadata | null>(null);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -31,8 +44,27 @@ export function VideoPreviewPlayer({ videoUrl, onVideoLoaded }: VideoPreviewPlay
 
     const handleLoadedMetadata = () => {
       setDuration(video.duration);
+      
+      const width = video.videoWidth;
+      const height = video.videoHeight;
+      const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
+      const divisor = gcd(width, height);
+      const aspectRatio = `${width / divisor}:${height / divisor}`;
+      
+      const meta: VideoMetadata = {
+        duration: video.duration,
+        width,
+        height,
+        aspectRatio,
+      };
+      
+      setMetadata(meta);
+      
       if (onVideoLoaded) {
         onVideoLoaded(video);
+      }
+      if (onMetadataLoaded) {
+        onMetadataLoaded(meta);
       }
     };
 
@@ -53,7 +85,7 @@ export function VideoPreviewPlayer({ videoUrl, onVideoLoaded }: VideoPreviewPlay
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('ended', handleEnded);
     };
-  }, [onVideoLoaded]);
+  }, [onVideoLoaded, onMetadataLoaded]);
 
   const togglePlay = () => {
     const video = videoRef.current;
@@ -120,117 +152,147 @@ export function VideoPreviewPlayer({ videoUrl, onVideoLoaded }: VideoPreviewPlay
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const formatDuration = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    if (hours > 0) {
+      return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   return (
-    <div 
-      ref={containerRef}
-      className="relative bg-black rounded-lg overflow-hidden group"
-    >
-      <video
-        ref={videoRef}
-        src={videoUrl}
-        className="w-full aspect-video"
-        crossOrigin="anonymous"
-        preload="metadata"
-        onClick={togglePlay}
-      />
-      
-      {/* Controls overlay */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-        {/* Progress bar */}
-        <div className="mb-3">
-          <Slider
-            value={[currentTime]}
-            max={duration || 100}
-            step={0.1}
-            onValueChange={handleSeek}
-            className="cursor-pointer"
-          />
-        </div>
+    <div className="space-y-3">
+      <div 
+        ref={containerRef}
+        className="relative bg-black rounded-lg overflow-hidden group"
+      >
+        <video
+          ref={videoRef}
+          src={videoUrl}
+          className="w-full aspect-video"
+          crossOrigin="anonymous"
+          preload="metadata"
+          onClick={togglePlay}
+        />
         
-        {/* Controls */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-white hover:bg-white/20"
-              onClick={skipBack}
-            >
-              <SkipBack className="h-4 w-4" />
-            </Button>
-            
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 text-white hover:bg-white/20"
-              onClick={togglePlay}
-            >
-              {isPlaying ? (
-                <Pause className="h-5 w-5" />
-              ) : (
-                <Play className="h-5 w-5" />
-              )}
-            </Button>
-            
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-white hover:bg-white/20"
-              onClick={skipForward}
-            >
-              <SkipForward className="h-4 w-4" />
-            </Button>
-            
-            <span className="text-white text-sm ml-2">
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </span>
+        {/* Controls overlay */}
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* Progress bar */}
+          <div className="mb-3">
+            <Slider
+              value={[currentTime]}
+              max={duration || 100}
+              step={0.1}
+              onValueChange={handleSeek}
+              className="cursor-pointer"
+            />
           </div>
           
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-white hover:bg-white/20"
-              onClick={toggleMute}
-            >
-              {isMuted ? (
-                <VolumeX className="h-4 w-4" />
-              ) : (
-                <Volume2 className="h-4 w-4" />
-              )}
-            </Button>
-            
-            <div className="w-20">
-              <Slider
-                value={[isMuted ? 0 : volume]}
-                max={1}
-                step={0.1}
-                onValueChange={handleVolumeChange}
-                className="cursor-pointer"
-              />
+          {/* Controls */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-white hover:bg-white/20"
+                onClick={skipBack}
+              >
+                <SkipBack className="h-4 w-4" />
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 text-white hover:bg-white/20"
+                onClick={togglePlay}
+              >
+                {isPlaying ? (
+                  <Pause className="h-5 w-5" />
+                ) : (
+                  <Play className="h-5 w-5" />
+                )}
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-white hover:bg-white/20"
+                onClick={skipForward}
+              >
+                <SkipForward className="h-4 w-4" />
+              </Button>
+              
+              <span className="text-white text-sm ml-2">
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </span>
             </div>
             
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-white hover:bg-white/20"
-              onClick={toggleFullscreen}
-            >
-              <Maximize className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-white hover:bg-white/20"
+                onClick={toggleMute}
+              >
+                {isMuted ? (
+                  <VolumeX className="h-4 w-4" />
+                ) : (
+                  <Volume2 className="h-4 w-4" />
+                )}
+              </Button>
+              
+              <div className="w-20">
+                <Slider
+                  value={[isMuted ? 0 : volume]}
+                  max={1}
+                  step={0.1}
+                  onValueChange={handleVolumeChange}
+                  className="cursor-pointer"
+                />
+              </div>
+              
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-white hover:bg-white/20"
+                onClick={toggleFullscreen}
+              >
+                <Maximize className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
+        
+        {/* Play button overlay when paused */}
+        {!isPlaying && duration > 0 && (
+          <div 
+            className="absolute inset-0 flex items-center justify-center cursor-pointer"
+            onClick={togglePlay}
+          >
+            <div className="bg-black/50 rounded-full p-4">
+              <Play className="h-12 w-12 text-white" />
+            </div>
+          </div>
+        )}
       </div>
       
-      {/* Play button overlay when paused */}
-      {!isPlaying && duration > 0 && (
-        <div 
-          className="absolute inset-0 flex items-center justify-center cursor-pointer"
-          onClick={togglePlay}
-        >
-          <div className="bg-black/50 rounded-full p-4">
-            <Play className="h-12 w-12 text-white" />
-          </div>
+      {/* Video Metadata */}
+      {metadata && (
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="outline" className="flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            {formatDuration(metadata.duration)}
+          </Badge>
+          <Badge variant="outline" className="flex items-center gap-1">
+            <Monitor className="h-3 w-3" />
+            {metadata.width}×{metadata.height}
+          </Badge>
+          <Badge variant="outline" className="flex items-center gap-1">
+            <Film className="h-3 w-3" />
+            {metadata.aspectRatio}
+          </Badge>
         </div>
       )}
     </div>
