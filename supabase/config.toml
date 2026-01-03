@@ -1,34 +1,37 @@
 project_id = "yibszncvwmefwamayfty"
 
 [functions.analyze-profile]
-verify_jwt = true
+verify_jwt = false
 
 [functions.send-reminders]
 verify_jwt = false
 
 [functions.suggest-followups]
-verify_jwt = true
+verify_jwt = false
 
 [functions.enrich-contact]
-verify_jwt = true
+verify_jwt = false
 
 [functions.generate-briefing]
-verify_jwt = true
+verify_jwt = false
 
 [functions.suggest-gifts]
-verify_jwt = true
+verify_jwt = false
 
 [functions.predict-risks]
-verify_jwt = true
+verify_jwt = false
 
 [functions.generate-weekly-summary]
-verify_jwt = true
+verify_jwt = false
 
 [functions.detect-interests]
-verify_jwt = true
+verify_jwt = false
 
 [functions.suggest-introductions]
-verify_jwt = true
+verify_jwt = false
 
 [functions.suggest-outreach-timing]
-verify_jwt = true
+verify_jwt = false
+
+[functions.generate-message-templates]
+verify_jwt = false

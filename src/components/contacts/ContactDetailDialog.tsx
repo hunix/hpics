@@ -32,6 +32,7 @@ import { InterestsManager } from './InterestsManager';
 import { RelationshipGoals } from './RelationshipGoals';
 import { SharedExperiences } from './SharedExperiences';
 import { OptimalOutreach } from './OptimalOutreach';
+import { MessageTemplates } from './MessageTemplates';
 import { formatDistanceToNow } from 'date-fns';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -231,6 +232,7 @@ export function ContactDetailDialog({ contact, open, onOpenChange }: ContactDeta
                     <TabsList className="flex flex-wrap h-auto gap-1">
                       <TabsTrigger value="contact">Contact</TabsTrigger>
                       <TabsTrigger value="outreach">Outreach</TabsTrigger>
+                      <TabsTrigger value="templates">Templates</TabsTrigger>
                       <TabsTrigger value="briefing">Briefing</TabsTrigger>
                       <TabsTrigger value="interests">Interests</TabsTrigger>
                       <TabsTrigger value="gifts">Gifts</TabsTrigger>
@@ -251,6 +253,13 @@ export function ContactDetailDialog({ contact, open, onOpenChange }: ContactDeta
 
                     <TabsContent value="outreach" className="mt-4">
                       <OptimalOutreach 
+                        profileId={contact.id}
+                        contactName={`${contact.first_name} ${contact.last_name || ''}`.trim()}
+                      />
+                    </TabsContent>
+
+                    <TabsContent value="templates" className="mt-4">
+                      <MessageTemplates 
                         profileId={contact.id}
                         contactName={`${contact.first_name} ${contact.last_name || ''}`.trim()}
                       />
