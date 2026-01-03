@@ -9,12 +9,13 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Loader2, Linkedin, CreditCard, MessageCircle, Send, GraduationCap } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Loader2, Linkedin, CreditCard, MessageCircle, Send, GraduationCap, Sparkles } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 import { WhatsAppImport } from '@/components/import/WhatsAppImport';
 import { TelegramImport } from '@/components/import/TelegramImport';
 import { EducationBulkImport } from '@/components/import/EducationBulkImport';
+import { BulkEnrichment } from '@/components/contacts/BulkEnrichment';
 
 interface CSVRow {
   first_name?: string;
@@ -313,7 +314,11 @@ export default function Import() {
     <AppLayout title="Import Data">
       <div className="max-w-3xl space-y-6">
         <Tabs defaultValue="csv">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="flex flex-wrap h-auto gap-1">
+            <TabsTrigger value="enrich">
+              <Sparkles className="h-4 w-4 mr-2" />
+              Bulk Enrich
+            </TabsTrigger>
             <TabsTrigger value="csv">
               <FileSpreadsheet className="h-4 w-4 mr-2" />
               CSV
@@ -339,6 +344,10 @@ export default function Import() {
               Education
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="enrich" className="mt-4">
+            <BulkEnrichment />
+          </TabsContent>
 
           <TabsContent value="csv" className="mt-4">
             <Card>

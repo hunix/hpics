@@ -26,3 +26,6 @@ verify_jwt = true
 
 [functions.detect-interests]
 verify_jwt = true
+
+[functions.suggest-introductions]
+verify_jwt = true
