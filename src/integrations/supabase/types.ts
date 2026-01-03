@@ -49,6 +49,138 @@ export type Database = {
           },
         ]
       }
+      behavioral_analyses: {
+        Row: {
+          ai_model_used: string | null
+          analysis_type: string
+          behavioral_patterns: Json | null
+          confidence_score: number | null
+          created_at: string
+          id: string
+          personality_indicators: Json | null
+          profile_id: string
+          raw_analysis: Json | null
+          source_recording_id: string | null
+          updated_at: string
+          user_id: string
+          video_url: string | null
+        }
+        Insert: {
+          ai_model_used?: string | null
+          analysis_type: string
+          behavioral_patterns?: Json | null
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          personality_indicators?: Json | null
+          profile_id: string
+          raw_analysis?: Json | null
+          source_recording_id?: string | null
+          updated_at?: string
+          user_id: string
+          video_url?: string | null
+        }
+        Update: {
+          ai_model_used?: string | null
+          analysis_type?: string
+          behavioral_patterns?: Json | null
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          personality_indicators?: Json | null
+          profile_id?: string
+          raw_analysis?: Json | null
+          source_recording_id?: string | null
+          updated_at?: string
+          user_id?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "behavioral_analyses_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "behavioral_analyses_source_recording_id_fkey"
+            columns: ["source_recording_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_recordings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      body_language_analyses: {
+        Row: {
+          ai_model_used: string | null
+          comfort_indicators: Json | null
+          confidence_score: number | null
+          created_at: string
+          gesture_patterns: Json | null
+          id: string
+          movement_indicators: Json | null
+          posture_analysis: Json | null
+          profile_id: string
+          rapport_signals: Json | null
+          raw_analysis: Json | null
+          source_recording_id: string | null
+          updated_at: string
+          user_id: string
+          video_url: string | null
+        }
+        Insert: {
+          ai_model_used?: string | null
+          comfort_indicators?: Json | null
+          confidence_score?: number | null
+          created_at?: string
+          gesture_patterns?: Json | null
+          id?: string
+          movement_indicators?: Json | null
+          posture_analysis?: Json | null
+          profile_id: string
+          rapport_signals?: Json | null
+          raw_analysis?: Json | null
+          source_recording_id?: string | null
+          updated_at?: string
+          user_id: string
+          video_url?: string | null
+        }
+        Update: {
+          ai_model_used?: string | null
+          comfort_indicators?: Json | null
+          confidence_score?: number | null
+          created_at?: string
+          gesture_patterns?: Json | null
+          id?: string
+          movement_indicators?: Json | null
+          posture_analysis?: Json | null
+          profile_id?: string
+          rapport_signals?: Json | null
+          raw_analysis?: Json | null
+          source_recording_id?: string | null
+          updated_at?: string
+          user_id?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "body_language_analyses_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "body_language_analyses_source_recording_id_fkey"
+            columns: ["source_recording_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_recordings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       certifications: {
         Row: {
           created_at: string
@@ -598,6 +730,72 @@ export type Database = {
           },
         ]
       }
+      facial_analyses: {
+        Row: {
+          ai_model_used: string | null
+          confidence_score: number | null
+          created_at: string
+          deception_indicators: Json | null
+          emotional_timeline: Json | null
+          id: string
+          micro_expressions: Json | null
+          profile_id: string
+          raw_analysis: Json | null
+          source_recording_id: string | null
+          stress_indicators: Json | null
+          updated_at: string
+          user_id: string
+          video_url: string | null
+        }
+        Insert: {
+          ai_model_used?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          deception_indicators?: Json | null
+          emotional_timeline?: Json | null
+          id?: string
+          micro_expressions?: Json | null
+          profile_id: string
+          raw_analysis?: Json | null
+          source_recording_id?: string | null
+          stress_indicators?: Json | null
+          updated_at?: string
+          user_id: string
+          video_url?: string | null
+        }
+        Update: {
+          ai_model_used?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          deception_indicators?: Json | null
+          emotional_timeline?: Json | null
+          id?: string
+          micro_expressions?: Json | null
+          profile_id?: string
+          raw_analysis?: Json | null
+          source_recording_id?: string | null
+          stress_indicators?: Json | null
+          updated_at?: string
+          user_id?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facial_analyses_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facial_analyses_source_recording_id_fkey"
+            columns: ["source_recording_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_recordings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gift_ideas: {
         Row: {
           ai_reasoning: string | null
@@ -657,6 +855,51 @@ export type Database = {
           },
         ]
       }
+      local_ai_endpoints: {
+        Row: {
+          api_format: string | null
+          capabilities: Json | null
+          created_at: string
+          endpoint_url: string
+          health_status: string | null
+          id: string
+          is_active: boolean | null
+          last_health_check: string | null
+          model_type: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_format?: string | null
+          capabilities?: Json | null
+          created_at?: string
+          endpoint_url: string
+          health_status?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_health_check?: string | null
+          model_type: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_format?: string | null
+          capabilities?: Json | null
+          created_at?: string
+          endpoint_url?: string
+          health_status?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_health_check?: string | null
+          model_type?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       media: {
         Row: {
           caption: string | null
@@ -694,6 +937,74 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "media_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_recordings: {
+        Row: {
+          audio_events: Json | null
+          created_at: string
+          description: string | null
+          duration_seconds: number | null
+          file_size: number | null
+          file_url: string
+          folder: string | null
+          id: string
+          mime_type: string | null
+          processed_at: string | null
+          profile_id: string | null
+          status: string | null
+          title: string
+          transcription: string | null
+          transcription_with_speakers: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          audio_events?: Json | null
+          created_at?: string
+          description?: string | null
+          duration_seconds?: number | null
+          file_size?: number | null
+          file_url: string
+          folder?: string | null
+          id?: string
+          mime_type?: string | null
+          processed_at?: string | null
+          profile_id?: string | null
+          status?: string | null
+          title: string
+          transcription?: string | null
+          transcription_with_speakers?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          audio_events?: Json | null
+          created_at?: string
+          description?: string | null
+          duration_seconds?: number | null
+          file_size?: number | null
+          file_url?: string
+          folder?: string | null
+          id?: string
+          mime_type?: string | null
+          processed_at?: string | null
+          profile_id?: string | null
+          status?: string | null
+          title?: string
+          transcription?: string | null
+          transcription_with_speakers?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_recordings_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -1082,6 +1393,78 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      vocal_analyses: {
+        Row: {
+          ai_model_used: string | null
+          audio_url: string | null
+          confidence_indicators: Json | null
+          confidence_score: number | null
+          created_at: string
+          deception_likelihood: Json | null
+          hesitation_markers: Json | null
+          id: string
+          mood_changes: Json | null
+          profile_id: string
+          raw_analysis: Json | null
+          source_recording_id: string | null
+          speech_patterns: Json | null
+          stress_points: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_model_used?: string | null
+          audio_url?: string | null
+          confidence_indicators?: Json | null
+          confidence_score?: number | null
+          created_at?: string
+          deception_likelihood?: Json | null
+          hesitation_markers?: Json | null
+          id?: string
+          mood_changes?: Json | null
+          profile_id: string
+          raw_analysis?: Json | null
+          source_recording_id?: string | null
+          speech_patterns?: Json | null
+          stress_points?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_model_used?: string | null
+          audio_url?: string | null
+          confidence_indicators?: Json | null
+          confidence_score?: number | null
+          created_at?: string
+          deception_likelihood?: Json | null
+          hesitation_markers?: Json | null
+          id?: string
+          mood_changes?: Json | null
+          profile_id?: string
+          raw_analysis?: Json | null
+          source_recording_id?: string | null
+          speech_patterns?: Json | null
+          stress_points?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vocal_analyses_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vocal_analyses_source_recording_id_fkey"
+            columns: ["source_recording_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_recordings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       weekly_summaries: {
         Row: {
