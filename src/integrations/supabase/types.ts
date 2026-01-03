@@ -500,6 +500,45 @@ export type Database = {
           },
         ]
       }
+      email_accounts: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          email: string
+          id: string
+          is_connected: boolean
+          last_sync_at: string | null
+          provider: string
+          sync_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          email: string
+          id?: string
+          is_connected?: boolean
+          last_sync_at?: string | null
+          provider: string
+          sync_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          email?: string
+          id?: string
+          is_connected?: boolean
+          last_sync_at?: string | null
+          provider?: string
+          sync_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           created_at: string
@@ -769,6 +808,39 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          is_active: boolean
+          p256dh: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          is_active?: boolean
+          p256dh: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          is_active?: boolean
+          p256dh?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       relationship_goals: {
         Row: {
           created_at: string
@@ -824,6 +896,59 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "relationship_goals_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      relationship_scores: {
+        Row: {
+          created_at: string
+          decay_rate: number | null
+          diversity_score: number
+          frequency_score: number
+          id: string
+          last_calculated_at: string
+          overall_score: number
+          profile_id: string
+          recency_score: number
+          sentiment_score: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          decay_rate?: number | null
+          diversity_score?: number
+          frequency_score?: number
+          id?: string
+          last_calculated_at?: string
+          overall_score?: number
+          profile_id: string
+          recency_score?: number
+          sentiment_score?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          decay_rate?: number | null
+          diversity_score?: number
+          frequency_score?: number
+          id?: string
+          last_calculated_at?: string
+          overall_score?: number
+          profile_id?: string
+          recency_score?: number
+          sentiment_score?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relationship_scores_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"

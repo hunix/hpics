@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.generate-message-templates]
 verify_jwt = false
+
+[functions.calculate-relationship-scores]
+verify_jwt = false

@@ -13,6 +13,7 @@ import { IntroductionSuggestions } from '@/components/dashboard/IntroductionSugg
 import { AutoScheduleFollowups } from '@/components/dashboard/AutoScheduleFollowups';
 import { NetworkGraph } from '@/components/network/NetworkGraph';
 import { ContactGroupsWidget } from '@/components/dashboard/ContactGroupsWidget';
+import { RelationshipScoreCard } from '@/components/dashboard/RelationshipScoreCard';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -183,6 +184,9 @@ export default function Dashboard() {
 
         {/* Contact Groups */}
         <ContactGroupsWidget />
+
+        {/* Relationship Scores */}
+        <RelationshipScoreCard />
 
         {/* Network Graph */}
         <NetworkGraph />
