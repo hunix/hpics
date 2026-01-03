@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Gift, Loader2, Sparkles, Plus, Check, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useAIConfirmationContext } from '@/contexts/AIConfirmationContext';
+import { calculateCostCents } from '@/lib/aiPricing';
 import { toast } from 'sonner';
 
 interface GiftSuggestion {
@@ -52,9 +54,12 @@ const priceRangeColors: Record<string, string> = {
   luxury: 'bg-amber-500/10 text-amber-700',
 };
 
+const MODEL_KEY = 'google/gemini-2.5-flash';
+
 export function GiftSuggestions({ profileId, contactName }: GiftSuggestionsProps) {
   const { user, session } = useAuth();
   const queryClient = useQueryClient();
+  const { requestConfirmation, updateLogWithResult } = useAIConfirmationContext();
   const [isGenerating, setIsGenerating] = useState(false);
   const [suggestions, setSuggestions] = useState<GiftSuggestion[]>([]);
   const [occasion, setOccasion] = useState<string>('');
@@ -116,7 +121,20 @@ export function GiftSuggestions({ profileId, contactName }: GiftSuggestionsProps
   });
 
   const generateSuggestions = async () => {
+    const promptText = `Generating personalized gift suggestions for ${contactName}${occasion ? ` for ${occasion}` : ''}${priceFilter ? ` in ${priceFilter} price range` : ''}. Analyzing interests, preferences, and relationship context.`;
+    
+    const { approved, logId } = await requestConfirmation({
+      functionName: 'suggest-gifts',
+      modelKey: MODEL_KEY,
+      promptText,
+      profileId,
+    });
+    
+    if (!approved || !logId) return;
+    
     setIsGenerating(true);
+    const startTime = Date.now();
+    
     try {
       const { data, error } = await supabase.functions.invoke('suggest-gifts', {
         body: { profileId, occasion, priceRange: priceFilter },
@@ -125,7 +143,23 @@ export function GiftSuggestions({ profileId, contactName }: GiftSuggestionsProps
         },
       });
 
-      if (error) throw error;
+      const responseTime = Date.now() - startTime;
+
+      if (error) {
+        await updateLogWithResult(logId, {
+          status: 'failed',
+          errorMessage: error.message,
+          responseTimeMs: responseTime,
+        });
+        throw error;
+      }
+      
+      await updateLogWithResult(logId, {
+        status: 'completed',
+        responseTimeMs: responseTime,
+        actualCostCents: calculateCostCents(MODEL_KEY, 1500, 1000),
+      });
+      
       setSuggestions(data.gifts || []);
       toast.success('Gift suggestions generated!');
     } catch (error) {

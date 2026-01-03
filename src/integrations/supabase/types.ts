@@ -49,6 +49,87 @@ export type Database = {
           },
         ]
       }
+      ai_usage_logs: {
+        Row: {
+          actual_cost_cents: number | null
+          created_at: string
+          error_message: string | null
+          estimated_cost_cents: number
+          function_name: string
+          id: string
+          input_tokens: number | null
+          model_name: string
+          output_tokens: number | null
+          profile_id: string | null
+          prompt_summary: string | null
+          provider: string
+          recording_id: string | null
+          request_metadata: Json | null
+          response_metadata: Json | null
+          response_time_ms: number | null
+          status: string
+          total_tokens: number | null
+          user_id: string
+        }
+        Insert: {
+          actual_cost_cents?: number | null
+          created_at?: string
+          error_message?: string | null
+          estimated_cost_cents?: number
+          function_name: string
+          id?: string
+          input_tokens?: number | null
+          model_name: string
+          output_tokens?: number | null
+          profile_id?: string | null
+          prompt_summary?: string | null
+          provider: string
+          recording_id?: string | null
+          request_metadata?: Json | null
+          response_metadata?: Json | null
+          response_time_ms?: number | null
+          status?: string
+          total_tokens?: number | null
+          user_id: string
+        }
+        Update: {
+          actual_cost_cents?: number | null
+          created_at?: string
+          error_message?: string | null
+          estimated_cost_cents?: number
+          function_name?: string
+          id?: string
+          input_tokens?: number | null
+          model_name?: string
+          output_tokens?: number | null
+          profile_id?: string | null
+          prompt_summary?: string | null
+          provider?: string
+          recording_id?: string | null
+          request_metadata?: Json | null
+          response_metadata?: Json | null
+          response_time_ms?: number | null
+          status?: string
+          total_tokens?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_logs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_usage_logs_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_recordings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       behavioral_analyses: {
         Row: {
           ai_model_used: string | null
