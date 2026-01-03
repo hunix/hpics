@@ -9,13 +9,14 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Loader2, Linkedin, CreditCard, MessageCircle, Send, GraduationCap, Sparkles } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Loader2, Linkedin, CreditCard, MessageCircle, Send, GraduationCap, Sparkles, FileUp } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 import { WhatsAppImport } from '@/components/import/WhatsAppImport';
 import { TelegramImport } from '@/components/import/TelegramImport';
 import { EducationBulkImport } from '@/components/import/EducationBulkImport';
 import { BulkEnrichment } from '@/components/contacts/BulkEnrichment';
+import { ContactImport } from '@/components/import/ContactImport';
 
 interface CSVRow {
   first_name?: string;
@@ -313,8 +314,12 @@ export default function Import() {
   return (
     <AppLayout title="Import Data">
       <div className="max-w-3xl space-y-6">
-        <Tabs defaultValue="csv">
+        <Tabs defaultValue="quick">
           <TabsList className="flex flex-wrap h-auto gap-1">
+            <TabsTrigger value="quick">
+              <FileUp className="h-4 w-4 mr-2" />
+              Quick Import
+            </TabsTrigger>
             <TabsTrigger value="enrich">
               <Sparkles className="h-4 w-4 mr-2" />
               Bulk Enrich
@@ -344,6 +349,10 @@ export default function Import() {
               Education
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="quick" className="mt-4">
+            <ContactImport />
+          </TabsContent>
 
           <TabsContent value="enrich" className="mt-4">
             <BulkEnrichment />
