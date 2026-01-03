@@ -529,6 +529,94 @@ export type Database = {
           },
         ]
       }
+      contact_devices: {
+        Row: {
+          brand: string | null
+          created_at: string
+          device_type: string
+          id: string
+          is_current: boolean | null
+          model: string | null
+          notes: string | null
+          os: string | null
+          profile_id: string
+          user_id: string
+        }
+        Insert: {
+          brand?: string | null
+          created_at?: string
+          device_type: string
+          id?: string
+          is_current?: boolean | null
+          model?: string | null
+          notes?: string | null
+          os?: string | null
+          profile_id: string
+          user_id: string
+        }
+        Update: {
+          brand?: string | null
+          created_at?: string
+          device_type?: string
+          id?: string
+          is_current?: boolean | null
+          model?: string | null
+          notes?: string | null
+          os?: string | null
+          profile_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_devices_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_graduations: {
+        Row: {
+          created_at: string
+          education_level: string
+          graduation_date: string | null
+          id: string
+          institution_name: string | null
+          notes: string | null
+          profile_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          education_level: string
+          graduation_date?: string | null
+          id?: string
+          institution_name?: string | null
+          notes?: string | null
+          profile_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          education_level?: string
+          graduation_date?: string | null
+          id?: string
+          institution_name?: string | null
+          notes?: string | null
+          profile_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_graduations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_group_members: {
         Row: {
           added_at: string
@@ -598,6 +686,53 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_identity_documents: {
+        Row: {
+          created_at: string
+          document_number: string | null
+          document_type: string
+          expiry_date: string | null
+          id: string
+          issue_date: string | null
+          issuing_country: string | null
+          notes: string | null
+          profile_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          document_number?: string | null
+          document_type: string
+          expiry_date?: string | null
+          id?: string
+          issue_date?: string | null
+          issuing_country?: string | null
+          notes?: string | null
+          profile_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          document_number?: string | null
+          document_type?: string
+          expiry_date?: string | null
+          id?: string
+          issue_date?: string | null
+          issuing_country?: string | null
+          notes?: string | null
+          profile_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_identity_documents_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_interests: {
         Row: {
           confidence_score: number | null
@@ -645,6 +780,44 @@ export type Database = {
           },
         ]
       }
+      contact_languages: {
+        Row: {
+          created_at: string
+          id: string
+          is_native: boolean | null
+          language_name: string
+          proficiency_level: string | null
+          profile_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_native?: boolean | null
+          language_name: string
+          proficiency_level?: string | null
+          profile_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_native?: boolean | null
+          language_name?: string
+          proficiency_level?: string | null
+          profile_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_languages_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_methods: {
         Row: {
           contact_type: Database["public"]["Enums"]["contact_type"]
@@ -676,6 +849,189 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "contact_methods_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_personal_info: {
+        Row: {
+          allergies: string[] | null
+          blood_group: string | null
+          created_at: string
+          date_of_birth: string | null
+          father_name: string | null
+          favorite_color: string | null
+          gender: string | null
+          id: string
+          main_residence_city: string | null
+          main_residence_country: string | null
+          mother_name: string | null
+          nationality: string | null
+          place_of_birth: string | null
+          profile_id: string
+          rh_type: string | null
+          smoking_preference: string | null
+          updated_at: string
+          user_id: string
+          usual_hangout_places: string[] | null
+        }
+        Insert: {
+          allergies?: string[] | null
+          blood_group?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          father_name?: string | null
+          favorite_color?: string | null
+          gender?: string | null
+          id?: string
+          main_residence_city?: string | null
+          main_residence_country?: string | null
+          mother_name?: string | null
+          nationality?: string | null
+          place_of_birth?: string | null
+          profile_id: string
+          rh_type?: string | null
+          smoking_preference?: string | null
+          updated_at?: string
+          user_id: string
+          usual_hangout_places?: string[] | null
+        }
+        Update: {
+          allergies?: string[] | null
+          blood_group?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          father_name?: string | null
+          favorite_color?: string | null
+          gender?: string | null
+          id?: string
+          main_residence_city?: string | null
+          main_residence_country?: string | null
+          mother_name?: string | null
+          nationality?: string | null
+          place_of_birth?: string | null
+          profile_id?: string
+          rh_type?: string | null
+          smoking_preference?: string | null
+          updated_at?: string
+          user_id?: string
+          usual_hangout_places?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_personal_info_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_properties: {
+        Row: {
+          address: string | null
+          area_sqm: number | null
+          city: string | null
+          country: string | null
+          created_at: string
+          estimated_value: string | null
+          id: string
+          is_primary_residence: boolean | null
+          notes: string | null
+          profile_id: string
+          property_type: string
+          purchase_date: string | null
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          area_sqm?: number | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          estimated_value?: string | null
+          id?: string
+          is_primary_residence?: boolean | null
+          notes?: string | null
+          profile_id: string
+          property_type: string
+          purchase_date?: string | null
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          area_sqm?: number | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          estimated_value?: string | null
+          id?: string
+          is_primary_residence?: boolean | null
+          notes?: string | null
+          profile_id?: string
+          property_type?: string
+          purchase_date?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_properties_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_residences: {
+        Row: {
+          address: string | null
+          city: string | null
+          country: string
+          created_at: string
+          end_date: string | null
+          id: string
+          is_current: boolean | null
+          notes: string | null
+          profile_id: string
+          residence_type: string | null
+          start_date: string | null
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          country: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_current?: boolean | null
+          notes?: string | null
+          profile_id: string
+          residence_type?: string | null
+          start_date?: string | null
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          country?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_current?: boolean | null
+          notes?: string | null
+          profile_id?: string
+          residence_type?: string | null
+          start_date?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_residences_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -717,6 +1073,106 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "contact_skills_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_travel_history: {
+        Row: {
+          created_at: string
+          destination_city: string | null
+          destination_country: string
+          id: string
+          notes: string | null
+          profile_id: string
+          purpose: string | null
+          return_date: string | null
+          travel_date: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          destination_city?: string | null
+          destination_country: string
+          id?: string
+          notes?: string | null
+          profile_id: string
+          purpose?: string | null
+          return_date?: string | null
+          travel_date?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          destination_city?: string | null
+          destination_country?: string
+          id?: string
+          notes?: string | null
+          profile_id?: string
+          purpose?: string | null
+          return_date?: string | null
+          travel_date?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_travel_history_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_vehicles: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          is_current: boolean | null
+          license_plate: string | null
+          make: string | null
+          model: string | null
+          notes: string | null
+          profile_id: string
+          user_id: string
+          vehicle_type: string
+          year: number | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_current?: boolean | null
+          license_plate?: string | null
+          make?: string | null
+          model?: string | null
+          notes?: string | null
+          profile_id: string
+          user_id: string
+          vehicle_type: string
+          year?: number | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_current?: boolean | null
+          license_plate?: string | null
+          make?: string | null
+          model?: string | null
+          notes?: string | null
+          profile_id?: string
+          user_id?: string
+          vehicle_type?: string
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_vehicles_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
