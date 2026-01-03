@@ -1,22 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useAIConfirmationContext } from '@/contexts/AIConfirmationContext';
+import { useAIModelPreference } from '@/hooks/useAIModelPreference';
 import { calculateCostCents } from '@/lib/aiPricing';
 import { 
   Video, 
-  Upload, 
   Brain, 
   Eye, 
   Hand, 
@@ -25,8 +25,11 @@ import {
   Play,
   CheckCircle,
   Clock,
-  User
+  User,
+  Film,
+  AlertTriangle
 } from 'lucide-react';
+import { format } from 'date-fns';
 
 type AnalysisType = 'behavioral' | 'facial' | 'body_language' | 'vocal';
 
@@ -37,12 +40,13 @@ interface AnalysisJob {
   progress: number;
 }
 
-const ANALYSIS_MODEL_KEYS: Record<AnalysisType, string> = {
-  behavioral: 'google/gemini-2.5-flash',
-  facial: 'google/gemini-2.5-flash',
-  body_language: 'google/gemini-2.5-flash',
-  vocal: 'google/gemini-2.5-flash',
-};
+interface MediaFile {
+  id: string;
+  file_url: string;
+  caption: string | null;
+  mime_type: string | null;
+  created_at: string;
+}
 
 export default function VideoAnalysis() {
   const { user } = useAuth();
@@ -50,11 +54,22 @@ export default function VideoAnalysis() {
   const queryClient = useQueryClient();
   const { requestConfirmation, updateLogWithResult } = useAIConfirmationContext();
   
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const behavioralModel = useAIModelPreference('analyze-behavioral');
+  const facialModel = useAIModelPreference('analyze-facial');
+  const bodyLanguageModel = useAIModelPreference('analyze-body-language');
+  const vocalModel = useAIModelPreference('analyze-vocal');
+  
   const [selectedContact, setSelectedContact] = useState<string>('');
+  const [selectedVideo, setSelectedVideo] = useState<string>('');
   const [analysisType, setAnalysisType] = useState<'screening' | 'interview'>('screening');
-  const [isUploading, setIsUploading] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [runningAnalyses, setRunningAnalyses] = useState<AnalysisJob[]>([]);
+  const [selectedAnalysisTypes, setSelectedAnalysisTypes] = useState<AnalysisType[]>([]);
+
+  // Reset video selection when contact changes
+  useEffect(() => {
+    setSelectedVideo('');
+  }, [selectedContact]);
 
   const { data: contacts } = useQuery({
     queryKey: ['contacts-for-analysis', user?.id],
@@ -67,6 +82,22 @@ export default function VideoAnalysis() {
       return data;
     },
     enabled: !!user,
+  });
+
+  // Fetch videos from the selected contact's media library
+  const { data: contactVideos, isLoading: isLoadingVideos } = useQuery({
+    queryKey: ['contact-videos', selectedContact],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('media')
+        .select('id, file_url, caption, mime_type, created_at')
+        .eq('profile_id', selectedContact)
+        .or('mime_type.ilike.video/%,mime_type.ilike.audio/%')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data as MediaFile[];
+    },
+    enabled: !!selectedContact,
   });
 
   const { data: recentAnalyses } = useQuery({
@@ -88,15 +119,12 @@ export default function VideoAnalysis() {
     enabled: !!user,
   });
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const validTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'audio/mpeg', 'audio/wav', 'audio/mp4'];
-      if (!validTypes.includes(file.type)) {
-        toast({ title: 'Invalid file', description: 'Please upload a video or audio file', variant: 'destructive' });
-        return;
-      }
-      setSelectedFile(file);
+  const getModelForType = (type: AnalysisType): string => {
+    switch (type) {
+      case 'behavioral': return behavioralModel;
+      case 'facial': return facialModel;
+      case 'body_language': return bodyLanguageModel;
+      case 'vocal': return vocalModel;
     }
   };
 
@@ -135,7 +163,7 @@ export default function VideoAnalysis() {
       await updateLogWithResult(logId, {
         status: 'completed',
         responseTimeMs: responseTime,
-        actualCostCents: calculateCostCents(ANALYSIS_MODEL_KEYS[type], 3000, 1500),
+        actualCostCents: calculateCostCents(getModelForType(type), 3000, 1500),
       });
 
       setRunningAnalyses(prev => 
@@ -152,23 +180,26 @@ export default function VideoAnalysis() {
     }
   };
 
-  const handleUploadAndAnalyze = async (selectedAnalyses: AnalysisType[]) => {
-    if (!selectedFile || !selectedContact) {
-      toast({ title: 'Missing data', description: 'Please select a file and contact', variant: 'destructive' });
+  const handleAnalyze = async () => {
+    if (!selectedVideo || !selectedContact || selectedAnalysisTypes.length === 0) {
+      toast({ title: 'Missing data', description: 'Please select a contact, video, and analysis types', variant: 'destructive' });
       return;
     }
+
+    const videoFile = contactVideos?.find(v => v.id === selectedVideo);
+    if (!videoFile) return;
 
     // Request confirmation for each analysis
     const approvedAnalyses: { type: AnalysisType; logId: string }[] = [];
     
-    for (const analysisTypeItem of selectedAnalyses) {
+    for (const analysisTypeItem of selectedAnalysisTypes) {
       const contact = contacts?.find(c => c.id === selectedContact);
       const contactName = contact ? `${contact.first_name} ${contact.last_name}` : 'Unknown';
       const promptText = `Running ${analysisTypeItem.replace('_', ' ')} analysis on video/audio for ${contactName}. This will analyze behavioral patterns, expressions, and communication style.`;
       
       const { approved, logId } = await requestConfirmation({
         functionName: `analyze-${analysisTypeItem.replace('_', '-')}`,
-        modelKey: ANALYSIS_MODEL_KEYS[analysisTypeItem],
+        modelKey: getModelForType(analysisTypeItem),
         promptText,
         profileId: selectedContact,
       });
@@ -183,32 +214,19 @@ export default function VideoAnalysis() {
       return;
     }
 
-    setIsUploading(true);
+    setIsAnalyzing(true);
 
     try {
-      const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${user!.id}/${selectedContact}/${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('recordings')
-        .upload(fileName, selectedFile);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('recordings')
-        .getPublicUrl(fileName);
-
+      // Use the video URL directly - it's already in storage
       for (const { type, logId } of approvedAnalyses) {
-        await runAnalysis(type, publicUrl, logId);
+        await runAnalysis(type, videoFile.file_url, logId);
       }
 
-      setSelectedFile(null);
-      toast({ title: 'Upload complete', description: 'Analyses are running' });
+      toast({ title: 'Analyses complete' });
     } catch (error: any) {
-      toast({ title: 'Upload failed', description: error.message, variant: 'destructive' });
+      toast({ title: 'Analysis failed', description: error.message, variant: 'destructive' });
     } finally {
-      setIsUploading(false);
+      setIsAnalyzing(false);
     }
   };
 
@@ -219,13 +237,14 @@ export default function VideoAnalysis() {
     { type: 'vocal' as AnalysisType, label: 'Vocal Analysis', icon: AudioLines, description: 'Speech patterns, stress points, mood changes, hesitation markers' },
   ];
 
-  const [selectedAnalysisTypes, setSelectedAnalysisTypes] = useState<AnalysisType[]>([]);
-
   const toggleAnalysisType = (type: AnalysisType) => {
     setSelectedAnalysisTypes(prev => 
       prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
     );
   };
+
+  const selectedVideoInfo = contactVideos?.find(v => v.id === selectedVideo);
+  const contactName = contacts?.find(c => c.id === selectedContact);
 
   return (
     <AppLayout title="Video Analysis">
@@ -235,88 +254,110 @@ export default function VideoAnalysis() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Video className="h-5 w-5" />
-                Upload Video for Analysis
+                Analyze Contact Video
               </CardTitle>
               <CardDescription>
-                Upload screening or interview videos for comprehensive AI-powered behavioral analysis
+                Select a contact and choose a video from their media library for AI-powered behavioral analysis
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Select Contact</Label>
-                  <Select value={selectedContact} onValueChange={setSelectedContact}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a contact" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {contacts?.map((contact) => (
-                        <SelectItem key={contact.id} value={contact.id}>
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4" />
-                            {contact.first_name} {contact.last_name}
-                            {contact.organization && (
-                              <span className="text-muted-foreground text-xs">
-                                ({contact.organization})
-                              </span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Analysis Type</Label>
-                  <Select value={analysisType} onValueChange={(v: 'screening' | 'interview') => setAnalysisType(v)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="screening">Screening Video</SelectItem>
-                      <SelectItem value="interview">Interview Video</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
+              {/* Contact Selection */}
               <div className="space-y-2">
-                <Label>Video/Audio File</Label>
-                <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
-                  <Input
-                    type="file"
-                    accept="video/*,audio/*"
-                    onChange={handleFileChange}
-                    className="hidden"
-                    id="video-upload"
-                  />
-                  <label htmlFor="video-upload" className="cursor-pointer">
-                    {selectedFile ? (
-                      <div className="flex items-center justify-center gap-2">
-                        <Video className="h-8 w-8 text-primary" />
-                        <div>
-                          <p className="font-medium">{selectedFile.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                          </p>
+                <Label>Select Contact</Label>
+                <Select value={selectedContact} onValueChange={setSelectedContact}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a contact" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {contacts?.map((contact) => (
+                      <SelectItem key={contact.id} value={contact.id}>
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          {contact.first_name} {contact.last_name}
+                          {contact.organization && (
+                            <span className="text-muted-foreground text-xs">
+                              ({contact.organization})
+                            </span>
+                          )}
                         </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <Upload className="h-10 w-10 mx-auto text-muted-foreground" />
-                        <p className="text-muted-foreground">
-                          Click to upload or drag and drop
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          MP4, WebM, MOV, MP3, WAV (max 500MB)
-                        </p>
-                      </div>
-                    )}
-                  </label>
-                </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
+              {/* Video Selection */}
+              {selectedContact && (
+                <div className="space-y-2">
+                  <Label>Select Video from Media Library</Label>
+                  {isLoadingVideos ? (
+                    <div className="flex items-center gap-2 p-4 text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading videos...
+                    </div>
+                  ) : contactVideos && contactVideos.length > 0 ? (
+                    <Select value={selectedVideo} onValueChange={setSelectedVideo}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a video" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {contactVideos.map((video) => (
+                          <SelectItem key={video.id} value={video.id}>
+                            <div className="flex items-center gap-2">
+                              <Film className="h-4 w-4" />
+                              <span>{video.caption || 'Untitled Video'}</span>
+                              <span className="text-xs text-muted-foreground">
+                                ({format(new Date(video.created_at), 'MMM d, yyyy')})
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="p-4 border rounded-lg bg-muted/50 text-center">
+                      <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
+                        No videos found in {contactName?.first_name}'s media library.
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Upload videos in the contact's Media section first.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Selected Video Preview */}
+              {selectedVideoInfo && (
+                <div className="p-4 border rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-3">
+                    <Film className="h-8 w-8 text-primary" />
+                    <div>
+                      <p className="font-medium">{selectedVideoInfo.caption || 'Untitled Video'}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedVideoInfo.mime_type} • Uploaded {format(new Date(selectedVideoInfo.created_at), 'PPP')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Analysis Type */}
+              <div className="space-y-2">
+                <Label>Context Type</Label>
+                <Select value={analysisType} onValueChange={(v: 'screening' | 'interview') => setAnalysisType(v)}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="screening">Screening Video</SelectItem>
+                    <SelectItem value="interview">Interview Video</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Analysis Types Selection */}
               <div className="space-y-3">
                 <Label>Select Analyses to Run</Label>
                 <div className="grid gap-3 md:grid-cols-2">
@@ -345,15 +386,15 @@ export default function VideoAnalysis() {
               </div>
 
               <Button 
-                onClick={() => handleUploadAndAnalyze(selectedAnalysisTypes)}
-                disabled={isUploading || !selectedFile || !selectedContact || selectedAnalysisTypes.length === 0}
+                onClick={handleAnalyze}
+                disabled={isAnalyzing || !selectedVideo || !selectedContact || selectedAnalysisTypes.length === 0}
                 className="w-full"
                 size="lg"
               >
-                {isUploading ? (
+                {isAnalyzing ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Uploading & Analyzing...
+                    Analyzing...
                   </>
                 ) : (
                   <>
@@ -415,96 +456,103 @@ export default function VideoAnalysis() {
                   <TabsTrigger value="vocal" className="text-xs">Vocal</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="behavioral" className="mt-4 space-y-2">
-                  {recentAnalyses?.behavioral?.length ? (
-                    recentAnalyses.behavioral.map((analysis: any) => (
-                      <div key={analysis.id} className="p-3 rounded-lg bg-muted/50 text-sm">
-                        <p className="font-medium">
-                          {analysis.profiles?.first_name} {analysis.profiles?.last_name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(analysis.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No analyses yet</p>
-                  )}
+                <TabsContent value="behavioral" className="mt-4">
+                  <ScrollArea className="h-64">
+                    <div className="space-y-2">
+                      {recentAnalyses?.behavioral?.length ? (
+                        recentAnalyses.behavioral.map((analysis: any) => (
+                          <div key={analysis.id} className="p-3 rounded-lg bg-muted/50 text-sm">
+                            <p className="font-medium">
+                              {analysis.profiles?.first_name} {analysis.profiles?.last_name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(analysis.created_at), 'PPp')}
+                            </p>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">No analyses yet</p>
+                      )}
+                    </div>
+                  </ScrollArea>
                 </TabsContent>
 
-                <TabsContent value="facial" className="mt-4 space-y-2">
-                  {recentAnalyses?.facial?.length ? (
-                    recentAnalyses.facial.map((analysis: any) => (
-                      <div key={analysis.id} className="p-3 rounded-lg bg-muted/50 text-sm">
-                        <p className="font-medium">
-                          {analysis.profiles?.first_name} {analysis.profiles?.last_name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(analysis.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No analyses yet</p>
-                  )}
+                <TabsContent value="facial" className="mt-4">
+                  <ScrollArea className="h-64">
+                    <div className="space-y-2">
+                      {recentAnalyses?.facial?.length ? (
+                        recentAnalyses.facial.map((analysis: any) => (
+                          <div key={analysis.id} className="p-3 rounded-lg bg-muted/50 text-sm">
+                            <p className="font-medium">
+                              {analysis.profiles?.first_name} {analysis.profiles?.last_name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(analysis.created_at), 'PPp')}
+                            </p>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">No analyses yet</p>
+                      )}
+                    </div>
+                  </ScrollArea>
                 </TabsContent>
 
-                <TabsContent value="body" className="mt-4 space-y-2">
-                  {recentAnalyses?.bodyLanguage?.length ? (
-                    recentAnalyses.bodyLanguage.map((analysis: any) => (
-                      <div key={analysis.id} className="p-3 rounded-lg bg-muted/50 text-sm">
-                        <p className="font-medium">
-                          {analysis.profiles?.first_name} {analysis.profiles?.last_name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(analysis.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No analyses yet</p>
-                  )}
+                <TabsContent value="body" className="mt-4">
+                  <ScrollArea className="h-64">
+                    <div className="space-y-2">
+                      {recentAnalyses?.bodyLanguage?.length ? (
+                        recentAnalyses.bodyLanguage.map((analysis: any) => (
+                          <div key={analysis.id} className="p-3 rounded-lg bg-muted/50 text-sm">
+                            <p className="font-medium">
+                              {analysis.profiles?.first_name} {analysis.profiles?.last_name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(analysis.created_at), 'PPp')}
+                            </p>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">No analyses yet</p>
+                      )}
+                    </div>
+                  </ScrollArea>
                 </TabsContent>
 
-                <TabsContent value="vocal" className="mt-4 space-y-2">
-                  {recentAnalyses?.vocal?.length ? (
-                    recentAnalyses.vocal.map((analysis: any) => (
-                      <div key={analysis.id} className="p-3 rounded-lg bg-muted/50 text-sm">
-                        <p className="font-medium">
-                          {analysis.profiles?.first_name} {analysis.profiles?.last_name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(analysis.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No analyses yet</p>
-                  )}
+                <TabsContent value="vocal" className="mt-4">
+                  <ScrollArea className="h-64">
+                    <div className="space-y-2">
+                      {recentAnalyses?.vocal?.length ? (
+                        recentAnalyses.vocal.map((analysis: any) => (
+                          <div key={analysis.id} className="p-3 rounded-lg bg-muted/50 text-sm">
+                            <p className="font-medium">
+                              {analysis.profiles?.first_name} {analysis.profiles?.last_name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(analysis.created_at), 'PPp')}
+                            </p>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">No analyses yet</p>
+                      )}
+                    </div>
+                  </ScrollArea>
                 </TabsContent>
               </Tabs>
             </CardContent>
           </Card>
 
-          <Card className="bg-primary/5 border-primary/20">
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <Brain className="h-8 w-8 text-primary" />
-                  <div>
-                    <h3 className="font-semibold">AI-Powered Analysis</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Get deep insights into candidate behavior
-                    </p>
-                  </div>
-                </div>
-                <div className="text-xs text-muted-foreground space-y-1">
-                  <p>• Upload screening or interview videos</p>
-                  <p>• Run multiple analysis types simultaneously</p>
-                  <p>• View results in contact's profile</p>
-                  <p>• Track all AI usage costs in Insights</p>
-                </div>
-              </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">How it works</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground space-y-2">
+              <p>1. Select a contact from your network</p>
+              <p>2. Choose a video from their media library</p>
+              <p>3. Select which analyses to run</p>
+              <p>4. Review cost estimates and confirm</p>
+              <p>5. View results in the contact's profile</p>
             </CardContent>
           </Card>
         </div>

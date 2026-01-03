@@ -16,6 +16,9 @@ import {
   ArrowUp, ArrowDown, Minus
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useAIConfirmationContext } from '@/contexts/AIConfirmationContext';
+import { useAIModelPreference } from '@/hooks/useAIModelPreference';
+import { calculateCostCents } from '@/lib/aiPricing';
 
 interface BodyLanguageAnalysisProps {
   profileId: string;
@@ -28,6 +31,8 @@ export function BodyLanguageAnalysis({ profileId, profileName }: BodyLanguageAna
   const queryClient = useQueryClient();
   const [videoUrl, setVideoUrl] = useState('');
   const [selectedRecording, setSelectedRecording] = useState<string>('');
+  const { requestConfirmation, updateLogWithResult } = useAIConfirmationContext();
+  const modelKey = useAIModelPreference('analyze-body-language');
 
   const { data: analyses, isLoading } = useQuery({
     queryKey: ['body-language-analyses', profileId],

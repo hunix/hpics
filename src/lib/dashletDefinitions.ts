@@ -1,0 +1,156 @@
+import React from 'react';
+import { Users, MessageSquare, Calendar, Star, Clock, TrendingUp, BarChart3, Network, Sparkles, UserPlus, Target, Activity } from 'lucide-react';
+
+// All available dashlet types
+export interface DashletConfig {
+  id: string;
+  type: DashletType;
+  title: string;
+  visible: boolean;
+  order: number;
+}
+
+export type DashletType = 
+  | 'stats'
+  | 'recent-contacts'
+  | 'upcoming-events'
+  | 'decay-alert'
+  | 'relationship-health'
+  | 'weekly-summary'
+  | 'introduction-suggestions'
+  | 'followup-suggestions'
+  | 'auto-schedule'
+  | 'contact-groups'
+  | 'relationship-scores'
+  | 'network-graph'
+  | 'quick-tips';
+
+export interface DashletDefinition {
+  type: DashletType;
+  title: string;
+  description: string;
+  icon: React.ElementType;
+  defaultVisible: boolean;
+  category: 'overview' | 'ai' | 'relationships' | 'tools';
+}
+
+export const DASHLET_DEFINITIONS: DashletDefinition[] = [
+  {
+    type: 'stats',
+    title: 'Statistics Overview',
+    description: 'Key metrics: contacts, favorites, communications, events',
+    icon: BarChart3,
+    defaultVisible: true,
+    category: 'overview',
+  },
+  {
+    type: 'recent-contacts',
+    title: 'Recent Contacts',
+    description: 'People you have recently added or updated',
+    icon: Clock,
+    defaultVisible: true,
+    category: 'overview',
+  },
+  {
+    type: 'upcoming-events',
+    title: 'Upcoming Events',
+    description: 'Important dates coming up',
+    icon: Calendar,
+    defaultVisible: true,
+    category: 'overview',
+  },
+  {
+    type: 'decay-alert',
+    title: 'Relationship Decay Alerts',
+    description: 'Contacts with declining relationship health',
+    icon: Activity,
+    defaultVisible: true,
+    category: 'relationships',
+  },
+  {
+    type: 'relationship-health',
+    title: 'Relationship Health',
+    description: 'Overall health distribution of your network',
+    icon: TrendingUp,
+    defaultVisible: true,
+    category: 'relationships',
+  },
+  {
+    type: 'weekly-summary',
+    title: 'Weekly Summary',
+    description: 'AI-generated weekly relationship insights',
+    icon: Sparkles,
+    defaultVisible: true,
+    category: 'ai',
+  },
+  {
+    type: 'introduction-suggestions',
+    title: 'Introduction Suggestions',
+    description: 'AI-suggested mutual introductions',
+    icon: UserPlus,
+    defaultVisible: true,
+    category: 'ai',
+  },
+  {
+    type: 'followup-suggestions',
+    title: 'Follow-up Suggestions',
+    description: 'AI-powered follow-up recommendations',
+    icon: MessageSquare,
+    defaultVisible: true,
+    category: 'ai',
+  },
+  {
+    type: 'auto-schedule',
+    title: 'Auto-Schedule Follow-ups',
+    description: 'Batch schedule reminders for multiple contacts',
+    icon: Target,
+    defaultVisible: true,
+    category: 'tools',
+  },
+  {
+    type: 'contact-groups',
+    title: 'Contact Groups',
+    description: 'View and manage contact circles',
+    icon: Users,
+    defaultVisible: true,
+    category: 'relationships',
+  },
+  {
+    type: 'relationship-scores',
+    title: 'Relationship Scores',
+    description: 'Top and bottom relationship scores',
+    icon: Star,
+    defaultVisible: true,
+    category: 'relationships',
+  },
+  {
+    type: 'network-graph',
+    title: 'Network Graph',
+    description: 'Visual network of your connections',
+    icon: Network,
+    defaultVisible: true,
+    category: 'overview',
+  },
+  {
+    type: 'quick-tips',
+    title: 'Quick Tips',
+    description: 'Helpful tips for using the CRM',
+    icon: TrendingUp,
+    defaultVisible: true,
+    category: 'tools',
+  },
+];
+
+export const getDefaultLayout = (): DashletConfig[] => {
+  return DASHLET_DEFINITIONS.map((def, index) => ({
+    id: `dashlet-${def.type}`,
+    type: def.type,
+    title: def.title,
+    visible: def.defaultVisible,
+    order: index,
+  }));
+};
+
+export const getDashletDefinition = (type: DashletType): DashletDefinition | undefined => {
+  return DASHLET_DEFINITIONS.find(d => d.type === type);
+};
