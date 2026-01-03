@@ -1,4 +1,4 @@
-import { Users, MessageSquare, FileText, Image, Calendar, Brain, LayoutDashboard, LogOut, Upload, Settings, Network, CalendarDays } from 'lucide-react';
+import { Users, MessageSquare, FileText, Image, Calendar, Brain, LayoutDashboard, LogOut, Upload, Settings, Network, CalendarDays, Video } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -29,6 +29,7 @@ const mainNavItems = [
 
 const toolsNavItems = [
   { title: 'AI Insights', url: '/insights', icon: Brain },
+  { title: 'Video Analysis', url: '/video-analysis', icon: Video },
   { title: 'Network Map', url: '/network', icon: Network },
   { title: 'Import Data', url: '/import', icon: Upload },
   { title: 'Settings', url: '/settings', icon: Settings },

@@ -20,6 +20,7 @@ import Import from "./pages/Import";
 import Settings from "./pages/Settings";
 import Network from "./pages/Network";
 import Calendar from "./pages/Calendar";
+import VideoAnalysis from "./pages/VideoAnalysis";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,7 @@ const App = () => (
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/network" element={<Network />} />
                 <Route path="/calendar" element={<Calendar />} />
+                <Route path="/video-analysis" element={<VideoAnalysis />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
