@@ -17,6 +17,7 @@ import { EmailIntegration } from '@/components/settings/EmailIntegration';
 import { PushNotifications } from '@/components/settings/PushNotifications';
 import { LocalAIEndpoints } from '@/components/settings/LocalAIEndpoints';
 import { AIModelPreferences } from '@/components/settings/AIModelPreferences';
+import { AIBudgetSettings } from '@/components/settings/AIBudgetSettings';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -205,6 +206,7 @@ export default function Settings() {
 
         <TabsContent value="ai-models" className="space-y-6 mt-6">
           <AIModelPreferences />
+          <AIBudgetSettings />
         </TabsContent>
 
         <TabsContent value="local-ai" className="space-y-6 mt-6">

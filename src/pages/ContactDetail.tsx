@@ -42,9 +42,10 @@ import { FacialAnalysis } from '@/components/analysis/FacialAnalysis';
 import { BodyLanguageAnalysis } from '@/components/analysis/BodyLanguageAnalysis';
 import { VocalAnalysis } from '@/components/analysis/VocalAnalysis';
 import { cn } from '@/lib/utils';
+import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
 import type { Tables } from '@/integrations/supabase/types';
 
-type Profile = Tables<'profiles'>;
+type Profile = Tables<'profiles'> & { relationship_subtype?: string; hierarchy_level?: string };
 
 type SectionId = 
   | 'overview' | 'contact' | 'documents' | 'media' | 'recordings'
@@ -330,11 +331,25 @@ export default function ContactDetail() {
                   {contact.nickname && <span className="text-muted-foreground font-normal">({contact.nickname})</span>}
                 </h1>
                 <div className="flex items-center gap-2 mt-1">
-                  {contact.relationship_type && (
-                    <Badge className={relationshipColors[contact.relationship_type]}>
-                      {contact.relationship_type}
-                    </Badge>
-                  )}
+                  {contact.relationship_type && (() => {
+                    const display = formatRelationshipDisplay(
+                      contact.relationship_type,
+                      contact.relationship_subtype || null,
+                      contact.hierarchy_level || null
+                    );
+                    return (
+                      <>
+                        <Badge className={relationshipColors[contact.relationship_type]}>
+                          {display.primary}
+                        </Badge>
+                        {display.secondary && (
+                          <Badge variant="outline">
+                            {display.secondary}
+                          </Badge>
+                        )}
+                      </>
+                    );
+                  })()}
                   {contact.organization && (
                     <span className="text-sm text-muted-foreground">{contact.organization}</span>
                   )}

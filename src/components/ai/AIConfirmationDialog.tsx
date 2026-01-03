@@ -10,9 +10,11 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Brain, DollarSign, Zap, FileText } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Brain, DollarSign, Zap, FileText, AlertTriangle } from 'lucide-react';
 import { AIConfirmationState } from '@/hooks/useAIConfirmation';
 import { AI_MODEL_PRICING, formatCentsToUSD, getProviderColor } from '@/lib/aiPricing';
+import { useAIBudget } from '@/hooks/useAIBudget';
 
 interface AIConfirmationDialogProps {
   state: AIConfirmationState;
@@ -26,11 +28,13 @@ export function AIConfirmationDialog({
   onCancel,
 }: AIConfirmationDialogProps) {
   const { isOpen, config, estimatedInputTokens, estimatedOutputTokens, estimatedCostCents } = state;
+  const budget = useAIBudget();
 
   if (!config) return null;
 
   const pricing = AI_MODEL_PRICING[config.modelKey];
   const providerColor = getProviderColor(pricing?.provider || 'unknown');
+  const budgetWarning = budget.wouldExceedBudget(estimatedCostCents);
 
   return (
     <AlertDialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
@@ -45,6 +49,17 @@ export function AIConfirmationDialog({
               <p className="text-sm text-muted-foreground">
                 You are about to run an AI analysis. Please review the estimated costs below.
               </p>
+
+              {/* Budget Warning */}
+              {budgetWarning.exceeds && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    This will exceed your {budgetWarning.period} budget. 
+                    You can still proceed, but consider adjusting your limits in Settings.
+                  </AlertDescription>
+                </Alert>
+              )}
 
               <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
                 <div className="flex items-center justify-between">
@@ -91,6 +106,14 @@ export function AIConfirmationDialog({
                     {formatCentsToUSD(estimatedCostCents)}
                   </span>
                 </div>
+
+                {/* Budget remaining info */}
+                {budget.monthly.budget !== null && (
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Monthly budget remaining</span>
+                    <span>{formatCentsToUSD(budget.monthly.remaining || 0)}</span>
+                  </div>
+                )}
               </div>
 
               {pricing?.provider === 'local' && (
