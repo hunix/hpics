@@ -297,6 +297,8 @@ export function ContactDetailDialog({ contact, open, onOpenChange }: ContactDeta
                         linkedinUrl={contact.linkedin_url}
                       />
                     </TabsContent>
+
+                    <TabsContent value="messages" className="space-y-4 mt-4">
                       <ConversationsManager 
                         profileId={contact.id} 
                         profileName={`${contact.first_name} ${contact.last_name || ''}`.trim()}
@@ -305,65 +307,6 @@ export function ContactDetailDialog({ contact, open, onOpenChange }: ContactDeta
 
                     <TabsContent value="timeline" className="space-y-4 mt-4">
                       <ContactTimeline profileId={contact.id} />
-                    </TabsContent>
-
-                    <TabsContent value="communications" className="space-y-4 mt-4">
-                      {recentCommunications && recentCommunications.length > 0 ? (
-                        <div className="space-y-2">
-                          {recentCommunications.map((comm) => (
-                            <div key={comm.id} className="flex items-start gap-3 p-2 rounded-lg bg-muted/50">
-                              <MessageSquare className="h-4 w-4 mt-1 text-muted-foreground" />
-                              <div className="flex-1">
-                                <div className="flex items-center justify-between">
-                                  <p className="font-medium capitalize">{comm.channel.replace('_', ' ')}</p>
-                                  <span className="text-xs text-muted-foreground">
-                                    {formatDistanceToNow(new Date(comm.occurred_at), { addSuffix: true })}
-                                  </span>
-                                </div>
-                                {comm.subject && <p className="text-sm">{comm.subject}</p>}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground text-center py-4">
-                          No communications logged yet.
-                        </p>
-                      )}
-                    </TabsContent>
-
-                    <TabsContent value="events" className="space-y-4 mt-4">
-                      {upcomingEvents && upcomingEvents.length > 0 ? (
-                        <div className="space-y-2">
-                          {upcomingEvents.map((event) => (
-                            <div key={event.id} className="flex items-start gap-3 p-2 rounded-lg bg-muted/50">
-                              <Calendar className="h-4 w-4 mt-1 text-muted-foreground" />
-                              <div className="flex-1">
-                                <p className="font-medium">{event.title}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {formatDistanceToNow(new Date(event.event_date), { addSuffix: true })}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground text-center py-4">
-                          No upcoming events.
-                        </p>
-                      )}
-                    </TabsContent>
-
-                    <TabsContent value="notes" className="mt-4">
-                      {contact.notes ? (
-                        <div className="p-4 rounded-lg bg-muted/50">
-                          <p className="text-sm whitespace-pre-wrap">{contact.notes}</p>
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground text-center py-4">
-                          No notes added yet.
-                        </p>
-                      )}
                     </TabsContent>
                   </Tabs>
                 </div>
