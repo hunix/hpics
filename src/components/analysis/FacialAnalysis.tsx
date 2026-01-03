@@ -17,6 +17,9 @@ import {
   Smile, Frown, Meh, Zap, TrendingUp
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useAIConfirmationContext } from '@/contexts/AIConfirmationContext';
+import { useAIModelPreference } from '@/hooks/useAIModelPreference';
+import { calculateCostCents } from '@/lib/aiPricing';
 
 interface FacialAnalysisProps {
   profileId: string;
@@ -29,6 +32,8 @@ export function FacialAnalysis({ profileId, profileName }: FacialAnalysisProps) 
   const queryClient = useQueryClient();
   const [videoUrl, setVideoUrl] = useState('');
   const [selectedRecording, setSelectedRecording] = useState<string>('');
+  const { requestConfirmation, updateLogWithResult } = useAIConfirmationContext();
+  const modelKey = useAIModelPreference('analyze-facial');
 
   const { data: analyses, isLoading } = useQuery({
     queryKey: ['facial-analyses', profileId],

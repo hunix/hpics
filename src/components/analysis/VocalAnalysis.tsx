@@ -15,6 +15,9 @@ import {
   Zap, MessageSquare, Smile
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useAIConfirmationContext } from '@/contexts/AIConfirmationContext';
+import { useAIModelPreference } from '@/hooks/useAIModelPreference';
+import { calculateCostCents } from '@/lib/aiPricing';
 
 interface VocalAnalysisProps {
   profileId: string;
@@ -26,6 +29,8 @@ export function VocalAnalysis({ profileId, profileName }: VocalAnalysisProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedRecording, setSelectedRecording] = useState<string>('');
+  const { requestConfirmation, updateLogWithResult } = useAIConfirmationContext();
+  const modelKey = useAIModelPreference('analyze-vocal');
 
   const { data: analyses, isLoading } = useQuery({
     queryKey: ['vocal-analyses', profileId],

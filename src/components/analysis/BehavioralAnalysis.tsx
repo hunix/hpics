@@ -13,6 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Brain, ChevronDown, Loader2, RefreshCw, AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react';
 import { format } from 'date-fns';
+import { useAIConfirmationContext } from '@/contexts/AIConfirmationContext';
+import { useAIModelPreference } from '@/hooks/useAIModelPreference';
+import { calculateCostCents } from '@/lib/aiPricing';
 
 interface BehavioralAnalysisProps {
   profileId: string;
@@ -31,6 +34,8 @@ export function BehavioralAnalysis({ profileId, profileName }: BehavioralAnalysi
   const queryClient = useQueryClient();
   const [analysisType, setAnalysisType] = useState('screening');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const { requestConfirmation, updateLogWithResult } = useAIConfirmationContext();
+  const modelKey = useAIModelPreference('analyze-behavioral');
 
   const { data: analyses, isLoading } = useQuery({
     queryKey: ['behavioral-analyses', profileId],
@@ -59,7 +64,8 @@ export function BehavioralAnalysis({ profileId, profileName }: BehavioralAnalysi
   });
 
   const runAnalysis = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (logId: string) => {
+      const startTime = Date.now();
       const localEndpoint = localEndpoints?.find(e => 
         e.model_type === 'behavioral' || e.model_type === 'general'
       )?.endpoint_url;
@@ -72,7 +78,24 @@ export function BehavioralAnalysis({ profileId, profileName }: BehavioralAnalysi
           localEndpoint,
         },
       });
-      if (error) throw error;
+      
+      const responseTime = Date.now() - startTime;
+      
+      if (error) {
+        await updateLogWithResult(logId, {
+          status: 'failed',
+          errorMessage: error.message,
+          responseTimeMs: responseTime,
+        });
+        throw error;
+      }
+      
+      await updateLogWithResult(logId, {
+        status: 'completed',
+        responseTimeMs: responseTime,
+        actualCostCents: calculateCostCents(modelKey, 2000, 1500),
+      });
+      
       return data;
     },
     onSuccess: () => {
@@ -83,6 +106,21 @@ export function BehavioralAnalysis({ profileId, profileName }: BehavioralAnalysi
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     },
   });
+
+  const handleRunAnalysis = async () => {
+    const promptText = `Running behavioral analysis for ${profileName}. This will analyze personality patterns, communication style, and decision-making indicators.`;
+    
+    const { approved, logId } = await requestConfirmation({
+      functionName: 'analyze-behavioral',
+      modelKey,
+      promptText,
+      profileId,
+    });
+    
+    if (approved && logId) {
+      runAnalysis.mutate(logId);
+    }
+  };
 
   const renderPersonalityChart = (indicators: Record<string, PersonalityTrait> | null) => {
     if (!indicators) return null;
@@ -157,7 +195,7 @@ export function BehavioralAnalysis({ profileId, profileName }: BehavioralAnalysi
               </SelectContent>
             </Select>
             <Button 
-              onClick={() => runAnalysis.mutate()}
+              onClick={handleRunAnalysis}
               disabled={runAnalysis.isPending}
             >
               {runAnalysis.isPending ? (
