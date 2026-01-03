@@ -17,6 +17,7 @@ import Insights from "./pages/Insights";
 import Import from "./pages/Import";
 import Settings from "./pages/Settings";
 import Network from "./pages/Network";
+import Calendar from "./pages/Calendar";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ const App = () => (
               <Route path="/import" element={<Import />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/network" element={<Network />} />
+              <Route path="/calendar" element={<Calendar />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

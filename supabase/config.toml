@@ -5,3 +5,9 @@ verify_jwt = true
 
 [functions.send-reminders]
 verify_jwt = false
+
+[functions.suggest-followups]
+verify_jwt = true
+
+[functions.enrich-contact]
+verify_jwt = true

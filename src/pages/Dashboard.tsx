@@ -6,7 +6,7 @@ import { Users, MessageSquare, Calendar, TrendingUp, Star, Clock } from 'lucide-
 import { useAuth } from '@/hooks/useAuth';
 import { formatDistanceToNow } from 'date-fns';
 import { DecayAlertWidget } from '@/components/dashboard/DecayAlertWidget';
-
+import { FollowUpSuggestions } from '@/components/dashboard/FollowUpSuggestions';
 export default function Dashboard() {
   const { user } = useAuth();
 
@@ -158,6 +158,9 @@ export default function Dashboard() {
           {/* Decay Alert Widget */}
           <DecayAlertWidget />
         </div>
+
+        {/* AI Follow-up Suggestions */}
+        <FollowUpSuggestions />
 
         {/* Quick Actions */}
         <Card>
