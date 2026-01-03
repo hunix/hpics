@@ -7,11 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Sun, Bell, Mail, Loader2 } from 'lucide-react';
+import { Moon, Sun, Bell, Mail, Loader2, Smartphone, Link2 } from 'lucide-react';
 import { AnalyticsExport } from '@/components/analytics/AnalyticsExport';
+import { EmailIntegration } from '@/components/settings/EmailIntegration';
+import { PushNotifications } from '@/components/settings/PushNotifications';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -77,92 +80,162 @@ export default function Settings() {
 
   return (
     <AppLayout title="Settings">
-      <div className="max-w-2xl space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              {theme === 'dark' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-              Appearance
-            </CardTitle>
-            <CardDescription>Customize how PICS looks</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Dark Mode</Label>
-                <p className="text-sm text-muted-foreground">
-                  Use dark theme across the application
-                </p>
-              </div>
-              <Switch
-                checked={theme === 'dark'}
-                onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
-              />
-            </div>
-          </CardContent>
-        </Card>
+      <Tabs defaultValue="general" className="max-w-3xl">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="general">
+            <Sun className="h-4 w-4 mr-2" />
+            General
+          </TabsTrigger>
+          <TabsTrigger value="notifications">
+            <Bell className="h-4 w-4 mr-2" />
+            Notifications
+          </TabsTrigger>
+          <TabsTrigger value="integrations">
+            <Link2 className="h-4 w-4 mr-2" />
+            Integrations
+          </TabsTrigger>
+          <TabsTrigger value="mobile">
+            <Smartphone className="h-4 w-4 mr-2" />
+            Mobile
+          </TabsTrigger>
+        </TabsList>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
-              Notifications
-            </CardTitle>
-            <CardDescription>Configure email reminders for events</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Email Reminders</Label>
-                <p className="text-sm text-muted-foreground">
-                  Receive email notifications for upcoming events
-                </p>
-              </div>
-              <Switch
-                checked={emailReminders}
-                onCheckedChange={setEmailReminders}
-              />
-            </div>
-
-            {emailReminders && (
-              <div className="space-y-2">
-                <Label htmlFor="reminder-email">
-                  <Mail className="inline h-4 w-4 mr-1" />
-                  Reminder Email
-                </Label>
-                <Input
-                  id="reminder-email"
-                  type="email"
-                  value={reminderEmail}
-                  onChange={(e) => setReminderEmail(e.target.value)}
-                  placeholder="your@email.com"
+        <TabsContent value="general" className="space-y-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                {theme === 'dark' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+                Appearance
+              </CardTitle>
+              <CardDescription>Customize how PICS looks</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Dark Mode</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Use dark theme across the application
+                  </p>
+                </div>
+                <Switch
+                  checked={theme === 'dark'}
+                  onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Leave blank to use your account email
-                </p>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <div className="flex justify-end">
-          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-            {saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save Settings
-          </Button>
-        </div>
+          <AnalyticsExport />
 
-        <AnalyticsExport />
+          <div className="flex justify-end">
+            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+              {saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Settings
+            </Button>
+          </div>
+        </TabsContent>
 
-        <Card className="bg-muted/50">
-          <CardContent className="py-4">
-            <p className="text-sm text-muted-foreground">
-              <strong>Note:</strong> Email reminders require a Resend API key to be configured. 
-              Contact your administrator to enable this feature.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+        <TabsContent value="notifications" className="space-y-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Email Notifications
+              </CardTitle>
+              <CardDescription>Configure email reminders for events</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Email Reminders</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Receive email notifications for upcoming events
+                  </p>
+                </div>
+                <Switch
+                  checked={emailReminders}
+                  onCheckedChange={setEmailReminders}
+                />
+              </div>
+
+              {emailReminders && (
+                <div className="space-y-2">
+                  <Label htmlFor="reminder-email">
+                    <Mail className="inline h-4 w-4 mr-1" />
+                    Reminder Email
+                  </Label>
+                  <Input
+                    id="reminder-email"
+                    type="email"
+                    value={reminderEmail}
+                    onChange={(e) => setReminderEmail(e.target.value)}
+                    placeholder="your@email.com"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Leave blank to use your account email
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <PushNotifications />
+
+          <div className="flex justify-end">
+            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+              {saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Settings
+            </Button>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="integrations" className="space-y-6 mt-6">
+          <EmailIntegration />
+        </TabsContent>
+
+        <TabsContent value="mobile" className="space-y-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Smartphone className="h-5 w-5" />
+                Install as App
+              </CardTitle>
+              <CardDescription>
+                Install PICS on your device for quick access and offline support
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                <h4 className="font-medium">iOS (Safari)</h4>
+                <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
+                  <li>Tap the Share button in Safari</li>
+                  <li>Scroll down and tap "Add to Home Screen"</li>
+                  <li>Tap "Add" in the top right corner</li>
+                </ol>
+              </div>
+              
+              <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                <h4 className="font-medium">Android (Chrome)</h4>
+                <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
+                  <li>Tap the menu (three dots) in Chrome</li>
+                  <li>Tap "Add to Home screen" or "Install app"</li>
+                  <li>Confirm by tapping "Add"</li>
+                </ol>
+              </div>
+
+              <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                <h4 className="font-medium">Desktop (Chrome/Edge)</h4>
+                <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
+                  <li>Click the install icon in the address bar</li>
+                  <li>Or open the browser menu and select "Install PICS..."</li>
+                </ol>
+              </div>
+            </CardContent>
+          </Card>
+
+          <PushNotifications />
+        </TabsContent>
+      </Tabs>
     </AppLayout>
   );
 }
