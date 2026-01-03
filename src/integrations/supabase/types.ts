@@ -149,6 +149,75 @@ export type Database = {
           },
         ]
       }
+      contact_group_members: {
+        Row: {
+          added_at: string
+          group_id: string
+          id: string
+          profile_id: string
+        }
+        Insert: {
+          added_at?: string
+          group_id: string
+          id?: string
+          profile_id: string
+        }
+        Update: {
+          added_at?: string
+          group_id?: string
+          id?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "contact_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_group_members_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_groups: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       contact_interests: {
         Row: {
           confidence_score: number | null

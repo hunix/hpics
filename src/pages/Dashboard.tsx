@@ -12,6 +12,7 @@ import { WeeklySummaryWidget } from '@/components/dashboard/WeeklySummaryWidget'
 import { IntroductionSuggestions } from '@/components/dashboard/IntroductionSuggestions';
 import { AutoScheduleFollowups } from '@/components/dashboard/AutoScheduleFollowups';
 import { NetworkGraph } from '@/components/network/NetworkGraph';
+import { ContactGroupsWidget } from '@/components/dashboard/ContactGroupsWidget';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -179,6 +180,9 @@ export default function Dashboard() {
           <FollowUpSuggestions />
           <AutoScheduleFollowups />
         </div>
+
+        {/* Contact Groups */}
+        <ContactGroupsWidget />
 
         {/* Network Graph */}
         <NetworkGraph />

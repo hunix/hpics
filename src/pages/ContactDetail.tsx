@@ -1,0 +1,426 @@
+import { useState } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { AppLayout } from '@/components/AppLayout';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  ArrowLeft, Edit, Trash2, Star, Brain, 
+  User, MessageSquare, Briefcase, GraduationCap,
+  FileText, Image, Target, Gift, Heart, Clock,
+  Calendar, Sparkles, Users, ChevronRight, Building
+} from 'lucide-react';
+import { ContactDialog } from '@/components/contacts/ContactDialog';
+import { ContactMethodsManager } from '@/components/contacts/ContactMethodsManager';
+import { ContactEnrichment } from '@/components/contacts/ContactEnrichment';
+import { ConversationsManager } from '@/components/conversations/ConversationsManager';
+import { ContactTimeline } from '@/components/contacts/ContactTimeline';
+import { EducationManager } from '@/components/contacts/EducationManager';
+import { CertificationsManager } from '@/components/contacts/CertificationsManager';
+import { SkillsManager } from '@/components/contacts/SkillsManager';
+import { AIAnalysisPanel } from '@/components/ai/AIAnalysisPanel';
+import { MeetingBriefing } from '@/components/contacts/MeetingBriefing';
+import { GiftSuggestions } from '@/components/contacts/GiftSuggestions';
+import { InterestsManager } from '@/components/contacts/InterestsManager';
+import { RelationshipGoals } from '@/components/contacts/RelationshipGoals';
+import { SharedExperiences } from '@/components/contacts/SharedExperiences';
+import { OptimalOutreach } from '@/components/contacts/OptimalOutreach';
+import { MessageTemplates } from '@/components/contacts/MessageTemplates';
+import { ContactDocumentsManager } from '@/components/contacts/ContactDocumentsManager';
+import { ContactMediaManager } from '@/components/contacts/ContactMediaManager';
+import { ContactGroupSelector } from '@/components/contacts/ContactGroupSelector';
+import { cn } from '@/lib/utils';
+import type { Tables } from '@/integrations/supabase/types';
+
+type Profile = Tables<'profiles'>;
+
+type SectionId = 
+  | 'overview' | 'contact' | 'documents' | 'media' 
+  | 'outreach' | 'templates' | 'briefing' 
+  | 'interests' | 'gifts' | 'goals' | 'experiences' 
+  | 'education' | 'messages' | 'timeline' | 'groups' | 'enrich';
+
+interface NavSection {
+  id: SectionId;
+  label: string;
+  icon: React.ElementType;
+  group: string;
+}
+
+const sections: NavSection[] = [
+  { id: 'overview', label: 'Overview', icon: User, group: 'General' },
+  { id: 'contact', label: 'Contact Methods', icon: MessageSquare, group: 'General' },
+  { id: 'documents', label: 'Documents', icon: FileText, group: 'Files' },
+  { id: 'media', label: 'Media', icon: Image, group: 'Files' },
+  { id: 'outreach', label: 'Outreach Timing', icon: Clock, group: 'Communication' },
+  { id: 'templates', label: 'Message Templates', icon: Sparkles, group: 'Communication' },
+  { id: 'messages', label: 'Conversations', icon: MessageSquare, group: 'Communication' },
+  { id: 'briefing', label: 'Meeting Briefing', icon: Calendar, group: 'AI Insights' },
+  { id: 'interests', label: 'Interests', icon: Heart, group: 'Relationship' },
+  { id: 'gifts', label: 'Gifts', icon: Gift, group: 'Relationship' },
+  { id: 'goals', label: 'Goals', icon: Target, group: 'Relationship' },
+  { id: 'experiences', label: 'Experiences', icon: Heart, group: 'Relationship' },
+  { id: 'education', label: 'Education & Skills', icon: GraduationCap, group: 'Professional' },
+  { id: 'timeline', label: 'Timeline', icon: Clock, group: 'History' },
+  { id: 'groups', label: 'Groups', icon: Users, group: 'Tools' },
+  { id: 'enrich', label: 'Enrichment', icon: Sparkles, group: 'Tools' },
+];
+
+const groupOrder = ['General', 'Files', 'Communication', 'AI Insights', 'Relationship', 'Professional', 'History', 'Tools'];
+
+export default function ContactDetail() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [activeSection, setActiveSection] = useState<SectionId>('overview');
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [showAIPanel, setShowAIPanel] = useState(false);
+
+  const { data: contact, isLoading } = useQuery({
+    queryKey: ['contact', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', id)
+        .single();
+      if (error) throw error;
+      return data as Profile;
+    },
+    enabled: !!id,
+  });
+
+  const { data: contactMethods } = useQuery({
+    queryKey: ['contact-methods', id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('contact_methods')
+        .select('*')
+        .eq('profile_id', id);
+      return data ?? [];
+    },
+    enabled: !!id,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from('profiles').delete().eq('id', id!);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      toast({ title: 'Contact deleted' });
+      navigate('/contacts');
+    },
+    onError: (error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_favorite: !contact?.is_favorite })
+        .eq('id', id!);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contact', id] });
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    },
+  });
+
+  const relationshipColors: Record<string, string> = {
+    family: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+    friend: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+    colleague: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+    client: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+    mentor: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+    mentee: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+    acquaintance: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
+    other: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
+  };
+
+  const contactName = contact ? `${contact.first_name} ${contact.last_name || ''}`.trim() : '';
+
+  if (isLoading) {
+    return (
+      <AppLayout title="Contact">
+        <div className="flex gap-6">
+          <div className="w-64 space-y-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+          </div>
+          <div className="flex-1 space-y-4">
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-64 w-full" />
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!contact) {
+    return (
+      <AppLayout title="Contact Not Found">
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <User className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Contact not found</h3>
+            <p className="text-muted-foreground text-center mb-4">
+              This contact doesn't exist or you don't have access to it.
+            </p>
+            <Button onClick={() => navigate('/contacts')}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Contacts
+            </Button>
+          </CardContent>
+        </Card>
+      </AppLayout>
+    );
+  }
+
+  // Group sections by group
+  const groupedSections = groupOrder.map(group => ({
+    group,
+    items: sections.filter(s => s.group === group)
+  }));
+
+  const renderContent = () => {
+    switch (activeSection) {
+      case 'overview':
+        return (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>About</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {contact.bio && <p className="text-muted-foreground">{contact.bio}</p>}
+                <div className="grid grid-cols-2 gap-4">
+                  {contact.organization && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Building className="h-4 w-4 text-muted-foreground" />
+                      <span>{contact.organization}</span>
+                    </div>
+                  )}
+                  {contact.job_title && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Briefcase className="h-4 w-4 text-muted-foreground" />
+                      <span>{contact.job_title}</span>
+                    </div>
+                  )}
+                </div>
+                {contact.tags && contact.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {contact.tags.map((tag) => (
+                      <Badge key={tag} variant="outline">{tag}</Badge>
+                    ))}
+                  </div>
+                )}
+                {contact.notes && (
+                  <div className="pt-4 border-t">
+                    <h4 className="font-medium mb-2">Notes</h4>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{contact.notes}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            <ContactMethodsManager profileId={contact.id} contactMethods={contactMethods || []} />
+          </div>
+        );
+      case 'contact':
+        return <ContactMethodsManager profileId={contact.id} contactMethods={contactMethods || []} />;
+      case 'documents':
+        return <ContactDocumentsManager profileId={contact.id} contactName={contactName} />;
+      case 'media':
+        return <ContactMediaManager profileId={contact.id} contactName={contactName} />;
+      case 'outreach':
+        return <OptimalOutreach profileId={contact.id} contactName={contactName} />;
+      case 'templates':
+        return <MessageTemplates profileId={contact.id} contactName={contactName} />;
+      case 'briefing':
+        return <MeetingBriefing profileId={contact.id} contactName={contactName} />;
+      case 'interests':
+        return <InterestsManager profileId={contact.id} contactName={contactName} />;
+      case 'gifts':
+        return <GiftSuggestions profileId={contact.id} contactName={contactName} />;
+      case 'goals':
+        return <RelationshipGoals profileId={contact.id} contactName={contactName} />;
+      case 'experiences':
+        return <SharedExperiences profileId={contact.id} contactName={contactName} />;
+      case 'education':
+        return (
+          <div className="space-y-6">
+            <EducationManager profileId={contact.id} />
+            <Separator />
+            <CertificationsManager profileId={contact.id} />
+            <Separator />
+            <SkillsManager profileId={contact.id} />
+          </div>
+        );
+      case 'messages':
+        return <ConversationsManager profileId={contact.id} profileName={contactName} />;
+      case 'timeline':
+        return <ContactTimeline profileId={contact.id} />;
+      case 'groups':
+        return <ContactGroupSelector profileId={contact.id} />;
+      case 'enrich':
+        return <ContactEnrichment profileId={contact.id} profileName={contactName} linkedinUrl={contact.linkedin_url} />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <AppLayout title={contactName}>
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+        <Link to="/contacts" className="hover:text-foreground transition-colors">Contacts</Link>
+        <ChevronRight className="h-4 w-4" />
+        <span className="text-foreground">{contactName}</span>
+      </div>
+
+      {/* Header */}
+      <Card className="mb-6">
+        <CardContent className="py-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-xl shrink-0">
+                {contact.avatar_url ? (
+                  <img src={contact.avatar_url} alt="" className="h-16 w-16 rounded-full object-cover" />
+                ) : (
+                  <>{contact.first_name?.[0]}{contact.last_name?.[0]}</>
+                )}
+              </div>
+              <div>
+                <h1 className="text-xl font-bold flex items-center gap-2">
+                  {contact.first_name} {contact.last_name}
+                  {contact.nickname && <span className="text-muted-foreground font-normal">({contact.nickname})</span>}
+                </h1>
+                <div className="flex items-center gap-2 mt-1">
+                  {contact.relationship_type && (
+                    <Badge className={relationshipColors[contact.relationship_type]}>
+                      {contact.relationship_type}
+                    </Badge>
+                  )}
+                  {contact.organization && (
+                    <span className="text-sm text-muted-foreground">{contact.organization}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" onClick={() => toggleFavoriteMutation.mutate()}>
+                <Star className={`h-5 w-5 ${contact.is_favorite ? 'fill-yellow-400 text-yellow-400' : ''}`} />
+              </Button>
+              <Button variant={showAIPanel ? "default" : "outline"} size="icon" onClick={() => setShowAIPanel(!showAIPanel)} title="AI Insights">
+                <Brain className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="icon" onClick={() => setIsEditDialogOpen(true)}>
+                <Edit className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  if (confirm('Are you sure you want to delete this contact?')) {
+                    deleteMutation.mutate();
+                  }
+                }}
+              >
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Main Layout */}
+      <div className={cn("grid gap-6", showAIPanel ? "lg:grid-cols-[240px_1fr_320px]" : "lg:grid-cols-[240px_1fr]")}>
+        {/* Sidebar */}
+        <div className="hidden lg:block">
+          <Card className="sticky top-4">
+            <ScrollArea className="h-[calc(100vh-280px)]">
+              <div className="p-4 space-y-4">
+                {groupedSections.map(({ group, items }) => (
+                  items.length > 0 && (
+                    <div key={group}>
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">
+                        {group}
+                      </h3>
+                      <div className="space-y-1">
+                        {items.map((section) => (
+                          <button
+                            key={section.id}
+                            onClick={() => setActiveSection(section.id)}
+                            className={cn(
+                              "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors",
+                              activeSection === section.id
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-muted"
+                            )}
+                          >
+                            <section.icon className="h-4 w-4" />
+                            {section.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                ))}
+              </div>
+            </ScrollArea>
+          </Card>
+        </div>
+
+        {/* Mobile Section Selector */}
+        <div className="lg:hidden mb-4 -mx-4 px-4 overflow-x-auto">
+          <div className="flex gap-2 pb-2">
+            {sections.map((section) => (
+              <Button
+                key={section.id}
+                variant={activeSection === section.id ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveSection(section.id)}
+                className="whitespace-nowrap"
+              >
+                <section.icon className="h-4 w-4 mr-1" />
+                {section.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="lg:col-span-1">
+          {renderContent()}
+        </div>
+
+        {/* AI Panel */}
+        {showAIPanel && (
+          <div className="hidden lg:block">
+            <div className="sticky top-4">
+              <AIAnalysisPanel profileId={contact.id} profileName={contactName} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <ContactDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        contact={contact}
+      />
+    </AppLayout>
+  );
+}

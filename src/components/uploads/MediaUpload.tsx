@@ -25,9 +25,10 @@ import { useQuery } from '@tanstack/react-query';
 interface MediaUploadProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  preselectedProfileId?: string;
 }
 
-export function MediaUpload({ open, onOpenChange }: MediaUploadProps) {
+export function MediaUpload({ open, onOpenChange, preselectedProfileId }: MediaUploadProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -36,7 +37,7 @@ export function MediaUpload({ open, onOpenChange }: MediaUploadProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    profile_id: '',
+    profile_id: preselectedProfileId || '',
     caption: '',
   });
 
@@ -85,6 +86,7 @@ export function MediaUpload({ open, onOpenChange }: MediaUploadProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['media'] });
+      queryClient.invalidateQueries({ queryKey: ['contact-media'] });
       toast({ title: 'Media uploaded successfully' });
       onOpenChange(false);
       resetForm();
@@ -98,7 +100,7 @@ export function MediaUpload({ open, onOpenChange }: MediaUploadProps) {
     setSelectedFile(null);
     setPreview(null);
     setFormData({
-      profile_id: '',
+      profile_id: preselectedProfileId || '',
       caption: '',
     });
     if (fileInputRef.current) {
