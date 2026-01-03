@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PersonalityChart } from './PersonalityChart';
 import { useAIConfirmationContext } from '@/contexts/AIConfirmationContext';
+import { useAIModelPreference } from '@/hooks/useAIModelPreference';
 import { calculateCostCents } from '@/lib/aiPricing';
 import { 
   Brain, TrendingUp, Users, FileText, Loader2, Sparkles, 
@@ -20,13 +21,12 @@ interface AIAnalysisPanelProps {
   profileName: string;
 }
 
-const MODEL_KEY = 'google/gemini-2.5-flash';
-
 export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('personality');
   const { requestConfirmation, updateLogWithResult } = useAIConfirmationContext();
+  const modelKey = useAIModelPreference('analyze-profile');
 
   const { data: analyses, isLoading: isLoadingAnalyses } = useQuery({
     queryKey: ['ai-analyses', profileId],
@@ -73,7 +73,7 @@ export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps
       await updateLogWithResult(logId, {
         status: 'completed',
         responseTimeMs: responseTime,
-        actualCostCents: calculateCostCents(MODEL_KEY, 2000, 1000), // Rough estimate
+        actualCostCents: calculateCostCents(modelKey, 2000, 1000),
       });
       
       return data.result;
@@ -99,7 +99,7 @@ export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps
     
     const { approved, logId } = await requestConfirmation({
       functionName: 'analyze-profile',
-      modelKey: MODEL_KEY,
+      modelKey,
       promptText,
       profileId,
     });

@@ -10,9 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Star, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { ContactDialog } from '@/components/contacts/ContactDialog';
+import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
 import type { Tables } from '@/integrations/supabase/types';
 
-type Profile = Tables<'profiles'>;
+type Profile = Tables<'profiles'> & { relationship_subtype?: string; hierarchy_level?: string };
 
 export default function Contacts() {
   const { user } = useAuth();
@@ -146,11 +147,25 @@ export default function Contacts() {
                         <p className="text-sm text-muted-foreground truncate">{contact.job_title}</p>
                       )}
                       <div className="flex flex-wrap gap-1 mt-2">
-                        {contact.relationship_type && (
-                          <Badge variant="secondary" className={relationshipColors[contact.relationship_type]}>
-                            {contact.relationship_type}
-                          </Badge>
-                        )}
+                        {contact.relationship_type && (() => {
+                          const display = formatRelationshipDisplay(
+                            contact.relationship_type,
+                            contact.relationship_subtype || null,
+                            contact.hierarchy_level || null
+                          );
+                          return (
+                            <>
+                              <Badge variant="secondary" className={relationshipColors[contact.relationship_type]}>
+                                {display.primary}
+                              </Badge>
+                              {display.secondary && (
+                                <Badge variant="outline" className="text-xs">
+                                  {display.secondary}
+                                </Badge>
+                              )}
+                            </>
+                          );
+                        })()}
                         {contact.tags?.slice(0, 2).map((tag) => (
                           <Badge key={tag} variant="outline" className="text-xs">
                             {tag}

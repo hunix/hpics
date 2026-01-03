@@ -10,6 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Gift, Loader2, Sparkles, Plus, Check, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAIConfirmationContext } from '@/contexts/AIConfirmationContext';
+import { useAIModelPreference } from '@/hooks/useAIModelPreference';
 import { calculateCostCents } from '@/lib/aiPricing';
 import { toast } from 'sonner';
 
@@ -54,12 +55,11 @@ const priceRangeColors: Record<string, string> = {
   luxury: 'bg-amber-500/10 text-amber-700',
 };
 
-const MODEL_KEY = 'google/gemini-2.5-flash';
-
 export function GiftSuggestions({ profileId, contactName }: GiftSuggestionsProps) {
   const { user, session } = useAuth();
   const queryClient = useQueryClient();
   const { requestConfirmation, updateLogWithResult } = useAIConfirmationContext();
+  const modelKey = useAIModelPreference('suggest-gifts');
   const [isGenerating, setIsGenerating] = useState(false);
   const [suggestions, setSuggestions] = useState<GiftSuggestion[]>([]);
   const [occasion, setOccasion] = useState<string>('');
@@ -125,7 +125,7 @@ export function GiftSuggestions({ profileId, contactName }: GiftSuggestionsProps
     
     const { approved, logId } = await requestConfirmation({
       functionName: 'suggest-gifts',
-      modelKey: MODEL_KEY,
+      modelKey,
       promptText,
       profileId,
     });
@@ -157,7 +157,7 @@ export function GiftSuggestions({ profileId, contactName }: GiftSuggestionsProps
       await updateLogWithResult(logId, {
         status: 'completed',
         responseTimeMs: responseTime,
-        actualCostCents: calculateCostCents(MODEL_KEY, 1500, 1000),
+        actualCostCents: calculateCostCents(modelKey, 1500, 1000),
       });
       
       setSuggestions(data.gifts || []);

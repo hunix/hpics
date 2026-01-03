@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAIConfirmationContext } from '@/contexts/AIConfirmationContext';
+import { useAIModelPreference } from '@/hooks/useAIModelPreference';
 import { calculateCostCents } from '@/lib/aiPricing';
 import { toast } from 'sonner';
 
@@ -49,11 +50,10 @@ interface MeetingBriefingProps {
   contactName: string;
 }
 
-const MODEL_KEY = 'google/gemini-2.5-flash';
-
 export function MeetingBriefing({ profileId, contactName }: MeetingBriefingProps) {
   const { session } = useAuth();
   const { requestConfirmation, updateLogWithResult } = useAIConfirmationContext();
+  const modelKey = useAIModelPreference('generate-briefing');
   const [isLoading, setIsLoading] = useState(false);
   const [briefing, setBriefing] = useState<BriefingData | null>(null);
 
@@ -62,7 +62,7 @@ export function MeetingBriefing({ profileId, contactName }: MeetingBriefingProps
     
     const { approved, logId } = await requestConfirmation({
       functionName: 'generate-briefing',
-      modelKey: MODEL_KEY,
+      modelKey,
       promptText,
       profileId,
     });
@@ -94,7 +94,7 @@ export function MeetingBriefing({ profileId, contactName }: MeetingBriefingProps
       await updateLogWithResult(logId, {
         status: 'completed',
         responseTimeMs: responseTime,
-        actualCostCents: calculateCostCents(MODEL_KEY, 3000, 2000),
+        actualCostCents: calculateCostCents(modelKey, 3000, 2000),
       });
       
       setBriefing(data);
