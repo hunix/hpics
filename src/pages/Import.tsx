@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Loader2, Linkedin, CreditCard, MessageCircle, Send, GraduationCap, Sparkles, FileUp } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Loader2, Linkedin, CreditCard, MessageCircle, Send, GraduationCap, Sparkles, FileUp, Mail } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 import { WhatsAppImport } from '@/components/import/WhatsAppImport';
@@ -18,6 +18,7 @@ import { EducationBulkImport } from '@/components/import/EducationBulkImport';
 import { BulkEnrichment } from '@/components/contacts/BulkEnrichment';
 import { ContactImport } from '@/components/import/ContactImport';
 import { LinkedInImportWizard } from '@/components/import/linkedin/LinkedInImportWizard';
+import { GoogleImportWizard } from '@/components/import/google/GoogleImportWizard';
 
 interface CSVRow {
   first_name?: string;
@@ -255,6 +256,10 @@ export default function Import() {
               <FileSpreadsheet className="h-4 w-4 mr-2" />
               CSV
             </TabsTrigger>
+            <TabsTrigger value="google">
+              <Mail className="h-4 w-4 mr-2" />
+              Google
+            </TabsTrigger>
             <TabsTrigger value="linkedin">
               <Linkedin className="h-4 w-4 mr-2" />
               LinkedIn
@@ -317,6 +322,23 @@ export default function Import() {
                     <><Upload className="mr-2 h-4 w-4" /> Import Contacts</>
                   )}
                 </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="google" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Mail className="h-5 w-5 text-red-500" />
+                  Import Google Contacts
+                </CardTitle>
+                <CardDescription>
+                  Import from Google Contacts or Gmail with smart duplicate detection and merging
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <GoogleImportWizard />
               </CardContent>
             </Card>
           </TabsContent>
