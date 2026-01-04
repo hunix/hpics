@@ -1,22 +1,51 @@
 // Google Contacts / Outlook CSV Parser
-// Handles the "Google CSV" format exported from Google Contacts
+// Handles Google CSV and Outlook CSV formats with smart header detection
 
-import { ParseResult, ParseWarning, normalizeHeader as baseNormalizeHeader } from '../linkedin/linkedinCsvParser';
+import { ParseResult, ParseWarning } from '../linkedin/linkedinCsvParser';
 
-// Google CSV has different header patterns than LinkedIn
-const GOOGLE_HEADER_PATTERNS = {
-  first_name: ['givenname', 'firstname', 'first', 'name'],
-  last_name: ['familyname', 'lastname', 'last', 'surname'],
-  email: ['email', 'e-mail', 'emailaddress', 'email1value'],
-  phone: ['phone', 'telephone', 'mobile', 'phone1value', 'primaryphone'],
-  organization: ['organization', 'company', 'organization1name', 'companyname'],
-  job_title: ['jobtitle', 'title', 'organization1title', 'position'],
+// Expanded header patterns for both Google CSV and Outlook CSV formats
+const GOOGLE_HEADER_PATTERNS: Record<string, string[]> = {
+  first_name: ['firstname', 'givenname', 'first', 'given'],
+  middle_name: ['middlename', 'middle'],
+  last_name: ['lastname', 'familyname', 'surname', 'family'],
+  // Email patterns - handle numbered emails
+  email: ['emailaddress', 'email', 'primaryemail', 'emailvalue'],
+  email2: ['email2address', 'email2value'],
+  email3: ['email3address', 'email3value'],
+  // Phone patterns
+  phone: ['primaryphone', 'phone', 'mainphone', 'phonevalue'],
+  mobile_phone: ['mobilephone', 'cellphone', 'mobile', 'mobilenumber'],
+  home_phone: ['homephone', 'homenumber'],
+  business_phone: ['businessphone', 'workphone', 'officephone', 'businessnumber'],
+  // Organization
+  organization: ['company', 'organization', 'companyname', 'organizationname', 'employer'],
+  job_title: ['jobtitle', 'title', 'position', 'role', 'organizationtitle'],
+  department: ['department', 'businessdepartment'],
+  // Personal
   notes: ['notes', 'note'],
-  address: ['address', 'streetaddress', 'address1formatted'],
-  birthday: ['birthday', 'dateofbirth', 'dob'],
-  website: ['website', 'url', 'webpage'],
+  birthday: ['birthday', 'dateofbirth', 'birthdate'],
+  anniversary: ['anniversary'],
+  website: ['webpage', 'website', 'url', 'personalwebpage', 'businesswebpage'],
   nickname: ['nickname', 'shortname'],
+  // Address fields
+  home_address: ['homeaddress', 'homestreet', 'homestreetaddress'],
+  home_city: ['homecity'],
+  home_state: ['homestate', 'homestateprovince'],
+  home_country: ['homecountry', 'homecountryregion'],
+  home_postal: ['homepostalcode', 'homezip'],
+  business_address: ['businessaddress', 'businessstreet', 'businessstreetaddress'],
+  business_city: ['businesscity'],
+  business_state: ['businessstate', 'businessstateprovince'],
+  business_country: ['businesscountry', 'businesscountryregion'],
 };
+
+// Known header keywords for detection
+const HEADER_KEYWORDS = [
+  'first', 'last', 'name', 'email', 'company', 'organization',
+  'phone', 'mobile', 'address', 'city', 'state', 'country', 'postal', 'zip',
+  'title', 'department', 'notes', 'birthday', 'anniversary', 'website',
+  'business', 'home', 'primary', 'middle', 'nickname', 'given', 'family'
+];
 
 function parseCSVLine(line: string, delimiter: string): string[] {
   const result: string[] = [];
@@ -101,32 +130,138 @@ function detectDelimiter(lines: string[]): { delimiter: string; confidence: 'hig
   return { delimiter: bestDelim, confidence };
 }
 
+// Normalize header - preserve numbers for multi-value fields
 export function normalizeHeader(header: string): string {
   return header
     .toLowerCase()
     .replace(/['"]/g, '')
-    .replace(/[\s_-]+/g, '')
-    .replace(/\d+/g, '') // Remove numbers like "Email 1 - Value" -> "emailvalue"
+    .replace(/[\s_-]+/g, '')  // Remove spaces, underscores, dashes
+    .replace(/[^a-z0-9]/g, '') // Keep only alphanumeric
     .trim();
+}
+
+// Check if a value looks like data (not a header)
+function looksLikeData(value: string): boolean {
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) return false;
+  
+  // Email pattern
+  if (/@/.test(trimmed)) return true;
+  
+  // URL pattern
+  if (/^https?:\/\//.test(trimmed)) return true;
+  
+  // Phone number patterns (7+ digits with optional formatting)
+  if (/^[\+\d\(\)\-\s\.]{7,}$/.test(trimmed)) return true;
+  
+  // Date patterns
+  if (/^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}$/.test(trimmed)) return true;
+  if (/^\d{4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,2}$/.test(trimmed)) return true;
+  
+  return false;
+}
+
+// Score a row to determine if it's likely a header row
+function scoreHeaderRow(columns: string[]): number {
+  let score = 0;
+  let headerKeywordMatches = 0;
+  let dataPatternMatches = 0;
+  
+  for (const col of columns) {
+    const normalized = col.toLowerCase().replace(/['"_\-\s]/g, '');
+    
+    // Check for header keywords
+    for (const keyword of HEADER_KEYWORDS) {
+      if (normalized.includes(keyword)) {
+        headerKeywordMatches++;
+        score += 10;
+        break;
+      }
+    }
+    
+    // Check for data patterns (negative signal)
+    if (looksLikeData(col)) {
+      dataPatternMatches++;
+      score -= 15;
+    }
+    
+    // Short text-only values are more likely headers
+    if (/^[a-zA-Z\s\d]+$/.test(col.trim()) && col.trim().length < 40) {
+      score += 1;
+    }
+  }
+  
+  return score;
+}
+
+// Find header line (skip preamble if present)
+function findHeaderLine(lines: string[], delimiter: string): number {
+  const candidates: { index: number; score: number; columnCount: number }[] = [];
+  
+  for (let i = 0; i < Math.min(5, lines.length); i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    
+    const columns = parseCSVLine(line, delimiter);
+    const score = scoreHeaderRow(columns);
+    
+    candidates.push({
+      index: i,
+      score,
+      columnCount: columns.length
+    });
+  }
+  
+  if (candidates.length === 0) return 0;
+  
+  // Sort by score (highest first), then by column count, then by index
+  candidates.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    if (b.columnCount !== a.columnCount) return b.columnCount - a.columnCount;
+    return a.index - b.index;
+  });
+  
+  const best = candidates[0];
+  if (best.score > 0) {
+    return best.index;
+  }
+  
+  // Fallback: use line 0 if it has at least 3 columns
+  const line0 = candidates.find(c => c.index === 0);
+  if (line0 && line0.columnCount >= 3) {
+    return 0;
+  }
+  
+  return best.index;
 }
 
 export interface GoogleContact {
   first_name: string;
+  middle_name?: string;
   last_name: string;
   full_name?: string;
   email: string;
+  email2?: string;
+  email3?: string;
   phone?: string;
+  mobile_phone?: string;
+  home_phone?: string;
+  business_phone?: string;
   organization?: string;
   job_title?: string;
+  department?: string;
   notes?: string;
   address?: string;
   birthday?: string;
+  anniversary?: string;
   website?: string;
   nickname?: string;
 }
 
 export interface GoogleParseResult extends ParseResult {
   contacts: GoogleContact[];
+  headerLineIndex: number;
+  columnMapping: Record<string, number>;
 }
 
 export function parseGoogleCSV(content: string): GoogleParseResult {
@@ -167,67 +302,96 @@ export function parseGoogleCSV(content: string): GoogleParseResult {
       bomDetected,
       lineEndingStyle,
       error: 'File is empty',
-      contacts: []
+      contacts: [],
+      columnMapping: {}
     };
   }
   
   // Detect delimiter
   const { delimiter, confidence: delimiterConfidence } = detectDelimiter(nonEmptyLines);
   
-  // Parse headers (first line)
-  const headers = parseCSVLine(nonEmptyLines[0], delimiter);
+  // Find header line using smart detection
+  const headerLineIndex = findHeaderLine(nonEmptyLines, delimiter);
+  
+  // Parse headers
+  const headers = parseCSVLine(nonEmptyLines[headerLineIndex], delimiter);
   const normalizedHeaders = headers.map(normalizeHeader);
   
-  // Build column mapping
-  const columnMap: Record<string, number> = {};
+  console.log('[Google Parser] Header line index:', headerLineIndex);
+  console.log('[Google Parser] Raw headers:', headers.slice(0, 15));
+  console.log('[Google Parser] Normalized headers:', normalizedHeaders.slice(0, 15));
+  
+  // Build column mapping with priority for first match
+  const columnMapping: Record<string, number> = {};
   
   for (const [field, patterns] of Object.entries(GOOGLE_HEADER_PATTERNS)) {
     for (let i = 0; i < normalizedHeaders.length; i++) {
       const header = normalizedHeaders[i];
       for (const pattern of patterns) {
+        // Exact match first, then contains match
         if (header === pattern || header.includes(pattern)) {
-          if (columnMap[field] === undefined) {
-            columnMap[field] = i;
+          if (columnMapping[field] === undefined) {
+            columnMapping[field] = i;
+            break;
           }
-          break;
         }
       }
+      if (columnMapping[field] !== undefined) break;
     }
   }
   
-  console.log('[Google Parser] Column mapping:', columnMap);
-  console.log('[Google Parser] Headers:', headers.slice(0, 10));
+  console.log('[Google Parser] Column mapping:', columnMapping);
   
-  // Parse data rows
+  // Parse data rows (skip header and any preamble)
   const rows: string[][] = [];
   const contacts: GoogleContact[] = [];
   
-  for (let i = 1; i < nonEmptyLines.length; i++) {
+  for (let i = headerLineIndex + 1; i < nonEmptyLines.length; i++) {
     const line = nonEmptyLines[i];
     const row = parseCSVLine(line, delimiter);
     rows.push(row);
     
     const getValue = (field: string): string => {
-      const idx = columnMap[field];
+      const idx = columnMapping[field];
       if (idx === undefined || idx >= row.length) return '';
-      return row[idx]?.replace(/['"]/g, '').trim() || '';
+      return row[idx]?.replace(/^["']|["']$/g, '').trim() || '';
     };
     
+    // Get all potential values
     let firstName = getValue('first_name');
+    const middleName = getValue('middle_name');
     let lastName = getValue('last_name');
     const email = getValue('email').toLowerCase();
-    const phone = getValue('phone');
+    const email2 = getValue('email2').toLowerCase();
+    const email3 = getValue('email3').toLowerCase();
+    
+    // Get best phone (priority: primary > mobile > business > home)
+    const primaryPhone = getValue('phone');
+    const mobilePhone = getValue('mobile_phone');
+    const businessPhone = getValue('business_phone');
+    const homePhone = getValue('home_phone');
+    const phone = primaryPhone || mobilePhone || businessPhone || homePhone;
+    
     const organization = getValue('organization');
     const jobTitle = getValue('job_title');
+    const department = getValue('department');
     const notes = getValue('notes');
-    const address = getValue('address');
     const birthday = getValue('birthday');
+    const anniversary = getValue('anniversary');
     const website = getValue('website');
     const nickname = getValue('nickname');
     
+    // Build address from parts
+    const homeAddress = getValue('home_address');
+    const homeCity = getValue('home_city');
+    const homeState = getValue('home_state');
+    const homeCountry = getValue('home_country');
+    const homePostal = getValue('home_postal');
+    const address = [homeAddress, homeCity, homeState, homePostal, homeCountry]
+      .filter(Boolean).join(', ');
+    
     // Skip empty rows
-    if (!firstName && !lastName && !email && !phone) {
-      warnings.push({ type: 'empty_line', line: i + 1, message: 'Empty contact row' });
+    if (!firstName && !lastName && !email && !phone && !organization) {
       continue;
     }
     
@@ -243,23 +407,37 @@ export function parseGoogleCSV(content: string): GoogleParseResult {
       firstName = 'Unknown Contact';
     }
     
+    // Build full name with middle name
+    const fullNameParts = [firstName, middleName, lastName].filter(Boolean);
+    
     contacts.push({
       first_name: firstName,
+      middle_name: middleName,
       last_name: lastName,
-      email,
+      full_name: fullNameParts.join(' '),
+      email: email || email2 || email3,
+      email2,
+      email3,
       phone,
+      mobile_phone: mobilePhone,
+      home_phone: homePhone,
+      business_phone: businessPhone,
       organization,
       job_title: jobTitle,
+      department,
       notes,
       address,
       birthday,
+      anniversary,
       website,
-      nickname,
-      full_name: `${firstName} ${lastName}`.trim()
+      nickname
     });
   }
   
   console.log('[Google Parser] Parsed contacts:', contacts.length);
+  if (contacts.length > 0) {
+    console.log('[Google Parser] Sample contact:', contacts[0]);
+  }
   
   return {
     success: true,
@@ -267,7 +445,7 @@ export function parseGoogleCSV(content: string): GoogleParseResult {
     normalizedHeaders,
     delimiter,
     delimiterConfidence,
-    headerLineIndex: 0,
+    headerLineIndex,
     rawLineCount,
     parsedRowCount: rows.length,
     warnings,
@@ -275,6 +453,7 @@ export function parseGoogleCSV(content: string): GoogleParseResult {
     rows,
     bomDetected,
     lineEndingStyle,
-    contacts
+    contacts,
+    columnMapping
   };
 }
