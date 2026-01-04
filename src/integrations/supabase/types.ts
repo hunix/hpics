@@ -1388,8 +1388,10 @@ export type Database = {
           end_date: string | null
           from_profile_id: string
           id: string
+          inferred_from_ids: string[] | null
           inverse_label: string | null
           is_bidirectional: boolean | null
+          is_inferred: boolean | null
           notes: string | null
           relationship_label: string
           relationship_type: string
@@ -1403,8 +1405,10 @@ export type Database = {
           end_date?: string | null
           from_profile_id: string
           id?: string
+          inferred_from_ids?: string[] | null
           inverse_label?: string | null
           is_bidirectional?: boolean | null
+          is_inferred?: boolean | null
           notes?: string | null
           relationship_label: string
           relationship_type: string
@@ -1418,8 +1422,10 @@ export type Database = {
           end_date?: string | null
           from_profile_id?: string
           id?: string
+          inferred_from_ids?: string[] | null
           inverse_label?: string | null
           is_bidirectional?: boolean | null
+          is_inferred?: boolean | null
           notes?: string | null
           relationship_label?: string
           relationship_type?: string

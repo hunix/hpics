@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Plus, Trash2, Link2 } from 'lucide-react';
+import { Loader2, Plus, Trash2, Link2, Sparkles } from 'lucide-react';
 import { ContactPicker } from './ContactPicker';
 import { 
   RELATIONSHIP_DEFINITIONS, 
@@ -42,6 +42,7 @@ interface ContactRelationship {
   notes: string | null;
   start_date: string | null;
   end_date: string | null;
+  is_inferred?: boolean;
 }
 
 interface ProfileBasic {
@@ -50,6 +51,45 @@ interface ProfileBasic {
   last_name: string | null;
   avatar_url: string | null;
 }
+
+// Map labels to their proper inverse
+const INVERSE_LABEL_MAP: Record<string, string> = {
+  'father': 'child',
+  'mother': 'child',
+  'parent': 'child',
+  'son': 'parent',
+  'daughter': 'parent',
+  'child': 'parent',
+  'brother': 'sibling',
+  'sister': 'sibling',
+  'sibling': 'sibling',
+  'spouse': 'spouse',
+  'husband': 'wife',
+  'wife': 'husband',
+  'grandfather': 'grandchild',
+  'grandmother': 'grandchild',
+  'grandparent': 'grandchild',
+  'grandson': 'grandparent',
+  'granddaughter': 'grandparent',
+  'grandchild': 'grandparent',
+  'uncle': 'nephew',
+  'aunt': 'niece',
+  'nephew': 'uncle',
+  'niece': 'aunt',
+  'cousin': 'cousin',
+  'stepfather': 'stepchild',
+  'stepmother': 'stepchild',
+  'stepson': 'stepparent',
+  'stepdaughter': 'stepparent',
+  'stepsibling': 'stepsibling',
+  'ex-spouse': 'ex-spouse',
+  'father-in-law': 'child-in-law',
+  'mother-in-law': 'child-in-law',
+  'son-in-law': 'parent-in-law',
+  'daughter-in-law': 'parent-in-law',
+  'brother-in-law': 'sibling-in-law',
+  'sister-in-law': 'sibling-in-law',
+};
 
 export function ContactRelationshipsManager({ profileId, contactName }: ContactRelationshipsManagerProps) {
   const { user } = useAuth();
@@ -92,27 +132,29 @@ export function ContactRelationshipsManager({ profileId, contactName }: ContactR
     enabled: !!user,
   });
 
-  // Fetch relationships where this contact is the "from" side
+  // Fetch relationships where this contact is the "from" side (explicit only)
   const { data: outgoingRelations, isLoading: loadingOutgoing } = useQuery({
     queryKey: ['contact-relationships-outgoing', profileId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('contact_relationships')
         .select('*')
-        .eq('from_profile_id', profileId);
+        .eq('from_profile_id', profileId)
+        .or('is_inferred.is.null,is_inferred.eq.false');
       if (error) throw error;
       return data as ContactRelationship[];
     },
   });
 
-  // Fetch relationships where this contact is the "to" side
+  // Fetch relationships where this contact is the "to" side (explicit only)
   const { data: incomingRelations, isLoading: loadingIncoming } = useQuery({
     queryKey: ['contact-relationships-incoming', profileId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('contact_relationships')
         .select('*')
-        .eq('to_profile_id', profileId);
+        .eq('to_profile_id', profileId)
+        .or('is_inferred.is.null,is_inferred.eq.false');
       if (error) throw error;
       return data as ContactRelationship[];
     },
@@ -123,6 +165,7 @@ export function ContactRelationshipsManager({ profileId, contactName }: ContactR
       const definition = getRelationshipDefinition(data.relationship_label);
       if (!definition) throw new Error('Invalid relationship type');
 
+      // Create the primary relationship
       const { error } = await supabase.from('contact_relationships').insert({
         user_id: user!.id,
         from_profile_id: profileId,
@@ -132,28 +175,30 @@ export function ContactRelationshipsManager({ profileId, contactName }: ContactR
         is_bidirectional: definition.isBidirectional,
         inverse_label: definition.inverseLabel,
         notes: data.notes || null,
+        is_inferred: false,
       });
       if (error) throw error;
 
-      // If bidirectional, create the reverse relationship too
-      if (definition.isBidirectional) {
-        await supabase.from('contact_relationships').insert({
-          user_id: user!.id,
-          from_profile_id: data.to_profile_id,
-          to_profile_id: profileId,
-          relationship_type: definition.type,
-          relationship_label: data.relationship_label,
-          is_bidirectional: true,
-          inverse_label: definition.inverseLabel,
-          notes: data.notes || null,
-        });
-      }
+      // Always create the inverse relationship for proper traversal
+      const inverseLabel = INVERSE_LABEL_MAP[data.relationship_label] || data.relationship_label;
+      await supabase.from('contact_relationships').insert({
+        user_id: user!.id,
+        from_profile_id: data.to_profile_id,
+        to_profile_id: profileId,
+        relationship_type: definition.type,
+        relationship_label: inverseLabel,
+        is_bidirectional: definition.isBidirectional,
+        inverse_label: data.relationship_label,
+        notes: data.notes || null,
+        is_inferred: false,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contact-relationships-outgoing', profileId] });
       queryClient.invalidateQueries({ queryKey: ['contact-relationships-incoming', profileId] });
+      queryClient.invalidateQueries({ queryKey: ['family-relationships'] });
       setNewRelationship({ to_profile_id: '', relationship_label: '', notes: '' });
-      toast({ title: 'Relationship added' });
+      toast({ title: 'Relationship added with inverse link' });
     },
     onError: (error) => {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -161,23 +206,24 @@ export function ContactRelationshipsManager({ profileId, contactName }: ContactR
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async ({ id, isBidirectional, toProfileId, label }: { id: string; isBidirectional: boolean; toProfileId: string; label: string }) => {
+    mutationFn: async ({ id, toProfileId, label }: { id: string; toProfileId: string; label: string }) => {
+      // Delete the primary relationship
       const { error } = await supabase.from('contact_relationships').delete().eq('id', id);
       if (error) throw error;
 
-      // If bidirectional, delete the reverse relationship too
-      if (isBidirectional) {
-        await supabase
-          .from('contact_relationships')
-          .delete()
-          .eq('from_profile_id', toProfileId)
-          .eq('to_profile_id', profileId)
-          .eq('relationship_label', label);
-      }
+      // Delete the inverse relationship
+      const inverseLabel = INVERSE_LABEL_MAP[label] || label;
+      await supabase
+        .from('contact_relationships')
+        .delete()
+        .eq('from_profile_id', toProfileId)
+        .eq('to_profile_id', profileId)
+        .eq('relationship_label', inverseLabel);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contact-relationships-outgoing', profileId] });
       queryClient.invalidateQueries({ queryKey: ['contact-relationships-incoming', profileId] });
+      queryClient.invalidateQueries({ queryKey: ['family-relationships'] });
       toast({ title: 'Relationship removed' });
     },
   });
@@ -190,21 +236,18 @@ export function ContactRelationshipsManager({ profileId, contactName }: ContactR
   const isLoading = loadingOutgoing || loadingIncoming;
   const availableLabels = getRelationshipsByType(selectedType);
 
-  // Combine outgoing and incoming for display
-  const allRelationships = [
-    ...(outgoingRelations || []).map(r => ({ ...r, direction: 'outgoing' as const })),
-    ...(incomingRelations || []).filter(r => !r.is_bidirectional).map(r => ({ ...r, direction: 'incoming' as const })),
-  ];
+  // Only show outgoing relationships to avoid duplicates from inverse links
+  const displayRelationships = outgoingRelations || [];
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Link2 className="h-5 w-5" />
-          Relationships with Other Contacts
+          Family & Connections
         </CardTitle>
         <CardDescription>
-          Link {contactName} to other contacts to build family trees and professional networks
+          Link {contactName} to other contacts. Inverse relationships are auto-created, and sibling/grandparent connections are inferred in the Family Tree.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -214,22 +257,20 @@ export function ContactRelationshipsManager({ profileId, contactName }: ContactR
           </div>
         ) : (
           <>
-            {allRelationships.length > 0 && (
+            {displayRelationships.length > 0 && (
               <div className="grid gap-2">
-                {allRelationships.map((rel) => {
+                {displayRelationships.map((rel) => {
                   const definition = getRelationshipDefinition(rel.relationship_label);
-                  const otherProfileId = rel.direction === 'outgoing' ? rel.to_profile_id : rel.from_profile_id;
-                  const displayLabel = rel.direction === 'outgoing' 
-                    ? definition?.label || rel.relationship_label
-                    : rel.inverse_label || definition?.inverseLabel || rel.relationship_label;
+                  const displayLabel = definition?.label || rel.relationship_label;
+                  const otherProfileId = rel.to_profile_id;
                   
                   return (
                     <div key={rel.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 flex-wrap">
                         <Badge className={RELATIONSHIP_TYPE_COLORS[rel.relationship_type]}>
                           {rel.relationship_type}
                         </Badge>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium">{contactName}</span>
                           <span className="text-muted-foreground">is</span>
                           <Badge variant="outline">{displayLabel}</Badge>
@@ -246,8 +287,7 @@ export function ContactRelationshipsManager({ profileId, contactName }: ContactR
                         variant="ghost" 
                         size="icon" 
                         onClick={() => deleteMutation.mutate({ 
-                          id: rel.id, 
-                          isBidirectional: rel.is_bidirectional, 
+                          id: rel.id,
                           toProfileId: rel.to_profile_id,
                           label: rel.relationship_label 
                         })}
@@ -260,10 +300,12 @@ export function ContactRelationshipsManager({ profileId, contactName }: ContactR
               </div>
             )}
 
-            {allRelationships.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No relationships defined yet. Add one below.
-              </p>
+            {displayRelationships.length === 0 && (
+              <div className="text-center py-6 text-muted-foreground">
+                <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No relationships defined yet.</p>
+                <p className="text-xs mt-1">Add family connections below. Siblings and grandparents will be auto-inferred!</p>
+              </div>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 pt-4 border-t">
