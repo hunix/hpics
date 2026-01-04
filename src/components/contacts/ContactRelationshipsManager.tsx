@@ -15,7 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Plus, Trash2, Users, ArrowRight, Link2 } from 'lucide-react';
+import { Loader2, Plus, Trash2, Link2 } from 'lucide-react';
+import { ContactPicker } from './ContactPicker';
 import { 
   RELATIONSHIP_DEFINITIONS, 
   RELATIONSHIP_TYPE_COLORS,
@@ -62,18 +63,31 @@ export function ContactRelationshipsManager({ profileId, contactName }: ContactR
     notes: '',
   });
 
-  // Fetch all contacts for selection
+  // Fetch all contacts for selection (with pagination)
   const { data: contacts } = useQuery({
-    queryKey: ['contacts-for-relations', user?.id],
+    queryKey: ['contacts-for-relations', user?.id, profileId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, avatar_url')
-        .eq('user_id', user!.id)
-        .neq('id', profileId)
-        .order('first_name');
-      if (error) throw error;
-      return data as ProfileBasic[];
+      const allProfiles: ProfileBasic[] = [];
+      const pageSize = 1000;
+      let page = 0;
+
+      while (true) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, avatar_url')
+          .eq('user_id', user!.id)
+          .neq('id', profileId)
+          .order('first_name')
+          .range(page * pageSize, (page + 1) * pageSize - 1);
+        
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        
+        allProfiles.push(...data);
+        if (data.length < pageSize) break;
+        page++;
+      }
+      return allProfiles;
     },
     enabled: !!user,
   });
@@ -288,21 +302,12 @@ export function ContactRelationshipsManager({ profileId, contactName }: ContactR
               </div>
               <div className="space-y-2">
                 <Label>...of</Label>
-                <Select 
-                  value={newRelationship.to_profile_id} 
-                  onValueChange={(v) => setNewRelationship({ ...newRelationship, to_profile_id: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select contact..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {contacts?.map((contact) => (
-                      <SelectItem key={contact.id} value={contact.id}>
-                        {contact.first_name} {contact.last_name || ''}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <ContactPicker
+                  contacts={contacts || []}
+                  selectedId={newRelationship.to_profile_id}
+                  onSelect={(id) => setNewRelationship({ ...newRelationship, to_profile_id: id })}
+                  placeholder="Search contacts..."
+                />
               </div>
               <div className="space-y-2">
                 <Label>Notes (optional)</Label>
