@@ -135,15 +135,18 @@ export default function Import() {
       headers.forEach((header, index) => {
         const value = values[index]?.replace(/['"]/g, '').trim();
         if (value) {
+          // Normalize header for matching (remove spaces, underscores)
+          const h = header.replace(/[\s_-]/g, '');
+          
           // Flexible matching for LinkedIn column names
-          if (header.includes('first') && header.includes('name')) row.first_name = value;
-          else if (header === 'first name' || header === 'firstname') row.first_name = value;
-          else if (header.includes('last') && header.includes('name')) row.last_name = value;
-          else if (header === 'last name' || header === 'lastname') row.last_name = value;
-          else if (header.includes('email')) row.email = value;
-          else if (header === 'company' || header.includes('company')) row.organization = value;
-          else if (header === 'position' || header.includes('position')) row.job_title = value;
-          else if (header.includes('url')) {
+          if (h === 'firstname' || h.includes('firstname')) row.first_name = value;
+          else if (header === 'first name') row.first_name = value;
+          else if (h === 'lastname' || h.includes('lastname')) row.last_name = value;
+          else if (header === 'last name') row.last_name = value;
+          else if (h.includes('email')) row.email = value;
+          else if (h === 'company' || h.includes('company')) row.organization = value;
+          else if (h === 'position' || h.includes('position')) row.job_title = value;
+          else if (h.includes('url') || h.includes('profile')) {
             row.notes = value;
           }
         }
