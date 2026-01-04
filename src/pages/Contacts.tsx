@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Star, User } from 'lucide-react';
+import { Plus, Search, Star, User, Upload } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { ContactDialog } from '@/components/contacts/ContactDialog';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
@@ -81,10 +81,16 @@ export default function Contacts() {
               className="pl-10"
             />
           </div>
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Contact
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate('/import')}>
+              <Upload className="mr-2 h-4 w-4" />
+              Import
+            </Button>
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Contact
+            </Button>
+          </div>
         </div>
 
         {/* Contacts Grid */}
