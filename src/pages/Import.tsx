@@ -74,10 +74,31 @@ export default function Import() {
   };
 
   const parseLinkedInCSV = (text: string): CSVRow[] => {
-    const lines = text.split('\n').filter(line => line.trim());
+    // Remove BOM if present
+    const cleanText = text.replace(/^\ufeff/, '');
+    const lines = cleanText.split('\n').filter(line => line.trim());
     if (lines.length < 2) return [];
     
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/['"]/g, ''));
+    // Parse headers with quote-aware splitting (same as values)
+    const rawHeader = lines[0];
+    const headers: string[] = [];
+    let headerCurrent = '';
+    let headerInQuotes = false;
+    
+    for (const char of rawHeader) {
+      if (char === '"') {
+        headerInQuotes = !headerInQuotes;
+      } else if (char === ',' && !headerInQuotes) {
+        headers.push(headerCurrent.trim().toLowerCase().replace(/['"]/g, ''));
+        headerCurrent = '';
+      } else {
+        headerCurrent += char;
+      }
+    }
+    headers.push(headerCurrent.trim().toLowerCase().replace(/['"]/g, ''));
+    
+    console.log('LinkedIn CSV Headers:', headers);
+    
     const rows: CSVRow[] = [];
     
     for (let i = 1; i < lines.length; i++) {
@@ -101,13 +122,19 @@ export default function Import() {
       const row: CSVRow = {};
       
       headers.forEach((header, index) => {
-        const value = values[index]?.replace(/['"]/g, '');
+        const value = values[index]?.replace(/['"]/g, '').trim();
         if (value) {
-          if (header === 'first name' || header === 'firstname') row.first_name = value;
+          // Flexible matching for LinkedIn column names
+          if (header.includes('first') && header.includes('name')) row.first_name = value;
+          else if (header === 'first name' || header === 'firstname') row.first_name = value;
+          else if (header.includes('last') && header.includes('name')) row.last_name = value;
           else if (header === 'last name' || header === 'lastname') row.last_name = value;
-          else if (header === 'email address' || header === 'email') row.email = value;
-          else if (header === 'company' || header === 'organization') row.organization = value;
-          else if (header === 'position' || header === 'title') row.job_title = value;
+          else if (header.includes('email')) row.email = value;
+          else if (header === 'company' || header.includes('company')) row.organization = value;
+          else if (header === 'position' || header.includes('position')) row.job_title = value;
+          else if (header.includes('url')) {
+            row.notes = value; // Store LinkedIn URL in notes
+          }
         }
       });
       
@@ -117,6 +144,7 @@ export default function Import() {
       }
     }
     
+    console.log('Parsed LinkedIn rows:', rows.length);
     return rows;
   };
 
