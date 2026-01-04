@@ -145,14 +145,14 @@ export function EventDialog({ open, onOpenChange }: EventDialogProps) {
           <div className="space-y-2">
             <Label htmlFor="profile_id">Related Contact</Label>
             <Select
-              value={formData.profile_id}
-              onValueChange={(value) => setFormData({ ...formData, profile_id: value })}
+              value={formData.profile_id || undefined}
+              onValueChange={(value) => setFormData({ ...formData, profile_id: value === "__no_contact__" ? "" : value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select a contact (optional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No contact</SelectItem>
+                <SelectItem value="__no_contact__">No contact</SelectItem>
                 {contacts?.map((contact) => (
                   <SelectItem key={contact.id} value={contact.id}>
                     {contact.first_name} {contact.last_name}

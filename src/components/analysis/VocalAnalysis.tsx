@@ -135,18 +135,18 @@ export function VocalAnalysis({ profileId, profileName }: VocalAnalysisProps) {
         {/* Analysis Input */}
         <div className="p-4 bg-muted rounded-lg space-y-3">
           <div className="space-y-2">
-            <Select value={selectedRecording} onValueChange={setSelectedRecording}>
+            <Select 
+              value={selectedRecording || undefined} 
+              onValueChange={setSelectedRecording}
+              disabled={!recordings?.length}
+            >
               <SelectTrigger>
-                <SelectValue placeholder="Select a transcribed recording" />
+                <SelectValue placeholder={recordings?.length ? "Select a transcribed recording" : "No recordings available"} />
               </SelectTrigger>
               <SelectContent>
-                {recordings?.length === 0 ? (
-                  <SelectItem value="" disabled>No recordings available</SelectItem>
-                ) : (
-                  recordings?.map((r) => (
-                    <SelectItem key={r.id} value={r.id}>{r.title}</SelectItem>
-                  ))
-                )}
+                {recordings?.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>{r.title}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

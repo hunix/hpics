@@ -181,14 +181,14 @@ export function MediaUpload({ open, onOpenChange, preselectedProfileId }: MediaU
           <div className="space-y-2">
             <Label>Related Contact</Label>
             <Select
-              value={formData.profile_id}
-              onValueChange={(value) => setFormData({ ...formData, profile_id: value })}
+              value={formData.profile_id || undefined}
+              onValueChange={(value) => setFormData({ ...formData, profile_id: value === "__none__" ? "" : value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Optional" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="__none__">None</SelectItem>
                 {contacts?.map((contact) => (
                   <SelectItem key={contact.id} value={contact.id}>
                     {contact.first_name} {contact.last_name}
