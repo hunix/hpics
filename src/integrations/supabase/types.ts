@@ -529,6 +529,74 @@ export type Database = {
           },
         ]
       }
+      contact_bank_accounts: {
+        Row: {
+          account_holder_name: string | null
+          account_number: string | null
+          account_type: string | null
+          bank_name: string
+          branch_code: string | null
+          branch_name: string | null
+          country: string | null
+          created_at: string
+          currency: string | null
+          iban: string | null
+          id: string
+          is_primary: boolean | null
+          notes: string | null
+          profile_id: string
+          swift_code: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_holder_name?: string | null
+          account_number?: string | null
+          account_type?: string | null
+          bank_name: string
+          branch_code?: string | null
+          branch_name?: string | null
+          country?: string | null
+          created_at?: string
+          currency?: string | null
+          iban?: string | null
+          id?: string
+          is_primary?: boolean | null
+          notes?: string | null
+          profile_id: string
+          swift_code?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_holder_name?: string | null
+          account_number?: string | null
+          account_type?: string | null
+          bank_name?: string
+          branch_code?: string | null
+          branch_name?: string | null
+          country?: string | null
+          created_at?: string
+          currency?: string | null
+          iban?: string | null
+          id?: string
+          is_primary?: boolean | null
+          notes?: string | null
+          profile_id?: string
+          swift_code?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_bank_accounts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_devices: {
         Row: {
           brand: string | null
@@ -569,6 +637,62 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "contact_devices_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_financial_history: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          description: string | null
+          id: string
+          notes: string | null
+          payment_method: string | null
+          profile_id: string
+          reference_number: string | null
+          status: string | null
+          transaction_date: string
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          profile_id: string
+          reference_number?: string | null
+          status?: string | null
+          transaction_date: string
+          transaction_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          profile_id?: string
+          reference_number?: string | null
+          status?: string | null
+          transaction_date?: string
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_financial_history_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -849,6 +973,59 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "contact_methods_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_payment_accounts: {
+        Row: {
+          account_holder_name: string | null
+          account_identifier: string
+          country: string | null
+          created_at: string
+          currency: string | null
+          id: string
+          is_primary: boolean | null
+          is_verified: boolean | null
+          notes: string | null
+          platform: string
+          profile_id: string
+          user_id: string
+        }
+        Insert: {
+          account_holder_name?: string | null
+          account_identifier: string
+          country?: string | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          is_primary?: boolean | null
+          is_verified?: boolean | null
+          notes?: string | null
+          platform: string
+          profile_id: string
+          user_id: string
+        }
+        Update: {
+          account_holder_name?: string | null
+          account_identifier?: string
+          country?: string | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          is_primary?: boolean | null
+          is_verified?: boolean | null
+          notes?: string | null
+          platform?: string
+          profile_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_payment_accounts_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
