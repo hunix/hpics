@@ -15,7 +15,7 @@ import {
   User, MessageSquare, Briefcase, GraduationCap,
   FileText, Image, Target, Gift, Heart, Clock,
   Calendar, Sparkles, Users, ChevronRight, Building,
-  Mic, Eye, Activity, Volume2, UserCircle, GitCompare
+  Mic, Eye, Activity, Volume2, UserCircle, GitCompare, Wallet
 } from 'lucide-react';
 import { ContactDialog } from '@/components/contacts/ContactDialog';
 import { ContactMethodsManager } from '@/components/contacts/ContactMethodsManager';
@@ -45,6 +45,9 @@ import { AnalysisComparison } from '@/components/analysis/AnalysisComparison';
 import { ExtendedOverview } from '@/components/contacts/ExtendedOverview';
 import { ExtendedInfoSection } from '@/components/contacts/ExtendedInfoSection';
 import { WhatsAppChat } from '@/components/whatsapp/WhatsAppChat';
+import { BankAccountsManager } from '@/components/contacts/BankAccountsManager';
+import { PaymentAccountsManager } from '@/components/contacts/PaymentAccountsManager';
+import { FinancialHistoryManager } from '@/components/contacts/FinancialHistoryManager';
 import { cn } from '@/lib/utils';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
 import type { Tables } from '@/integrations/supabase/types';
@@ -56,7 +59,8 @@ type SectionId =
   | 'outreach' | 'templates' | 'briefing' | 'whatsapp'
   | 'interests' | 'gifts' | 'goals' | 'experiences' 
   | 'education' | 'messages' | 'timeline' | 'groups' | 'enrich'
-  | 'behavioral' | 'facial' | 'body-language' | 'vocal' | 'comparison';
+  | 'behavioral' | 'facial' | 'body-language' | 'vocal' | 'comparison'
+  | 'financial';
 
 interface NavSection {
   id: SectionId;
@@ -87,12 +91,13 @@ const sections: NavSection[] = [
   { id: 'goals', label: 'Goals', icon: Target, group: 'Relationship' },
   { id: 'experiences', label: 'Experiences', icon: Heart, group: 'Relationship' },
   { id: 'education', label: 'Education & Skills', icon: GraduationCap, group: 'Professional' },
+  { id: 'financial', label: 'Financial', icon: Wallet, group: 'Financial' },
   { id: 'timeline', label: 'Timeline', icon: Clock, group: 'History' },
   { id: 'groups', label: 'Groups', icon: Users, group: 'Tools' },
   { id: 'enrich', label: 'Enrichment', icon: Sparkles, group: 'Tools' },
 ];
 
-const groupOrder = ['General', 'Files', 'Communication', 'AI Insights', 'Analysis', 'Relationship', 'Professional', 'History', 'Tools'];
+const groupOrder = ['General', 'Files', 'Communication', 'AI Insights', 'Analysis', 'Relationship', 'Professional', 'Financial', 'History', 'Tools'];
 
 export default function ContactDetail() {
   const { id } = useParams<{ id: string }>();
@@ -267,6 +272,16 @@ export default function ContactDetail() {
         );
       case 'messages':
         return <ConversationsManager profileId={contact.id} profileName={contactName} />;
+      case 'financial':
+        return (
+          <div className="space-y-6">
+            <BankAccountsManager profileId={contact.id} />
+            <Separator />
+            <PaymentAccountsManager profileId={contact.id} />
+            <Separator />
+            <FinancialHistoryManager profileId={contact.id} />
+          </div>
+        );
       case 'timeline':
         return <ContactTimeline profileId={contact.id} />;
       case 'groups':
