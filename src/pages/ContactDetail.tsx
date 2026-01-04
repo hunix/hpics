@@ -15,7 +15,7 @@ import {
   User, MessageSquare, Briefcase, GraduationCap,
   FileText, Image, Target, Gift, Heart, Clock,
   Calendar, Sparkles, Users, ChevronRight, Building,
-  Mic, Eye, Activity, Volume2, UserCircle, GitCompare, Wallet
+  Mic, Eye, Activity, Volume2, UserCircle, GitCompare, Wallet, Link2
 } from 'lucide-react';
 import { ContactDialog } from '@/components/contacts/ContactDialog';
 import { ContactMethodsManager } from '@/components/contacts/ContactMethodsManager';
@@ -49,6 +49,8 @@ import { BankAccountsManager } from '@/components/contacts/BankAccountsManager';
 import { PaymentAccountsManager } from '@/components/contacts/PaymentAccountsManager';
 import { FinancialHistoryManager } from '@/components/contacts/FinancialHistoryManager';
 import { ObservationsManager } from '@/components/contacts/ObservationsManager';
+import { ContactRelationshipsManager } from '@/components/contacts/ContactRelationshipsManager';
+import { KidsSchoolsManager } from '@/components/contacts/KidsSchoolsManager';
 import { cn } from '@/lib/utils';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
 import type { Tables } from '@/integrations/supabase/types';
@@ -58,7 +60,7 @@ type Profile = Tables<'profiles'> & { relationship_subtype?: string; hierarchy_l
 type SectionId = 
   | 'overview' | 'personal-info' | 'contact' | 'documents' | 'media' | 'recordings'
   | 'outreach' | 'templates' | 'briefing' | 'whatsapp'
-  | 'interests' | 'gifts' | 'goals' | 'experiences' 
+  | 'interests' | 'gifts' | 'goals' | 'experiences' | 'relationships' | 'kids-schools'
   | 'education' | 'messages' | 'timeline' | 'groups' | 'enrich'
   | 'behavioral' | 'facial' | 'body-language' | 'vocal' | 'comparison'
   | 'financial' | 'observations';
@@ -92,6 +94,8 @@ const sections: NavSection[] = [
   { id: 'gifts', label: 'Gifts', icon: Gift, group: 'Relationship' },
   { id: 'goals', label: 'Goals', icon: Target, group: 'Relationship' },
   { id: 'experiences', label: 'Experiences', icon: Heart, group: 'Relationship' },
+  { id: 'relationships', label: 'Family & Connections', icon: Link2, group: 'Family' },
+  { id: 'kids-schools', label: 'Kids Schools', icon: GraduationCap, group: 'Family' },
   { id: 'education', label: 'Education & Skills', icon: GraduationCap, group: 'Professional' },
   { id: 'financial', label: 'Financial', icon: Wallet, group: 'Financial' },
   { id: 'timeline', label: 'Timeline', icon: Clock, group: 'History' },
@@ -99,7 +103,7 @@ const sections: NavSection[] = [
   { id: 'enrich', label: 'Enrichment', icon: Sparkles, group: 'Tools' },
 ];
 
-const groupOrder = ['General', 'Files', 'Communication', 'AI Insights', 'Analysis', 'Relationship', 'Professional', 'Financial', 'History', 'Tools'];
+const groupOrder = ['General', 'Files', 'Communication', 'AI Insights', 'Analysis', 'Relationship', 'Family', 'Professional', 'Financial', 'History', 'Tools'];
 
 export default function ContactDetail() {
   const { id } = useParams<{ id: string }>();
@@ -264,6 +268,10 @@ export default function ContactDetail() {
         return <RelationshipGoals profileId={contact.id} contactName={contactName} />;
       case 'experiences':
         return <SharedExperiences profileId={contact.id} contactName={contactName} />;
+      case 'relationships':
+        return <ContactRelationshipsManager profileId={contact.id} contactName={contactName} />;
+      case 'kids-schools':
+        return <KidsSchoolsManager profileId={contact.id} />;
       case 'education':
         return (
           <div className="space-y-6">

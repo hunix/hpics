@@ -3,9 +3,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Star } from 'lucide-react';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
+import { CountryFlag } from './CountryFlag';
 import type { Tables } from '@/integrations/supabase/types';
 
-type Profile = Tables<'profiles'> & { relationship_subtype?: string; hierarchy_level?: string };
+type Profile = Tables<'profiles'> & { relationship_subtype?: string; hierarchy_level?: string; country?: string | null };
 
 interface ContactsAvatarsViewProps {
   contacts: Profile[];
@@ -78,9 +79,12 @@ export function ContactsAvatarsView({
             </div>
 
             {/* Name */}
-            <span className="text-sm font-medium text-center truncate w-full">
-              {contact.first_name}
-            </span>
+            <div className="flex items-center justify-center gap-1">
+              <span className="text-sm font-medium text-center truncate">
+                {contact.first_name}
+              </span>
+              {contact.country && <CountryFlag country={contact.country} size="sm" />}
+            </div>
             <span className="text-xs text-muted-foreground text-center truncate w-full">
               {contact.last_name}
             </span>

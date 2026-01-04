@@ -4,9 +4,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Star } from 'lucide-react';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
+import { CountryFlag } from './CountryFlag';
 import type { Tables } from '@/integrations/supabase/types';
 
-type Profile = Tables<'profiles'> & { relationship_subtype?: string; hierarchy_level?: string };
+type Profile = Tables<'profiles'> & { relationship_subtype?: string; hierarchy_level?: string; country?: string | null };
 
 interface ContactsCardsViewProps {
   contacts: Profile[];
@@ -69,6 +70,7 @@ export function ContactsCardsView({
                     <h3 className="font-semibold truncate">
                       {contact.first_name} {contact.last_name}
                     </h3>
+                    {contact.country && <CountryFlag country={contact.country} size="sm" />}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

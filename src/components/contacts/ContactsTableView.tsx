@@ -3,6 +3,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Star } from 'lucide-react';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
+import { CountryFlag } from './CountryFlag';
 import {
   Table,
   TableBody,
@@ -13,7 +14,7 @@ import {
 } from '@/components/ui/table';
 import type { Tables } from '@/integrations/supabase/types';
 
-type Profile = Tables<'profiles'> & { relationship_subtype?: string; hierarchy_level?: string };
+type Profile = Tables<'profiles'> & { relationship_subtype?: string; hierarchy_level?: string; country?: string | null };
 
 interface ContactsTableViewProps {
   contacts: Profile[];
@@ -52,6 +53,7 @@ export function ContactsTableView({
             </TableHead>
             <TableHead className="w-12"></TableHead>
             <TableHead>Name</TableHead>
+            <TableHead className="w-12"></TableHead>
             <TableHead>Organization</TableHead>
             <TableHead>Job Title</TableHead>
             <TableHead>Relationship</TableHead>
@@ -102,6 +104,9 @@ export function ContactsTableView({
                       {contact.first_name} {contact.last_name}
                     </span>
                   </div>
+                </TableCell>
+                <TableCell>
+                  {contact.country && <CountryFlag country={contact.country} size="sm" />}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {contact.organization || '-'}
