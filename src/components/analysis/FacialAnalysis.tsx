@@ -160,12 +160,12 @@ export function FacialAnalysis({ profileId, profileName }: FacialAnalysisProps) 
             </div>
             <div className="space-y-2">
               <Label>Or use recording</Label>
-              <Select value={selectedRecording} onValueChange={setSelectedRecording}>
+              <Select value={selectedRecording || undefined} onValueChange={(v) => setSelectedRecording(v === "__none__" ? "" : v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select recording" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none__">None</SelectItem>
                   {recordings?.map((r) => (
                     <SelectItem key={r.id} value={r.id}>{r.title}</SelectItem>
                   ))}
