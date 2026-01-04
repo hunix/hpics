@@ -1,35 +1,32 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Users, ZoomIn, ZoomOut, Maximize2, GitBranch, Eye, EyeOff } from 'lucide-react';
 import * as d3 from 'd3';
-import { getRelationshipDefinition } from '@/lib/relationshipDefinitions';
-
-interface TreeNode extends d3.SimulationNodeDatum {
-  id: string;
-  name: string;
-  relationshipLabel?: string;
-  avatar?: string | null;
-}
-
-interface TreeLink extends d3.SimulationLinkDatum<TreeNode> {
-  source: string | TreeNode;
-  target: string | TreeNode;
-  label: string;
-}
+import { buildFamilyGraph, type FamilyGraph, type FamilyMember, type FamilyLink } from '@/lib/familyTreeEngine';
 
 export function FamilyTreeGraph() {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
+  const [centerPersonId, setCenterPersonId] = useState<string | null>(null);
+  const [showInferred, setShowInferred] = useState(true);
   const { user } = useAuth();
 
   // Fetch family relationships from contact_relationships table
-  const { data: familyData, isLoading } = useQuery({
+  const { data: rawData, isLoading } = useQuery({
     queryKey: ['family-relationships', user?.id],
     queryFn: async () => {
       if (!user) return { relationships: [], profiles: new Map() };
@@ -42,7 +39,8 @@ export function FamilyTreeGraph() {
           from_profile_id,
           to_profile_id,
           relationship_label,
-          relationship_type
+          inverse_label,
+          is_inferred
         `)
         .eq('user_id', user.id)
         .eq('relationship_type', 'family');
@@ -73,164 +71,194 @@ export function FamilyTreeGraph() {
     enabled: !!user,
   });
 
-  useEffect(() => {
-    if (!familyData || familyData.relationships.length === 0 || !svgRef.current || !containerRef.current) return;
+  // Build the family graph with inference
+  const familyGraph = useMemo<FamilyGraph | null>(() => {
+    if (!rawData || rawData.relationships.length === 0) return null;
+    return buildFamilyGraph(rawData.relationships, rawData.profiles);
+  }, [rawData]);
 
-    const { relationships, profiles } = familyData;
+  // Set initial center person
+  useEffect(() => {
+    if (familyGraph && !centerPersonId && familyGraph.members.size > 0) {
+      // Default to first member or a "root" (oldest generation)
+      const gen0 = familyGraph.generations.get(0);
+      setCenterPersonId(gen0?.[0] || familyGraph.members.keys().next().value || null);
+    }
+  }, [familyGraph, centerPersonId]);
+
+  useEffect(() => {
+    if (!familyGraph || !svgRef.current || !containerRef.current) return;
 
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
 
     const width = containerRef.current.clientWidth;
-    const height = 500;
+    const height = 600;
+    const margin = { top: 60, right: 40, bottom: 60, left: 40 };
 
     svg.attr('width', width).attr('height', height);
 
-    const g = svg.append('g');
+    const g = svg.append('g').attr('transform', `translate(${margin.left}, ${margin.top})`);
 
-    // Create nodes from unique profiles
-    const nodeIds = new Set<string>();
-    relationships.forEach(r => {
-      nodeIds.add(r.from_profile_id);
-      nodeIds.add(r.to_profile_id);
+    // Filter links based on showInferred
+    const filteredLinks = showInferred 
+      ? familyGraph.links 
+      : familyGraph.links.filter(l => !l.isInferred);
+
+    // Get members that are connected via filtered links
+    const connectedIds = new Set<string>();
+    filteredLinks.forEach(l => {
+      connectedIds.add(l.source);
+      connectedIds.add(l.target);
     });
 
-    const nodes: TreeNode[] = Array.from(nodeIds).map(id => {
-      const profile = profiles.get(id);
-      return {
-        id,
-        name: profile ? `${profile.first_name} ${profile.last_name || ''}`.trim() : 'Unknown',
-        avatar: profile?.avatar_url,
-      };
+    const members = Array.from(familyGraph.members.values()).filter(m => connectedIds.has(m.id));
+
+    // Group by generation for hierarchical layout
+    const genGroups = new Map<number, FamilyMember[]>();
+    members.forEach(m => {
+      if (!genGroups.has(m.generation)) genGroups.set(m.generation, []);
+      genGroups.get(m.generation)!.push(m);
     });
 
-    // Create links from relationships
-    const links: TreeLink[] = relationships.map(r => ({
-      source: r.from_profile_id,
-      target: r.to_profile_id,
-      label: r.relationship_label,
-    }));
+    const sortedGens = Array.from(genGroups.keys()).sort((a, b) => a - b);
+    const genHeight = (height - margin.top - margin.bottom) / Math.max(sortedGens.length, 1);
+    const nodeRadius = 30;
 
-    // Color by relationship label
-    const colorScale = d3.scaleOrdinal<string>()
-      .domain(['father', 'mother', 'parent', 'son', 'daughter', 'child', 'brother', 'sister', 'sibling', 'spouse', 'husband', 'wife', 'grandfather', 'grandmother', 'grandparent', 'grandson', 'granddaughter', 'grandchild', 'uncle', 'aunt', 'nephew', 'niece', 'cousin', 'in-law', 'stepfather', 'stepmother', 'stepson', 'stepdaughter', 'stepsibling', 'ex-spouse'])
-      .range([
-        '#3b82f6', '#ec4899', '#8b5cf6', '#10b981', '#f59e0b', '#6366f1', 
-        '#14b8a6', '#f97316', '#84cc16', '#ef4444', '#06b6d4', '#a855f7',
-        '#64748b', '#78716c', '#0ea5e9', '#22c55e', '#d946ef', '#eab308',
-        '#2563eb', '#dc2626', '#f472b6', '#4ade80', '#facc15', '#71717a',
-        '#0d9488', '#e879f9', '#fbbf24', '#38bdf8', '#a3e635', '#fb923c'
-      ]);
+    // Calculate positions for each member
+    const positions = new Map<string, { x: number; y: number }>();
+    
+    sortedGens.forEach((gen, genIndex) => {
+      const membersInGen = genGroups.get(gen) || [];
+      const availableWidth = width - margin.left - margin.right;
+      const spacing = availableWidth / (membersInGen.length + 1);
+      
+      membersInGen.forEach((member, i) => {
+        positions.set(member.id, {
+          x: spacing * (i + 1),
+          y: genIndex * genHeight + nodeRadius + 20,
+        });
+      });
+    });
 
-    const simulation = d3.forceSimulation<TreeNode>(nodes)
-      .force('link', d3.forceLink<TreeNode, TreeLink>(links).id(d => d.id).distance(150))
-      .force('charge', d3.forceManyBody().strength(-500))
-      .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide().radius(70));
+    // Draw generation labels
+    sortedGens.forEach((gen, genIndex) => {
+      const y = genIndex * genHeight + 10;
+      g.append('text')
+        .attr('x', -30)
+        .attr('y', y + nodeRadius + 20)
+        .attr('text-anchor', 'end')
+        .attr('font-size', '10px')
+        .attr('fill', 'hsl(var(--muted-foreground))')
+        .text(`Gen ${gen}`);
+    });
 
     // Draw links
-    const link = g.append('g')
-      .selectAll('g')
-      .data(links)
-      .join('g');
+    const linkGroup = g.append('g').attr('class', 'links');
+    
+    filteredLinks.forEach(link => {
+      const sourcePos = positions.get(link.source);
+      const targetPos = positions.get(link.target);
+      if (!sourcePos || !targetPos) return;
 
-    // Link lines
-    link.append('line')
-      .attr('stroke', 'hsl(var(--border))')
-      .attr('stroke-width', 2)
-      .attr('stroke-opacity', 0.6);
+      const isSpouseLink = link.linkType === 'spouse';
+      const isSiblingLink = link.linkType === 'sibling';
+      
+      // For spouse/sibling links (same generation), draw horizontal curve
+      if (isSpouseLink || isSiblingLink) {
+        const midY = (sourcePos.y + targetPos.y) / 2;
+        const curveOffset = isSiblingLink ? -15 : 15;
+        
+        linkGroup.append('path')
+          .attr('d', `M ${sourcePos.x} ${sourcePos.y} 
+                      Q ${(sourcePos.x + targetPos.x) / 2} ${midY + curveOffset} 
+                        ${targetPos.x} ${targetPos.y}`)
+          .attr('fill', 'none')
+          .attr('stroke', isSpouseLink ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))')
+          .attr('stroke-width', isSpouseLink ? 2 : 1.5)
+          .attr('stroke-dasharray', link.isInferred ? '4,4' : (isSpouseLink ? '0' : '0'))
+          .attr('stroke-opacity', link.isInferred ? 0.5 : 0.8);
+      } else {
+        // Parent-child links: straight vertical with small horizontal offset
+        const midY = (sourcePos.y + targetPos.y) / 2;
+        
+        linkGroup.append('path')
+          .attr('d', `M ${sourcePos.x} ${sourcePos.y + nodeRadius} 
+                      L ${sourcePos.x} ${midY}
+                      L ${targetPos.x} ${midY}
+                      L ${targetPos.x} ${targetPos.y - nodeRadius}`)
+          .attr('fill', 'none')
+          .attr('stroke', 'hsl(var(--border))')
+          .attr('stroke-width', 2)
+          .attr('stroke-dasharray', link.isInferred ? '4,4' : '0')
+          .attr('stroke-opacity', link.isInferred ? 0.5 : 0.8);
+      }
 
-    // Link labels (relationship type)
-    link.append('text')
-      .text(d => {
-        const def = getRelationshipDefinition(d.label);
-        return def?.label || d.label;
-      })
-      .attr('text-anchor', 'middle')
-      .attr('font-size', '10px')
-      .attr('fill', 'hsl(var(--muted-foreground))')
-      .attr('dy', -5);
+      // Link label at midpoint
+      const midX = (sourcePos.x + targetPos.x) / 2;
+      const midY = (sourcePos.y + targetPos.y) / 2;
+      
+      linkGroup.append('text')
+        .attr('x', midX)
+        .attr('y', midY - 5)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '9px')
+        .attr('fill', link.isInferred ? 'hsl(var(--muted-foreground))' : 'hsl(var(--foreground))')
+        .attr('opacity', link.isInferred ? 0.6 : 1)
+        .text(link.label);
+    });
 
     // Draw nodes
-    const node = g.append('g')
-      .selectAll('g')
-      .data(nodes)
-      .join('g')
-      .style('cursor', 'grab')
-      .call(d3.drag<SVGGElement, TreeNode>()
-        .on('start', (event, d) => {
-          if (!event.active) simulation.alphaTarget(0.3).restart();
-          d.fx = d.x;
-          d.fy = d.y;
-        })
-        .on('drag', (event, d) => {
-          d.fx = event.x;
-          d.fy = event.y;
-        })
-        .on('end', (event, d) => {
-          if (!event.active) simulation.alphaTarget(0);
-          d.fx = null;
-          d.fy = null;
-        }) as any);
+    const nodeGroup = g.append('g').attr('class', 'nodes');
+    
+    members.forEach(member => {
+      const pos = positions.get(member.id);
+      if (!pos) return;
 
-    // Node circles
-    node.append('circle')
-      .attr('r', 35)
-      .attr('fill', 'hsl(var(--primary))')
-      .attr('stroke', 'hsl(var(--background))')
-      .attr('stroke-width', 3);
+      const isCenter = member.id === centerPersonId;
+      const nodeG = nodeGroup.append('g')
+        .attr('transform', `translate(${pos.x}, ${pos.y})`)
+        .style('cursor', 'pointer')
+        .on('click', () => setCenterPersonId(member.id));
 
-    // Initials in center
-    node.append('text')
-      .text(d => {
-        const parts = d.name.split(' ');
-        return parts.map(p => p[0]).join('').toUpperCase().slice(0, 2);
-      })
-      .attr('text-anchor', 'middle')
-      .attr('dy', 5)
-      .attr('font-size', '16px')
-      .attr('fill', 'hsl(var(--primary-foreground))')
-      .attr('font-weight', 'bold');
+      // Node circle
+      nodeG.append('circle')
+        .attr('r', nodeRadius)
+        .attr('fill', isCenter ? 'hsl(var(--primary))' : 'hsl(var(--secondary))')
+        .attr('stroke', isCenter ? 'hsl(var(--primary))' : 'hsl(var(--border))')
+        .attr('stroke-width', isCenter ? 3 : 2);
 
-    // Node name labels below
-    node.append('text')
-      .text(d => d.name)
-      .attr('text-anchor', 'middle')
-      .attr('dy', 55)
-      .attr('font-size', '12px')
-      .attr('fill', 'hsl(var(--foreground))')
-      .attr('font-weight', '500');
+      // Initials
+      const initials = member.name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2);
+      nodeG.append('text')
+        .attr('text-anchor', 'middle')
+        .attr('dy', 5)
+        .attr('font-size', '14px')
+        .attr('fill', isCenter ? 'hsl(var(--primary-foreground))' : 'hsl(var(--secondary-foreground))')
+        .attr('font-weight', 'bold')
+        .text(initials);
 
-    simulation.on('tick', () => {
-      // Update link positions
-      link.select('line')
-        .attr('x1', d => (d.source as TreeNode).x!)
-        .attr('y1', d => (d.source as TreeNode).y!)
-        .attr('x2', d => (d.target as TreeNode).x!)
-        .attr('y2', d => (d.target as TreeNode).y!);
-
-      // Update link label positions (midpoint)
-      link.select('text')
-        .attr('x', d => ((d.source as TreeNode).x! + (d.target as TreeNode).x!) / 2)
-        .attr('y', d => ((d.source as TreeNode).y! + (d.target as TreeNode).y!) / 2);
-
-      node.attr('transform', d => `translate(${d.x},${d.y})`);
+      // Name below
+      nodeG.append('text')
+        .attr('text-anchor', 'middle')
+        .attr('dy', nodeRadius + 15)
+        .attr('font-size', '11px')
+        .attr('fill', 'hsl(var(--foreground))')
+        .attr('font-weight', isCenter ? '600' : '400')
+        .text(member.name.length > 15 ? member.name.slice(0, 15) + '...' : member.name);
     });
 
     // Zoom behavior
     const zoomBehavior = d3.zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.3, 3])
       .on('zoom', (event) => {
-        g.attr('transform', event.transform);
+        g.attr('transform', `translate(${event.transform.x + margin.left}, ${event.transform.y + margin.top}) scale(${event.transform.k})`);
         setZoom(event.transform.k);
       });
 
     svg.call(zoomBehavior);
 
-    return () => {
-      simulation.stop();
-    };
-  }, [familyData]);
+  }, [familyGraph, centerPersonId, showInferred]);
 
   const handleZoom = (direction: 'in' | 'out') => {
     if (!svgRef.current) return;
@@ -254,20 +282,20 @@ export function FamilyTreeGraph() {
           <CardTitle>Family Tree</CardTitle>
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-[500px] w-full" />
+          <Skeleton className="h-[600px] w-full" />
         </CardContent>
       </Card>
     );
   }
 
-  const relationshipCount = familyData?.relationships.length || 0;
+  const relationshipCount = rawData?.relationships.length || 0;
 
   if (relationshipCount === 0) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
+            <GitBranch className="h-5 w-5" />
             Family Tree
           </CardTitle>
         </CardHeader>
@@ -283,20 +311,42 @@ export function FamilyTreeGraph() {
     );
   }
 
-  const nodeCount = new Set([
-    ...(familyData?.relationships.map(r => r.from_profile_id) || []),
-    ...(familyData?.relationships.map(r => r.to_profile_id) || []),
-  ]).size;
+  const memberCount = familyGraph?.members.size || 0;
+  const inferredCount = familyGraph?.links.filter(l => l.isInferred).length || 0;
+  const explicitCount = (familyGraph?.links.length || 0) - inferredCount;
+  const generationCount = familyGraph?.generations.size || 0;
+
+  const memberOptions = familyGraph ? Array.from(familyGraph.members.values()) : [];
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
+        <CardTitle className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Family Tree ({nodeCount} members, {relationshipCount} connections)
+            <GitBranch className="h-5 w-5" />
+            <span>Family Tree</span>
+            <Badge variant="secondary">{memberCount} members</Badge>
+            <Badge variant="outline">{generationCount} generations</Badge>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Select value={centerPersonId || ''} onValueChange={setCenterPersonId}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Center on..." />
+              </SelectTrigger>
+              <SelectContent>
+                {memberOptions.map(m => (
+                  <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              variant={showInferred ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setShowInferred(!showInferred)}
+            >
+              {showInferred ? <Eye className="h-4 w-4 mr-1" /> : <EyeOff className="h-4 w-4 mr-1" />}
+              Inferred ({inferredCount})
+            </Button>
             <Button variant="outline" size="icon" onClick={() => handleZoom('out')}>
               <ZoomOut className="h-4 w-4" />
             </Button>
@@ -312,11 +362,25 @@ export function FamilyTreeGraph() {
       </CardHeader>
       <CardContent>
         <div ref={containerRef} className="border rounded-lg bg-muted/30 overflow-hidden">
-          <svg ref={svgRef} className="w-full" style={{ minHeight: '500px' }} />
+          <svg ref={svgRef} className="w-full" style={{ minHeight: '600px' }} />
         </div>
-        <p className="text-xs text-muted-foreground mt-2 text-center">
-          Drag nodes to rearrange. Scroll to zoom. Lines show relationship types.
-        </p>
+        <div className="flex flex-wrap gap-4 mt-3 text-xs text-muted-foreground justify-center">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-0.5 bg-border" />
+            <span>Parent → Child</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-0.5 bg-primary" />
+            <span>Spouse</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-0.5 bg-muted-foreground" style={{ borderBottom: '1.5px dashed' }} />
+            <span>Inferred</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span>{explicitCount} explicit + {inferredCount} inferred relationships</span>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
