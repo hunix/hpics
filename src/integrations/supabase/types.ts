@@ -1791,6 +1791,7 @@ export type Database = {
           id: string
           mime_type: string | null
           profile_id: string | null
+          storage_path: string | null
           title: string
           user_id: string
         }
@@ -1803,6 +1804,7 @@ export type Database = {
           id?: string
           mime_type?: string | null
           profile_id?: string | null
+          storage_path?: string | null
           title: string
           user_id: string
         }
@@ -1815,6 +1817,7 @@ export type Database = {
           id?: string
           mime_type?: string | null
           profile_id?: string | null
+          storage_path?: string | null
           title?: string
           user_id?: string
         }
@@ -2167,6 +2170,7 @@ export type Database = {
           id: string
           mime_type: string | null
           profile_id: string | null
+          storage_path: string | null
           thumbnail_url: string | null
           user_id: string
         }
@@ -2178,6 +2182,7 @@ export type Database = {
           id?: string
           mime_type?: string | null
           profile_id?: string | null
+          storage_path?: string | null
           thumbnail_url?: string | null
           user_id: string
         }
@@ -2189,6 +2194,7 @@ export type Database = {
           id?: string
           mime_type?: string | null
           profile_id?: string | null
+          storage_path?: string | null
           thumbnail_url?: string | null
           user_id?: string
         }

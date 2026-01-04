@@ -68,17 +68,13 @@ export function MediaUpload({ open, onOpenChange, preselectedProfileId, preselec
 
       if (uploadError) throw uploadError;
 
-      // Get the URL
-      const { data: urlData } = supabase.storage
-        .from('media')
-        .getPublicUrl(fileName);
-
-      // Create database record
+      // Create database record with storage path (for signed URL access)
       const { error: dbError } = await supabase.from('media').insert({
         user_id: user.id,
         profile_id: formData.profile_id || null,
         caption: formData.caption || null,
-        file_url: urlData.publicUrl,
+        file_url: fileName, // Store as path for backward compatibility
+        storage_path: fileName, // Store the path for signed URL generation
         file_size: selectedFile.size,
         mime_type: selectedFile.type,
       });

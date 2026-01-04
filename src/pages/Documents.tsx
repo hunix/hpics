@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, FileText, File, ExternalLink, Trash2, Search, CreditCard, AlertTriangle } from 'lucide-react';
+import { Plus, FileText, File, ExternalLink, Trash2, Search, CreditCard, AlertTriangle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { format, differenceInDays } from 'date-fns';
 import { DocumentUpload } from '@/components/uploads/DocumentUpload';
@@ -14,6 +14,7 @@ import { DocumentRAGSearch } from '@/components/documents/DocumentRAGSearch';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { getSignedUrl } from '@/hooks/useSignedUrl';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Document = Tables<'documents'> & {
@@ -27,6 +28,7 @@ export default function Documents() {
   const navigate = useNavigate();
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
+  const [openingDocId, setOpeningDocId] = useState<string | null>(null);
 
   const { data: documents, isLoading } = useQuery({
     queryKey: ['documents', user?.id],
@@ -64,6 +66,26 @@ export default function Documents() {
       toast({ title: 'Document deleted' });
     },
   });
+
+  const handleOpenDocument = async (doc: Document) => {
+    setOpeningDocId(doc.id);
+    try {
+      const path = doc.storage_path || doc.file_url;
+      // If it's already a full URL (legacy), open directly
+      if (path.startsWith('http')) {
+        window.open(path, '_blank');
+        return;
+      }
+      const url = await getSignedUrl('documents', path);
+      if (url) {
+        window.open(url, '_blank');
+      } else {
+        toast({ title: 'Failed to access document', variant: 'destructive' });
+      }
+    } finally {
+      setOpeningDocId(null);
+    }
+  };
 
   const docTypeColors: Record<string, string> = {
     resume: 'bg-blue-100 text-blue-800',
@@ -174,10 +196,17 @@ export default function Documents() {
                           </p>
                         </div>
                         <div className="flex flex-col gap-1">
-                          <Button variant="ghost" size="icon" asChild>
-                            <a href={doc.file_url} target="_blank" rel="noopener noreferrer">
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            disabled={openingDocId === doc.id}
+                            onClick={() => handleOpenDocument(doc)}
+                          >
+                            {openingDocId === doc.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
                               <ExternalLink className="h-4 w-4" />
-                            </a>
+                            )}
                           </Button>
                           <Button 
                             variant="ghost" 
