@@ -71,8 +71,9 @@ serve(async (req) => {
     }
 
     let enrichmentData: any = {};
+    let linkedinScrapeFailed = false;
 
-    // If LinkedIn URL is provided, scrape it
+    // If LinkedIn URL is provided, try to scrape it
     if (linkedinUrl || profile.linkedin_url) {
       const urlToScrape = linkedinUrl || profile.linkedin_url;
       console.log('Scraping LinkedIn profile:', urlToScrape);
@@ -91,197 +92,332 @@ serve(async (req) => {
           }),
         });
 
-        if (scrapeResponse.ok) {
-          const scrapeData = await scrapeResponse.json();
-          enrichmentData.linkedinContent = scrapeData.data?.markdown || scrapeData.markdown;
+        const scrapeResult = await scrapeResponse.json();
+        
+        if (scrapeResponse.ok && scrapeResult.success !== false) {
+          enrichmentData.linkedinContent = scrapeResult.data?.markdown || scrapeResult.markdown;
           enrichmentData.source = 'linkedin';
+          console.log('LinkedIn scrape successful, content length:', enrichmentData.linkedinContent?.length || 0);
         } else {
-          console.error('LinkedIn scrape failed:', await scrapeResponse.text());
+          linkedinScrapeFailed = true;
+          const errorMsg = scrapeResult.error || 'Unknown error';
+          console.error('LinkedIn scrape failed:', errorMsg);
+          
+          // Check if it's a "not supported" error
+          if (errorMsg.includes('not currently supported') || errorMsg.includes('enterprise')) {
+            enrichmentData.linkedinError = 'LinkedIn scraping requires a Firecrawl Enterprise plan. Falling back to web search.';
+          } else {
+            enrichmentData.linkedinError = `LinkedIn scrape failed: ${errorMsg}`;
+          }
         }
       } catch (e) {
+        linkedinScrapeFailed = true;
         console.error('LinkedIn scrape error:', e);
+        enrichmentData.linkedinError = 'LinkedIn scrape network error';
       }
     }
 
-    // If no LinkedIn, search for the person
-    if (!enrichmentData.linkedinContent && (searchQuery || profile.first_name)) {
-      const query = searchQuery || `${profile.first_name} ${profile.last_name || ''} ${profile.organization || ''}`.trim();
-      console.log('Searching for:', query);
+    // Always do a web search as primary or fallback
+    const personName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+    const query = searchQuery || 
+      `"${personName}" ${profile.organization || ''} ${profile.job_title || ''} professional profile`.trim();
+    
+    console.log('Searching for:', query);
 
-      try {
-        const searchResponse = await fetch('https://api.firecrawl.dev/v1/search', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
-            'Content-Type': 'application/json',
+    try {
+      const searchResponse = await fetch('https://api.firecrawl.dev/v1/search', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: query,
+          limit: 10,
+          scrapeOptions: {
+            formats: ['markdown'],
+            onlyMainContent: true,
           },
-          body: JSON.stringify({
-            query: query,
-            limit: 5,
-            scrapeOptions: {
-              formats: ['markdown'],
-            },
-          }),
-        });
+        }),
+      });
 
-        if (searchResponse.ok) {
-          const searchData = await searchResponse.json();
-          enrichmentData.searchResults = searchData.data || [];
+      const searchResult = await searchResponse.json();
+      console.log('Search response status:', searchResponse.status);
+      
+      if (searchResponse.ok && searchResult.success !== false) {
+        enrichmentData.searchResults = searchResult.data || [];
+        console.log('Search returned', enrichmentData.searchResults.length, 'results');
+        
+        if (!enrichmentData.source) {
           enrichmentData.source = 'web_search';
-        } else {
-          console.error('Search failed:', await searchResponse.text());
         }
-      } catch (e) {
-        console.error('Search error:', e);
+      } else {
+        console.error('Search failed:', searchResult.error || 'Unknown error');
+        enrichmentData.searchError = searchResult.error || 'Search failed';
       }
+    } catch (e) {
+      console.error('Search error:', e);
+      enrichmentData.searchError = 'Search network error';
     }
 
     // Use AI to extract structured information
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const hasContent = enrichmentData.linkedinContent || (enrichmentData.searchResults?.length > 0);
     
-    if (LOVABLE_API_KEY && (enrichmentData.linkedinContent || enrichmentData.searchResults?.length > 0)) {
-      const contentToAnalyze = enrichmentData.linkedinContent || 
-        enrichmentData.searchResults?.map((r: any) => r.markdown || r.description).join('\n\n');
-
-      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
-          messages: [
-            {
-              role: 'system',
-              content: `You are a data extraction expert. Extract professional information from web content about a person named ${profile.first_name} ${profile.last_name || ''}.`,
-            },
-            {
-              role: 'user',
-              content: `Extract education, work experience, skills, and certifications from this content:\n\n${contentToAnalyze?.substring(0, 10000)}`,
-            },
-          ],
-          tools: [{
-            type: 'function',
-            function: {
-              name: 'extract_profile_data',
-              description: 'Extract structured profile data from web content',
-              parameters: {
-                type: 'object',
-                properties: {
-                  education: {
-                    type: 'array',
-                    items: {
-                      type: 'object',
-                      properties: {
-                        institution_name: { type: 'string' },
-                        degree_type: { type: 'string' },
-                        field_of_study: { type: 'string' },
-                        start_year: { type: 'string' },
-                        end_year: { type: 'string' },
-                      },
-                    },
-                  },
-                  skills: {
-                    type: 'array',
-                    items: { type: 'string' },
-                  },
-                  certifications: {
-                    type: 'array',
-                    items: {
-                      type: 'object',
-                      properties: {
-                        name: { type: 'string' },
-                        issuing_organization: { type: 'string' },
-                        issue_year: { type: 'string' },
-                      },
-                    },
-                  },
-                  bio: { type: 'string' },
-                  job_title: { type: 'string' },
-                  organization: { type: 'string' },
-                },
-              },
-            },
-          }],
-          tool_choice: { type: 'function', function: { name: 'extract_profile_data' } },
-        }),
+    if (!hasContent) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: linkedinScrapeFailed 
+          ? 'LinkedIn scraping is not available on standard Firecrawl plans, and web search found no results. Try using a more specific search query.'
+          : 'No content found for this contact. Try providing more details or a different search query.',
+        enrichmentData,
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+    
+    if (!LOVABLE_API_KEY) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'AI API is not configured',
+        enrichmentData,
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
-      if (response.ok) {
-        const aiResult = await response.json();
-        const toolCall = aiResult.choices?.[0]?.message?.tool_calls?.[0];
-        
-        if (toolCall?.function?.arguments) {
-          const extractedData = JSON.parse(toolCall.function.arguments);
-          enrichmentData.extracted = extractedData;
-
-          // Save education data
-          if (extractedData.education?.length > 0) {
-            for (const edu of extractedData.education) {
-              await supabaseClient.from('education').upsert({
-                profile_id: profileId,
-                user_id: user.id,
-                institution_name: edu.institution_name,
-                degree_type: edu.degree_type,
-                field_of_study: edu.field_of_study,
-                start_date: edu.start_year ? `${edu.start_year}-01-01` : null,
-                end_date: edu.end_year ? `${edu.end_year}-01-01` : null,
-              }, {
-                onConflict: 'profile_id,institution_name',
-                ignoreDuplicates: true,
-              });
-            }
-          }
-
-          // Save skills
-          if (extractedData.skills?.length > 0) {
-            for (const skill of extractedData.skills) {
-              await supabaseClient.from('contact_skills').upsert({
-                profile_id: profileId,
-                user_id: user.id,
-                skill_name: skill,
-              }, {
-                onConflict: 'profile_id,skill_name',
-                ignoreDuplicates: true,
-              });
-            }
-          }
-
-          // Save certifications
-          if (extractedData.certifications?.length > 0) {
-            for (const cert of extractedData.certifications) {
-              await supabaseClient.from('certifications').upsert({
-                profile_id: profileId,
-                user_id: user.id,
-                name: cert.name,
-                issuing_organization: cert.issuing_organization,
-                issue_date: cert.issue_year ? `${cert.issue_year}-01-01` : null,
-              }, {
-                onConflict: 'profile_id,name',
-                ignoreDuplicates: true,
-              });
-            }
-          }
-
-          // Update profile with extracted info
-          const profileUpdates: any = {};
-          if (extractedData.bio && !profile.bio) profileUpdates.bio = extractedData.bio;
-          if (extractedData.job_title && !profile.job_title) profileUpdates.job_title = extractedData.job_title;
-          if (extractedData.organization && !profile.organization) profileUpdates.organization = extractedData.organization;
-          if (linkedinUrl && !profile.linkedin_url) profileUpdates.linkedin_url = linkedinUrl;
-
-          if (Object.keys(profileUpdates).length > 0) {
-            await supabaseClient.from('profiles').update(profileUpdates).eq('id', profileId);
-          }
+    // Combine all content for analysis
+    let contentToAnalyze = '';
+    if (enrichmentData.linkedinContent) {
+      contentToAnalyze += `=== LinkedIn Profile ===\n${enrichmentData.linkedinContent}\n\n`;
+    }
+    if (enrichmentData.searchResults?.length > 0) {
+      contentToAnalyze += '=== Web Search Results ===\n';
+      for (const result of enrichmentData.searchResults) {
+        if (result.markdown || result.description) {
+          contentToAnalyze += `Source: ${result.url || 'unknown'}\n`;
+          contentToAnalyze += (result.markdown || result.description) + '\n\n';
         }
       }
+    }
+
+    console.log('Analyzing content, total length:', contentToAnalyze.length);
+
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a data extraction expert. Extract professional information about a person named "${personName}" from web content. Only extract information that clearly relates to this specific person. Be careful not to confuse them with other people who might appear in search results.`,
+          },
+          {
+            role: 'user',
+            content: `Extract education, work experience, skills, and certifications from this content. Only include information you're confident belongs to ${personName}:\n\n${contentToAnalyze.substring(0, 15000)}`,
+          },
+        ],
+        tools: [{
+          type: 'function',
+          function: {
+            name: 'extract_profile_data',
+            description: 'Extract structured profile data from web content',
+            parameters: {
+              type: 'object',
+              properties: {
+                education: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      institution_name: { type: 'string' },
+                      degree_type: { type: 'string' },
+                      field_of_study: { type: 'string' },
+                      start_year: { type: 'string' },
+                      end_year: { type: 'string' },
+                    },
+                  },
+                },
+                skills: {
+                  type: 'array',
+                  items: { type: 'string' },
+                },
+                certifications: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      name: { type: 'string' },
+                      issuing_organization: { type: 'string' },
+                      issue_year: { type: 'string' },
+                    },
+                  },
+                },
+                bio: { type: 'string' },
+                job_title: { type: 'string' },
+                organization: { type: 'string' },
+              },
+            },
+          },
+        }],
+        tool_choice: { type: 'function', function: { name: 'extract_profile_data' } },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('AI API error:', errorText);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'AI analysis failed',
+        enrichmentData,
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const aiResult = await response.json();
+    const toolCall = aiResult.choices?.[0]?.message?.tool_calls?.[0];
+    
+    if (!toolCall?.function?.arguments) {
+      console.error('No tool call in AI response');
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'AI could not extract any information from the content',
+        enrichmentData,
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const extractedData = JSON.parse(toolCall.function.arguments);
+    enrichmentData.extracted = extractedData;
+    console.log('Extracted data:', JSON.stringify(extractedData, null, 2));
+
+    let savedCount = {
+      education: 0,
+      skills: 0,
+      certifications: 0,
+      profileFields: 0,
+    };
+
+    // Save education data
+    if (extractedData.education?.length > 0) {
+      for (const edu of extractedData.education) {
+        if (!edu.institution_name) continue;
+        
+        const { error } = await supabaseClient.from('education').insert({
+          profile_id: profileId,
+          user_id: user.id,
+          institution_name: edu.institution_name,
+          degree_type: edu.degree_type || null,
+          field_of_study: edu.field_of_study || null,
+          start_date: edu.start_year ? `${edu.start_year}-01-01` : null,
+          end_date: edu.end_year ? `${edu.end_year}-01-01` : null,
+        });
+        
+        if (!error) {
+          savedCount.education++;
+        } else {
+          console.log('Education insert error (might be duplicate):', error.message);
+        }
+      }
+    }
+
+    // Save skills
+    if (extractedData.skills?.length > 0) {
+      for (const skill of extractedData.skills) {
+        if (!skill || typeof skill !== 'string') continue;
+        
+        const { error } = await supabaseClient.from('contact_skills').insert({
+          profile_id: profileId,
+          user_id: user.id,
+          skill_name: skill.trim(),
+        });
+        
+        if (!error) {
+          savedCount.skills++;
+        } else {
+          console.log('Skill insert error (might be duplicate):', error.message);
+        }
+      }
+    }
+
+    // Save certifications
+    if (extractedData.certifications?.length > 0) {
+      for (const cert of extractedData.certifications) {
+        if (!cert.name) continue;
+        
+        const { error } = await supabaseClient.from('certifications').insert({
+          profile_id: profileId,
+          user_id: user.id,
+          name: cert.name,
+          issuing_organization: cert.issuing_organization || null,
+          issue_date: cert.issue_year ? `${cert.issue_year}-01-01` : null,
+        });
+        
+        if (!error) {
+          savedCount.certifications++;
+        } else {
+          console.log('Certification insert error (might be duplicate):', error.message);
+        }
+      }
+    }
+
+    // Update profile with extracted info
+    const profileUpdates: any = {};
+    if (extractedData.bio && !profile.bio) {
+      profileUpdates.bio = extractedData.bio;
+      savedCount.profileFields++;
+    }
+    if (extractedData.job_title && !profile.job_title) {
+      profileUpdates.job_title = extractedData.job_title;
+      savedCount.profileFields++;
+    }
+    if (extractedData.organization && !profile.organization) {
+      profileUpdates.organization = extractedData.organization;
+      savedCount.profileFields++;
+    }
+    if (linkedinUrl && !profile.linkedin_url) {
+      profileUpdates.linkedin_url = linkedinUrl;
+      savedCount.profileFields++;
+    }
+
+    if (Object.keys(profileUpdates).length > 0) {
+      const { error } = await supabaseClient.from('profiles').update(profileUpdates).eq('id', profileId);
+      if (error) {
+        console.error('Profile update error:', error);
+      }
+    }
+
+    const totalSaved = savedCount.education + savedCount.skills + savedCount.certifications + savedCount.profileFields;
+    console.log('Saved counts:', savedCount);
+
+    if (totalSaved === 0) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Found content but could not extract any new information. The contact may already have this data, or the web content did not contain extractable professional information.',
+        enrichmentData,
+        extractedData,
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     return new Response(JSON.stringify({
       success: true,
       enrichmentData,
-      message: 'Contact enriched successfully',
+      savedCount,
+      message: `Successfully enriched contact: ${savedCount.education} education entries, ${savedCount.skills} skills, ${savedCount.certifications} certifications, ${savedCount.profileFields} profile fields updated.`,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

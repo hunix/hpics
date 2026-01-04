@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Search, Linkedin, Globe, Sparkles, CheckCircle, AlertCircle } from 'lucide-react';
+import { Loader2, Search, Linkedin, Globe, Sparkles, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ContactEnrichmentProps {
@@ -16,13 +16,31 @@ interface ContactEnrichmentProps {
   onEnriched?: () => void;
 }
 
+interface EnrichmentResult {
+  success: boolean;
+  error?: string;
+  message?: string;
+  savedCount?: {
+    education: number;
+    skills: number;
+    certifications: number;
+    profileFields: number;
+  };
+  enrichmentData?: {
+    linkedinError?: string;
+    searchError?: string;
+    source?: string;
+  };
+}
+
 export function ContactEnrichment({ profileId, profileName, linkedinUrl, onEnriched }: ContactEnrichmentProps) {
   const queryClient = useQueryClient();
   const [customLinkedinUrl, setCustomLinkedinUrl] = useState(linkedinUrl || '');
   const [searchQuery, setSearchQuery] = useState('');
+  const [lastResult, setLastResult] = useState<EnrichmentResult | null>(null);
 
   const enrichMutation = useMutation({
-    mutationFn: async ({ type }: { type: 'linkedin' | 'search' }) => {
+    mutationFn: async ({ type }: { type: 'linkedin' | 'search' }): Promise<EnrichmentResult> => {
       const payload: any = { profileId };
       
       if (type === 'linkedin' && customLinkedinUrl) {
@@ -36,19 +54,37 @@ export function ContactEnrichment({ profileId, profileName, linkedinUrl, onEnric
       });
 
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      
-      return data;
+      return data as EnrichmentResult;
     },
     onSuccess: (data) => {
-      toast.success('Contact enriched successfully!');
-      queryClient.invalidateQueries({ queryKey: ['contacts'] });
-      queryClient.invalidateQueries({ queryKey: ['education'] });
-      queryClient.invalidateQueries({ queryKey: ['skills'] });
-      queryClient.invalidateQueries({ queryKey: ['certifications'] });
-      onEnriched?.();
+      setLastResult(data);
+      
+      if (data.success) {
+        const { savedCount } = data;
+        const parts = [];
+        if (savedCount?.education) parts.push(`${savedCount.education} education`);
+        if (savedCount?.skills) parts.push(`${savedCount.skills} skills`);
+        if (savedCount?.certifications) parts.push(`${savedCount.certifications} certifications`);
+        if (savedCount?.profileFields) parts.push(`${savedCount.profileFields} profile fields`);
+        
+        toast.success('Contact enriched!', {
+          description: parts.length > 0 ? `Added: ${parts.join(', ')}` : data.message,
+        });
+        
+        queryClient.invalidateQueries({ queryKey: ['contacts'] });
+        queryClient.invalidateQueries({ queryKey: ['education'] });
+        queryClient.invalidateQueries({ queryKey: ['skills'] });
+        queryClient.invalidateQueries({ queryKey: ['certifications'] });
+        onEnriched?.();
+      } else {
+        toast.error('Enrichment incomplete', {
+          description: data.error || 'No new data was found',
+        });
+      }
     },
     onError: (error: Error) => {
+      setLastResult({ success: false, error: error.message });
+      
       if (error.message.includes('not configured')) {
         toast.error('Firecrawl not connected', {
           description: 'Please connect Firecrawl in Settings to enable web enrichment.',
@@ -74,9 +110,10 @@ export function ContactEnrichment({ profileId, profileName, linkedinUrl, onEnric
       </CardHeader>
       <CardContent className="space-y-4">
         <Alert>
-          <Sparkles className="h-4 w-4" />
+          <Info className="h-4 w-4" />
           <AlertDescription>
-            Uses AI-powered web scraping to find and extract professional information about {profileName}.
+            <strong>Note:</strong> Direct LinkedIn scraping requires a Firecrawl Enterprise plan. 
+            The web search method works with all plans and can find publicly available professional information.
           </AlertDescription>
         </Alert>
 
@@ -84,7 +121,7 @@ export function ContactEnrichment({ profileId, profileName, linkedinUrl, onEnric
           <div className="space-y-2">
             <Label htmlFor="linkedin-url" className="flex items-center gap-2">
               <Linkedin className="h-4 w-4" />
-              LinkedIn Profile URL
+              LinkedIn Profile URL (Enterprise only)
             </Label>
             <div className="flex gap-2">
               <Input
@@ -96,6 +133,7 @@ export function ContactEnrichment({ profileId, profileName, linkedinUrl, onEnric
               <Button
                 onClick={() => enrichMutation.mutate({ type: 'linkedin' })}
                 disabled={!customLinkedinUrl || enrichMutation.isPending}
+                variant="outline"
               >
                 {enrichMutation.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -104,6 +142,9 @@ export function ContactEnrichment({ profileId, profileName, linkedinUrl, onEnric
                 )}
               </Button>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Will attempt LinkedIn scraping, then fall back to web search
+            </p>
           </div>
 
           <div className="relative">
@@ -111,7 +152,7 @@ export function ContactEnrichment({ profileId, profileName, linkedinUrl, onEnric
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Or</span>
+              <span className="bg-background px-2 text-muted-foreground">Recommended</span>
             </div>
           </div>
 
@@ -139,25 +180,30 @@ export function ContactEnrichment({ profileId, profileName, linkedinUrl, onEnric
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Search the web for public information about this contact
+              Searches the web for public professional profiles, articles, and mentions
             </p>
           </div>
         </div>
 
-        {enrichMutation.isSuccess && (
+        {lastResult?.success && (
           <Alert className="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
             <CheckCircle className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-700 dark:text-green-300">
-              Successfully enriched contact data. Check the Education, Skills, and Certifications tabs for new information.
+              {lastResult.message}
             </AlertDescription>
           </Alert>
         )}
 
-        {enrichMutation.isError && (
+        {lastResult && !lastResult.success && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              {(enrichMutation.error as Error).message}
+              {lastResult.error}
+              {lastResult.enrichmentData?.linkedinError && (
+                <div className="mt-1 text-xs opacity-80">
+                  {lastResult.enrichmentData.linkedinError}
+                </div>
+              )}
             </AlertDescription>
           </Alert>
         )}
