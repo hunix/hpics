@@ -64,9 +64,16 @@ export function ContactsListView({
                   {contact.first_name} {contact.last_name}
                 </span>
                 {display && (
-                  <Badge variant="secondary" className={`${relationshipColors[contact.relationship_type || '']} text-xs`}>
-                    {display.primary}
-                  </Badge>
+                  <>
+                    <Badge variant="secondary" className={`${relationshipColors[contact.relationship_type || '']} text-xs`}>
+                      {display.primary}
+                    </Badge>
+                    {display.secondary && (
+                      <Badge variant="outline" className="text-xs">
+                        {display.secondary}
+                      </Badge>
+                    )}
+                  </>
                 )}
               </div>
               <p className="text-sm text-muted-foreground truncate">
