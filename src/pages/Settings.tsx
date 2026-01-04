@@ -19,6 +19,7 @@ import { LocalAIEndpoints } from '@/components/settings/LocalAIEndpoints';
 import { AIModelPreferences } from '@/components/settings/AIModelPreferences';
 import { AIBudgetSettings } from '@/components/settings/AIBudgetSettings';
 import { WhatsAppSetup } from '@/components/whatsapp/WhatsAppSetup';
+import { ResendIntegration } from '@/components/settings/ResendIntegration';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -202,6 +203,10 @@ export default function Settings() {
         </TabsContent>
 
         <TabsContent value="integrations" className="space-y-6 mt-6">
+          <ResendIntegration 
+            isConfigured={true} 
+            onSave={() => {}} 
+          />
           <WhatsAppSetup />
           <EmailIntegration />
         </TabsContent>
