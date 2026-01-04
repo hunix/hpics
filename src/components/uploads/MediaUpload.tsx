@@ -19,16 +19,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Upload, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Upload, Image as ImageIcon, Loader2, User } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 
 interface MediaUploadProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   preselectedProfileId?: string;
+  preselectedProfileName?: string;
 }
 
-export function MediaUpload({ open, onOpenChange, preselectedProfileId }: MediaUploadProps) {
+export function MediaUpload({ open, onOpenChange, preselectedProfileId, preselectedProfileName }: MediaUploadProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -178,25 +179,35 @@ export function MediaUpload({ open, onOpenChange, preselectedProfileId }: MediaU
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Related Contact</Label>
-            <Select
-              value={formData.profile_id || undefined}
-              onValueChange={(value) => setFormData({ ...formData, profile_id: value === "__none__" ? "" : value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Optional" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">None</SelectItem>
-                {contacts?.map((contact) => (
-                  <SelectItem key={contact.id} value={contact.id}>
-                    {contact.first_name} {contact.last_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {preselectedProfileId && preselectedProfileName ? (
+            <div className="space-y-2">
+              <Label>Related Contact</Label>
+              <div className="flex items-center gap-2 p-2.5 bg-muted rounded-md border">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">{preselectedProfileName}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label>Related Contact</Label>
+              <Select
+                value={formData.profile_id || undefined}
+                onValueChange={(value) => setFormData({ ...formData, profile_id: value === "__none__" ? "" : value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Optional" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">None</SelectItem>
+                  {contacts?.map((contact) => (
+                    <SelectItem key={contact.id} value={contact.id}>
+                      {contact.first_name} {contact.last_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

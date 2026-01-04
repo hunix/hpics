@@ -152,6 +152,7 @@ export function ContactDocumentsManager({ profileId, contactName }: ContactDocum
         open={isUploadOpen}
         onOpenChange={setIsUploadOpen}
         preselectedProfileId={profileId}
+        preselectedProfileName={contactName}
       />
     </>
   );
