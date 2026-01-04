@@ -17,6 +17,7 @@ import { TelegramImport } from '@/components/import/TelegramImport';
 import { EducationBulkImport } from '@/components/import/EducationBulkImport';
 import { BulkEnrichment } from '@/components/contacts/BulkEnrichment';
 import { ContactImport } from '@/components/import/ContactImport';
+import { LinkedInImportWizard } from '@/components/import/linkedin/LinkedInImportWizard';
 
 interface CSVRow {
   first_name?: string;
@@ -37,8 +38,6 @@ export default function Import() {
   const [preview, setPreview] = useState<CSVRow[]>([]);
   const [importResult, setImportResult] = useState<{ success: number; failed: number } | null>(null);
   const [vcardText, setVcardText] = useState('');
-  const [linkedinCsv, setLinkedinCsv] = useState<File | null>(null);
-  const [linkedinPreview, setLinkedinPreview] = useState<CSVRow[]>([]);
 
   const parseCSV = (text: string): CSVRow[] => {
     const lines = text.split('\n').filter(line => line.trim());
@@ -71,109 +70,6 @@ export default function Import() {
     }
     
     return rows;
-  };
-
-  const parseLinkedInCSV = (text: string): { rows: CSVRow[]; headers: string[] } => {
-    // Remove BOM and normalize line endings
-    const cleanText = text.replace(/^\ufeff/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    const lines = cleanText.split('\n').filter(line => line.trim());
-    if (lines.length < 2) return { rows: [], headers: [] };
-    
-    // Auto-detect delimiter from first line
-    const firstLine = lines[0];
-    const commaCount = (firstLine.match(/,/g) || []).length;
-    const semicolonCount = (firstLine.match(/;/g) || []).length;
-    const tabCount = (firstLine.match(/\t/g) || []).length;
-    
-    let delimiter = ',';
-    if (semicolonCount > commaCount && semicolonCount > tabCount) delimiter = ';';
-    else if (tabCount > commaCount && tabCount > semicolonCount) delimiter = '\t';
-    
-    console.log('LinkedIn CSV - Detected delimiter:', delimiter === '\t' ? 'TAB' : delimiter);
-    
-    // Quote-aware CSV line parser
-    const parseCSVLine = (line: string): string[] => {
-      const values: string[] = [];
-      let current = '';
-      let inQuotes = false;
-      
-      for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-        if (char === '"') {
-          // Handle escaped quotes ""
-          if (inQuotes && line[i + 1] === '"') {
-            current += '"';
-            i++;
-          } else {
-            inQuotes = !inQuotes;
-          }
-        } else if (char === delimiter && !inQuotes) {
-          values.push(current.trim());
-          current = '';
-        } else {
-          current += char;
-        }
-      }
-      values.push(current.trim());
-      return values;
-    };
-    
-    // Parse headers
-    const rawHeaders = parseCSVLine(lines[0]);
-    const headers = rawHeaders.map(h => 
-      h.toLowerCase().replace(/['"]/g, '').replace(/:$/, '').trim()
-    );
-    
-    console.log('LinkedIn CSV Headers:', headers);
-    
-    const rows: CSVRow[] = [];
-    
-    for (let i = 1; i < lines.length; i++) {
-      const values = parseCSVLine(lines[i]);
-      const row: CSVRow = {};
-      
-      headers.forEach((header, index) => {
-        const value = values[index]?.replace(/['"]/g, '').trim();
-        if (value) {
-          // Normalize header for matching (remove spaces, underscores)
-          const h = header.replace(/[\s_-]/g, '');
-          
-          // Flexible matching for LinkedIn column names
-          if (h === 'firstname' || h.includes('firstname')) row.first_name = value;
-          else if (header === 'first name') row.first_name = value;
-          else if (h === 'lastname' || h.includes('lastname')) row.last_name = value;
-          else if (header === 'last name') row.last_name = value;
-          else if (h.includes('email')) row.email = value;
-          else if (h === 'company' || h.includes('company')) row.organization = value;
-          else if (h === 'position' || h.includes('position')) row.job_title = value;
-          else if (h.includes('url') || h.includes('profile')) {
-            row.notes = value;
-          }
-        }
-      });
-      
-      // Accept rows with at least a first name, last name, email, or URL
-      if (row.first_name || row.last_name || row.email || row.notes) {
-        row.relationship_type = 'colleague';
-        // Ensure first_name exists for database insert
-        if (!row.first_name && row.last_name) {
-          row.first_name = row.last_name;
-          row.last_name = undefined;
-        } else if (!row.first_name && row.email) {
-          row.first_name = row.email.split('@')[0];
-        } else if (!row.first_name && row.notes) {
-          row.first_name = 'LinkedIn Contact';
-        }
-        rows.push(row);
-      }
-    }
-    
-    console.log('Parsed LinkedIn rows:', rows.length);
-    if (rows.length > 0) {
-      console.log('Sample row:', rows[0]);
-    }
-    
-    return { rows, headers };
   };
 
   const parseVCard = (text: string): CSVRow[] => {
@@ -238,31 +134,6 @@ export default function Import() {
     reader.readAsText(selectedFile);
   };
 
-  const handleLinkedInFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (!selectedFile) return;
-    
-    setLinkedinCsv(selectedFile);
-    setImportResult(null);
-    
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      const { rows, headers } = parseLinkedInCSV(text);
-      
-      if (rows.length === 0) {
-        toast({
-          title: 'No contacts detected',
-          description: `Detected headers: ${headers.length > 0 ? headers.slice(0, 5).join(', ') : 'none'}. Make sure you uploaded LinkedIn's "Connections.csv" file.`,
-          variant: 'destructive',
-        });
-      }
-      
-      setLinkedinPreview(rows.slice(0, 5));
-    };
-    reader.readAsText(selectedFile);
-  };
-
   const importMutation = useMutation({
     mutationFn: async (rows: CSVRow[]) => {
       if (!user) throw new Error('Not authenticated');
@@ -320,8 +191,6 @@ export default function Import() {
       toast({ title: 'Import complete', description: `Successfully imported ${result.success} contacts` });
       setFile(null);
       setPreview([]);
-      setLinkedinCsv(null);
-      setLinkedinPreview([]);
       setVcardText('');
     },
     onError: (error) => {
@@ -333,23 +202,6 @@ export default function Import() {
     if (!file) return;
     const text = await file.text();
     const rows = parseCSV(text);
-    importMutation.mutate(rows);
-  };
-
-  const handleLinkedInImport = async () => {
-    if (!linkedinCsv) return;
-    const text = await linkedinCsv.text();
-    const { rows, headers } = parseLinkedInCSV(text);
-    
-    if (rows.length === 0) {
-      toast({
-        title: 'No contacts to import',
-        description: `Detected headers: ${headers.length > 0 ? headers.slice(0, 5).join(', ') : 'none'}. Please upload LinkedIn's "Connections.csv" file.`,
-        variant: 'destructive',
-      });
-      return;
-    }
-    
     importMutation.mutate(rows);
   };
 
@@ -477,42 +329,11 @@ export default function Import() {
                   Import LinkedIn Connections
                 </CardTitle>
                 <CardDescription>
-                  Export your connections from LinkedIn and import them here.
+                  Multi-step import with full diagnostics and manual column mapping
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <Alert>
-                  <AlertTitle>How to export from LinkedIn</AlertTitle>
-                  <AlertDescription className="text-sm space-y-1">
-                    <p>1. Go to LinkedIn → Settings → Data Privacy → Get a copy of your data</p>
-                    <p>2. Select "Connections" and request the archive</p>
-                    <p>3. Download and upload the Connections.csv file here</p>
-                  </AlertDescription>
-                </Alert>
-
-                <div className="space-y-2">
-                  <Label>Select LinkedIn CSV</Label>
-                  <Input type="file" accept=".csv" onChange={handleLinkedInFileChange} />
-                </div>
-
-                {linkedinPreview.length > 0 && (
-                  <div className="space-y-2">
-                    <Label>Preview (first 5 rows)</Label>
-                    <PreviewTable data={linkedinPreview} />
-                  </div>
-                )}
-
-                <Button 
-                  onClick={handleLinkedInImport} 
-                  disabled={!linkedinCsv || importMutation.isPending}
-                  className="w-full"
-                >
-                  {importMutation.isPending ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importing...</>
-                  ) : (
-                    <><Upload className="mr-2 h-4 w-4" /> Import LinkedIn Connections</>
-                  )}
-                </Button>
+              <CardContent>
+                <LinkedInImportWizard />
               </CardContent>
             </Card>
           </TabsContent>
