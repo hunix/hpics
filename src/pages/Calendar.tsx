@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Cake, Users, Bell, Phone } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, subMonths, addWeeks, subWeeks, parseISO, isWithinInterval } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, subMonths, addWeeks, subWeeks, parseISO, setYear, getYear } from 'date-fns';
 
 type CalendarEvent = {
   id: string;
@@ -42,7 +42,8 @@ export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<'month' | 'week'>('month');
 
-  const { data: events = [] } = useQuery({
+  // Fetch events from events table
+  const { data: dbEvents = [] } = useQuery({
     queryKey: ['calendar-events', user?.id],
     queryFn: async () => {
       const { data } = await supabase
@@ -61,6 +62,40 @@ export default function Calendar() {
     },
     enabled: !!user,
   });
+
+  // Fetch birthdays from contact_personal_info
+  const { data: birthdays = [] } = useQuery({
+    queryKey: ['calendar-birthdays', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('contact_personal_info')
+        .select('id, date_of_birth, profile_id, profiles(first_name, last_name)')
+        .not('date_of_birth', 'is', null);
+      
+      const currentYear = getYear(new Date());
+      
+      return (data ?? []).map((info: any) => {
+        const dob = parseISO(info.date_of_birth);
+        // Set birthday to current year for display
+        const birthdayThisYear = setYear(dob, currentYear);
+        const contactName = info.profiles ? `${info.profiles.first_name} ${info.profiles.last_name || ''}`.trim() : 'Unknown';
+        const age = currentYear - getYear(dob);
+        
+        return {
+          id: `birthday-${info.id}`,
+          title: `🎂 ${contactName}'s Birthday (${age})`,
+          date: birthdayThisYear,
+          type: 'birthday' as CalendarEvent['type'],
+          contactName,
+          contactId: info.profile_id,
+        };
+      });
+    },
+    enabled: !!user,
+  });
+
+  // Combine all events
+  const events = [...dbEvents, ...birthdays];
 
   const navigatePrev = () => {
     setCurrentDate(view === 'month' ? subMonths(currentDate, 1) : subWeeks(currentDate, 1));
