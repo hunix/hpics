@@ -812,42 +812,67 @@ export type Database = {
       }
       contact_identity_documents: {
         Row: {
+          ai_parsed_at: string | null
           created_at: string
           document_number: string | null
           document_type: string
           expiry_date: string | null
+          file_url: string | null
           id: string
           issue_date: string | null
           issuing_country: string | null
+          linked_event_id: string | null
           notes: string | null
+          parsed_data: Json | null
           profile_id: string
+          reminder_days_before: number | null
+          storage_path: string | null
           user_id: string
         }
         Insert: {
+          ai_parsed_at?: string | null
           created_at?: string
           document_number?: string | null
           document_type: string
           expiry_date?: string | null
+          file_url?: string | null
           id?: string
           issue_date?: string | null
           issuing_country?: string | null
+          linked_event_id?: string | null
           notes?: string | null
+          parsed_data?: Json | null
           profile_id: string
+          reminder_days_before?: number | null
+          storage_path?: string | null
           user_id: string
         }
         Update: {
+          ai_parsed_at?: string | null
           created_at?: string
           document_number?: string | null
           document_type?: string
           expiry_date?: string | null
+          file_url?: string | null
           id?: string
           issue_date?: string | null
           issuing_country?: string | null
+          linked_event_id?: string | null
           notes?: string | null
+          parsed_data?: Json | null
           profile_id?: string
+          reminder_days_before?: number | null
+          storage_path?: string | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "contact_identity_documents_linked_event_id_fkey"
+            columns: ["linked_event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contact_identity_documents_profile_id_fkey"
             columns: ["profile_id"]
@@ -1699,6 +1724,56 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      document_embeddings: {
+        Row: {
+          content: string
+          content_summary: string | null
+          created_at: string | null
+          embedding: string | null
+          id: string
+          metadata: Json | null
+          profile_id: string | null
+          source_id: string
+          source_type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          content_summary?: string | null
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+          profile_id?: string | null
+          source_id: string
+          source_type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          content_summary?: string | null
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+          profile_id?: string | null
+          source_id?: string
+          source_type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_embeddings_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       documents: {
         Row: {
@@ -2855,7 +2930,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      search_document_embeddings: {
+        Args: {
+          p_limit?: number
+          p_profile_id?: string
+          p_source_type?: string
+          p_user_id: string
+        }
+        Returns: {
+          content: string
+          content_summary: string
+          id: string
+          metadata: Json
+          profile_id: string
+          source_id: string
+          source_type: string
+        }[]
+      }
     }
     Enums: {
       communication_channel:
