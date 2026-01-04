@@ -1750,6 +1750,8 @@ export type Database = {
           metadata: Json | null
           sent_at: string
           user_id: string
+          whatsapp_message_id: string | null
+          whatsapp_status: string | null
         }
         Insert: {
           content: string
@@ -1760,6 +1762,8 @@ export type Database = {
           metadata?: Json | null
           sent_at?: string
           user_id: string
+          whatsapp_message_id?: string | null
+          whatsapp_status?: string | null
         }
         Update: {
           content?: string
@@ -1770,6 +1774,8 @@ export type Database = {
           metadata?: Json | null
           sent_at?: string
           user_id?: string
+          whatsapp_message_id?: string | null
+          whatsapp_status?: string | null
         }
         Relationships: [
           {
@@ -2317,6 +2323,81 @@ export type Database = {
           user_id?: string
           week_end?: string
           week_start?: string
+        }
+        Relationships: []
+      }
+      whatsapp_config: {
+        Row: {
+          business_account_id: string | null
+          created_at: string
+          display_phone_number: string | null
+          id: string
+          is_connected: boolean
+          last_webhook_at: string | null
+          phone_number_id: string
+          updated_at: string
+          user_id: string
+          webhook_verify_token: string
+        }
+        Insert: {
+          business_account_id?: string | null
+          created_at?: string
+          display_phone_number?: string | null
+          id?: string
+          is_connected?: boolean
+          last_webhook_at?: string | null
+          phone_number_id: string
+          updated_at?: string
+          user_id: string
+          webhook_verify_token?: string
+        }
+        Update: {
+          business_account_id?: string | null
+          created_at?: string
+          display_phone_number?: string | null
+          id?: string
+          is_connected?: boolean
+          last_webhook_at?: string | null
+          phone_number_id?: string
+          updated_at?: string
+          user_id?: string
+          webhook_verify_token?: string
+        }
+        Relationships: []
+      }
+      whatsapp_templates: {
+        Row: {
+          category: string
+          components: Json | null
+          created_at: string
+          id: string
+          status: string
+          template_language: string
+          template_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          components?: Json | null
+          created_at?: string
+          id?: string
+          status?: string
+          template_language?: string
+          template_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          components?: Json | null
+          created_at?: string
+          id?: string
+          status?: string
+          template_language?: string
+          template_name?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

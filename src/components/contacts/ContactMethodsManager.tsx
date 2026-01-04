@@ -18,8 +18,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus, Trash2, Mail, Phone, Linkedin, Twitter, Globe, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Mail, Phone, Linkedin, Twitter, Globe, Loader2, MessageCircle } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
+import { WhatsAppQuickAction } from '@/components/whatsapp/WhatsAppQuickAction';
 
 type ContactMethod = Tables<'contact_methods'>;
 
@@ -130,14 +131,24 @@ export function ContactMethodsManager({ profileId, contactMethods }: ContactMeth
                   </p>
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={() => deleteMutation.mutate(method.id)}
-              >
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
+              <div className="flex items-center gap-1">
+                {method.contact_type === 'phone' && (
+                  <WhatsAppQuickAction 
+                    phoneNumber={method.value} 
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                  />
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() => deleteMutation.mutate(method.id)}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
             </div>
           ))}
         </div>
