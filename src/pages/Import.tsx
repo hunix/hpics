@@ -73,44 +73,41 @@ export default function Import() {
     return rows;
   };
 
-  const parseLinkedInCSV = (text: string): CSVRow[] => {
-    // Remove BOM if present
-    const cleanText = text.replace(/^\ufeff/, '');
+  const parseLinkedInCSV = (text: string): { rows: CSVRow[]; headers: string[] } => {
+    // Remove BOM and normalize line endings
+    const cleanText = text.replace(/^\ufeff/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     const lines = cleanText.split('\n').filter(line => line.trim());
-    if (lines.length < 2) return [];
+    if (lines.length < 2) return { rows: [], headers: [] };
     
-    // Parse headers with quote-aware splitting (same as values)
-    const rawHeader = lines[0];
-    const headers: string[] = [];
-    let headerCurrent = '';
-    let headerInQuotes = false;
+    // Auto-detect delimiter from first line
+    const firstLine = lines[0];
+    const commaCount = (firstLine.match(/,/g) || []).length;
+    const semicolonCount = (firstLine.match(/;/g) || []).length;
+    const tabCount = (firstLine.match(/\t/g) || []).length;
     
-    for (const char of rawHeader) {
-      if (char === '"') {
-        headerInQuotes = !headerInQuotes;
-      } else if (char === ',' && !headerInQuotes) {
-        headers.push(headerCurrent.trim().toLowerCase().replace(/['"]/g, ''));
-        headerCurrent = '';
-      } else {
-        headerCurrent += char;
-      }
-    }
-    headers.push(headerCurrent.trim().toLowerCase().replace(/['"]/g, ''));
+    let delimiter = ',';
+    if (semicolonCount > commaCount && semicolonCount > tabCount) delimiter = ';';
+    else if (tabCount > commaCount && tabCount > semicolonCount) delimiter = '\t';
     
-    console.log('LinkedIn CSV Headers:', headers);
+    console.log('LinkedIn CSV - Detected delimiter:', delimiter === '\t' ? 'TAB' : delimiter);
     
-    const rows: CSVRow[] = [];
-    
-    for (let i = 1; i < lines.length; i++) {
-      // Handle CSV with quoted fields containing commas
+    // Quote-aware CSV line parser
+    const parseCSVLine = (line: string): string[] => {
       const values: string[] = [];
       let current = '';
       let inQuotes = false;
       
-      for (const char of lines[i]) {
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
         if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === ',' && !inQuotes) {
+          // Handle escaped quotes ""
+          if (inQuotes && line[i + 1] === '"') {
+            current += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (char === delimiter && !inQuotes) {
           values.push(current.trim());
           current = '';
         } else {
@@ -118,7 +115,21 @@ export default function Import() {
         }
       }
       values.push(current.trim());
-      
+      return values;
+    };
+    
+    // Parse headers
+    const rawHeaders = parseCSVLine(lines[0]);
+    const headers = rawHeaders.map(h => 
+      h.toLowerCase().replace(/['"]/g, '').replace(/:$/, '').trim()
+    );
+    
+    console.log('LinkedIn CSV Headers:', headers);
+    
+    const rows: CSVRow[] = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+      const values = parseCSVLine(lines[i]);
       const row: CSVRow = {};
       
       headers.forEach((header, index) => {
@@ -133,19 +144,33 @@ export default function Import() {
           else if (header === 'company' || header.includes('company')) row.organization = value;
           else if (header === 'position' || header.includes('position')) row.job_title = value;
           else if (header.includes('url')) {
-            row.notes = value; // Store LinkedIn URL in notes
+            row.notes = value;
           }
         }
       });
       
-      if (row.first_name) {
-        row.relationship_type = 'colleague'; // Default for LinkedIn connections
+      // Accept rows with at least a first name, last name, email, or URL
+      if (row.first_name || row.last_name || row.email || row.notes) {
+        row.relationship_type = 'colleague';
+        // Ensure first_name exists for database insert
+        if (!row.first_name && row.last_name) {
+          row.first_name = row.last_name;
+          row.last_name = undefined;
+        } else if (!row.first_name && row.email) {
+          row.first_name = row.email.split('@')[0];
+        } else if (!row.first_name && row.notes) {
+          row.first_name = 'LinkedIn Contact';
+        }
         rows.push(row);
       }
     }
     
     console.log('Parsed LinkedIn rows:', rows.length);
-    return rows;
+    if (rows.length > 0) {
+      console.log('Sample row:', rows[0]);
+    }
+    
+    return { rows, headers };
   };
 
   const parseVCard = (text: string): CSVRow[] => {
@@ -220,8 +245,17 @@ export default function Import() {
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result as string;
-      const parsed = parseLinkedInCSV(text);
-      setLinkedinPreview(parsed.slice(0, 5));
+      const { rows, headers } = parseLinkedInCSV(text);
+      
+      if (rows.length === 0) {
+        toast({
+          title: 'No contacts detected',
+          description: `Detected headers: ${headers.length > 0 ? headers.slice(0, 5).join(', ') : 'none'}. Make sure you uploaded LinkedIn's "Connections.csv" file.`,
+          variant: 'destructive',
+        });
+      }
+      
+      setLinkedinPreview(rows.slice(0, 5));
     };
     reader.readAsText(selectedFile);
   };
@@ -302,7 +336,17 @@ export default function Import() {
   const handleLinkedInImport = async () => {
     if (!linkedinCsv) return;
     const text = await linkedinCsv.text();
-    const rows = parseLinkedInCSV(text);
+    const { rows, headers } = parseLinkedInCSV(text);
+    
+    if (rows.length === 0) {
+      toast({
+        title: 'No contacts to import',
+        description: `Detected headers: ${headers.length > 0 ? headers.slice(0, 5).join(', ') : 'none'}. Please upload LinkedIn's "Connections.csv" file.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     importMutation.mutate(rows);
   };
 
