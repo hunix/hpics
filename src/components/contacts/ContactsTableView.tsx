@@ -110,11 +110,20 @@ export function ContactsTableView({
                   {contact.job_title || '-'}
                 </TableCell>
                 <TableCell>
-                  {display && (
-                    <Badge variant="secondary" className={relationshipColors[contact.relationship_type || '']}>
-                      {display.primary}
-                    </Badge>
-                  )}
+                  <div className="flex flex-wrap gap-1">
+                    {display && (
+                      <>
+                        <Badge variant="secondary" className={relationshipColors[contact.relationship_type || '']}>
+                          {display.primary}
+                        </Badge>
+                        {display.secondary && (
+                          <Badge variant="outline" className="text-xs">
+                            {display.secondary}
+                          </Badge>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">

@@ -46,6 +46,9 @@ interface ContactsToolbarProps {
   // Filters
   relationshipFilter: string | null;
   onRelationshipFilterChange: (value: string | null) => void;
+  subtypeFilter: string | null;
+  onSubtypeFilterChange: (value: string | null) => void;
+  availableSubtypes: { value: string; label: string }[];
   tagFilter: string | null;
   onTagFilterChange: (value: string | null) => void;
   favoriteFilter: boolean;
@@ -67,6 +70,9 @@ export function ContactsToolbar({
   onAddContact,
   relationshipFilter,
   onRelationshipFilterChange,
+  subtypeFilter,
+  onSubtypeFilterChange,
+  availableSubtypes,
   tagFilter,
   onTagFilterChange,
   favoriteFilter,
@@ -78,12 +84,14 @@ export function ContactsToolbar({
 
   const activeFiltersCount = [
     relationshipFilter,
+    subtypeFilter,
     tagFilter,
     favoriteFilter,
   ].filter(Boolean).length;
 
   const clearAllFilters = () => {
     onRelationshipFilterChange(null);
+    onSubtypeFilterChange(null);
     onTagFilterChange(null);
     onFavoriteFilterChange(false);
   };
@@ -211,6 +219,26 @@ export function ContactsToolbar({
             </SelectContent>
           </Select>
 
+          {/* Subtype Filter - only show when relationship is selected */}
+          {relationshipFilter && availableSubtypes.length > 0 && (
+            <Select 
+              value={subtypeFilter || 'all'} 
+              onValueChange={(v) => onSubtypeFilterChange(v === 'all' ? null : v)}
+            >
+              <SelectTrigger className="w-[160px] h-8 text-sm">
+                <SelectValue placeholder="Subtype" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Subtypes</SelectItem>
+                {availableSubtypes.map((subtype) => (
+                  <SelectItem key={subtype.value} value={subtype.value}>
+                    {subtype.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
           {/* Tag Filter */}
           <Select 
             value={tagFilter || 'all'} 
@@ -251,11 +279,20 @@ export function ContactsToolbar({
                   />
                 </Badge>
               )}
+              {subtypeFilter && (
+                <Badge variant="secondary" className="h-8 gap-1">
+                  {availableSubtypes.find(s => s.value === subtypeFilter)?.label || subtypeFilter}
+                  <X 
+                    className="h-3 w-3 cursor-pointer" 
+                    onClick={() => onSubtypeFilterChange(null)} 
+                  />
+                </Badge>
+              )}
               {tagFilter && (
                 <Badge variant="secondary" className="h-8 gap-1">
                   {tagFilter}
                   <X 
-                    className="h-3 w-3 cursor-pointer" 
+                    className="h-3 w-3 cursor-pointer"
                     onClick={() => onTagFilterChange(null)} 
                   />
                 </Badge>

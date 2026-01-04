@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +15,7 @@ import { ContactsListView } from '@/components/contacts/ContactsListView';
 import { ContactsAvatarsView } from '@/components/contacts/ContactsAvatarsView';
 import { BulkDeleteDialog } from '@/components/contacts/BulkDeleteDialog';
 import { toast } from 'sonner';
+import { getSubtypesForRelationship } from '@/lib/relationshipSubtypes';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Profile = Tables<'profiles'> & { relationship_subtype?: string; hierarchy_level?: string };
@@ -34,8 +35,14 @@ export default function Contacts() {
   
   // Filters
   const [relationshipFilter, setRelationshipFilter] = useState<string | null>(null);
+  const [subtypeFilter, setSubtypeFilter] = useState<string | null>(null);
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [favoriteFilter, setFavoriteFilter] = useState(false);
+
+  // Clear subtype filter when relationship filter changes
+  useEffect(() => {
+    setSubtypeFilter(null);
+  }, [relationshipFilter]);
 
   const { data: contacts, isLoading } = useQuery({
     queryKey: ['contacts', user?.id],
@@ -62,26 +69,37 @@ export default function Contacts() {
     return Array.from(tags);
   }, [contacts]);
 
+  // Get available subtypes based on selected relationship type
+  const availableSubtypes = useMemo(() => {
+    if (!relationshipFilter) return [];
+    return getSubtypesForRelationship(relationshipFilter);
+  }, [relationshipFilter]);
+
   // Filter and sort contacts
   const filteredAndSortedContacts = useMemo(() => {
     if (!contacts) return [];
     
     let result = [...contacts];
     
-    // Apply search
+    // Apply search - now includes relationship_type and relationship_subtype
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       result = result.filter(c => 
         c.first_name?.toLowerCase().includes(query) ||
         c.last_name?.toLowerCase().includes(query) ||
         c.organization?.toLowerCase().includes(query) ||
-        c.job_title?.toLowerCase().includes(query)
+        c.job_title?.toLowerCase().includes(query) ||
+        c.relationship_type?.toLowerCase().includes(query) ||
+        c.relationship_subtype?.toLowerCase().includes(query)
       );
     }
     
     // Apply filters
     if (relationshipFilter) {
       result = result.filter(c => c.relationship_type === relationshipFilter);
+    }
+    if (subtypeFilter) {
+      result = result.filter(c => c.relationship_subtype === subtypeFilter);
     }
     if (tagFilter) {
       result = result.filter(c => c.tags?.includes(tagFilter));
@@ -126,7 +144,7 @@ export default function Contacts() {
     }
     
     return result;
-  }, [contacts, searchQuery, relationshipFilter, tagFilter, favoriteFilter, sortOption]);
+  }, [contacts, searchQuery, relationshipFilter, subtypeFilter, tagFilter, favoriteFilter, sortOption]);
 
   const toggleFavoriteMutation = useMutation({
     mutationFn: async ({ id, isFavorite }: { id: string; isFavorite: boolean }) => {
@@ -306,6 +324,7 @@ export default function Contacts() {
             selectedIds={selectedIds}
             onSelectionChange={handleSelectionChange}
             onToggleFavorite={(id, isFav) => toggleFavoriteMutation.mutate({ id, isFavorite: isFav })}
+            relationshipColors={relationshipColors}
           />
         );
       case 'cards':
@@ -338,6 +357,9 @@ export default function Contacts() {
           onAddContact={() => setIsCreateDialogOpen(true)}
           relationshipFilter={relationshipFilter}
           onRelationshipFilterChange={setRelationshipFilter}
+          subtypeFilter={subtypeFilter}
+          onSubtypeFilterChange={setSubtypeFilter}
+          availableSubtypes={availableSubtypes}
           tagFilter={tagFilter}
           onTagFilterChange={setTagFilter}
           favoriteFilter={favoriteFilter}
