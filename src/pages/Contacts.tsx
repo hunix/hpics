@@ -1,16 +1,20 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/AppLayout';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Star, User, Upload } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Plus, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { ContactDialog } from '@/components/contacts/ContactDialog';
-import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
+import { ContactsToolbar, ViewMode, SortOption } from '@/components/contacts/ContactsToolbar';
+import { ContactsCardsView } from '@/components/contacts/ContactsCardsView';
+import { ContactsTableView } from '@/components/contacts/ContactsTableView';
+import { ContactsListView } from '@/components/contacts/ContactsListView';
+import { ContactsAvatarsView } from '@/components/contacts/ContactsAvatarsView';
+import { BulkDeleteDialog } from '@/components/contacts/BulkDeleteDialog';
+import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Profile = Tables<'profiles'> & { relationship_subtype?: string; hierarchy_level?: string };
@@ -19,28 +23,110 @@ export default function Contacts() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  
+  // UI State
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('cards');
+  const [sortOption, setSortOption] = useState<SortOption>('name-asc');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  
+  // Filters
+  const [relationshipFilter, setRelationshipFilter] = useState<string | null>(null);
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
+  const [favoriteFilter, setFavoriteFilter] = useState(false);
 
   const { data: contacts, isLoading } = useQuery({
-    queryKey: ['contacts', user?.id, searchQuery],
+    queryKey: ['contacts', user?.id],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from('profiles')
-        .select('*')
-        .order('is_favorite', { ascending: false })
-        .order('first_name', { ascending: true });
-
-      if (searchQuery) {
-        query = query.or(`first_name.ilike.%${searchQuery}%,last_name.ilike.%${searchQuery}%,organization.ilike.%${searchQuery}%`);
-      }
-
-      const { data, error } = await query;
+        .select('*');
       if (error) throw error;
       return data as Profile[];
     },
     enabled: !!user,
   });
+
+  // Derive available filters from data
+  const availableRelationships = useMemo(() => {
+    if (!contacts) return [];
+    const types = new Set(contacts.map(c => c.relationship_type).filter(Boolean));
+    return Array.from(types) as string[];
+  }, [contacts]);
+
+  const availableTags = useMemo(() => {
+    if (!contacts) return [];
+    const tags = new Set(contacts.flatMap(c => c.tags || []));
+    return Array.from(tags);
+  }, [contacts]);
+
+  // Filter and sort contacts
+  const filteredAndSortedContacts = useMemo(() => {
+    if (!contacts) return [];
+    
+    let result = [...contacts];
+    
+    // Apply search
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(c => 
+        c.first_name?.toLowerCase().includes(query) ||
+        c.last_name?.toLowerCase().includes(query) ||
+        c.organization?.toLowerCase().includes(query) ||
+        c.job_title?.toLowerCase().includes(query)
+      );
+    }
+    
+    // Apply filters
+    if (relationshipFilter) {
+      result = result.filter(c => c.relationship_type === relationshipFilter);
+    }
+    if (tagFilter) {
+      result = result.filter(c => c.tags?.includes(tagFilter));
+    }
+    if (favoriteFilter) {
+      result = result.filter(c => c.is_favorite);
+    }
+    
+    // Apply sorting
+    switch (sortOption) {
+      case 'name-asc':
+        result.sort((a, b) => {
+          const aName = `${a.first_name} ${a.last_name}`.toLowerCase();
+          const bName = `${b.first_name} ${b.last_name}`.toLowerCase();
+          return aName.localeCompare(bName);
+        });
+        break;
+      case 'name-desc':
+        result.sort((a, b) => {
+          const aName = `${a.first_name} ${a.last_name}`.toLowerCase();
+          const bName = `${b.first_name} ${b.last_name}`.toLowerCase();
+          return bName.localeCompare(aName);
+        });
+        break;
+      case 'recent':
+        result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        break;
+      case 'oldest':
+        result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        break;
+      case 'organization':
+        result.sort((a, b) => (a.organization || '').localeCompare(b.organization || ''));
+        break;
+      case 'relationship':
+        result.sort((a, b) => (a.relationship_type || '').localeCompare(b.relationship_type || ''));
+        break;
+    }
+    
+    // Favorites always on top for some sort options
+    if (['name-asc', 'name-desc'].includes(sortOption)) {
+      result.sort((a, b) => (b.is_favorite ? 1 : 0) - (a.is_favorite ? 1 : 0));
+    }
+    
+    return result;
+  }, [contacts, searchQuery, relationshipFilter, tagFilter, favoriteFilter, sortOption]);
 
   const toggleFavoriteMutation = useMutation({
     mutationFn: async ({ id, isFavorite }: { id: string; isFavorite: boolean }) => {
@@ -56,154 +142,224 @@ export default function Contacts() {
     },
   });
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      // Delete all related data for each contact
+      // The order matters due to foreign key constraints
+      
+      // Delete from each related table
+      await supabase.from('ai_analyses').delete().in('profile_id', ids);
+      await supabase.from('behavioral_analyses').delete().in('profile_id', ids);
+      await supabase.from('body_language_analyses').delete().in('profile_id', ids);
+      await supabase.from('facial_analyses').delete().in('profile_id', ids);
+      await supabase.from('certifications').delete().in('profile_id', ids);
+      await supabase.from('communications').delete().in('profile_id', ids);
+      await supabase.from('contact_bank_accounts').delete().in('profile_id', ids);
+      await supabase.from('contact_devices').delete().in('profile_id', ids);
+      await supabase.from('contact_financial_history').delete().in('profile_id', ids);
+      await supabase.from('contact_graduations').delete().in('profile_id', ids);
+      await supabase.from('contact_group_members').delete().in('profile_id', ids);
+      await supabase.from('contact_identity_documents').delete().in('profile_id', ids);
+      await supabase.from('contact_interests').delete().in('profile_id', ids);
+      await supabase.from('contact_languages').delete().in('profile_id', ids);
+      await supabase.from('contact_methods').delete().in('profile_id', ids);
+      await supabase.from('contact_observations').delete().in('profile_id', ids);
+      await supabase.from('contact_payment_accounts').delete().in('profile_id', ids);
+      await supabase.from('contact_personal_info').delete().in('profile_id', ids);
+      await supabase.from('contact_properties').delete().in('profile_id', ids);
+      await supabase.from('contact_residences').delete().in('profile_id', ids);
+      await supabase.from('contact_skills').delete().in('profile_id', ids);
+      await supabase.from('contact_travel_history').delete().in('profile_id', ids);
+      await supabase.from('contact_vehicles').delete().in('profile_id', ids);
+      await supabase.from('conversations').delete().in('profile_id', ids);
+      await supabase.from('documents').delete().in('profile_id', ids);
+      await supabase.from('education').delete().in('profile_id', ids);
+      await supabase.from('events').delete().in('profile_id', ids);
+      await supabase.from('gift_ideas').delete().in('profile_id', ids);
+      await supabase.from('media').delete().in('profile_id', ids);
+      await supabase.from('meeting_recordings').delete().in('profile_id', ids);
+      await supabase.from('relationship_goals').delete().in('profile_id', ids);
+      await supabase.from('analysis_sessions').delete().in('profile_id', ids);
+
+      // Finally delete the profiles themselves
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .in('id', ids);
+      
+      if (error) throw error;
+    },
+    onSuccess: (_, ids) => {
+      toast.success(`Deleted ${ids.length} contact${ids.length > 1 ? 's' : ''} successfully`);
+      setSelectedIds(new Set());
+      setIsDeleteDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+    },
+    onError: (error) => {
+      toast.error('Failed to delete contacts: ' + (error as Error).message);
+    },
+  });
+
+  const handleSelectionChange = (id: string, selected: boolean) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (selected) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAll = (selected: boolean) => {
+    if (selected) {
+      setSelectedIds(new Set(filteredAndSortedContacts.map(c => c.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
   const relationshipColors: Record<string, string> = {
-    family: 'bg-red-100 text-red-800',
-    friend: 'bg-blue-100 text-blue-800',
-    colleague: 'bg-purple-100 text-purple-800',
-    client: 'bg-green-100 text-green-800',
-    mentor: 'bg-yellow-100 text-yellow-800',
-    mentee: 'bg-orange-100 text-orange-800',
-    acquaintance: 'bg-gray-100 text-gray-800',
-    other: 'bg-gray-100 text-gray-800',
+    family: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+    friend: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+    colleague: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+    client: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+    mentor: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+    mentee: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+    acquaintance: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300',
+    other: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300',
+  };
+
+  const renderContactsView = () => {
+    if (isLoading) {
+      return (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-full bg-muted" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-32 bg-muted rounded" />
+                    <div className="h-3 w-24 bg-muted rounded" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      );
+    }
+
+    if (!filteredAndSortedContacts.length) {
+      return (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <User className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">
+              {contacts?.length ? 'No contacts match your filters' : 'No contacts yet'}
+            </h3>
+            <p className="text-muted-foreground text-center mb-4">
+              {contacts?.length 
+                ? 'Try adjusting your search or filters to find what you\'re looking for.'
+                : 'Start building your personal CRM by adding your first contact.'}
+            </p>
+            {!contacts?.length && (
+              <Button onClick={() => setIsCreateDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Your First Contact
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      );
+    }
+
+    switch (viewMode) {
+      case 'table':
+        return (
+          <ContactsTableView
+            contacts={filteredAndSortedContacts}
+            selectedIds={selectedIds}
+            onSelectionChange={handleSelectionChange}
+            onSelectAll={handleSelectAll}
+            onToggleFavorite={(id, isFav) => toggleFavoriteMutation.mutate({ id, isFavorite: isFav })}
+            relationshipColors={relationshipColors}
+          />
+        );
+      case 'list':
+        return (
+          <ContactsListView
+            contacts={filteredAndSortedContacts}
+            selectedIds={selectedIds}
+            onSelectionChange={handleSelectionChange}
+            onToggleFavorite={(id, isFav) => toggleFavoriteMutation.mutate({ id, isFavorite: isFav })}
+            relationshipColors={relationshipColors}
+          />
+        );
+      case 'avatars':
+        return (
+          <ContactsAvatarsView
+            contacts={filteredAndSortedContacts}
+            selectedIds={selectedIds}
+            onSelectionChange={handleSelectionChange}
+            onToggleFavorite={(id, isFav) => toggleFavoriteMutation.mutate({ id, isFavorite: isFav })}
+          />
+        );
+      case 'cards':
+      default:
+        return (
+          <ContactsCardsView
+            contacts={filteredAndSortedContacts}
+            selectedIds={selectedIds}
+            onSelectionChange={handleSelectionChange}
+            onToggleFavorite={(id, isFav) => toggleFavoriteMutation.mutate({ id, isFavorite: isFav })}
+            relationshipColors={relationshipColors}
+          />
+        );
+    }
   };
 
   return (
     <AppLayout title="Contacts">
       <div className="space-y-6">
-        {/* Header Actions */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-between">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search contacts..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate('/import')}>
-              <Upload className="mr-2 h-4 w-4" />
-              Import
-            </Button>
-            <Button onClick={() => setIsCreateDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Contact
-            </Button>
-          </div>
-        </div>
+        <ContactsToolbar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          sortOption={sortOption}
+          onSortChange={setSortOption}
+          selectedCount={selectedIds.size}
+          onBulkDelete={() => setIsDeleteDialogOpen(true)}
+          onImport={() => navigate('/import')}
+          onAddContact={() => setIsCreateDialogOpen(true)}
+          relationshipFilter={relationshipFilter}
+          onRelationshipFilterChange={setRelationshipFilter}
+          tagFilter={tagFilter}
+          onTagFilterChange={setTagFilter}
+          favoriteFilter={favoriteFilter}
+          onFavoriteFilterChange={setFavoriteFilter}
+          availableRelationships={availableRelationships}
+          availableTags={availableTags}
+        />
 
-        {/* Contacts Grid */}
-        {isLoading ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {[...Array(6)].map((_, i) => (
-              <Card key={i} className="animate-pulse">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-full bg-muted" />
-                    <div className="flex-1 space-y-2">
-                      <div className="h-4 w-32 bg-muted rounded" />
-                      <div className="h-3 w-24 bg-muted rounded" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : contacts && contacts.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {contacts.map((contact) => (
-              <Card 
-                key={contact.id} 
-                className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => navigate(`/contacts/${contact.id}`)}
-              >
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold shrink-0">
-                      {contact.avatar_url ? (
-                        <img src={contact.avatar_url} alt="" className="h-12 w-12 rounded-full object-cover" />
-                      ) : (
-                        <>
-                          {contact.first_name?.[0]}{contact.last_name?.[0]}
-                        </>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold truncate">
-                          {contact.first_name} {contact.last_name}
-                        </h3>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleFavoriteMutation.mutate({ id: contact.id, isFavorite: contact.is_favorite ?? false });
-                          }}
-                          className="shrink-0"
-                        >
-                          <Star 
-                            className={`h-4 w-4 ${contact.is_favorite ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`} 
-                          />
-                        </button>
-                      </div>
-                      {contact.organization && (
-                        <p className="text-sm text-muted-foreground truncate">{contact.organization}</p>
-                      )}
-                      {contact.job_title && (
-                        <p className="text-sm text-muted-foreground truncate">{contact.job_title}</p>
-                      )}
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {contact.relationship_type && (() => {
-                          const display = formatRelationshipDisplay(
-                            contact.relationship_type,
-                            contact.relationship_subtype || null,
-                            contact.hierarchy_level || null
-                          );
-                          return (
-                            <>
-                              <Badge variant="secondary" className={relationshipColors[contact.relationship_type]}>
-                                {display.primary}
-                              </Badge>
-                              {display.secondary && (
-                                <Badge variant="outline" className="text-xs">
-                                  {display.secondary}
-                                </Badge>
-                              )}
-                            </>
-                          );
-                        })()}
-                        {contact.tags?.slice(0, 2).map((tag) => (
-                          <Badge key={tag} variant="outline" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <User className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No contacts yet</h3>
-              <p className="text-muted-foreground text-center mb-4">
-                Start building your personal CRM by adding your first contact.
-              </p>
-              <Button onClick={() => setIsCreateDialogOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Your First Contact
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+        {renderContactsView()}
       </div>
 
       <ContactDialog 
         open={isCreateDialogOpen} 
         onOpenChange={setIsCreateDialogOpen}
+      />
+
+      <BulkDeleteDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        selectedCount={selectedIds.size}
+        onConfirm={() => bulkDeleteMutation.mutate(Array.from(selectedIds))}
+        isDeleting={bulkDeleteMutation.isPending}
       />
     </AppLayout>
   );
