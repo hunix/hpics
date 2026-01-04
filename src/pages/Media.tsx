@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/AppLayout';
@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { MediaUpload } from '@/components/uploads/MediaUpload';
 import { RecordingUpload } from '@/components/recordings/RecordingUpload';
+import { getSignedUrls, getSignedUrl } from '@/hooks/useSignedUrl';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Media = Tables<'media'> & {
@@ -30,6 +31,7 @@ export default function MediaPage() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isRecordingUploadOpen, setIsRecordingUploadOpen] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState<string>('all');
+  const [signedUrls, setSignedUrls] = useState<Map<string, string>>(new Map());
 
   const { data: media, isLoading: mediaLoading } = useQuery({
     queryKey: ['media', user?.id],
@@ -57,6 +59,31 @@ export default function MediaPage() {
     enabled: !!user,
   });
 
+  // Fetch signed URLs for all media items
+  useEffect(() => {
+    if (!media || media.length === 0) return;
+
+    const fetchUrls = async () => {
+      const paths = media
+        .map(item => item.storage_path || item.file_url)
+        .filter((path): path is string => !!path && !path.startsWith('http'));
+      
+      if (paths.length === 0) return;
+      
+      const urls = await getSignedUrls('media', paths);
+      setSignedUrls(urls);
+    };
+
+    fetchUrls();
+  }, [media]);
+
+  const getMediaUrl = (item: { storage_path?: string | null; file_url: string }) => {
+    const path = item.storage_path || item.file_url;
+    // If it's already a full URL (legacy), try to use it directly
+    if (path.startsWith('http')) return path;
+    return signedUrls.get(path) || null;
+  };
+
   const deleteMediaMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('media').delete().eq('id', id);
@@ -78,6 +105,20 @@ export default function MediaPage() {
       toast({ title: 'Recording deleted' });
     },
   });
+
+  const handlePlayRecording = async (recording: Recording) => {
+    const path = recording.file_url;
+    if (path.startsWith('http')) {
+      window.open(path, '_blank');
+      return;
+    }
+    const url = await getSignedUrl('recordings', path);
+    if (url) {
+      window.open(url, '_blank');
+    } else {
+      toast({ title: 'Failed to access recording', variant: 'destructive' });
+    }
+  };
 
   const folders = ['all', 'meetings', 'general', 'interviews', 'screenings'];
   
@@ -138,48 +179,51 @@ export default function MediaPage() {
             </div>
           ) : media && media.length > 0 ? (
             <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-              {media.map((item) => (
-                <Card key={item.id} className="overflow-hidden hover:shadow-md transition-shadow group">
-                  <div className="aspect-square bg-muted relative">
-                    {item.thumbnail_url || item.file_url ? (
-                      <img 
-                        src={item.thumbnail_url || item.file_url} 
-                        alt={item.caption || ''} 
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex items-center justify-center h-full">
-                        <ImageIcon className="h-12 w-12 text-muted-foreground" />
-                      </div>
-                    )}
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => {
-                        if (confirm('Delete this image?')) {
-                          deleteMediaMutation.mutate(item.id);
-                        }
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <CardContent className="p-3">
-                    {item.caption && (
-                      <p className="text-sm font-medium truncate">{item.caption}</p>
-                    )}
-                    {item.profiles && (
+              {media.map((item) => {
+                const url = getMediaUrl(item);
+                return (
+                  <Card key={item.id} className="overflow-hidden hover:shadow-md transition-shadow group">
+                    <div className="aspect-square bg-muted relative">
+                      {url ? (
+                        <img 
+                          src={url} 
+                          alt={item.caption || ''} 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full">
+                          <ImageIcon className="h-12 w-12 text-muted-foreground animate-pulse" />
+                        </div>
+                      )}
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => {
+                          if (confirm('Delete this image?')) {
+                            deleteMediaMutation.mutate(item.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <CardContent className="p-3">
+                      {item.caption && (
+                        <p className="text-sm font-medium truncate">{item.caption}</p>
+                      )}
+                      {item.profiles && (
+                        <p className="text-xs text-muted-foreground">
+                          {item.profiles.first_name} {item.profiles.last_name}
+                        </p>
+                      )}
                       <p className="text-xs text-muted-foreground">
-                        {item.profiles.first_name} {item.profiles.last_name}
+                        {format(new Date(item.created_at), 'PP')}
                       </p>
-                    )}
-                    <p className="text-xs text-muted-foreground">
-                      {format(new Date(item.created_at), 'PP')}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           ) : (
             <Card>
@@ -272,10 +316,12 @@ export default function MediaPage() {
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" asChild>
-                          <a href={recording.file_url} target="_blank" rel="noopener noreferrer">
-                            <Play className="h-4 w-4" />
-                          </a>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => handlePlayRecording(recording)}
+                        >
+                          <Play className="h-4 w-4" />
                         </Button>
                         <Button 
                           variant="ghost" 

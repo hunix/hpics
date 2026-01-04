@@ -7,9 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileText, Download, Trash2, Plus, ExternalLink } from 'lucide-react';
+import { FileText, Download, Trash2, Plus, ExternalLink, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { DocumentUpload } from '@/components/uploads/DocumentUpload';
+import { getSignedUrl } from '@/hooks/useSignedUrl';
 
 interface ContactDocumentsManagerProps {
   profileId: string;
@@ -21,6 +22,7 @@ export function ContactDocumentsManager({ profileId, contactName }: ContactDocum
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const { data: documents, isLoading } = useQuery({
     queryKey: ['contact-documents', profileId],
@@ -49,6 +51,21 @@ export function ContactDocumentsManager({ profileId, contactName }: ContactDocum
       toast({ title: 'Error deleting document', description: error.message, variant: 'destructive' });
     },
   });
+
+  const handleOpenDocument = async (doc: { id: string; storage_path?: string | null; file_url: string }) => {
+    setDownloadingId(doc.id);
+    try {
+      const path = doc.storage_path || doc.file_url;
+      const url = await getSignedUrl('documents', path);
+      if (url) {
+        window.open(url, '_blank');
+      } else {
+        toast({ title: 'Failed to access document', variant: 'destructive' });
+      }
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   const typeColors: Record<string, string> = {
     resume: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
@@ -119,9 +136,14 @@ export function ContactDocumentsManager({ profileId, contactName }: ContactDocum
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => window.open(doc.file_url, '_blank')}
+                      disabled={downloadingId === doc.id}
+                      onClick={() => handleOpenDocument(doc)}
                     >
-                      <ExternalLink className="h-4 w-4" />
+                      {downloadingId === doc.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <ExternalLink className="h-4 w-4" />
+                      )}
                     </Button>
                     <Button
                       variant="ghost"

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Image, Trash2, Plus, X } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
 import { MediaUpload } from '@/components/uploads/MediaUpload';
+import { getSignedUrls } from '@/hooks/useSignedUrl';
 
 interface ContactMediaManagerProps {
   profileId: string;
@@ -22,6 +22,7 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
   const queryClient = useQueryClient();
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [signedUrls, setSignedUrls] = useState<Map<string, string>>(new Map());
 
   const { data: media, isLoading } = useQuery({
     queryKey: ['contact-media', profileId],
@@ -36,6 +37,29 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
     },
     enabled: !!user && !!profileId,
   });
+
+  // Fetch signed URLs for all media items
+  useEffect(() => {
+    if (!media || media.length === 0) return;
+
+    const fetchUrls = async () => {
+      const paths = media
+        .map(item => item.storage_path || item.file_url)
+        .filter((path): path is string => !!path);
+      
+      if (paths.length === 0) return;
+      
+      const urls = await getSignedUrls('media', paths);
+      setSignedUrls(urls);
+    };
+
+    fetchUrls();
+  }, [media]);
+
+  const getMediaUrl = (item: { storage_path?: string | null; file_url: string }) => {
+    const path = item.storage_path || item.file_url;
+    return signedUrls.get(path) || null;
+  };
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -87,35 +111,44 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
         <CardContent>
           {media && media.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {media.map((item) => (
-                <div key={item.id} className="group relative aspect-square rounded-lg overflow-hidden border">
-                  <img
-                    src={item.file_url}
-                    alt={item.caption || 'Media'}
-                    className="w-full h-full object-cover cursor-pointer transition-transform group-hover:scale-105"
-                    onClick={() => setLightboxImage(item.file_url)}
-                  />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors" />
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (confirm('Delete this image?')) {
-                        deleteMutation.mutate(item.id);
-                      }
-                    }}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                  {item.caption && (
-                    <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent">
-                      <p className="text-xs text-white truncate">{item.caption}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
+              {media.map((item) => {
+                const url = getMediaUrl(item);
+                return (
+                  <div key={item.id} className="group relative aspect-square rounded-lg overflow-hidden border">
+                    {url ? (
+                      <img
+                        src={url}
+                        alt={item.caption || 'Media'}
+                        className="w-full h-full object-cover cursor-pointer transition-transform group-hover:scale-105"
+                        onClick={() => setLightboxImage(url)}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-muted">
+                        <Image className="h-8 w-8 text-muted-foreground animate-pulse" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors" />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm('Delete this image?')) {
+                          deleteMutation.mutate(item.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                    {item.caption && (
+                      <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent">
+                        <p className="text-xs text-white truncate">{item.caption}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
