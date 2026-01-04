@@ -1171,65 +1171,110 @@ export type Database = {
         Row: {
           allergies: string[] | null
           blood_group: string | null
+          chinese_zodiac: string | null
+          clothing_size: string | null
           created_at: string
           date_of_birth: string | null
+          dietary_preferences: string[] | null
+          ethnicity: string | null
+          eye_color: string | null
           father_name: string | null
           favorite_color: string | null
           gender: string | null
+          hair_color: string | null
+          handedness: string | null
+          height_cm: number | null
           id: string
           main_residence_city: string | null
           main_residence_country: string | null
+          marital_status: string | null
+          mbti_type: string | null
           mother_name: string | null
           nationality: string | null
           place_of_birth: string | null
+          political_affiliation: string | null
           profile_id: string
+          religion: string | null
           rh_type: string | null
+          shoe_size: string | null
           smoking_preference: string | null
           updated_at: string
           user_id: string
           usual_hangout_places: string[] | null
+          weight_kg: number | null
+          zodiac_sign: string | null
         }
         Insert: {
           allergies?: string[] | null
           blood_group?: string | null
+          chinese_zodiac?: string | null
+          clothing_size?: string | null
           created_at?: string
           date_of_birth?: string | null
+          dietary_preferences?: string[] | null
+          ethnicity?: string | null
+          eye_color?: string | null
           father_name?: string | null
           favorite_color?: string | null
           gender?: string | null
+          hair_color?: string | null
+          handedness?: string | null
+          height_cm?: number | null
           id?: string
           main_residence_city?: string | null
           main_residence_country?: string | null
+          marital_status?: string | null
+          mbti_type?: string | null
           mother_name?: string | null
           nationality?: string | null
           place_of_birth?: string | null
+          political_affiliation?: string | null
           profile_id: string
+          religion?: string | null
           rh_type?: string | null
+          shoe_size?: string | null
           smoking_preference?: string | null
           updated_at?: string
           user_id: string
           usual_hangout_places?: string[] | null
+          weight_kg?: number | null
+          zodiac_sign?: string | null
         }
         Update: {
           allergies?: string[] | null
           blood_group?: string | null
+          chinese_zodiac?: string | null
+          clothing_size?: string | null
           created_at?: string
           date_of_birth?: string | null
+          dietary_preferences?: string[] | null
+          ethnicity?: string | null
+          eye_color?: string | null
           father_name?: string | null
           favorite_color?: string | null
           gender?: string | null
+          hair_color?: string | null
+          handedness?: string | null
+          height_cm?: number | null
           id?: string
           main_residence_city?: string | null
           main_residence_country?: string | null
+          marital_status?: string | null
+          mbti_type?: string | null
           mother_name?: string | null
           nationality?: string | null
           place_of_birth?: string | null
+          political_affiliation?: string | null
           profile_id?: string
+          religion?: string | null
           rh_type?: string | null
+          shoe_size?: string | null
           smoking_preference?: string | null
           updated_at?: string
           user_id?: string
           usual_hangout_places?: string[] | null
+          weight_kg?: number | null
+          zodiac_sign?: string | null
         }
         Relationships: [
           {
