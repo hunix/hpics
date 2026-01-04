@@ -131,6 +131,7 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
         open={isUploadOpen}
         onOpenChange={setIsUploadOpen}
         preselectedProfileId={profileId}
+        preselectedProfileName={contactName}
       />
 
       {/* Lightbox */}
