@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users, MessageSquare, Calendar, TrendingUp, Star, Clock, Edit3 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, parseISO, setYear, getYear, isBefore, addYears } from 'date-fns';
 import { DndContext, closestCenter, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useDashboardLayout } from '@/hooks/useDashboardLayout';
@@ -40,17 +40,29 @@ export default function Dashboard() {
   const { data: stats } = useQuery({
     queryKey: ['dashboard-stats', user?.id],
     queryFn: async () => {
-      const [profilesRes, communicationsRes, eventsRes] = await Promise.all([
+      const [profilesRes, communicationsRes, eventsRes, birthdaysRes] = await Promise.all([
         supabase.from('profiles').select('id, is_favorite', { count: 'exact' }),
         supabase.from('communications').select('id', { count: 'exact' }),
         supabase.from('events').select('id, event_date').eq('is_active', true).gte('event_date', new Date().toISOString()),
+        supabase.from('contact_personal_info').select('date_of_birth').not('date_of_birth', 'is', null),
       ]);
+
+      const now = new Date();
+      const currentYear = getYear(now);
+      const upcomingBirthdaysCount = (birthdaysRes.data ?? []).filter((row: any) => {
+        const dob = parseISO(row.date_of_birth);
+        let nextBirthday = setYear(dob, currentYear);
+        if (isBefore(nextBirthday, now)) {
+          nextBirthday = addYears(nextBirthday, 1);
+        }
+        return nextBirthday >= now;
+      }).length;
       
       return {
         totalContacts: profilesRes.count ?? 0,
         favoriteContacts: profilesRes.data?.filter(p => p.is_favorite).length ?? 0,
         totalCommunications: communicationsRes.count ?? 0,
-        upcomingEvents: eventsRes.data?.length ?? 0,
+        upcomingEvents: (eventsRes.data?.length ?? 0) + upcomingBirthdaysCount,
       };
     },
     enabled: !!user,
@@ -72,14 +84,58 @@ export default function Dashboard() {
   const { data: upcomingEvents } = useQuery({
     queryKey: ['upcoming-events', user?.id],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('events')
-        .select('id, title, event_type, event_date, profiles(first_name, last_name)')
-        .eq('is_active', true)
-        .gte('event_date', new Date().toISOString())
-        .order('event_date', { ascending: true })
-        .limit(5);
-      return data ?? [];
+      const now = new Date();
+      const currentYear = getYear(now);
+
+      const [eventsRes, birthdaysRes] = await Promise.all([
+        supabase
+          .from('events')
+          .select('id, title, event_type, event_date, profiles(first_name, last_name)')
+          .eq('is_active', true)
+          .gte('event_date', now.toISOString())
+          .order('event_date', { ascending: true }),
+        supabase
+          .from('contact_personal_info')
+          .select('id, date_of_birth, profile_id, profiles(first_name, last_name)')
+          .not('date_of_birth', 'is', null),
+      ]);
+
+      const events = (eventsRes.data ?? []).map((e: any) => ({
+        id: e.id,
+        title: e.title,
+        type: e.event_type,
+        date: new Date(e.event_date),
+        contactName: e.profiles ? `${e.profiles.first_name} ${e.profiles.last_name || ''}`.trim() : undefined,
+      }));
+
+      const birthdays = (birthdaysRes.data ?? []).map((info: any) => {
+        const dob = parseISO(info.date_of_birth);
+        let nextBirthday = setYear(dob, currentYear);
+        if (isBefore(nextBirthday, now)) {
+          nextBirthday = addYears(nextBirthday, 1);
+        }
+        const contactName = info.profiles ? `${info.profiles.first_name} ${info.profiles.last_name || ''}`.trim() : 'Unknown';
+        const age = getYear(nextBirthday) - getYear(dob);
+
+        return {
+          id: `birthday-${info.id}`,
+          title: `${contactName}'s Birthday (${age})`,
+          type: 'birthday',
+          date: nextBirthday,
+          contactName,
+        };
+      });
+
+      return [...events, ...birthdays]
+        .filter((x) => x.date >= now)
+        .sort((a, b) => a.date.getTime() - b.date.getTime())
+        .slice(0, 5)
+        .map((x) => ({
+          id: x.id,
+          title: x.title,
+          event_type: x.type,
+          event_date: x.date.toISOString(),
+        }));
     },
     enabled: !!user,
   });
