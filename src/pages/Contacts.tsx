@@ -49,7 +49,9 @@ export default function Contacts() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*');
+        .select('*')
+        .eq('user_id', user!.id)
+        .order('first_name', { ascending: true });
       if (error) throw error;
       return data as Profile[];
     },
