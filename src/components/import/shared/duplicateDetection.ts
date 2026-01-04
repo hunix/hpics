@@ -1,11 +1,12 @@
 // Duplicate detection with fuzzy matching
-// Uses Levenshtein distance for name similarity
+// Uses Levenshtein distance for name similarity and phone number normalization
 
 export interface ExistingContact {
   id: string;
   first_name: string;
   last_name: string | null;
   email?: string;
+  phone?: string;
   organization?: string;
   job_title?: string;
   notes?: string;
@@ -13,7 +14,7 @@ export interface ExistingContact {
 
 export interface DuplicateMatch {
   existingContact: ExistingContact;
-  matchType: 'email' | 'name_exact' | 'name_fuzzy';
+  matchType: 'email' | 'phone' | 'name_exact' | 'name_fuzzy';
   confidence: number; // 0-100
   matchDetails: string;
 }
@@ -35,6 +36,12 @@ export interface DuplicateCheckResult {
   duplicates: DuplicateMatch[];
   action: 'create' | 'merge' | 'skip';
   mergeTargetId?: string;
+}
+
+export interface WithinFileDuplicate {
+  indices: number[];
+  mergedContact: ImportContact;
+  matchType: 'email' | 'phone' | 'name';
 }
 
 // Levenshtein distance for fuzzy name matching
@@ -78,6 +85,26 @@ function nameSimilarity(name1: string, name2: string): number {
   return Math.round((1 - distance / maxLen) * 100);
 }
 
+// Normalize phone number for comparison
+export function normalizePhone(phone: string): string {
+  if (!phone) return '';
+  // Remove all non-digits, then take last 10 digits (handles country codes)
+  const digits = phone.replace(/\D/g, '');
+  return digits.slice(-10);
+}
+
+// Check if two phones match
+function phonesMatch(phone1: string, phone2: string): boolean {
+  const normalized1 = normalizePhone(phone1);
+  const normalized2 = normalizePhone(phone2);
+  if (!normalized1 || !normalized2) return false;
+  // Match if last 7+ digits are same (handles various formats)
+  if (normalized1.length >= 7 && normalized2.length >= 7) {
+    return normalized1.slice(-7) === normalized2.slice(-7);
+  }
+  return normalized1 === normalized2;
+}
+
 // Check if two names are similar enough to be considered a match
 function areNamesSimilar(
   firstName1: string,
@@ -116,7 +143,111 @@ function areNamesSimilar(
   return { similar: false, confidence: Math.max(avgSim, fullNameSim), type: 'fuzzy' };
 }
 
-// Find duplicates for a single contact
+// Deduplicate contacts within the import file itself
+export function deduplicateImportFile(
+  contacts: ImportContact[]
+): { deduplicated: ImportContact[]; duplicateGroups: WithinFileDuplicate[] } {
+  const emailMap = new Map<string, number[]>();
+  const phoneMap = new Map<string, number[]>();
+  const processedIndices = new Set<number>();
+  const duplicateGroups: WithinFileDuplicate[] = [];
+  
+  // Index by email and phone
+  contacts.forEach((contact, index) => {
+    if (contact.email) {
+      const email = contact.email.toLowerCase().trim();
+      if (!emailMap.has(email)) emailMap.set(email, []);
+      emailMap.get(email)!.push(index);
+    }
+    if (contact.phone) {
+      const phone = normalizePhone(contact.phone);
+      if (phone) {
+        if (!phoneMap.has(phone)) phoneMap.set(phone, []);
+        phoneMap.get(phone)!.push(index);
+      }
+    }
+  });
+  
+  // Find and merge email duplicates
+  for (const [email, indices] of emailMap) {
+    if (indices.length > 1 && !processedIndices.has(indices[0])) {
+      const merged = mergeMultipleContacts(indices.map(i => contacts[i]));
+      duplicateGroups.push({
+        indices,
+        mergedContact: merged,
+        matchType: 'email'
+      });
+      indices.forEach(i => processedIndices.add(i));
+    }
+  }
+  
+  // Find and merge phone duplicates (excluding already processed)
+  for (const [phone, indices] of phoneMap) {
+    const unprocessed = indices.filter(i => !processedIndices.has(i));
+    if (unprocessed.length > 1) {
+      const merged = mergeMultipleContacts(unprocessed.map(i => contacts[i]));
+      duplicateGroups.push({
+        indices: unprocessed,
+        mergedContact: merged,
+        matchType: 'phone'
+      });
+      unprocessed.forEach(i => processedIndices.add(i));
+    }
+  }
+  
+  // Build deduplicated list
+  const deduplicated: ImportContact[] = [];
+  const usedInGroup = new Set<number>();
+  
+  for (const group of duplicateGroups) {
+    deduplicated.push(group.mergedContact);
+    group.indices.forEach(i => usedInGroup.add(i));
+  }
+  
+  // Add contacts that weren't in any duplicate group
+  contacts.forEach((contact, index) => {
+    if (!usedInGroup.has(index)) {
+      deduplicated.push(contact);
+    }
+  });
+  
+  console.log('[Deduplication] Within-file duplicates:', duplicateGroups.length);
+  console.log('[Deduplication] Original count:', contacts.length, '→ Deduplicated:', deduplicated.length);
+  
+  return { deduplicated, duplicateGroups };
+}
+
+// Merge multiple contacts into one (for within-file duplicates)
+function mergeMultipleContacts(contacts: ImportContact[]): ImportContact {
+  if (contacts.length === 0) throw new Error('No contacts to merge');
+  if (contacts.length === 1) return contacts[0];
+  
+  const merged: ImportContact = {
+    first_name: '',
+    last_name: '',
+    email: ''
+  };
+  
+  // For each field, prefer non-empty and longer values
+  const fields = ['first_name', 'last_name', 'email', 'phone', 'organization', 'job_title', 'notes'] as const;
+  
+  for (const field of fields) {
+    let bestValue = '';
+    for (const contact of contacts) {
+      const value = contact[field] || '';
+      if (value && (!bestValue || value.length > bestValue.length)) {
+        bestValue = value;
+      }
+    }
+    if (bestValue) {
+      merged[field] = bestValue;
+    }
+  }
+  
+  return merged;
+}
+
+// Find duplicates for a single contact against existing contacts
 export function findDuplicates(
   contact: ImportContact,
   existingContacts: ExistingContact[],
@@ -135,7 +266,20 @@ export function findDuplicates(
           confidence: 100,
           matchDetails: `Email match: ${contact.email}`
         });
-        continue; // Don't check name if email already matches
+        continue; // Don't check other criteria if email matches
+      }
+    }
+    
+    // Check phone match (high priority)
+    if (contact.phone && existing.phone) {
+      if (phonesMatch(contact.phone, existing.phone)) {
+        duplicates.push({
+          existingContact: existing,
+          matchType: 'phone',
+          confidence: 95,
+          matchDetails: `Phone match: ${contact.phone}`
+        });
+        continue;
       }
     }
     
@@ -162,30 +306,90 @@ export function findDuplicates(
   return duplicates.sort((a, b) => b.confidence - a.confidence);
 }
 
-// Check all contacts for duplicates
+// Check all contacts for duplicates with optimized lookup
 export function checkAllDuplicates(
   contacts: Array<{ rowIndex: number; contact: ImportContact }>,
   existingContacts: ExistingContact[],
-  fuzzyThreshold: number = 80
+  fuzzyThreshold: number = 80,
+  onProgress?: (processed: number, total: number) => void
 ): DuplicateCheckResult[] {
-  const results: DuplicateCheckResult[] = [];
+  // Build indexes for faster lookup
+  const emailIndex = new Map<string, ExistingContact[]>();
+  const phoneIndex = new Map<string, ExistingContact[]>();
   
-  for (const { rowIndex, contact } of contacts) {
-    const duplicates = findDuplicates(contact, existingContacts, fuzzyThreshold);
+  for (const existing of existingContacts) {
+    if (existing.email) {
+      const email = existing.email.toLowerCase();
+      if (!emailIndex.has(email)) emailIndex.set(email, []);
+      emailIndex.get(email)!.push(existing);
+    }
+    if (existing.phone) {
+      const phone = normalizePhone(existing.phone);
+      if (phone) {
+        if (!phoneIndex.has(phone)) phoneIndex.set(phone, []);
+        phoneIndex.get(phone)!.push(existing);
+      }
+    }
+  }
+  
+  const results: DuplicateCheckResult[] = [];
+  const batchSize = 100;
+  
+  for (let i = 0; i < contacts.length; i++) {
+    const { rowIndex, contact } = contacts[i];
     
-    // Determine default action based on duplicates
+    // Quick lookup using indexes first
+    const duplicates: DuplicateMatch[] = [];
+    
+    // Check email index
+    if (contact.email) {
+      const emailMatches = emailIndex.get(contact.email.toLowerCase());
+      if (emailMatches) {
+        for (const existing of emailMatches) {
+          duplicates.push({
+            existingContact: existing,
+            matchType: 'email',
+            confidence: 100,
+            matchDetails: `Email match: ${contact.email}`
+          });
+        }
+      }
+    }
+    
+    // Check phone index (if no email match)
+    if (duplicates.length === 0 && contact.phone) {
+      const normalizedPhone = normalizePhone(contact.phone);
+      const phoneMatches = phoneIndex.get(normalizedPhone);
+      if (phoneMatches) {
+        for (const existing of phoneMatches) {
+          duplicates.push({
+            existingContact: existing,
+            matchType: 'phone',
+            confidence: 95,
+            matchDetails: `Phone match: ${contact.phone}`
+          });
+        }
+      }
+    }
+    
+    // If no quick matches, do fuzzy name search
+    if (duplicates.length === 0) {
+      const nameMatches = findDuplicates(contact, existingContacts, fuzzyThreshold);
+      duplicates.push(...nameMatches.filter(m => m.matchType === 'name_exact' || m.matchType === 'name_fuzzy'));
+    }
+    
+    // Determine default action
     let action: 'create' | 'merge' | 'skip' = 'create';
     let mergeTargetId: string | undefined;
     
     if (duplicates.length > 0) {
       const topMatch = duplicates[0];
       
-      // Email match = high confidence, default to merge
-      if (topMatch.matchType === 'email' || topMatch.confidence >= 95) {
+      // Email or phone match = high confidence, default to merge
+      if (topMatch.matchType === 'email' || topMatch.matchType === 'phone' || topMatch.confidence >= 95) {
         action = 'merge';
         mergeTargetId = topMatch.existingContact.id;
       } else if (topMatch.confidence >= 80) {
-        // Name fuzzy match = suggest merge but allow override
         action = 'merge';
         mergeTargetId = topMatch.existingContact.id;
       }
@@ -198,6 +402,11 @@ export function checkAllDuplicates(
       action,
       mergeTargetId
     });
+    
+    // Report progress
+    if (onProgress && (i + 1) % batchSize === 0) {
+      onProgress(i + 1, contacts.length);
+    }
   }
   
   console.log('[Duplicate Check] Results:', {
