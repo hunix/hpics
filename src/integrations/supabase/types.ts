@@ -980,6 +980,65 @@ export type Database = {
           },
         ]
       }
+      contact_observations: {
+        Row: {
+          ai_confidence_score: number | null
+          ai_validation_result: Json | null
+          ai_validation_status: string | null
+          category: string
+          confidence_level: string | null
+          created_at: string
+          id: string
+          observation: string
+          profile_id: string
+          related_analysis_ids: string[] | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_confidence_score?: number | null
+          ai_validation_result?: Json | null
+          ai_validation_status?: string | null
+          category: string
+          confidence_level?: string | null
+          created_at?: string
+          id?: string
+          observation: string
+          profile_id: string
+          related_analysis_ids?: string[] | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_confidence_score?: number | null
+          ai_validation_result?: Json | null
+          ai_validation_status?: string | null
+          category?: string
+          confidence_level?: string | null
+          created_at?: string
+          id?: string
+          observation?: string
+          profile_id?: string
+          related_analysis_ids?: string[] | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_observations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_payment_accounts: {
         Row: {
           account_holder_name: string | null

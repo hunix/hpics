@@ -48,6 +48,7 @@ import { WhatsAppChat } from '@/components/whatsapp/WhatsAppChat';
 import { BankAccountsManager } from '@/components/contacts/BankAccountsManager';
 import { PaymentAccountsManager } from '@/components/contacts/PaymentAccountsManager';
 import { FinancialHistoryManager } from '@/components/contacts/FinancialHistoryManager';
+import { ObservationsManager } from '@/components/contacts/ObservationsManager';
 import { cn } from '@/lib/utils';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
 import type { Tables } from '@/integrations/supabase/types';
@@ -60,7 +61,7 @@ type SectionId =
   | 'interests' | 'gifts' | 'goals' | 'experiences' 
   | 'education' | 'messages' | 'timeline' | 'groups' | 'enrich'
   | 'behavioral' | 'facial' | 'body-language' | 'vocal' | 'comparison'
-  | 'financial';
+  | 'financial' | 'observations';
 
 interface NavSection {
   id: SectionId;
@@ -81,6 +82,7 @@ const sections: NavSection[] = [
   { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, group: 'Communication' },
   { id: 'messages', label: 'Conversations', icon: MessageSquare, group: 'Communication' },
   { id: 'briefing', label: 'Meeting Briefing', icon: Calendar, group: 'AI Insights' },
+  { id: 'observations', label: 'My Observations', icon: Eye, group: 'AI Insights' },
   { id: 'behavioral', label: 'Behavioral', icon: Brain, group: 'Analysis' },
   { id: 'facial', label: 'Facial/Micro-Expressions', icon: Eye, group: 'Analysis' },
   { id: 'body-language', label: 'Body Language', icon: Activity, group: 'Analysis' },
@@ -252,6 +254,8 @@ export default function ContactDetail() {
         return <WhatsAppChat profileId={contact.id} profileName={contactName} />;
       case 'briefing':
         return <MeetingBriefing profileId={contact.id} contactName={contactName} />;
+      case 'observations':
+        return <ObservationsManager profileId={contact.id} contactName={contactName} />;
       case 'interests':
         return <InterestsManager profileId={contact.id} contactName={contactName} />;
       case 'gifts':
