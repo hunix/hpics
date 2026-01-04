@@ -26,6 +26,15 @@ export interface ParseResult {
 
 const DELIMITERS = [',', ';', '\t', '|'] as const;
 
+// Known LinkedIn/CSV header keywords for detection
+const HEADER_KEYWORDS = [
+  'first', 'last', 'name', 'email', 'company', 'organization', 
+  'position', 'title', 'url', 'connected', 'date', 'notes', 'address',
+  'phone', 'mobile', 'linkedin', 'twitter', 'facebook', 'website',
+  'location', 'city', 'state', 'country', 'zip', 'postal', 'street',
+  'department', 'industry', 'bio', 'summary', 'profile', 'contact'
+];
+
 // Parse a single CSV line respecting quotes
 function parseCSVLine(line: string, delimiter: string): string[] {
   const result: string[] = [];
@@ -129,32 +138,103 @@ function detectDelimiter(lines: string[]): { delimiter: string; confidence: 'hig
   return { delimiter: bestDelim, confidence };
 }
 
+// Check if a value looks like data (not a header)
+function looksLikeData(value: string): boolean {
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) return false;
+  
+  // Email pattern
+  if (/@/.test(trimmed)) return true;
+  
+  // URL pattern
+  if (/^https?:\/\//.test(trimmed) || /linkedin\.com/.test(trimmed)) return true;
+  
+  // Date patterns (various formats)
+  if (/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}$/.test(trimmed)) return true;
+  if (/^\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}$/.test(trimmed)) return true;
+  if (/^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(trimmed)) return true;
+  
+  // Phone number patterns
+  if (/^[\+\d\(\)\-\s]{7,}$/.test(trimmed)) return true;
+  
+  return false;
+}
+
+// Score a row to determine if it's likely a header row
+function scoreHeaderRow(columns: string[]): number {
+  let score = 0;
+  let headerKeywordMatches = 0;
+  let dataPatternMatches = 0;
+  
+  for (const col of columns) {
+    const normalized = col.toLowerCase().replace(/['"_\-\s]/g, '');
+    
+    // Check for header keywords
+    for (const keyword of HEADER_KEYWORDS) {
+      if (normalized.includes(keyword)) {
+        headerKeywordMatches++;
+        score += 10; // Strong signal
+        break;
+      }
+    }
+    
+    // Check for data patterns (negative signal)
+    if (looksLikeData(col)) {
+      dataPatternMatches++;
+      score -= 15; // Strong negative signal
+    }
+    
+    // Short text-only values are more likely headers
+    if (/^[a-zA-Z\s]+$/.test(col.trim()) && col.trim().length < 30) {
+      score += 1;
+    }
+  }
+  
+  return score;
+}
+
 // Find header line (skip preamble if present)
 function findHeaderLine(lines: string[], delimiter: string): number {
-  // Heuristic: header line has the most columns OR first line with >= 3 columns
-  let bestIndex = 0;
-  let bestColumnCount = 0;
-  
   // Only check first 5 lines for header
+  const candidates: { index: number; score: number; columnCount: number }[] = [];
+  
   for (let i = 0; i < Math.min(5, lines.length); i++) {
     const line = lines[i].trim();
     if (!line) continue;
     
     const columns = parseCSVLine(line, delimiter);
+    const score = scoreHeaderRow(columns);
     
-    // LinkedIn CSVs typically have headers like "First Name", "Last Name", "Email", etc.
-    // Check if this looks like a header (contains text fields, not data)
-    const looksLikeHeader = columns.some(col => 
-      /^[a-zA-Z\s]+$/.test(col) && col.length < 50
-    );
-    
-    if (columns.length > bestColumnCount || (columns.length === bestColumnCount && looksLikeHeader)) {
-      bestColumnCount = columns.length;
-      bestIndex = i;
-    }
+    candidates.push({
+      index: i,
+      score,
+      columnCount: columns.length
+    });
   }
   
-  return bestIndex;
+  if (candidates.length === 0) return 0;
+  
+  // Sort by score (highest first), then by column count, then by index (prefer earlier)
+  candidates.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    if (b.columnCount !== a.columnCount) return b.columnCount - a.columnCount;
+    return a.index - b.index; // Prefer earlier lines as tie-breaker
+  });
+  
+  // If the best candidate has a positive score, use it
+  // Otherwise, prefer line 0 (most CSVs have headers on first line)
+  const best = candidates[0];
+  if (best.score > 0) {
+    return best.index;
+  }
+  
+  // Fallback: use line 0 if it has at least 3 columns
+  const line0 = candidates.find(c => c.index === 0);
+  if (line0 && line0.columnCount >= 3) {
+    return 0;
+  }
+  
+  return best.index;
 }
 
 // Normalize header for matching
