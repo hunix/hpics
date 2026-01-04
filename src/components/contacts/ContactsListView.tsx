@@ -3,9 +3,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Star } from 'lucide-react';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
+import { CountryFlag } from './CountryFlag';
 import type { Tables } from '@/integrations/supabase/types';
 
-type Profile = Tables<'profiles'> & { relationship_subtype?: string; hierarchy_level?: string };
+type Profile = Tables<'profiles'> & { relationship_subtype?: string; hierarchy_level?: string; country?: string | null };
 
 interface ContactsListViewProps {
   contacts: Profile[];
@@ -63,6 +64,7 @@ export function ContactsListView({
                 <span className="font-medium truncate">
                   {contact.first_name} {contact.last_name}
                 </span>
+                {contact.country && <CountryFlag country={contact.country} size="sm" />}
                 {display && (
                   <>
                     <Badge variant="secondary" className={`${relationshipColors[contact.relationship_type || '']} text-xs`}>

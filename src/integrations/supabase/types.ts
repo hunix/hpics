@@ -904,6 +904,81 @@ export type Database = {
           },
         ]
       }
+      contact_kids_schools: {
+        Row: {
+          child_name: string | null
+          child_profile_id: string | null
+          created_at: string
+          end_date: string | null
+          grade_or_year: string | null
+          id: string
+          is_current: boolean | null
+          notes: string | null
+          profile_id: string
+          school_address: string | null
+          school_city: string | null
+          school_country: string | null
+          school_name: string
+          school_type: string | null
+          start_date: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          child_name?: string | null
+          child_profile_id?: string | null
+          created_at?: string
+          end_date?: string | null
+          grade_or_year?: string | null
+          id?: string
+          is_current?: boolean | null
+          notes?: string | null
+          profile_id: string
+          school_address?: string | null
+          school_city?: string | null
+          school_country?: string | null
+          school_name: string
+          school_type?: string | null
+          start_date?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          child_name?: string | null
+          child_profile_id?: string | null
+          created_at?: string
+          end_date?: string | null
+          grade_or_year?: string | null
+          id?: string
+          is_current?: boolean | null
+          notes?: string | null
+          profile_id?: string
+          school_address?: string | null
+          school_city?: string | null
+          school_country?: string | null
+          school_name?: string
+          school_type?: string | null
+          start_date?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_kids_schools_child_profile_id_fkey"
+            columns: ["child_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_kids_schools_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_languages: {
         Row: {
           created_at: string
@@ -1174,9 +1249,14 @@ export type Database = {
           country: string | null
           created_at: string
           estimated_value: string | null
+          google_maps_url: string | null
           id: string
           is_primary_residence: boolean | null
+          latitude: number | null
+          longitude: number | null
           notes: string | null
+          place_name: string | null
+          postal_code: string | null
           profile_id: string
           property_type: string
           purchase_date: string | null
@@ -1189,9 +1269,14 @@ export type Database = {
           country?: string | null
           created_at?: string
           estimated_value?: string | null
+          google_maps_url?: string | null
           id?: string
           is_primary_residence?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
           notes?: string | null
+          place_name?: string | null
+          postal_code?: string | null
           profile_id: string
           property_type: string
           purchase_date?: string | null
@@ -1204,9 +1289,14 @@ export type Database = {
           country?: string | null
           created_at?: string
           estimated_value?: string | null
+          google_maps_url?: string | null
           id?: string
           is_primary_residence?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
           notes?: string | null
+          place_name?: string | null
+          postal_code?: string | null
           profile_id?: string
           property_type?: string
           purchase_date?: string | null
@@ -1222,6 +1312,69 @@ export type Database = {
           },
         ]
       }
+      contact_relationships: {
+        Row: {
+          created_at: string
+          end_date: string | null
+          from_profile_id: string
+          id: string
+          inverse_label: string | null
+          is_bidirectional: boolean | null
+          notes: string | null
+          relationship_label: string
+          relationship_type: string
+          start_date: string | null
+          to_profile_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_date?: string | null
+          from_profile_id: string
+          id?: string
+          inverse_label?: string | null
+          is_bidirectional?: boolean | null
+          notes?: string | null
+          relationship_label: string
+          relationship_type: string
+          start_date?: string | null
+          to_profile_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string | null
+          from_profile_id?: string
+          id?: string
+          inverse_label?: string | null
+          is_bidirectional?: boolean | null
+          notes?: string | null
+          relationship_label?: string
+          relationship_type?: string
+          start_date?: string | null
+          to_profile_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_relationships_from_profile_id_fkey"
+            columns: ["from_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_relationships_to_profile_id_fkey"
+            columns: ["to_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_residences: {
         Row: {
           address: string | null
@@ -1229,9 +1382,14 @@ export type Database = {
           country: string
           created_at: string
           end_date: string | null
+          google_maps_url: string | null
           id: string
           is_current: boolean | null
+          latitude: number | null
+          longitude: number | null
           notes: string | null
+          place_name: string | null
+          postal_code: string | null
           profile_id: string
           residence_type: string | null
           start_date: string | null
@@ -1243,9 +1401,14 @@ export type Database = {
           country: string
           created_at?: string
           end_date?: string | null
+          google_maps_url?: string | null
           id?: string
           is_current?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
           notes?: string | null
+          place_name?: string | null
+          postal_code?: string | null
           profile_id: string
           residence_type?: string | null
           start_date?: string | null
@@ -1257,9 +1420,14 @@ export type Database = {
           country?: string
           created_at?: string
           end_date?: string | null
+          google_maps_url?: string | null
           id?: string
           is_current?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
           notes?: string | null
+          place_name?: string | null
+          postal_code?: string | null
           profile_id?: string
           residence_type?: string | null
           start_date?: string | null

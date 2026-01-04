@@ -18,7 +18,11 @@ import { toast } from 'sonner';
 import { getSubtypesForRelationship } from '@/lib/relationshipSubtypes';
 import type { Tables } from '@/integrations/supabase/types';
 
-type Profile = Tables<'profiles'> & { relationship_subtype?: string; hierarchy_level?: string };
+type Profile = Tables<'profiles'> & { 
+  relationship_subtype?: string; 
+  hierarchy_level?: string;
+  country?: string | null;
+};
 
 export default function Contacts() {
   const { user } = useAuth();
@@ -47,13 +51,27 @@ export default function Contacts() {
   const { data: contacts, isLoading } = useQuery({
     queryKey: ['contacts', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Fetch profiles
+      const { data: profiles, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', user!.id)
         .order('first_name', { ascending: true });
       if (error) throw error;
-      return data as Profile[];
+      
+      // Fetch personal info for countries
+      const { data: personalInfo } = await supabase
+        .from('contact_personal_info')
+        .select('profile_id, main_residence_country')
+        .eq('user_id', user!.id);
+      
+      // Merge country info into profiles
+      const countryMap = new Map(personalInfo?.map(p => [p.profile_id, p.main_residence_country]) || []);
+      
+      return profiles.map(p => ({
+        ...p,
+        country: countryMap.get(p.id) || null,
+      })) as Profile[];
     },
     enabled: !!user,
   });
@@ -200,6 +218,9 @@ export default function Contacts() {
       await supabase.from('meeting_recordings').delete().in('profile_id', ids);
       await supabase.from('relationship_goals').delete().in('profile_id', ids);
       await supabase.from('analysis_sessions').delete().in('profile_id', ids);
+      await supabase.from('contact_kids_schools').delete().in('profile_id', ids);
+      await supabase.from('contact_relationships').delete().in('from_profile_id', ids);
+      await supabase.from('contact_relationships').delete().in('to_profile_id', ids);
 
       // Finally delete the profiles themselves
       const { error } = await supabase
