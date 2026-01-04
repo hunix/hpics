@@ -231,7 +231,7 @@ export function FinancialHistoryManager({ profileId }: FinancialHistoryManagerPr
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <Label>Transaction Type *</Label>
-                <Select value={formData.transaction_type} onValueChange={(v) => setFormData({ ...formData, transaction_type: v })}>
+                <Select value={formData.transaction_type || undefined} onValueChange={(v) => setFormData({ ...formData, transaction_type: v })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
@@ -287,7 +287,7 @@ export function FinancialHistoryManager({ profileId }: FinancialHistoryManagerPr
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Payment Method</Label>
-                  <Select value={formData.payment_method} onValueChange={(v) => setFormData({ ...formData, payment_method: v })}>
+                  <Select value={formData.payment_method || undefined} onValueChange={(v) => setFormData({ ...formData, payment_method: v })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select method" />
                     </SelectTrigger>

@@ -225,7 +225,7 @@ export function BankAccountsManager({ profileId }: BankAccountsManagerProps) {
                 </div>
                 <div>
                   <Label>Account Type</Label>
-                  <Select value={formData.account_type} onValueChange={(v) => setFormData({ ...formData, account_type: v })}>
+                  <Select value={formData.account_type || undefined} onValueChange={(v) => setFormData({ ...formData, account_type: v })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>

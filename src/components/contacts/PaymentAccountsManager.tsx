@@ -188,7 +188,7 @@ export function PaymentAccountsManager({ profileId }: PaymentAccountsManagerProp
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <Label>Platform *</Label>
-                <Select value={formData.platform} onValueChange={(v) => setFormData({ ...formData, platform: v })}>
+                <Select value={formData.platform || undefined} onValueChange={(v) => setFormData({ ...formData, platform: v })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select platform" />
                   </SelectTrigger>
