@@ -51,13 +51,27 @@ export default function Contacts() {
   const { data: contacts, isLoading } = useQuery({
     queryKey: ['contacts', user?.id],
     queryFn: async () => {
-      // Fetch profiles
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user!.id)
-        .order('first_name', { ascending: true });
-      if (error) throw error;
+      // Fetch profiles - use range to get all contacts (default limit is 1000)
+      let allProfiles: any[] = [];
+      let page = 0;
+      const pageSize = 1000;
+      
+      while (true) {
+        const { data: profiles, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', user!.id)
+          .order('first_name', { ascending: true })
+          .range(page * pageSize, (page + 1) * pageSize - 1);
+        
+        if (error) throw error;
+        if (!profiles || profiles.length === 0) break;
+        
+        allProfiles = [...allProfiles, ...profiles];
+        
+        if (profiles.length < pageSize) break;
+        page++;
+      }
       
       // Fetch personal info for countries
       const { data: personalInfo } = await supabase
@@ -68,7 +82,7 @@ export default function Contacts() {
       // Merge country info into profiles
       const countryMap = new Map(personalInfo?.map(p => [p.profile_id, p.main_residence_country]) || []);
       
-      return profiles.map(p => ({
+      return allProfiles.map(p => ({
         ...p,
         country: countryMap.get(p.id) || null,
       })) as Profile[];
