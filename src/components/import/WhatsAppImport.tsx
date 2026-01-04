@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -7,9 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Upload, Loader2, MessageCircle } from 'lucide-react';
+import { Upload, Loader2, MessageCircle, FileText, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import type { Tables, Enums } from '@/integrations/supabase/types';
 
@@ -28,6 +29,8 @@ export function WhatsAppImport() {
   const [selectedProfile, setSelectedProfile] = useState<string>('');
   const [contactName, setContactName] = useState<string>('');
   const [preview, setPreview] = useState<ParsedMessage[]>([]);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [detectedNames, setDetectedNames] = useState<string[]>([]);
 
   const { data: profiles } = useQuery({
     queryKey: ['profiles', user?.id],
@@ -46,9 +49,10 @@ export function WhatsAppImport() {
     const messages: ParsedMessage[] = [];
     
     // WhatsApp export formats:
-    // [DD/MM/YYYY, HH:MM:SS] Name: Message
-    // DD/MM/YYYY, HH:MM - Name: Message
+    // [DD/MM/YYYY, HH:MM:SS] Name: Message (iOS)
+    // DD/MM/YYYY, HH:MM - Name: Message (Android)
     // [DD/MM/YY, HH:MM:SS] Name: Message
+    // MM/DD/YY, HH:MM AM/PM - Name: Message (US format)
     
     const patterns = [
       /\[(\d{1,2}\/\d{1,2}\/\d{2,4}),?\s+(\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AP]M)?)\]\s*([^:]+):\s*(.+)/gi,
@@ -66,10 +70,23 @@ export function WhatsAppImport() {
           let year = dateParts[2];
           if (year < 100) year += 2000;
           
-          const date = new Date(year, dateParts[1] - 1, dateParts[0]);
-          const timeParts = timeStr.match(/(\d+):(\d+)(?::(\d+))?/);
+          // Try DD/MM/YYYY first, then MM/DD/YYYY for US format
+          let date = new Date(year, dateParts[1] - 1, dateParts[0]);
+          if (isNaN(date.getTime())) {
+            date = new Date(year, dateParts[0] - 1, dateParts[1]);
+          }
+          
+          const timeParts = timeStr.match(/(\d+):(\d+)(?::(\d+))?(?:\s*([AP]M))?/i);
           if (timeParts) {
-            date.setHours(parseInt(timeParts[1]), parseInt(timeParts[2]), parseInt(timeParts[3] || '0'));
+            let hours = parseInt(timeParts[1]);
+            const minutes = parseInt(timeParts[2]);
+            const seconds = parseInt(timeParts[3] || '0');
+            const ampm = timeParts[4]?.toUpperCase();
+            
+            if (ampm === 'PM' && hours !== 12) hours += 12;
+            if (ampm === 'AM' && hours === 12) hours = 0;
+            
+            date.setHours(hours, minutes, seconds);
           }
 
           const isFromContact = sender.toLowerCase().trim() === contactNameToMatch.toLowerCase().trim();
@@ -89,6 +106,54 @@ export function WhatsAppImport() {
 
     return messages.sort((a, b) => a.date.getTime() - b.date.getTime());
   };
+
+  const detectNamesFromChat = (text: string): string[] => {
+    const names = new Set<string>();
+    const patterns = [
+      /\[\d{1,2}\/\d{1,2}\/\d{2,4},?\s+\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AP]M)?\]\s*([^:]+):/gi,
+      /\d{1,2}\/\d{1,2}\/\d{2,4},?\s+\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AP]M)?\s*-\s*([^:]+):/gi,
+    ];
+
+    for (const pattern of patterns) {
+      let match;
+      while ((match = pattern.exec(text)) !== null) {
+        const name = match[1].trim();
+        if (name && !name.includes('Messages') && !name.includes('Encryption')) {
+          names.add(name);
+        }
+      }
+      if (names.size > 0) break;
+    }
+
+    return Array.from(names);
+  };
+
+  const handleFileUpload = useCallback(async (file: File) => {
+    setUploadedFile(file);
+    const text = await file.text();
+    setChatText(text);
+    
+    // Auto-detect names
+    const names = detectNamesFromChat(text);
+    setDetectedNames(names);
+    
+    if (names.length === 1) {
+      setContactName(names[0]);
+      toast({ title: `Detected contact: ${names[0]}` });
+    } else if (names.length > 1) {
+      toast({ title: `Found ${names.length} participants`, description: 'Select the contact name below' });
+    }
+  }, [toast]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file && file.name.endsWith('.txt')) {
+      handleFileUpload(file);
+    } else {
+      toast({ title: 'Invalid file', description: 'Please upload a .txt file', variant: 'destructive' });
+    }
+  }, [handleFileUpload, toast]);
 
   const handlePreview = () => {
     if (!chatText.trim() || !contactName.trim()) {
@@ -151,6 +216,8 @@ export function WhatsAppImport() {
       setChatText('');
       setPreview([]);
       setContactName('');
+      setUploadedFile(null);
+      setDetectedNames([]);
     },
     onError: (error) => {
       toast({ title: 'Import failed', description: error.message, variant: 'destructive' });
@@ -165,7 +232,7 @@ export function WhatsAppImport() {
           Import WhatsApp Chat
         </CardTitle>
         <CardDescription>
-          Export a WhatsApp chat and paste the content here to import the conversation.
+          Export a WhatsApp chat and upload or paste the content here to import the conversation.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -175,9 +242,53 @@ export function WhatsAppImport() {
             <p>1. Open the chat in WhatsApp</p>
             <p>2. Tap the menu → More → Export chat</p>
             <p>3. Choose "Without media"</p>
-            <p>4. Copy the text content and paste below</p>
+            <p>4. Upload the .txt file or paste content below</p>
           </AlertDescription>
         </Alert>
+
+        {/* File Upload Area */}
+        <div
+          onDrop={handleDrop}
+          onDragOver={(e) => e.preventDefault()}
+          className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer"
+          onClick={() => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.txt';
+            input.onchange = (e) => {
+              const file = (e.target as HTMLInputElement).files?.[0];
+              if (file) handleFileUpload(file);
+            };
+            input.click();
+          }}
+        >
+          {uploadedFile ? (
+            <div className="flex items-center justify-center gap-2">
+              <FileText className="h-5 w-5 text-green-500" />
+              <span className="text-sm font-medium">{uploadedFile.name}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setUploadedFile(null);
+                  setChatText('');
+                  setDetectedNames([]);
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <>
+              <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">
+                Drop a .txt file here or click to upload
+              </p>
+            </>
+          )}
+        </div>
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
@@ -198,26 +309,44 @@ export function WhatsAppImport() {
 
           <div className="space-y-2">
             <Label>Contact Name in Chat</Label>
-            <input
-              type="text"
-              value={contactName}
-              onChange={(e) => setContactName(e.target.value)}
-              placeholder="Name as shown in exported chat"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-            />
+            {detectedNames.length > 1 ? (
+              <Select value={contactName} onValueChange={setContactName}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select contact name" />
+                </SelectTrigger>
+                <SelectContent>
+                  {detectedNames.map((name) => (
+                    <SelectItem key={name} value={name}>{name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                type="text"
+                value={contactName}
+                onChange={(e) => setContactName(e.target.value)}
+                placeholder="Name as shown in exported chat"
+              />
+            )}
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label>Chat Export Content</Label>
-          <Textarea
-            value={chatText}
-            onChange={(e) => setChatText(e.target.value)}
-            placeholder="Paste your WhatsApp chat export here..."
-            rows={8}
-            className="font-mono text-xs"
-          />
-        </div>
+        {!uploadedFile && (
+          <div className="space-y-2">
+            <Label>Or Paste Chat Export Content</Label>
+            <Textarea
+              value={chatText}
+              onChange={(e) => {
+                setChatText(e.target.value);
+                const names = detectNamesFromChat(e.target.value);
+                setDetectedNames(names);
+              }}
+              placeholder="Paste your WhatsApp chat export here..."
+              rows={6}
+              className="font-mono text-xs"
+            />
+          </div>
+        )}
 
         {preview.length > 0 && (
           <div className="space-y-2">

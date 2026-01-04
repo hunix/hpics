@@ -11,13 +11,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Sun, Bell, Mail, Loader2, Smartphone, Link2, Bot, Cpu } from 'lucide-react';
+import { Moon, Sun, Bell, Mail, Loader2, Smartphone, Link2, Bot, Cpu, MessageCircle } from 'lucide-react';
 import { AnalyticsExport } from '@/components/analytics/AnalyticsExport';
 import { EmailIntegration } from '@/components/settings/EmailIntegration';
 import { PushNotifications } from '@/components/settings/PushNotifications';
 import { LocalAIEndpoints } from '@/components/settings/LocalAIEndpoints';
 import { AIModelPreferences } from '@/components/settings/AIModelPreferences';
 import { AIBudgetSettings } from '@/components/settings/AIBudgetSettings';
+import { WhatsAppSetup } from '@/components/whatsapp/WhatsAppSetup';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -201,6 +202,7 @@ export default function Settings() {
         </TabsContent>
 
         <TabsContent value="integrations" className="space-y-6 mt-6">
+          <WhatsAppSetup />
           <EmailIntegration />
         </TabsContent>
 

@@ -44,6 +44,7 @@ import { VocalAnalysis } from '@/components/analysis/VocalAnalysis';
 import { AnalysisComparison } from '@/components/analysis/AnalysisComparison';
 import { ExtendedOverview } from '@/components/contacts/ExtendedOverview';
 import { ExtendedInfoSection } from '@/components/contacts/ExtendedInfoSection';
+import { WhatsAppChat } from '@/components/whatsapp/WhatsAppChat';
 import { cn } from '@/lib/utils';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
 import type { Tables } from '@/integrations/supabase/types';
@@ -52,7 +53,7 @@ type Profile = Tables<'profiles'> & { relationship_subtype?: string; hierarchy_l
 
 type SectionId = 
   | 'overview' | 'personal-info' | 'contact' | 'documents' | 'media' | 'recordings'
-  | 'outreach' | 'templates' | 'briefing' 
+  | 'outreach' | 'templates' | 'briefing' | 'whatsapp'
   | 'interests' | 'gifts' | 'goals' | 'experiences' 
   | 'education' | 'messages' | 'timeline' | 'groups' | 'enrich'
   | 'behavioral' | 'facial' | 'body-language' | 'vocal' | 'comparison';
@@ -73,6 +74,7 @@ const sections: NavSection[] = [
   { id: 'recordings', label: 'Recordings', icon: Mic, group: 'Files' },
   { id: 'outreach', label: 'Outreach Timing', icon: Clock, group: 'Communication' },
   { id: 'templates', label: 'Message Templates', icon: Sparkles, group: 'Communication' },
+  { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, group: 'Communication' },
   { id: 'messages', label: 'Conversations', icon: MessageSquare, group: 'Communication' },
   { id: 'briefing', label: 'Meeting Briefing', icon: Calendar, group: 'AI Insights' },
   { id: 'behavioral', label: 'Behavioral', icon: Brain, group: 'Analysis' },
@@ -241,6 +243,8 @@ export default function ContactDetail() {
         return <OptimalOutreach profileId={contact.id} contactName={contactName} />;
       case 'templates':
         return <MessageTemplates profileId={contact.id} contactName={contactName} />;
+      case 'whatsapp':
+        return <WhatsAppChat profileId={contact.id} profileName={contactName} />;
       case 'briefing':
         return <MeetingBriefing profileId={contact.id} contactName={contactName} />;
       case 'interests':
