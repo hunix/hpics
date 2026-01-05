@@ -623,6 +623,72 @@ export function ConversationAnalysisPanel({
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Activity Heatmap */}
+              {activityHeatmap && activityHeatmap.length > 0 && (
+                <Card className="lg:col-span-2">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Activity className="h-4 w-4" />
+                      Activity Heatmap
+                    </CardTitle>
+                    <CardDescription>Message frequency by day and hour</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <div className="min-w-[600px]">
+                        {/* Hours header */}
+                        <div className="flex gap-1 mb-1 ml-16">
+                          {Array.from({ length: 24 }, (_, i) => (
+                            <div key={i} className="w-6 text-[10px] text-muted-foreground text-center">
+                              {i}
+                            </div>
+                          ))}
+                        </div>
+                        {/* Days rows */}
+                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, dayIdx) => (
+                          <div key={day} className="flex gap-1 mb-1 items-center">
+                            <span className="w-14 text-xs text-muted-foreground">{day}</span>
+                            {Array.from({ length: 24 }, (_, hourIdx) => {
+                              const cell = activityHeatmap?.find(
+                                (h: any) => h.day === dayIdx && h.hour === hourIdx
+                              );
+                              const count = cell?.count || 0;
+                              const maxCount = Math.max(...(activityHeatmap?.map((h: any) => h.count) || [1]));
+                              const intensity = count / maxCount;
+                              return (
+                                <div
+                                  key={hourIdx}
+                                  className="w-6 h-6 rounded-sm transition-colors"
+                                  style={{
+                                    backgroundColor: count > 0 
+                                      ? `hsl(var(--primary) / ${Math.max(0.1, intensity)})`
+                                      : 'hsl(var(--muted))',
+                                  }}
+                                  title={`${day} ${hourIdx}:00 - ${count} messages`}
+                                />
+                              );
+                            })}
+                          </div>
+                        ))}
+                        <div className="flex items-center justify-end gap-2 mt-3 text-xs text-muted-foreground">
+                          <span>Less</span>
+                          <div className="flex gap-0.5">
+                            {[0.1, 0.3, 0.5, 0.7, 1].map((opacity) => (
+                              <div
+                                key={opacity}
+                                className="w-4 h-4 rounded-sm"
+                                style={{ backgroundColor: `hsl(var(--primary) / ${opacity})` }}
+                              />
+                            ))}
+                          </div>
+                          <span>More</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </TabsContent>
 
