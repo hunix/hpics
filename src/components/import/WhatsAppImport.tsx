@@ -801,33 +801,37 @@ export function WhatsAppImport() {
 
         {/* Progress view with modal lock during active import */}
         {showProgress && (
-          <div className="relative">
-            {/* Warning overlay for active import */}
+          <>
+            {/* Full-screen overlay for active import - covers entire page */}
             {['uploading_media', 'importing_messages'].includes(stage) && !isPaused && (
-              <div className="absolute -inset-4 -top-6 bg-background/95 backdrop-blur-sm z-10 rounded-lg border-2 border-primary/20 p-4">
-                <div className="flex flex-col items-center justify-center h-full space-y-4">
-                  <div className="flex items-center gap-2 text-amber-600 dark:text-amber-500">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    <span className="font-semibold">Import in Progress</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground text-center max-w-md">
-                    ⚠️ Please do not close this tab or refresh the page. Your import will be lost.
-                  </p>
-                  <WhatsAppImportProgress
-                    stage={stage}
-                    messagesImported={messagesImported}
-                    totalMessages={allMessages.length}
-                    mediaUploaded={mediaUploaded}
-                    totalMedia={mediaFilesState.length}
-                    mediaFiles={mediaFilesState}
-                    isPaused={isPaused}
-                    onPause={handlePause}
-                    onResume={handleResume}
-                    onCancel={handleCancel}
-                    onRetryFile={handleRetryFile}
-                    onSkipFile={handleSkipFile}
-                  />
-                </div>
+              <div className="fixed inset-0 z-50 bg-background/98 backdrop-blur-sm flex items-center justify-center">
+                <Card className="w-full max-w-2xl mx-4 border-2 border-primary/20 shadow-2xl">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2 text-amber-600 dark:text-amber-500">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <CardTitle>Import in Progress</CardTitle>
+                    </div>
+                    <CardDescription>
+                      ⚠️ Please do not close this tab or refresh the page. Your import will be lost.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <WhatsAppImportProgress
+                      stage={stage}
+                      messagesImported={messagesImported}
+                      totalMessages={allMessages.length}
+                      mediaUploaded={mediaUploaded}
+                      totalMedia={mediaFilesState.length}
+                      mediaFiles={mediaFilesState}
+                      isPaused={isPaused}
+                      onPause={handlePause}
+                      onResume={handleResume}
+                      onCancel={handleCancel}
+                      onRetryFile={handleRetryFile}
+                      onSkipFile={handleSkipFile}
+                    />
+                  </CardContent>
+                </Card>
               </div>
             )}
             
@@ -848,7 +852,7 @@ export function WhatsAppImport() {
                 onSkipFile={handleSkipFile}
               />
             )}
-          </div>
+          </>
         )}
 
         {/* Normal import flow */}

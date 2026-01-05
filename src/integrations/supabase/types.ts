@@ -2775,6 +2775,61 @@ export type Database = {
           },
         ]
       }
+      media_contact_tags: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          face_position: Json | null
+          id: string
+          media_id: string
+          profile_id: string
+          tagged_by: string
+          user_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          face_position?: Json | null
+          id?: string
+          media_id: string
+          profile_id: string
+          tagged_by?: string
+          user_id: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          face_position?: Json | null
+          id?: string
+          media_id?: string
+          profile_id?: string
+          tagged_by?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_contact_tags_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_contact_tags_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "media_contact_tags_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       media_metadata_jobs: {
         Row: {
           actual_cost_cents: number | null
