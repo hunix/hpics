@@ -7,19 +7,137 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Paginated fetch to get ALL messages
+async function fetchAllMessages(supabase: any, conversationId: string) {
+  const allMessages: any[] = [];
+  const PAGE_SIZE = 1000;
+  let from = 0;
+  
+  console.log('Starting paginated message fetch...');
+  
+  while (true) {
+    const { data, error } = await supabase
+      .from('messages')
+      .select('content, is_from_contact, sent_at')
+      .eq('conversation_id', conversationId)
+      .order('sent_at', { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+    
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    
+    allMessages.push(...data);
+    console.log(`Fetched ${allMessages.length} messages so far...`);
+    
+    if (data.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  
+  console.log(`Total messages fetched: ${allMessages.length}`);
+  return allMessages;
+}
+
+// Intelligent weighted sampling for large conversations
+function sampleMessages(messages: any[], maxSamples: number): { sampled: any[], strategy: string } {
+  if (messages.length <= maxSamples) {
+    return { sampled: messages, strategy: 'full' };
+  }
+
+  const totalCount = messages.length;
+  
+  // Weighted sampling: 40% recent, 30% middle, 30% early
+  const recentCount = Math.floor(maxSamples * 0.4);
+  const middleCount = Math.floor(maxSamples * 0.3);
+  const earlyCount = maxSamples - recentCount - middleCount;
+
+  // Calculate boundaries
+  const earlyEnd = Math.floor(totalCount * 0.25);
+  const middleStart = Math.floor(totalCount * 0.25);
+  const middleEnd = Math.floor(totalCount * 0.75);
+  const recentStart = Math.floor(totalCount * 0.75);
+
+  // Sample from each period
+  const earlyMessages = messages.slice(0, earlyEnd);
+  const middleMessages = messages.slice(middleStart, middleEnd);
+  const recentMessages = messages.slice(recentStart);
+
+  const sampleEvenly = (arr: any[], count: number) => {
+    if (arr.length <= count) return arr;
+    const step = Math.floor(arr.length / count);
+    return arr.filter((_, idx) => idx % step === 0).slice(0, count);
+  };
+
+  const sampled = [
+    ...sampleEvenly(earlyMessages, earlyCount),
+    ...sampleEvenly(middleMessages, middleCount),
+    ...sampleEvenly(recentMessages, recentCount),
+  ].sort((a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime());
+
+  console.log(`Sampled ${sampled.length} messages: ${earlyCount} early, ${middleCount} middle, ${recentCount} recent`);
+
+  return { 
+    sampled, 
+    strategy: `weighted_sampling (${earlyCount} early / ${middleCount} middle / ${recentCount} recent)` 
+  };
+}
+
+// Build activity heatmap (hour x day of week)
+function buildActivityHeatmap(messages: any[]): Record<string, number>[][] {
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const heatmap: number[][] = Array(7).fill(null).map(() => Array(24).fill(0));
+  
+  messages.forEach(msg => {
+    const d = new Date(msg.sent_at);
+    const dayIdx = d.getDay();
+    const hour = d.getHours();
+    heatmap[dayIdx][hour]++;
+  });
+
+  // Convert to structured format
+  return days.map((day, dayIdx) => 
+    heatmap[dayIdx].map((count, hour) => ({ day, hour, count }))
+  ).flat() as any;
+}
+
+// Calculate response time trend over months
+function calculateResponseTimeTrend(messages: any[]): any[] {
+  const monthlyData: Record<string, { total: number, count: number }> = {};
+  
+  for (let i = 1; i < messages.length; i++) {
+    if (messages[i].is_from_contact !== messages[i - 1].is_from_contact) {
+      const diff = new Date(messages[i].sent_at).getTime() - new Date(messages[i - 1].sent_at).getTime();
+      if (diff > 0 && diff < 24 * 60 * 60 * 1000) { // Under 24 hours
+        const month = messages[i].sent_at.slice(0, 7);
+        if (!monthlyData[month]) monthlyData[month] = { total: 0, count: 0 };
+        monthlyData[month].total += diff;
+        monthlyData[month].count++;
+      }
+    }
+  }
+
+  return Object.entries(monthlyData)
+    .map(([month, data]) => ({
+      month,
+      avgMinutes: Math.round(data.total / data.count / 60000),
+    }))
+    .sort((a, b) => a.month.localeCompare(b.month));
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { conversationId, anonymize = true, userId } = await req.json();
+    const { conversationId, anonymize = true, userId, model } = await req.json();
     
     if (!conversationId || !userId) {
       throw new Error('conversationId and userId are required');
     }
 
-    console.log(`Starting conversation analysis for ${conversationId}, anonymize: ${anonymize}`);
+    // Use provided model or default
+    const selectedModel = model || 'google/gemini-2.5-flash';
+    console.log(`Starting conversation analysis for ${conversationId}, model: ${selectedModel}, anonymize: ${anonymize}`);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -27,7 +145,7 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch conversation and messages
+    // Fetch conversation details
     const { data: conversation, error: convoError } = await supabase
       .from('conversations')
       .select('*, profiles!inner(first_name, last_name)')
@@ -40,30 +158,24 @@ serve(async (req) => {
 
     const contactName = `${conversation.profiles.first_name} ${conversation.profiles.last_name || ''}`.trim();
 
-    // Fetch all messages
-    const { data: messages, error: msgError } = await supabase
-      .from('messages')
-      .select('content, is_from_contact, sent_at')
-      .eq('conversation_id', conversationId)
-      .order('sent_at', { ascending: true });
-
-    if (msgError) throw msgError;
+    // Fetch ALL messages using pagination
+    const messages = await fetchAllMessages(supabase, conversationId);
 
     if (!messages || messages.length === 0) {
       throw new Error('No messages to analyze');
     }
 
-    console.log(`Fetched ${messages.length} messages for analysis`);
+    console.log(`Total messages fetched: ${messages.length}`);
 
-    // Prepare messages for analysis - sample if too many
-    const MAX_MESSAGES = 2000;
-    let messagesToAnalyze = messages;
-    if (messages.length > MAX_MESSAGES) {
-      // Sample evenly throughout the conversation
-      const step = Math.floor(messages.length / MAX_MESSAGES);
-      messagesToAnalyze = messages.filter((_, idx) => idx % step === 0).slice(0, MAX_MESSAGES);
-      console.log(`Sampled ${messagesToAnalyze.length} messages from ${messages.length}`);
-    }
+    // Sample if too many for AI context
+    const MAX_SAMPLES = 3000;
+    const { sampled: messagesToAnalyze, strategy: samplingStrategy } = sampleMessages(messages, MAX_SAMPLES);
+
+    // Build activity heatmap from ALL messages
+    const activityHeatmap = buildActivityHeatmap(messages);
+    
+    // Calculate response time trend from ALL messages
+    const responseTimeTrend = calculateResponseTimeTrend(messages);
 
     // Anonymize if requested
     const personA = anonymize ? 'Person A' : contactName;
@@ -76,17 +188,17 @@ serve(async (req) => {
       return `[${date} ${time}] ${sender}: ${msg.content}`;
     }).join('\n');
 
-    // Calculate basic stats that don't need AI
+    // Calculate basic stats from ALL messages
     const fromContact = messages.filter(m => m.is_from_contact).length;
     const fromUser = messages.length - fromContact;
     
-    // Calculate response times (simplified)
+    // Calculate response times
     let totalResponseTime = 0;
     let responseCount = 0;
     for (let i = 1; i < messages.length; i++) {
       if (messages[i].is_from_contact !== messages[i - 1].is_from_contact) {
         const diff = new Date(messages[i].sent_at).getTime() - new Date(messages[i - 1].sent_at).getTime();
-        if (diff < 24 * 60 * 60 * 1000) { // Only count if under 24 hours
+        if (diff < 24 * 60 * 60 * 1000) {
           totalResponseTime += diff;
           responseCount++;
         }
@@ -94,19 +206,19 @@ serve(async (req) => {
     }
     const avgResponseMinutes = responseCount > 0 ? Math.round(totalResponseTime / responseCount / 60000) : 0;
 
-    // Calculate initiation (who starts conversations after gaps)
+    // Calculate initiation
     let initiationByContact = 0;
     let totalInitiations = 0;
     for (let i = 1; i < messages.length; i++) {
       const gap = new Date(messages[i].sent_at).getTime() - new Date(messages[i - 1].sent_at).getTime();
-      if (gap > 4 * 60 * 60 * 1000) { // 4 hour gap = new conversation
+      if (gap > 4 * 60 * 60 * 1000) {
         totalInitiations++;
         if (messages[i].is_from_contact) initiationByContact++;
       }
     }
     const initiationRatio = totalInitiations > 0 ? initiationByContact / totalInitiations : 0.5;
 
-    // Peak hours analysis
+    // Peak hours and days from ALL messages
     const hourCounts: Record<number, number> = {};
     const dayCounts: Record<string, number> = {};
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -131,14 +243,17 @@ serve(async (req) => {
       .slice(0, 3)
       .map(([day]) => day);
 
-    // Calculate average message lengths
+    // Message lengths
     const contactMsgLengths = messages.filter(m => m.is_from_contact).map(m => m.content.length);
     const userMsgLengths = messages.filter(m => !m.is_from_contact).map(m => m.content.length);
     const avgContactLength = contactMsgLengths.length > 0 ? Math.round(contactMsgLengths.reduce((a, b) => a + b, 0) / contactMsgLengths.length) : 0;
     const avgUserLength = userMsgLengths.length > 0 ? Math.round(userMsgLengths.reduce((a, b) => a + b, 0) / userMsgLengths.length) : 0;
 
-    // Use AI for sentiment, topics, intents, and insights
-    const aiPrompt = `Analyze this conversation between ${personA} and ${personB}. Provide a JSON response with the following structure:
+    // Enhanced AI prompt with anomaly detection
+    const dateRangeStart = messages[0].sent_at.split('T')[0];
+    const dateRangeEnd = messages[messages.length - 1].sent_at.split('T')[0];
+    
+    const aiPrompt = `Analyze this conversation between ${personA} and ${personB} spanning from ${dateRangeStart} to ${dateRangeEnd} (${messages.length} total messages, ${messagesToAnalyze.length} shown). Provide a comprehensive JSON response:
 
 {
   "sentiment": {
@@ -151,24 +266,49 @@ serve(async (req) => {
     "informational": number,
     "confirmations": number,
     "greetings": number,
-    "emotional_support": number
+    "emotional_support": number,
+    "planning": number,
+    "jokes_humor": number
   },
   "topics": [
-    {"topic": "string", "frequency": number, "sentiment": 0.0-1.0}
+    {"topic": "string", "frequency": number, "sentiment": 0.0-1.0, "first_mentioned": "YYYY-MM", "last_mentioned": "YYYY-MM"}
   ],
+  "anomalies": [
+    {
+      "type": "silent_period/sentiment_shift/topic_change/pattern_change/unusual_timing",
+      "description": "Detailed description of what was unusual",
+      "period": "YYYY-MM or date range",
+      "severity": "low/medium/high",
+      "potential_cause": "Possible explanation"
+    }
+  ],
+  "relationship_health_score": 0-100,
   "insights": [
     "Insight about communication patterns...",
-    "Observation about relationship dynamics...",
+    "Observation about relationship evolution over ${dateRangeStart} to ${dateRangeEnd}...",
+    "Notable changes or trends...",
     "Recommendation for better communication..."
+  ],
+  "recommended_actions": [
+    {"action": "Specific actionable recommendation", "priority": "high/medium/low", "reason": "Why this matters"}
   ]
 }
 
-Be specific and actionable in your insights. Include 5-8 meaningful insights.
+ANALYZE FOR:
+1. Long-term relationship evolution (this spans ${dateRangeStart} to ${dateRangeEnd})
+2. Communication pattern changes over time
+3. Silent periods (gaps of weeks/months) and what might have caused them
+4. Sentiment shifts and their timing
+5. Topic evolution - what used to be discussed vs now
+6. Red flags or concerns in the relationship
+7. Balance and reciprocity in the relationship
+
+Be specific and actionable. Include 8-12 meaningful insights. Detect any anomalies or unusual patterns.
 
 CONVERSATION:
 ${formattedMessages}`;
 
-    console.log('Calling Lovable AI for analysis...');
+    console.log(`Calling Lovable AI (${selectedModel}) for analysis...`);
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -177,12 +317,12 @@ ${formattedMessages}`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: selectedModel,
         messages: [
-          { role: 'system', content: 'You are an expert conversation analyst. Always respond with valid JSON only, no markdown or extra text.' },
+          { role: 'system', content: 'You are an expert conversation analyst specializing in relationship dynamics and communication patterns. Always respond with valid JSON only, no markdown or extra text.' },
           { role: 'user', content: aiPrompt }
         ],
-        max_tokens: 4000,
+        max_tokens: 6000,
         temperature: 0.3,
       }),
     });
@@ -190,6 +330,18 @@ ${formattedMessages}`;
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
       console.error('AI API error:', errorText);
+      if (aiResponse.status === 429) {
+        return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (aiResponse.status === 402) {
+        return new Response(JSON.stringify({ error: 'AI credits exhausted. Please add credits to continue.' }), {
+          status: 402,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
       throw new Error(`AI API error: ${aiResponse.status}`);
     }
 
@@ -201,17 +353,18 @@ ${formattedMessages}`;
     // Parse AI response
     let aiAnalysis;
     try {
-      // Clean up potential markdown code blocks
       const cleanedContent = aiContent.replace(/```json\n?|\n?```/g, '').trim();
       aiAnalysis = JSON.parse(cleanedContent);
     } catch (parseError) {
       console.error('Failed to parse AI response:', aiContent);
-      // Provide defaults if parsing fails
       aiAnalysis = {
         sentiment: { overall: 'neutral', timeline: [] },
         intents: {},
         topics: [],
-        insights: ['Analysis completed but detailed insights could not be extracted.']
+        anomalies: [],
+        relationship_health_score: 50,
+        insights: ['Analysis completed but detailed insights could not be extracted.'],
+        recommended_actions: []
       };
     }
 
@@ -220,6 +373,8 @@ ${formattedMessages}`;
       conversation_id: conversationId,
       user_id: userId,
       analysis_type: 'full',
+      total_messages_analyzed: messages.length,
+      sampling_strategy: samplingStrategy,
       messaging_patterns: {
         total_messages: messages.length,
         from_contact: fromContact,
@@ -229,18 +384,24 @@ ${formattedMessages}`;
         peak_hours: peakHours,
         most_active_days: mostActiveDays,
       },
+      activity_heatmap: activityHeatmap,
+      response_time_trend: responseTimeTrend,
       sentiment_analysis: aiAnalysis.sentiment || { overall: 'neutral', timeline: [] },
       intent_breakdown: aiAnalysis.intents || {},
       topic_clusters: aiAnalysis.topics || [],
+      anomalies: aiAnalysis.anomalies || [],
+      relationship_health_score: aiAnalysis.relationship_health_score || null,
       communication_dynamics: {
         dominant_speaker: fromUser > fromContact ? 'user' : 'contact',
         balance_score: Math.min(fromContact, fromUser) / Math.max(fromContact, fromUser),
         avg_message_length_user: avgUserLength,
         avg_message_length_contact: avgContactLength,
+        recommended_actions: aiAnalysis.recommended_actions || [],
       },
       insights: aiAnalysis.insights || [],
-      confidence_score: messagesToAnalyze.length >= 100 ? 85 : Math.min(60 + messagesToAnalyze.length / 5, 80),
-      ai_model_used: 'gemini-2.5-flash',
+      confidence_score: messages.length >= 500 ? 90 : messages.length >= 100 ? 80 : Math.min(60 + messages.length / 5, 75),
+      model_used: selectedModel,
+      ai_model_used: selectedModel,
       anonymization_enabled: anonymize,
       message_count_analyzed: messages.length,
       date_range_start: messages[0].sent_at,
