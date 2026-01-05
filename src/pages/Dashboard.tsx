@@ -22,6 +22,8 @@ import { AutoScheduleFollowups } from '@/components/dashboard/AutoScheduleFollow
 import { NetworkGraph } from '@/components/network/NetworkGraph';
 import { ContactGroupsWidget } from '@/components/dashboard/ContactGroupsWidget';
 import { RelationshipScoreCard } from '@/components/dashboard/RelationshipScoreCard';
+import { SecurityAlertsWidget } from '@/components/security/SecurityAlertsWidget';
+import { IntelligenceInsightsWidget } from '@/components/intelligence/IntelligenceInsightsWidget';
 import type { DashletType } from '@/lib/dashletDefinitions';
 
 export default function Dashboard() {
@@ -293,6 +295,10 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         );
+      case 'security-alerts':
+        return <SecurityAlertsWidget />;
+      case 'intelligence-insights':
+        return <IntelligenceInsightsWidget />;
       default:
         return null;
     }

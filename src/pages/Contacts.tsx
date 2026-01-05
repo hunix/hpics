@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,9 +13,12 @@ import { ContactsCardsView } from '@/components/contacts/ContactsCardsView';
 import { ContactsTableView } from '@/components/contacts/ContactsTableView';
 import { ContactsListView } from '@/components/contacts/ContactsListView';
 import { ContactsAvatarsView } from '@/components/contacts/ContactsAvatarsView';
+import { VirtualizedContactsList } from '@/components/contacts/VirtualizedContactsList';
+import { VirtualizedContactsGrid } from '@/components/contacts/VirtualizedContactsGrid';
 import { BulkDeleteDialog } from '@/components/contacts/BulkDeleteDialog';
 import { toast } from 'sonner';
 import { getSubtypesForRelationship } from '@/lib/relationshipSubtypes';
+import { useSecurityMonitor } from '@/hooks/useSecurityMonitor';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Profile = Tables<'profiles'> & { 
@@ -24,10 +27,14 @@ type Profile = Tables<'profiles'> & {
   country?: string | null;
 };
 
+// Threshold for switching to virtualized view
+const VIRTUALIZATION_THRESHOLD = 100;
+
 export default function Contacts() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { trackBulkOperation } = useSecurityMonitor();
   
   // UI State
   const [searchQuery, setSearchQuery] = useState('');
@@ -51,46 +58,53 @@ export default function Contacts() {
   const { data: contacts, isLoading } = useQuery({
     queryKey: ['contacts', user?.id],
     queryFn: async () => {
-      // Fetch profiles - use range to get all contacts (default limit is 1000)
-      let allProfiles: any[] = [];
-      let page = 0;
-      const pageSize = 1000;
-      
-      while (true) {
-        const { data: profiles, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', user!.id)
-          .order('first_name', { ascending: true })
-          .range(page * pageSize, (page + 1) * pageSize - 1);
+      // Optimized query - fetch profiles and personal info in parallel
+      const [profilesResult, personalInfoResult] = await Promise.all([
+        // Fetch all profiles with pagination
+        (async () => {
+          let allProfiles: any[] = [];
+          let page = 0;
+          const pageSize = 1000;
+          
+          while (true) {
+            const { data: profiles, error } = await supabase
+              .from('profiles')
+              .select('id, first_name, last_name, organization, job_title, relationship_type, relationship_subtype, hierarchy_level, tags, avatar_url, is_favorite, created_at')
+              .eq('user_id', user!.id)
+              .order('first_name', { ascending: true })
+              .range(page * pageSize, (page + 1) * pageSize - 1);
+            
+            if (error) throw error;
+            if (!profiles || profiles.length === 0) break;
+            
+            allProfiles = [...allProfiles, ...profiles];
+            if (profiles.length < pageSize) break;
+            page++;
+          }
+          return allProfiles;
+        })(),
         
-        if (error) throw error;
-        if (!profiles || profiles.length === 0) break;
-        
-        allProfiles = [...allProfiles, ...profiles];
-        
-        if (profiles.length < pageSize) break;
-        page++;
-      }
+        // Fetch personal info for countries
+        supabase
+          .from('contact_personal_info')
+          .select('profile_id, main_residence_country')
+          .eq('user_id', user!.id),
+      ]);
       
-      // Fetch personal info for countries
-      const { data: personalInfo } = await supabase
-        .from('contact_personal_info')
-        .select('profile_id, main_residence_country')
-        .eq('user_id', user!.id);
+      const countryMap = new Map(
+        personalInfoResult.data?.map(p => [p.profile_id, p.main_residence_country]) || []
+      );
       
-      // Merge country info into profiles
-      const countryMap = new Map(personalInfo?.map(p => [p.profile_id, p.main_residence_country]) || []);
-      
-      return allProfiles.map(p => ({
+      return profilesResult.map(p => ({
         ...p,
         country: countryMap.get(p.id) || null,
       })) as Profile[];
     },
     enabled: !!user,
+    staleTime: 30000, // Cache for 30 seconds
   });
 
-  // Derive available filters from data
+  // Derive available filters from data - memoized
   const availableRelationships = useMemo(() => {
     if (!contacts) return [];
     const types = new Set(contacts.map(c => c.relationship_type).filter(Boolean));
@@ -103,82 +117,93 @@ export default function Contacts() {
     return Array.from(tags);
   }, [contacts]);
 
-  // Get available subtypes based on selected relationship type
   const availableSubtypes = useMemo(() => {
     if (!relationshipFilter) return [];
     return getSubtypesForRelationship(relationshipFilter);
   }, [relationshipFilter]);
 
-  // Filter and sort contacts
+  // Optimized filter and sort with memoization
   const filteredAndSortedContacts = useMemo(() => {
     if (!contacts) return [];
     
-    let result = [...contacts];
+    let result = contacts;
     
-    // Apply search - now includes relationship_type and relationship_subtype
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(c => 
-        c.first_name?.toLowerCase().includes(query) ||
-        c.last_name?.toLowerCase().includes(query) ||
-        c.organization?.toLowerCase().includes(query) ||
-        c.job_title?.toLowerCase().includes(query) ||
-        c.relationship_type?.toLowerCase().includes(query) ||
-        c.relationship_subtype?.toLowerCase().includes(query)
-      );
+    // Apply filters (creates new array only when needed)
+    if (searchQuery || relationshipFilter || subtypeFilter || tagFilter || favoriteFilter) {
+      result = contacts.filter(c => {
+        // Search filter
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase();
+          const matches = 
+            c.first_name?.toLowerCase().includes(query) ||
+            c.last_name?.toLowerCase().includes(query) ||
+            c.organization?.toLowerCase().includes(query) ||
+            c.job_title?.toLowerCase().includes(query) ||
+            c.relationship_type?.toLowerCase().includes(query) ||
+            c.relationship_subtype?.toLowerCase().includes(query);
+          if (!matches) return false;
+        }
+        
+        // Relationship filter
+        if (relationshipFilter && c.relationship_type !== relationshipFilter) return false;
+        
+        // Subtype filter
+        if (subtypeFilter && c.relationship_subtype !== subtypeFilter) return false;
+        
+        // Tag filter
+        if (tagFilter && !c.tags?.includes(tagFilter)) return false;
+        
+        // Favorite filter
+        if (favoriteFilter && !c.is_favorite) return false;
+        
+        return true;
+      });
     }
     
-    // Apply filters
-    if (relationshipFilter) {
-      result = result.filter(c => c.relationship_type === relationshipFilter);
-    }
-    if (subtypeFilter) {
-      result = result.filter(c => c.relationship_subtype === subtypeFilter);
-    }
-    if (tagFilter) {
-      result = result.filter(c => c.tags?.includes(tagFilter));
-    }
-    if (favoriteFilter) {
-      result = result.filter(c => c.is_favorite);
-    }
+    // Sort (only if needed)
+    const sorted = [...result];
     
-    // Apply sorting
     switch (sortOption) {
       case 'name-asc':
-        result.sort((a, b) => {
+        sorted.sort((a, b) => {
           const aName = `${a.first_name} ${a.last_name}`.toLowerCase();
           const bName = `${b.first_name} ${b.last_name}`.toLowerCase();
           return aName.localeCompare(bName);
         });
         break;
       case 'name-desc':
-        result.sort((a, b) => {
+        sorted.sort((a, b) => {
           const aName = `${a.first_name} ${a.last_name}`.toLowerCase();
           const bName = `${b.first_name} ${b.last_name}`.toLowerCase();
           return bName.localeCompare(aName);
         });
         break;
       case 'recent':
-        result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         break;
       case 'oldest':
-        result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        sorted.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
         break;
       case 'organization':
-        result.sort((a, b) => (a.organization || '').localeCompare(b.organization || ''));
+        sorted.sort((a, b) => (a.organization || '').localeCompare(b.organization || ''));
         break;
       case 'relationship':
-        result.sort((a, b) => (a.relationship_type || '').localeCompare(b.relationship_type || ''));
+        sorted.sort((a, b) => (a.relationship_type || '').localeCompare(b.relationship_type || ''));
         break;
     }
     
-    // Favorites always on top for some sort options
+    // Favorites on top for name sorts
     if (['name-asc', 'name-desc'].includes(sortOption)) {
-      result.sort((a, b) => (b.is_favorite ? 1 : 0) - (a.is_favorite ? 1 : 0));
+      sorted.sort((a, b) => (b.is_favorite ? 1 : 0) - (a.is_favorite ? 1 : 0));
     }
     
-    return result;
+    return sorted;
   }, [contacts, searchQuery, relationshipFilter, subtypeFilter, tagFilter, favoriteFilter, sortOption]);
+
+  // Check if we should use virtualization
+  const useVirtualization = useMemo(() => {
+    return filteredAndSortedContacts.length > VIRTUALIZATION_THRESHOLD;
+  }, [filteredAndSortedContacts.length]);
 
   const toggleFavoriteMutation = useMutation({
     mutationFn: async ({ id, isFavorite }: { id: string; isFavorite: boolean }) => {
@@ -196,10 +221,10 @@ export default function Contacts() {
 
   const bulkDeleteMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      // Delete all related data for each contact
-      // The order matters due to foreign key constraints
+      // Security monitoring for bulk operations
+      trackBulkOperation('bulk_delete_contacts', ids.length);
       
-      // Delete from each related table
+      // Delete all related data for each contact
       await supabase.from('ai_analyses').delete().in('profile_id', ids);
       await supabase.from('behavioral_analyses').delete().in('profile_id', ids);
       await supabase.from('body_language_analyses').delete().in('profile_id', ids);
@@ -236,12 +261,8 @@ export default function Contacts() {
       await supabase.from('contact_relationships').delete().in('from_profile_id', ids);
       await supabase.from('contact_relationships').delete().in('to_profile_id', ids);
 
-      // Finally delete the profiles themselves
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .in('id', ids);
-      
+      // Finally delete profiles
+      const { error } = await supabase.from('profiles').delete().in('id', ids);
       if (error) throw error;
     },
     onSuccess: (_, ids) => {
@@ -256,7 +277,7 @@ export default function Contacts() {
     },
   });
 
-  const handleSelectionChange = (id: string, selected: boolean) => {
+  const handleSelectionChange = useCallback((id: string, selected: boolean) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
       if (selected) {
@@ -266,15 +287,15 @@ export default function Contacts() {
       }
       return next;
     });
-  };
+  }, []);
 
-  const handleSelectAll = (selected: boolean) => {
+  const handleSelectAll = useCallback((selected: boolean) => {
     if (selected) {
       setSelectedIds(new Set(filteredAndSortedContacts.map(c => c.id)));
     } else {
       setSelectedIds(new Set());
     }
-  };
+  }, [filteredAndSortedContacts]);
 
   const relationshipColors: Record<string, string> = {
     family: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
@@ -332,6 +353,38 @@ export default function Contacts() {
       );
     }
 
+    // Use virtualized views for large datasets
+    if (useVirtualization) {
+      switch (viewMode) {
+        case 'table':
+        case 'list':
+          return (
+            <VirtualizedContactsList
+              contacts={filteredAndSortedContacts}
+              selectedIds={selectedIds}
+              onSelectionChange={handleSelectionChange}
+              onToggleFavorite={(id, isFav) => toggleFavoriteMutation.mutate({ id, isFavorite: isFav })}
+              relationshipColors={relationshipColors}
+              viewMode={viewMode}
+            />
+          );
+        case 'avatars':
+        case 'cards':
+        default:
+          return (
+            <VirtualizedContactsGrid
+              contacts={filteredAndSortedContacts}
+              selectedIds={selectedIds}
+              onSelectionChange={handleSelectionChange}
+              onToggleFavorite={(id, isFav) => toggleFavoriteMutation.mutate({ id, isFavorite: isFav })}
+              relationshipColors={relationshipColors}
+              columns={viewMode === 'avatars' ? 6 : 3}
+            />
+          );
+      }
+    }
+
+    // Standard views for smaller datasets
     switch (viewMode) {
       case 'table':
         return (

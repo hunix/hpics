@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, MessageSquare, Calendar, Star, Clock, TrendingUp, BarChart3, Network, Sparkles, UserPlus, Target, Activity } from 'lucide-react';
+import { Users, MessageSquare, Calendar, Star, Clock, TrendingUp, BarChart3, Network, Sparkles, UserPlus, Target, Activity, Shield, Brain } from 'lucide-react';
 
 // All available dashlet types
 export interface DashletConfig {
@@ -23,7 +23,9 @@ export type DashletType =
   | 'contact-groups'
   | 'relationship-scores'
   | 'network-graph'
-  | 'quick-tips';
+  | 'quick-tips'
+  | 'security-alerts'
+  | 'intelligence-insights';
 
 export interface DashletDefinition {
   type: DashletType;
@@ -136,8 +138,24 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Quick Tips',
     description: 'Helpful tips for using the CRM',
     icon: TrendingUp,
+    defaultVisible: false,
+    category: 'tools',
+  },
+  {
+    type: 'security-alerts',
+    title: 'Security Alerts',
+    description: 'Real-time security monitoring and threat detection',
+    icon: Shield,
     defaultVisible: true,
     category: 'tools',
+  },
+  {
+    type: 'intelligence-insights',
+    title: 'Intelligence Insights',
+    description: 'AI-powered network analysis and predictions',
+    icon: Brain,
+    defaultVisible: true,
+    category: 'ai',
   },
 ];
 

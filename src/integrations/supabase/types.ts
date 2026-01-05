@@ -1731,6 +1731,39 @@ export type Database = {
         }
         Relationships: []
       }
+      data_access_patterns: {
+        Row: {
+          access_count: number | null
+          created_at: string
+          hourly_pattern: Json | null
+          id: string
+          last_accessed_at: string | null
+          table_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_count?: number | null
+          created_at?: string
+          hourly_pattern?: Json | null
+          id?: string
+          last_accessed_at?: string | null
+          table_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_count?: number | null
+          created_at?: string
+          hourly_pattern?: Json | null
+          id?: string
+          last_accessed_at?: string | null
+          table_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       document_embeddings: {
         Row: {
           content: string
@@ -2798,6 +2831,84 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      security_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          alert_type: string
+          category: string
+          created_at: string
+          description: string
+          id: string
+          is_acknowledged: boolean | null
+          metadata: Json | null
+          severity: string
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          alert_type: string
+          category: string
+          created_at?: string
+          description: string
+          id?: string
+          is_acknowledged?: boolean | null
+          metadata?: Json | null
+          severity?: string
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          alert_type?: string
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_acknowledged?: boolean | null
+          metadata?: Json | null
+          severity?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      security_audit_logs: {
+        Row: {
+          action_type: string
+          created_at: string
+          data_classification: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          record_id: string | null
+          table_name: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          data_classification?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          record_id?: string | null
+          table_name: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          data_classification?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          record_id?: string | null
+          table_name?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       shared_experiences: {
         Row: {
