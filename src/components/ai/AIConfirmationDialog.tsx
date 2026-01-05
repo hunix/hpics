@@ -1,6 +1,6 @@
+import { useState } from 'react';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -8,17 +8,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Brain, DollarSign, Zap, FileText, AlertTriangle } from 'lucide-react';
+import { Brain, DollarSign, Zap, FileText, AlertTriangle, Loader2 } from 'lucide-react';
 import { AIConfirmationState } from '@/hooks/useAIConfirmation';
 import { AI_MODEL_PRICING, formatCentsToUSD, getProviderColor } from '@/lib/aiPricing';
 import { useAIBudget } from '@/hooks/useAIBudget';
 
 interface AIConfirmationDialogProps {
   state: AIConfirmationState;
-  onConfirm: () => void;
+  onConfirm: () => Promise<void> | void;
   onCancel: () => void;
 }
 
@@ -29,6 +30,7 @@ export function AIConfirmationDialog({
 }: AIConfirmationDialogProps) {
   const { isOpen, config, estimatedInputTokens, estimatedOutputTokens, estimatedCostCents } = state;
   const budget = useAIBudget();
+  const [isConfirming, setIsConfirming] = useState(false);
 
   if (!config) return null;
 
@@ -36,8 +38,24 @@ export function AIConfirmationDialog({
   const providerColor = getProviderColor(pricing?.provider || 'unknown');
   const budgetWarning = budget.wouldExceedBudget(estimatedCostCents);
 
+  const handleConfirm = async () => {
+    setIsConfirming(true);
+    try {
+      await onConfirm();
+    } finally {
+      setIsConfirming(false);
+    }
+  };
+
+  // Only allow cancel via the cancel button, not via backdrop click during confirmation
+  const handleOpenChange = (open: boolean) => {
+    if (!open && !isConfirming) {
+      onCancel();
+    }
+  };
+
   return (
-    <AlertDialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
+    <AlertDialog open={isOpen} onOpenChange={handleOpenChange}>
       <AlertDialogContent className="max-w-md">
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
@@ -125,10 +143,19 @@ export function AIConfirmationDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onCancel}>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>
-            Run Analysis
-          </AlertDialogAction>
+          <AlertDialogCancel onClick={onCancel} disabled={isConfirming}>
+            Cancel
+          </AlertDialogCancel>
+          <Button onClick={handleConfirm} disabled={isConfirming}>
+            {isConfirming ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              'Run Analysis'
+            )}
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
