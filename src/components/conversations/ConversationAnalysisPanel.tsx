@@ -397,7 +397,14 @@ export function ConversationAnalysisPanel({
           <CardContent>
             <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
               <span>Analyzed: {format(new Date(analysis.created_at), 'MMM d, yyyy h:mm a')}</span>
-              <Badge variant="outline">{analysis.total_messages_analyzed?.toLocaleString() || analysis.message_count_analyzed?.toLocaleString()} messages</Badge>
+              <Badge variant="outline">
+                {analysis.total_messages_analyzed?.toLocaleString() || analysis.message_count_analyzed?.toLocaleString()} / {messageCount?.toLocaleString()} messages
+              </Badge>
+              {(analysis.total_messages_analyzed || analysis.message_count_analyzed || 0) < messageCount && (
+                <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                  Older analysis - click Re-analyze
+                </Badge>
+              )}
               <Badge variant="outline">Confidence: {analysis.confidence_score}%</Badge>
               <Badge variant="outline">{analysis.model_used || analysis.ai_model_used}</Badge>
               {analysis.sampling_strategy && analysis.sampling_strategy !== 'full' && (

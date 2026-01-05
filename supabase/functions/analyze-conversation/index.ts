@@ -2,10 +2,22 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const FUNCTION_VERSION = "2026-01-05-paginated-v3";
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Get model-specific API parameters
+function getModelParams(model: string): { maxTokensKey: string, includeTemperature: boolean } {
+  // OpenAI GPT-5 and newer models use max_completion_tokens and don't support temperature
+  if (model.startsWith('openai/gpt-5') || model.startsWith('openai/o3') || model.startsWith('openai/o4')) {
+    return { maxTokensKey: 'max_completion_tokens', includeTemperature: false };
+  }
+  // All other models (Gemini, older OpenAI) use max_tokens and support temperature
+  return { maxTokensKey: 'max_tokens', includeTemperature: true };
+}
 
 // Paginated fetch to get ALL messages
 async function fetchAllMessages(supabase: any, conversationId: string) {
@@ -124,6 +136,8 @@ function calculateResponseTimeTrend(messages: any[]): any[] {
 }
 
 serve(async (req) => {
+  console.log(`=== ANALYZE-CONVERSATION ${FUNCTION_VERSION} ===`);
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -131,13 +145,15 @@ serve(async (req) => {
   try {
     const { conversationId, anonymize = true, userId, model } = await req.json();
     
+    console.log(`Request params: conversationId=${conversationId}, userId=${userId}, model=${model}, anonymize=${anonymize}`);
+    
     if (!conversationId || !userId) {
       throw new Error('conversationId and userId are required');
     }
 
     // Use provided model or default
     const selectedModel = model || 'google/gemini-2.5-flash';
-    console.log(`Starting conversation analysis for ${conversationId}, model: ${selectedModel}, anonymize: ${anonymize}`);
+    console.log(`Selected model: ${selectedModel}`);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -310,21 +326,29 @@ ${formattedMessages}`;
 
     console.log(`Calling Lovable AI (${selectedModel}) for analysis...`);
 
+    // Build request body with model-specific parameters
+    const { maxTokensKey, includeTemperature } = getModelParams(selectedModel);
+    const requestBody: any = {
+      model: selectedModel,
+      messages: [
+        { role: 'system', content: 'You are an expert conversation analyst specializing in relationship dynamics and communication patterns. Always respond with valid JSON only, no markdown or extra text.' },
+        { role: 'user', content: aiPrompt }
+      ],
+      [maxTokensKey]: 6000,
+    };
+    if (includeTemperature) {
+      requestBody.temperature = 0.3;
+    }
+    
+    console.log(`AI request params: ${maxTokensKey}=6000, temperature=${includeTemperature ? '0.3' : 'N/A'}`);
+
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: selectedModel,
-        messages: [
-          { role: 'system', content: 'You are an expert conversation analyst specializing in relationship dynamics and communication patterns. Always respond with valid JSON only, no markdown or extra text.' },
-          { role: 'user', content: aiPrompt }
-        ],
-        max_tokens: 6000,
-        temperature: 0.3,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!aiResponse.ok) {
