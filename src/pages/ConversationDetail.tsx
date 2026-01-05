@@ -27,7 +27,8 @@ import {
   Play, FileText, Mic
 } from 'lucide-react';
 
-const BATCH_SIZE = 100;
+const INITIAL_LOAD = 30;
+const BATCH_SIZE = 50;
 
 const platformIcons: Record<string, any> = {
   sms: Smartphone,
@@ -139,12 +140,13 @@ export default function ConversationDetail() {
   } = useInfiniteQuery({
     queryKey: ['conversation-messages', conversationId],
     queryFn: async ({ pageParam }) => {
+      const limit = pageParam ? BATCH_SIZE : INITIAL_LOAD; // First page is smaller
       let query = supabase
         .from('messages')
         .select('id, content, is_from_contact, sent_at, media_id, media_filename, media_type, media:media_id(id, file_url, mime_type, storage_path)')
         .eq('conversation_id', conversationId!)
         .order('sent_at', { ascending: false })
-        .limit(BATCH_SIZE);
+        .limit(limit);
 
       if (pageParam) {
         query = query.lt('sent_at', pageParam);
@@ -154,8 +156,10 @@ export default function ConversationDetail() {
       if (error) throw error;
       return (data || []) as unknown as Message[];
     },
-    getNextPageParam: (lastPage) => {
-      if (lastPage.length < BATCH_SIZE) return undefined;
+    getNextPageParam: (lastPage, allPages) => {
+      // Stop if we got less than expected (first page uses INITIAL_LOAD, rest use BATCH_SIZE)
+      const expectedSize = allPages.length === 1 ? INITIAL_LOAD : BATCH_SIZE;
+      if (lastPage.length < expectedSize) return undefined;
       return lastPage[lastPage.length - 1]?.sent_at;
     },
     initialPageParam: null as string | null,
@@ -193,21 +197,33 @@ export default function ConversationDetail() {
 
   // Virtualizer
   const virtualizer = useVirtualizer({
-    count: messages.length + (hasNextPage ? 1 : 0),
+    count: messages.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 80,
-    overscan: 15,
+    overscan: 10,
   });
 
-  // Load more when scrolling to top (older messages)
+  // Stable ref for scroll handler to prevent infinite loops
+  const loadMoreRef = useRef({ hasNextPage, isFetchingNextPage, fetchNextPage });
+  loadMoreRef.current = { hasNextPage, isFetchingNextPage, fetchNextPage };
+
+  // Handle scroll to load more - attached to scroll element, not virtualizer
   useEffect(() => {
-    const [firstItem] = virtualizer.getVirtualItems();
-    if (!firstItem) return;
-    
-    if (firstItem.index === 0 && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }, [virtualizer.getVirtualItems(), hasNextPage, isFetchingNextPage, fetchNextPage]);
+    const scrollElement = parentRef.current;
+    if (!scrollElement) return;
+
+    const handleScroll = () => {
+      const { hasNextPage, isFetchingNextPage, fetchNextPage } = loadMoreRef.current;
+      
+      // Load more when near the top (for older messages)
+      if (scrollElement.scrollTop < 200 && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
+      }
+    };
+
+    scrollElement.addEventListener('scroll', handleScroll, { passive: true });
+    return () => scrollElement.removeEventListener('scroll', handleScroll);
+  }, []); // Empty deps - uses refs for values
 
   // Search through messages
   useEffect(() => {
