@@ -7,13 +7,20 @@
  * - Grandparent/grandchild chains
  * - Uncle/aunt from parent's siblings
  * - Cousins from uncle/aunt's children
+ * 
+ * Generation calculation is anchor-based:
+ * - Anchor person (YOU) = Gen 0
+ * - Parents = Gen -1, Grandparents = Gen -2
+ * - Children = Gen +1, Grandchildren = Gen +2
+ * - Siblings/Spouses share the same generation
  */
 
 export interface FamilyMember {
   id: string;
   name: string;
   avatar?: string | null;
-  generation: number; // 0 = oldest, higher = younger
+  generation: number; // 0 = anchor (YOU), negative = ancestors, positive = descendants
+  isSelf?: boolean;
 }
 
 export interface FamilyLink {
@@ -49,27 +56,27 @@ const GRANDPARENT_LABELS = new Set(['grandfather', 'grandmother', 'grandparent']
 const GRANDCHILD_LABELS = new Set(['grandson', 'granddaughter', 'grandchild']);
 
 function isParentLabel(label: string): boolean {
-  return PARENT_LABELS.has(label);
+  return PARENT_LABELS.has(label.toLowerCase());
 }
 
 function isChildLabel(label: string): boolean {
-  return CHILD_LABELS.has(label);
+  return CHILD_LABELS.has(label.toLowerCase());
 }
 
 function isSpouseLabel(label: string): boolean {
-  return SPOUSE_LABELS.has(label);
+  return SPOUSE_LABELS.has(label.toLowerCase());
 }
 
 function isSiblingLabel(label: string): boolean {
-  return SIBLING_LABELS.has(label);
+  return SIBLING_LABELS.has(label.toLowerCase());
 }
 
 function isGrandparentLabel(label: string): boolean {
-  return GRANDPARENT_LABELS.has(label);
+  return GRANDPARENT_LABELS.has(label.toLowerCase());
 }
 
 function isGrandchildLabel(label: string): boolean {
-  return GRANDCHILD_LABELS.has(label);
+  return GRANDCHILD_LABELS.has(label.toLowerCase());
 }
 
 interface ProfileInfo {
@@ -77,11 +84,13 @@ interface ProfileInfo {
   first_name: string;
   last_name: string | null;
   avatar_url: string | null;
+  is_self_profile?: boolean;
 }
 
 export function buildFamilyGraph(
   relationships: RawRelationship[],
-  profiles: Map<string, ProfileInfo>
+  profiles: Map<string, ProfileInfo>,
+  anchorProfileId?: string | null
 ): FamilyGraph {
   const members = new Map<string, FamilyMember>();
   const linksMap = new Map<string, FamilyLink>(); // key: "source-target-type" to prevent duplicates
@@ -107,6 +116,7 @@ export function buildFamilyGraph(
         name: profile ? `${profile.first_name} ${profile.last_name || ''}`.trim() : 'Unknown',
         avatar: profile?.avatar_url,
         generation: 0, // Will be computed later
+        isSelf: profile?.is_self_profile || false,
       });
     }
   };
@@ -148,42 +158,42 @@ export function buildFamilyGraph(
     ensureMember(from);
     ensureMember(to);
 
+    const labelLower = label.toLowerCase();
+
     // Determine relationship type and add to lookup structures
-    if (isParentLabel(label)) {
+    if (isParentLabel(labelLower)) {
       // "from" is parent of "to"
       addToSetMap(parents, to, from);
       addToSetMap(children, from, to);
       addLink(from, to, label, inverse_label || 'Child', 'parent-child', is_inferred || false);
-    } else if (isChildLabel(label)) {
+    } else if (isChildLabel(labelLower)) {
       // "from" is child of "to"
       addToSetMap(parents, from, to);
       addToSetMap(children, to, from);
       addLink(to, from, inverse_label || 'Parent', label, 'parent-child', is_inferred || false);
-    } else if (isSpouseLabel(label)) {
+    } else if (isSpouseLabel(labelLower)) {
       addToSetMap(spouses, from, to);
       addToSetMap(spouses, to, from);
       addLink(from, to, label, inverse_label || 'Spouse', 'spouse', is_inferred || false);
-    } else if (isSiblingLabel(label)) {
+    } else if (isSiblingLabel(labelLower)) {
       addToSetMap(siblings, from, to);
       addToSetMap(siblings, to, from);
       addLink(from, to, label, inverse_label || 'Sibling', 'sibling', is_inferred || false);
-    } else if (isGrandparentLabel(label)) {
+    } else if (isGrandparentLabel(labelLower)) {
       // Grandparent relationship - still parent-child but across 2 generations
       addLink(from, to, label, inverse_label || 'Grandchild', 'parent-child', is_inferred || false);
-    } else if (isGrandchildLabel(label)) {
+    } else if (isGrandchildLabel(labelLower)) {
       addLink(to, from, inverse_label || 'Grandparent', label, 'parent-child', is_inferred || false);
     }
   }
 
   // Inference: siblings from shared parents
-  // If A and B have the same parent, they are siblings
   parents.forEach((parentSet, child) => {
     parentSet.forEach(parent => {
       const otherChildren = children.get(parent);
       if (otherChildren) {
         otherChildren.forEach(sibling => {
           if (sibling !== child) {
-            // They share a parent, so they're siblings
             if (!siblings.get(child)?.has(sibling)) {
               addToSetMap(siblings, child, sibling);
               addToSetMap(siblings, sibling, child);
@@ -196,13 +206,11 @@ export function buildFamilyGraph(
   });
 
   // Inference: grandparent from parent chain
-  // If A is parent of B, and B is parent of C, then A is grandparent of C
   children.forEach((directChildren, parent) => {
     directChildren.forEach(child => {
       const grandchildren = children.get(child);
       if (grandchildren) {
         grandchildren.forEach(grandchild => {
-          // Check if this grandparent link already exists
           const existingKey = `${parent}-${grandchild}-parent-child`;
           if (!linksMap.has(existingKey)) {
             addLink(parent, grandchild, 'Grandparent', 'Grandchild', 'parent-child', true);
@@ -213,13 +221,11 @@ export function buildFamilyGraph(
   });
 
   // Inference: uncle/aunt from parent's siblings
-  // If A is sibling of B, and B is parent of C, then A is uncle/aunt of C
   siblings.forEach((siblingSet, person) => {
     const personChildren = children.get(person);
     if (personChildren) {
       siblingSet.forEach(sibling => {
         personChildren.forEach(child => {
-          // sibling is uncle/aunt of child
           const key = `${sibling}-${child}-parent-child`;
           if (!linksMap.has(key)) {
             addLink(sibling, child, 'Uncle/Aunt', 'Nephew/Niece', 'parent-child', true);
@@ -229,25 +235,34 @@ export function buildFamilyGraph(
     }
   });
 
-  // Compute generations using BFS from roots (people with no parents)
+  // Determine the anchor profile
+  let effectiveAnchorId = anchorProfileId;
+  
+  // If no anchor specified, try to find the self profile
+  if (!effectiveAnchorId) {
+    for (const [id, member] of members) {
+      if (member.isSelf) {
+        effectiveAnchorId = id;
+        break;
+      }
+    }
+  }
+  
+  // If still no anchor, pick the first member
+  if (!effectiveAnchorId && members.size > 0) {
+    effectiveAnchorId = members.keys().next().value;
+  }
+
+  // Compute generations using BFS from anchor (anchor = Gen 0)
   const computeGenerations = () => {
+    if (!effectiveAnchorId || members.size === 0) return;
+
     const visited = new Set<string>();
     const queue: Array<{ id: string; gen: number }> = [];
     
-    // Find roots (people with no known parents)
-    members.forEach((_, id) => {
-      if (!parents.has(id) || parents.get(id)!.size === 0) {
-        queue.push({ id, gen: 0 });
-      }
-    });
+    // Start from anchor as Gen 0
+    queue.push({ id: effectiveAnchorId, gen: 0 });
 
-    // If no roots found, pick any member
-    if (queue.length === 0 && members.size > 0) {
-      const firstId = members.keys().next().value;
-      if (firstId) queue.push({ id: firstId, gen: 0 });
-    }
-
-    // BFS to assign generations
     while (queue.length > 0) {
       const { id, gen } = queue.shift()!;
       if (visited.has(id)) continue;
@@ -258,7 +273,17 @@ export function buildFamilyGraph(
         member.generation = gen;
       }
 
-      // Children are one generation below
+      // Parents are one generation above (negative = older)
+      const myParents = parents.get(id);
+      if (myParents) {
+        myParents.forEach(parentId => {
+          if (!visited.has(parentId)) {
+            queue.push({ id: parentId, gen: gen - 1 });
+          }
+        });
+      }
+
+      // Children are one generation below (positive = younger)
       const myChildren = children.get(id);
       if (myChildren) {
         myChildren.forEach(childId => {
@@ -356,4 +381,19 @@ export function getInferredRelationships(
   });
 
   return inferred;
+}
+
+/**
+ * Get generation label for display
+ */
+export function getGenerationLabel(gen: number, anchorName?: string): string {
+  if (gen === 0) return anchorName ? `You (${anchorName})` : 'You';
+  if (gen === -1) return 'Parents';
+  if (gen === -2) return 'Grandparents';
+  if (gen === -3) return 'Great-Grandparents';
+  if (gen === 1) return 'Children';
+  if (gen === 2) return 'Grandchildren';
+  if (gen === 3) return 'Great-Grandchildren';
+  if (gen < 0) return `Gen ${gen}`;
+  return `Gen +${gen}`;
 }

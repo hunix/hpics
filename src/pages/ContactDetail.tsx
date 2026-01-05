@@ -10,12 +10,13 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { 
   ArrowLeft, Edit, Trash2, Star, Brain, 
   User, MessageSquare, Briefcase, GraduationCap,
   FileText, Image, Target, Gift, Heart, Clock,
   Calendar, Sparkles, Users, ChevronRight, Building,
-  Mic, Eye, Activity, Volume2, UserCircle, GitCompare, Wallet, Link2, Mail
+  Mic, Eye, Activity, Volume2, UserCircle, GitCompare, Wallet, Link2, Mail, UserCheck
 } from 'lucide-react';
 import { ContactDialog } from '@/components/contacts/ContactDialog';
 import { ContactMethodsManager } from '@/components/contacts/ContactMethodsManager';
@@ -112,6 +113,7 @@ export default function ContactDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [activeSection, setActiveSection] = useState<SectionId>('overview');
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -169,6 +171,7 @@ export default function ContactDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contact', id] });
       queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      queryClient.invalidateQueries({ queryKey: ['family-relationships'] });
     },
   });
 
@@ -364,6 +367,37 @@ export default function ContactDetail() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <Button 
+                variant={(contact as any).is_self_profile ? "default" : "outline"} 
+                size="sm"
+                onClick={async () => {
+                  // Clear any existing self profile first
+                  if (!(contact as any).is_self_profile) {
+                    await supabase
+                      .from('profiles')
+                      .update({ is_self_profile: false })
+                      .eq('user_id', user!.id)
+                      .eq('is_self_profile', true);
+                  }
+                  // Toggle this profile
+                  await supabase
+                    .from('profiles')
+                    .update({ is_self_profile: !(contact as any).is_self_profile })
+                    .eq('id', id);
+                  queryClient.invalidateQueries({ queryKey: ['contact', id] });
+                  queryClient.invalidateQueries({ queryKey: ['contacts'] });
+                  queryClient.invalidateQueries({ queryKey: ['family-relationships'] });
+                  toast({ 
+                    title: (contact as any).is_self_profile 
+                      ? 'Removed "This is me" marker' 
+                      : 'Marked as "This is me"' 
+                  });
+                }}
+                title="Mark this contact as yourself for family tree anchoring"
+              >
+                <UserCheck className={`h-4 w-4 mr-1 ${(contact as any).is_self_profile ? '' : 'opacity-50'}`} />
+                {(contact as any).is_self_profile ? 'This is me' : 'Set as me'}
+              </Button>
               <Button variant="ghost" size="icon" onClick={() => toggleFavoriteMutation.mutate()}>
                 <Star className={`h-5 w-5 ${contact.is_favorite ? 'fill-yellow-400 text-yellow-400' : ''}`} />
               </Button>
