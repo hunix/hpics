@@ -18,7 +18,7 @@ interface MediaItem {
 interface MediaDetailViewProps {
   items: MediaItem[];
   getMediaUrl: (item: MediaItem) => string | null;
-  onView: (url: string) => void;
+  onView: (url: string, mimeType: string | null) => void;
   onDelete: (id: string) => void;
 }
 
@@ -37,7 +37,7 @@ function formatFileSize(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function MediaPreview({ item, url, onView }: { item: MediaItem; url: string | null; onView: (url: string) => void }) {
+function MediaPreview({ item, url, onView }: { item: MediaItem; url: string | null; onView: (url: string, mimeType: string | null) => void }) {
   if (!url) {
     return (
       <div className="w-full h-48 bg-muted flex items-center justify-center">
@@ -51,7 +51,7 @@ function MediaPreview({ item, url, onView }: { item: MediaItem; url: string | nu
       <video
         src={url}
         className="w-full h-48 object-cover cursor-pointer"
-        onClick={() => onView(url)}
+        onClick={() => onView(url, item.mime_type)}
       />
     );
   }
@@ -70,7 +70,7 @@ function MediaPreview({ item, url, onView }: { item: MediaItem; url: string | nu
       src={url}
       alt={item.caption || 'Media'}
       className="w-full h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity"
-      onClick={() => onView(url)}
+      onClick={() => onView(url, item.mime_type)}
     />
   );
 }

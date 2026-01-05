@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Image, Trash2, Plus, X } from 'lucide-react';
+import { Image, Trash2, Plus, X, Play, Music } from 'lucide-react';
 import { MediaUpload } from '@/components/uploads/MediaUpload';
 import { getSignedUrls } from '@/hooks/useSignedUrl';
 import { FileManagerToolbar, type FilterOption } from './FileManagerToolbar';
@@ -50,7 +50,7 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
   const { preferences, updateMediaViewMode, updateMediaItemsPerPage } = useFileViewPreferences();
   
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [lightboxItem, setLightboxItem] = useState<{ url: string; mimeType: string | null } | null>(null);
   const [signedUrls, setSignedUrls] = useState<Map<string, string>>(new Map());
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
@@ -200,25 +200,54 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
     );
   }
 
+  const handleOpenLightbox = (url: string, mimeType: string | null) => {
+    setLightboxItem({ url, mimeType });
+  };
+
   const renderGridView = () => (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
       {paginatedMedia.map((item) => {
         const url = getMediaUrl(item);
+        const isVideo = item.mime_type?.startsWith('video/');
+        const isAudio = item.mime_type?.startsWith('audio/');
+        
         return (
           <div key={item.id} className="group relative aspect-square rounded-lg overflow-hidden border">
             {url ? (
-              item.mime_type?.startsWith('video/') ? (
-                <video
-                  src={url}
-                  className="w-full h-full object-cover cursor-pointer"
-                  onClick={() => setLightboxImage(url)}
-                />
+              isAudio ? (
+                // Audio: Dark background with music icon
+                <div 
+                  className="w-full h-full flex flex-col items-center justify-center bg-muted cursor-pointer"
+                  onClick={() => handleOpenLightbox(url, item.mime_type)}
+                >
+                  <Music className="h-10 w-10 text-muted-foreground mb-2" />
+                  <span className="text-xs text-muted-foreground">Audio</span>
+                </div>
+              ) : isVideo ? (
+                // Video: Thumbnail with play overlay
+                <div className="relative w-full h-full">
+                  <video
+                    src={url}
+                    className="w-full h-full object-cover"
+                    muted
+                    preload="metadata"
+                  />
+                  <div 
+                    className="absolute inset-0 flex items-center justify-center cursor-pointer"
+                    onClick={() => handleOpenLightbox(url, item.mime_type)}
+                  >
+                    <div className="bg-black/50 rounded-full p-3">
+                      <Play className="h-6 w-6 text-white fill-white" />
+                    </div>
+                  </div>
+                </div>
               ) : (
+                // Image
                 <img
                   src={url}
                   alt={item.caption || 'Media'}
                   className="w-full h-full object-cover cursor-pointer transition-transform group-hover:scale-105"
-                  onClick={() => setLightboxImage(url)}
+                  onClick={() => handleOpenLightbox(url, item.mime_type)}
                 />
               )
             ) : (
@@ -226,14 +255,14 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
                 <Image className="h-8 w-8 text-muted-foreground animate-pulse" />
               </div>
             )}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors pointer-events-none" />
             <Button
               variant="destructive"
               size="icon"
               className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={(e) => {
                 e.stopPropagation();
-                if (confirm('Delete this image?')) {
+                if (confirm('Delete this media?')) {
                   handleDelete(item.id);
                 }
               }}
@@ -241,7 +270,7 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
               <Trash2 className="h-3 w-3" />
             </Button>
             {item.caption && (
-              <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent">
+              <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent pointer-events-none">
                 <p className="text-xs text-white truncate">{item.caption}</p>
               </div>
             )}
@@ -297,7 +326,7 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
                     <MediaListView
                       items={paginatedMedia}
                       getMediaUrl={getMediaUrl}
-                      onView={setLightboxImage}
+                      onView={(url, mimeType) => handleOpenLightbox(url, mimeType)}
                       onDelete={handleDelete}
                     />
                   )}
@@ -305,7 +334,7 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
                     <MediaDetailView
                       items={paginatedMedia}
                       getMediaUrl={getMediaUrl}
-                      onView={setLightboxImage}
+                      onView={(url, mimeType) => handleOpenLightbox(url, mimeType)}
                       onDelete={handleDelete}
                     />
                   )}
@@ -337,26 +366,32 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
       />
 
       {/* Lightbox */}
-      <Dialog open={!!lightboxImage} onOpenChange={() => setLightboxImage(null)}>
+      <Dialog open={!!lightboxItem} onOpenChange={() => setLightboxItem(null)}>
         <DialogContent className="max-w-4xl p-0 overflow-hidden">
           <Button
             variant="ghost"
             size="icon"
             className="absolute top-2 right-2 z-10 bg-black/50 hover:bg-black/70 text-white"
-            onClick={() => setLightboxImage(null)}
+            onClick={() => setLightboxItem(null)}
           >
             <X className="h-4 w-4" />
           </Button>
-          {lightboxImage && (
-            lightboxImage.includes('video') ? (
+          {lightboxItem && (
+            lightboxItem.mimeType?.startsWith('video/') ? (
               <video
-                src={lightboxImage}
+                src={lightboxItem.url}
                 controls
+                autoPlay
                 className="w-full h-auto max-h-[80vh]"
               />
+            ) : lightboxItem.mimeType?.startsWith('audio/') ? (
+              <div className="bg-muted p-12 flex flex-col items-center gap-6">
+                <Music className="h-20 w-20 text-muted-foreground" />
+                <audio src={lightboxItem.url} controls autoPlay className="w-full max-w-md" />
+              </div>
             ) : (
               <img
-                src={lightboxImage}
+                src={lightboxItem.url}
                 alt="Full size"
                 className="w-full h-auto max-h-[80vh] object-contain"
               />
