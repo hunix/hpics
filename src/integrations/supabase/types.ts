@@ -2401,6 +2401,9 @@ export type Database = {
           created_at: string
           id: string
           is_from_contact: boolean
+          media_filename: string | null
+          media_id: string | null
+          media_type: string | null
           metadata: Json | null
           sent_at: string
           user_id: string
@@ -2413,6 +2416,9 @@ export type Database = {
           created_at?: string
           id?: string
           is_from_contact?: boolean
+          media_filename?: string | null
+          media_id?: string | null
+          media_type?: string | null
           metadata?: Json | null
           sent_at?: string
           user_id: string
@@ -2425,6 +2431,9 @@ export type Database = {
           created_at?: string
           id?: string
           is_from_contact?: boolean
+          media_filename?: string | null
+          media_id?: string | null
+          media_type?: string | null
           metadata?: Json | null
           sent_at?: string
           user_id?: string
@@ -2437,6 +2446,13 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
             referencedColumns: ["id"]
           },
         ]
