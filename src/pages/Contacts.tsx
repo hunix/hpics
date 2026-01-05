@@ -131,16 +131,19 @@ export default function Contacts() {
     // Apply filters (creates new array only when needed)
     if (searchQuery || relationshipFilter || subtypeFilter || tagFilter || favoriteFilter) {
       result = contacts.filter(c => {
-        // Search filter
+        // Search filter - multi-word matching
         if (searchQuery) {
-          const query = searchQuery.toLowerCase();
-          const matches = 
-            c.first_name?.toLowerCase().includes(query) ||
-            c.last_name?.toLowerCase().includes(query) ||
-            c.organization?.toLowerCase().includes(query) ||
-            c.job_title?.toLowerCase().includes(query) ||
-            c.relationship_type?.toLowerCase().includes(query) ||
-            c.relationship_subtype?.toLowerCase().includes(query);
+          const searchTerms = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
+          const contactText = [
+            c.first_name,
+            c.last_name,
+            c.organization,
+            c.job_title,
+            c.relationship_type,
+            c.relationship_subtype
+          ].filter(Boolean).join(' ').toLowerCase();
+          
+          const matches = searchTerms.every(term => contactText.includes(term));
           if (!matches) return false;
         }
         
