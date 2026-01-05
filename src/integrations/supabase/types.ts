@@ -2977,6 +2977,10 @@ export type Database = {
           documents_view_mode: string | null
           email_reminders: boolean | null
           id: string
+          main_documents_items_per_page: number | null
+          main_documents_view_mode: string | null
+          main_media_items_per_page: number | null
+          main_media_view_mode: string | null
           media_items_per_page: number | null
           media_view_mode: string | null
           reminder_email: string | null
@@ -2994,6 +2998,10 @@ export type Database = {
           documents_view_mode?: string | null
           email_reminders?: boolean | null
           id?: string
+          main_documents_items_per_page?: number | null
+          main_documents_view_mode?: string | null
+          main_media_items_per_page?: number | null
+          main_media_view_mode?: string | null
           media_items_per_page?: number | null
           media_view_mode?: string | null
           reminder_email?: string | null
@@ -3011,6 +3019,10 @@ export type Database = {
           documents_view_mode?: string | null
           email_reminders?: boolean | null
           id?: string
+          main_documents_items_per_page?: number | null
+          main_documents_view_mode?: string | null
+          main_media_items_per_page?: number | null
+          main_media_view_mode?: string | null
           media_items_per_page?: number | null
           media_view_mode?: string | null
           reminder_email?: string | null
