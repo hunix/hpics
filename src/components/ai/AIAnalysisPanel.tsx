@@ -565,22 +565,22 @@ export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="personality">
-              <Brain className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">Personality</span>
+          <TabsList className="grid w-full grid-cols-4 h-auto">
+            <TabsTrigger value="personality" className="flex flex-col gap-0.5 py-2 px-1 text-xs">
+              <Brain className="h-4 w-4" />
+              <span className="truncate">Personality</span>
             </TabsTrigger>
-            <TabsTrigger value="sentiment">
-              <TrendingUp className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">Sentiment</span>
+            <TabsTrigger value="sentiment" className="flex flex-col gap-0.5 py-2 px-1 text-xs">
+              <TrendingUp className="h-4 w-4" />
+              <span className="truncate">Sentiment</span>
             </TabsTrigger>
-            <TabsTrigger value="playbook">
-              <FileText className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">Playbook</span>
+            <TabsTrigger value="playbook" className="flex flex-col gap-0.5 py-2 px-1 text-xs">
+              <FileText className="h-4 w-4" />
+              <span className="truncate">Playbook</span>
             </TabsTrigger>
-            <TabsTrigger value="score">
-              <Users className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">Score</span>
+            <TabsTrigger value="score" className="flex flex-col gap-0.5 py-2 px-1 text-xs">
+              <Users className="h-4 w-4" />
+              <span className="truncate">Score</span>
             </TabsTrigger>
           </TabsList>
 

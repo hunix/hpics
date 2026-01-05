@@ -424,7 +424,7 @@ export default function ContactDetail() {
       </Card>
 
       {/* Main Layout */}
-      <div className={cn("grid gap-6", showAIPanel ? "lg:grid-cols-[240px_1fr_320px]" : "lg:grid-cols-[240px_1fr]")}>
+      <div className={cn("grid gap-6", showAIPanel ? "lg:grid-cols-[240px_1fr_400px] xl:grid-cols-[240px_1fr_450px]" : "lg:grid-cols-[240px_1fr]")}>
         {/* Sidebar */}
         <div className="hidden lg:block">
           <Card className="sticky top-4">
