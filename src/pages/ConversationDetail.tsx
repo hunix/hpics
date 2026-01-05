@@ -373,10 +373,10 @@ export default function ConversationDetail() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 flex min-h-0">
+        <div className="flex-1 flex min-h-0 overflow-hidden">
           {/* Left Panel - Media Gallery (collapsible on smaller screens) */}
-          <div className="hidden lg:flex w-64 border-r flex-col bg-muted/30">
-            <div className="p-4 border-b">
+          <div className="hidden lg:flex w-64 border-r flex-col bg-muted/30 shrink-0">
+            <div className="p-4 border-b shrink-0">
               <h3 className="font-medium text-sm flex items-center gap-2">
                 <Image className="h-4 w-4" />
                 Media Gallery
@@ -423,8 +423,8 @@ export default function ConversationDetail() {
           </div>
 
           {/* Main Area */}
-          <div className="flex-1 flex flex-col min-h-0">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col overflow-hidden">
               <div className="px-4 pt-4">
                 <TabsList className="grid w-full max-w-md grid-cols-3">
                   <TabsTrigger value="messages" className="flex items-center gap-2">
@@ -442,9 +442,9 @@ export default function ConversationDetail() {
                 </TabsList>
               </div>
 
-              <TabsContent value="messages" className="flex-1 flex flex-col min-h-0 px-4 pb-4 mt-4">
+              <TabsContent value="messages" className="flex-1 flex flex-col min-h-0 overflow-hidden mt-0 data-[state=inactive]:hidden">
                 {/* Search/Jump Toolbar */}
-                <div className="flex items-center gap-2 pb-3 border-b mb-2">
+                <div className="flex items-center gap-2 px-4 py-3 border-b shrink-0">
                   <Badge variant="secondary" className="shrink-0">
                     {messages.length.toLocaleString()} loaded
                   </Badge>
@@ -514,11 +514,26 @@ export default function ConversationDetail() {
                 {/* Virtualized Message List */}
                 <div 
                   ref={parentRef}
-                  className="flex-1 overflow-auto"
+                  className="flex-1 overflow-auto px-4 relative"
                 >
+                  {/* Loading indicator - sticky at top */}
+                  {isFetchingNextPage && (
+                    <div className="sticky top-0 z-10 flex justify-center py-2 bg-background/80 backdrop-blur-sm">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm">Loading older messages...</span>
+                      </div>
+                    </div>
+                  )}
+                  
                   {isLoadingMessages ? (
                     <div className="flex items-center justify-center h-full">
                       <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : messages.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                      <MessageCircle className="h-12 w-12 mb-2" />
+                      <p>No messages yet</p>
                     </div>
                   ) : (
                     <div
@@ -529,36 +544,11 @@ export default function ConversationDetail() {
                       }}
                     >
                       {virtualizer.getVirtualItems().map((virtualRow) => {
-                        // Loading indicator for older messages
-                        if (virtualRow.index === 0 && hasNextPage) {
-                          return (
-                            <div
-                              key="loading-more"
-                              style={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                width: '100%',
-                                transform: `translateY(${virtualRow.start}px)`,
-                              }}
-                              className="flex justify-center py-4"
-                            >
-                              {isFetchingNextPage && (
-                                <div className="flex items-center gap-2 text-muted-foreground">
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                  <span className="text-sm">Loading older messages...</span>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        }
-
-                        const msgIndex = hasNextPage ? virtualRow.index - 1 : virtualRow.index;
-                        const msg = messages[msgIndex];
+                        const msg = messages[virtualRow.index];
                         if (!msg) return null;
 
-                        const dateHeader = getDateHeader(msgIndex);
-                        const isHighlighted = searchResults[currentSearchIndex] === msgIndex;
+                        const dateHeader = getDateHeader(virtualRow.index);
+                        const isHighlighted = searchResults[currentSearchIndex] === virtualRow.index;
                         
                         return (
                           <div
@@ -625,7 +615,7 @@ export default function ConversationDetail() {
                 </div>
 
                 {/* Message Input */}
-                <div className="border-t pt-4 space-y-3 mt-auto">
+                <div className="border-t px-4 py-4 space-y-3 shrink-0">
                   <div className="flex items-center gap-2">
                     <Button
                       variant={isFromContact ? "default" : "outline"}
@@ -665,7 +655,7 @@ export default function ConversationDetail() {
                 </div>
               </TabsContent>
 
-              <TabsContent value="analysis" className="flex-1 overflow-auto px-4 pb-4 mt-4">
+              <TabsContent value="analysis" className="flex-1 overflow-auto px-4 pb-4 mt-0 data-[state=inactive]:hidden">
                 {conversation && (
                   <ConversationAnalysisPanel
                     conversationId={conversation.id}
@@ -675,7 +665,7 @@ export default function ConversationDetail() {
                 )}
               </TabsContent>
 
-              <TabsContent value="media" className="flex-1 overflow-auto px-4 pb-4 mt-4 lg:hidden">
+              <TabsContent value="media" className="flex-1 overflow-auto px-4 pb-4 mt-0 lg:hidden data-[state=inactive]:hidden">
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                   {mediaItems?.map((item) => {
                     const MediaIcon = getMediaIcon(item.mime_type);
