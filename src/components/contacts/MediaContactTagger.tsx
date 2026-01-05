@@ -57,18 +57,31 @@ export function MediaContactTagger({ mediaId, currentProfileId, onTagsChange }: 
     enabled: !!user && !!mediaId,
   });
 
-  // Fetch all contacts for tagging
+  // Fetch all contacts for tagging with pagination to handle 3000+ contacts
   const { data: allContacts } = useQuery({
     queryKey: ['contacts-for-tagging', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, avatar_url')
-        .eq('user_id', user!.id)
-        .order('first_name');
+      const PAGE_SIZE = 1000;
+      const allData: Array<{ id: string; first_name: string; last_name: string | null; avatar_url: string | null }> = [];
+      let from = 0;
       
-      if (error) throw error;
-      return data;
+      while (true) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, avatar_url')
+          .eq('user_id', user!.id)
+          .order('first_name')
+          .range(from, from + PAGE_SIZE - 1);
+        
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        
+        allData.push(...data);
+        if (data.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
+      
+      return allData;
     },
     enabled: !!user,
     staleTime: 5 * 60 * 1000,
