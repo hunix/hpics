@@ -26,7 +26,7 @@ import { ContactTimeline } from '@/components/contacts/ContactTimeline';
 import { EducationManager } from '@/components/contacts/EducationManager';
 import { CertificationsManager } from '@/components/contacts/CertificationsManager';
 import { SkillsManager } from '@/components/contacts/SkillsManager';
-import { AIAnalysisPanel } from '@/components/ai/AIAnalysisPanel';
+import { DeepIntelligencePanel } from '@/components/intelligence/DeepIntelligencePanel';
 import { MeetingBriefing } from '@/components/contacts/MeetingBriefing';
 import { GiftSuggestions } from '@/components/contacts/GiftSuggestions';
 import { InterestsManager } from '@/components/contacts/InterestsManager';
@@ -488,7 +488,7 @@ export default function ContactDetail() {
         {showAIPanel && (
           <div className="hidden lg:block">
             <div className="sticky top-4">
-              <AIAnalysisPanel profileId={contact.id} profileName={contactName} />
+              <DeepIntelligencePanel profileId={contact.id} profileName={contactName} />
             </div>
           </div>
         )}

@@ -74,3 +74,18 @@ verify_jwt = false
 
 [functions.summarize-conversation]
 verify_jwt = false
+
+[functions.validate-observation]
+verify_jwt = false
+
+[functions.search-documents]
+verify_jwt = false
+
+[functions.parse-identity-document]
+verify_jwt = false
+
+[functions.notify-analysis]
+verify_jwt = false
+
+[functions.deep-psychological-analysis]
+verify_jwt = false
