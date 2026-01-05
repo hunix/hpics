@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Image, Trash2, Plus, X, Play, Music, Sparkles } from 'lucide-react';
+import { Image, Trash2, Plus, X, Play, Music, Sparkles, Users } from 'lucide-react';
 import { MediaUpload } from '@/components/uploads/MediaUpload';
 import { getSignedUrls } from '@/hooks/useSignedUrl';
 import { FileManagerToolbar, type FilterOption } from './FileManagerToolbar';
@@ -18,6 +18,7 @@ import { useFileViewPreferences, type ViewMode } from '@/hooks/useFileViewPrefer
 import { AIMetadataButton, AIMetadataStatus } from '@/components/ai/AIMetadataButton';
 import { AIMetadataDisplay } from '@/components/ai/AIMetadataDisplay';
 import { BulkMetadataGenerator } from '@/components/ai/BulkMetadataGenerator';
+import { MediaContactTagger } from './MediaContactTagger';
 
 interface ContactMediaManagerProps {
   profileId: string;
@@ -54,7 +55,7 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
   
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [showBulkGenerator, setShowBulkGenerator] = useState(false);
-  const [lightboxItem, setLightboxItem] = useState<{ url: string; mimeType: string | null; metadata?: any } | null>(null);
+  const [lightboxItem, setLightboxItem] = useState<{ id: string; url: string; mimeType: string | null; metadata?: any } | null>(null);
   const [signedUrls, setSignedUrls] = useState<Map<string, string>>(new Map());
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
@@ -204,8 +205,8 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
     );
   }
 
-  const handleOpenLightbox = (url: string, mimeType: string | null, metadata?: any) => {
-    setLightboxItem({ url, mimeType, metadata });
+  const handleOpenLightbox = (id: string, url: string, mimeType: string | null, metadata?: any) => {
+    setLightboxItem({ id, url, mimeType, metadata });
   };
 
   // Count items with AI metadata
@@ -226,7 +227,7 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
               isAudio ? (
                 <div 
                   className="w-full h-full flex flex-col items-center justify-center bg-muted cursor-pointer"
-                  onClick={() => handleOpenLightbox(url, item.mime_type, item.ai_metadata)}
+                  onClick={() => handleOpenLightbox(item.id, url, item.mime_type, item.ai_metadata)}
                 >
                   <Music className="h-10 w-10 text-muted-foreground mb-2" />
                   <span className="text-xs text-muted-foreground">Audio</span>
@@ -236,7 +237,7 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
                   <video src={url} className="w-full h-full object-cover" muted preload="metadata" />
                   <div 
                     className="absolute inset-0 flex items-center justify-center cursor-pointer"
-                    onClick={() => handleOpenLightbox(url, item.mime_type, item.ai_metadata)}
+                    onClick={() => handleOpenLightbox(item.id, url, item.mime_type, item.ai_metadata)}
                   >
                     <div className="bg-black/50 rounded-full p-3">
                       <Play className="h-6 w-6 text-white fill-white" />
@@ -248,7 +249,7 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
                   src={url}
                   alt={item.caption || 'Media'}
                   className="w-full h-full object-cover cursor-pointer transition-transform group-hover:scale-105"
-                  onClick={() => handleOpenLightbox(url, item.mime_type, item.ai_metadata)}
+                  onClick={() => handleOpenLightbox(item.id, url, item.mime_type, item.ai_metadata)}
                 />
               )
             ) : (
@@ -363,7 +364,7 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
                     <MediaListView
                       items={paginatedMedia}
                       getMediaUrl={getMediaUrl}
-                      onView={(url, mimeType) => handleOpenLightbox(url, mimeType)}
+                      onView={(id, url, mimeType) => handleOpenLightbox(id, url, mimeType)}
                       onDelete={handleDelete}
                     />
                   )}
@@ -371,7 +372,7 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
                     <MediaDetailView
                       items={paginatedMedia}
                       getMediaUrl={getMediaUrl}
-                      onView={(url, mimeType) => handleOpenLightbox(url, mimeType)}
+                      onView={(id, url, mimeType) => handleOpenLightbox(id, url, mimeType)}
                       onDelete={handleDelete}
                     />
                   )}
@@ -416,15 +417,28 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
           {lightboxItem && (
             <div className="flex flex-col">
               {lightboxItem.mimeType?.startsWith('video/') ? (
-                <video src={lightboxItem.url} controls autoPlay className="w-full h-auto max-h-[60vh]" />
+                <video src={lightboxItem.url} controls autoPlay className="w-full h-auto max-h-[50vh]" />
               ) : lightboxItem.mimeType?.startsWith('audio/') ? (
                 <div className="bg-muted p-12 flex flex-col items-center gap-6">
                   <Music className="h-20 w-20 text-muted-foreground" />
                   <audio src={lightboxItem.url} controls autoPlay className="w-full max-w-md" />
                 </div>
               ) : (
-                <img src={lightboxItem.url} alt="Full size" className="w-full h-auto max-h-[60vh] object-contain" />
+                <img src={lightboxItem.url} alt="Full size" className="w-full h-auto max-h-[50vh] object-contain" />
               )}
+              
+              {/* Contact tagging section */}
+              <div className="p-4 border-t bg-card">
+                <div className="flex items-center gap-2 mb-2">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">People in this photo</span>
+                </div>
+                <MediaContactTagger 
+                  mediaId={lightboxItem.id} 
+                  currentProfileId={profileId}
+                  onTagsChange={() => queryClient.invalidateQueries({ queryKey: ['contact-media', profileId] })}
+                />
+              </div>
               
               {/* AI Metadata in lightbox */}
               {lightboxItem.metadata && (

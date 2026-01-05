@@ -18,7 +18,7 @@ interface MediaItem {
 interface MediaListViewProps {
   items: MediaItem[];
   getMediaUrl: (item: MediaItem) => string | null;
-  onView: (url: string, mimeType: string | null) => void;
+  onView: (id: string, url: string, mimeType: string | null) => void;
   onDelete: (id: string) => void;
   isDeleting?: boolean;
 }
@@ -93,7 +93,7 @@ export function MediaListView({ items, getMediaUrl, onView, onDelete }: MediaLis
               <TableCell>
                 <div 
                   className="w-12 h-12 rounded overflow-hidden bg-muted flex items-center justify-center cursor-pointer relative"
-                  onClick={() => url && onView(url, item.mime_type)}
+                  onClick={() => url && onView(item.id, url, item.mime_type)}
                 >
                   {url && isImage ? (
                     <img src={url} alt="" className="w-full h-full object-cover" />
@@ -161,7 +161,7 @@ export function MediaListView({ items, getMediaUrl, onView, onDelete }: MediaLis
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8"
-                    onClick={() => url && onView(url, item.mime_type)}
+                    onClick={() => url && onView(item.id, url, item.mime_type)}
                     disabled={!url}
                   >
                     <ExternalLink className="h-4 w-4" />

@@ -965,6 +965,7 @@ serve(async (req) => {
         let systemPrompt = '';
         let userPrompt = '';
         let tool: any = null;
+        let elevenlabsTranscription: any = null;
 
         if (isImage) {
           systemPrompt = IMAGE_SYSTEM_PROMPT;
@@ -974,6 +975,45 @@ serve(async (req) => {
           systemPrompt = AUDIO_SYSTEM_PROMPT;
           userPrompt = AUDIO_USER_PROMPT;
           tool = ENHANCED_AUDIO_TOOL;
+          
+          // Try to get high-quality transcription from ElevenLabs Scribe
+          const elevenlabsApiKey = Deno.env.get('ELEVENLABS_API_KEY');
+          if (elevenlabsApiKey) {
+            try {
+              console.log(`Fetching audio file for ElevenLabs transcription: ${mediaId}`);
+              
+              // Fetch the audio file
+              const audioResponse = await fetch(signedUrlData.signedUrl);
+              if (audioResponse.ok) {
+                const audioBlob = await audioResponse.blob();
+                
+                // Call ElevenLabs Scribe API
+                const formData = new FormData();
+                formData.append('file', audioBlob, 'audio.opus');
+                formData.append('model_id', 'scribe_v1');
+                formData.append('tag_audio_events', 'true');
+                formData.append('diarize', 'true');
+                
+                const scribeResponse = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
+                  method: 'POST',
+                  headers: {
+                    'xi-api-key': elevenlabsApiKey,
+                  },
+                  body: formData,
+                });
+                
+                if (scribeResponse.ok) {
+                  elevenlabsTranscription = await scribeResponse.json();
+                  console.log(`ElevenLabs transcription completed for ${mediaId}: ${elevenlabsTranscription.text?.length || 0} chars`);
+                } else {
+                  console.error(`ElevenLabs Scribe error for ${mediaId}: ${scribeResponse.status}`);
+                }
+              }
+            } catch (transcriptionError) {
+              console.error(`ElevenLabs transcription failed for ${mediaId}:`, transcriptionError);
+              // Continue with AI analysis even if transcription fails
+            }
+          }
         } else if (isVideo) {
           systemPrompt = VIDEO_SYSTEM_PROMPT;
           userPrompt = VIDEO_USER_PROMPT;
@@ -994,6 +1034,24 @@ serve(async (req) => {
               { type: "text", text: userPrompt },
               { type: "image_url", image_url: { url: signedUrlData.signedUrl } }
             ]
+          });
+        } else if (isAudio && elevenlabsTranscription) {
+          // Enhance prompt with ElevenLabs transcription for better analysis
+          const transcriptContext = `
+HIGH-QUALITY TRANSCRIPTION (from ElevenLabs Scribe):
+${elevenlabsTranscription.text}
+
+WORD-LEVEL DETAILS:
+${JSON.stringify(elevenlabsTranscription.words?.slice(0, 100) || [], null, 2)}
+
+AUDIO EVENTS DETECTED:
+${JSON.stringify(elevenlabsTranscription.audio_events || [], null, 2)}
+
+Use this precise transcription to analyze the audio content. Focus on extracting intelligence, emotional analysis, speaker dynamics, and actionable insights.
+`;
+          messages.push({
+            role: "user",
+            content: `${userPrompt}\n\n${transcriptContext}\n\nMedia URL for additional context: ${signedUrlData.signedUrl}`
           });
         } else {
           messages.push({
@@ -1045,6 +1103,17 @@ serve(async (req) => {
         }
 
         const metadata = JSON.parse(toolCall.function.arguments);
+        
+        // Add ElevenLabs transcription data if available
+        if (elevenlabsTranscription) {
+          metadata.elevenlabs_transcription = {
+            text: elevenlabsTranscription.text,
+            words: elevenlabsTranscription.words,
+            audio_events: elevenlabsTranscription.audio_events,
+            language_detected: elevenlabsTranscription.language_code,
+          };
+        }
+        
         const inputTokens = aiData.usage?.prompt_tokens || 0;
         const outputTokens = aiData.usage?.completion_tokens || 0;
         totalInputTokens += inputTokens;
