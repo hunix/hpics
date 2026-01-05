@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Sun, Bell, Mail, Loader2, Smartphone, Link2, Bot, Cpu, MessageCircle, HardDrive } from 'lucide-react';
+import { Moon, Sun, Bell, Mail, Loader2, Smartphone, Link2, Bot, Cpu, MessageCircle, HardDrive, Trash2 } from 'lucide-react';
 import { AnalyticsExport } from '@/components/analytics/AnalyticsExport';
 import { EmailIntegration } from '@/components/settings/EmailIntegration';
 import { OutlookIntegration } from '@/components/settings/OutlookIntegration';
@@ -22,6 +22,7 @@ import { AIBudgetSettings } from '@/components/settings/AIBudgetSettings';
 import { WhatsAppSetup } from '@/components/whatsapp/WhatsAppSetup';
 import { ResendIntegration } from '@/components/settings/ResendIntegration';
 import { StorageAnalytics } from '@/components/analytics/StorageAnalytics';
+import { DuplicateProfileMerger } from '@/components/contacts/DuplicateProfileMerger';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -88,7 +89,7 @@ export default function Settings() {
   return (
     <AppLayout title="Settings">
       <Tabs defaultValue="general" className="max-w-5xl">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="general">
             <Sun className="h-4 w-4 mr-2" />
             General
@@ -100,6 +101,10 @@ export default function Settings() {
           <TabsTrigger value="storage">
             <HardDrive className="h-4 w-4 mr-2" />
             Storage
+          </TabsTrigger>
+          <TabsTrigger value="cleanup">
+            <Trash2 className="h-4 w-4 mr-2" />
+            Cleanup
           </TabsTrigger>
           <TabsTrigger value="integrations">
             <Link2 className="h-4 w-4 mr-2" />
@@ -210,6 +215,10 @@ export default function Settings() {
 
         <TabsContent value="storage" className="space-y-6 mt-6">
           <StorageAnalytics />
+        </TabsContent>
+
+        <TabsContent value="cleanup" className="space-y-6 mt-6">
+          <DuplicateProfileMerger />
         </TabsContent>
 
         <TabsContent value="integrations" className="space-y-6 mt-6">

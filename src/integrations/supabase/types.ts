@@ -2945,6 +2945,7 @@ export type Database = {
           hierarchy_level: string | null
           id: string
           is_favorite: boolean | null
+          is_self_profile: boolean | null
           job_title: string | null
           last_contact_date: string | null
           last_name: string | null
@@ -2968,6 +2969,7 @@ export type Database = {
           hierarchy_level?: string | null
           id?: string
           is_favorite?: boolean | null
+          is_self_profile?: boolean | null
           job_title?: string | null
           last_contact_date?: string | null
           last_name?: string | null
@@ -2991,6 +2993,7 @@ export type Database = {
           hierarchy_level?: string | null
           id?: string
           is_favorite?: boolean | null
+          is_self_profile?: boolean | null
           job_title?: string | null
           last_contact_date?: string | null
           last_name?: string | null
@@ -3883,6 +3886,14 @@ export type Database = {
           total_media_files: number
           total_messages: number
         }[]
+      }
+      merge_duplicate_profiles: {
+        Args: {
+          p_duplicate_id: string
+          p_primary_id: string
+          p_user_id: string
+        }
+        Returns: Json
       }
       search_document_embeddings: {
         Args: {

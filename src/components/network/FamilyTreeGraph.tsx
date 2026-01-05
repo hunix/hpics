@@ -13,9 +13,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Users, ZoomIn, ZoomOut, Maximize2, GitBranch, Eye, EyeOff } from 'lucide-react';
+import { Users, ZoomIn, ZoomOut, Maximize2, GitBranch, Eye, EyeOff, UserCheck } from 'lucide-react';
 import * as d3 from 'd3';
-import { buildFamilyGraph, type FamilyGraph, type FamilyMember, type FamilyLink } from '@/lib/familyTreeEngine';
+import { buildFamilyGraph, getGenerationLabel, type FamilyGraph, type FamilyMember, type FamilyLink } from '@/lib/familyTreeEngine';
 
 export function FamilyTreeGraph() {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -25,11 +25,11 @@ export function FamilyTreeGraph() {
   const [showInferred, setShowInferred] = useState(true);
   const { user } = useAuth();
 
-  // Fetch family relationships from contact_relationships table
+  // Fetch family relationships and profiles
   const { data: rawData, isLoading } = useQuery({
     queryKey: ['family-relationships', user?.id],
     queryFn: async () => {
-      if (!user) return { relationships: [], profiles: new Map() };
+      if (!user) return { relationships: [], profiles: new Map(), selfProfileId: null };
 
       // Fetch family relationships
       const { data: relationships, error: relError } = await supabase
@@ -54,10 +54,10 @@ export function FamilyTreeGraph() {
         profileIds.add(r.to_profile_id);
       });
 
-      // Fetch profile details
+      // Fetch profile details including is_self_profile
       const { data: profiles, error: profError } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, avatar_url')
+        .select('id, first_name, last_name, avatar_url, is_self_profile')
         .in('id', Array.from(profileIds));
 
       if (profError) throw profError;
@@ -66,25 +66,36 @@ export function FamilyTreeGraph() {
         profiles?.map(p => [p.id, p]) || []
       );
 
-      return { relationships: relationships || [], profiles: profileMap };
+      // Find the self profile
+      const selfProfile = profiles?.find(p => p.is_self_profile);
+
+      return { 
+        relationships: relationships || [], 
+        profiles: profileMap,
+        selfProfileId: selfProfile?.id || null
+      };
     },
     enabled: !!user,
   });
 
-  // Build the family graph with inference
+  // Build the family graph with anchor-based generation calculation
   const familyGraph = useMemo<FamilyGraph | null>(() => {
     if (!rawData || rawData.relationships.length === 0) return null;
-    return buildFamilyGraph(rawData.relationships, rawData.profiles);
-  }, [rawData]);
+    // Use self profile as anchor, or centerPersonId if manually selected
+    const anchorId = centerPersonId || rawData.selfProfileId;
+    return buildFamilyGraph(rawData.relationships, rawData.profiles, anchorId);
+  }, [rawData, centerPersonId]);
 
-  // Set initial center person
+  // Set initial center person to self profile
   useEffect(() => {
-    if (familyGraph && !centerPersonId && familyGraph.members.size > 0) {
-      // Default to first member or a "root" (oldest generation)
-      const gen0 = familyGraph.generations.get(0);
-      setCenterPersonId(gen0?.[0] || familyGraph.members.keys().next().value || null);
+    if (rawData?.selfProfileId && !centerPersonId) {
+      setCenterPersonId(rawData.selfProfileId);
+    } else if (familyGraph && !centerPersonId && familyGraph.members.size > 0) {
+      // Fallback: default to first member
+      const firstId = familyGraph.members.keys().next().value;
+      if (firstId) setCenterPersonId(firstId);
     }
-  }, [familyGraph, centerPersonId]);
+  }, [familyGraph, centerPersonId, rawData?.selfProfileId]);
 
   useEffect(() => {
     if (!familyGraph || !svgRef.current || !containerRef.current) return;
@@ -94,7 +105,7 @@ export function FamilyTreeGraph() {
 
     const width = containerRef.current.clientWidth;
     const height = 600;
-    const margin = { top: 60, right: 40, bottom: 60, left: 40 };
+    const margin = { top: 80, right: 40, bottom: 60, left: 100 };
 
     svg.attr('width', width).attr('height', height);
 
@@ -121,8 +132,10 @@ export function FamilyTreeGraph() {
       genGroups.get(m.generation)!.push(m);
     });
 
+    // Sort generations (negative first = ancestors at top)
     const sortedGens = Array.from(genGroups.keys()).sort((a, b) => a - b);
-    const genHeight = (height - margin.top - margin.bottom) / Math.max(sortedGens.length, 1);
+    const genCount = sortedGens.length;
+    const genHeight = (height - margin.top - margin.bottom) / Math.max(genCount, 1);
     const nodeRadius = 30;
 
     // Calculate positions for each member
@@ -141,16 +154,21 @@ export function FamilyTreeGraph() {
       });
     });
 
-    // Draw generation labels
+    // Draw generation labels with semantic names
+    const anchorMember = centerPersonId ? familyGraph.members.get(centerPersonId) : null;
+    
     sortedGens.forEach((gen, genIndex) => {
       const y = genIndex * genHeight + 10;
+      const label = getGenerationLabel(gen, anchorMember?.name?.split(' ')[0]);
+      
       g.append('text')
-        .attr('x', -30)
+        .attr('x', -90)
         .attr('y', y + nodeRadius + 20)
-        .attr('text-anchor', 'end')
-        .attr('font-size', '10px')
-        .attr('fill', 'hsl(var(--muted-foreground))')
-        .text(`Gen ${gen}`);
+        .attr('text-anchor', 'start')
+        .attr('font-size', '11px')
+        .attr('fill', gen === 0 ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))')
+        .attr('font-weight', gen === 0 ? '600' : '400')
+        .text(label);
     });
 
     // Draw links
@@ -216,6 +234,7 @@ export function FamilyTreeGraph() {
       if (!pos) return;
 
       const isCenter = member.id === centerPersonId;
+      const isSelf = member.isSelf;
       const nodeG = nodeGroup.append('g')
         .attr('transform', `translate(${pos.x}, ${pos.y})`)
         .style('cursor', 'pointer')
@@ -224,9 +243,26 @@ export function FamilyTreeGraph() {
       // Node circle
       nodeG.append('circle')
         .attr('r', nodeRadius)
-        .attr('fill', isCenter ? 'hsl(var(--primary))' : 'hsl(var(--secondary))')
-        .attr('stroke', isCenter ? 'hsl(var(--primary))' : 'hsl(var(--border))')
-        .attr('stroke-width', isCenter ? 3 : 2);
+        .attr('fill', isSelf ? 'hsl(var(--primary))' : isCenter ? 'hsl(var(--primary) / 0.7)' : 'hsl(var(--secondary))')
+        .attr('stroke', isSelf || isCenter ? 'hsl(var(--primary))' : 'hsl(var(--border))')
+        .attr('stroke-width', isSelf ? 4 : isCenter ? 3 : 2);
+
+      // "You" badge for self profile
+      if (isSelf) {
+        nodeG.append('circle')
+          .attr('cx', nodeRadius - 5)
+          .attr('cy', -nodeRadius + 5)
+          .attr('r', 10)
+          .attr('fill', 'hsl(var(--primary))');
+        
+        nodeG.append('text')
+          .attr('x', nodeRadius - 5)
+          .attr('y', -nodeRadius + 9)
+          .attr('text-anchor', 'middle')
+          .attr('font-size', '8px')
+          .attr('fill', 'hsl(var(--primary-foreground))')
+          .text('YOU');
+      }
 
       // Initials
       const initials = member.name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2);
@@ -234,7 +270,7 @@ export function FamilyTreeGraph() {
         .attr('text-anchor', 'middle')
         .attr('dy', 5)
         .attr('font-size', '14px')
-        .attr('fill', isCenter ? 'hsl(var(--primary-foreground))' : 'hsl(var(--secondary-foreground))')
+        .attr('fill', isSelf || isCenter ? 'hsl(var(--primary-foreground))' : 'hsl(var(--secondary-foreground))')
         .attr('font-weight', 'bold')
         .text(initials);
 
@@ -244,7 +280,7 @@ export function FamilyTreeGraph() {
         .attr('dy', nodeRadius + 15)
         .attr('font-size', '11px')
         .attr('fill', 'hsl(var(--foreground))')
-        .attr('font-weight', isCenter ? '600' : '400')
+        .attr('font-weight', isSelf || isCenter ? '600' : '400')
         .text(member.name.length > 15 ? member.name.slice(0, 15) + '...' : member.name);
     });
 
@@ -289,6 +325,7 @@ export function FamilyTreeGraph() {
   }
 
   const relationshipCount = rawData?.relationships.length || 0;
+  const hasSelfProfile = !!rawData?.selfProfileId;
 
   if (relationshipCount === 0) {
     return (
@@ -327,6 +364,11 @@ export function FamilyTreeGraph() {
             <span>Family Tree</span>
             <Badge variant="secondary">{memberCount} members</Badge>
             <Badge variant="outline">{generationCount} generations</Badge>
+            {!hasSelfProfile && (
+              <Badge variant="destructive" className="text-xs">
+                No "self" profile set
+              </Badge>
+            )}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <Select value={centerPersonId || ''} onValueChange={setCenterPersonId}>
@@ -335,7 +377,10 @@ export function FamilyTreeGraph() {
               </SelectTrigger>
               <SelectContent>
                 {memberOptions.map(m => (
-                  <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                  <SelectItem key={m.id} value={m.id}>
+                    {m.isSelf && <UserCheck className="h-3 w-3 inline mr-1" />}
+                    {m.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -381,6 +426,14 @@ export function FamilyTreeGraph() {
             <span>{explicitCount} explicit + {inferredCount} inferred relationships</span>
           </div>
         </div>
+        {!hasSelfProfile && (
+          <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg text-sm">
+            <p className="text-amber-800 dark:text-amber-200">
+              <strong>Tip:</strong> Mark one of your contacts as "This is me" in their profile to anchor the family tree to yourself. 
+              This will show generations relative to you (parents above, children below).
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
