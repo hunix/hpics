@@ -143,6 +143,77 @@ export function useWhatsAppImportSession(userId: string | undefined) {
     return !isPausedRef.current;
   }, []);
 
+  // Cleanup orphaned imports (empty conversations from failed imports)
+  const cleanupOrphanedImports = useCallback(async (): Promise<{
+    deletedConversations: number;
+    deletedMedia: number;
+  }> => {
+    if (!userId) return { deletedConversations: 0, deletedMedia: 0 };
+
+    // Find conversations with 0 messages
+    const { data: emptyConversations } = await supabase
+      .from('conversations')
+      .select('id, profile_id')
+      .eq('user_id', userId)
+      .eq('platform', 'whatsapp')
+      .or('message_count.eq.0,message_count.is.null');
+    
+    if (!emptyConversations || emptyConversations.length === 0) {
+      return { deletedConversations: 0, deletedMedia: 0 };
+    }
+
+    let deletedMedia = 0;
+    const conversationIds = emptyConversations.map(c => c.id);
+    const profileIds = [...new Set(emptyConversations.map(c => c.profile_id))];
+    
+    // Find orphaned media for these profiles with whatsapp source
+    for (const profileId of profileIds) {
+      const { data: orphanedMedia } = await supabase
+        .from('media')
+        .select('id, storage_path')
+        .match({ user_id: userId, profile_id: profileId, source: 'whatsapp' });
+      
+      if (orphanedMedia && orphanedMedia.length > 0) {
+        const paths = orphanedMedia
+          .map(m => m.storage_path)
+          .filter((p): p is string => Boolean(p));
+        
+        if (paths.length > 0) {
+          await supabase.storage.from('media').remove(paths);
+        }
+        
+        const mediaIds = orphanedMedia.map(m => m.id);
+        await supabase.from('media').delete().in('id', mediaIds);
+        deletedMedia += orphanedMedia.length;
+      }
+    }
+
+    // Delete empty conversations
+    await supabase.from('conversations').delete().in('id', conversationIds);
+
+    return { deletedConversations: conversationIds.length, deletedMedia };
+  }, [userId]);
+
+  // Check for orphaned imports
+  const checkOrphanedImports = useCallback(async (): Promise<{
+    hasOrphans: boolean;
+    conversationCount: number;
+  }> => {
+    if (!userId) return { hasOrphans: false, conversationCount: 0 };
+
+    const { data, count } = await supabase
+      .from('conversations')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('platform', 'whatsapp')
+      .or('message_count.eq.0,message_count.is.null');
+
+    return {
+      hasOrphans: (count || 0) > 0,
+      conversationCount: count || 0,
+    };
+  }, [userId]);
+
   return {
     session,
     isLoading,
@@ -156,6 +227,8 @@ export function useWhatsAppImportSession(userId: string | undefined) {
     completeSession,
     failSession,
     shouldContinue,
+    cleanupOrphanedImports,
+    checkOrphanedImports,
   };
 }
 

@@ -20,6 +20,7 @@ import { WhatsAppImportPreview } from './whatsapp/WhatsAppImportPreview';
 import { WhatsAppImportProgress } from './whatsapp/WhatsAppImportProgress';
 import { WhatsAppDuplicateResolver } from './whatsapp/WhatsAppDuplicateResolver';
 import { WhatsAppResumeSession } from './whatsapp/WhatsAppResumeSession';
+import { WhatsAppCleanupBanner } from './whatsapp/WhatsAppCleanupBanner';
 
 import { 
   extractMediaReference, 
@@ -104,7 +105,24 @@ export function WhatsAppImport() {
     discardSession,
     completeSession,
     shouldContinue,
+    cleanupOrphanedImports,
+    checkOrphanedImports,
   } = useWhatsAppImportSession(user?.id);
+
+  // Check for orphaned imports on mount
+  const [orphanedCount, setOrphanedCount] = useState(0);
+  const [showCleanupBanner, setShowCleanupBanner] = useState(false);
+
+  useEffect(() => {
+    if (user?.id && stage === 'idle') {
+      checkOrphanedImports().then(({ hasOrphans, conversationCount }) => {
+        if (hasOrphans) {
+          setOrphanedCount(conversationCount);
+          setShowCleanupBanner(true);
+        }
+      });
+    }
+  }, [user?.id, stage, checkOrphanedImports]);
 
   // Load ALL profiles with pagination
   const { data: profiles } = useQuery({
@@ -161,6 +179,21 @@ export function WhatsAppImport() {
       loadPendingSession();
     }
   }, [user?.id, loadPendingSession]);
+
+  // Prevent accidental navigation during import
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const activeStages: ImportStage[] = ['extracting', 'uploading_media', 'importing_messages', 'resolving_duplicates'];
+      if (activeStages.includes(stage)) {
+        e.preventDefault();
+        e.returnValue = 'Import in progress. Your progress will be lost if you leave. Are you sure?';
+        return e.returnValue;
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [stage]);
 
   // Get contact name for pending session
   const pendingSessionContact = pendingSession 
@@ -766,27 +799,74 @@ export function WhatsAppImport() {
           />
         )}
 
-        {/* Progress view */}
+        {/* Progress view with modal lock during active import */}
         {showProgress && (
-          <WhatsAppImportProgress
-            stage={stage}
-            messagesImported={messagesImported}
-            totalMessages={allMessages.length}
-            mediaUploaded={mediaUploaded}
-            totalMedia={mediaFilesState.length}
-            mediaFiles={mediaFilesState}
-            isPaused={isPaused}
-            onPause={handlePause}
-            onResume={handleResume}
-            onCancel={handleCancel}
-            onRetryFile={handleRetryFile}
-            onSkipFile={handleSkipFile}
-          />
+          <div className="relative">
+            {/* Warning overlay for active import */}
+            {['uploading_media', 'importing_messages'].includes(stage) && !isPaused && (
+              <div className="absolute -inset-4 -top-6 bg-background/95 backdrop-blur-sm z-10 rounded-lg border-2 border-primary/20 p-4">
+                <div className="flex flex-col items-center justify-center h-full space-y-4">
+                  <div className="flex items-center gap-2 text-amber-600 dark:text-amber-500">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span className="font-semibold">Import in Progress</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground text-center max-w-md">
+                    ⚠️ Please do not close this tab or refresh the page. Your import will be lost.
+                  </p>
+                  <WhatsAppImportProgress
+                    stage={stage}
+                    messagesImported={messagesImported}
+                    totalMessages={allMessages.length}
+                    mediaUploaded={mediaUploaded}
+                    totalMedia={mediaFilesState.length}
+                    mediaFiles={mediaFilesState}
+                    isPaused={isPaused}
+                    onPause={handlePause}
+                    onResume={handleResume}
+                    onCancel={handleCancel}
+                    onRetryFile={handleRetryFile}
+                    onSkipFile={handleSkipFile}
+                  />
+                </div>
+              </div>
+            )}
+            
+            {/* Normal progress view (when paused or extracting) */}
+            {(!['uploading_media', 'importing_messages'].includes(stage) || isPaused) && (
+              <WhatsAppImportProgress
+                stage={stage}
+                messagesImported={messagesImported}
+                totalMessages={allMessages.length}
+                mediaUploaded={mediaUploaded}
+                totalMedia={mediaFilesState.length}
+                mediaFiles={mediaFilesState}
+                isPaused={isPaused}
+                onPause={handlePause}
+                onResume={handleResume}
+                onCancel={handleCancel}
+                onRetryFile={handleRetryFile}
+                onSkipFile={handleSkipFile}
+              />
+            )}
+          </div>
         )}
 
         {/* Normal import flow */}
         {!showProgress && !showDuplicateResolver && (
           <>
+            {/* Cleanup banner for failed imports */}
+            {showCleanupBanner && orphanedCount > 0 && (
+              <WhatsAppCleanupBanner
+                conversationCount={orphanedCount}
+                onCleanup={async () => {
+                  const result = await cleanupOrphanedImports();
+                  setOrphanedCount(0);
+                  return result;
+                }}
+                onDismiss={() => setShowCleanupBanner(false)}
+              />
+            )}
+
             <Alert>
               <AlertTitle>How to export from WhatsApp</AlertTitle>
               <AlertDescription className="text-sm space-y-1">
