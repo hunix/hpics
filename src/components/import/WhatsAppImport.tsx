@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,10 +10,16 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { Upload, Loader2, MessageCircle, FileText, X, Image, Video, Mic, FileIcon, Archive } from 'lucide-react';
+import { Loader2, MessageCircle } from 'lucide-react';
 import type { Enums } from '@/integrations/supabase/types';
+
+import { useWhatsAppImportSession } from '@/hooks/useWhatsAppImportSession';
+import { WhatsAppImportDropzone } from './whatsapp/WhatsAppImportDropzone';
+import { WhatsAppImportPreview } from './whatsapp/WhatsAppImportPreview';
+import { WhatsAppImportProgress } from './whatsapp/WhatsAppImportProgress';
+import { WhatsAppDuplicateResolver } from './whatsapp/WhatsAppDuplicateResolver';
+import { WhatsAppResumeSession } from './whatsapp/WhatsAppResumeSession';
+
 import { 
   extractMediaReference, 
   cleanMessageContent, 
@@ -25,12 +31,28 @@ import {
 import { 
   processWhatsAppZip, 
   getMediaStats, 
-  formatFileSize, 
   createMediaLookup,
   type ExtractedFile,
   type ZipContents,
-  type MediaStats
 } from './whatsapp/whatsappZipProcessor';
+import {
+  findExistingWhatsAppConversation,
+  getExistingMessageHashes,
+  createMessageHash,
+  deleteConversationMessages,
+} from './whatsapp/conversationDuplicates';
+import {
+  uploadMediaBatch,
+  createInitialMediaState,
+  updateMediaState,
+} from './whatsapp/mediaUploadManager';
+import type {
+  ImportStage,
+  DuplicateAction,
+  MediaFileState,
+  ImportStats,
+  ExistingConversation,
+} from './whatsapp/types';
 
 interface ParsedMessage {
   date: Date;
@@ -42,28 +64,48 @@ interface ParsedMessage {
   mediaFile?: ExtractedFile;
 }
 
-interface ImportProgress {
-  stage: 'extracting' | 'parsing' | 'uploading' | 'importing' | 'done';
-  current: number;
-  total: number;
-  message: string;
-}
-
 export function WhatsAppImport() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Core state
   const [chatText, setChatText] = useState('');
   const [selectedProfile, setSelectedProfile] = useState<string>('');
   const [contactName, setContactName] = useState<string>('');
-  const [preview, setPreview] = useState<ParsedMessage[]>([]);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [detectedNames, setDetectedNames] = useState<string[]>([]);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [zipContents, setZipContents] = useState<ZipContents | null>(null);
-  const [mediaStats, setMediaStats] = useState<MediaStats | null>(null);
-  const [progress, setProgress] = useState<ImportProgress | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  
+  // Parsed data
   const [allMessages, setAllMessages] = useState<ParsedMessage[]>([]);
+  const [mediaFilesState, setMediaFilesState] = useState<MediaFileState[]>([]);
+  const [stats, setStats] = useState<ImportStats | null>(null);
+  
+  // Import state
+  const [stage, setStage] = useState<ImportStage>('idle');
+  const [isPaused, setIsPaused] = useState(false);
+  const [messagesImported, setMessagesImported] = useState(0);
+  const [mediaUploaded, setMediaUploaded] = useState(0);
+  
+  // Duplicate handling
+  const [existingConversation, setExistingConversation] = useState<ExistingConversation | null>(null);
+  const [duplicateAction, setDuplicateAction] = useState<DuplicateAction>('ask');
+  const [showDuplicateResolver, setShowDuplicateResolver] = useState(false);
+  
+  // Session management
+  const {
+    session: pendingSession,
+    loadPendingSession,
+    createSession,
+    updateSession,
+    discardSession,
+    completeSession,
+    shouldContinue,
+  } = useWhatsAppImportSession(user?.id);
 
+  // Load profiles
   const { data: profiles } = useQuery({
     queryKey: ['profiles', user?.id],
     queryFn: async () => {
@@ -77,7 +119,24 @@ export function WhatsAppImport() {
     enabled: !!user,
   });
 
-  const parseWhatsAppChat = useCallback((text: string, contactNameToMatch: string, mediaLookup?: Map<string, ExtractedFile>): ParsedMessage[] => {
+  // Check for pending sessions on mount
+  useEffect(() => {
+    if (user?.id) {
+      loadPendingSession();
+    }
+  }, [user?.id, loadPendingSession]);
+
+  // Get contact name for pending session
+  const pendingSessionContact = pendingSession 
+    ? profiles?.find(p => p.id === pendingSession.profileId) 
+    : null;
+
+  // Parse chat messages
+  const parseWhatsAppChat = useCallback((
+    text: string, 
+    contactNameToMatch: string, 
+    mediaLookup?: Map<string, ExtractedFile>
+  ): ParsedMessage[] => {
     const messages: ParsedMessage[] = [];
     
     const patterns = [
@@ -90,7 +149,6 @@ export function WhatsAppImport() {
       while ((match = pattern.exec(text)) !== null) {
         const [, dateStr, timeStr, sender, content] = match;
         
-        // Skip system messages
         if (isSystemMessage(content)) continue;
         
         try {
@@ -120,13 +178,11 @@ export function WhatsAppImport() {
           const mediaRef = extractMediaReference(content);
           const cleanContent = mediaRef ? cleanMessageContent(content) : content.trim();
           
-          // Try to find matching media file
           let mediaFile: ExtractedFile | undefined;
           if (mediaRef && mediaLookup) {
             mediaFile = mediaLookup.get(mediaRef.filename.toLowerCase());
           }
 
-          // Skip "Media omitted" messages if we don't have the media
           if (isMediaOmitted(content) && !mediaFile) continue;
 
           messages.push({
@@ -138,7 +194,7 @@ export function WhatsAppImport() {
             mediaRef,
             mediaFile,
           });
-        } catch (e) {
+        } catch {
           // Skip malformed messages
         }
       }
@@ -169,209 +225,174 @@ export function WhatsAppImport() {
     return Array.from(names);
   };
 
-  const handleFileUpload = useCallback(async (file: File) => {
+  // File handling
+  const handleFileSelected = useCallback(async (file: File) => {
     setUploadedFile(file);
     setZipContents(null);
-    setMediaStats(null);
     setAllMessages([]);
-    setPreview([]);
+    setStats(null);
+    setStage('extracting');
     
-    if (file.name.endsWith('.zip')) {
-      setProgress({ stage: 'extracting', current: 0, total: 100, message: 'Extracting ZIP file...' });
-      
-      try {
+    try {
+      if (file.name.endsWith('.zip')) {
         const contents = await processWhatsAppZip(file);
         setZipContents(contents);
         setChatText(contents.chatText);
         
-        const stats = getMediaStats(contents.mediaFiles);
-        setMediaStats(stats);
+        const mediaStats = getMediaStats(contents.mediaFiles);
+        setStats({
+          totalMessages: 0,
+          totalMedia: mediaStats.total,
+          images: mediaStats.images,
+          videos: mediaStats.videos,
+          audio: mediaStats.audio,
+          documents: mediaStats.documents,
+          stickers: mediaStats.stickers,
+          dateRange: { start: null, end: null },
+        });
         
         const names = detectNamesFromChat(contents.chatText);
         setDetectedNames(names);
         
-        setProgress(null);
+        if (names.length === 1) {
+          setContactName(names[0]);
+        }
+        
+        toast({ 
+          title: 'ZIP extracted', 
+          description: `Found ${mediaStats.total} media files` 
+        });
+      } else {
+        const text = await file.text();
+        setChatText(text);
+        
+        const names = detectNamesFromChat(text);
+        setDetectedNames(names);
         
         if (names.length === 1) {
           setContactName(names[0]);
-          toast({ title: `Detected contact: ${names[0]}`, description: `Found ${stats.total} media files` });
-        } else if (names.length > 1) {
-          toast({ title: `Found ${names.length} participants`, description: `With ${stats.total} media files` });
         }
-      } catch (error) {
-        setProgress(null);
-        toast({ title: 'Failed to process ZIP', description: 'Make sure it\'s a valid WhatsApp export', variant: 'destructive' });
       }
-    } else {
-      const text = await file.text();
-      setChatText(text);
       
-      const names = detectNamesFromChat(text);
-      setDetectedNames(names);
-      
-      if (names.length === 1) {
-        setContactName(names[0]);
-        toast({ title: `Detected contact: ${names[0]}` });
-      } else if (names.length > 1) {
-        toast({ title: `Found ${names.length} participants`, description: 'Select the contact name below' });
-      }
+      setStage('reviewing');
+    } catch (error) {
+      setStage('failed');
+      toast({ 
+        title: 'Failed to process file', 
+        description: 'Make sure it\'s a valid WhatsApp export', 
+        variant: 'destructive' 
+      });
     }
   }, [toast]);
 
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+  }, []);
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
     const file = e.dataTransfer.files[0];
     if (file && (file.name.endsWith('.txt') || file.name.endsWith('.zip'))) {
-      handleFileUpload(file);
+      handleFileSelected(file);
     } else {
-      toast({ title: 'Invalid file', description: 'Please upload a .txt or .zip file', variant: 'destructive' });
+      toast({ 
+        title: 'Invalid file', 
+        description: 'Please upload a .txt or .zip file', 
+        variant: 'destructive' 
+      });
     }
-  }, [handleFileUpload, toast]);
+  }, [handleFileSelected, toast]);
 
-  const handlePreview = () => {
+  // Preview handler
+  const handlePreview = useCallback(() => {
     if (!chatText.trim() || !contactName.trim()) {
-      toast({ title: 'Missing info', description: 'Please provide chat content and contact name', variant: 'destructive' });
+      toast({ 
+        title: 'Missing info', 
+        description: 'Please provide chat content and contact name', 
+        variant: 'destructive' 
+      });
       return;
     }
     
     const mediaLookup = zipContents ? createMediaLookup(zipContents.mediaFiles) : undefined;
     const messages = parseWhatsAppChat(chatText, contactName, mediaLookup);
     setAllMessages(messages);
-    setPreview(messages.slice(0, 15));
+    
+    // Calculate stats
+    const messagesWithMedia = messages.filter(m => m.mediaFile);
+    const dates = messages.map(m => m.date);
+    
+    setStats(prev => ({
+      totalMessages: messages.length,
+      totalMedia: prev?.totalMedia || messagesWithMedia.length,
+      images: prev?.images || messagesWithMedia.filter(m => m.mediaRef?.type === 'image').length,
+      videos: prev?.videos || messagesWithMedia.filter(m => m.mediaRef?.type === 'video').length,
+      audio: prev?.audio || messagesWithMedia.filter(m => m.mediaRef?.type === 'audio').length,
+      documents: prev?.documents || messagesWithMedia.filter(m => m.mediaRef?.type === 'document').length,
+      stickers: prev?.stickers || messagesWithMedia.filter(m => m.mediaRef?.type === 'sticker').length,
+      dateRange: {
+        start: dates.length > 0 ? new Date(Math.min(...dates.map(d => d.getTime()))) : null,
+        end: dates.length > 0 ? new Date(Math.max(...dates.map(d => d.getTime()))) : null,
+      },
+    }));
+
+    // Initialize media state
+    if (zipContents) {
+      const mediaWithMessages = zipContents.mediaFiles.filter(f => 
+        messages.some(m => m.mediaFile?.name === f.name)
+      );
+      setMediaFilesState(createInitialMediaState(mediaWithMessages));
+    }
     
     if (messages.length === 0) {
-      toast({ title: 'No messages found', description: 'Check the format matches WhatsApp export', variant: 'destructive' });
+      toast({ 
+        title: 'No messages found', 
+        description: 'Check the format matches WhatsApp export', 
+        variant: 'destructive' 
+      });
     } else {
-      const withMedia = messages.filter(m => m.mediaFile).length;
       toast({ 
         title: `Found ${messages.length} messages`, 
-        description: withMedia > 0 ? `${withMedia} with media attached` : 'Review preview and click Import'
+        description: messagesWithMedia.length > 0 
+          ? `${messagesWithMedia.length} with media attached` 
+          : 'Ready to import'
       });
     }
-  };
+  }, [chatText, contactName, zipContents, parseWhatsAppChat, toast]);
 
+  // Import mutation
   const importMutation = useMutation({
     mutationFn: async () => {
-      if (!user || !selectedProfile || allMessages.length === 0) throw new Error('Missing data');
-
-      const messages = allMessages;
-      const messagesWithMedia = messages.filter(m => m.mediaFile);
-      
-      // Create conversation
-      setProgress({ stage: 'importing', current: 0, total: 1, message: 'Creating conversation...' });
-      
-      const { data: conversation, error: convError } = await supabase
-        .from('conversations')
-        .insert({
-          user_id: user.id,
-          profile_id: selectedProfile,
-          platform: 'whatsapp' as Enums<'message_platform'>,
-          title: `WhatsApp with ${contactName}`,
-          started_at: messages[0].date.toISOString(),
-          last_message_at: messages[messages.length - 1].date.toISOString(),
-          message_count: messages.length,
-        })
-        .select()
-        .single();
-
-      if (convError) throw convError;
-
-      // Upload media files if present
-      const mediaIdMap = new Map<string, string>(); // filename -> media record id
-      
-      if (messagesWithMedia.length > 0) {
-        setProgress({ stage: 'uploading', current: 0, total: messagesWithMedia.length, message: 'Uploading media...' });
-        
-        const batchSize = 5;
-        for (let i = 0; i < messagesWithMedia.length; i += batchSize) {
-          const batch = messagesWithMedia.slice(i, i + batchSize);
-          
-          await Promise.all(batch.map(async (msg) => {
-            if (!msg.mediaFile) return;
-            
-            const storagePath = `${user.id}/whatsapp/${conversation.id}/${msg.mediaFile.name}`;
-            
-            // Upload to storage
-            const { error: uploadError } = await supabase.storage
-              .from('media')
-              .upload(storagePath, msg.mediaFile.blob, {
-                contentType: getMimeType(msg.mediaFile.name),
-                upsert: true,
-              });
-            
-            if (uploadError) {
-              console.error('Upload error:', uploadError);
-              return;
-            }
-            
-            // Get public URL for file_url (required field)
-            const { data: urlData } = supabase.storage
-              .from('media')
-              .getPublicUrl(storagePath);
-            
-            // Create media record
-            const { data: mediaRecord, error: mediaError } = await supabase
-              .from('media')
-              .insert({
-                user_id: user.id,
-                profile_id: selectedProfile,
-                caption: msg.mediaFile.name,
-                storage_path: storagePath,
-                file_size: msg.mediaFile.size,
-                mime_type: getMimeType(msg.mediaFile.name),
-                file_url: urlData.publicUrl,
-              })
-              .select('id')
-              .single();
-            
-            if (!mediaError && mediaRecord) {
-              mediaIdMap.set(msg.mediaFile.name.toLowerCase(), mediaRecord.id);
-            }
-          }));
-          
-          setProgress({ 
-            stage: 'uploading', 
-            current: Math.min(i + batchSize, messagesWithMedia.length), 
-            total: messagesWithMedia.length, 
-            message: `Uploading media... ${Math.min(i + batchSize, messagesWithMedia.length)}/${messagesWithMedia.length}` 
-          });
-        }
+      if (!user || !selectedProfile || allMessages.length === 0) {
+        throw new Error('Missing required data');
       }
 
-      // Insert messages in batches
-      setProgress({ stage: 'importing', current: 0, total: messages.length, message: 'Importing messages...' });
+      // Check for existing conversation
+      setStage('resolving_duplicates');
+      const existing = await findExistingWhatsAppConversation(selectedProfile, user.id);
       
-      const batchSize = 100;
-      for (let i = 0; i < messages.length; i += batchSize) {
-        const batch = messages.slice(i, i + batchSize).map((msg) => {
-          const mediaId = msg.mediaFile ? mediaIdMap.get(msg.mediaFile.name.toLowerCase()) : null;
-          return {
-            user_id: user.id,
-            conversation_id: conversation.id,
-            content: msg.cleanContent || msg.content,
-            is_from_contact: msg.isFromContact,
-            sent_at: msg.date.toISOString(),
-            media_id: mediaId || null,
-            media_type: msg.mediaRef?.type || null,
-            media_filename: msg.mediaFile?.name || null,
-          };
-        });
-
-        const { error } = await supabase.from('messages').insert(batch);
-        if (error) throw error;
-        
-        setProgress({ 
-          stage: 'importing', 
-          current: Math.min(i + batchSize, messages.length), 
-          total: messages.length, 
-          message: `Importing messages... ${Math.min(i + batchSize, messages.length)}/${messages.length}` 
-        });
+      if (existing && duplicateAction === 'ask') {
+        setExistingConversation(existing);
+        setShowDuplicateResolver(true);
+        return null; // Will resume after user choice
       }
 
-      setProgress({ stage: 'done', current: 1, total: 1, message: 'Complete!' });
-      return { messageCount: messages.length, mediaCount: mediaIdMap.size };
+      return await performImport(existing);
     },
     onSuccess: (result) => {
+      if (result === null) return; // Waiting for duplicate resolution
+      
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       queryClient.invalidateQueries({ queryKey: ['media'] });
       toast({ 
@@ -381,31 +402,296 @@ export function WhatsAppImport() {
       resetState();
     },
     onError: (error) => {
-      setProgress(null);
-      toast({ title: 'Import failed', description: error.message, variant: 'destructive' });
+      setStage('failed');
+      toast({ 
+        title: 'Import failed', 
+        description: error instanceof Error ? error.message : 'Unknown error', 
+        variant: 'destructive' 
+      });
     },
   });
 
-  const resetState = () => {
-    setChatText('');
-    setPreview([]);
-    setContactName('');
-    setUploadedFile(null);
-    setDetectedNames([]);
-    setZipContents(null);
-    setMediaStats(null);
-    setProgress(null);
-    setAllMessages([]);
+  const performImport = async (existing: ExistingConversation | null) => {
+    if (!user || !selectedProfile) throw new Error('Not authenticated');
+
+    const messages = allMessages;
+    const messagesWithMedia = messages.filter(m => m.mediaFile);
+    let conversationId: string;
+    let existingHashes = new Set<string>();
+
+    // Handle duplicate action
+    if (existing && duplicateAction === 'replace_all') {
+      await deleteConversationMessages(existing.id);
+      conversationId = existing.id;
+    } else if (existing && duplicateAction === 'append_new') {
+      conversationId = existing.id;
+      existingHashes = await getExistingMessageHashes(existing.id);
+    } else if (existing && duplicateAction === 'cancel') {
+      resetState();
+      return { messageCount: 0, mediaCount: 0 };
+    } else {
+      // Create new conversation (keep_both or no existing)
+      setStage('importing_messages');
+      
+      const { data: conversation, error: convError } = await supabase
+        .from('conversations')
+        .insert({
+          user_id: user.id,
+          profile_id: selectedProfile,
+          platform: 'whatsapp' as Enums<'message_platform'>,
+          title: `WhatsApp with ${contactName}`,
+          started_at: messages[0].date.toISOString(),
+        })
+        .select()
+        .single();
+
+      if (convError || !conversation) throw convError || new Error('Failed to create conversation');
+      conversationId = conversation.id;
+    }
+
+    // Filter out duplicates if appending
+    const messagesToImport = duplicateAction === 'append_new'
+      ? messages.filter(m => {
+          const hash = createMessageHash(
+            m.date.toISOString(),
+            m.cleanContent || m.content,
+            m.isFromContact
+          );
+          return !existingHashes.has(hash);
+        })
+      : messages;
+
+    if (messagesToImport.length === 0) {
+      toast({ title: 'No new messages', description: 'All messages already exist' });
+      setStage('completed');
+      return { messageCount: 0, mediaCount: 0 };
+    }
+
+    // Upload media files
+    const mediaIdMap = new Map<string, string>();
+    const mediaToUpload = messagesWithMedia
+      .filter(m => messagesToImport.includes(m))
+      .map(m => m.mediaFile!)
+      .filter((f, i, arr) => arr.findIndex(x => x.name === f.name) === i);
+
+    if (mediaToUpload.length > 0) {
+      setStage('uploading_media');
+      setMediaUploaded(0);
+
+      const resultMap = await uploadMediaBatch(
+        mediaToUpload,
+        user.id,
+        conversationId,
+        selectedProfile,
+        (filename, progress) => {
+          setMediaFilesState(prev => updateMediaState(prev, filename, { 
+            status: 'uploading', 
+            progress 
+          }));
+        },
+        (result) => {
+          if (result.success && result.mediaId) {
+            mediaIdMap.set(result.filename.toLowerCase(), result.mediaId);
+            setMediaFilesState(prev => updateMediaState(prev, result.filename, { 
+              status: 'uploaded',
+              mediaId: result.mediaId,
+            }));
+          } else {
+            setMediaFilesState(prev => updateMediaState(prev, result.filename, { 
+              status: 'failed',
+              error: result.error,
+            }));
+          }
+          setMediaUploaded(prev => prev + 1);
+        },
+        shouldContinue
+      );
+
+      // Merge results
+      resultMap.forEach((id, filename) => mediaIdMap.set(filename, id));
+    }
+
+    // Check if paused
+    if (!shouldContinue()) {
+      return null;
+    }
+
+    // Insert messages in batches
+    setStage('importing_messages');
+    setMessagesImported(0);
+    
+    const batchSize = 100;
+    for (let i = 0; i < messagesToImport.length; i += batchSize) {
+      if (!shouldContinue()) {
+        await updateSession?.({ lastProcessedIndex: i });
+        return null;
+      }
+
+      const batch = messagesToImport.slice(i, i + batchSize).map((msg) => {
+        const mediaId = msg.mediaFile 
+          ? mediaIdMap.get(msg.mediaFile.name.toLowerCase()) 
+          : null;
+        return {
+          user_id: user.id,
+          conversation_id: conversationId,
+          content: msg.cleanContent || msg.content,
+          is_from_contact: msg.isFromContact,
+          sent_at: msg.date.toISOString(),
+          media_id: mediaId || null,
+          media_type: msg.mediaRef?.type || null,
+          media_filename: msg.mediaFile?.name || null,
+        };
+      });
+
+      const { error } = await supabase.from('messages').insert(batch);
+      if (error) throw error;
+      
+      setMessagesImported(prev => prev + batch.length);
+    }
+
+    // Update conversation counts
+    const lastMessage = messagesToImport[messagesToImport.length - 1];
+    
+    if (duplicateAction === 'append_new' && existing) {
+      await supabase
+        .from('conversations')
+        .update({
+          message_count: (existing.messageCount || 0) + messagesToImport.length,
+          last_message_at: lastMessage.date.toISOString(),
+        })
+        .eq('id', conversationId);
+    } else {
+      await supabase
+        .from('conversations')
+        .update({
+          message_count: messagesToImport.length,
+          last_message_at: lastMessage.date.toISOString(),
+        })
+        .eq('id', conversationId);
+    }
+
+    setStage('completed');
+    await completeSession?.();
+    
+    return { 
+      messageCount: messagesToImport.length, 
+      mediaCount: mediaIdMap.size 
+    };
   };
 
-  const getMediaIcon = (type: string | null) => {
-    switch (type) {
-      case 'image': return <Image className="h-3 w-3" />;
-      case 'video': return <Video className="h-3 w-3" />;
-      case 'audio': return <Mic className="h-3 w-3" />;
-      default: return <FileIcon className="h-3 w-3" />;
+  // Handle duplicate resolution
+  const handleDuplicateResolved = useCallback(async (
+    action: DuplicateAction, 
+    remember: boolean
+  ) => {
+    setDuplicateAction(action);
+    setShowDuplicateResolver(false);
+    
+    if (action === 'cancel') {
+      resetState();
+      return;
     }
-  };
+
+    // Continue import with selected action
+    try {
+      const result = await performImport(existingConversation);
+      if (result) {
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
+        queryClient.invalidateQueries({ queryKey: ['media'] });
+        toast({ 
+          title: 'Import complete', 
+          description: `Imported ${result.messageCount} messages${result.mediaCount > 0 ? ` and ${result.mediaCount} media files` : ''}` 
+        });
+        resetState();
+      }
+    } catch (error) {
+      setStage('failed');
+      toast({ 
+        title: 'Import failed', 
+        description: error instanceof Error ? error.message : 'Unknown error', 
+        variant: 'destructive' 
+      });
+    }
+  }, [existingConversation, queryClient, toast]);
+
+  // Pause/Resume handlers
+  const handlePause = useCallback(() => {
+    setIsPaused(true);
+    setStage('paused');
+  }, []);
+
+  const handleResume = useCallback(() => {
+    setIsPaused(false);
+    // Resume from where we left off
+    if (stage === 'paused') {
+      setStage('uploading_media');
+    }
+  }, [stage]);
+
+  const handleCancel = useCallback(() => {
+    resetState();
+  }, []);
+
+  // Retry/Skip handlers for media files
+  const handleRetryFile = useCallback(async (filename: string) => {
+    const file = mediaFilesState.find(f => f.filename === filename);
+    if (!file || !file.blob || !user) return;
+
+    setMediaFilesState(prev => updateMediaState(prev, filename, { 
+      status: 'uploading',
+      attempts: file.attempts + 1,
+    }));
+
+    // Re-attempt upload - would need conversation ID context
+    toast({ title: 'Retry not implemented in this context' });
+  }, [mediaFilesState, user, toast]);
+
+  const handleSkipFile = useCallback((filename: string) => {
+    setMediaFilesState(prev => updateMediaState(prev, filename, { 
+      status: 'skipped' 
+    }));
+    setMediaUploaded(prev => prev + 1);
+  }, []);
+
+  // Resume pending session
+  const handleResumeSession = useCallback(() => {
+    if (pendingSession) {
+      setSelectedProfile(pendingSession.profileId);
+      setStage(pendingSession.status);
+      // Would need to restore more state from session
+      toast({ title: 'Session resumed' });
+    }
+  }, [pendingSession, toast]);
+
+  const handleDiscardSession = useCallback(async () => {
+    await discardSession?.();
+    toast({ title: 'Session discarded' });
+  }, [discardSession, toast]);
+
+  // Reset all state
+  const resetState = useCallback(() => {
+    setChatText('');
+    setSelectedProfile('');
+    setContactName('');
+    setDetectedNames([]);
+    setUploadedFile(null);
+    setZipContents(null);
+    setAllMessages([]);
+    setMediaFilesState([]);
+    setStats(null);
+    setStage('idle');
+    setIsPaused(false);
+    setMessagesImported(0);
+    setMediaUploaded(0);
+    setExistingConversation(null);
+    setDuplicateAction('ask');
+    setShowDuplicateResolver(false);
+  }, []);
+
+  // Determine what to show
+  const isProcessing = ['extracting', 'uploading_media', 'importing_messages'].includes(stage);
+  const showProgress = isProcessing || stage === 'paused';
+  const showPreview = allMessages.length > 0 && !showProgress && !showDuplicateResolver;
 
   return (
     <Card>
@@ -419,210 +705,171 @@ export function WhatsAppImport() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Alert>
-          <AlertTitle>How to export from WhatsApp</AlertTitle>
-          <AlertDescription className="text-sm space-y-1">
-            <p>1. Open the chat in WhatsApp</p>
-            <p>2. Tap the menu → More → Export chat</p>
-            <p>3. Choose <strong>"Attach media"</strong> for full import with images/videos</p>
-            <p>4. Upload the .zip file (with media) or .txt file (text only)</p>
-          </AlertDescription>
-        </Alert>
-
-        {/* File Upload Area */}
-        <div
-          onDrop={handleDrop}
-          onDragOver={(e) => e.preventDefault()}
-          className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer"
-          onClick={() => {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.txt,.zip';
-            input.onchange = (e) => {
-              const file = (e.target as HTMLInputElement).files?.[0];
-              if (file) handleFileUpload(file);
-            };
-            input.click();
-          }}
-        >
-          {uploadedFile ? (
-            <div className="flex items-center justify-center gap-2">
-              {uploadedFile.name.endsWith('.zip') ? (
-                <Archive className="h-5 w-5 text-orange-500" />
-              ) : (
-                <FileText className="h-5 w-5 text-green-500" />
-              )}
-              <span className="text-sm font-medium">{uploadedFile.name}</span>
-              <Badge variant="secondary" className="text-xs">
-                {formatFileSize(uploadedFile.size)}
-              </Badge>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  resetState();
-                }}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <>
-              <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">
-                Drop a .zip (with media) or .txt file here
-              </p>
-            </>
-          )}
-        </div>
-
-        {/* Media Stats */}
-        {mediaStats && mediaStats.total > 0 && (
-          <div className="flex flex-wrap gap-2 p-3 bg-muted/50 rounded-lg">
-            {mediaStats.images > 0 && (
-              <Badge variant="outline" className="gap-1">
-                <Image className="h-3 w-3" /> {mediaStats.images} images
-              </Badge>
-            )}
-            {mediaStats.videos > 0 && (
-              <Badge variant="outline" className="gap-1">
-                <Video className="h-3 w-3" /> {mediaStats.videos} videos
-              </Badge>
-            )}
-            {mediaStats.audio > 0 && (
-              <Badge variant="outline" className="gap-1">
-                <Mic className="h-3 w-3" /> {mediaStats.audio} voice notes
-              </Badge>
-            )}
-            {mediaStats.documents > 0 && (
-              <Badge variant="outline" className="gap-1">
-                <FileIcon className="h-3 w-3" /> {mediaStats.documents} documents
-              </Badge>
-            )}
-            <Badge variant="secondary" className="ml-auto">
-              {formatFileSize(mediaStats.totalSize)} total
-            </Badge>
-          </div>
+        {/* Pending session banner */}
+        {pendingSession && stage === 'idle' && (
+          <WhatsAppResumeSession
+            session={pendingSession}
+            contactName={pendingSessionContact 
+              ? `${pendingSessionContact.first_name} ${pendingSessionContact.last_name}` 
+              : undefined
+            }
+            onResume={handleResumeSession}
+            onDiscard={handleDiscardSession}
+          />
         )}
 
-        {/* Progress */}
-        {progress && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">{progress.message}</span>
-              <span className="font-medium">{Math.round((progress.current / progress.total) * 100)}%</span>
-            </div>
-            <Progress value={(progress.current / progress.total) * 100} />
-          </div>
+        {/* Duplicate resolver */}
+        {showDuplicateResolver && existingConversation && (
+          <WhatsAppDuplicateResolver
+            contactName={contactName}
+            existingConversation={existingConversation}
+            newMessageCount={allMessages.length}
+            newDateRange={stats?.dateRange || { start: null, end: null }}
+            onResolve={handleDuplicateResolved}
+            onCancel={handleCancel}
+          />
         )}
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Select Contact</Label>
-            <Select value={selectedProfile} onValueChange={setSelectedProfile}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a contact" />
-              </SelectTrigger>
-              <SelectContent>
-                {profiles?.map((profile) => (
-                  <SelectItem key={profile.id} value={profile.id}>
-                    {profile.first_name} {profile.last_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        {/* Progress view */}
+        {showProgress && (
+          <WhatsAppImportProgress
+            stage={stage}
+            messagesImported={messagesImported}
+            totalMessages={allMessages.length}
+            mediaUploaded={mediaUploaded}
+            totalMedia={mediaFilesState.length}
+            mediaFiles={mediaFilesState}
+            isPaused={isPaused}
+            onPause={handlePause}
+            onResume={handleResume}
+            onCancel={handleCancel}
+            onRetryFile={handleRetryFile}
+            onSkipFile={handleSkipFile}
+          />
+        )}
 
-          <div className="space-y-2">
-            <Label>Contact Name in Chat</Label>
-            {detectedNames.length > 1 ? (
-              <Select value={contactName} onValueChange={setContactName}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select contact name" />
-                </SelectTrigger>
-                <SelectContent>
-                  {detectedNames.map((name) => (
-                    <SelectItem key={name} value={name}>{name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <Input
-                type="text"
-                value={contactName}
-                onChange={(e) => setContactName(e.target.value)}
-                placeholder="Name as shown in exported chat"
+        {/* Normal import flow */}
+        {!showProgress && !showDuplicateResolver && (
+          <>
+            <Alert>
+              <AlertTitle>How to export from WhatsApp</AlertTitle>
+              <AlertDescription className="text-sm space-y-1">
+                <p>1. Open the chat in WhatsApp</p>
+                <p>2. Tap the menu → More → Export chat</p>
+                <p>3. Choose <strong>"Attach media"</strong> for full import with images/videos</p>
+                <p>4. Upload the .zip file (with media) or .txt file (text only)</p>
+              </AlertDescription>
+            </Alert>
+
+            {/* File upload */}
+            <WhatsAppImportDropzone
+              onFileSelected={handleFileSelected}
+              isProcessing={stage === 'extracting'}
+              dragActive={dragActive}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            />
+
+            {/* Contact selection */}
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Select Contact</Label>
+                <Select value={selectedProfile} onValueChange={setSelectedProfile}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a contact" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {profiles?.map((profile) => (
+                      <SelectItem key={profile.id} value={profile.id}>
+                        {profile.first_name} {profile.last_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Contact Name in Chat</Label>
+                {detectedNames.length > 1 ? (
+                  <Select value={contactName} onValueChange={setContactName}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select contact name" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {detectedNames.map((name) => (
+                        <SelectItem key={name} value={name}>{name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    type="text"
+                    value={contactName}
+                    onChange={(e) => setContactName(e.target.value)}
+                    placeholder="Name as shown in exported chat"
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Paste area for text-only */}
+            {!uploadedFile && (
+              <div className="space-y-2">
+                <Label>Or Paste Chat Export Content</Label>
+                <Textarea
+                  value={chatText}
+                  onChange={(e) => {
+                    setChatText(e.target.value);
+                    const names = detectNamesFromChat(e.target.value);
+                    setDetectedNames(names);
+                  }}
+                  placeholder="Paste your WhatsApp chat export here..."
+                  rows={6}
+                  className="font-mono text-xs"
+                />
+              </div>
+            )}
+
+            {/* Preview */}
+            {showPreview && stats && (
+              <WhatsAppImportPreview
+                messages={allMessages.slice(0, 20).map(m => ({
+                  date: m.date,
+                  content: m.cleanContent || m.content,
+                  senderName: m.sender,
+                  isFromContact: m.isFromContact,
+                  mediaFilename: m.mediaFile?.name,
+                  mediaType: m.mediaRef?.type,
+                }))}
+                stats={stats}
+                contactName={contactName}
               />
             )}
-          </div>
-        </div>
 
-        {!uploadedFile && (
-          <div className="space-y-2">
-            <Label>Or Paste Chat Export Content</Label>
-            <Textarea
-              value={chatText}
-              onChange={(e) => {
-                setChatText(e.target.value);
-                const names = detectNamesFromChat(e.target.value);
-                setDetectedNames(names);
-              }}
-              placeholder="Paste your WhatsApp chat export here..."
-              rows={6}
-              className="font-mono text-xs"
-            />
-          </div>
-        )}
-
-        {preview.length > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Preview ({allMessages.length} messages total)</Label>
-              {allMessages.filter(m => m.mediaFile).length > 0 && (
-                <Badge variant="secondary" className="text-xs">
-                  {allMessages.filter(m => m.mediaFile).length} with media
-                </Badge>
-              )}
+            {/* Action buttons */}
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={handlePreview} 
+                disabled={!chatText.trim() || isProcessing}
+              >
+                Preview
+              </Button>
+              <Button
+                onClick={() => importMutation.mutate()}
+                disabled={!selectedProfile || allMessages.length === 0 || importMutation.isPending}
+                className="flex-1"
+              >
+                {importMutation.isPending ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importing...</>
+                ) : (
+                  <>Import {allMessages.length > 0 ? `${allMessages.length} Messages` : ''}</>
+                )}
+              </Button>
             </div>
-            <div className="rounded-lg border max-h-48 overflow-auto">
-              {preview.map((msg, i) => (
-                <div key={i} className={`p-2 text-xs border-b last:border-b-0 ${msg.isFromContact ? 'bg-muted/50' : ''}`}>
-                  <div className="flex items-start gap-2">
-                    {msg.mediaFile && (
-                      <Badge variant="outline" className="gap-1 shrink-0">
-                        {getMediaIcon(msg.mediaRef?.type || null)}
-                        {msg.mediaRef?.type}
-                      </Badge>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <span className="font-medium">{msg.sender}: </span>
-                      <span className="text-muted-foreground">{msg.cleanContent || '(media)'}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          </>
         )}
-
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handlePreview} disabled={!chatText.trim() || !!progress}>
-            Preview
-          </Button>
-          <Button
-            onClick={() => importMutation.mutate()}
-            disabled={!selectedProfile || allMessages.length === 0 || importMutation.isPending || !!progress}
-            className="flex-1"
-          >
-            {importMutation.isPending || progress ? (
-              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importing...</>
-            ) : (
-              <><Upload className="mr-2 h-4 w-4" /> Import {allMessages.length > 0 ? `${allMessages.length} Messages` : ''}</>
-            )}
-          </Button>
-        </div>
       </CardContent>
     </Card>
   );
