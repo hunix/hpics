@@ -1858,8 +1858,10 @@ export type Database = {
       }
       conversation_analyses: {
         Row: {
+          activity_heatmap: Json | null
           ai_model_used: string | null
           analysis_type: string
+          anomalies: Json | null
           anonymization_enabled: boolean | null
           communication_dynamics: Json | null
           confidence_score: number | null
@@ -1872,14 +1874,21 @@ export type Database = {
           intent_breakdown: Json | null
           message_count_analyzed: number | null
           messaging_patterns: Json | null
+          model_used: string | null
+          relationship_health_score: number | null
+          response_time_trend: Json | null
+          sampling_strategy: string | null
           sentiment_analysis: Json | null
           topic_clusters: Json | null
+          total_messages_analyzed: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          activity_heatmap?: Json | null
           ai_model_used?: string | null
           analysis_type?: string
+          anomalies?: Json | null
           anonymization_enabled?: boolean | null
           communication_dynamics?: Json | null
           confidence_score?: number | null
@@ -1892,14 +1901,21 @@ export type Database = {
           intent_breakdown?: Json | null
           message_count_analyzed?: number | null
           messaging_patterns?: Json | null
+          model_used?: string | null
+          relationship_health_score?: number | null
+          response_time_trend?: Json | null
+          sampling_strategy?: string | null
           sentiment_analysis?: Json | null
           topic_clusters?: Json | null
+          total_messages_analyzed?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          activity_heatmap?: Json | null
           ai_model_used?: string | null
           analysis_type?: string
+          anomalies?: Json | null
           anonymization_enabled?: boolean | null
           communication_dynamics?: Json | null
           confidence_score?: number | null
@@ -1912,8 +1928,13 @@ export type Database = {
           intent_breakdown?: Json | null
           message_count_analyzed?: number | null
           messaging_patterns?: Json | null
+          model_used?: string | null
+          relationship_health_score?: number | null
+          response_time_trend?: Json | null
+          sampling_strategy?: string | null
           sentiment_analysis?: Json | null
           topic_clusters?: Json | null
+          total_messages_analyzed?: number | null
           updated_at?: string
           user_id?: string
         }

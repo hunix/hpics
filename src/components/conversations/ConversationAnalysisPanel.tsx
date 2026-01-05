@@ -26,14 +26,17 @@ import {
   Brain, MessageSquare, TrendingUp, Clock, 
   Sparkles, Loader2, RefreshCw, BarChart3, PieChart,
   Heart, Info, Lightbulb, FileText, ChevronDown,
-  Target, Calendar, Zap, Users
+  Target, Calendar, Zap, Users, AlertTriangle, Activity,
+  CheckCircle2, XCircle, ArrowRight
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { 
   PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, 
   BarChart, Bar, XAxis, YAxis, Tooltip, Legend, 
-  LineChart, Line, Area, AreaChart, ReferenceLine
+  LineChart, Line, Area, AreaChart, ReferenceLine,
+  ScatterChart, Scatter, ZAxis
 } from 'recharts';
+import { AIModelSelector } from '@/components/ai/AIModelSelector';
 
 interface ConversationAnalysisPanelProps {
   conversationId: string;
@@ -43,9 +46,9 @@ interface ConversationAnalysisPanelProps {
 
 // Sentiment color scale
 const getSentimentColor = (sentiment: number): string => {
-  if (sentiment >= 70) return 'hsl(142, 76%, 36%)'; // green
-  if (sentiment >= 50) return 'hsl(45, 93%, 47%)'; // yellow
-  return 'hsl(0, 84%, 60%)'; // red
+  if (sentiment >= 70) return 'hsl(142, 76%, 36%)';
+  if (sentiment >= 50) return 'hsl(45, 93%, 47%)';
+  return 'hsl(0, 84%, 60%)';
 };
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
@@ -61,6 +64,12 @@ const EMOTION_COLORS: Record<string, string> = {
   anxious: '#8b5cf6',
 };
 
+const SEVERITY_COLORS: Record<string, string> = {
+  low: '#10b981',
+  medium: '#f59e0b',
+  high: '#ef4444',
+};
+
 export function ConversationAnalysisPanel({ 
   conversationId, 
   profileName,
@@ -70,8 +79,11 @@ export function ConversationAnalysisPanel({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showModelSelector, setShowModelSelector] = useState(false);
+  const [showSummaryModelSelector, setShowSummaryModelSelector] = useState(false);
   const [anonymizeData, setAnonymizeData] = useState(true);
   const [summaryOpen, setSummaryOpen] = useState(true);
+  const [selectedModel, setSelectedModel] = useState('google/gemini-2.5-flash');
 
   // Fetch existing analysis
   const { data: analysis, isLoading: analysisLoading } = useQuery({
@@ -107,12 +119,13 @@ export function ConversationAnalysisPanel({
 
   // Run analysis mutation
   const analyzeMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (model: string) => {
       const { data, error } = await supabase.functions.invoke('analyze-conversation', {
         body: { 
           conversationId, 
           anonymize: anonymizeData,
-          userId: user!.id
+          userId: user!.id,
+          model
         },
       });
       if (error) throw error;
@@ -130,12 +143,13 @@ export function ConversationAnalysisPanel({
 
   // Quick summary mutation
   const summaryMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (model: string) => {
       const { data, error } = await supabase.functions.invoke('summarize-conversation', {
         body: { 
           conversationId, 
           userId: user!.id,
-          recentOnly: false
+          recentOnly: false,
+          model
         },
       });
       if (error) throw error;
@@ -150,12 +164,28 @@ export function ConversationAnalysisPanel({
     },
   });
 
+  const handleAnalyze = (model: string) => {
+    setSelectedModel(model);
+    setShowModelSelector(false);
+    setShowConfirmDialog(true);
+  };
+
+  const handleSummarize = (model: string) => {
+    setShowSummaryModelSelector(false);
+    summaryMutation.mutate(model);
+  };
+
   const patterns = analysis?.messaging_patterns as any;
   const sentiment = analysis?.sentiment_analysis as any;
   const intents = analysis?.intent_breakdown as any;
   const topics = analysis?.topic_clusters as any;
   const dynamics = analysis?.communication_dynamics as any;
   const insights = analysis?.insights as string[] | null;
+  const anomalies = analysis?.anomalies as any[] | null;
+  const healthScore = analysis?.relationship_health_score as number | null;
+  const activityHeatmap = analysis?.activity_heatmap as any[] | null;
+  const responseTimeTrend = analysis?.response_time_trend as any[] | null;
+  const recommendedActions = dynamics?.recommended_actions as any[] | null;
 
   // Prepare chart data
   const messageDistData = patterns ? [
@@ -164,11 +194,10 @@ export function ConversationAnalysisPanel({
   ] : [];
 
   const intentData = intents ? Object.entries(intents).map(([name, value]) => ({
-    name: name.replace('_', ' ').replace(/^\w/, c => c.toUpperCase()),
+    name: name.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase()),
     value: value as number,
-  })).filter(d => d.value > 0) : [];
+  })).filter(d => d.value > 0).sort((a, b) => b.value - a.value) : [];
 
-  // Enhanced sentiment timeline with colors
   const sentimentTimelineData = sentiment?.timeline?.map((t: any) => ({
     period: t.period,
     sentiment: Math.round((t.sentiment || 0) * 100),
@@ -176,7 +205,6 @@ export function ConversationAnalysisPanel({
     color: getSentimentColor(Math.round((t.sentiment || 0) * 100)),
   })) || [];
 
-  // Emotion breakdown for pie chart
   const emotionCounts: Record<string, number> = {};
   sentiment?.timeline?.forEach((t: any) => {
     const emotion = (t.dominant_emotion || 'neutral').toLowerCase();
@@ -188,10 +216,12 @@ export function ConversationAnalysisPanel({
     color: EMOTION_COLORS[name] || '#6b7280',
   }));
 
-  const topicsData = topics?.slice(0, 6).map((t: any) => ({
+  const topicsData = topics?.slice(0, 8).map((t: any) => ({
     name: t.topic,
     frequency: t.frequency,
     sentiment: Math.round((t.sentiment || 0) * 100),
+    firstMentioned: t.first_mentioned,
+    lastMentioned: t.last_mentioned,
   })) || [];
 
   if (analysisLoading) {
@@ -214,6 +244,9 @@ export function ConversationAnalysisPanel({
               <div className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
                 <CardTitle className="text-base">Quick Summary</CardTitle>
+                {summary?.ai_model_used && (
+                  <Badge variant="outline" className="text-xs">{summary.ai_model_used}</Badge>
+                )}
               </div>
               <ChevronDown className={`h-4 w-4 transition-transform ${summaryOpen ? 'rotate-180' : ''}`} />
             </CollapsibleTrigger>
@@ -226,7 +259,7 @@ export function ConversationAnalysisPanel({
                 </div>
               ) : summary ? (
                 <div className="space-y-4">
-                  <p className="text-sm leading-relaxed">{summary.summary}</p>
+                  <p className="text-sm leading-relaxed whitespace-pre-line">{summary.summary}</p>
                   
                   {(summary.key_topics as string[])?.length > 0 && (
                     <div>
@@ -273,9 +306,11 @@ export function ConversationAnalysisPanel({
                     </div>
                   )}
 
-                  <p className="text-xs text-muted-foreground">
-                    Generated {format(new Date(summary.created_at), 'MMM d, yyyy h:mm a')}
-                  </p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>Generated {format(new Date(summary.created_at), 'MMM d, yyyy h:mm a')}</span>
+                    <span>•</span>
+                    <span>{summary.message_count_summarized?.toLocaleString()} messages</span>
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-col items-center py-4 gap-3">
@@ -283,7 +318,7 @@ export function ConversationAnalysisPanel({
                   <Button 
                     size="sm" 
                     variant="outline" 
-                    onClick={() => summaryMutation.mutate()}
+                    onClick={() => setShowSummaryModelSelector(true)}
                     disabled={summaryMutation.isPending}
                   >
                     {summaryMutation.isPending ? (
@@ -306,7 +341,7 @@ export function ConversationAnalysisPanel({
                   size="sm" 
                   variant="ghost" 
                   className="mt-3"
-                  onClick={() => summaryMutation.mutate()}
+                  onClick={() => setShowSummaryModelSelector(true)}
                   disabled={summaryMutation.isPending}
                 >
                   {summaryMutation.isPending ? (
@@ -332,11 +367,11 @@ export function ConversationAnalysisPanel({
                 AI Conversation Analysis
               </CardTitle>
               <CardDescription>
-                Analyze messaging patterns, sentiment, and communication dynamics
+                Deep analysis of messaging patterns, sentiment, anomalies, and relationship health
               </CardDescription>
             </div>
             <Button 
-              onClick={() => setShowConfirmDialog(true)}
+              onClick={() => setShowModelSelector(true)}
               disabled={analyzeMutation.isPending}
             >
               {analyzeMutation.isPending ? (
@@ -360,10 +395,14 @@ export function ConversationAnalysisPanel({
         </CardHeader>
         {analysis && (
           <CardContent>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <span>Last analyzed: {format(new Date(analysis.created_at), 'MMM d, yyyy h:mm a')}</span>
-              <Badge variant="outline">{analysis.message_count_analyzed?.toLocaleString()} messages analyzed</Badge>
+            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+              <span>Analyzed: {format(new Date(analysis.created_at), 'MMM d, yyyy h:mm a')}</span>
+              <Badge variant="outline">{analysis.total_messages_analyzed?.toLocaleString() || analysis.message_count_analyzed?.toLocaleString()} messages</Badge>
               <Badge variant="outline">Confidence: {analysis.confidence_score}%</Badge>
+              <Badge variant="outline">{analysis.model_used || analysis.ai_model_used}</Badge>
+              {analysis.sampling_strategy && analysis.sampling_strategy !== 'full' && (
+                <Badge variant="secondary" className="text-xs">{analysis.sampling_strategy}</Badge>
+              )}
             </div>
           </CardContent>
         )}
@@ -372,16 +411,40 @@ export function ConversationAnalysisPanel({
       {/* Analysis Results */}
       {analysis && (
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="patterns">Patterns</TabsTrigger>
             <TabsTrigger value="sentiment">Sentiment</TabsTrigger>
             <TabsTrigger value="topics">Topics</TabsTrigger>
+            <TabsTrigger value="anomalies">Anomalies</TabsTrigger>
             <TabsTrigger value="insights">Insights</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-4">
+            {/* Relationship Health Score */}
+            {healthScore !== null && (
+              <Card className="border-2" style={{ borderColor: healthScore >= 70 ? '#10b981' : healthScore >= 40 ? '#f59e0b' : '#ef4444' }}>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Relationship Health Score</p>
+                      <p className="text-4xl font-bold">{healthScore}</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {healthScore >= 70 ? 'Healthy relationship' : healthScore >= 40 ? 'Needs attention' : 'Critical issues detected'}
+                      </p>
+                    </div>
+                    <div 
+                      className="w-20 h-20 rounded-full flex items-center justify-center text-white font-bold text-2xl"
+                      style={{ backgroundColor: healthScore >= 70 ? '#10b981' : healthScore >= 40 ? '#f59e0b' : '#ef4444' }}
+                    >
+                      {healthScore >= 70 ? '💚' : healthScore >= 40 ? '💛' : '❤️‍🩹'}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <Card>
                 <CardContent className="pt-4">
@@ -422,7 +485,7 @@ export function ConversationAnalysisPanel({
               </Card>
             </div>
 
-            {/* Message Distribution */}
+            {/* Message Distribution & Intent */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <Card>
                 <CardHeader>
@@ -465,9 +528,9 @@ export function ConversationAnalysisPanel({
                 <CardContent>
                   <div className="h-[200px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={intentData} layout="vertical">
+                      <BarChart data={intentData.slice(0, 6)} layout="vertical">
                         <XAxis type="number" />
-                        <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
+                        <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 11 }} />
                         <Tooltip />
                         <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                       </BarChart>
@@ -476,6 +539,31 @@ export function ConversationAnalysisPanel({
                 </CardContent>
               </Card>
             </div>
+
+            {/* Response Time Trend */}
+            {responseTimeTrend && responseTimeTrend.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Activity className="h-4 w-4" />
+                    Response Time Evolution
+                  </CardTitle>
+                  <CardDescription>Average response time in minutes over time</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[200px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={responseTimeTrend}>
+                        <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                        <YAxis tick={{ fontSize: 10 }} />
+                        <Tooltip />
+                        <Line type="monotone" dataKey="avgMinutes" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* Patterns Tab */}
@@ -538,10 +626,9 @@ export function ConversationAnalysisPanel({
             </div>
           </TabsContent>
 
-          {/* Sentiment Tab - Enhanced */}
+          {/* Sentiment Tab */}
           <TabsContent value="sentiment" className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {/* Sentiment Timeline with Gradient */}
               <Card className="lg:col-span-2">
                 <CardHeader>
                   <CardTitle className="text-base">Sentiment Over Time</CardTitle>
@@ -608,11 +695,10 @@ export function ConversationAnalysisPanel({
                 </CardContent>
               </Card>
 
-              {/* Emotion Breakdown Pie Chart */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Emotion Breakdown</CardTitle>
-                  <CardDescription>Distribution of emotions over time</CardDescription>
+                  <CardDescription>Distribution over time</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="h-[250px]">
@@ -647,7 +733,6 @@ export function ConversationAnalysisPanel({
               </Card>
             </div>
 
-            {/* Overall Sentiment Card */}
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
@@ -675,7 +760,7 @@ export function ConversationAnalysisPanel({
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Key Topics Discussed</CardTitle>
-                <CardDescription>Main themes extracted from the conversation</CardDescription>
+                <CardDescription>Main themes with sentiment and timeline</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -688,7 +773,12 @@ export function ConversationAnalysisPanel({
                         />
                         <div>
                           <p className="font-medium">{topic.name}</p>
-                          <p className="text-sm text-muted-foreground">{topic.frequency} mentions</p>
+                          <p className="text-sm text-muted-foreground">
+                            {topic.frequency} mentions
+                            {topic.firstMentioned && topic.lastMentioned && (
+                              <span> • {topic.firstMentioned} → {topic.lastMentioned}</span>
+                            )}
+                          </p>
                         </div>
                       </div>
                       <Badge variant={topic.sentiment >= 60 ? 'default' : topic.sentiment >= 40 ? 'secondary' : 'destructive'}>
@@ -704,15 +794,106 @@ export function ConversationAnalysisPanel({
             </Card>
           </TabsContent>
 
+          {/* Anomalies Tab */}
+          <TabsContent value="anomalies" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  Detected Anomalies
+                </CardTitle>
+                <CardDescription>Unusual patterns, gaps, and changes in the conversation</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[400px]">
+                  <div className="space-y-3">
+                    {anomalies && anomalies.length > 0 ? anomalies.map((anomaly: any, idx: number) => (
+                      <div 
+                        key={idx} 
+                        className="p-4 rounded-lg border-l-4"
+                        style={{ borderLeftColor: SEVERITY_COLORS[anomaly.severity] || '#6b7280' }}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge 
+                                variant="outline" 
+                                className="text-xs"
+                                style={{ borderColor: SEVERITY_COLORS[anomaly.severity], color: SEVERITY_COLORS[anomaly.severity] }}
+                              >
+                                {anomaly.severity}
+                              </Badge>
+                              <Badge variant="secondary" className="text-xs">
+                                {anomaly.type?.replace(/_/g, ' ')}
+                              </Badge>
+                              {anomaly.period && (
+                                <span className="text-xs text-muted-foreground">{anomaly.period}</span>
+                              )}
+                            </div>
+                            <p className="text-sm font-medium">{anomaly.description}</p>
+                            {anomaly.potential_cause && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Possible cause: {anomaly.potential_cause}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )) : (
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <CheckCircle2 className="h-12 w-12 text-green-500 mb-4" />
+                        <p className="font-medium">No Anomalies Detected</p>
+                        <p className="text-sm text-muted-foreground">The conversation appears to have consistent patterns</p>
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Insights Tab */}
           <TabsContent value="insights" className="space-y-4">
+            {/* Recommended Actions */}
+            {recommendedActions && recommendedActions.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Zap className="h-4 w-4" />
+                    Recommended Actions
+                  </CardTitle>
+                  <CardDescription>Actionable steps to improve your relationship</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {recommendedActions.map((action: any, idx: number) => (
+                      <div key={idx} className="flex gap-3 p-3 rounded-lg bg-muted/50">
+                        <Badge 
+                          variant={action.priority === 'high' ? 'destructive' : action.priority === 'medium' ? 'default' : 'secondary'}
+                          className="shrink-0 h-fit"
+                        >
+                          {action.priority}
+                        </Badge>
+                        <div>
+                          <p className="text-sm font-medium">{action.action}</p>
+                          {action.reason && (
+                            <p className="text-xs text-muted-foreground mt-1">{action.reason}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <Card>
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Lightbulb className="h-4 w-4" />
                   AI-Generated Insights
                 </CardTitle>
-                <CardDescription>Observations and recommendations based on the analysis</CardDescription>
+                <CardDescription>Observations and patterns from the analysis</CardDescription>
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-[400px]">
@@ -742,9 +923,9 @@ export function ConversationAnalysisPanel({
             <h3 className="text-lg font-medium mb-2">No Analysis Yet</h3>
             <p className="text-muted-foreground mb-4 max-w-md">
               Run an AI analysis to discover messaging patterns, sentiment trends, 
-              communication dynamics, and actionable insights from this conversation.
+              anomalies, relationship health score, and actionable insights from this conversation.
             </p>
-            <Button onClick={() => setShowConfirmDialog(true)}>
+            <Button onClick={() => setShowModelSelector(true)}>
               <Sparkles className="h-4 w-4 mr-2" />
               Analyze {messageCount.toLocaleString()} Messages
             </Button>
@@ -752,15 +933,35 @@ export function ConversationAnalysisPanel({
         </Card>
       )}
 
+      {/* Model Selector for Analysis */}
+      <AIModelSelector
+        open={showModelSelector}
+        onOpenChange={setShowModelSelector}
+        onSelect={handleAnalyze}
+        analysisType="analyze-conversation"
+        title="Select AI Model for Analysis"
+        description={`Choose which AI model to use for analyzing ${messageCount.toLocaleString()} messages. More powerful models provide deeper insights but cost more.`}
+      />
+
+      {/* Model Selector for Summary */}
+      <AIModelSelector
+        open={showSummaryModelSelector}
+        onOpenChange={setShowSummaryModelSelector}
+        onSelect={handleSummarize}
+        analysisType="summarize-conversation"
+        title="Select AI Model for Summary"
+        description="Choose which AI model to use for generating the conversation summary."
+      />
+
       {/* Confirmation Dialog */}
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Analyze Conversation?</AlertDialogTitle>
+            <AlertDialogTitle>Analyze Conversation with {selectedModel}?</AlertDialogTitle>
             <AlertDialogDescription className="space-y-4">
               <p>
-                This will analyze {messageCount.toLocaleString()} messages to extract patterns, 
-                sentiment, topics, and insights.
+                This will analyze all {messageCount.toLocaleString()} messages to extract patterns, 
+                sentiment, anomalies, and insights.
               </p>
               
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
@@ -784,7 +985,7 @@ export function ConversationAnalysisPanel({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => analyzeMutation.mutate()}>
+            <AlertDialogAction onClick={() => analyzeMutation.mutate(selectedModel)}>
               {analyzeMutation.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
