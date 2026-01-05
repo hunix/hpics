@@ -1856,6 +1856,77 @@ export type Database = {
           },
         ]
       }
+      conversation_analyses: {
+        Row: {
+          ai_model_used: string | null
+          analysis_type: string
+          anonymization_enabled: boolean | null
+          communication_dynamics: Json | null
+          confidence_score: number | null
+          conversation_id: string
+          created_at: string
+          date_range_end: string | null
+          date_range_start: string | null
+          id: string
+          insights: string[] | null
+          intent_breakdown: Json | null
+          message_count_analyzed: number | null
+          messaging_patterns: Json | null
+          sentiment_analysis: Json | null
+          topic_clusters: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_model_used?: string | null
+          analysis_type?: string
+          anonymization_enabled?: boolean | null
+          communication_dynamics?: Json | null
+          confidence_score?: number | null
+          conversation_id: string
+          created_at?: string
+          date_range_end?: string | null
+          date_range_start?: string | null
+          id?: string
+          insights?: string[] | null
+          intent_breakdown?: Json | null
+          message_count_analyzed?: number | null
+          messaging_patterns?: Json | null
+          sentiment_analysis?: Json | null
+          topic_clusters?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_model_used?: string | null
+          analysis_type?: string
+          anonymization_enabled?: boolean | null
+          communication_dynamics?: Json | null
+          confidence_score?: number | null
+          conversation_id?: string
+          created_at?: string
+          date_range_end?: string | null
+          date_range_start?: string | null
+          id?: string
+          insights?: string[] | null
+          intent_breakdown?: Json | null
+          message_count_analyzed?: number | null
+          messaging_patterns?: Json | null
+          sentiment_analysis?: Json | null
+          topic_clusters?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_analyses_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           created_at: string

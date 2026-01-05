@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -25,9 +25,11 @@ import {
 import { 
   Plus, MessageCircle, Trash2, Send, User, 
   Smartphone, MessageSquare, Linkedin, MessagesSquare,
-  Loader2
+  Loader2, Brain
 } from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
+import { VirtualizedMessageList } from './VirtualizedMessageList';
+import { ConversationAnalysisPanel } from './ConversationAnalysisPanel';
 
 const platforms = ['sms', 'whatsapp', 'linkedin', 'telegram', 'messenger', 'imessage', 'slack', 'discord', 'email_thread', 'other'] as const;
 type Platform = typeof platforms[number];
@@ -239,7 +241,7 @@ export function ConversationsManager({ profileId, profileName }: ConversationsMa
 
       {/* Message View Dialog */}
       <Dialog open={!!selectedConversation} onOpenChange={(open) => !open && setSelectedConversation(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {selectedConvo && (
@@ -253,72 +255,80 @@ export function ConversationsManager({ profileId, profileName }: ConversationsMa
             </DialogTitle>
           </DialogHeader>
           
-          <ScrollArea className="flex-1 min-h-[300px] max-h-[400px] pr-4">
-            {messages && messages.length > 0 ? (
-              <div className="space-y-3 py-2">
-                {messages.map((msg) => (
-                  <div 
-                    key={msg.id}
-                    className={`flex ${msg.is_from_contact ? 'justify-start' : 'justify-end'}`}
-                  >
-                    <div className={`max-w-[75%] rounded-lg p-3 ${
-                      msg.is_from_contact 
-                        ? 'bg-muted text-foreground' 
-                        : 'bg-primary text-primary-foreground'
-                    }`}>
-                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                      <p className={`text-xs mt-1 ${msg.is_from_contact ? 'text-muted-foreground' : 'text-primary-foreground/70'}`}>
-                        {format(new Date(msg.sent_at), 'MMM d, h:mm a')}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-[200px] text-muted-foreground">
-                No messages yet
-              </div>
-            )}
-          </ScrollArea>
+          <Tabs defaultValue="messages" className="flex-1 flex flex-col min-h-0">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="messages" className="flex items-center gap-2">
+                <MessageCircle className="h-4 w-4" />
+                Messages
+              </TabsTrigger>
+              <TabsTrigger value="analysis" className="flex items-center gap-2">
+                <Brain className="h-4 w-4" />
+                AI Analysis
+              </TabsTrigger>
+            </TabsList>
 
-          <div className="border-t pt-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <Button
-                variant={isFromContact ? "default" : "outline"}
-                size="sm"
-                onClick={() => setIsFromContact(true)}
-              >
-                <User className="h-4 w-4 mr-1" />
-                From {profileName.split(' ')[0]}
-              </Button>
-              <Button
-                variant={!isFromContact ? "default" : "outline"}
-                size="sm"
-                onClick={() => setIsFromContact(false)}
-              >
-                From Me
-              </Button>
-            </div>
-            <div className="flex gap-2">
-              <Textarea
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Paste or type message content..."
-                className="min-h-[60px]"
-              />
-              <Button 
-                onClick={() => addMessageMutation.mutate({ content: newMessage, isFromContact })}
-                disabled={!newMessage.trim() || addMessageMutation.isPending}
-                className="shrink-0"
-              >
-                {addMessageMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-          </div>
+            <TabsContent value="messages" className="flex-1 flex flex-col min-h-0 mt-4">
+              {messages && messages.length > 0 ? (
+                <VirtualizedMessageList 
+                  messages={messages}
+                  profileName={profileName}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+                  No messages yet
+                </div>
+              )}
+
+              <div className="border-t pt-4 space-y-3 mt-auto">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={isFromContact ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setIsFromContact(true)}
+                  >
+                    <User className="h-4 w-4 mr-1" />
+                    From {profileName.split(' ')[0]}
+                  </Button>
+                  <Button
+                    variant={!isFromContact ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setIsFromContact(false)}
+                  >
+                    From Me
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Textarea
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Paste or type message content..."
+                    className="min-h-[60px]"
+                  />
+                  <Button 
+                    onClick={() => addMessageMutation.mutate({ content: newMessage, isFromContact })}
+                    disabled={!newMessage.trim() || addMessageMutation.isPending}
+                    className="shrink-0"
+                  >
+                    {addMessageMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="analysis" className="flex-1 overflow-auto mt-4">
+              {selectedConvo && (
+                <ConversationAnalysisPanel
+                  conversationId={selectedConvo.id}
+                  profileName={profileName}
+                  messageCount={selectedConvo.message_count || 0}
+                />
+              )}
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
 
