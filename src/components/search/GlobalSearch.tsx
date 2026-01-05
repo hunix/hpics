@@ -89,27 +89,51 @@ export function GlobalSearch() {
     enabled: !!user && query.length >= 2,
   });
 
-  // Search documents
+  // Search documents (including AI metadata)
   const { data: documents = [] } = useQuery({
     queryKey: ["global-search-documents", query],
     queryFn: async () => {
       if (!user || query.length < 2) return [];
       
-      const { data } = await supabase
+      // Search by title
+      const { data: byTitle } = await supabase
         .from("documents")
-        .select("id, title, document_type, created_at, profile_id")
+        .select("id, title, document_type, created_at, profile_id, ai_metadata")
         .eq("user_id", user.id)
         .ilike("title", `%${query}%`)
         .limit(5);
       
-      return (data || []).map((d): SearchResult => ({
-        id: d.id,
-        type: "document",
-        title: d.title,
-        subtitle: d.document_type,
-        url: "/documents",
-        timestamp: d.created_at,
-      }));
+      // Also search by AI metadata
+      const { data: byAIMetadata } = await supabase
+        .from("documents")
+        .select("id, title, document_type, created_at, profile_id, ai_metadata")
+        .eq("user_id", user.id)
+        .eq("ai_generation_status", "completed")
+        .or(`ai_metadata->ai_summary.ilike.%${query}%`)
+        .limit(5);
+      
+      // Combine and dedupe
+      const allDocs = [...(byTitle || []), ...(byAIMetadata || [])];
+      const seen = new Set<string>();
+      const deduped = allDocs.filter(d => {
+        if (seen.has(d.id)) return false;
+        seen.add(d.id);
+        return true;
+      }).slice(0, 5);
+      
+      return deduped.map((d: any): SearchResult => {
+        const aiSummary = d.ai_metadata?.ai_summary;
+        return {
+          id: d.id,
+          type: "document",
+          title: d.title,
+          subtitle: aiSummary 
+            ? `${aiSummary.substring(0, 50)}${aiSummary.length > 50 ? "..." : ""}`
+            : d.document_type,
+          url: d.profile_id ? `/contacts/${d.profile_id}` : "/documents",
+          timestamp: d.created_at,
+        };
+      });
     },
     enabled: !!user && query.length >= 2,
   });
@@ -171,30 +195,55 @@ export function GlobalSearch() {
     enabled: !!user && query.length >= 2,
   });
 
-  // Search media
+  // Search media (including AI metadata)
   const { data: media = [] } = useQuery({
     queryKey: ["global-search-media", query],
     queryFn: async () => {
       if (!user || query.length < 2) return [];
       
-      const { data } = await supabase
+      // Search by caption
+      const { data: byCaption } = await supabase
         .from("media")
-        .select("id, file_name, media_type, created_at, profile_id, profiles(first_name, last_name)")
+        .select("id, caption, mime_type, created_at, profile_id, ai_metadata, profiles(first_name, last_name)")
         .eq("user_id", user.id)
-        .ilike("file_name", `%${query}%`)
+        .ilike("caption", `%${query}%`)
         .limit(5);
       
-      return (data || []).map((m: any): SearchResult => {
+      // Also search by AI metadata description and tags
+      const { data: byAIMetadata } = await supabase
+        .from("media")
+        .select("id, caption, mime_type, created_at, profile_id, ai_metadata, profiles(first_name, last_name)")
+        .eq("user_id", user.id)
+        .eq("ai_generation_status", "completed")
+        .or(`ai_metadata->ai_description.ilike.%${query}%,ai_metadata->transcription.ilike.%${query}%,ai_metadata->summary.ilike.%${query}%`)
+        .limit(5);
+      
+      // Combine and dedupe
+      const allMedia = [...(byCaption || []), ...(byAIMetadata || [])];
+      const seen = new Set<string>();
+      const deduped = allMedia.filter(m => {
+        if (seen.has(m.id)) return false;
+        seen.add(m.id);
+        return true;
+      }).slice(0, 5);
+      
+      return deduped.map((m: any): SearchResult => {
         const profile = m.profiles;
         const contactName = profile 
           ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim() 
           : "Unassigned";
         
+        // Use AI description if available
+        const aiDesc = m.ai_metadata?.ai_description || m.ai_metadata?.summary;
+        const displayTitle = m.caption || "Unnamed media";
+        
         return {
           id: m.id,
           type: "media",
-          title: m.file_name || "Unnamed file",
-          subtitle: `${m.media_type} • ${contactName}`,
+          title: displayTitle,
+          subtitle: aiDesc 
+            ? `${aiDesc.substring(0, 50)}${aiDesc.length > 50 ? "..." : ""}`
+            : `${m.mime_type || "Media"} • ${contactName}`,
           url: m.profile_id ? `/contacts/${m.profile_id}` : "/media",
           timestamp: m.created_at,
         };

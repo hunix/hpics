@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.sync-outlook-emails]
 verify_jwt = false
+
+[functions.generate-media-metadata]
+verify_jwt = false

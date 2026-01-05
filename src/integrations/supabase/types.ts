@@ -1816,6 +1816,11 @@ export type Database = {
       }
       documents: {
         Row: {
+          ai_generation_error: string | null
+          ai_generation_status: string | null
+          ai_metadata: Json | null
+          ai_metadata_generated_at: string | null
+          ai_model_used: string | null
           created_at: string
           description: string | null
           document_type: Database["public"]["Enums"]["document_type"]
@@ -1829,6 +1834,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai_generation_error?: string | null
+          ai_generation_status?: string | null
+          ai_metadata?: Json | null
+          ai_metadata_generated_at?: string | null
+          ai_model_used?: string | null
           created_at?: string
           description?: string | null
           document_type: Database["public"]["Enums"]["document_type"]
@@ -1842,6 +1852,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ai_generation_error?: string | null
+          ai_generation_status?: string | null
+          ai_metadata?: Json | null
+          ai_metadata_generated_at?: string | null
+          ai_model_used?: string | null
           created_at?: string
           description?: string | null
           document_type?: Database["public"]["Enums"]["document_type"]
@@ -2314,6 +2329,11 @@ export type Database = {
       }
       media: {
         Row: {
+          ai_generation_error: string | null
+          ai_generation_status: string | null
+          ai_metadata: Json | null
+          ai_metadata_generated_at: string | null
+          ai_model_used: string | null
           caption: string | null
           created_at: string
           file_size: number | null
@@ -2326,6 +2346,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai_generation_error?: string | null
+          ai_generation_status?: string | null
+          ai_metadata?: Json | null
+          ai_metadata_generated_at?: string | null
+          ai_model_used?: string | null
           caption?: string | null
           created_at?: string
           file_size?: number | null
@@ -2338,6 +2363,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ai_generation_error?: string | null
+          ai_generation_status?: string | null
+          ai_metadata?: Json | null
+          ai_metadata_generated_at?: string | null
+          ai_model_used?: string | null
           caption?: string | null
           created_at?: string
           file_size?: number | null
@@ -2355,6 +2385,75 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      media_metadata_jobs: {
+        Row: {
+          actual_cost_cents: number | null
+          completed_at: string | null
+          created_at: string | null
+          document_id: string | null
+          error: string | null
+          estimated_cost_cents: number | null
+          id: string
+          job_type: string
+          media_id: string | null
+          model_key: string | null
+          priority: number | null
+          result: Json | null
+          started_at: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          actual_cost_cents?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          document_id?: string | null
+          error?: string | null
+          estimated_cost_cents?: number | null
+          id?: string
+          job_type?: string
+          media_id?: string | null
+          model_key?: string | null
+          priority?: number | null
+          result?: Json | null
+          started_at?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          actual_cost_cents?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          document_id?: string | null
+          error?: string | null
+          estimated_cost_cents?: number | null
+          id?: string
+          job_type?: string
+          media_id?: string | null
+          model_key?: string | null
+          priority?: number | null
+          result?: Json | null
+          started_at?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_metadata_jobs_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_metadata_jobs_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
             referencedColumns: ["id"]
           },
         ]
