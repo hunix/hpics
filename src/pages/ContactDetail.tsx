@@ -52,6 +52,7 @@ import { ObservationsManager } from '@/components/contacts/ObservationsManager';
 import { ContactRelationshipsManager } from '@/components/contacts/ContactRelationshipsManager';
 import { KidsSchoolsManager } from '@/components/contacts/KidsSchoolsManager';
 import { ContactEmailThreads } from '@/components/contacts/ContactEmailThreads';
+import { ContactStorageBadge } from '@/components/contacts/ContactStorageBadge';
 import { cn } from '@/lib/utils';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
 import type { Tables } from '@/integrations/supabase/types';
@@ -355,6 +356,7 @@ export default function ContactDetail() {
                       </>
                     );
                   })()}
+                  <ContactStorageBadge profileId={contact.id} />
                   {contact.organization && (
                     <span className="text-sm text-muted-foreground">{contact.organization}</span>
                   )}
