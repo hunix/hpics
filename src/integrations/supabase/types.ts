@@ -3116,6 +3116,103 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_import_sessions: {
+        Row: {
+          created_at: string | null
+          duplicate_action: string | null
+          error_message: string | null
+          existing_conversation_id: string | null
+          failed_files: Json | null
+          file_name: string | null
+          file_size: number | null
+          id: string
+          last_processed_index: number | null
+          media_files_state: Json | null
+          media_uploaded: number | null
+          messages_imported: number | null
+          new_conversation_id: string | null
+          parsed_messages: Json | null
+          paused_at: string | null
+          profile_id: string
+          skipped_files: Json | null
+          status: string
+          total_media_files: number | null
+          total_messages: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          duplicate_action?: string | null
+          error_message?: string | null
+          existing_conversation_id?: string | null
+          failed_files?: Json | null
+          file_name?: string | null
+          file_size?: number | null
+          id?: string
+          last_processed_index?: number | null
+          media_files_state?: Json | null
+          media_uploaded?: number | null
+          messages_imported?: number | null
+          new_conversation_id?: string | null
+          parsed_messages?: Json | null
+          paused_at?: string | null
+          profile_id: string
+          skipped_files?: Json | null
+          status?: string
+          total_media_files?: number | null
+          total_messages?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          duplicate_action?: string | null
+          error_message?: string | null
+          existing_conversation_id?: string | null
+          failed_files?: Json | null
+          file_name?: string | null
+          file_size?: number | null
+          id?: string
+          last_processed_index?: number | null
+          media_files_state?: Json | null
+          media_uploaded?: number | null
+          messages_imported?: number | null
+          new_conversation_id?: string | null
+          parsed_messages?: Json | null
+          paused_at?: string | null
+          profile_id?: string
+          skipped_files?: Json | null
+          status?: string
+          total_media_files?: number | null
+          total_messages?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_import_sessions_existing_conversation_id_fkey"
+            columns: ["existing_conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_import_sessions_new_conversation_id_fkey"
+            columns: ["new_conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_import_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_templates: {
         Row: {
           category: string
