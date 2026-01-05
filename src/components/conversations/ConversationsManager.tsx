@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -6,9 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -23,13 +22,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { 
-  Plus, MessageCircle, Trash2, Send, User, 
+  Plus, MessageCircle, Trash2, ExternalLink,
   Smartphone, MessageSquare, Linkedin, MessagesSquare,
-  Loader2, Brain
+  Loader2
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { VirtualizedMessageList } from './VirtualizedMessageList';
-import { ConversationAnalysisPanel } from './ConversationAnalysisPanel';
 
 const platforms = ['sms', 'whatsapp', 'linkedin', 'telegram', 'messenger', 'imessage', 'slack', 'discord', 'email_thread', 'other'] as const;
 type Platform = typeof platforms[number];
@@ -48,16 +45,16 @@ const platformIcons: Record<Platform, any> = {
 };
 
 const platformColors: Record<Platform, string> = {
-  sms: 'bg-green-100 text-green-800',
-  whatsapp: 'bg-emerald-100 text-emerald-800',
-  linkedin: 'bg-blue-100 text-blue-800',
-  telegram: 'bg-sky-100 text-sky-800',
-  messenger: 'bg-indigo-100 text-indigo-800',
-  imessage: 'bg-blue-100 text-blue-800',
-  slack: 'bg-purple-100 text-purple-800',
-  discord: 'bg-violet-100 text-violet-800',
-  email_thread: 'bg-gray-100 text-gray-800',
-  other: 'bg-gray-100 text-gray-800',
+  sms: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+  whatsapp: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300',
+  linkedin: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+  telegram: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300',
+  messenger: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300',
+  imessage: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+  slack: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+  discord: 'bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300',
+  email_thread: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300',
+  other: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300',
 };
 
 interface ConversationsManagerProps {
@@ -69,10 +66,8 @@ export function ConversationsManager({ profileId, profileName }: ConversationsMa
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [isNewConvoOpen, setIsNewConvoOpen] = useState(false);
-  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
-  const [newMessage, setNewMessage] = useState('');
-  const [isFromContact, setIsFromContact] = useState(false);
   const [newConvoData, setNewConvoData] = useState({
     platform: 'whatsapp' as Platform,
     title: '',
@@ -89,21 +84,6 @@ export function ConversationsManager({ profileId, profileName }: ConversationsMa
       if (error) throw error;
       return data;
     },
-  });
-
-  const { data: messages } = useQuery({
-    queryKey: ['messages', selectedConversation],
-    queryFn: async () => {
-      if (!selectedConversation) return [];
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', selectedConversation)
-        .order('sent_at', { ascending: true });
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!selectedConversation,
   });
 
   const createConversationMutation = useMutation({
@@ -124,41 +104,9 @@ export function ConversationsManager({ profileId, profileName }: ConversationsMa
     onSuccess: (convo) => {
       queryClient.invalidateQueries({ queryKey: ['conversations', profileId] });
       setIsNewConvoOpen(false);
-      setSelectedConversation(convo.id);
+      navigate(`/contacts/${profileId}/conversations/${convo.id}`);
       setNewConvoData({ platform: 'whatsapp', title: '' });
       toast({ title: 'Conversation created' });
-    },
-    onError: (error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    },
-  });
-
-  const addMessageMutation = useMutation({
-    mutationFn: async ({ content, isFromContact }: { content: string; isFromContact: boolean }) => {
-      if (!selectedConversation) throw new Error('No conversation selected');
-      
-      const { error } = await supabase.from('messages').insert({
-        conversation_id: selectedConversation,
-        user_id: user!.id,
-        content,
-        is_from_contact: isFromContact,
-        sent_at: new Date().toISOString(),
-      });
-      if (error) throw error;
-
-      // Update conversation stats
-      await supabase
-        .from('conversations')
-        .update({ 
-          last_message_at: new Date().toISOString(),
-          message_count: (conversations?.find(c => c.id === selectedConversation)?.message_count || 0) + 1
-        })
-        .eq('id', selectedConversation);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['messages', selectedConversation] });
-      queryClient.invalidateQueries({ queryKey: ['conversations', profileId] });
-      setNewMessage('');
     },
     onError: (error) => {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -172,12 +120,13 @@ export function ConversationsManager({ profileId, profileName }: ConversationsMa
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['conversations', profileId] });
-      setSelectedConversation(null);
       toast({ title: 'Conversation deleted' });
     },
   });
 
-  const selectedConvo = conversations?.find(c => c.id === selectedConversation);
+  const handleConversationClick = (convoId: string) => {
+    navigate(`/contacts/${profileId}/conversations/${convoId}`);
+  };
 
   return (
     <div className="space-y-4">
@@ -197,10 +146,8 @@ export function ConversationsManager({ profileId, profileName }: ConversationsMa
             return (
               <div 
                 key={convo.id}
-                className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
-                  selectedConversation === convo.id ? 'bg-primary/10 border border-primary/20' : 'bg-muted/50 hover:bg-muted'
-                }`}
-                onClick={() => setSelectedConversation(convo.id)}
+                className="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors bg-muted/50 hover:bg-muted group"
+                onClick={() => handleConversationClick(convo.id)}
               >
                 <div className="flex items-center gap-3">
                   <div className={`flex h-8 w-8 items-center justify-center rounded-full ${platformColors[convo.platform as Platform]}`}>
@@ -210,25 +157,28 @@ export function ConversationsManager({ profileId, profileName }: ConversationsMa
                     <p className="font-medium text-sm">{convo.title}</p>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Badge variant="outline" className="text-xs py-0">
-                        {convo.message_count} messages
+                        {convo.message_count?.toLocaleString()} messages
                       </Badge>
                       <span>{formatDistanceToNow(new Date(convo.last_message_at), { addSuffix: true })}</span>
                     </div>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 opacity-0 hover:opacity-100 group-hover:opacity-100"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (confirm('Delete this conversation?')) {
-                      deleteConversationMutation.mutate(convo.id);
-                    }
-                  }}
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <ExternalLink className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm('Delete this conversation?')) {
+                        deleteConversationMutation.mutate(convo.id);
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
               </div>
             );
           })}
@@ -238,99 +188,6 @@ export function ConversationsManager({ profileId, profileName }: ConversationsMa
           No conversations yet. Add message threads to include in AI analysis.
         </p>
       )}
-
-      {/* Message View Dialog */}
-      <Dialog open={!!selectedConversation} onOpenChange={(open) => !open && setSelectedConversation(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {selectedConvo && (
-                <>
-                  <Badge className={platformColors[selectedConvo.platform as Platform]}>
-                    {selectedConvo.platform}
-                  </Badge>
-                  {selectedConvo.title}
-                </>
-              )}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <Tabs defaultValue="messages" className="flex-1 flex flex-col min-h-0">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="messages" className="flex items-center gap-2">
-                <MessageCircle className="h-4 w-4" />
-                Messages
-              </TabsTrigger>
-              <TabsTrigger value="analysis" className="flex items-center gap-2">
-                <Brain className="h-4 w-4" />
-                AI Analysis
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="messages" className="flex-1 flex flex-col min-h-0 mt-4">
-              {messages && messages.length > 0 ? (
-                <VirtualizedMessageList 
-                  messages={messages}
-                  profileName={profileName}
-                />
-              ) : (
-                <div className="flex items-center justify-center h-[200px] text-muted-foreground">
-                  No messages yet
-                </div>
-              )}
-
-              <div className="border-t pt-4 space-y-3 mt-auto">
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant={isFromContact ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setIsFromContact(true)}
-                  >
-                    <User className="h-4 w-4 mr-1" />
-                    From {profileName.split(' ')[0]}
-                  </Button>
-                  <Button
-                    variant={!isFromContact ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setIsFromContact(false)}
-                  >
-                    From Me
-                  </Button>
-                </div>
-                <div className="flex gap-2">
-                  <Textarea
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Paste or type message content..."
-                    className="min-h-[60px]"
-                  />
-                  <Button 
-                    onClick={() => addMessageMutation.mutate({ content: newMessage, isFromContact })}
-                    disabled={!newMessage.trim() || addMessageMutation.isPending}
-                    className="shrink-0"
-                  >
-                    {addMessageMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="analysis" className="flex-1 overflow-auto mt-4">
-              {selectedConvo && (
-                <ConversationAnalysisPanel
-                  conversationId={selectedConvo.id}
-                  profileName={profileName}
-                  messageCount={selectedConvo.message_count || 0}
-                />
-              )}
-            </TabsContent>
-          </Tabs>
-        </DialogContent>
-      </Dialog>
 
       {/* New Conversation Dialog */}
       <Dialog open={isNewConvoOpen} onOpenChange={setIsNewConvoOpen}>

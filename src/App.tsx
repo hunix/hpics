@@ -12,6 +12,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Contacts from "./pages/Contacts";
 import ContactDetail from "./pages/ContactDetail";
+import ConversationDetail from "./pages/ConversationDetail";
 import Communications from "./pages/Communications";
 import Documents from "./pages/Documents";
 import MediaPage from "./pages/Media";
@@ -42,6 +43,7 @@ const App = () => (
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/contacts" element={<Contacts />} />
                   <Route path="/contacts/:id" element={<ContactDetail />} />
+                  <Route path="/contacts/:contactId/conversations/:conversationId" element={<ConversationDetail />} />
                   <Route path="/communications" element={<Communications />} />
                   <Route path="/documents" element={<Documents />} />
                   <Route path="/media" element={<MediaPage />} />
