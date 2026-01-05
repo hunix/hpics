@@ -5,6 +5,7 @@ import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/s
 import { AppSidebar } from '@/components/AppSidebar';
 import { Separator } from '@/components/ui/separator';
 import { Loader2 } from 'lucide-react';
+import { GlobalSearch } from '@/components/search/GlobalSearch';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -42,6 +43,9 @@ export function AppLayout({ children, title }: AppLayoutProps) {
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 h-4" />
             {title && <h1 className="text-lg font-semibold">{title}</h1>}
+            <div className="ml-auto">
+              <GlobalSearch />
+            </div>
           </header>
           <main className="flex-1 overflow-auto p-6">
             {children}
