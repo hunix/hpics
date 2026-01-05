@@ -17,6 +17,39 @@ import { Users, ZoomIn, ZoomOut, Maximize2, GitBranch, Eye, EyeOff, UserCheck } 
 import * as d3 from 'd3';
 import { buildFamilyGraph, getGenerationLabel, type FamilyGraph, type FamilyMember, type FamilyLink } from '@/lib/familyTreeEngine';
 
+// Helper to find connected family members via BFS from a starting profile
+function getConnectedMembers(
+  relationships: { from_profile_id: string; to_profile_id: string }[],
+  startId: string
+): Set<string> {
+  const connected = new Set<string>();
+  const queue = [startId];
+  
+  // Build adjacency list
+  const adj = new Map<string, Set<string>>();
+  for (const r of relationships) {
+    if (!adj.has(r.from_profile_id)) adj.set(r.from_profile_id, new Set());
+    if (!adj.has(r.to_profile_id)) adj.set(r.to_profile_id, new Set());
+    adj.get(r.from_profile_id)!.add(r.to_profile_id);
+    adj.get(r.to_profile_id)!.add(r.from_profile_id);
+  }
+  
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    if (connected.has(current)) continue;
+    connected.add(current);
+    
+    const neighbors = adj.get(current);
+    if (neighbors) {
+      for (const neighbor of neighbors) {
+        if (!connected.has(neighbor)) queue.push(neighbor);
+      }
+    }
+  }
+  
+  return connected;
+}
+
 export function FamilyTreeGraph() {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -69,8 +102,17 @@ export function FamilyTreeGraph() {
       // Find the self profile
       const selfProfile = profiles?.find(p => p.is_self_profile);
 
+      // Filter relationships to only include those connected to self profile
+      let filteredRelationships = relationships || [];
+      if (selfProfile && filteredRelationships.length > 0) {
+        const connectedIds = getConnectedMembers(filteredRelationships, selfProfile.id);
+        filteredRelationships = filteredRelationships.filter(r => 
+          connectedIds.has(r.from_profile_id) && connectedIds.has(r.to_profile_id)
+        );
+      }
+
       return { 
-        relationships: relationships || [], 
+        relationships: filteredRelationships, 
         profiles: profileMap,
         selfProfileId: selfProfile?.id || null
       };
