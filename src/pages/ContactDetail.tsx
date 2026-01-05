@@ -15,7 +15,7 @@ import {
   User, MessageSquare, Briefcase, GraduationCap,
   FileText, Image, Target, Gift, Heart, Clock,
   Calendar, Sparkles, Users, ChevronRight, Building,
-  Mic, Eye, Activity, Volume2, UserCircle, GitCompare, Wallet, Link2
+  Mic, Eye, Activity, Volume2, UserCircle, GitCompare, Wallet, Link2, Mail
 } from 'lucide-react';
 import { ContactDialog } from '@/components/contacts/ContactDialog';
 import { ContactMethodsManager } from '@/components/contacts/ContactMethodsManager';
@@ -51,6 +51,7 @@ import { FinancialHistoryManager } from '@/components/contacts/FinancialHistoryM
 import { ObservationsManager } from '@/components/contacts/ObservationsManager';
 import { ContactRelationshipsManager } from '@/components/contacts/ContactRelationshipsManager';
 import { KidsSchoolsManager } from '@/components/contacts/KidsSchoolsManager';
+import { ContactEmailThreads } from '@/components/contacts/ContactEmailThreads';
 import { cn } from '@/lib/utils';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
 import type { Tables } from '@/integrations/supabase/types';
@@ -59,7 +60,7 @@ type Profile = Tables<'profiles'> & { relationship_subtype?: string; hierarchy_l
 
 type SectionId = 
   | 'overview' | 'personal-info' | 'contact' | 'documents' | 'media' | 'recordings'
-  | 'outreach' | 'templates' | 'briefing' | 'whatsapp'
+  | 'outreach' | 'templates' | 'briefing' | 'whatsapp' | 'emails'
   | 'interests' | 'gifts' | 'goals' | 'experiences' | 'relationships' | 'kids-schools'
   | 'education' | 'messages' | 'timeline' | 'groups' | 'enrich'
   | 'behavioral' | 'facial' | 'body-language' | 'vocal' | 'comparison'
@@ -82,6 +83,7 @@ const sections: NavSection[] = [
   { id: 'outreach', label: 'Outreach Timing', icon: Clock, group: 'Communication' },
   { id: 'templates', label: 'Message Templates', icon: Sparkles, group: 'Communication' },
   { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, group: 'Communication' },
+  { id: 'emails', label: 'Emails', icon: Mail, group: 'Communication' },
   { id: 'messages', label: 'Conversations', icon: MessageSquare, group: 'Communication' },
   { id: 'briefing', label: 'Meeting Briefing', icon: Calendar, group: 'AI Insights' },
   { id: 'observations', label: 'My Observations', icon: Eye, group: 'AI Insights' },
@@ -256,6 +258,8 @@ export default function ContactDetail() {
         return <MessageTemplates profileId={contact.id} contactName={contactName} />;
       case 'whatsapp':
         return <WhatsAppChat profileId={contact.id} profileName={contactName} />;
+      case 'emails':
+        return <ContactEmailThreads profileId={contact.id} contactName={contactName} />;
       case 'briefing':
         return <MeetingBriefing profileId={contact.id} contactName={contactName} />;
       case 'observations':

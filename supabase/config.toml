@@ -59,3 +59,9 @@ verify_jwt = false
 
 [functions.whatsapp-send]
 verify_jwt = false
+
+[functions.outlook-oauth]
+verify_jwt = false
+
+[functions.sync-outlook-emails]
+verify_jwt = false

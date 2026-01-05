@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Moon, Sun, Bell, Mail, Loader2, Smartphone, Link2, Bot, Cpu, MessageCircle } from 'lucide-react';
 import { AnalyticsExport } from '@/components/analytics/AnalyticsExport';
 import { EmailIntegration } from '@/components/settings/EmailIntegration';
+import { OutlookIntegration } from '@/components/settings/OutlookIntegration';
 import { PushNotifications } from '@/components/settings/PushNotifications';
 import { LocalAIEndpoints } from '@/components/settings/LocalAIEndpoints';
 import { AIModelPreferences } from '@/components/settings/AIModelPreferences';
@@ -203,6 +204,7 @@ export default function Settings() {
         </TabsContent>
 
         <TabsContent value="integrations" className="space-y-6 mt-6">
+          <OutlookIntegration />
           <ResendIntegration 
             isConfigured={true} 
             onSave={() => {}} 

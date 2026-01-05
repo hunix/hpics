@@ -1932,6 +1932,124 @@ export type Database = {
         }
         Relationships: []
       }
+      email_messages: {
+        Row: {
+          body_html: string | null
+          body_preview: string | null
+          cc_recipients: string[] | null
+          created_at: string | null
+          external_id: string
+          has_attachments: boolean | null
+          id: string
+          importance: string | null
+          is_from_contact: boolean | null
+          received_at: string | null
+          recipients: string[] | null
+          sender_email: string
+          sender_name: string | null
+          sent_at: string
+          subject: string | null
+          thread_id: string | null
+          user_id: string
+        }
+        Insert: {
+          body_html?: string | null
+          body_preview?: string | null
+          cc_recipients?: string[] | null
+          created_at?: string | null
+          external_id: string
+          has_attachments?: boolean | null
+          id?: string
+          importance?: string | null
+          is_from_contact?: boolean | null
+          received_at?: string | null
+          recipients?: string[] | null
+          sender_email: string
+          sender_name?: string | null
+          sent_at: string
+          subject?: string | null
+          thread_id?: string | null
+          user_id: string
+        }
+        Update: {
+          body_html?: string | null
+          body_preview?: string | null
+          cc_recipients?: string[] | null
+          created_at?: string | null
+          external_id?: string
+          has_attachments?: boolean | null
+          id?: string
+          importance?: string | null
+          is_from_contact?: boolean | null
+          received_at?: string | null
+          recipients?: string[] | null
+          sender_email?: string
+          sender_name?: string | null
+          sent_at?: string
+          subject?: string | null
+          thread_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "email_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_threads: {
+        Row: {
+          conversation_id: string | null
+          created_at: string | null
+          folder: string | null
+          id: string
+          is_read: boolean | null
+          last_message_at: string | null
+          message_count: number | null
+          profile_id: string | null
+          subject: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string | null
+          folder?: string | null
+          id?: string
+          is_read?: boolean | null
+          last_message_at?: string | null
+          message_count?: number | null
+          profile_id?: string | null
+          subject?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string | null
+          folder?: string | null
+          id?: string
+          is_read?: boolean | null
+          last_message_at?: string | null
+          message_count?: number | null
+          profile_id?: string | null
+          subject?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_threads_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           created_at: string
@@ -2322,6 +2440,87 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      oauth_tokens: {
+        Row: {
+          access_token: string
+          account_email: string | null
+          created_at: string | null
+          expires_at: string
+          id: string
+          provider: string
+          refresh_token: string | null
+          scopes: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          account_email?: string | null
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          provider: string
+          refresh_token?: string | null
+          scopes?: string[] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          account_email?: string | null
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          provider?: string
+          refresh_token?: string | null
+          scopes?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      outlook_config: {
+        Row: {
+          client_id: string
+          created_at: string | null
+          id: string
+          last_delta_link: string | null
+          last_sync_at: string | null
+          redirect_uri: string | null
+          sync_days_back: number | null
+          sync_enabled: boolean | null
+          tenant_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string | null
+          id?: string
+          last_delta_link?: string | null
+          last_sync_at?: string | null
+          redirect_uri?: string | null
+          sync_days_back?: number | null
+          sync_enabled?: boolean | null
+          tenant_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string | null
+          id?: string
+          last_delta_link?: string | null
+          last_sync_at?: string | null
+          redirect_uri?: string | null
+          sync_days_back?: number | null
+          sync_enabled?: boolean | null
+          tenant_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
