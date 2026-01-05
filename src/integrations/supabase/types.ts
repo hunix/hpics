@@ -1927,6 +1927,62 @@ export type Database = {
           },
         ]
       }
+      conversation_summaries: {
+        Row: {
+          action_items: string[] | null
+          ai_model_used: string | null
+          conversation_id: string
+          created_at: string
+          date_range_end: string | null
+          date_range_start: string | null
+          id: string
+          important_dates: string[] | null
+          key_topics: string[] | null
+          message_count_summarized: number | null
+          summary: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_items?: string[] | null
+          ai_model_used?: string | null
+          conversation_id: string
+          created_at?: string
+          date_range_end?: string | null
+          date_range_start?: string | null
+          id?: string
+          important_dates?: string[] | null
+          key_topics?: string[] | null
+          message_count_summarized?: number | null
+          summary: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_items?: string[] | null
+          ai_model_used?: string | null
+          conversation_id?: string
+          created_at?: string
+          date_range_end?: string | null
+          date_range_start?: string | null
+          id?: string
+          important_dates?: string[] | null
+          key_topics?: string[] | null
+          message_count_summarized?: number | null
+          summary?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_summaries_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           created_at: string

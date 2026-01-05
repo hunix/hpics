@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,12 +23,17 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { 
-  Brain, MessageSquare, TrendingUp, Users, Clock, 
+  Brain, MessageSquare, TrendingUp, Clock, 
   Sparkles, Loader2, RefreshCw, BarChart3, PieChart,
-  MessageCircle, Heart, HelpCircle, Info, Lightbulb
+  Heart, Info, Lightbulb, FileText, ChevronDown,
+  Target, Calendar, Zap, Users
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line } from 'recharts';
+import { 
+  PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, 
+  BarChart, Bar, XAxis, YAxis, Tooltip, Legend, 
+  LineChart, Line, Area, AreaChart, ReferenceLine
+} from 'recharts';
 
 interface ConversationAnalysisPanelProps {
   conversationId: string;
@@ -35,7 +41,25 @@ interface ConversationAnalysisPanelProps {
   messageCount: number;
 }
 
+// Sentiment color scale
+const getSentimentColor = (sentiment: number): string => {
+  if (sentiment >= 70) return 'hsl(142, 76%, 36%)'; // green
+  if (sentiment >= 50) return 'hsl(45, 93%, 47%)'; // yellow
+  return 'hsl(0, 84%, 60%)'; // red
+};
+
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+
+const EMOTION_COLORS: Record<string, string> = {
+  happy: '#10b981',
+  positive: '#10b981',
+  excited: '#f59e0b',
+  neutral: '#6b7280',
+  sad: '#3b82f6',
+  negative: '#ef4444',
+  angry: '#dc2626',
+  anxious: '#8b5cf6',
+};
 
 export function ConversationAnalysisPanel({ 
   conversationId, 
@@ -47,6 +71,7 @@ export function ConversationAnalysisPanel({
   const queryClient = useQueryClient();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [anonymizeData, setAnonymizeData] = useState(true);
+  const [summaryOpen, setSummaryOpen] = useState(true);
 
   // Fetch existing analysis
   const { data: analysis, isLoading: analysisLoading } = useQuery({
@@ -54,6 +79,22 @@ export function ConversationAnalysisPanel({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('conversation_analyses')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch existing summary
+  const { data: summary, isLoading: summaryLoading } = useQuery({
+    queryKey: ['conversation-summary', conversationId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('conversation_summaries')
         .select('*')
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: false })
@@ -87,6 +128,28 @@ export function ConversationAnalysisPanel({
     },
   });
 
+  // Quick summary mutation
+  const summaryMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('summarize-conversation', {
+        body: { 
+          conversationId, 
+          userId: user!.id,
+          recentOnly: false
+        },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversation-summary', conversationId] });
+      toast({ title: 'Summary generated', description: 'Quick summary has been created.' });
+    },
+    onError: (error) => {
+      toast({ title: 'Summary failed', description: error.message, variant: 'destructive' });
+    },
+  });
+
   const patterns = analysis?.messaging_patterns as any;
   const sentiment = analysis?.sentiment_analysis as any;
   const intents = analysis?.intent_breakdown as any;
@@ -105,10 +168,25 @@ export function ConversationAnalysisPanel({
     value: value as number,
   })).filter(d => d.value > 0) : [];
 
+  // Enhanced sentiment timeline with colors
   const sentimentTimelineData = sentiment?.timeline?.map((t: any) => ({
     period: t.period,
     sentiment: Math.round((t.sentiment || 0) * 100),
+    emotion: t.dominant_emotion || 'neutral',
+    color: getSentimentColor(Math.round((t.sentiment || 0) * 100)),
   })) || [];
+
+  // Emotion breakdown for pie chart
+  const emotionCounts: Record<string, number> = {};
+  sentiment?.timeline?.forEach((t: any) => {
+    const emotion = (t.dominant_emotion || 'neutral').toLowerCase();
+    emotionCounts[emotion] = (emotionCounts[emotion] || 0) + 1;
+  });
+  const emotionData = Object.entries(emotionCounts).map(([name, value]) => ({
+    name: name.charAt(0).toUpperCase() + name.slice(1),
+    value,
+    color: EMOTION_COLORS[name] || '#6b7280',
+  }));
 
   const topicsData = topics?.slice(0, 6).map((t: any) => ({
     name: t.topic,
@@ -128,6 +206,122 @@ export function ConversationAnalysisPanel({
 
   return (
     <div className="space-y-4">
+      {/* Quick Summary Section */}
+      <Card>
+        <Collapsible open={summaryOpen} onOpenChange={setSummaryOpen}>
+          <CardHeader className="pb-3">
+            <CollapsibleTrigger className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                <CardTitle className="text-base">Quick Summary</CardTitle>
+              </div>
+              <ChevronDown className={`h-4 w-4 transition-transform ${summaryOpen ? 'rotate-180' : ''}`} />
+            </CollapsibleTrigger>
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent className="pt-0">
+              {summaryLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : summary ? (
+                <div className="space-y-4">
+                  <p className="text-sm leading-relaxed">{summary.summary}</p>
+                  
+                  {(summary.key_topics as string[])?.length > 0 && (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                        <Target className="h-3 w-3" /> Key Topics
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {(summary.key_topics as string[]).map((topic, idx) => (
+                          <Badge key={idx} variant="secondary" className="text-xs">{topic}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {(summary.action_items as string[])?.length > 0 && (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                        <Zap className="h-3 w-3" /> Action Items
+                      </p>
+                      <ul className="text-sm space-y-1">
+                        {(summary.action_items as string[]).map((item, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <span className="text-primary">•</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {(summary.important_dates as string[])?.length > 0 && (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                        <Calendar className="h-3 w-3" /> Important Dates
+                      </p>
+                      <ul className="text-sm space-y-1">
+                        {(summary.important_dates as string[]).map((date, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <span className="text-primary">•</span>
+                            <span>{date}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  <p className="text-xs text-muted-foreground">
+                    Generated {format(new Date(summary.created_at), 'MMM d, yyyy h:mm a')}
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center py-4 gap-3">
+                  <p className="text-sm text-muted-foreground">No summary yet</p>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => summaryMutation.mutate()}
+                    disabled={summaryMutation.isPending}
+                  >
+                    {summaryMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-3 w-3 mr-2" />
+                        Generate Summary
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+              
+              {summary && (
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  className="mt-3"
+                  onClick={() => summaryMutation.mutate()}
+                  disabled={summaryMutation.isPending}
+                >
+                  {summaryMutation.isPending ? (
+                    <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3 w-3 mr-2" />
+                  )}
+                  Regenerate
+                </Button>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
+      </Card>
+
       {/* Header with Analyze Button */}
       <Card>
         <CardHeader>
@@ -344,29 +538,133 @@ export function ConversationAnalysisPanel({
             </div>
           </TabsContent>
 
-          {/* Sentiment Tab */}
+          {/* Sentiment Tab - Enhanced */}
           <TabsContent value="sentiment" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* Sentiment Timeline with Gradient */}
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="text-base">Sentiment Over Time</CardTitle>
+                  <CardDescription>Hover to see details. Green = positive, Yellow = neutral, Red = negative</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={sentimentTimelineData}>
+                        <defs>
+                          <linearGradient id="sentimentGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.1}/>
+                          </linearGradient>
+                        </defs>
+                        <XAxis dataKey="period" tick={{ fontSize: 11 }} />
+                        <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
+                        <Tooltip 
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              const data = payload[0].payload;
+                              return (
+                                <div className="bg-popover p-3 rounded-lg border shadow-lg">
+                                  <p className="font-medium">{data.period}</p>
+                                  <p className="text-sm">
+                                    Sentiment: <span style={{ color: data.color }}>{data.sentiment}%</span>
+                                  </p>
+                                  <p className="text-sm text-muted-foreground capitalize">
+                                    Dominant: {data.emotion}
+                                  </p>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <ReferenceLine y={50} stroke="#6b7280" strokeDasharray="3 3" />
+                        <Area 
+                          type="monotone" 
+                          dataKey="sentiment" 
+                          stroke="hsl(var(--primary))" 
+                          fill="url(#sentimentGradient)"
+                          strokeWidth={2}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="sentiment" 
+                          stroke="hsl(var(--primary))" 
+                          strokeWidth={2}
+                          dot={({ cx, cy, payload }) => (
+                            <circle 
+                              cx={cx} 
+                              cy={cy} 
+                              r={5} 
+                              fill={payload.color}
+                              stroke="white"
+                              strokeWidth={2}
+                            />
+                          )}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Emotion Breakdown Pie Chart */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Emotion Breakdown</CardTitle>
+                  <CardDescription>Distribution of emotions over time</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[250px]">
+                    {emotionData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RechartsPie>
+                          <Pie
+                            data={emotionData}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={70}
+                            innerRadius={40}
+                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                            labelLine={false}
+                          >
+                            {emotionData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                        </RechartsPie>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                        No emotion data available
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Overall Sentiment Card */}
             <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Sentiment Over Time</CardTitle>
-                <CardDescription>How the emotional tone has changed throughout the conversation</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={sentimentTimelineData}>
-                      <XAxis dataKey="period" tick={{ fontSize: 12 }} />
-                      <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
-                      <Tooltip formatter={(value) => [`${value}%`, 'Sentiment']} />
-                      <Line 
-                        type="monotone" 
-                        dataKey="sentiment" 
-                        stroke="hsl(var(--primary))" 
-                        strokeWidth={2}
-                        dot={{ r: 4 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Overall Conversation Sentiment</p>
+                    <p className="text-3xl font-bold capitalize">{sentiment?.overall || 'Neutral'}</p>
+                  </div>
+                  <div 
+                    className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl"
+                    style={{ 
+                      backgroundColor: sentiment?.overall === 'positive' ? '#10b981' : 
+                                       sentiment?.overall === 'negative' ? '#ef4444' : '#f59e0b' 
+                    }}
+                  >
+                    {sentiment?.overall === 'positive' ? '😊' : 
+                     sentiment?.overall === 'negative' ? '😟' : '😐'}
+                  </div>
                 </div>
               </CardContent>
             </Card>
