@@ -22,12 +22,12 @@ const MODEL_OPTIONS = [
   { value: 'google/gemini-2.5-pro', label: 'Gemini 2.5 Pro (Best Quality)', costPer1K: 1.25 },
 ];
 
-// Estimated tokens per file type
+// Estimated tokens per file type (enhanced metadata uses more output tokens)
 const TOKEN_ESTIMATES: Record<string, number> = {
-  image: 1500, // Images use vision tokens
-  audio: 500,
-  video: 2000,
-  document: 800,
+  image: 3000, // Images use vision tokens + comprehensive output
+  audio: 2500, // Full transcription + analysis
+  video: 4000, // Visual + audio analysis
+  document: 2000, // Full document analysis
 };
 
 export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGeneratorProps) {

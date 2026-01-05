@@ -18,7 +18,871 @@ interface MetadataRequest {
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   'google/gemini-2.5-flash': { input: 0.075, output: 0.30 },
   'google/gemini-2.5-pro': { input: 1.25, output: 10.00 },
+  'google/gemini-2.5-flash-lite': { input: 0.019, output: 0.075 },
 };
+
+// ============ ENHANCED TOOL SCHEMAS ============
+
+const ENHANCED_IMAGE_TOOL = {
+  type: "function",
+  function: {
+    name: "extract_image_metadata",
+    description: "Extract comprehensive structured metadata from an image for intelligence analysis",
+    parameters: {
+      type: "object",
+      properties: {
+        // CORE DESCRIPTION
+        ai_description: { type: "string", description: "3-5 sentence detailed description of the image" },
+        ai_summary_short: { type: "string", description: "One-line summary of the image" },
+        
+        // PEOPLE ANALYSIS
+        people: {
+          type: "object",
+          properties: {
+            count: { type: "number" },
+            faces: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  position: { type: "string", enum: ["left", "center", "right", "background"] },
+                  estimated_age_range: { type: "string" },
+                  estimated_gender: { type: "string", enum: ["male", "female", "unknown"] },
+                  expression: { type: "string" },
+                  emotion: { type: "string" },
+                  eye_contact: { type: "boolean" },
+                  accessories: { type: "array", items: { type: "string" } },
+                  facial_hair: { type: "string" },
+                  is_primary_subject: { type: "boolean" }
+                }
+              }
+            },
+            group_dynamics: { type: "string" },
+            relationships_suggested: { type: "array", items: { type: "string" } }
+          }
+        },
+        
+        // CLOTHING & APPEARANCE
+        clothing_analysis: {
+          type: "object",
+          properties: {
+            items: { type: "array", items: { type: "string" } },
+            style: { type: "string", enum: ["formal", "casual", "athletic", "traditional", "business", "elegant", "streetwear", "uniform", "other"] },
+            colors: { type: "array", items: { type: "string" } },
+            occasion_suggested: { type: "string" },
+            cultural_elements: { type: "array", items: { type: "string" } }
+          }
+        },
+        
+        // LOCATION & SETTING
+        location_analysis: {
+          type: "object",
+          properties: {
+            scene_type: { type: "string", enum: ["indoor", "outdoor", "vehicle", "aerial", "underwater", "studio"] },
+            environment: { type: "string" },
+            venue_type: { type: "string" },
+            landmarks_detected: { type: "array", items: { type: "string" } },
+            country_suggested: { type: "string" },
+            city_suggested: { type: "string" },
+            weather_visible: { type: "string" },
+            time_of_day: { type: "string", enum: ["dawn", "morning", "afternoon", "evening", "night", "unknown"] },
+            season_suggested: { type: "string", enum: ["spring", "summer", "autumn", "winter", "unknown"] }
+          }
+        },
+        
+        // OBJECTS & ITEMS
+        objects: {
+          type: "object",
+          properties: {
+            primary: { type: "array", items: { type: "string" } },
+            secondary: { type: "array", items: { type: "string" } },
+            electronics: { type: "array", items: { type: "string" } },
+            vehicles: { type: "array", items: { type: "string" } },
+            food_drinks: { type: "array", items: { type: "string" } },
+            documents_visible: { type: "array", items: { type: "string" } },
+            brands_detected: { type: "array", items: { type: "string" } },
+            luxury_items: { type: "array", items: { type: "string" } },
+            valuables_visible: { type: "boolean" }
+          }
+        },
+        
+        // ACTIVITIES & EVENTS
+        activity_analysis: {
+          type: "object",
+          properties: {
+            primary_activity: { type: "string" },
+            event_type: { type: "string" },
+            is_celebration: { type: "boolean" },
+            is_professional: { type: "boolean" },
+            sports_fitness: { type: "array", items: { type: "string" } },
+            hobbies_indicated: { type: "array", items: { type: "string" } }
+          }
+        },
+        
+        // TEXT EXTRACTION (OCR)
+        text_extraction: {
+          type: "object",
+          properties: {
+            all_text: { type: "string" },
+            languages_detected: { type: "array", items: { type: "string" } },
+            handwritten_text: { type: "string" },
+            printed_text: { type: "string" },
+            signs_labels: { type: "array", items: { type: "string" } },
+            document_content: {
+              type: "object",
+              properties: {
+                type: { type: "string" },
+                key_info: { type: "object", additionalProperties: { type: "string" } }
+              }
+            },
+            contact_info_found: {
+              type: "object",
+              properties: {
+                phone_numbers: { type: "array", items: { type: "string" } },
+                emails: { type: "array", items: { type: "string" } },
+                addresses: { type: "array", items: { type: "string" } },
+                urls: { type: "array", items: { type: "string" } }
+              }
+            }
+          }
+        },
+        
+        // TECHNICAL QUALITY
+        image_quality: {
+          type: "object",
+          properties: {
+            overall_score: { type: "number" },
+            sharpness: { type: "string", enum: ["sharp", "slightly_blurry", "blurry"] },
+            exposure: { type: "string", enum: ["well_exposed", "overexposed", "underexposed"] },
+            composition: { type: "string" },
+            is_professional_photo: { type: "boolean" },
+            camera_type_suggested: { type: "string" },
+            editing_detected: { type: "boolean" },
+            is_screenshot: { type: "boolean" },
+            is_scan: { type: "boolean" },
+            is_meme_graphic: { type: "boolean" }
+          }
+        },
+        
+        // VISUAL PROPERTIES
+        visual_properties: {
+          type: "object",
+          properties: {
+            dominant_colors: { type: "array", items: { type: "string" } },
+            color_palette: { type: "array", items: { type: "string" } },
+            brightness: { type: "string", enum: ["dark", "dim", "normal", "bright", "very_bright"] },
+            contrast: { type: "string", enum: ["low", "normal", "high"] },
+            saturation: { type: "string", enum: ["desaturated", "normal", "vibrant"] },
+            artistic_style: { type: "string" },
+            filter_detected: { type: "string" }
+          }
+        },
+        
+        // INTELLIGENCE TAGS
+        intelligence: {
+          type: "object",
+          properties: {
+            relationship_context: { type: "array", items: { type: "string" } },
+            life_events: { type: "array", items: { type: "string" } },
+            interests_revealed: { type: "array", items: { type: "string" } },
+            personality_cues: { type: "array", items: { type: "string" } },
+            wealth_indicators: { type: "array", items: { type: "string" } },
+            profession_cues: { type: "array", items: { type: "string" } },
+            travel_indicators: { type: "array", items: { type: "string" } }
+          }
+        },
+        
+        // CONTENT FLAGS
+        content_flags: {
+          type: "object",
+          properties: {
+            is_sensitive: { type: "boolean" },
+            sensitivity_type: { type: "array", items: { type: "string" } },
+            contains_minors: { type: "boolean" },
+            security_level_suggested: { type: "string", enum: ["public", "private", "confidential"] }
+          }
+        },
+        
+        // SEARCHABILITY
+        tags: { type: "array", items: { type: "string" }, description: "15-25 comprehensive searchable tags" },
+        categories: { type: "array", items: { type: "string" } },
+        search_keywords: { type: "array", items: { type: "string" } },
+        
+        // CROSS-REFERENCE
+        similar_to: { type: "array", items: { type: "string" } },
+        memory_cues: { type: "array", items: { type: "string" } }
+      },
+      required: ["ai_description", "ai_summary_short", "tags", "location_analysis", "image_quality"],
+      additionalProperties: false
+    }
+  }
+};
+
+const ENHANCED_AUDIO_TOOL = {
+  type: "function",
+  function: {
+    name: "extract_audio_metadata",
+    description: "Extract comprehensive structured metadata from audio for intelligence analysis",
+    parameters: {
+      type: "object",
+      properties: {
+        // TRANSCRIPTION
+        transcription: {
+          type: "object",
+          properties: {
+            full_text: { type: "string" },
+            with_timestamps: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  start: { type: "number" },
+                  end: { type: "number" },
+                  text: { type: "string" },
+                  speaker_id: { type: "string" }
+                }
+              }
+            },
+            word_count: { type: "number" },
+            language_primary: { type: "string" },
+            languages_detected: { type: "array", items: { type: "string" } },
+            confidence_score: { type: "number" }
+          }
+        },
+        
+        // SPEAKER ANALYSIS
+        speakers: {
+          type: "object",
+          properties: {
+            count: { type: "number" },
+            diarization: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  speaker_id: { type: "string" },
+                  speaking_time_seconds: { type: "number" },
+                  speaking_percentage: { type: "number" },
+                  estimated_gender: { type: "string" },
+                  estimated_age_range: { type: "string" },
+                  voice_characteristics: { type: "array", items: { type: "string" } },
+                  accent_detected: { type: "string" },
+                  language_style: { type: "string" }
+                }
+              }
+            },
+            dominant_speaker: { type: "string" },
+            conversation_balance: { type: "string", enum: ["balanced", "one_sided", "monologue"] }
+          }
+        },
+        
+        // CONTENT ANALYSIS
+        content: {
+          type: "object",
+          properties: {
+            summary: { type: "string" },
+            summary_detailed: { type: "string" },
+            topics_main: { type: "array", items: { type: "string" } },
+            topics_mentioned: { type: "array", items: { type: "string" } },
+            key_points: { type: "array", items: { type: "string" } },
+            action_items: { type: "array", items: { type: "string" } },
+            decisions_made: { type: "array", items: { type: "string" } },
+            questions_asked: { type: "array", items: { type: "string" } },
+            questions_unanswered: { type: "array", items: { type: "string" } },
+            names_mentioned: { type: "array", items: { type: "string" } },
+            organizations_mentioned: { type: "array", items: { type: "string" } },
+            locations_mentioned: { type: "array", items: { type: "string" } },
+            dates_times_mentioned: { type: "array", items: { type: "string" } },
+            numbers_amounts_mentioned: { type: "array", items: { type: "string" } }
+          }
+        },
+        
+        // EMOTIONAL ANALYSIS
+        emotional_analysis: {
+          type: "object",
+          properties: {
+            overall_sentiment: { type: "string", enum: ["very_positive", "positive", "neutral", "negative", "very_negative", "mixed"] },
+            sentiment_timeline: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  timestamp: { type: "string" },
+                  sentiment: { type: "string" },
+                  intensity: { type: "number" }
+                }
+              }
+            },
+            emotional_moments: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  timestamp: { type: "string" },
+                  emotion: { type: "string" },
+                  trigger: { type: "string" }
+                }
+              }
+            },
+            tension_points: { type: "array", items: { type: "string" } },
+            positive_moments: { type: "array", items: { type: "string" } },
+            humor_detected: { type: "boolean" },
+            conflict_indicators: { type: "array", items: { type: "string" } }
+          }
+        },
+        
+        // CONVERSATION DYNAMICS
+        dynamics: {
+          type: "object",
+          properties: {
+            conversation_type: { type: "string", enum: ["interview", "meeting", "casual_chat", "presentation", "debate", "negotiation", "other"] },
+            formality_level: { type: "string", enum: ["very_formal", "formal", "neutral", "casual", "very_casual"] },
+            power_dynamics: { type: "string", enum: ["equal", "hierarchical", "one_dominant"] },
+            rapport_level: { type: "string", enum: ["high", "medium", "low", "tense"] },
+            interruptions_count: { type: "number" },
+            agreements: { type: "array", items: { type: "string" } },
+            disagreements: { type: "array", items: { type: "string" } },
+            turn_taking_pattern: { type: "string" }
+          }
+        },
+        
+        // INTELLIGENCE EXTRACTION
+        intelligence: {
+          type: "object",
+          properties: {
+            commitments_made: { type: "array", items: { type: "string" } },
+            preferences_expressed: { type: "array", items: { type: "string" } },
+            opinions_stated: { type: "array", items: { type: "string" } },
+            complaints_concerns: { type: "array", items: { type: "string" } },
+            interests_discussed: { type: "array", items: { type: "string" } },
+            plans_mentioned: { type: "array", items: { type: "string" } },
+            relationship_references: { type: "array", items: { type: "string" } },
+            work_references: { type: "array", items: { type: "string" } },
+            financial_references: { type: "array", items: { type: "string" } }
+          }
+        },
+        
+        // AUDIO QUALITY
+        audio_quality: {
+          type: "object",
+          properties: {
+            overall_score: { type: "number" },
+            clarity: { type: "string", enum: ["excellent", "good", "fair", "poor"] },
+            background_noise_level: { type: "string", enum: ["none", "minimal", "moderate", "significant"] },
+            background_sounds: { type: "array", items: { type: "string" } },
+            recording_environment: { type: "string" }
+          }
+        },
+        
+        // CLASSIFICATION
+        audio_type: { type: "string", enum: ["conversation", "voicemail", "meeting", "interview", "speech", "music", "podcast", "other"] },
+        tags: { type: "array", items: { type: "string" }, description: "15-25 comprehensive searchable tags" },
+        search_keywords: { type: "array", items: { type: "string" } },
+        categories: { type: "array", items: { type: "string" } },
+        
+        // FOLLOW-UP
+        follow_up_items: { type: "array", items: { type: "string" } },
+        reminder_triggers: { type: "array", items: { type: "string" } }
+      },
+      required: ["transcription", "content", "audio_type", "tags"],
+      additionalProperties: false
+    }
+  }
+};
+
+const ENHANCED_VIDEO_TOOL = {
+  type: "function",
+  function: {
+    name: "extract_video_metadata",
+    description: "Extract comprehensive structured metadata from video for intelligence analysis",
+    parameters: {
+      type: "object",
+      properties: {
+        // OVERALL SUMMARY
+        summary: {
+          type: "object",
+          properties: {
+            brief: { type: "string" },
+            detailed: { type: "string" },
+            duration_seconds: { type: "number" },
+            key_moments: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  timestamp: { type: "string" },
+                  description: { type: "string" },
+                  importance: { type: "string", enum: ["high", "medium", "low"] }
+                }
+              }
+            }
+          }
+        },
+        
+        // VISUAL ANALYSIS
+        visual: {
+          type: "object",
+          properties: {
+            scene_types: { type: "array", items: { type: "string" } },
+            scene_changes: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  timestamp: { type: "string" },
+                  from_scene: { type: "string" },
+                  to_scene: { type: "string" }
+                }
+              }
+            },
+            locations_shown: { type: "array", items: { type: "string" } },
+            indoor_outdoor_ratio: { type: "string" },
+            lighting_conditions: { type: "array", items: { type: "string" } },
+            camera_movement: { type: "string", enum: ["static", "handheld", "panning", "tracking", "mixed"] },
+            video_quality: { type: "string", enum: ["excellent", "good", "fair", "poor"] },
+            is_professional_production: { type: "boolean" }
+          }
+        },
+        
+        // PEOPLE IN VIDEO
+        people: {
+          type: "object",
+          properties: {
+            unique_faces_count: { type: "number" },
+            main_subjects: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  estimated_age: { type: "string" },
+                  estimated_gender: { type: "string" },
+                  screen_time_percentage: { type: "number" },
+                  activities: { type: "array", items: { type: "string" } },
+                  clothing_style: { type: "string" },
+                  emotional_arc: { type: "array", items: { type: "string" } }
+                }
+              }
+            },
+            group_interactions: { type: "array", items: { type: "string" } },
+            body_language_notes: { type: "array", items: { type: "string" } }
+          }
+        },
+        
+        // AUDIO ANALYSIS
+        audio: {
+          type: "object",
+          properties: {
+            has_audio: { type: "boolean" },
+            has_speech: { type: "boolean" },
+            has_music: { type: "boolean" },
+            music_genre: { type: "string" },
+            transcription_summary: { type: "string" },
+            full_transcription: { type: "string" },
+            languages_spoken: { type: "array", items: { type: "string" } },
+            speaker_count: { type: "number" },
+            audio_quality: { type: "string" }
+          }
+        },
+        
+        // ACTIVITY & EVENTS
+        activities: {
+          type: "object",
+          properties: {
+            primary: { type: "string" },
+            secondary: { type: "array", items: { type: "string" } },
+            event_type: { type: "string" },
+            sports_detected: { type: "array", items: { type: "string" } },
+            skills_demonstrated: { type: "array", items: { type: "string" } }
+          }
+        },
+        
+        // CONTENT ANALYSIS
+        content: {
+          type: "object",
+          properties: {
+            topics_discussed: { type: "array", items: { type: "string" } },
+            key_information: { type: "array", items: { type: "string" } },
+            names_mentioned: { type: "array", items: { type: "string" } },
+            places_mentioned: { type: "array", items: { type: "string" } },
+            dates_referenced: { type: "array", items: { type: "string" } },
+            tutorial_steps: { type: "array", items: { type: "string" } },
+            story_arc: { type: "string" }
+          }
+        },
+        
+        // INTELLIGENCE
+        intelligence: {
+          type: "object",
+          properties: {
+            relationship_context: { type: "string" },
+            occasion_type: { type: "string" },
+            memory_value: { type: "string", enum: ["high", "medium", "low"] },
+            interests_revealed: { type: "array", items: { type: "string" } },
+            behavioral_observations: { type: "array", items: { type: "string" } },
+            location_clues: { type: "array", items: { type: "string" } }
+          }
+        },
+        
+        // CLASSIFICATION
+        video_type: { type: "string", enum: ["home_video", "meeting", "event", "tutorial", "interview", "vlog", "presentation", "other"] },
+        tags: { type: "array", items: { type: "string" }, description: "15-25 comprehensive searchable tags" },
+        categories: { type: "array", items: { type: "string" } },
+        search_keywords: { type: "array", items: { type: "string" } },
+        
+        // TIMESTAMPS
+        notable_timestamps: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              time: { type: "string" },
+              event: { type: "string" },
+              tags: { type: "array", items: { type: "string" } }
+            }
+          }
+        }
+      },
+      required: ["summary", "visual", "video_type", "tags"],
+      additionalProperties: false
+    }
+  }
+};
+
+const ENHANCED_DOCUMENT_TOOL = {
+  type: "function",
+  function: {
+    name: "extract_document_metadata",
+    description: "Extract comprehensive structured metadata from a document for intelligence analysis",
+    parameters: {
+      type: "object",
+      properties: {
+        // SUMMARY
+        summary: {
+          type: "object",
+          properties: {
+            one_line: { type: "string" },
+            detailed: { type: "string" },
+            executive_summary: { type: "string" },
+            key_takeaways: { type: "array", items: { type: "string" } }
+          }
+        },
+        
+        // DOCUMENT ANALYSIS
+        document_analysis: {
+          type: "object",
+          properties: {
+            type: { type: "string", enum: ["contract", "resume", "report", "article", "presentation", "notes", "form", "letter", "invoice", "receipt", "legal", "other"] },
+            subtype: { type: "string" },
+            format: { type: "string" },
+            page_count: { type: "number" },
+            word_count_estimated: { type: "number" },
+            language: { type: "string" },
+            languages_detected: { type: "array", items: { type: "string" } },
+            writing_quality: { type: "string", enum: ["excellent", "good", "average", "poor"] },
+            formality_level: { type: "string", enum: ["very_formal", "formal", "neutral", "casual", "very_casual"] },
+            intended_audience: { type: "string" }
+          }
+        },
+        
+        // STRUCTURED EXTRACTION
+        extracted_data: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            author: { type: "string" },
+            date_created: { type: "string" },
+            dates_mentioned: { type: "array", items: { type: "string" } },
+            organization: { type: "string" },
+            department: { type: "string" },
+            reference_numbers: { type: "array", items: { type: "string" } },
+            version_info: { type: "string" }
+          }
+        },
+        
+        // ENTITY EXTRACTION
+        entities: {
+          type: "object",
+          properties: {
+            people: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                  role: { type: "string" },
+                  mentions_count: { type: "number" }
+                }
+              }
+            },
+            organizations: { type: "array", items: { type: "string" } },
+            locations: { type: "array", items: { type: "string" } },
+            monetary_amounts: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  amount: { type: "string" },
+                  currency: { type: "string" },
+                  context: { type: "string" }
+                }
+              }
+            },
+            dates_deadlines: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  date: { type: "string" },
+                  context: { type: "string" },
+                  is_deadline: { type: "boolean" }
+                }
+              }
+            },
+            percentages_metrics: { type: "array", items: { type: "string" } },
+            legal_terms: { type: "array", items: { type: "string" } },
+            technical_terms: { type: "array", items: { type: "string" } }
+          }
+        },
+        
+        // CONTENT CLASSIFICATION
+        content: {
+          type: "object",
+          properties: {
+            main_topics: { type: "array", items: { type: "string" } },
+            secondary_topics: { type: "array", items: { type: "string" } },
+            industry_sector: { type: "string" },
+            subject_matter: { type: "string" },
+            document_purpose: { type: "string", enum: ["inform", "request", "agreement", "proposal", "report", "record", "instruct", "other"] },
+            sentiment: { type: "string", enum: ["very_positive", "positive", "neutral", "negative", "very_negative", "formal"] },
+            urgency_level: { type: "string", enum: ["critical", "high", "medium", "low", "none"] },
+            confidentiality_level: { type: "string", enum: ["public", "internal", "confidential", "restricted"] }
+          }
+        },
+        
+        // ACTIONABLE ITEMS
+        actionables: {
+          type: "object",
+          properties: {
+            action_items: { type: "array", items: { type: "string" } },
+            decisions_required: { type: "array", items: { type: "string" } },
+            commitments: { type: "array", items: { type: "string" } },
+            deadlines: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  item: { type: "string" },
+                  date: { type: "string" }
+                }
+              }
+            },
+            follow_ups: { type: "array", items: { type: "string" } },
+            questions_to_address: { type: "array", items: { type: "string" } }
+          }
+        },
+        
+        // LEGAL/COMPLIANCE
+        legal_analysis: {
+          type: "object",
+          properties: {
+            is_legal_document: { type: "boolean" },
+            contract_type: { type: "string" },
+            key_clauses: { type: "array", items: { type: "string" } },
+            obligations: { type: "array", items: { type: "string" } },
+            rights_granted: { type: "array", items: { type: "string" } },
+            termination_conditions: { type: "array", items: { type: "string" } },
+            liability_clauses: { type: "array", items: { type: "string" } },
+            signature_required: { type: "boolean" }
+          }
+        },
+        
+        // FINANCIAL
+        financial_analysis: {
+          type: "object",
+          properties: {
+            contains_financial_data: { type: "boolean" },
+            totals_mentioned: { type: "array", items: { type: "string" } },
+            payment_terms: { type: "string" },
+            budget_items: { type: "array", items: { type: "string" } }
+          }
+        },
+        
+        // RELATIONSHIPS
+        relationships: {
+          type: "object",
+          properties: {
+            parties_involved: { type: "array", items: { type: "string" } },
+            relationship_type: { type: "string" },
+            power_dynamic: { type: "string" }
+          }
+        },
+        
+        // SEARCHABILITY
+        tags: { type: "array", items: { type: "string" }, description: "15-25 comprehensive searchable tags" },
+        categories: { type: "array", items: { type: "string" } },
+        search_keywords: { type: "array", items: { type: "string" } },
+        related_topics: { type: "array", items: { type: "string" } },
+        
+        // REMINDERS
+        reminder_triggers: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              type: { type: "string", enum: ["expiry", "deadline", "renewal", "review", "follow_up"] },
+              date: { type: "string" },
+              description: { type: "string" },
+              days_before: { type: "number" }
+            }
+          }
+        }
+      },
+      required: ["summary", "document_analysis", "content", "tags"],
+      additionalProperties: false
+    }
+  }
+};
+
+// ============ ENHANCED PROMPTS ============
+
+const IMAGE_SYSTEM_PROMPT = `You are an advanced AI intelligence analyst specializing in comprehensive image analysis for a personal relationship management system.
+
+Your task is to extract EVERY piece of useful information from images that could be valuable for:
+1. Understanding relationships and social dynamics
+2. Building personality profiles
+3. Tracking life events and milestones
+4. Identifying interests, hobbies, and preferences
+5. Geographic and location intelligence
+6. Financial and lifestyle indicators
+7. Professional and career insights
+
+Be thorough and extract:
+- Detailed people analysis (age, gender, expressions, relationships, clothing, accessories)
+- Location and setting details (landmarks, venue types, weather, time of day)
+- All visible objects, brands, and items
+- Any text visible through OCR
+- Activities, events, and occasions
+- Technical image quality metrics
+- Intelligence insights for relationship management
+
+Always provide comprehensive tags (15-25) for searchability.`;
+
+const IMAGE_USER_PROMPT = `Analyze this image comprehensively and extract ALL possible metadata. Use the extract_image_metadata function to return structured analysis including:
+
+1. PEOPLE: Count faces, estimate ages/genders, analyze expressions, note clothing and accessories, identify relationships
+2. LOCATION: Determine scene type, environment, landmarks, country/city hints, weather, time of day
+3. OBJECTS: List all visible items, electronics, vehicles, food, documents, brands, luxury items
+4. ACTIVITIES: What's happening? Is it an event? Professional or personal?
+5. TEXT: Extract ALL visible text (OCR) - signs, documents, screens, handwriting
+6. QUALITY: Rate image quality, determine if professional, screenshot, scan, etc.
+7. INTELLIGENCE: Identify relationship context, life events, interests, wealth indicators, profession cues
+8. TAGS: Generate 15-25 comprehensive searchable tags
+
+Be thorough - this metadata will be used for AI analysis and search across thousands of images.`;
+
+const AUDIO_SYSTEM_PROMPT = `You are an advanced AI intelligence analyst specializing in comprehensive audio analysis for a personal relationship management system.
+
+Your task is to extract EVERY piece of useful information from audio that could be valuable for:
+1. Understanding conversations and communication patterns
+2. Tracking commitments, decisions, and action items
+3. Analyzing emotional dynamics and relationship health
+4. Identifying interests, preferences, and opinions
+5. Extracting mentioned people, places, dates, and amounts
+6. Assessing speaker dynamics and conversation quality
+
+Be thorough and extract:
+- Complete or detailed transcription with speaker identification
+- Speaker analysis (count, characteristics, speaking patterns)
+- Content analysis (topics, key points, action items, decisions)
+- Emotional analysis (sentiment, tension points, positive moments)
+- Conversation dynamics (type, formality, power dynamics)
+- Intelligence extraction (commitments, preferences, plans, relationships)
+
+Always provide comprehensive tags (15-25) for searchability.`;
+
+const AUDIO_USER_PROMPT = `Analyze this audio comprehensively and extract ALL possible metadata. Use the extract_audio_metadata function to return structured analysis including:
+
+1. TRANSCRIPTION: Provide complete or detailed transcription with speaker identification where possible
+2. SPEAKERS: Count speakers, analyze voice characteristics, accents, speaking styles
+3. CONTENT: Identify main topics, key points, action items, decisions, questions
+4. ENTITIES: Extract all names, organizations, locations, dates, amounts mentioned
+5. EMOTIONAL: Analyze overall sentiment, emotional moments, tension points, humor
+6. DYNAMICS: Determine conversation type, formality, rapport, power dynamics
+7. INTELLIGENCE: Extract commitments, preferences, opinions, plans, relationship references
+8. TAGS: Generate 15-25 comprehensive searchable tags
+
+Be thorough - this metadata will be used for AI analysis and relationship intelligence.`;
+
+const VIDEO_SYSTEM_PROMPT = `You are an advanced AI intelligence analyst specializing in comprehensive video analysis for a personal relationship management system.
+
+Your task is to extract EVERY piece of useful information from videos that could be valuable for:
+1. Understanding events, activities, and social dynamics
+2. Analyzing people's behaviors and interactions
+3. Tracking life events and memorable moments
+4. Combining visual and audio intelligence
+5. Identifying locations, settings, and contexts
+6. Building comprehensive relationship profiles
+
+Be thorough and extract:
+- Overall summary with key moments and timestamps
+- Visual analysis (scenes, locations, lighting, camera work)
+- People analysis (faces, activities, emotional arcs, interactions)
+- Audio analysis (speech, music, transcription)
+- Activity and event recognition
+- Intelligence insights for relationship management
+
+Always provide comprehensive tags (15-25) for searchability.`;
+
+const VIDEO_USER_PROMPT = `Analyze this video comprehensively and extract ALL possible metadata. Use the extract_video_metadata function to return structured analysis including:
+
+1. SUMMARY: Provide brief and detailed summaries with key moments
+2. VISUAL: Analyze scene types, locations, lighting, camera movement, quality
+3. PEOPLE: Count unique faces, analyze main subjects, activities, emotional arcs
+4. AUDIO: Analyze speech, music, provide transcription summary
+5. ACTIVITIES: Identify primary activities, event types, sports, skills shown
+6. CONTENT: Extract topics discussed, names/places mentioned, story arc
+7. INTELLIGENCE: Determine relationship context, occasion, memory value
+8. TIMESTAMPS: Note notable moments with timestamps
+9. TAGS: Generate 15-25 comprehensive searchable tags
+
+Be thorough - this metadata will be used for AI analysis and relationship intelligence.`;
+
+const DOCUMENT_SYSTEM_PROMPT = `You are an advanced AI intelligence analyst specializing in comprehensive document analysis for a personal relationship management system.
+
+Your task is to extract EVERY piece of useful information from documents that could be valuable for:
+1. Understanding agreements, contracts, and obligations
+2. Tracking deadlines, action items, and commitments
+3. Identifying parties, relationships, and power dynamics
+4. Extracting financial and legal information
+5. Building comprehensive relationship profiles
+6. Creating actionable reminders and follow-ups
+
+Be thorough and extract:
+- Comprehensive summaries at multiple detail levels
+- Document type and structure analysis
+- Entity extraction (people, organizations, dates, amounts)
+- Content classification and topic analysis
+- Actionable items and deadlines
+- Legal and financial analysis where applicable
+- Relationship insights
+
+Always provide comprehensive tags (15-25) for searchability.`;
+
+const DOCUMENT_USER_PROMPT = `Analyze this document comprehensively and extract ALL possible metadata. Use the extract_document_metadata function to return structured analysis including:
+
+1. SUMMARY: Provide one-line, detailed, and executive summaries with key takeaways
+2. DOCUMENT ANALYSIS: Determine type, format, language, quality, audience
+3. EXTRACTED DATA: Extract title, author, dates, organization, references
+4. ENTITIES: Extract all people (with roles), organizations, locations, amounts, dates/deadlines
+5. CONTENT: Classify main topics, industry, purpose, sentiment, urgency, confidentiality
+6. ACTIONABLES: List action items, decisions required, commitments, deadlines, follow-ups
+7. LEGAL: If applicable, analyze clauses, obligations, rights, termination conditions
+8. FINANCIAL: Extract any financial data, amounts, payment terms
+9. RELATIONSHIPS: Identify parties involved and relationship dynamics
+10. REMINDERS: Suggest reminder triggers for deadlines, expiries, renewals
+11. TAGS: Generate 15-25 comprehensive searchable tags
+
+Be thorough - this metadata will be used for AI analysis, reminders, and relationship intelligence.`;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -40,7 +904,6 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get user from token
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     if (userError || !user) {
@@ -60,7 +923,6 @@ serve(async (req) => {
     // Process media items
     for (const mediaId of mediaIds) {
       try {
-        // Fetch media record
         const { data: media, error: mediaError } = await supabase
           .from('media')
           .select('*')
@@ -72,19 +934,16 @@ serve(async (req) => {
           continue;
         }
 
-        // Skip if already processed and not regenerating
         if (media.ai_metadata && !regenerate) {
           results.push({ id: mediaId, type: 'media', success: true, error: 'Already processed' });
           continue;
         }
 
-        // Update status to processing
         await supabase
           .from('media')
           .update({ ai_generation_status: 'processing', ai_generation_error: null })
           .eq('id', mediaId);
 
-        // Get signed URL for the file
         const storagePath = media.storage_path || media.file_url;
         const { data: signedUrlData, error: urlError } = await supabase.storage
           .from('media')
@@ -99,107 +958,31 @@ serve(async (req) => {
           continue;
         }
 
-        // Determine prompt based on media type
         const isImage = media.mime_type?.startsWith('image/');
         const isAudio = media.mime_type?.startsWith('audio/');
         const isVideo = media.mime_type?.startsWith('video/');
 
         let systemPrompt = '';
         let userPrompt = '';
+        let tool: any = null;
 
         if (isImage) {
-          systemPrompt = `You are an AI that analyzes images and extracts structured metadata for a personal intelligence system.`;
-          userPrompt = `Analyze this image and extract structured metadata. Use the extract_image_metadata function to return your analysis.`;
+          systemPrompt = IMAGE_SYSTEM_PROMPT;
+          userPrompt = IMAGE_USER_PROMPT;
+          tool = ENHANCED_IMAGE_TOOL;
         } else if (isAudio) {
-          systemPrompt = `You are an AI that analyzes audio content and extracts structured metadata for a personal intelligence system.`;
-          userPrompt = `Analyze this audio and extract structured metadata including transcription if possible. Use the extract_audio_metadata function to return your analysis.`;
+          systemPrompt = AUDIO_SYSTEM_PROMPT;
+          userPrompt = AUDIO_USER_PROMPT;
+          tool = ENHANCED_AUDIO_TOOL;
         } else if (isVideo) {
-          systemPrompt = `You are an AI that analyzes video content and extracts structured metadata for a personal intelligence system.`;
-          userPrompt = `Analyze this video and extract structured metadata. Use the extract_video_metadata function to return your analysis.`;
+          systemPrompt = VIDEO_SYSTEM_PROMPT;
+          userPrompt = VIDEO_USER_PROMPT;
+          tool = ENHANCED_VIDEO_TOOL;
         } else {
           results.push({ id: mediaId, type: 'media', success: false, error: 'Unsupported media type' });
           continue;
         }
 
-        // Define tools for structured output
-        const tools = isImage ? [
-          {
-            type: "function",
-            function: {
-              name: "extract_image_metadata",
-              description: "Extract structured metadata from an image",
-              parameters: {
-                type: "object",
-                properties: {
-                  ai_description: { type: "string", description: "2-3 sentence description of what's in the image" },
-                  detected_objects: { type: "array", items: { type: "string" }, description: "Objects/items visible in the image" },
-                  detected_faces_count: { type: "number", description: "Count of human faces detected" },
-                  detected_text: { type: "string", description: "Any text visible in the image (OCR)" },
-                  scene_type: { type: "string", enum: ["indoor", "outdoor", "portrait", "document", "screenshot", "artwork", "other"] },
-                  mood: { type: "string", enum: ["happy", "formal", "casual", "serious", "celebratory", "professional", "neutral"] },
-                  quality_score: { type: "number", description: "Image quality rating 0-100" },
-                  is_screenshot: { type: "boolean" },
-                  contains_document: { type: "boolean" },
-                  tags: { type: "array", items: { type: "string" }, description: "5-10 searchable keywords" },
-                  colors_dominant: { type: "array", items: { type: "string" }, description: "Dominant colors in the image" },
-                  people_description: { type: "string", description: "Brief description of people if present" }
-                },
-                required: ["ai_description", "scene_type", "tags"],
-                additionalProperties: false
-              }
-            }
-          }
-        ] : isAudio ? [
-          {
-            type: "function",
-            function: {
-              name: "extract_audio_metadata",
-              description: "Extract structured metadata from audio",
-              parameters: {
-                type: "object",
-                properties: {
-                  transcription: { type: "string", description: "Full or partial transcription of the audio" },
-                  language: { type: "string", description: "Detected language code (e.g., en, es, fr)" },
-                  speaker_count: { type: "number", description: "Estimated number of speakers" },
-                  topics: { type: "array", items: { type: "string" }, description: "Main discussion topics" },
-                  sentiment: { type: "string", enum: ["positive", "negative", "neutral", "mixed"] },
-                  summary: { type: "string", description: "1-2 sentence summary" },
-                  audio_type: { type: "string", enum: ["conversation", "speech", "music", "voicemail", "other"] },
-                  tags: { type: "array", items: { type: "string" }, description: "Searchable keywords" },
-                  key_phrases: { type: "array", items: { type: "string" }, description: "Important phrases mentioned" }
-                },
-                required: ["summary", "audio_type", "tags"],
-                additionalProperties: false
-              }
-            }
-          }
-        ] : [
-          {
-            type: "function",
-            function: {
-              name: "extract_video_metadata",
-              description: "Extract structured metadata from video",
-              parameters: {
-                type: "object",
-                properties: {
-                  ai_description: { type: "string", description: "Description of the video content" },
-                  scene_types: { type: "array", items: { type: "string" }, description: "Types of scenes in the video" },
-                  detected_faces_count: { type: "number", description: "Approximate count of unique faces" },
-                  topics: { type: "array", items: { type: "string" }, description: "Main topics or activities" },
-                  mood: { type: "string", enum: ["happy", "formal", "casual", "serious", "celebratory", "professional", "neutral"] },
-                  audio_present: { type: "boolean" },
-                  speech_present: { type: "boolean" },
-                  summary: { type: "string", description: "Brief summary of video content" },
-                  tags: { type: "array", items: { type: "string" }, description: "Searchable keywords" }
-                },
-                required: ["ai_description", "summary", "tags"],
-                additionalProperties: false
-              }
-            }
-          }
-        ];
-
-        // Build the messages with image/audio URL
         const messages: Array<{ role: string; content: any }> = [
           { role: "system", content: systemPrompt }
         ];
@@ -213,14 +996,12 @@ serve(async (req) => {
             ]
           });
         } else {
-          // For audio/video, include URL in text
           messages.push({
             role: "user",
             content: `${userPrompt}\n\nMedia URL: ${signedUrlData.signedUrl}`
           });
         }
 
-        // Call Lovable AI Gateway
         const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -230,8 +1011,8 @@ serve(async (req) => {
           body: JSON.stringify({
             model,
             messages,
-            tools,
-            tool_choice: { type: "function", function: { name: tools[0].function.name } },
+            tools: [tool],
+            tool_choice: { type: "function", function: { name: tool.function.name } },
           }),
         });
 
@@ -269,13 +1050,11 @@ serve(async (req) => {
         totalInputTokens += inputTokens;
         totalOutputTokens += outputTokens;
 
-        // Calculate cost
         const pricing = MODEL_PRICING[model] || MODEL_PRICING['google/gemini-2.5-flash'];
         const costCents = Math.ceil(
           ((inputTokens / 1_000_000) * pricing.input + (outputTokens / 1_000_000) * pricing.output) * 100
         );
 
-        // Save metadata
         await supabase
           .from('media')
           .update({
@@ -287,7 +1066,6 @@ serve(async (req) => {
           })
           .eq('id', mediaId);
 
-        // Log usage
         await supabase.from('ai_usage_logs').insert({
           user_id: user.id,
           profile_id: media.profile_id,
@@ -324,7 +1102,7 @@ serve(async (req) => {
       }
     }
 
-    // Process documents (similar logic)
+    // Process documents
     for (const documentId of documentIds) {
       try {
         const { data: doc, error: docError } = await supabase
@@ -362,31 +1140,6 @@ serve(async (req) => {
           continue;
         }
 
-        const tools = [
-          {
-            type: "function",
-            function: {
-              name: "extract_document_metadata",
-              description: "Extract structured metadata from a document",
-              parameters: {
-                type: "object",
-                properties: {
-                  ai_summary: { type: "string", description: "2-3 sentence summary of the document" },
-                  document_category: { type: "string", enum: ["resume", "contract", "report", "article", "presentation", "notes", "form", "letter", "other"] },
-                  topics: { type: "array", items: { type: "string" }, description: "Main topics covered" },
-                  key_entities: { type: "array", items: { type: "string" }, description: "Important names, companies, dates mentioned" },
-                  sentiment: { type: "string", enum: ["positive", "negative", "neutral", "formal"] },
-                  language: { type: "string", description: "Primary language of the document" },
-                  tags: { type: "array", items: { type: "string" }, description: "Searchable keywords" },
-                  action_items: { type: "array", items: { type: "string" }, description: "Any action items or todos mentioned" }
-                },
-                required: ["ai_summary", "document_category", "tags"],
-                additionalProperties: false
-              }
-            }
-          }
-        ];
-
         const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -396,10 +1149,10 @@ serve(async (req) => {
           body: JSON.stringify({
             model,
             messages: [
-              { role: "system", content: "You are an AI that analyzes documents and extracts structured metadata for a personal intelligence system." },
-              { role: "user", content: `Analyze this document and extract structured metadata. Document URL: ${signedUrlData.signedUrl}\nDocument title: ${doc.title}\nDocument type: ${doc.document_type}` }
+              { role: "system", content: DOCUMENT_SYSTEM_PROMPT },
+              { role: "user", content: `${DOCUMENT_USER_PROMPT}\n\nDocument URL: ${signedUrlData.signedUrl}\nDocument title: ${doc.title}\nDocument type: ${doc.document_type}` }
             ],
-            tools,
+            tools: [ENHANCED_DOCUMENT_TOOL],
             tool_choice: { type: "function", function: { name: "extract_document_metadata" } },
           }),
         });
@@ -463,7 +1216,7 @@ serve(async (req) => {
         });
 
         results.push({ id: documentId, type: 'document', success: true });
-        console.log(`Processed document ${documentId}: ${inputTokens + outputTokens} tokens`);
+        console.log(`Processed document ${documentId}: ${inputTokens + outputTokens} tokens, $${(costCents / 100).toFixed(4)}`);
 
       } catch (itemError) {
         console.error(`Error processing document ${documentId}:`, itemError);
@@ -483,28 +1236,27 @@ serve(async (req) => {
       }
     }
 
-    // Calculate total cost
     const pricing = MODEL_PRICING[model] || MODEL_PRICING['google/gemini-2.5-flash'];
     const totalCostCents = Math.ceil(
       ((totalInputTokens / 1_000_000) * pricing.input + (totalOutputTokens / 1_000_000) * pricing.output) * 100
     );
 
     return new Response(JSON.stringify({
-      success: true,
       results,
       summary: {
-        processed: results.filter(r => r.success).length,
+        processed: results.filter(r => r.success && r.error !== 'Already processed').length,
+        skipped: results.filter(r => r.error === 'Already processed').length,
         failed: results.filter(r => !r.success).length,
         totalInputTokens,
         totalOutputTokens,
         totalCostCents,
-      }
+      },
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('generate-media-metadata error:', error);
+    console.error('Error in generate-media-metadata:', error);
     return new Response(JSON.stringify({ 
       error: error instanceof Error ? error.message : 'Unknown error' 
     }), {
