@@ -6,15 +6,48 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
 import { PersonalityChart } from './PersonalityChart';
 import { useAIConfirmationContext } from '@/contexts/AIConfirmationContext';
 import { useAIModelPreference } from '@/hooks/useAIModelPreference';
 import { calculateCostCents } from '@/lib/aiPricing';
 import { 
   Brain, TrendingUp, Users, FileText, Loader2, Sparkles, 
-  RefreshCw, CheckCircle, AlertTriangle, Lightbulb
+  RefreshCw, CheckCircle, AlertTriangle, Lightbulb, Database
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+
+const SavedBadge = ({ generatedAt }: { generatedAt: string }) => (
+  <div className="flex items-center gap-2">
+    <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+      <Database className="h-3 w-3 mr-1" />
+      Saved
+    </Badge>
+    <p className="text-xs text-muted-foreground">
+      Generated {formatDistanceToNow(new Date(generatedAt), { addSuffix: true })}
+    </p>
+  </div>
+);
+
+const AnalysisSkeleton = () => (
+  <div className="space-y-4">
+    <div className="flex justify-between items-center">
+      <Skeleton className="h-4 w-32" />
+      <Skeleton className="h-8 w-8 rounded" />
+    </div>
+    <Skeleton className="h-48 w-full" />
+    <Skeleton className="h-4 w-full" />
+    <Skeleton className="h-4 w-3/4" />
+    <div className="space-y-2">
+      <Skeleton className="h-4 w-24" />
+      <div className="flex gap-1">
+        <Skeleton className="h-6 w-16 rounded-full" />
+        <Skeleton className="h-6 w-20 rounded-full" />
+        <Skeleton className="h-6 w-14 rounded-full" />
+      </div>
+    </div>
+  </div>
+);
 
 interface AIAnalysisPanelProps {
   profileId: string;
@@ -143,14 +176,13 @@ export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <p className="text-xs text-muted-foreground">
-            Generated {formatDistanceToNow(new Date(personalityAnalysis.generated_at), { addSuffix: true })}
-          </p>
+          <SavedBadge generatedAt={personalityAnalysis.generated_at} />
           <Button 
             variant="ghost" 
             size="sm"
             onClick={() => handleAnalyze('personality')}
             disabled={analyzeMutation.isPending}
+            title="Regenerate analysis"
           >
             <RefreshCw className={`h-4 w-4 ${analyzeMutation.isPending && analyzeMutation.variables?.analysisType === 'personality' ? 'animate-spin' : ''}`} />
           </Button>
@@ -222,14 +254,13 @@ export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <p className="text-xs text-muted-foreground">
-            Generated {formatDistanceToNow(new Date(sentimentAnalysis.generated_at), { addSuffix: true })}
-          </p>
+          <SavedBadge generatedAt={sentimentAnalysis.generated_at} />
           <Button 
             variant="ghost" 
             size="sm"
             onClick={() => handleAnalyze('sentiment')}
             disabled={analyzeMutation.isPending}
+            title="Regenerate analysis"
           >
             <RefreshCw className={`h-4 w-4 ${analyzeMutation.isPending && analyzeMutation.variables?.analysisType === 'sentiment' ? 'animate-spin' : ''}`} />
           </Button>
@@ -313,14 +344,13 @@ export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <p className="text-xs text-muted-foreground">
-            Generated {formatDistanceToNow(new Date(playbookAnalysis.generated_at), { addSuffix: true })}
-          </p>
+          <SavedBadge generatedAt={playbookAnalysis.generated_at} />
           <Button 
             variant="ghost" 
             size="sm"
             onClick={() => handleAnalyze('playbook')}
             disabled={analyzeMutation.isPending}
+            title="Regenerate analysis"
           >
             <RefreshCw className={`h-4 w-4 ${analyzeMutation.isPending && analyzeMutation.variables?.analysisType === 'playbook' ? 'animate-spin' : ''}`} />
           </Button>
@@ -437,14 +467,13 @@ export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <p className="text-xs text-muted-foreground">
-            Generated {formatDistanceToNow(new Date(scoreAnalysis.generated_at), { addSuffix: true })}
-          </p>
+          <SavedBadge generatedAt={scoreAnalysis.generated_at} />
           <Button 
             variant="ghost" 
             size="sm"
             onClick={() => handleAnalyze('relationship_score')}
             disabled={analyzeMutation.isPending}
+            title="Regenerate analysis"
           >
             <RefreshCw className={`h-4 w-4 ${analyzeMutation.isPending && analyzeMutation.variables?.analysisType === 'relationship_score' ? 'animate-spin' : ''}`} />
           </Button>
@@ -556,19 +585,19 @@ export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps
           </TabsList>
 
           <TabsContent value="personality" className="mt-4">
-            {renderPersonality()}
+            {isLoadingAnalyses ? <AnalysisSkeleton /> : renderPersonality()}
           </TabsContent>
 
           <TabsContent value="sentiment" className="mt-4">
-            {renderSentiment()}
+            {isLoadingAnalyses ? <AnalysisSkeleton /> : renderSentiment()}
           </TabsContent>
 
           <TabsContent value="playbook" className="mt-4">
-            {renderPlaybook()}
+            {isLoadingAnalyses ? <AnalysisSkeleton /> : renderPlaybook()}
           </TabsContent>
 
           <TabsContent value="score" className="mt-4">
-            {renderScore()}
+            {isLoadingAnalyses ? <AnalysisSkeleton /> : renderScore()}
           </TabsContent>
         </Tabs>
       </CardContent>
