@@ -56,7 +56,7 @@ export function useAIConfirmation() {
     []
   );
 
-  const confirmRequest = useCallback(async () => {
+  const confirmRequest = useCallback(async (): Promise<void> => {
     if (!confirmationState.config || !user || !pendingResolver) return;
 
     const { functionName, modelKey, promptText, profileId, recordingId, metadata } =
@@ -88,6 +88,10 @@ export function useAIConfirmation() {
 
       if (error) throw error;
 
+      // First resolve the promise, then close the dialog
+      pendingResolver.resolve({ approved: true, logId: logEntry.id });
+      setPendingResolver(null);
+      
       setConfirmationState({
         isOpen: false,
         config: null,
@@ -95,13 +99,18 @@ export function useAIConfirmation() {
         estimatedOutputTokens: 0,
         estimatedCostCents: 0,
       });
-      pendingResolver.resolve({ approved: true, logId: logEntry.id });
-      setPendingResolver(null);
     } catch (error) {
       console.error('Failed to create AI usage log:', error);
       toast.error('Failed to log AI request');
       pendingResolver.resolve({ approved: false });
       setPendingResolver(null);
+      setConfirmationState({
+        isOpen: false,
+        config: null,
+        estimatedInputTokens: 0,
+        estimatedOutputTokens: 0,
+        estimatedCostCents: 0,
+      });
     }
   }, [confirmationState, user, pendingResolver]);
 
