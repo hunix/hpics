@@ -64,7 +64,7 @@ export async function uploadMediaFile(
           profile_id: profileId,
           file_url: urlData.publicUrl,
           storage_path: storagePath,
-          media_type: file.type || 'document',
+          mime_type: mimeType,
           file_size: file.size,
           caption: file.name,
         })
