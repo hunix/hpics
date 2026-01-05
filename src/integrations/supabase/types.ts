@@ -3214,6 +3214,146 @@ export type Database = {
         }
         Relationships: []
       }
+      psychological_profile_history: {
+        Row: {
+          changes_detected: Json | null
+          changes_summary: string | null
+          created_at: string
+          id: string
+          psychological_profile_id: string
+          snapshot: Json
+          trigger_event: string | null
+          user_id: string
+        }
+        Insert: {
+          changes_detected?: Json | null
+          changes_summary?: string | null
+          created_at?: string
+          id?: string
+          psychological_profile_id: string
+          snapshot: Json
+          trigger_event?: string | null
+          user_id: string
+        }
+        Update: {
+          changes_detected?: Json | null
+          changes_summary?: string | null
+          created_at?: string
+          id?: string
+          psychological_profile_id?: string
+          snapshot?: Json
+          trigger_event?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "psychological_profile_history_psychological_profile_id_fkey"
+            columns: ["psychological_profile_id"]
+            isOneToOne: false
+            referencedRelation: "psychological_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      psychological_profiles: {
+        Row: {
+          action_plans: Json | null
+          analysis_model: string | null
+          analysis_version: string | null
+          attachment_style: Json | null
+          behavioral_predictions: Json | null
+          cognitive_profile: Json | null
+          communication_dna: Json | null
+          confidence_score: number | null
+          created_at: string
+          dark_triad: Json | null
+          data_completeness: number | null
+          data_sources_used: Json | null
+          deception_analysis: Json | null
+          emotional_intelligence: Json | null
+          flags: Json | null
+          hexaco_honesty_humility: Json | null
+          id: string
+          last_analysis_at: string | null
+          personality_ocean: Json | null
+          profile_id: string
+          psychiatric_indicators: Json | null
+          relationship_dynamics: Json | null
+          updated_at: string
+          user_id: string
+          values_profile: Json | null
+        }
+        Insert: {
+          action_plans?: Json | null
+          analysis_model?: string | null
+          analysis_version?: string | null
+          attachment_style?: Json | null
+          behavioral_predictions?: Json | null
+          cognitive_profile?: Json | null
+          communication_dna?: Json | null
+          confidence_score?: number | null
+          created_at?: string
+          dark_triad?: Json | null
+          data_completeness?: number | null
+          data_sources_used?: Json | null
+          deception_analysis?: Json | null
+          emotional_intelligence?: Json | null
+          flags?: Json | null
+          hexaco_honesty_humility?: Json | null
+          id?: string
+          last_analysis_at?: string | null
+          personality_ocean?: Json | null
+          profile_id: string
+          psychiatric_indicators?: Json | null
+          relationship_dynamics?: Json | null
+          updated_at?: string
+          user_id: string
+          values_profile?: Json | null
+        }
+        Update: {
+          action_plans?: Json | null
+          analysis_model?: string | null
+          analysis_version?: string | null
+          attachment_style?: Json | null
+          behavioral_predictions?: Json | null
+          cognitive_profile?: Json | null
+          communication_dna?: Json | null
+          confidence_score?: number | null
+          created_at?: string
+          dark_triad?: Json | null
+          data_completeness?: number | null
+          data_sources_used?: Json | null
+          deception_analysis?: Json | null
+          emotional_intelligence?: Json | null
+          flags?: Json | null
+          hexaco_honesty_humility?: Json | null
+          id?: string
+          last_analysis_at?: string | null
+          personality_ocean?: Json | null
+          profile_id?: string
+          psychiatric_indicators?: Json | null
+          relationship_dynamics?: Json | null
+          updated_at?: string
+          user_id?: string
+          values_profile?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "psychological_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "psychological_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       push_subscriptions: {
         Row: {
           auth: string
