@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Image, Trash2, Plus, X, Play, Music } from 'lucide-react';
+import { Image, Trash2, Plus, X, Play, Music, Sparkles } from 'lucide-react';
 import { MediaUpload } from '@/components/uploads/MediaUpload';
 import { getSignedUrls } from '@/hooks/useSignedUrl';
 import { FileManagerToolbar, type FilterOption } from './FileManagerToolbar';
@@ -15,6 +15,9 @@ import { MediaListView } from './MediaListView';
 import { MediaDetailView } from './MediaDetailView';
 import { FilePagination } from './FilePagination';
 import { useFileViewPreferences, type ViewMode } from '@/hooks/useFileViewPreferences';
+import { AIMetadataButton, AIMetadataStatus } from '@/components/ai/AIMetadataButton';
+import { AIMetadataDisplay } from '@/components/ai/AIMetadataDisplay';
+import { BulkMetadataGenerator } from '@/components/ai/BulkMetadataGenerator';
 
 interface ContactMediaManagerProps {
   profileId: string;
@@ -50,7 +53,8 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
   const { preferences, updateMediaViewMode, updateMediaItemsPerPage } = useFileViewPreferences();
   
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [lightboxItem, setLightboxItem] = useState<{ url: string; mimeType: string | null } | null>(null);
+  const [showBulkGenerator, setShowBulkGenerator] = useState(false);
+  const [lightboxItem, setLightboxItem] = useState<{ url: string; mimeType: string | null; metadata?: any } | null>(null);
   const [signedUrls, setSignedUrls] = useState<Map<string, string>>(new Map());
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
@@ -200,9 +204,13 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
     );
   }
 
-  const handleOpenLightbox = (url: string, mimeType: string | null) => {
-    setLightboxItem({ url, mimeType });
+  const handleOpenLightbox = (url: string, mimeType: string | null, metadata?: any) => {
+    setLightboxItem({ url, mimeType, metadata });
   };
+
+  // Count items with AI metadata
+  const aiMetadataCount = allMedia?.filter(m => m.ai_generation_status === 'completed').length || 0;
+  const pendingCount = (allMedia?.length || 0) - aiMetadataCount;
 
   const renderGridView = () => (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
@@ -210,31 +218,25 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
         const url = getMediaUrl(item);
         const isVideo = item.mime_type?.startsWith('video/');
         const isAudio = item.mime_type?.startsWith('audio/');
+        const hasAIMetadata = item.ai_generation_status === 'completed';
         
         return (
           <div key={item.id} className="group relative aspect-square rounded-lg overflow-hidden border">
             {url ? (
               isAudio ? (
-                // Audio: Dark background with music icon
                 <div 
                   className="w-full h-full flex flex-col items-center justify-center bg-muted cursor-pointer"
-                  onClick={() => handleOpenLightbox(url, item.mime_type)}
+                  onClick={() => handleOpenLightbox(url, item.mime_type, item.ai_metadata)}
                 >
                   <Music className="h-10 w-10 text-muted-foreground mb-2" />
                   <span className="text-xs text-muted-foreground">Audio</span>
                 </div>
               ) : isVideo ? (
-                // Video: Thumbnail with play overlay
                 <div className="relative w-full h-full">
-                  <video
-                    src={url}
-                    className="w-full h-full object-cover"
-                    muted
-                    preload="metadata"
-                  />
+                  <video src={url} className="w-full h-full object-cover" muted preload="metadata" />
                   <div 
                     className="absolute inset-0 flex items-center justify-center cursor-pointer"
-                    onClick={() => handleOpenLightbox(url, item.mime_type)}
+                    onClick={() => handleOpenLightbox(url, item.mime_type, item.ai_metadata)}
                   >
                     <div className="bg-black/50 rounded-full p-3">
                       <Play className="h-6 w-6 text-white fill-white" />
@@ -242,12 +244,11 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
                   </div>
                 </div>
               ) : (
-                // Image
                 <img
                   src={url}
                   alt={item.caption || 'Media'}
                   className="w-full h-full object-cover cursor-pointer transition-transform group-hover:scale-105"
-                  onClick={() => handleOpenLightbox(url, item.mime_type)}
+                  onClick={() => handleOpenLightbox(url, item.mime_type, item.ai_metadata)}
                 />
               )
             ) : (
@@ -256,19 +257,36 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
               </div>
             )}
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors pointer-events-none" />
-            <Button
-              variant="destructive"
-              size="icon"
-              className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (confirm('Delete this media?')) {
-                  handleDelete(item.id);
-                }
-              }}
-            >
-              <Trash2 className="h-3 w-3" />
-            </Button>
+            
+            {/* AI metadata indicator */}
+            {hasAIMetadata && (
+              <div className="absolute top-2 left-2 bg-green-500/80 rounded-full p-1">
+                <Sparkles className="h-3 w-3 text-white" />
+              </div>
+            )}
+            
+            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <AIMetadataButton
+                itemId={item.id}
+                itemType="media"
+                profileId={profileId}
+                hasMetadata={hasAIMetadata}
+                generatedAt={item.ai_metadata_generated_at}
+                status={item.ai_generation_status}
+                size="icon"
+              />
+              <Button
+                variant="destructive"
+                size="icon"
+                className="h-7 w-7"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (confirm('Delete this media?')) handleDelete(item.id);
+                }}
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
             {item.caption && (
               <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent pointer-events-none">
                 <p className="text-xs text-white truncate">{item.caption}</p>
@@ -288,14 +306,33 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
             <CardTitle className="flex items-center gap-2">
               <Image className="h-5 w-5" />
               Media
+              {aiMetadataCount > 0 && (
+                <span className="text-xs font-normal text-muted-foreground">
+                  ({aiMetadataCount} AI analyzed)
+                </span>
+              )}
             </CardTitle>
             <CardDescription>Photos and images related to {contactName}</CardDescription>
           </div>
-          <Button size="sm" onClick={() => setIsUploadOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" />
-            Upload
-          </Button>
+          <div className="flex gap-2">
+            {pendingCount > 0 && (
+              <Button size="sm" variant="outline" onClick={() => setShowBulkGenerator(!showBulkGenerator)}>
+                <Sparkles className="h-4 w-4 mr-1" />
+                AI Analyze ({pendingCount})
+              </Button>
+            )}
+            <Button size="sm" onClick={() => setIsUploadOpen(true)}>
+              <Plus className="h-4 w-4 mr-1" />
+              Upload
+            </Button>
+          </div>
         </CardHeader>
+        
+        {showBulkGenerator && (
+          <div className="px-6 pb-4">
+            <BulkMetadataGenerator profileId={profileId} contactName={contactName} />
+          </div>
+        )}
         <CardContent>
           {allMedia && allMedia.length > 0 ? (
             <>
@@ -377,25 +414,29 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
             <X className="h-4 w-4" />
           </Button>
           {lightboxItem && (
-            lightboxItem.mimeType?.startsWith('video/') ? (
-              <video
-                src={lightboxItem.url}
-                controls
-                autoPlay
-                className="w-full h-auto max-h-[80vh]"
-              />
-            ) : lightboxItem.mimeType?.startsWith('audio/') ? (
-              <div className="bg-muted p-12 flex flex-col items-center gap-6">
-                <Music className="h-20 w-20 text-muted-foreground" />
-                <audio src={lightboxItem.url} controls autoPlay className="w-full max-w-md" />
-              </div>
-            ) : (
-              <img
-                src={lightboxItem.url}
-                alt="Full size"
-                className="w-full h-auto max-h-[80vh] object-contain"
-              />
-            )
+            <div className="flex flex-col">
+              {lightboxItem.mimeType?.startsWith('video/') ? (
+                <video src={lightboxItem.url} controls autoPlay className="w-full h-auto max-h-[60vh]" />
+              ) : lightboxItem.mimeType?.startsWith('audio/') ? (
+                <div className="bg-muted p-12 flex flex-col items-center gap-6">
+                  <Music className="h-20 w-20 text-muted-foreground" />
+                  <audio src={lightboxItem.url} controls autoPlay className="w-full max-w-md" />
+                </div>
+              ) : (
+                <img src={lightboxItem.url} alt="Full size" className="w-full h-auto max-h-[60vh] object-contain" />
+              )}
+              
+              {/* AI Metadata in lightbox */}
+              {lightboxItem.metadata && (
+                <div className="p-4 border-t bg-card max-h-[20vh] overflow-y-auto">
+                  <AIMetadataDisplay 
+                    metadata={lightboxItem.metadata} 
+                    mimeType={lightboxItem.mimeType} 
+                    variant="full" 
+                  />
+                </div>
+              )}
+            </div>
           )}
         </DialogContent>
       </Dialog>

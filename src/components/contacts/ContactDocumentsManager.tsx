@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileText, Trash2, Plus, ExternalLink, Loader2 } from 'lucide-react';
+import { FileText, Trash2, Plus, ExternalLink, Loader2, Sparkles } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { DocumentUpload } from '@/components/uploads/DocumentUpload';
 import { getSignedUrl } from '@/hooks/useSignedUrl';
@@ -16,6 +16,8 @@ import { DocumentsGridView } from './DocumentsGridView';
 import { DocumentsDetailView } from './DocumentsDetailView';
 import { FilePagination } from './FilePagination';
 import { useFileViewPreferences, type ViewMode } from '@/hooks/useFileViewPreferences';
+import { AIMetadataButton, AIMetadataStatus } from '@/components/ai/AIMetadataButton';
+import { AIMetadataDisplay } from '@/components/ai/AIMetadataDisplay';
 
 interface ContactDocumentsManagerProps {
   profileId: string;
@@ -192,57 +194,84 @@ export function ContactDocumentsManager({ profileId, contactName }: ContactDocum
     );
   }
 
+  // Count AI metadata
+  const aiMetadataCount = allDocuments?.filter(d => d.ai_generation_status === 'completed').length || 0;
+
   const renderListView = () => (
     <div className="space-y-3">
-      {paginatedDocuments.map((doc) => (
-        <div
-          key={doc.id}
-          className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-        >
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-              <FileText className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <div className="min-w-0">
-              <p className="font-medium truncate">{doc.title}</p>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Badge variant="secondary" className={TYPE_COLORS[doc.document_type] || TYPE_COLORS.other}>
-                  {doc.document_type}
-                </Badge>
-                <span>{formatDistanceToNow(new Date(doc.created_at), { addSuffix: true })}</span>
-                {doc.file_size && (
-                  <span>• {(doc.file_size / 1024).toFixed(1)} KB</span>
+      {paginatedDocuments.map((doc) => {
+        const hasAIMetadata = doc.ai_generation_status === 'completed';
+        
+        return (
+          <div
+            key={doc.id}
+            className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+          >
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted relative">
+                <FileText className="h-5 w-5 text-muted-foreground" />
+                {hasAIMetadata && (
+                  <div className="absolute -top-1 -right-1 bg-green-500 rounded-full p-0.5">
+                    <Sparkles className="h-2 w-2 text-white" />
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium truncate">{doc.title}</p>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                  <Badge variant="secondary" className={TYPE_COLORS[doc.document_type] || TYPE_COLORS.other}>
+                    {doc.document_type}
+                  </Badge>
+                  <span>{formatDistanceToNow(new Date(doc.created_at), { addSuffix: true })}</span>
+                  {doc.file_size && (
+                    <span>• {(doc.file_size / 1024).toFixed(1)} KB</span>
+                  )}
+                </div>
+                {/* AI metadata preview */}
+                {hasAIMetadata && doc.ai_metadata && (
+                  <div className="mt-2">
+                    <AIMetadataDisplay metadata={doc.ai_metadata as any} variant="compact" />
+                  </div>
                 )}
               </div>
             </div>
+            <div className="flex items-center gap-1">
+              <AIMetadataButton
+                itemId={doc.id}
+                itemType="document"
+                profileId={profileId}
+                hasMetadata={hasAIMetadata}
+                generatedAt={doc.ai_metadata_generated_at}
+                status={doc.ai_generation_status}
+                size="icon"
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={downloadingId === doc.id}
+                onClick={() => handleOpenDocument(doc)}
+              >
+                {downloadingId === doc.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ExternalLink className="h-4 w-4" />
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  if (confirm('Delete this document?')) {
+                    handleDelete(doc.id);
+                  }
+                }}
+              >
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              disabled={downloadingId === doc.id}
-              onClick={() => handleOpenDocument(doc)}
-            >
-              {downloadingId === doc.id ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <ExternalLink className="h-4 w-4" />
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                if (confirm('Delete this document?')) {
-                  handleDelete(doc.id);
-                }
-              }}
-            >
-              <Trash2 className="h-4 w-4 text-destructive" />
-            </Button>
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 
@@ -254,6 +283,11 @@ export function ContactDocumentsManager({ profileId, contactName }: ContactDocum
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
               Documents
+              {aiMetadataCount > 0 && (
+                <span className="text-xs font-normal text-muted-foreground">
+                  ({aiMetadataCount} AI analyzed)
+                </span>
+              )}
             </CardTitle>
             <CardDescription>Files and documents related to {contactName}</CardDescription>
           </div>
