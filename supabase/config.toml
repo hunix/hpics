@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.generate-media-metadata]
 verify_jwt = false
+
+[functions.analyze-conversation]
+verify_jwt = false
