@@ -144,11 +144,17 @@ export function FamilyTreeGraph() {
     sortedGens.forEach((gen, genIndex) => {
       const membersInGen = genGroups.get(gen) || [];
       const availableWidth = width - margin.left - margin.right;
-      const spacing = availableWidth / (membersInGen.length + 1);
+      // Ensure minimum spacing between nodes
+      const minSpacing = 140;
+      const spacing = Math.max(minSpacing, availableWidth / (membersInGen.length + 1));
+      
+      // Center nodes if spacing exceeds available width
+      const totalWidth = spacing * (membersInGen.length - 1);
+      const startX = Math.max(spacing, (availableWidth - totalWidth) / 2);
       
       membersInGen.forEach((member, i) => {
         positions.set(member.id, {
-          x: spacing * (i + 1),
+          x: startX + spacing * i,
           y: genIndex * genHeight + nodeRadius + 20,
         });
       });
@@ -211,19 +217,9 @@ export function FamilyTreeGraph() {
           .attr('stroke-dasharray', link.isInferred ? '4,4' : '0')
           .attr('stroke-opacity', link.isInferred ? 0.5 : 0.8);
       }
-
-      // Link label at midpoint
-      const midX = (sourcePos.x + targetPos.x) / 2;
-      const midY = (sourcePos.y + targetPos.y) / 2;
       
-      linkGroup.append('text')
-        .attr('x', midX)
-        .attr('y', midY - 5)
-        .attr('text-anchor', 'middle')
-        .attr('font-size', '9px')
-        .attr('fill', link.isInferred ? 'hsl(var(--muted-foreground))' : 'hsl(var(--foreground))')
-        .attr('opacity', link.isInferred ? 0.6 : 1)
-        .text(link.label);
+      // Skip link labels to reduce clutter - they overlap too much
+      // Relationship type is visible when hovering/clicking nodes
     });
 
     // Draw nodes
@@ -274,14 +270,26 @@ export function FamilyTreeGraph() {
         .attr('font-weight', 'bold')
         .text(initials);
 
-      // Name below
+      // Name below with background for readability
+      const displayName = member.name.length > 12 ? member.name.slice(0, 12) + '…' : member.name;
+      const textWidth = displayName.length * 6;
+      
+      nodeG.append('rect')
+        .attr('x', -textWidth / 2 - 4)
+        .attr('y', nodeRadius + 6)
+        .attr('width', textWidth + 8)
+        .attr('height', 16)
+        .attr('fill', 'hsl(var(--background))')
+        .attr('fill-opacity', 0.9)
+        .attr('rx', 3);
+      
       nodeG.append('text')
         .attr('text-anchor', 'middle')
-        .attr('dy', nodeRadius + 15)
-        .attr('font-size', '11px')
+        .attr('dy', nodeRadius + 18)
+        .attr('font-size', '10px')
         .attr('fill', 'hsl(var(--foreground))')
-        .attr('font-weight', isSelf || isCenter ? '600' : '400')
-        .text(member.name.length > 15 ? member.name.slice(0, 15) + '...' : member.name);
+        .attr('font-weight', isSelf || isCenter ? '600' : '500')
+        .text(displayName);
     });
 
     // Zoom behavior

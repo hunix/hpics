@@ -265,11 +265,11 @@ export default function NetworkPage() {
     const simulation = d3.forceSimulation<NetworkNode>(filteredNodes)
       .force('link', d3.forceLink<NetworkNode, NetworkLink>(filteredLinks)
         .id((d) => d.id)
-        .distance((d) => 100 - (d.weight * 50))
-        .strength((d) => d.weight))
-      .force('charge', d3.forceManyBody().strength(-200))
+        .distance((d) => 120 - (d.weight * 40))
+        .strength((d) => d.weight * 0.7))
+      .force('charge', d3.forceManyBody().strength(-350))
       .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide().radius(40));
+      .force('collision', d3.forceCollide<NetworkNode>().radius((d) => 50 + (d.importance / 15)));
 
     simulationRef.current = simulation;
 
@@ -329,16 +329,29 @@ export default function NetworkPage() {
         .attr('stroke-width', 1);
     }
 
-    // Node labels
+    // Node labels - truncate long names
+    const truncateName = (name: string, maxLen = 14) => 
+      name.length > maxLen ? name.slice(0, maxLen) + '…' : name;
+
+    // Add background rect for label readability
+    node.append('rect')
+      .attr('x', (d) => -truncateName(d.name).length * 3.2 - 4)
+      .attr('y', (d) => -(22 + (d.importance / 10)))
+      .attr('width', (d) => truncateName(d.name).length * 6.4 + 8)
+      .attr('height', 14)
+      .attr('fill', 'hsl(var(--background))')
+      .attr('fill-opacity', 0.85)
+      .attr('rx', 3);
+
     node.append('text')
-      .text((d) => d.name)
+      .text((d) => truncateName(d.name))
       .attr('x', 0)
-      .attr('y', (d) => -(15 + (d.importance / 10)))
+      .attr('y', (d) => -(12 + (d.importance / 10)))
       .attr('text-anchor', 'middle')
-      .attr('fill', 'currentColor')
+      .attr('fill', 'hsl(var(--foreground))')
       .attr('fill-opacity', (d) => getDecayOpacity(d.decayLevel))
-      .attr('font-size', '11px')
-      .attr('font-weight', (d) => d.isFavorite ? 'bold' : 'normal');
+      .attr('font-size', '10px')
+      .attr('font-weight', (d) => d.isFavorite ? '600' : '500');
 
     // Star for favorites
     node.filter((d) => d.isFavorite)
