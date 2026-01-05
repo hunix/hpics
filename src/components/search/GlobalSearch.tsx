@@ -64,20 +64,31 @@ export function GlobalSearch() {
     return () => document.removeEventListener("keydown", down);
   }, []);
 
-  // Search contacts
+  // Search contacts with multi-word matching
   const { data: contacts = [] } = useQuery({
     queryKey: ["global-search-contacts", query],
     queryFn: async () => {
       if (!user || query.length < 2) return [];
       
+      const searchTerms = query.toLowerCase().split(/\s+/).filter(t => t.length >= 2);
+      if (searchTerms.length === 0) return [];
+      
+      // Fetch contacts matching the first term, then filter client-side for multi-word
       const { data } = await supabase
         .from("profiles")
         .select("id, first_name, last_name, organization, job_title, avatar_url")
         .eq("user_id", user.id)
-        .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,organization.ilike.%${query}%,job_title.ilike.%${query}%`)
-        .limit(5);
+        .or(`first_name.ilike.%${searchTerms[0]}%,last_name.ilike.%${searchTerms[0]}%,organization.ilike.%${searchTerms[0]}%,job_title.ilike.%${searchTerms[0]}%`)
+        .limit(50);
       
-      return (data || []).map((c): SearchResult => ({
+      // Filter for ALL terms matching
+      const filtered = (data || []).filter(c => {
+        const fullText = [c.first_name, c.last_name, c.organization, c.job_title]
+          .filter(Boolean).join(' ').toLowerCase();
+        return searchTerms.every(term => fullText.includes(term));
+      }).slice(0, 5);
+      
+      return filtered.map((c): SearchResult => ({
         id: c.id,
         type: "contact",
         title: `${c.first_name || ""} ${c.last_name || ""}`.trim() || "Unnamed",
