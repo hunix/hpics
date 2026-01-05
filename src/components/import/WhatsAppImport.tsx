@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, MessageCircle } from 'lucide-react';
+import { ContactPicker } from '@/components/contacts/ContactPicker';
 import type { Enums } from '@/integrations/supabase/types';
 
 import { useWhatsAppImportSession } from '@/hooks/useWhatsAppImportSession';
@@ -105,19 +106,54 @@ export function WhatsAppImport() {
     shouldContinue,
   } = useWhatsAppImportSession(user?.id);
 
-  // Load profiles
+  // Load ALL profiles with pagination
   const { data: profiles } = useQuery({
-    queryKey: ['profiles', user?.id],
+    queryKey: ['all-profiles-for-whatsapp-import', user?.id],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name')
-        .eq('user_id', user!.id)
-        .order('first_name');
-      return data ?? [];
+      let allProfiles: { id: string; first_name: string; last_name: string | null }[] = [];
+      let page = 0;
+      const pageSize = 1000;
+      
+      while (true) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .eq('user_id', user!.id)
+          .order('first_name', { ascending: true })
+          .range(page * pageSize, (page + 1) * pageSize - 1);
+        
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        
+        allProfiles = [...allProfiles, ...data];
+        if (data.length < pageSize) break;
+        page++;
+      }
+      return allProfiles;
     },
     enabled: !!user,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
+
+  // Auto-match contact when name is detected
+  useEffect(() => {
+    if (contactName && profiles?.length && !selectedProfile) {
+      const nameLower = contactName.toLowerCase().trim();
+      const match = profiles.find(p => {
+        const fullName = `${p.first_name} ${p.last_name || ''}`.toLowerCase().trim();
+        return fullName === nameLower || 
+               fullName.includes(nameLower) || 
+               nameLower.includes(fullName);
+      });
+      if (match) {
+        setSelectedProfile(match.id);
+        toast({
+          title: 'Contact matched',
+          description: `Auto-selected "${match.first_name} ${match.last_name || ''}".trim()`,
+        });
+      }
+    }
+  }, [contactName, profiles, selectedProfile, toast]);
 
   // Check for pending sessions on mount
   useEffect(() => {
@@ -774,19 +810,13 @@ export function WhatsAppImport() {
             {/* Contact selection */}
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label>Select Contact</Label>
-                <Select value={selectedProfile} onValueChange={setSelectedProfile}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a contact" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {profiles?.map((profile) => (
-                      <SelectItem key={profile.id} value={profile.id}>
-                        {profile.first_name} {profile.last_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Select Contact ({profiles?.length || 0} contacts)</Label>
+                <ContactPicker
+                  contacts={profiles || []}
+                  selectedId={selectedProfile}
+                  onSelect={setSelectedProfile}
+                  placeholder="Search contacts..."
+                />
               </div>
 
               <div className="space-y-2">
