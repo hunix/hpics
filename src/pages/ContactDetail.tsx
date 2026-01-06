@@ -16,7 +16,8 @@ import {
   User, MessageSquare, Briefcase, GraduationCap,
   FileText, Image, Target, Gift, Heart, Clock,
   Calendar, Sparkles, Users, ChevronRight, Building,
-  Mic, Eye, Activity, Volume2, UserCircle, GitCompare, Wallet, Link2, Mail, UserCheck
+  Mic, Eye, Activity, Volume2, UserCircle, GitCompare, Wallet, Link2, Mail, UserCheck,
+  Milestone, Settings2, StickyNote, BookOpen
 } from 'lucide-react';
 import { ContactDialog } from '@/components/contacts/ContactDialog';
 import { ContactMethodsManager } from '@/components/contacts/ContactMethodsManager';
@@ -54,6 +55,10 @@ import { ContactRelationshipsManager } from '@/components/contacts/ContactRelati
 import { KidsSchoolsManager } from '@/components/contacts/KidsSchoolsManager';
 import { ContactEmailThreads } from '@/components/contacts/ContactEmailThreads';
 import { ContactStorageBadge } from '@/components/contacts/ContactStorageBadge';
+import { LifeMilestonesManager } from '@/components/contacts/LifeMilestonesManager';
+import { CommunicationPreferencesManager } from '@/components/contacts/CommunicationPreferencesManager';
+import { InteractionNotesManager } from '@/components/contacts/InteractionNotesManager';
+import { ContactPlaybook } from '@/components/contacts/ContactPlaybook';
 import { cn } from '@/lib/utils';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
 import type { Tables } from '@/integrations/supabase/types';
@@ -66,7 +71,8 @@ type SectionId =
   | 'interests' | 'gifts' | 'goals' | 'experiences' | 'relationships' | 'kids-schools'
   | 'education' | 'messages' | 'timeline' | 'groups' | 'enrich'
   | 'behavioral' | 'facial' | 'body-language' | 'vocal' | 'comparison'
-  | 'financial' | 'observations';
+  | 'financial' | 'observations'
+  | 'milestones' | 'comm-prefs' | 'interaction-notes' | 'playbook';
 
 interface NavSection {
   id: SectionId;
@@ -82,6 +88,11 @@ const sections: NavSection[] = [
   { id: 'documents', label: 'Documents', icon: FileText, group: 'Files' },
   { id: 'media', label: 'Media', icon: Image, group: 'Files' },
   { id: 'recordings', label: 'Recordings', icon: Mic, group: 'Files' },
+  // New Intelligence section
+  { id: 'milestones', label: 'Life Milestones', icon: Milestone, group: 'Intelligence' },
+  { id: 'comm-prefs', label: 'How to Interact', icon: Settings2, group: 'Intelligence' },
+  { id: 'interaction-notes', label: 'Interaction Notes', icon: StickyNote, group: 'Intelligence' },
+  { id: 'playbook', label: 'Interaction Playbook', icon: BookOpen, group: 'Intelligence' },
   { id: 'outreach', label: 'Outreach Timing', icon: Clock, group: 'Communication' },
   { id: 'templates', label: 'Message Templates', icon: Sparkles, group: 'Communication' },
   { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, group: 'Communication' },
@@ -107,7 +118,7 @@ const sections: NavSection[] = [
   { id: 'enrich', label: 'Enrichment', icon: Sparkles, group: 'Tools' },
 ];
 
-const groupOrder = ['General', 'Files', 'Communication', 'AI Insights', 'Analysis', 'Relationship', 'Family', 'Professional', 'Financial', 'History', 'Tools'];
+const groupOrder = ['General', 'Files', 'Intelligence', 'Communication', 'AI Insights', 'Analysis', 'Relationship', 'Family', 'Professional', 'Financial', 'History', 'Tools'];
 
 export default function ContactDetail() {
   const { id } = useParams<{ id: string }>();
@@ -246,6 +257,15 @@ export default function ContactDetail() {
         return <ContactMediaManager profileId={contact.id} contactName={contactName} />;
       case 'recordings':
         return <RecordingsManager profileId={contact.id} profileName={contactName} />;
+      // New Intelligence sections
+      case 'milestones':
+        return <LifeMilestonesManager profileId={contact.id} contactName={contactName} />;
+      case 'comm-prefs':
+        return <CommunicationPreferencesManager profileId={contact.id} contactName={contactName} />;
+      case 'interaction-notes':
+        return <InteractionNotesManager profileId={contact.id} contactName={contactName} />;
+      case 'playbook':
+        return <ContactPlaybook profileId={contact.id} contactName={contactName} />;
       case 'behavioral':
         return <BehavioralAnalysis profileId={contact.id} profileName={contactName} />;
       case 'facial':
