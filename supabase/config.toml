@@ -125,3 +125,9 @@ verify_jwt = false
 
 [functions.process-alert-rules]
 verify_jwt = false
+
+[functions.analyze-communication-triangulation]
+verify_jwt = false
+
+[functions.predict-relationship-trajectory]
+verify_jwt = false
