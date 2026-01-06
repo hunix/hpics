@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { 
   Image, 
@@ -18,9 +19,9 @@ import {
   Play,
   Loader2,
   Check,
-  Info,
   ListChecks,
-  AlertCircle
+  AlertCircle,
+  DollarSign
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MEDIA_ANALYSIS_MODES, MediaType, AnalysisContext } from "@/lib/analysisTypes";
@@ -28,8 +29,11 @@ import { AnalysisContextSelector } from "@/components/analysis/AnalysisContextSe
 import { MediaTypeBrowser } from "@/components/analysis/MediaTypeBrowser";
 import { MediaTypeBrowserMultiSelect, type MediaItem } from "@/components/analysis/MediaTypeBrowserMultiSelect";
 import { MediaAnalysisResults } from "@/components/analysis/MediaAnalysisResults";
-import { BulkAnalysisProgress } from "@/components/analysis/BulkAnalysisProgress";
-import { useBulkAnalysisSession } from "@/hooks/useBulkAnalysisSession";
+import { EnhancedBulkProgress } from "@/components/analysis/EnhancedBulkProgress";
+import { BulkCostEstimator } from "@/components/analysis/BulkCostEstimator";
+import { BulkSessionRecovery } from "@/components/analysis/BulkSessionRecovery";
+import { usePersistentBulkSession } from "@/hooks/usePersistentBulkSession";
+import { estimateBulkCost } from "@/lib/bulkAnalysisPrioritization";
 import { useMutation } from "@tanstack/react-query";
 
 const mediaTypeConfig = {
@@ -46,31 +50,56 @@ export default function MediaAnalysis() {
   const [selectedModes, setSelectedModes] = useState<string[]>([]);
   const [context, setContext] = useState<Partial<AnalysisContext>>({ purpose: 'personal', relationship: 'direct_contact' });
   const [depth, setDepth] = useState<'quick' | 'standard' | 'deep'>('standard');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [analysisResults, setAnalysisResults] = useState<any>(null);
   
   // Bulk mode state
   const [isBulkMode, setIsBulkMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<MediaItem[]>([]);
+  const [maxBudget, setMaxBudget] = useState<number | undefined>(undefined);
+  const [recoveredSession, setRecoveredSession] = useState<ReturnType<typeof usePersistentBulkSession>['session']>(null);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-  // Bulk analysis session
-  const bulkSession = useBulkAnalysisSession({
+  // Online/offline detection
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Persistent bulk analysis session
+  const bulkSession = usePersistentBulkSession({
     profileId: selectedContact,
     analysisModes: selectedModes,
-    context,
-    depth,
+    analysisContext: context,
+    analysisDepth: depth,
   });
 
   // Check for existing session on mount
   useEffect(() => {
-    if (selectedContact) {
-      const existingSession = bulkSession.checkExistingSession();
+    const checkSession = async () => {
+      const existingSession = await bulkSession.checkExistingSession();
       if (existingSession) {
-        bulkSession.restoreSession(existingSession);
+        setRecoveredSession(existingSession);
         setIsBulkMode(true);
-        toast.info('Resumable session found! Click Resume to continue.');
       }
-    }
-  }, [selectedContact]);
+    };
+    checkSession();
+  }, []);
+
+  // Calculate cost estimate when items or modes change
+  const costEstimate = selectedItems.length > 0 && selectedModes.length > 0
+    ? estimateBulkCost(
+        selectedItems.map(item => ({ mediaType: item.type, fileSize: item.size })),
+        selectedModes,
+        depth
+      )
+    : null;
 
   // Fetch ALL contacts with pagination
   const { data: contacts } = useQuery({
@@ -189,7 +218,7 @@ export default function MediaAnalysis() {
     setAnalysisResults(null);
   };
 
-  const handleStartBulkAnalysis = () => {
+  const handleStartBulkAnalysis = async () => {
     if (selectedItems.length === 0) {
       toast.error('Please select at least one file');
       return;
@@ -199,18 +228,51 @@ export default function MediaAnalysis() {
       return;
     }
 
-    bulkSession.initSession(selectedItems.map(item => ({
-      id: item.id,
-      url: item.url,
-      name: item.name,
-      mediaType: item.type,
-      isDocument: item.isDocument,
-    })));
+    const session = await bulkSession.initSession(
+      selectedItems.map(item => ({
+        id: item.id,
+        mediaId: item.isDocument ? undefined : item.id,
+        documentId: item.isDocument ? item.id : undefined,
+        profileId: selectedContact,
+        mediaType: item.type,
+        url: item.url,
+        storagePath: undefined,
+        name: item.name,
+        size: item.size,
+        createdAt: item.created_at,
+      })),
+      {
+        name: `${mediaTypeConfig[mediaType].label} Analysis - ${new Date().toLocaleDateString()}`,
+        maxCostCents: maxBudget,
+        autoAggregate: true,
+        triggerDeepAnalysis: depth === 'deep',
+      }
+    );
 
-    // Start after a short delay to ensure state is initialized
-    setTimeout(() => {
-      bulkSession.start();
-    }, 100);
+    if (session) {
+      // Start after a short delay to ensure state is initialized
+      setTimeout(() => {
+        bulkSession.start();
+      }, 100);
+    }
+  };
+
+  const handleRecoveryResume = () => {
+    if (recoveredSession) {
+      bulkSession.restoreSession(recoveredSession);
+      setRecoveredSession(null);
+      bulkSession.resume();
+    }
+  };
+
+  const handleRecoveryDiscard = async () => {
+    if (recoveredSession) {
+      await supabase
+        .from('bulk_analysis_sessions')
+        .update({ status: 'cancelled', completed_at: new Date().toISOString() })
+        .eq('id', recoveredSession.id);
+      setRecoveredSession(null);
+    }
   };
 
   const availableModes = MEDIA_ANALYSIS_MODES[mediaType];
@@ -247,18 +309,26 @@ export default function MediaAnalysis() {
           </div>
         </div>
 
+        {/* Recovered Session Banner */}
+        {recoveredSession && (
+          <BulkSessionRecovery
+            session={recoveredSession}
+            onResume={handleRecoveryResume}
+            onDiscard={handleRecoveryDiscard}
+          />
+        )}
+
         {/* Bulk Progress Panel - Full Width when active */}
-        {showBulkProgress && (
-          <BulkAnalysisProgress
-            session={bulkSession.session!}
-            currentItemIndex={bulkSession.currentItemIndex}
+        {showBulkProgress && bulkSession.session && (
+          <EnhancedBulkProgress
+            session={bulkSession.session}
             onPause={bulkSession.pause}
             onResume={bulkSession.resume}
             onCancel={bulkSession.cancel}
             onRetryItem={bulkSession.retryItem}
             onSkipItem={bulkSession.skipItem}
             onRetryAllFailed={bulkSession.retryAllFailed}
-            onClear={bulkSession.clearSession}
+            isOnline={isOnline}
           />
         )}
 
@@ -470,7 +540,7 @@ export default function MediaAnalysis() {
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
-                    <Info className="h-12 w-12 mb-4 opacity-50" />
+                    <Brain className="h-12 w-12 mb-4 opacity-50" />
                     <p className="font-medium">No analysis results yet</p>
                     <p className="text-sm mt-1">
                       {isBulkMode 

@@ -464,6 +464,235 @@ export type Database = {
           },
         ]
       }
+      bulk_analysis_items: {
+        Row: {
+          actual_cost_cents: number | null
+          analysis_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          document_id: string | null
+          error_message: string | null
+          estimated_cost_cents: number | null
+          file_name: string | null
+          file_size: number | null
+          id: string
+          max_retries: number | null
+          media_id: string | null
+          media_type: string
+          media_url: string | null
+          priority_boost: number | null
+          priority_score: number | null
+          processing_time_ms: number | null
+          profile_id: string | null
+          queue_position: number | null
+          result: Json | null
+          retry_count: number | null
+          session_id: string
+          started_at: string | null
+          status: string
+          storage_path: string | null
+        }
+        Insert: {
+          actual_cost_cents?: number | null
+          analysis_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          document_id?: string | null
+          error_message?: string | null
+          estimated_cost_cents?: number | null
+          file_name?: string | null
+          file_size?: number | null
+          id?: string
+          max_retries?: number | null
+          media_id?: string | null
+          media_type: string
+          media_url?: string | null
+          priority_boost?: number | null
+          priority_score?: number | null
+          processing_time_ms?: number | null
+          profile_id?: string | null
+          queue_position?: number | null
+          result?: Json | null
+          retry_count?: number | null
+          session_id: string
+          started_at?: string | null
+          status?: string
+          storage_path?: string | null
+        }
+        Update: {
+          actual_cost_cents?: number | null
+          analysis_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          document_id?: string | null
+          error_message?: string | null
+          estimated_cost_cents?: number | null
+          file_name?: string | null
+          file_size?: number | null
+          id?: string
+          max_retries?: number | null
+          media_id?: string | null
+          media_type?: string
+          media_url?: string | null
+          priority_boost?: number | null
+          priority_score?: number | null
+          processing_time_ms?: number | null
+          profile_id?: string | null
+          queue_position?: number | null
+          result?: Json | null
+          retry_count?: number | null
+          session_id?: string
+          started_at?: string | null
+          status?: string
+          storage_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bulk_analysis_items_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "media_analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bulk_analysis_items_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bulk_analysis_items_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bulk_analysis_items_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "bulk_analysis_items_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bulk_analysis_items_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "bulk_analysis_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bulk_analysis_sessions: {
+        Row: {
+          aggregation_result: Json | null
+          analysis_context: Json | null
+          analysis_depth: string | null
+          analysis_modes: string[] | null
+          auto_aggregate: boolean | null
+          completed_at: string | null
+          completed_items: number | null
+          created_at: string | null
+          current_cost_cents: number | null
+          current_item_index: number | null
+          error_count: number | null
+          estimated_completion: string | null
+          failed_items: number | null
+          id: string
+          last_error: string | null
+          max_cost_cents: number | null
+          media_types: string[] | null
+          name: string | null
+          paused_at: string | null
+          priority: number | null
+          profile_ids: string[] | null
+          scheduled_for: string | null
+          scope_type: string
+          skipped_items: number | null
+          started_at: string | null
+          status: string
+          stop_on_budget_exceeded: boolean | null
+          total_items: number | null
+          trigger_deep_analysis: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          aggregation_result?: Json | null
+          analysis_context?: Json | null
+          analysis_depth?: string | null
+          analysis_modes?: string[] | null
+          auto_aggregate?: boolean | null
+          completed_at?: string | null
+          completed_items?: number | null
+          created_at?: string | null
+          current_cost_cents?: number | null
+          current_item_index?: number | null
+          error_count?: number | null
+          estimated_completion?: string | null
+          failed_items?: number | null
+          id?: string
+          last_error?: string | null
+          max_cost_cents?: number | null
+          media_types?: string[] | null
+          name?: string | null
+          paused_at?: string | null
+          priority?: number | null
+          profile_ids?: string[] | null
+          scheduled_for?: string | null
+          scope_type?: string
+          skipped_items?: number | null
+          started_at?: string | null
+          status?: string
+          stop_on_budget_exceeded?: boolean | null
+          total_items?: number | null
+          trigger_deep_analysis?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          aggregation_result?: Json | null
+          analysis_context?: Json | null
+          analysis_depth?: string | null
+          analysis_modes?: string[] | null
+          auto_aggregate?: boolean | null
+          completed_at?: string | null
+          completed_items?: number | null
+          created_at?: string | null
+          current_cost_cents?: number | null
+          current_item_index?: number | null
+          error_count?: number | null
+          estimated_completion?: string | null
+          failed_items?: number | null
+          id?: string
+          last_error?: string | null
+          max_cost_cents?: number | null
+          media_types?: string[] | null
+          name?: string | null
+          paused_at?: string | null
+          priority?: number | null
+          profile_ids?: string[] | null
+          scheduled_for?: string | null
+          scope_type?: string
+          skipped_items?: number | null
+          started_at?: string | null
+          status?: string
+          stop_on_budget_exceeded?: boolean | null
+          total_items?: number | null
+          trigger_deep_analysis?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       certifications: {
         Row: {
           created_at: string
@@ -4366,6 +4595,15 @@ export type Database = {
           total_media_files: number
           total_messages: number
         }[]
+      }
+      increment_bulk_session_progress: {
+        Args: {
+          p_cost_cents?: number
+          p_is_completed?: boolean
+          p_is_failed?: boolean
+          p_session_id: string
+        }
+        Returns: undefined
       }
       merge_duplicate_profiles: {
         Args: {
