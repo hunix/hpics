@@ -183,6 +183,7 @@ Deno.serve(async (req) => {
           if (threadId) {
             threadCache.set(threadKey, threadId);
           }
+        }
 
         // Insert email message
         const { error: messageError } = await supabase
