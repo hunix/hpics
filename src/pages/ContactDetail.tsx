@@ -17,7 +17,7 @@ import {
   FileText, Image, Target, Gift, Heart, Clock,
   Calendar, Sparkles, Users, ChevronRight, Building,
   Mic, Eye, Activity, Volume2, UserCircle, GitCompare, Wallet, Link2, Mail, UserCheck,
-  Milestone, Settings2, StickyNote, BookOpen, Shield, Network, Globe
+  Milestone, Settings2, StickyNote, BookOpen, Shield, Network, Globe, TrendingUp, Triangle, Search
 } from 'lucide-react';
 import { ContactDialog } from '@/components/contacts/ContactDialog';
 import { ContactMethodsManager } from '@/components/contacts/ContactMethodsManager';
@@ -64,6 +64,10 @@ import { TrustAssessmentPanel } from '@/components/intelligence/TrustAssessmentP
 import { DossierGenerator } from '@/components/intelligence/DossierGenerator';
 import { NetworkIntelligencePanel } from '@/components/intelligence/NetworkIntelligencePanel';
 import { LocationIntelligencePanel } from '@/components/intelligence/LocationIntelligencePanel';
+import { TemporalAnalysisPanel } from '@/components/intelligence/TemporalAnalysisPanel';
+import { RelationshipTrajectoryPanel } from '@/components/intelligence/RelationshipTrajectoryPanel';
+import { CommunicationTriangulationPanel } from '@/components/intelligence/CommunicationTriangulationPanel';
+import { DeceptionAnalysisPanel } from '@/components/intelligence/DeceptionAnalysisPanel';
 import { cn } from '@/lib/utils';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
 import { ProfileCompletenessWidget } from '@/components/contacts/ProfileCompletenessWidget';
@@ -79,7 +83,8 @@ type SectionId =
   | 'behavioral' | 'facial' | 'body-language' | 'vocal' | 'comparison'
   | 'financial' | 'observations'
   | 'milestones' | 'comm-prefs' | 'interaction-notes' | 'playbook'
-  | 'activity' | 'trust-assessment' | 'dossier' | 'network-intel' | 'locations';
+  | 'activity' | 'trust-assessment' | 'dossier' | 'network-intel' | 'locations'
+  | 'temporal' | 'trajectory' | 'triangulation' | 'consistency';
 
 interface NavSection {
   id: SectionId;
@@ -111,6 +116,10 @@ const sections: NavSection[] = [
   { id: 'dossier', label: 'Intel Dossier', icon: FileText, group: 'AI Insights' },
   { id: 'network-intel', label: 'Network Intel', icon: Network, group: 'AI Insights' },
   { id: 'locations', label: 'Geographic Intel', icon: Globe, group: 'AI Insights' },
+  { id: 'temporal', label: 'Temporal Patterns', icon: Clock, group: 'AI Insights' },
+  { id: 'trajectory', label: 'Trajectory', icon: TrendingUp, group: 'AI Insights' },
+  { id: 'triangulation', label: 'Triangulation', icon: Triangle, group: 'AI Insights' },
+  { id: 'consistency', label: 'Consistency', icon: Search, group: 'AI Insights' },
   { id: 'behavioral', label: 'Behavioral', icon: Brain, group: 'Analysis' },
   { id: 'facial', label: 'Facial/Micro-Expressions', icon: Eye, group: 'Analysis' },
   { id: 'body-language', label: 'Body Language', icon: Activity, group: 'Analysis' },
@@ -311,6 +320,14 @@ export default function ContactDetail() {
         return <DossierGenerator profileId={contact.id} profileName={contactName} />;
       case 'network-intel':
         return <NetworkIntelligencePanel />;
+      case 'temporal':
+        return <TemporalAnalysisPanel profileId={contact.id} />;
+      case 'trajectory':
+        return <RelationshipTrajectoryPanel profileId={contact.id} />;
+      case 'triangulation':
+        return <CommunicationTriangulationPanel profileId={contact.id} />;
+      case 'consistency':
+        return <DeceptionAnalysisPanel profileId={contact.id} />;
       case 'locations':
         return <LocationIntelligencePanel profileId={contact.id} profileName={contactName} />;
       case 'interests':

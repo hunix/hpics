@@ -46,16 +46,22 @@ interface TriangulationAnalysis {
   };
 }
 
-export function CommunicationTriangulationPanel() {
+interface CommunicationTriangulationPanelProps {
+  profileId?: string;
+}
+
+export function CommunicationTriangulationPanel({ profileId }: CommunicationTriangulationPanelProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('brokers');
 
   const { data: analysis, isLoading, error } = useQuery({
-    queryKey: ['communication-triangulation', user?.id],
+    queryKey: ['communication-triangulation', user?.id, profileId],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('analyze-communication-triangulation');
+      const { data, error } = await supabase.functions.invoke('analyze-communication-triangulation', {
+        body: profileId ? { profileId } : undefined
+      });
       if (error) throw error;
       return data.analysis as TriangulationAnalysis;
     },

@@ -23,38 +23,61 @@ interface ConsistencyIssue {
   detected_at: string;
 }
 
-export function DeceptionAnalysisPanel() {
+interface DeceptionAnalysisPanelProps {
+  profileId?: string;
+}
+
+export function DeceptionAnalysisPanel({ profileId }: DeceptionAnalysisPanelProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
 
   const { data, isLoading } = useQuery({
-    queryKey: ['deception-analysis', user?.id],
+    queryKey: ['deception-analysis', user?.id, profileId],
     queryFn: async () => {
       // Get interaction notes for consistency check
-      const { data: notes } = await supabase
+      let notesQuery = supabase
         .from('contact_interaction_notes')
         .select('*, profiles(id, first_name, last_name)')
         .eq('user_id', user!.id)
         .order('interaction_date', { ascending: false })
         .limit(200);
+      
+      if (profileId) {
+        notesQuery = notesQuery.eq('profile_id', profileId);
+      }
+
+      const { data: notes } = await notesQuery;
 
       // Get observations
-      const { data: observations } = await supabase
+      let obsQuery = supabase
         .from('contact_observations')
         .select('*, profiles(id, first_name, last_name)')
         .eq('user_id', user!.id)
         .order('created_at', { ascending: false })
         .limit(100);
+      
+      if (profileId) {
+        obsQuery = obsQuery.eq('profile_id', profileId);
+      }
+
+      const { data: observations } = await obsQuery;
 
       // Get trust assessments
-      const { data: trustAssessments } = await supabase
+      let trustQuery = supabase
         .from('trust_assessments')
         .select('*, profiles(id, first_name, last_name)')
         .eq('user_id', user!.id)
         .order('assessed_at', { ascending: false });
+      
+      if (profileId) {
+        trustQuery = trustQuery.eq('profile_id', profileId);
+      }
+
+      const { data: trustAssessments } = await trustQuery;
 
       // Analyze for inconsistencies
       const issues: ConsistencyIssue[] = [];
+      const profileNotes = new Map<string, any[]>();
       const profileNotes = new Map<string, any[]>();
 
       // Group notes by profile

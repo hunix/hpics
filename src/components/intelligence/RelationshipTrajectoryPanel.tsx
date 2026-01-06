@@ -40,18 +40,26 @@ const trajectoryConfig = {
   at_risk: { icon: AlertTriangle, color: 'text-destructive', bg: 'bg-destructive/10', label: 'At Risk' },
 };
 
-export function RelationshipTrajectoryPanel() {
+interface RelationshipTrajectoryPanelProps {
+  profileId?: string;
+}
+
+export function RelationshipTrajectoryPanel({ profileId }: RelationshipTrajectoryPanelProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('at_risk');
 
   const { data: predictions, isLoading, error } = useQuery({
-    queryKey: ['relationship-trajectory', user?.id],
+    queryKey: ['relationship-trajectory', user?.id, profileId],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('predict-relationship-trajectory');
+      const { data, error } = await supabase.functions.invoke('predict-relationship-trajectory', {
+        body: profileId ? { profileId } : undefined
+      });
       if (error) throw error;
-      return data.predictions as TrajectoryPrediction[];
+      const results = data.predictions as TrajectoryPrediction[];
+      // Filter by profileId if provided
+      return profileId ? results.filter(p => p.profileId === profileId) : results;
     },
     enabled: !!user,
     staleTime: 10 * 60 * 1000,

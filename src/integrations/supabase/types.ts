@@ -4445,6 +4445,51 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          alert_types_enabled: string[] | null
+          created_at: string | null
+          digest_frequency: string | null
+          email_enabled: boolean | null
+          id: string
+          min_severity: string | null
+          push_enabled: boolean | null
+          push_subscription: Json | null
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          alert_types_enabled?: string[] | null
+          created_at?: string | null
+          digest_frequency?: string | null
+          email_enabled?: boolean | null
+          id?: string
+          min_severity?: string | null
+          push_enabled?: boolean | null
+          push_subscription?: Json | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          alert_types_enabled?: string[] | null
+          created_at?: string | null
+          digest_frequency?: string | null
+          email_enabled?: boolean | null
+          id?: string
+          min_severity?: string | null
+          push_enabled?: boolean | null
+          push_subscription?: Json | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       oauth_tokens: {
         Row: {
           access_token: string
