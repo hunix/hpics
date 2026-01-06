@@ -26,6 +26,9 @@ import Calendar from "./pages/Calendar";
 import VideoAnalysis from "./pages/VideoAnalysis";
 import MediaAnalysis from "./pages/MediaAnalysis";
 import BulkAnalysisDashboard from "./pages/BulkAnalysisDashboard";
+import Reports from "./pages/Reports";
+import TeamDashboard from "./pages/TeamDashboard";
+import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -60,6 +63,9 @@ const App = () => (
                     <Route path="/video-analysis" element={<VideoAnalysis />} />
                     <Route path="/analysis" element={<MediaAnalysis />} />
                     <Route path="/analysis/dashboard" element={<BulkAnalysisDashboard />} />
+                    <Route path="/reports" element={<Reports />} />
+                    <Route path="/team" element={<TeamDashboard />} />
+                    <Route path="/install" element={<Install />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </BrowserRouter>
