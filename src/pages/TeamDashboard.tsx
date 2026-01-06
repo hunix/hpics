@@ -1,23 +1,33 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
   Users, 
   Activity, 
   MessageSquare, 
   TrendingUp,
   Clock,
-  UserPlus
+  UserPlus,
+  Plus,
+  Loader2
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 export default function TeamDashboard() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [workspaceName, setWorkspaceName] = useState('');
 
   const { data: workspaces = [] } = useQuery({
     queryKey: ['team-workspaces'],
@@ -82,9 +92,42 @@ export default function TeamDashboard() {
     enabled: !!user,
   });
 
-  const totalMembers = workspaces.reduce((sum, w) => 
+  const totalMembers = workspaces.reduce((sum, w: any) => 
     sum + (w.workspace_members?.length || 0), 0
   );
+
+  const createWorkspaceMutation = useMutation({
+    mutationFn: async () => {
+      if (!user || !workspaceName.trim()) throw new Error('Name required');
+      
+      const { data: workspace, error } = await supabase
+        .from('workspaces')
+        .insert({ name: workspaceName.trim(), owner_id: user.id })
+        .select()
+        .single();
+      
+      if (error) throw error;
+
+      // Add owner as member
+      await supabase.from('workspace_members').insert({
+        workspace_id: workspace.id,
+        user_id: user.id,
+        role: 'owner',
+        accepted_at: new Date().toISOString(),
+      });
+
+      return workspace;
+    },
+    onSuccess: () => {
+      toast.success('Workspace created');
+      queryClient.invalidateQueries({ queryKey: ['team-workspaces'] });
+      setIsCreateDialogOpen(false);
+      setWorkspaceName('');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
 
   return (
     <AppLayout title="Team Dashboard">
@@ -139,9 +182,46 @@ export default function TeamDashboard() {
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Workspaces */}
           <Card>
-            <CardHeader>
-              <CardTitle>Your Workspaces</CardTitle>
-              <CardDescription>Teams you're a member of</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Your Workspaces</CardTitle>
+                <CardDescription>Teams you're a member of</CardDescription>
+              </div>
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Create Workspace</DialogTitle>
+                    <DialogDescription>Create a new workspace to collaborate with your team.</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="workspace-name">Workspace Name</Label>
+                      <Input
+                        id="workspace-name"
+                        value={workspaceName}
+                        onChange={(e) => setWorkspaceName(e.target.value)}
+                        placeholder="My Team"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
+                    <Button 
+                      onClick={() => createWorkspaceMutation.mutate()}
+                      disabled={createWorkspaceMutation.isPending || !workspaceName.trim()}
+                    >
+                      {createWorkspaceMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                      Create
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </CardHeader>
             <CardContent>
               {workspaces.length > 0 ? (

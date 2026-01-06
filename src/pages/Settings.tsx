@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Sun, Bell, Mail, Loader2, Smartphone, Link2, Bot, Cpu, MessageCircle, HardDrive, Trash2 } from 'lucide-react';
+import { Moon, Sun, Bell, Mail, Loader2, Smartphone, Link2, Bot, Cpu, MessageCircle, HardDrive, Trash2, Users } from 'lucide-react';
 import { AnalyticsExport } from '@/components/analytics/AnalyticsExport';
 import { EmailIntegration } from '@/components/settings/EmailIntegration';
 import { OutlookIntegration } from '@/components/settings/OutlookIntegration';
@@ -25,6 +25,9 @@ import { VAPIDConfiguration } from '@/components/settings/VAPIDConfiguration';
 import { StorageAnalytics } from '@/components/analytics/StorageAnalytics';
 import { DuplicateProfileMerger } from '@/components/contacts/DuplicateProfileMerger';
 import { NotificationPreferences } from '@/components/settings/NotificationPreferences';
+import { CalendarSyncSettings } from '@/components/settings/CalendarSyncSettings';
+import { WebhookManager } from '@/components/settings/WebhookManager';
+import { WorkspaceSettings } from '@/components/settings/WorkspaceSettings';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -91,7 +94,7 @@ export default function Settings() {
   return (
     <AppLayout title="Settings">
       <Tabs defaultValue="general" className="max-w-5xl">
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="grid w-full grid-cols-9">
           <TabsTrigger value="general">
             <Sun className="h-4 w-4 mr-2" />
             General
@@ -111,6 +114,10 @@ export default function Settings() {
           <TabsTrigger value="integrations">
             <Link2 className="h-4 w-4 mr-2" />
             Integrations
+          </TabsTrigger>
+          <TabsTrigger value="teams">
+            <Users className="h-4 w-4 mr-2" />
+            Teams
           </TabsTrigger>
           <TabsTrigger value="ai-models">
             <Cpu className="h-4 w-4 mr-2" />
@@ -234,13 +241,19 @@ export default function Settings() {
         </TabsContent>
 
         <TabsContent value="integrations" className="space-y-6 mt-6">
+          <CalendarSyncSettings />
           <OutlookIntegration />
           <ResendIntegration 
             isConfigured={true} 
             onSave={() => {}} 
           />
           <WhatsAppSetup />
+          <WebhookManager />
           <EmailIntegration />
+        </TabsContent>
+
+        <TabsContent value="teams" className="space-y-6 mt-6">
+          <WorkspaceSettings />
         </TabsContent>
 
         <TabsContent value="ai-models" className="space-y-6 mt-6">

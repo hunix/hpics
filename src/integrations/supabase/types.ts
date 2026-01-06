@@ -5387,6 +5387,72 @@ export type Database = {
           },
         ]
       }
+      synced_calendar_events: {
+        Row: {
+          attendees: Json | null
+          created_at: string | null
+          description: string | null
+          end_time: string
+          external_id: string
+          id: string
+          location: string | null
+          matched_profile_id: string | null
+          raw_data: Json | null
+          source: string
+          start_time: string
+          synced_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          attendees?: Json | null
+          created_at?: string | null
+          description?: string | null
+          end_time: string
+          external_id: string
+          id?: string
+          location?: string | null
+          matched_profile_id?: string | null
+          raw_data?: Json | null
+          source: string
+          start_time: string
+          synced_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          attendees?: Json | null
+          created_at?: string | null
+          description?: string | null
+          end_time?: string
+          external_id?: string
+          id?: string
+          location?: string | null
+          matched_profile_id?: string | null
+          raw_data?: Json | null
+          source?: string
+          start_time?: string
+          synced_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "synced_calendar_events_matched_profile_id_fkey"
+            columns: ["matched_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "synced_calendar_events_matched_profile_id_fkey"
+            columns: ["matched_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trust_assessments: {
         Row: {
           ai_assessment: string | null

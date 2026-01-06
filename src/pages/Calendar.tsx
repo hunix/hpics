@@ -1,22 +1,24 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Cake, Users, Bell, Phone } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Cake, Users, Bell, Phone, RefreshCw, Cloud, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, subMonths, addWeeks, subWeeks, parseISO, setYear, getYear } from 'date-fns';
 
 type CalendarEvent = {
   id: string;
   title: string;
   date: Date;
-  type: 'birthday' | 'anniversary' | 'meeting' | 'follow_up' | 'milestone' | 'other';
+  type: 'birthday' | 'anniversary' | 'meeting' | 'follow_up' | 'milestone' | 'other' | 'synced';
   contactName?: string;
   contactId?: string;
+  source?: 'local' | 'google' | 'outlook';
 };
 
 const eventTypeColors: Record<string, string> = {
@@ -25,6 +27,7 @@ const eventTypeColors: Record<string, string> = {
   meeting: 'bg-blue-500',
   follow_up: 'bg-orange-500',
   milestone: 'bg-green-500',
+  synced: 'bg-cyan-500',
   other: 'bg-gray-500',
 };
 
@@ -34,13 +37,42 @@ const eventTypeIcons: Record<string, React.ReactNode> = {
   meeting: <CalendarIcon className="h-3 w-3" />,
   follow_up: <Phone className="h-3 w-3" />,
   milestone: <Bell className="h-3 w-3" />,
+  synced: <Cloud className="h-3 w-3" />,
   other: <CalendarIcon className="h-3 w-3" />,
 };
 
 export default function Calendar() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<'month' | 'week'>('month');
+
+  // Check calendar sync status
+  const { data: googleConfig } = useQuery({
+    queryKey: ['google-calendar-config'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('google_calendar_config')
+        .select('*')
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const { data: outlookToken } = useQuery({
+    queryKey: ['outlook-token'],
+    queryFn: async () => {
+      // Check if outlook is configured by looking at the oauth tokens table
+      const { data } = await supabase
+        .from('oauth_tokens')
+        .select('*')
+        .eq('provider', 'outlook')
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user,
+  });
 
   // Fetch events from events table
   const { data: dbEvents = [] } = useQuery({
@@ -58,6 +90,28 @@ export default function Calendar() {
         type: event.event_type as CalendarEvent['type'],
         contactName: event.profiles ? `${event.profiles.first_name} ${event.profiles.last_name || ''}`.trim() : undefined,
         contactId: event.profile_id,
+        source: 'local' as const,
+      }));
+    },
+    enabled: !!user,
+  });
+
+  // Fetch synced calendar events
+  const { data: syncedEvents = [] } = useQuery({
+    queryKey: ['synced-calendar-events', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('synced_calendar_events')
+        .select('*, profiles(first_name, last_name)');
+      
+      return (data ?? []).map((event: any) => ({
+        id: event.id,
+        title: event.title,
+        date: parseISO(event.start_time),
+        type: 'synced' as CalendarEvent['type'],
+        contactName: event.profiles ? `${event.profiles.first_name} ${event.profiles.last_name || ''}`.trim() : undefined,
+        contactId: event.matched_profile_id,
+        source: event.source as 'google' | 'outlook',
       }));
     },
     enabled: !!user,
@@ -76,7 +130,6 @@ export default function Calendar() {
       
       return (data ?? []).map((info: any) => {
         const dob = parseISO(info.date_of_birth);
-        // Set birthday to current year for display
         const birthdayThisYear = setYear(dob, currentYear);
         const contactName = info.profiles ? `${info.profiles.first_name} ${info.profiles.last_name || ''}`.trim() : 'Unknown';
         const age = currentYear - getYear(dob);
@@ -88,14 +141,46 @@ export default function Calendar() {
           type: 'birthday' as CalendarEvent['type'],
           contactName,
           contactId: info.profile_id,
+          source: 'local' as const,
         };
       });
     },
     enabled: !!user,
   });
 
+  // Sync mutations
+  const syncGoogleMutation = useMutation({
+    mutationFn: async () => {
+      const response = await supabase.functions.invoke('sync-google-calendar');
+      if (response.error) throw new Error(response.error.message);
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success('Google Calendar synced');
+      queryClient.invalidateQueries({ queryKey: ['synced-calendar-events'] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const syncOutlookMutation = useMutation({
+    mutationFn: async () => {
+      const response = await supabase.functions.invoke('sync-outlook-calendar');
+      if (response.error) throw new Error(response.error.message);
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success('Outlook Calendar synced');
+      queryClient.invalidateQueries({ queryKey: ['synced-calendar-events'] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
   // Combine all events
-  const events = [...dbEvents, ...birthdays];
+  const events = [...dbEvents, ...birthdays, ...syncedEvents];
 
   const navigatePrev = () => {
     setCurrentDate(view === 'month' ? subMonths(currentDate, 1) : subWeeks(currentDate, 1));
@@ -154,7 +239,7 @@ export default function Calendar() {
                   <div
                     key={event.id}
                     className={`text-xs p-1 rounded text-white truncate flex items-center gap-1 ${eventTypeColors[event.type]}`}
-                    title={`${event.title}${event.contactName ? ` - ${event.contactName}` : ''}`}
+                    title={`${event.title}${event.contactName ? ` - ${event.contactName}` : ''}${event.source !== 'local' ? ` (${event.source})` : ''}`}
                   >
                     {eventTypeIcons[event.type]}
                     <span className="truncate">{event.title}</span>
@@ -202,6 +287,11 @@ export default function Calendar() {
                     {event.contactName && (
                       <div className="text-xs opacity-80 truncate">{event.contactName}</div>
                     )}
+                    {event.source !== 'local' && (
+                      <Badge variant="secondary" className="text-xs mt-1">
+                        {event.source}
+                      </Badge>
+                    )}
                   </div>
                 ))}
               </div>
@@ -216,6 +306,9 @@ export default function Calendar() {
     .filter(e => e.date >= new Date())
     .sort((a, b) => a.date.getTime() - b.date.getTime())
     .slice(0, 10);
+
+  const hasCalendarConnected = googleConfig || outlookToken;
+  const isSyncing = syncGoogleMutation.isPending || syncOutlookMutation.isPending;
 
   return (
     <AppLayout title="Calendar">
@@ -258,6 +351,53 @@ export default function Calendar() {
           </div>
 
           <div className="space-y-4">
+            {/* Connected Calendars */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center justify-between">
+                  Connected Calendars
+                  {hasCalendarConnected && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      disabled={isSyncing}
+                      onClick={() => {
+                        if (googleConfig) syncGoogleMutation.mutate();
+                        if (outlookToken) syncOutlookMutation.mutate();
+                      }}
+                    >
+                      {isSyncing ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4" />
+                      )}
+                    </Button>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                    <span className="text-sm">Google Calendar</span>
+                    <Badge variant={googleConfig ? 'default' : 'secondary'}>
+                      {googleConfig ? 'Connected' : 'Not connected'}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                    <span className="text-sm">Outlook Calendar</span>
+                    <Badge variant={outlookToken ? 'default' : 'secondary'}>
+                      {outlookToken ? 'Connected' : 'Not connected'}
+                    </Badge>
+                  </div>
+                  {!hasCalendarConnected && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Connect calendars in Settings → Integrations
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Upcoming Events</CardTitle>
@@ -275,9 +415,16 @@ export default function Calendar() {
                           {event.contactName && (
                             <p className="text-xs text-muted-foreground">{event.contactName}</p>
                           )}
-                          <p className="text-xs text-muted-foreground">
-                            {format(event.date, 'MMM d, yyyy')}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs text-muted-foreground">
+                              {format(event.date, 'MMM d, yyyy')}
+                            </p>
+                            {event.source !== 'local' && (
+                              <Badge variant="outline" className="text-xs">
+                                {event.source}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
