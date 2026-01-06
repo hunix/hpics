@@ -62,6 +62,7 @@ import { ContactPlaybook } from '@/components/contacts/ContactPlaybook';
 import { ContactActivityHistory } from '@/components/contacts/ContactActivityHistory';
 import { cn } from '@/lib/utils';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
+import { ProfileCompletenessWidget } from '@/components/contacts/ProfileCompletenessWidget';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Profile = Tables<'profiles'> & { relationship_subtype?: string; hierarchy_level?: string };
@@ -249,7 +250,12 @@ export default function ContactDetail() {
   const renderContent = () => {
     switch (activeSection) {
       case 'overview':
-        return <ExtendedOverview profileId={contact.id} profile={contact} />;
+        return (
+          <div className="space-y-6">
+            <ProfileCompletenessWidget profileId={contact.id} />
+            <ExtendedOverview profileId={contact.id} profile={contact} />
+          </div>
+        );
       case 'personal-info':
         return <ExtendedInfoSection profileId={contact.id} />;
       case 'contact':
