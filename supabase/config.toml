@@ -110,3 +110,18 @@ verify_jwt = false
 
 [functions.predict-contact-needs]
 verify_jwt = false
+
+[functions.analyze-network-intelligence]
+verify_jwt = false
+
+[functions.detect-anomalies]
+verify_jwt = false
+
+[functions.assess-trust]
+verify_jwt = false
+
+[functions.generate-dossier]
+verify_jwt = false
+
+[functions.process-alert-rules]
+verify_jwt = false
