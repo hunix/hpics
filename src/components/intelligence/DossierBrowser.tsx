@@ -6,9 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileText, ChevronRight, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { FileText, ChevronRight, Clock, Download } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { DossierGenerator } from './DossierGenerator';
+import { DossierExporter } from './DossierExporter';
 
 const classificationColors: Record<string, string> = {
   public: 'bg-green-500/10 text-green-600 border-green-500/50',
@@ -20,6 +22,7 @@ const classificationColors: Record<string, string> = {
 export function DossierBrowser() {
   const { user } = useAuth();
   const [selectedProfile, setSelectedProfile] = useState<{ id: string; name: string } | null>(null);
+  const [exportDossier, setExportDossier] = useState<any>(null);
 
   const { data: dossiers, isLoading } = useQuery({
     queryKey: ['all-dossiers'],
@@ -86,11 +89,13 @@ export function DossierBrowser() {
                 return (
                   <div
                     key={dossier.id}
-                    onClick={() => setSelectedProfile({ id: dossier.profile_id, name: profileName })}
-                    className="p-4 rounded-lg border hover:bg-muted/50 cursor-pointer"
+                    className="p-4 rounded-lg border hover:bg-muted/50"
                   >
                     <div className="flex items-center justify-between">
-                      <div>
+                      <div 
+                        className="flex-1 cursor-pointer"
+                        onClick={() => setSelectedProfile({ id: dossier.profile_id, name: profileName })}
+                      >
                         <div className="font-medium">{dossier.title}</div>
                         <div className="text-sm text-muted-foreground">
                           {profileName}
@@ -106,13 +111,26 @@ export function DossierBrowser() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExportDossier(dossier);
+                          }}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
                         <div className="text-right">
                           <div className="text-xs text-muted-foreground flex items-center gap-1">
                             <Clock className="h-3 w-3" />
                             {formatDistanceToNow(new Date(dossier.generated_at), { addSuffix: true })}
                           </div>
                         </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        <ChevronRight 
+                          className="h-4 w-4 text-muted-foreground cursor-pointer" 
+                          onClick={() => setSelectedProfile({ id: dossier.profile_id, name: profileName })}
+                        />
                       </div>
                     </div>
                   </div>
@@ -126,6 +144,15 @@ export function DossierBrowser() {
             <p>No dossiers generated yet</p>
             <p className="text-sm">Generate dossiers from individual contact profiles</p>
           </div>
+        )}
+
+        {/* Export Dialog */}
+        {exportDossier && (
+          <DossierExporter 
+            dossier={exportDossier}
+            open={!!exportDossier}
+            onOpenChange={(open) => !open && setExportDossier(null)}
+          />
         )}
       </CardContent>
     </Card>

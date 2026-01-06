@@ -42,7 +42,7 @@ export function InformationFlowPanel() {
       // Get media shared with contacts
       const { data: media } = await supabase
         .from('media')
-        .select('id, file_name, profile_id, created_at, media_type, profiles(id, first_name, last_name)')
+        .select('id, caption, profile_id, created_at, mime_type, profiles(id, first_name, last_name)')
         .eq('user_id', user!.id)
         .not('profile_id', 'is', null)
         .order('created_at', { ascending: false })
@@ -70,7 +70,7 @@ export function InformationFlowPanel() {
             id: `media-${m.id}`,
             shared_with: m.profiles as any,
             info_type: 'media',
-            title: m.file_name || 'Untitled media',
+            title: m.caption || 'Untitled media',
             shared_at: m.created_at,
             sensitivity: 'low',
           });
