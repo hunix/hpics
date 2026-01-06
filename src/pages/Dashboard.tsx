@@ -26,6 +26,8 @@ import { SecurityAlertsWidget } from '@/components/security/SecurityAlertsWidget
 import { IntelligenceInsightsWidget } from '@/components/intelligence/IntelligenceInsightsWidget';
 import { DataQualityMonitor } from '@/components/intelligence/DataQualityMonitor';
 import { ProactiveActionsWidget } from '@/components/intelligence/ProactiveActionsWidget';
+import { LiveActivityFeed } from '@/components/intelligence/LiveActivityFeed';
+import { AnomalyDetectionWidget } from '@/components/intelligence/AnomalyDetectionWidget';
 import type { DashletType } from '@/lib/dashletDefinitions';
 
 export default function Dashboard() {
@@ -305,6 +307,10 @@ export default function Dashboard() {
         return <DataQualityMonitor />;
       case 'proactive-actions':
         return <ProactiveActionsWidget />;
+      case 'live-activity-feed':
+        return <LiveActivityFeed />;
+      case 'anomaly-detection':
+        return <AnomalyDetectionWidget />;
       default:
         return null;
     }
