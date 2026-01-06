@@ -4,12 +4,16 @@ import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Brain, Sparkles, TrendingUp, Users, Zap, ArrowRight, DollarSign } from 'lucide-react';
+import { Brain, Sparkles, TrendingUp, Users, Zap, ArrowRight, DollarSign, Shield, Network, FileText, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { AIUsageLogs } from '@/components/ai/AIUsageLogs';
+import { NetworkIntelligencePanel } from '@/components/intelligence/NetworkIntelligencePanel';
+import { TrustAssessmentBrowser } from '@/components/intelligence/TrustAssessmentBrowser';
+import { DossierBrowser } from '@/components/intelligence/DossierBrowser';
+import { IntelligenceAlertManager } from '@/components/intelligence/IntelligenceAlertManager';
 
 export default function Insights() {
   const { user } = useAuth();
@@ -57,14 +61,30 @@ export default function Insights() {
   return (
     <AppLayout title="AI Insights">
       <Tabs defaultValue="insights" className="space-y-6">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="insights" className="flex items-center gap-2">
             <Brain className="h-4 w-4" />
             Insights
           </TabsTrigger>
+          <TabsTrigger value="network" className="flex items-center gap-2">
+            <Network className="h-4 w-4" />
+            Network
+          </TabsTrigger>
+          <TabsTrigger value="trust" className="flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            Trust
+          </TabsTrigger>
+          <TabsTrigger value="dossiers" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Dossiers
+          </TabsTrigger>
+          <TabsTrigger value="alerts" className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            Alerts
+          </TabsTrigger>
           <TabsTrigger value="usage" className="flex items-center gap-2">
             <DollarSign className="h-4 w-4" />
-            AI Usage & Costs
+            Usage
           </TabsTrigger>
         </TabsList>
 
@@ -244,6 +264,22 @@ export default function Insights() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="network">
+          <NetworkIntelligencePanel />
+        </TabsContent>
+
+        <TabsContent value="trust">
+          <TrustAssessmentBrowser />
+        </TabsContent>
+
+        <TabsContent value="dossiers">
+          <DossierBrowser />
+        </TabsContent>
+
+        <TabsContent value="alerts">
+          <IntelligenceAlertManager />
         </TabsContent>
 
         <TabsContent value="usage">

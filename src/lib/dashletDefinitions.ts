@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, MessageSquare, Calendar, Star, Clock, TrendingUp, BarChart3, Network, Sparkles, UserPlus, Target, Activity, Shield, Brain, ShieldCheck, Zap } from 'lucide-react';
+import { Users, MessageSquare, Calendar, Star, Clock, TrendingUp, BarChart3, Network, Sparkles, UserPlus, Target, Activity, Shield, Brain, ShieldCheck, Zap, Radio, AlertTriangle } from 'lucide-react';
 
 // All available dashlet types
 export interface DashletConfig {
@@ -27,7 +27,9 @@ export type DashletType =
   | 'security-alerts'
   | 'intelligence-insights'
   | 'data-quality'
-  | 'proactive-actions';
+  | 'proactive-actions'
+  | 'live-activity-feed'
+  | 'anomaly-detection';
 
 export interface DashletDefinition {
   type: DashletType;
@@ -172,6 +174,22 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Proactive Actions',
     description: 'AI-suggested follow-ups and timely actions',
     icon: Zap,
+    defaultVisible: true,
+    category: 'ai',
+  },
+  {
+    type: 'live-activity-feed',
+    title: 'Live Activity Feed',
+    description: 'Real-time activity stream with anomaly detection',
+    icon: Radio,
+    defaultVisible: true,
+    category: 'ai',
+  },
+  {
+    type: 'anomaly-detection',
+    title: 'Anomaly Detection',
+    description: 'Behavioral pattern analysis and deviation alerts',
+    icon: AlertTriangle,
     defaultVisible: true,
     category: 'ai',
   },
