@@ -4,7 +4,7 @@ import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Brain, Sparkles, TrendingUp, Users, Zap, ArrowRight, DollarSign, Shield, Network, FileText, AlertTriangle, Triangle } from 'lucide-react';
+import { Brain, Sparkles, TrendingUp, Users, Zap, ArrowRight, DollarSign, Shield, Network, FileText, AlertTriangle, Triangle, Eye, Clock, Search } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
@@ -15,7 +15,9 @@ import { TrustAssessmentBrowser } from '@/components/intelligence/TrustAssessmen
 import { DossierBrowser } from '@/components/intelligence/DossierBrowser';
 import { IntelligenceAlertManager } from '@/components/intelligence/IntelligenceAlertManager';
 import { CommunicationTriangulationPanel } from '@/components/intelligence/CommunicationTriangulationPanel';
-import { RelationshipTrajectoryPanel } from '@/components/intelligence/RelationshipTrajectoryPanel';
+import { SurveillanceDashboard } from '@/components/intelligence/SurveillanceDashboard';
+import { TemporalAnalysisPanel } from '@/components/intelligence/TemporalAnalysisPanel';
+import { EntityResolutionPanel } from '@/components/intelligence/EntityResolutionPanel';
 
 export default function Insights() {
   const { user } = useAuth();
@@ -68,17 +70,25 @@ export default function Insights() {
             <Brain className="h-4 w-4" />
             Insights
           </TabsTrigger>
+          <TabsTrigger value="surveillance" className="flex items-center gap-2">
+            <Eye className="h-4 w-4" />
+            Surveillance
+          </TabsTrigger>
           <TabsTrigger value="network" className="flex items-center gap-2">
             <Network className="h-4 w-4" />
             Network
           </TabsTrigger>
           <TabsTrigger value="triangulation" className="flex items-center gap-2">
             <Triangle className="h-4 w-4" />
-            Triangulation
+            Comms
           </TabsTrigger>
-          <TabsTrigger value="trajectories" className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Trajectories
+          <TabsTrigger value="temporal" className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Temporal
+          </TabsTrigger>
+          <TabsTrigger value="entities" className="flex items-center gap-2">
+            <Search className="h-4 w-4" />
+            Entities
           </TabsTrigger>
           <TabsTrigger value="trust" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
@@ -276,6 +286,10 @@ export default function Insights() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="surveillance">
+          <SurveillanceDashboard />
+        </TabsContent>
+
         <TabsContent value="network">
           <NetworkIntelligencePanel />
         </TabsContent>
@@ -284,8 +298,12 @@ export default function Insights() {
           <CommunicationTriangulationPanel />
         </TabsContent>
 
-        <TabsContent value="trajectories">
-          <RelationshipTrajectoryPanel />
+        <TabsContent value="temporal">
+          <TemporalAnalysisPanel />
+        </TabsContent>
+
+        <TabsContent value="entities">
+          <EntityResolutionPanel />
         </TabsContent>
 
         <TabsContent value="trust">
