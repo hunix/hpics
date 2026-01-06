@@ -20,6 +20,8 @@ import { ContactImport } from '@/components/import/ContactImport';
 import { LinkedInImportWizard } from '@/components/import/linkedin/LinkedInImportWizard';
 import { GoogleImportWizard } from '@/components/import/google/GoogleImportWizard';
 import { PSTImport } from '@/components/import/PSTImport';
+import { GmailImportWizard } from '@/components/import/gmail/GmailImportWizard';
+import { OutlookContactsImport } from '@/components/import/outlook/OutlookContactsImport';
 import { HardDrive } from 'lucide-react';
 
 interface CSVRow {
@@ -333,20 +335,24 @@ export default function Import() {
           </TabsContent>
 
           <TabsContent value="google" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Mail className="h-5 w-5 text-red-500" />
-                  Import Google Contacts
-                </CardTitle>
-                <CardDescription>
-                  Import from Google Contacts or Gmail with smart duplicate detection and merging
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <GoogleImportWizard />
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              <GmailImportWizard />
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Mail className="h-5 w-5 text-red-500" />
+                    Import Google Contacts CSV
+                  </CardTitle>
+                  <CardDescription>
+                    Import from Google Contacts export with smart duplicate detection
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <GoogleImportWizard />
+                </CardContent>
+              </Card>
+              <OutlookContactsImport />
+            </div>
           </TabsContent>
 
           <TabsContent value="linkedin" className="mt-4">
