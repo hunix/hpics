@@ -243,47 +243,47 @@ export default function Import() {
 
   return (
     <AppLayout title="Import Data">
-      <div className="max-w-3xl space-y-6">
-        <Tabs defaultValue="quick">
-          <TabsList className="flex flex-wrap h-auto gap-1">
-            <TabsTrigger value="quick">
-              <FileUp className="h-4 w-4 mr-2" />
+      <div className="w-full space-y-6">
+        <Tabs defaultValue="quick" className="w-full">
+          <TabsList className="w-full h-auto p-2 grid grid-cols-5 gap-2">
+            <TabsTrigger value="quick" className="flex items-center justify-center gap-2 px-4 py-2.5">
+              <FileUp className="h-4 w-4" />
               Quick Import
             </TabsTrigger>
-            <TabsTrigger value="enrich">
-              <Sparkles className="h-4 w-4 mr-2" />
+            <TabsTrigger value="enrich" className="flex items-center justify-center gap-2 px-4 py-2.5">
+              <Sparkles className="h-4 w-4" />
               Bulk Enrich
             </TabsTrigger>
-            <TabsTrigger value="csv">
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
+            <TabsTrigger value="csv" className="flex items-center justify-center gap-2 px-4 py-2.5">
+              <FileSpreadsheet className="h-4 w-4" />
               CSV
             </TabsTrigger>
-            <TabsTrigger value="google">
-              <Mail className="h-4 w-4 mr-2" />
+            <TabsTrigger value="google" className="flex items-center justify-center gap-2 px-4 py-2.5">
+              <Mail className="h-4 w-4" />
               Google
             </TabsTrigger>
-            <TabsTrigger value="linkedin">
-              <Linkedin className="h-4 w-4 mr-2" />
+            <TabsTrigger value="linkedin" className="flex items-center justify-center gap-2 px-4 py-2.5">
+              <Linkedin className="h-4 w-4" />
               LinkedIn
             </TabsTrigger>
-            <TabsTrigger value="vcard">
-              <CreditCard className="h-4 w-4 mr-2" />
+            <TabsTrigger value="vcard" className="flex items-center justify-center gap-2 px-4 py-2.5">
+              <CreditCard className="h-4 w-4" />
               vCard
             </TabsTrigger>
-            <TabsTrigger value="whatsapp">
-              <MessageCircle className="h-4 w-4 mr-2" />
+            <TabsTrigger value="whatsapp" className="flex items-center justify-center gap-2 px-4 py-2.5">
+              <MessageCircle className="h-4 w-4" />
               WhatsApp
             </TabsTrigger>
-            <TabsTrigger value="telegram">
-              <Send className="h-4 w-4 mr-2" />
+            <TabsTrigger value="telegram" className="flex items-center justify-center gap-2 px-4 py-2.5">
+              <Send className="h-4 w-4" />
               Telegram
             </TabsTrigger>
-            <TabsTrigger value="education">
-              <GraduationCap className="h-4 w-4 mr-2" />
+            <TabsTrigger value="education" className="flex items-center justify-center gap-2 px-4 py-2.5">
+              <GraduationCap className="h-4 w-4" />
               Education
             </TabsTrigger>
-            <TabsTrigger value="pst">
-              <HardDrive className="h-4 w-4 mr-2" />
+            <TabsTrigger value="pst" className="flex items-center justify-center gap-2 px-4 py-2.5">
+              <HardDrive className="h-4 w-4" />
               Outlook PST
             </TabsTrigger>
           </TabsList>
