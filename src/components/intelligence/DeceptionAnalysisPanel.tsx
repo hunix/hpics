@@ -78,7 +78,6 @@ export function DeceptionAnalysisPanel({ profileId }: DeceptionAnalysisPanelProp
       // Analyze for inconsistencies
       const issues: ConsistencyIssue[] = [];
       const profileNotes = new Map<string, any[]>();
-      const profileNotes = new Map<string, any[]>();
 
       // Group notes by profile
       notes?.forEach(n => {
