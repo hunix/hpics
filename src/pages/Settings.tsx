@@ -23,6 +23,7 @@ import { WhatsAppSetup } from '@/components/whatsapp/WhatsAppSetup';
 import { ResendIntegration } from '@/components/settings/ResendIntegration';
 import { StorageAnalytics } from '@/components/analytics/StorageAnalytics';
 import { DuplicateProfileMerger } from '@/components/contacts/DuplicateProfileMerger';
+import { NotificationPreferences } from '@/components/settings/NotificationPreferences';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -204,6 +205,8 @@ export default function Settings() {
           </Card>
 
           <PushNotifications />
+
+          <NotificationPreferences />
 
           <div className="flex justify-end">
             <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
