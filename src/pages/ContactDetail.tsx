@@ -17,7 +17,7 @@ import {
   FileText, Image, Target, Gift, Heart, Clock,
   Calendar, Sparkles, Users, ChevronRight, Building,
   Mic, Eye, Activity, Volume2, UserCircle, GitCompare, Wallet, Link2, Mail, UserCheck,
-  Milestone, Settings2, StickyNote, BookOpen, Shield, Network
+  Milestone, Settings2, StickyNote, BookOpen, Shield, Network, Globe
 } from 'lucide-react';
 import { ContactDialog } from '@/components/contacts/ContactDialog';
 import { ContactMethodsManager } from '@/components/contacts/ContactMethodsManager';
@@ -63,6 +63,7 @@ import { ContactActivityHistory } from '@/components/contacts/ContactActivityHis
 import { TrustAssessmentPanel } from '@/components/intelligence/TrustAssessmentPanel';
 import { DossierGenerator } from '@/components/intelligence/DossierGenerator';
 import { NetworkIntelligencePanel } from '@/components/intelligence/NetworkIntelligencePanel';
+import { LocationIntelligencePanel } from '@/components/intelligence/LocationIntelligencePanel';
 import { cn } from '@/lib/utils';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
 import { ProfileCompletenessWidget } from '@/components/contacts/ProfileCompletenessWidget';
@@ -78,7 +79,7 @@ type SectionId =
   | 'behavioral' | 'facial' | 'body-language' | 'vocal' | 'comparison'
   | 'financial' | 'observations'
   | 'milestones' | 'comm-prefs' | 'interaction-notes' | 'playbook'
-  | 'activity' | 'trust-assessment' | 'dossier' | 'network-intel';
+  | 'activity' | 'trust-assessment' | 'dossier' | 'network-intel' | 'locations';
 
 interface NavSection {
   id: SectionId;
@@ -109,6 +110,7 @@ const sections: NavSection[] = [
   { id: 'trust-assessment', label: 'Trust Assessment', icon: Shield, group: 'AI Insights' },
   { id: 'dossier', label: 'Intel Dossier', icon: FileText, group: 'AI Insights' },
   { id: 'network-intel', label: 'Network Intel', icon: Network, group: 'AI Insights' },
+  { id: 'locations', label: 'Geographic Intel', icon: Globe, group: 'AI Insights' },
   { id: 'behavioral', label: 'Behavioral', icon: Brain, group: 'Analysis' },
   { id: 'facial', label: 'Facial/Micro-Expressions', icon: Eye, group: 'Analysis' },
   { id: 'body-language', label: 'Body Language', icon: Activity, group: 'Analysis' },
@@ -309,6 +311,8 @@ export default function ContactDetail() {
         return <DossierGenerator profileId={contact.id} profileName={contactName} />;
       case 'network-intel':
         return <NetworkIntelligencePanel />;
+      case 'locations':
+        return <LocationIntelligencePanel profileId={contact.id} profileName={contactName} />;
       case 'interests':
         return <InterestsManager profileId={contact.id} contactName={contactName} />;
       case 'gifts':
