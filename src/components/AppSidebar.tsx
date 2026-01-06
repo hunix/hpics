@@ -1,4 +1,4 @@
-import { Users, MessageSquare, FileText, Image, Calendar, Brain, LayoutDashboard, LogOut, Upload, Settings, Network, CalendarDays, Video, Scan, BarChart3 } from 'lucide-react';
+import { Users, MessageSquare, FileText, Image, Calendar, Brain, LayoutDashboard, LogOut, Upload, Settings, Network, CalendarDays, Video, Scan, BarChart3, FileBarChart, UsersRound, Download } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -33,7 +33,10 @@ const toolsNavItems = [
   { title: 'Analysis Dashboard', url: '/analysis/dashboard', icon: BarChart3 },
   { title: 'Video Analysis', url: '/video-analysis', icon: Video },
   { title: 'Network Map', url: '/network', icon: Network },
+  { title: 'Reports', url: '/reports', icon: FileBarChart },
+  { title: 'Team', url: '/team', icon: UsersRound },
   { title: 'Import Data', url: '/import', icon: Upload },
+  { title: 'Install App', url: '/install', icon: Download },
   { title: 'Settings', url: '/settings', icon: Settings },
 ];
 
