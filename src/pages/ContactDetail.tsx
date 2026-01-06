@@ -17,7 +17,7 @@ import {
   FileText, Image, Target, Gift, Heart, Clock,
   Calendar, Sparkles, Users, ChevronRight, Building,
   Mic, Eye, Activity, Volume2, UserCircle, GitCompare, Wallet, Link2, Mail, UserCheck,
-  Milestone, Settings2, StickyNote, BookOpen
+  Milestone, Settings2, StickyNote, BookOpen, Shield, Network
 } from 'lucide-react';
 import { ContactDialog } from '@/components/contacts/ContactDialog';
 import { ContactMethodsManager } from '@/components/contacts/ContactMethodsManager';
@@ -60,6 +60,9 @@ import { CommunicationPreferencesManager } from '@/components/contacts/Communica
 import { InteractionNotesManager } from '@/components/contacts/InteractionNotesManager';
 import { ContactPlaybook } from '@/components/contacts/ContactPlaybook';
 import { ContactActivityHistory } from '@/components/contacts/ContactActivityHistory';
+import { TrustAssessmentPanel } from '@/components/intelligence/TrustAssessmentPanel';
+import { DossierGenerator } from '@/components/intelligence/DossierGenerator';
+import { NetworkIntelligencePanel } from '@/components/intelligence/NetworkIntelligencePanel';
 import { cn } from '@/lib/utils';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
 import { ProfileCompletenessWidget } from '@/components/contacts/ProfileCompletenessWidget';
@@ -75,7 +78,7 @@ type SectionId =
   | 'behavioral' | 'facial' | 'body-language' | 'vocal' | 'comparison'
   | 'financial' | 'observations'
   | 'milestones' | 'comm-prefs' | 'interaction-notes' | 'playbook'
-  | 'activity';
+  | 'activity' | 'trust-assessment' | 'dossier' | 'network-intel';
 
 interface NavSection {
   id: SectionId;
@@ -103,6 +106,9 @@ const sections: NavSection[] = [
   { id: 'messages', label: 'Conversations', icon: MessageSquare, group: 'Communication' },
   { id: 'briefing', label: 'Meeting Briefing', icon: Calendar, group: 'AI Insights' },
   { id: 'observations', label: 'My Observations', icon: Eye, group: 'AI Insights' },
+  { id: 'trust-assessment', label: 'Trust Assessment', icon: Shield, group: 'AI Insights' },
+  { id: 'dossier', label: 'Intel Dossier', icon: FileText, group: 'AI Insights' },
+  { id: 'network-intel', label: 'Network Intel', icon: Network, group: 'AI Insights' },
   { id: 'behavioral', label: 'Behavioral', icon: Brain, group: 'Analysis' },
   { id: 'facial', label: 'Facial/Micro-Expressions', icon: Eye, group: 'Analysis' },
   { id: 'body-language', label: 'Body Language', icon: Activity, group: 'Analysis' },
@@ -297,6 +303,12 @@ export default function ContactDetail() {
         return <MeetingBriefing profileId={contact.id} contactName={contactName} />;
       case 'observations':
         return <ObservationsManager profileId={contact.id} contactName={contactName} />;
+      case 'trust-assessment':
+        return <TrustAssessmentPanel profileId={contact.id} />;
+      case 'dossier':
+        return <DossierGenerator profileId={contact.id} profileName={contactName} />;
+      case 'network-intel':
+        return <NetworkIntelligencePanel />;
       case 'interests':
         return <InterestsManager profileId={contact.id} contactName={contactName} />;
       case 'gifts':
