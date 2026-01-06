@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,11 +14,18 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Network, ZoomIn, ZoomOut, RotateCcw, Star, Users, 
-  Download, Image, FileText, AlertTriangle, Clock, GitBranch
+  Download, Image, FileText, AlertTriangle, Clock, GitBranch,
+  TrendingUp, Target, Layers
 } from 'lucide-react';
 import * as d3 from 'd3';
 import { differenceInDays } from 'date-fns';
 import { FamilyTreeGraph } from '@/components/network/FamilyTreeGraph';
+import { 
+  calculateNetworkMetrics, 
+  getClusterColor, 
+  CLUSTER_COLORS,
+  type NetworkMetrics 
+} from '@/lib/networkAlgorithms';
 
 interface NetworkNode {
   id: string;
@@ -30,7 +37,11 @@ interface NetworkNode {
   eventCount: number;
   importance: number;
   lastContactDate: Date | null;
-  decayLevel: number; // 0-100, higher = more decay (less recent contact)
+  decayLevel: number;
+  pageRank?: number;
+  closeness?: number;
+  betweenness?: number;
+  clusterId?: number;
   x?: number;
   y?: number;
   fx?: number | null;
@@ -52,7 +63,9 @@ export default function NetworkPage() {
   const [minImportance, setMinImportance] = useState([0]);
   const [selectedNode, setSelectedNode] = useState<NetworkNode | null>(null);
   const [showDecay, setShowDecay] = useState(true);
-  const [decayThreshold, setDecayThreshold] = useState([30]); // days without contact
+  const [colorBy, setColorBy] = useState<'type' | 'cluster' | 'pagerank'>('cluster');
+  const [decayThreshold, setDecayThreshold] = useState([30]);
+  const [networkMetrics, setNetworkMetrics] = useState<NetworkMetrics | null>(null);
   const simulationRef = useRef<d3.Simulation<NetworkNode, NetworkLink> | null>(null);
 
   const { data: networkData, isLoading } = useQuery({
@@ -204,10 +217,35 @@ export default function NetworkPage() {
         }
       }
 
-      return { nodes, links };
+      // Calculate network metrics (PageRank, Closeness, Betweenness, Clusters)
+      const metrics = calculateNetworkMetrics(
+        nodes.map(n => ({ id: n.id })),
+        links.map(l => ({ 
+          source: typeof l.source === 'string' ? l.source : l.source.id,
+          target: typeof l.target === 'string' ? l.target : l.target.id,
+          weight: l.weight 
+        }))
+      );
+
+      // Enhance nodes with metrics
+      nodes.forEach(node => {
+        node.pageRank = metrics.pageRank.get(node.id) || 0;
+        node.closeness = metrics.closenessCentrality.get(node.id) || 0;
+        node.betweenness = metrics.betweennessCentrality.get(node.id) || 0;
+        node.clusterId = metrics.clusters.get(node.id) || 0;
+      });
+
+      return { nodes, links, metrics };
     },
     enabled: !!user,
   });
+
+  // Update network metrics when data changes
+  useMemo(() => {
+    if (networkData?.metrics) {
+      setNetworkMetrics(networkData.metrics);
+    }
+  }, [networkData]);
 
   const relationshipColors: Record<string, string> = {
     family: '#ef4444',
@@ -221,9 +259,18 @@ export default function NetworkPage() {
     favorite: '#fbbf24',
   };
 
-  const getDecayOpacity = (decayLevel: number) => {
-    if (!showDecay) return 1;
-    return Math.max(0.3, 1 - (decayLevel / 150)); // Min opacity 0.3
+  // Get node color based on selected coloring mode
+  const getNodeColor = (node: NetworkNode): string => {
+    if (colorBy === 'cluster' && node.clusterId !== undefined) {
+      return getClusterColor(node.clusterId);
+    }
+    if (colorBy === 'pagerank') {
+      const rank = node.pageRank || 0;
+      // Gradient from blue (low) to red (high)
+      const hue = 240 - (rank * 240); // 240=blue, 0=red
+      return `hsl(${hue}, 70%, 50%)`;
+    }
+    return relationshipColors[node.type] || '#9ca3af';
   };
 
   const drawNetwork = useCallback(() => {
