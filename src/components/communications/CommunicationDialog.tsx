@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { VirtualizedContactSelect } from '@/components/contacts/VirtualizedContactSelect';
 import { Loader2 } from 'lucide-react';
 
 interface CommunicationDialogProps {
@@ -43,18 +44,6 @@ export function CommunicationDialog({ open, onOpenChange }: CommunicationDialogP
     content: '',
     duration_minutes: '',
     occurred_at: new Date().toISOString().slice(0, 16),
-  });
-
-  const { data: contacts } = useQuery({
-    queryKey: ['contacts-select'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name')
-        .order('first_name');
-      return data ?? [];
-    },
-    enabled: open,
   });
 
   const mutation = useMutation({
@@ -125,21 +114,11 @@ export function CommunicationDialog({ open, onOpenChange }: CommunicationDialogP
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="profile_id">Contact *</Label>
-            <Select
-              value={formData.profile_id}
-              onValueChange={(value) => setFormData({ ...formData, profile_id: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a contact" />
-              </SelectTrigger>
-              <SelectContent>
-                {contacts?.map((contact) => (
-                  <SelectItem key={contact.id} value={contact.id}>
-                    {contact.first_name} {contact.last_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <VirtualizedContactSelect
+              selectedId={formData.profile_id}
+              onSelect={(id) => setFormData({ ...formData, profile_id: id })}
+              placeholder="Select a contact"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">

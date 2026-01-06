@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -7,8 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { VirtualizedContactSelect } from '@/components/contacts/VirtualizedContactSelect';
 import { Upload, Loader2, Send } from 'lucide-react';
 import type { Enums } from '@/integrations/supabase/types';
 
@@ -27,19 +27,6 @@ export function TelegramImport() {
   const [selectedProfile, setSelectedProfile] = useState<string>('');
   const [contactName, setContactName] = useState<string>('');
   const [preview, setPreview] = useState<ParsedMessage[]>([]);
-
-  const { data: profiles } = useQuery({
-    queryKey: ['profiles', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name')
-        .eq('user_id', user!.id)
-        .order('first_name');
-      return data ?? [];
-    },
-    enabled: !!user,
-  });
 
   const parseTelegramExport = (jsonText: string, contactNameToMatch: string): ParsedMessage[] => {
     const messages: ParsedMessage[] = [];
@@ -197,18 +184,11 @@ export function TelegramImport() {
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label>Select Contact</Label>
-            <Select value={selectedProfile} onValueChange={setSelectedProfile}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a contact" />
-              </SelectTrigger>
-              <SelectContent>
-                {profiles?.map((profile) => (
-                  <SelectItem key={profile.id} value={profile.id}>
-                    {profile.first_name} {profile.last_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <VirtualizedContactSelect
+              selectedId={selectedProfile}
+              onSelect={setSelectedProfile}
+              placeholder="Choose a contact"
+            />
           </div>
 
           <div className="space-y-2">

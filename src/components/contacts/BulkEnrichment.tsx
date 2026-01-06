@@ -31,13 +31,40 @@ export function BulkEnrichment() {
   const { data: contacts, isLoading } = useQuery({
     queryKey: ['contacts-for-enrichment', user?.id],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, linkedin_url, organization, job_title')
-        .order('first_name');
-      return data ?? [];
+      if (!user) return [];
+      
+      // Fetch ALL contacts using recursive pagination
+      const allContacts: any[] = [];
+      const pageSize = 1000;
+      let page = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        const start = page * pageSize;
+        const end = start + pageSize - 1;
+
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, linkedin_url, organization, job_title')
+          .eq('user_id', user.id)
+          .order('first_name')
+          .range(start, end);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          allContacts.push(...data);
+          page++;
+          hasMore = data.length === pageSize;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      return allContacts;
     },
     enabled: !!user,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
   const contactsWithLinkedin = contacts?.filter(c => c.linkedin_url) ?? [];
