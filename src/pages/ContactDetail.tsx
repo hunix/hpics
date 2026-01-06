@@ -59,6 +59,7 @@ import { LifeMilestonesManager } from '@/components/contacts/LifeMilestonesManag
 import { CommunicationPreferencesManager } from '@/components/contacts/CommunicationPreferencesManager';
 import { InteractionNotesManager } from '@/components/contacts/InteractionNotesManager';
 import { ContactPlaybook } from '@/components/contacts/ContactPlaybook';
+import { ContactActivityHistory } from '@/components/contacts/ContactActivityHistory';
 import { cn } from '@/lib/utils';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
 import type { Tables } from '@/integrations/supabase/types';
@@ -72,7 +73,8 @@ type SectionId =
   | 'education' | 'messages' | 'timeline' | 'groups' | 'enrich'
   | 'behavioral' | 'facial' | 'body-language' | 'vocal' | 'comparison'
   | 'financial' | 'observations'
-  | 'milestones' | 'comm-prefs' | 'interaction-notes' | 'playbook';
+  | 'milestones' | 'comm-prefs' | 'interaction-notes' | 'playbook'
+  | 'activity';
 
 interface NavSection {
   id: SectionId;
@@ -114,6 +116,7 @@ const sections: NavSection[] = [
   { id: 'education', label: 'Education & Skills', icon: GraduationCap, group: 'Professional' },
   { id: 'financial', label: 'Financial', icon: Wallet, group: 'Financial' },
   { id: 'timeline', label: 'Timeline', icon: Clock, group: 'History' },
+  { id: 'activity', label: 'Activity & Usage', icon: Activity, group: 'History' },
   { id: 'groups', label: 'Groups', icon: Users, group: 'Tools' },
   { id: 'enrich', label: 'Enrichment', icon: Sparkles, group: 'Tools' },
 ];
@@ -324,6 +327,8 @@ export default function ContactDetail() {
         );
       case 'timeline':
         return <ContactTimeline profileId={contact.id} />;
+      case 'activity':
+        return <ContactActivityHistory profileId={contact.id} contactName={contactName} />;
       case 'groups':
         return <ContactGroupSelector profileId={contact.id} />;
       case 'enrich':
