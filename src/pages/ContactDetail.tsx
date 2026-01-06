@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ComposeEmailDialog } from '@/components/communications/ComposeEmailDialog';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -152,6 +153,7 @@ export default function ContactDetail() {
   const [activeSection, setActiveSection] = useState<SectionId>('overview');
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [showAIPanel, setShowAIPanel] = useState(false);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
 
   const { data: contact, isLoading } = useQuery({
     queryKey: ['contact', id],
@@ -466,6 +468,14 @@ export default function ContactDetail() {
                 <UserCheck className={`h-4 w-4 mr-1 ${(contact as any).is_self_profile ? '' : 'opacity-50'}`} />
                 {(contact as any).is_self_profile ? 'This is me' : 'Set as me'}
               </Button>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={() => setIsEmailDialogOpen(true)}
+                title="Send Email"
+              >
+                <Mail className="h-4 w-4" />
+              </Button>
               <Button variant="ghost" size="icon" onClick={() => toggleFavoriteMutation.mutate()}>
                 <Star className={`h-5 w-5 ${contact.is_favorite ? 'fill-yellow-400 text-yellow-400' : ''}`} />
               </Button>
@@ -566,6 +576,14 @@ export default function ContactDetail() {
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         contact={contact}
+      />
+
+      <ComposeEmailDialog
+        open={isEmailDialogOpen}
+        onOpenChange={setIsEmailDialogOpen}
+        defaultTo={contactMethods?.find(m => m.contact_type === 'email')?.value || ''}
+        profileId={contact.id}
+        profileName={contactName}
       />
     </AppLayout>
   );
