@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ContactPicker } from "@/components/contacts/ContactPicker";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -42,16 +42,34 @@ export default function MediaAnalysis() {
   const [depth, setDepth] = useState<'quick' | 'standard' | 'deep'>('standard');
   const [analysisResults, setAnalysisResults] = useState<any>(null);
 
-  // Fetch contacts
+  // Fetch ALL contacts with pagination
   const { data: contacts } = useQuery({
-    queryKey: ['contacts-for-analysis'],
+    queryKey: ['contacts-for-analysis-all'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, avatar_url')
-        .order('first_name');
-      if (error) throw error;
-      return data;
+      const allContacts: { id: string; first_name: string; last_name: string | null; avatar_url: string | null }[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, avatar_url')
+          .order('first_name')
+          .range(from, from + pageSize - 1);
+        
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          allContacts.push(...data);
+          from += pageSize;
+          hasMore = data.length === pageSize;
+        } else {
+          hasMore = false;
+        }
+      }
+      
+      return allContacts;
     },
   });
 
@@ -160,18 +178,12 @@ export default function MediaAnalysis() {
                 <CardTitle className="text-sm">Select Contact</CardTitle>
               </CardHeader>
               <CardContent>
-                <Select value={selectedContact} onValueChange={setSelectedContact}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a contact..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {contacts?.map((contact) => (
-                      <SelectItem key={contact.id} value={contact.id}>
-                        {contact.first_name} {contact.last_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <ContactPicker
+                  contacts={contacts || []}
+                  selectedId={selectedContact}
+                  onSelect={setSelectedContact}
+                  placeholder="Search contacts..."
+                />
               </CardContent>
             </Card>
 
