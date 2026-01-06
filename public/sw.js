@@ -1,11 +1,12 @@
 // Enhanced Service Worker for PICS - Personal Information Connection System
 // With advanced offline capabilities and caching strategies
 
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const STATIC_CACHE = `pics-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `pics-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `pics-images-${CACHE_VERSION}`;
 const API_CACHE = `pics-api-${CACHE_VERSION}`;
+const OFFLINE_DATA_CACHE = `pics-offline-data-${CACHE_VERSION}`;
 
 // Static assets to cache immediately
 const STATIC_ASSETS = [
@@ -21,6 +22,8 @@ const API_CACHE_PATTERNS = [
   /\/rest\/v1\/profiles/,
   /\/rest\/v1\/contact_groups/,
   /\/rest\/v1\/events/,
+  /\/rest\/v1\/communications/,
+  /\/rest\/v1\/contact_methods/,
 ];
 
 // Install event - cache static assets
@@ -54,7 +57,8 @@ self.addEventListener('activate', (event) => {
                      name !== STATIC_CACHE && 
                      name !== DYNAMIC_CACHE && 
                      name !== IMAGE_CACHE &&
-                     name !== API_CACHE;
+                     name !== API_CACHE &&
+                     name !== OFFLINE_DATA_CACHE;
             })
             .map((name) => {
               console.log('[SW] Deleting old cache:', name);

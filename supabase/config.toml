@@ -131,3 +131,45 @@ verify_jwt = false
 
 [functions.predict-relationship-trajectory]
 verify_jwt = false
+
+[functions.send-push-notification]
+verify_jwt = false
+
+[functions.trigger-push-notifications]
+verify_jwt = false
+
+[functions.send-email]
+verify_jwt = false
+
+[functions.send-intelligence-alert]
+verify_jwt = false
+
+[functions.process-scheduled-intelligence]
+verify_jwt = false
+
+[functions.generate-scheduled-reports]
+verify_jwt = false
+
+[functions.gmail-oauth]
+verify_jwt = false
+
+[functions.google-calendar-oauth]
+verify_jwt = false
+
+[functions.import-gmail-contacts]
+verify_jwt = false
+
+[functions.import-outlook-contacts]
+verify_jwt = false
+
+[functions.sync-google-calendar]
+verify_jwt = false
+
+[functions.sync-outlook-calendar]
+verify_jwt = false
+
+[functions.transcribe-voice-note]
+verify_jwt = false
+
+[functions.generate-executive-summary]
+verify_jwt = false
