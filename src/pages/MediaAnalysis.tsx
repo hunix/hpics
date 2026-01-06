@@ -478,6 +478,32 @@ export default function MediaAnalysis() {
                   })}
                 </div>
 
+                {/* Cost Estimator for Bulk Mode */}
+                {isBulkMode && costEstimate && !showBulkProgress && (
+                  <div className="mt-4 space-y-3">
+                    <BulkCostEstimator 
+                      estimate={costEstimate}
+                      maxBudget={maxBudget}
+                    />
+                    
+                    {/* Budget Input */}
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                      <Label htmlFor="max-budget" className="text-sm whitespace-nowrap">
+                        Max Budget (¢):
+                      </Label>
+                      <Input
+                        id="max-budget"
+                        type="number"
+                        placeholder="No limit"
+                        value={maxBudget || ''}
+                        onChange={(e) => setMaxBudget(e.target.value ? parseInt(e.target.value) : undefined)}
+                        className="h-8 w-24"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {/* Action Button */}
                 {isBulkMode ? (
                   selectedItems.length > 0 && selectedModes.length > 0 && !showBulkProgress && (
@@ -485,9 +511,19 @@ export default function MediaAnalysis() {
                       className="w-full mt-4"
                       size="lg"
                       onClick={handleStartBulkAnalysis}
+                      disabled={bulkSession.isLoading}
                     >
-                      <Play className="h-4 w-4 mr-2" />
-                      Start Bulk Analysis ({selectedItems.length} files)
+                      {bulkSession.isLoading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Creating Session...
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-4 w-4 mr-2" />
+                          Start Bulk Analysis ({selectedItems.length} files)
+                        </>
+                      )}
                     </Button>
                   )
                 ) : (

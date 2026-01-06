@@ -24,6 +24,7 @@ import Network from "./pages/Network";
 import Calendar from "./pages/Calendar";
 import VideoAnalysis from "./pages/VideoAnalysis";
 import MediaAnalysis from "./pages/MediaAnalysis";
+import BulkAnalysisDashboard from "./pages/BulkAnalysisDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -56,6 +57,7 @@ const App = () => (
                   <Route path="/calendar" element={<Calendar />} />
                   <Route path="/video-analysis" element={<VideoAnalysis />} />
                   <Route path="/analysis" element={<MediaAnalysis />} />
+                  <Route path="/analysis/dashboard" element={<BulkAnalysisDashboard />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </BrowserRouter>
