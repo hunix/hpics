@@ -24,6 +24,8 @@ import { ContactGroupsWidget } from '@/components/dashboard/ContactGroupsWidget'
 import { RelationshipScoreCard } from '@/components/dashboard/RelationshipScoreCard';
 import { SecurityAlertsWidget } from '@/components/security/SecurityAlertsWidget';
 import { IntelligenceInsightsWidget } from '@/components/intelligence/IntelligenceInsightsWidget';
+import { DataQualityMonitor } from '@/components/intelligence/DataQualityMonitor';
+import { ProactiveActionsWidget } from '@/components/intelligence/ProactiveActionsWidget';
 import type { DashletType } from '@/lib/dashletDefinitions';
 
 export default function Dashboard() {
@@ -299,6 +301,10 @@ export default function Dashboard() {
         return <SecurityAlertsWidget />;
       case 'intelligence-insights':
         return <IntelligenceInsightsWidget />;
+      case 'data-quality':
+        return <DataQualityMonitor />;
+      case 'proactive-actions':
+        return <ProactiveActionsWidget />;
       default:
         return null;
     }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, MessageSquare, Calendar, Star, Clock, TrendingUp, BarChart3, Network, Sparkles, UserPlus, Target, Activity, Shield, Brain } from 'lucide-react';
+import { Users, MessageSquare, Calendar, Star, Clock, TrendingUp, BarChart3, Network, Sparkles, UserPlus, Target, Activity, Shield, Brain, ShieldCheck, Zap } from 'lucide-react';
 
 // All available dashlet types
 export interface DashletConfig {
@@ -25,7 +25,9 @@ export type DashletType =
   | 'network-graph'
   | 'quick-tips'
   | 'security-alerts'
-  | 'intelligence-insights';
+  | 'intelligence-insights'
+  | 'data-quality'
+  | 'proactive-actions';
 
 export interface DashletDefinition {
   type: DashletType;
@@ -154,6 +156,22 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Intelligence Insights',
     description: 'AI-powered network analysis and predictions',
     icon: Brain,
+    defaultVisible: true,
+    category: 'ai',
+  },
+  {
+    type: 'data-quality',
+    title: 'Data Quality Monitor',
+    description: 'Proactive data health scanning and issue detection',
+    icon: ShieldCheck,
+    defaultVisible: true,
+    category: 'tools',
+  },
+  {
+    type: 'proactive-actions',
+    title: 'Proactive Actions',
+    description: 'AI-suggested follow-ups and timely actions',
+    icon: Zap,
     defaultVisible: true,
     category: 'ai',
   },

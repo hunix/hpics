@@ -104,3 +104,9 @@ verify_jwt = false
 
 [functions.generate-playbook]
 verify_jwt = false
+
+[functions.suggest-missing-data]
+verify_jwt = false
+
+[functions.predict-contact-needs]
+verify_jwt = false
