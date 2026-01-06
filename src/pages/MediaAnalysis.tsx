@@ -1,13 +1,13 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ContactPicker } from "@/components/contacts/ContactPicker";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { 
   Image, 
@@ -18,13 +18,19 @@ import {
   Play,
   Loader2,
   Check,
-  Info
+  Info,
+  ListChecks,
+  AlertCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MEDIA_ANALYSIS_MODES, MediaType, AnalysisContext } from "@/lib/analysisTypes";
 import { AnalysisContextSelector } from "@/components/analysis/AnalysisContextSelector";
 import { MediaTypeBrowser } from "@/components/analysis/MediaTypeBrowser";
+import { MediaTypeBrowserMultiSelect, type MediaItem } from "@/components/analysis/MediaTypeBrowserMultiSelect";
 import { MediaAnalysisResults } from "@/components/analysis/MediaAnalysisResults";
+import { BulkAnalysisProgress } from "@/components/analysis/BulkAnalysisProgress";
+import { useBulkAnalysisSession } from "@/hooks/useBulkAnalysisSession";
+import { useMutation } from "@tanstack/react-query";
 
 const mediaTypeConfig = {
   image: { icon: Image, label: 'Images', color: 'text-blue-500' },
@@ -41,6 +47,30 @@ export default function MediaAnalysis() {
   const [context, setContext] = useState<Partial<AnalysisContext>>({ purpose: 'personal', relationship: 'direct_contact' });
   const [depth, setDepth] = useState<'quick' | 'standard' | 'deep'>('standard');
   const [analysisResults, setAnalysisResults] = useState<any>(null);
+  
+  // Bulk mode state
+  const [isBulkMode, setIsBulkMode] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<MediaItem[]>([]);
+
+  // Bulk analysis session
+  const bulkSession = useBulkAnalysisSession({
+    profileId: selectedContact,
+    analysisModes: selectedModes,
+    context,
+    depth,
+  });
+
+  // Check for existing session on mount
+  useEffect(() => {
+    if (selectedContact) {
+      const existingSession = bulkSession.checkExistingSession();
+      if (existingSession) {
+        bulkSession.restoreSession(existingSession);
+        setIsBulkMode(true);
+        toast.info('Resumable session found! Click Resume to continue.');
+      }
+    }
+  }, [selectedContact]);
 
   // Fetch ALL contacts with pagination
   const { data: contacts } = useQuery({
@@ -93,7 +123,7 @@ export default function MediaAnalysis() {
     },
   });
 
-  // Analysis mutation
+  // Single analysis mutation
   const analysisMutation = useMutation({
     mutationFn: async () => {
       if (!selectedMedia || selectedModes.length === 0) {
@@ -147,12 +177,46 @@ export default function MediaAnalysis() {
   const handleMediaTypeChange = (type: MediaType) => {
     setMediaType(type);
     setSelectedMedia(null);
+    setSelectedItems([]);
     setSelectedModes([]);
     setAnalysisResults(null);
   };
 
+  const handleBulkModeToggle = (checked: boolean) => {
+    setIsBulkMode(checked);
+    setSelectedMedia(null);
+    setSelectedItems([]);
+    setAnalysisResults(null);
+  };
+
+  const handleStartBulkAnalysis = () => {
+    if (selectedItems.length === 0) {
+      toast.error('Please select at least one file');
+      return;
+    }
+    if (selectedModes.length === 0) {
+      toast.error('Please select at least one analysis mode');
+      return;
+    }
+
+    bulkSession.initSession(selectedItems.map(item => ({
+      id: item.id,
+      url: item.url,
+      name: item.name,
+      mediaType: item.type,
+      isDocument: item.isDocument,
+    })));
+
+    // Start after a short delay to ensure state is initialized
+    setTimeout(() => {
+      bulkSession.start();
+    }, 100);
+  };
+
   const availableModes = MEDIA_ANALYSIS_MODES[mediaType];
   const MediaIcon = mediaTypeConfig[mediaType].icon;
+
+  const showBulkProgress = bulkSession.session && bulkSession.session.status !== 'idle';
 
   return (
     <AppLayout>
@@ -167,7 +231,36 @@ export default function MediaAnalysis() {
               Deep intelligence extraction from images, audio, video, and documents
             </p>
           </div>
+          
+          {/* Bulk Mode Toggle */}
+          <div className="flex items-center gap-2">
+            <Switch 
+              id="bulk-mode" 
+              checked={isBulkMode} 
+              onCheckedChange={handleBulkModeToggle}
+              disabled={showBulkProgress}
+            />
+            <Label htmlFor="bulk-mode" className="flex items-center gap-2 cursor-pointer">
+              <ListChecks className="h-4 w-4" />
+              Bulk Mode
+            </Label>
+          </div>
         </div>
+
+        {/* Bulk Progress Panel - Full Width when active */}
+        {showBulkProgress && (
+          <BulkAnalysisProgress
+            session={bulkSession.session!}
+            currentItemIndex={bulkSession.currentItemIndex}
+            onPause={bulkSession.pause}
+            onResume={bulkSession.resume}
+            onCancel={bulkSession.cancel}
+            onRetryItem={bulkSession.retryItem}
+            onSkipItem={bulkSession.skipItem}
+            onRetryAllFailed={bulkSession.retryAllFailed}
+            onClear={bulkSession.clearSession}
+          />
+        )}
 
         <div className="grid grid-cols-12 gap-6">
           {/* Left Panel - Configuration */}
@@ -203,6 +296,7 @@ export default function MediaAnalysis() {
                         variant={mediaType === type ? "default" : "outline"}
                         className="flex flex-col h-16 gap-1"
                         onClick={() => handleMediaTypeChange(type)}
+                        disabled={showBulkProgress}
                       >
                         <Icon className={cn("h-5 w-5", mediaType !== type && config.color)} />
                         <span className="text-xs">{config.label}</span>
@@ -220,18 +314,33 @@ export default function MediaAnalysis() {
                   <CardTitle className="text-sm flex items-center gap-2">
                     <MediaIcon className={cn("h-4 w-4", mediaTypeConfig[mediaType].color)} />
                     Select {mediaTypeConfig[mediaType].label}
+                    {isBulkMode && (
+                      <Badge variant="secondary" className="ml-auto">
+                        {selectedItems.length} selected
+                      </Badge>
+                    )}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <MediaTypeBrowser
-                    profileId={selectedContact}
-                    mediaType={mediaType}
-                    selectedId={selectedMedia?.id || null}
-                    onSelect={(item) => {
-                      setSelectedMedia(item);
-                      setAnalysisResults(null);
-                    }}
-                  />
+                  {isBulkMode ? (
+                    <MediaTypeBrowserMultiSelect
+                      profileId={selectedContact}
+                      mediaType={mediaType}
+                      selectedIds={selectedItems.map(i => i.id)}
+                      onSelectionChange={setSelectedItems}
+                      maxSelection={50}
+                    />
+                  ) : (
+                    <MediaTypeBrowser
+                      profileId={selectedContact}
+                      mediaType={mediaType}
+                      selectedId={selectedMedia?.id || null}
+                      onSelect={(item) => {
+                        setSelectedMedia(item);
+                        setAnalysisResults(null);
+                      }}
+                    />
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -299,25 +408,39 @@ export default function MediaAnalysis() {
                   })}
                 </div>
 
-                {selectedMedia && selectedModes.length > 0 && (
-                  <Button
-                    className="w-full mt-4"
-                    size="lg"
-                    onClick={() => analysisMutation.mutate()}
-                    disabled={analysisMutation.isPending}
-                  >
-                    {analysisMutation.isPending ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Analyzing...
-                      </>
-                    ) : (
-                      <>
-                        <Play className="h-4 w-4 mr-2" />
-                        Run Analysis ({selectedModes.length} modes)
-                      </>
-                    )}
-                  </Button>
+                {/* Action Button */}
+                {isBulkMode ? (
+                  selectedItems.length > 0 && selectedModes.length > 0 && !showBulkProgress && (
+                    <Button
+                      className="w-full mt-4"
+                      size="lg"
+                      onClick={handleStartBulkAnalysis}
+                    >
+                      <Play className="h-4 w-4 mr-2" />
+                      Start Bulk Analysis ({selectedItems.length} files)
+                    </Button>
+                  )
+                ) : (
+                  selectedMedia && selectedModes.length > 0 && (
+                    <Button
+                      className="w-full mt-4"
+                      size="lg"
+                      onClick={() => analysisMutation.mutate()}
+                      disabled={analysisMutation.isPending}
+                    >
+                      {analysisMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Analyzing...
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-4 w-4 mr-2" />
+                          Run Analysis ({selectedModes.length} modes)
+                        </>
+                      )}
+                    </Button>
+                  )
                 )}
               </CardContent>
             </Card>
@@ -337,12 +460,23 @@ export default function MediaAnalysis() {
                     processingTime={analysisResults.processing_time_ms}
                     estimatedCost={analysisResults.estimated_cost_cents}
                   />
+                ) : isBulkMode && showBulkProgress ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
+                    <AlertCircle className="h-12 w-12 mb-4 opacity-50" />
+                    <p className="font-medium">Bulk analysis in progress</p>
+                    <p className="text-sm mt-1">
+                      Results are saved automatically to each file
+                    </p>
+                  </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
                     <Info className="h-12 w-12 mb-4 opacity-50" />
                     <p className="font-medium">No analysis results yet</p>
                     <p className="text-sm mt-1">
-                      Select media and analysis modes, then click "Run Analysis"
+                      {isBulkMode 
+                        ? 'Select files and analysis modes, then click "Start Bulk Analysis"'
+                        : 'Select media and analysis modes, then click "Run Analysis"'
+                      }
                     </p>
                   </div>
                 )}
