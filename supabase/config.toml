@@ -92,3 +92,6 @@ verify_jwt = false
 
 [functions.analyze-media-deep]
 verify_jwt = false
+
+[functions.import-pst-emails]
+verify_jwt = false

@@ -19,6 +19,8 @@ import { BulkEnrichment } from '@/components/contacts/BulkEnrichment';
 import { ContactImport } from '@/components/import/ContactImport';
 import { LinkedInImportWizard } from '@/components/import/linkedin/LinkedInImportWizard';
 import { GoogleImportWizard } from '@/components/import/google/GoogleImportWizard';
+import { PSTImport } from '@/components/import/PSTImport';
+import { HardDrive } from 'lucide-react';
 
 interface CSVRow {
   first_name?: string;
@@ -280,6 +282,10 @@ export default function Import() {
               <GraduationCap className="h-4 w-4 mr-2" />
               Education
             </TabsTrigger>
+            <TabsTrigger value="pst">
+              <HardDrive className="h-4 w-4 mr-2" />
+              Outlook PST
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="quick" className="mt-4">
@@ -405,6 +411,10 @@ export default function Import() {
 
           <TabsContent value="education" className="mt-4">
             <EducationBulkImport />
+          </TabsContent>
+
+          <TabsContent value="pst" className="mt-4">
+            <PSTImport />
           </TabsContent>
         </Tabs>
 
