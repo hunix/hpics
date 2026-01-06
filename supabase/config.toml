@@ -89,3 +89,6 @@ verify_jwt = false
 
 [functions.deep-psychological-analysis]
 verify_jwt = false
+
+[functions.analyze-media-deep]
+verify_jwt = false

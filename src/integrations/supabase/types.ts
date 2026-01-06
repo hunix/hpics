@@ -2796,6 +2796,143 @@ export type Database = {
           },
         ]
       }
+      media_analyses: {
+        Row: {
+          action_items: string[] | null
+          analysis_context: Json | null
+          analysis_depth: string | null
+          analysis_modes: string[] | null
+          behavioral_analysis: Json | null
+          certainties: string[] | null
+          confidence_score: number | null
+          content_intelligence: Json | null
+          created_at: string | null
+          document_extraction: Json | null
+          document_id: string | null
+          entity_extraction: Json | null
+          estimated_cost_cents: number | null
+          face_intelligence: Json | null
+          id: string
+          key_insights: string[] | null
+          lifestyle_profiling: Json | null
+          media_id: string | null
+          media_type: string
+          model_used: string | null
+          personality_cues: Json | null
+          processing_time_ms: number | null
+          profile_id: string | null
+          red_flags: string[] | null
+          relationship_mapping: Json | null
+          scene_intelligence: Json | null
+          sentiment_analysis: Json | null
+          temporal_analysis: Json | null
+          token_usage: Json | null
+          updated_at: string | null
+          user_id: string | null
+          vocal_psychology: Json | null
+          yellow_flags: string[] | null
+        }
+        Insert: {
+          action_items?: string[] | null
+          analysis_context?: Json | null
+          analysis_depth?: string | null
+          analysis_modes?: string[] | null
+          behavioral_analysis?: Json | null
+          certainties?: string[] | null
+          confidence_score?: number | null
+          content_intelligence?: Json | null
+          created_at?: string | null
+          document_extraction?: Json | null
+          document_id?: string | null
+          entity_extraction?: Json | null
+          estimated_cost_cents?: number | null
+          face_intelligence?: Json | null
+          id?: string
+          key_insights?: string[] | null
+          lifestyle_profiling?: Json | null
+          media_id?: string | null
+          media_type: string
+          model_used?: string | null
+          personality_cues?: Json | null
+          processing_time_ms?: number | null
+          profile_id?: string | null
+          red_flags?: string[] | null
+          relationship_mapping?: Json | null
+          scene_intelligence?: Json | null
+          sentiment_analysis?: Json | null
+          temporal_analysis?: Json | null
+          token_usage?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+          vocal_psychology?: Json | null
+          yellow_flags?: string[] | null
+        }
+        Update: {
+          action_items?: string[] | null
+          analysis_context?: Json | null
+          analysis_depth?: string | null
+          analysis_modes?: string[] | null
+          behavioral_analysis?: Json | null
+          certainties?: string[] | null
+          confidence_score?: number | null
+          content_intelligence?: Json | null
+          created_at?: string | null
+          document_extraction?: Json | null
+          document_id?: string | null
+          entity_extraction?: Json | null
+          estimated_cost_cents?: number | null
+          face_intelligence?: Json | null
+          id?: string
+          key_insights?: string[] | null
+          lifestyle_profiling?: Json | null
+          media_id?: string | null
+          media_type?: string
+          model_used?: string | null
+          personality_cues?: Json | null
+          processing_time_ms?: number | null
+          profile_id?: string | null
+          red_flags?: string[] | null
+          relationship_mapping?: Json | null
+          scene_intelligence?: Json | null
+          sentiment_analysis?: Json | null
+          temporal_analysis?: Json | null
+          token_usage?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+          vocal_psychology?: Json | null
+          yellow_flags?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_analyses_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_analyses_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_analyses_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "media_analyses_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       media_contact_tags: {
         Row: {
           confidence: number | null
