@@ -5,13 +5,21 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Heart, Loader2, Sparkles, Plus, X, Brain } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Heart, Loader2, Sparkles, Plus, X, Brain, Pencil } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAIConfirmationContext } from '@/contexts/AIConfirmationContext';
 import { calculateCostCents } from '@/lib/aiPricing';
 import { toast } from 'sonner';
+import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 
 interface Interest {
   id: string;
@@ -50,7 +58,10 @@ export function InterestsManager({ profileId, contactName }: InterestsManagerPro
   const queryClient = useQueryClient();
   const { requestConfirmation, updateLogWithResult } = useAIConfirmationContext();
   const [isDetecting, setIsDetecting] = useState(false);
-  const [newInterest, setNewInterest] = useState({ name: '', type: 'hobby', notes: '' });
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingInterest, setEditingInterest] = useState<Interest | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Interest | null>(null);
+  const [formData, setFormData] = useState({ name: '', type: 'hobby', notes: '' });
 
   // Fetch interests
   const { data: interests, isLoading } = useQuery<Interest[]>({
@@ -68,15 +79,15 @@ export function InterestsManager({ profileId, contactName }: InterestsManagerPro
   });
 
   // Add interest mutation
-  const addInterestMutation = useMutation({
-    mutationFn: async () => {
-      if (!newInterest.name.trim()) throw new Error('Name is required');
+  const addMutation = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      if (!data.name.trim()) throw new Error('Name is required');
       const { error } = await supabase.from('contact_interests').insert({
         user_id: user!.id,
         profile_id: profileId,
-        interest_type: newInterest.type,
-        name: newInterest.name.trim(),
-        notes: newInterest.notes.trim() || null,
+        interest_type: data.type,
+        name: data.name.trim(),
+        notes: data.notes.trim() || null,
         source: 'manual',
         confidence_score: 1.0,
       });
@@ -84,7 +95,7 @@ export function InterestsManager({ profileId, contactName }: InterestsManagerPro
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contact-interests', profileId] });
-      setNewInterest({ name: '', type: 'hobby', notes: '' });
+      closeDialog();
       toast.success('Interest added!');
     },
     onError: (error) => {
@@ -92,8 +103,28 @@ export function InterestsManager({ profileId, contactName }: InterestsManagerPro
     },
   });
 
+  // Update interest mutation
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
+      const { error } = await supabase.from('contact_interests').update({
+        interest_type: data.type,
+        name: data.name.trim(),
+        notes: data.notes.trim() || null,
+      }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contact-interests', profileId] });
+      closeDialog();
+      toast.success('Interest updated!');
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to update interest');
+    },
+  });
+
   // Delete interest mutation
-  const deleteInterestMutation = useMutation({
+  const deleteMutation = useMutation({
     mutationFn: async (interestId: string) => {
       const { error } = await supabase
         .from('contact_interests')
@@ -103,9 +134,42 @@ export function InterestsManager({ profileId, contactName }: InterestsManagerPro
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contact-interests', profileId] });
+      setDeleteTarget(null);
       toast.success('Interest removed');
     },
   });
+
+  const resetForm = () => {
+    setFormData({ name: '', type: 'hobby', notes: '' });
+    setEditingInterest(null);
+  };
+
+  const closeDialog = () => {
+    setIsDialogOpen(false);
+    resetForm();
+  };
+
+  const openEditDialog = (interest: Interest) => {
+    setEditingInterest(interest);
+    setFormData({
+      name: interest.name,
+      type: interest.interest_type,
+      notes: interest.notes || '',
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleSubmit = () => {
+    if (!formData.name.trim()) {
+      toast.error('Name is required');
+      return;
+    }
+    if (editingInterest) {
+      updateMutation.mutate({ id: editingInterest.id, data: formData });
+    } else {
+      addMutation.mutate(formData);
+    }
+  };
 
   // AI Detection with confirmation
   const detectInterests = async () => {
@@ -167,6 +231,8 @@ export function InterestsManager({ profileId, contactName }: InterestsManagerPro
     return acc;
   }, {} as Record<string, Interest[]>) || {};
 
+  const isPending = addMutation.isPending || updateMutation.isPending;
+
   return (
     <div className="space-y-6">
       {/* AI Detection */}
@@ -197,58 +263,23 @@ export function InterestsManager({ profileId, contactName }: InterestsManagerPro
         </CardContent>
       </Card>
 
-      {/* Add Interest */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5" />
-            Add Interest
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-3">
-            <Select value={newInterest.type} onValueChange={(v) => setNewInterest(prev => ({ ...prev, type: v }))}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {interestTypes.map(type => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.emoji} {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              placeholder="Interest name"
-              value={newInterest.name}
-              onChange={(e) => setNewInterest(prev => ({ ...prev, name: e.target.value }))}
-              className="w-48"
-            />
-            <Input
-              placeholder="Notes (optional)"
-              value={newInterest.notes}
-              onChange={(e) => setNewInterest(prev => ({ ...prev, notes: e.target.value }))}
-              className="flex-1 min-w-48"
-            />
-            <Button onClick={() => addInterestMutation.mutate()} disabled={addInterestMutation.isPending || !newInterest.name.trim()}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Interests List */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Heart className="h-5 w-5 text-red-500" />
-            Known Interests
-          </CardTitle>
-          <CardDescription>
-            {interests?.length || 0} interests tracked for {contactName}
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Heart className="h-5 w-5 text-red-500" />
+                Known Interests
+              </CardTitle>
+              <CardDescription>
+                {interests?.length || 0} interests tracked for {contactName}
+              </CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => { resetForm(); setIsDialogOpen(true); }}>
+              <Plus className="h-4 w-4 mr-1" /> Add
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -280,12 +311,20 @@ export function InterestsManager({ profileId, contactName }: InterestsManagerPro
                               ({Math.round(interest.confidence_score * 100)}%)
                             </span>
                           )}
-                          <button
-                            onClick={() => deleteInterestMutation.mutate(interest.id)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity ml-1"
-                          >
-                            <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                          </button>
+                          <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity ml-1">
+                            <button
+                              onClick={() => openEditDialog(interest)}
+                              className="p-0.5 hover:text-primary"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </button>
+                            <button
+                              onClick={() => setDeleteTarget(interest)}
+                              className="p-0.5 hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -302,6 +341,64 @@ export function InterestsManager({ profileId, contactName }: InterestsManagerPro
           )}
         </CardContent>
       </Card>
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingInterest ? 'Edit' : 'Add'} Interest</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <Select value={formData.type} onValueChange={(v) => setFormData(prev => ({ ...prev, type: v }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {interestTypes.map(type => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.emoji} {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Name *</Label>
+              <Input
+                placeholder="Interest name"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Notes</Label>
+              <Input
+                placeholder="Notes (optional)"
+                value={formData.notes}
+                onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={closeDialog}>Cancel</Button>
+              <Button onClick={handleSubmit} disabled={isPending || !formData.name.trim()}>
+                {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {editingInterest ? 'Save' : 'Add'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <DeleteConfirmationDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+        title="Delete Interest"
+        itemName={deleteTarget?.name}
+        isPending={deleteMutation.isPending}
+      />
     </div>
   );
 }

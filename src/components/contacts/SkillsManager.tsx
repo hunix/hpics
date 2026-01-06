@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Lightbulb, Plus, Trash2 } from 'lucide-react';
+import { Lightbulb, Plus, Trash2, Pencil, Loader2 } from 'lucide-react';
+import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 
 interface Skill {
   id: string;
@@ -35,6 +36,8 @@ export function SkillsManager({ profileId }: SkillsManagerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Skill | null>(null);
   const [formData, setFormData] = useState({
     skill_name: '',
     proficiency_level: '',
@@ -66,7 +69,25 @@ export function SkillsManager({ profileId }: SkillsManagerProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['skills', profileId] });
       toast({ title: 'Skill added' });
-      resetForm();
+      closeDialog();
+    },
+    onError: (error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
+      const { error } = await supabase.from('contact_skills').update({
+        skill_name: data.skill_name,
+        proficiency_level: data.proficiency_level || null,
+      }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['skills', profileId] });
+      toast({ title: 'Skill updated' });
+      closeDialog();
     },
     onError: (error) => {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -81,6 +102,7 @@ export function SkillsManager({ profileId }: SkillsManagerProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['skills', profileId] });
       toast({ title: 'Skill removed' });
+      setDeleteTarget(null);
     },
     onError: (error) => {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -89,7 +111,21 @@ export function SkillsManager({ profileId }: SkillsManagerProps) {
 
   const resetForm = () => {
     setFormData({ skill_name: '', proficiency_level: '' });
+    setEditingSkill(null);
+  };
+
+  const closeDialog = () => {
     setIsDialogOpen(false);
+    resetForm();
+  };
+
+  const openEditDialog = (skill: Skill) => {
+    setEditingSkill(skill);
+    setFormData({
+      skill_name: skill.skill_name,
+      proficiency_level: skill.proficiency_level || '',
+    });
+    setIsDialogOpen(true);
   };
 
   const handleSubmit = () => {
@@ -97,13 +133,19 @@ export function SkillsManager({ profileId }: SkillsManagerProps) {
       toast({ title: 'Skill name is required', variant: 'destructive' });
       return;
     }
-    addMutation.mutate(formData);
+    if (editingSkill) {
+      updateMutation.mutate({ id: editingSkill.id, data: formData });
+    } else {
+      addMutation.mutate(formData);
+    }
   };
 
   const getProficiencyColor = (level: string | null) => {
     const found = proficiencyLevels.find((p) => p.value === level);
     return found?.color || 'bg-gray-400';
   };
+
+  const isPending = addMutation.isPending || updateMutation.isPending;
 
   if (isLoading) {
     return <Skeleton className="h-16 w-full" />;
@@ -118,13 +160,13 @@ export function SkillsManager({ profileId }: SkillsManagerProps) {
         </h3>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={resetForm}>
               <Plus className="h-4 w-4 mr-1" /> Add
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add Skill</DialogTitle>
+              <DialogTitle>{editingSkill ? 'Edit' : 'Add'} Skill</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
@@ -152,9 +194,13 @@ export function SkillsManager({ profileId }: SkillsManagerProps) {
                 </Select>
               </div>
 
-              <Button onClick={handleSubmit} disabled={addMutation.isPending} className="w-full">
-                Add Skill
-              </Button>
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={closeDialog}>Cancel</Button>
+                <Button onClick={handleSubmit} disabled={isPending}>
+                  {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {editingSkill ? 'Save' : 'Add Skill'}
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
@@ -164,21 +210,31 @@ export function SkillsManager({ profileId }: SkillsManagerProps) {
         <div className="flex flex-wrap gap-2">
           {skills.map((skill) => (
             <div key={skill.id} className="group relative">
-              <Badge variant="outline" className="pr-6 flex items-center gap-1.5">
+              <Badge variant="outline" className="pr-12 flex items-center gap-1.5">
                 <span className={`h-2 w-2 rounded-full ${getProficiencyColor(skill.proficiency_level)}`} />
                 {skill.skill_name}
                 {skill.proficiency_level && (
                   <span className="text-xs opacity-70 capitalize">({skill.proficiency_level})</span>
                 )}
               </Badge>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute -top-1 -right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity bg-destructive text-destructive-foreground rounded-full"
-                onClick={() => deleteMutation.mutate(skill.id)}
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
+              <div className="absolute -top-1 -right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 bg-muted rounded-full"
+                  onClick={() => openEditDialog(skill)}
+                >
+                  <Pencil className="h-3 w-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 bg-destructive text-destructive-foreground rounded-full"
+                  onClick={() => setDeleteTarget(skill)}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
             </div>
           ))}
         </div>
@@ -187,6 +243,15 @@ export function SkillsManager({ profileId }: SkillsManagerProps) {
           No skills added.
         </p>
       )}
+
+      <DeleteConfirmationDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+        title="Delete Skill"
+        itemName={deleteTarget?.skill_name}
+        isPending={deleteMutation.isPending}
+      />
     </div>
   );
 }
