@@ -4,7 +4,7 @@ import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Brain, Sparkles, TrendingUp, Users, Zap, ArrowRight, DollarSign, Shield, Network, FileText, AlertTriangle, Triangle, Eye, Clock, Search } from 'lucide-react';
+import { Brain, Sparkles, TrendingUp, Users, Zap, ArrowRight, DollarSign, Shield, Network, FileText, AlertTriangle, Triangle, Eye, Clock, Search, Share2, Scale, Activity } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
@@ -18,6 +18,10 @@ import { CommunicationTriangulationPanel } from '@/components/intelligence/Commu
 import { SurveillanceDashboard } from '@/components/intelligence/SurveillanceDashboard';
 import { TemporalAnalysisPanel } from '@/components/intelligence/TemporalAnalysisPanel';
 import { EntityResolutionPanel } from '@/components/intelligence/EntityResolutionPanel';
+import { InformationFlowPanel } from '@/components/intelligence/InformationFlowPanel';
+import { DeceptionAnalysisPanel } from '@/components/intelligence/DeceptionAnalysisPanel';
+import { AuditCompliancePanel } from '@/components/intelligence/AuditCompliancePanel';
+import { RelationshipTrajectoryPanel } from '@/components/intelligence/RelationshipTrajectoryPanel';
 
 export default function Insights() {
   const { user } = useAuth();
@@ -101,6 +105,22 @@ export default function Insights() {
           <TabsTrigger value="alerts" className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" />
             Alerts
+          </TabsTrigger>
+          <TabsTrigger value="trajectory" className="flex items-center gap-2">
+            <Activity className="h-4 w-4" />
+            Trajectory
+          </TabsTrigger>
+          <TabsTrigger value="info-flow" className="flex items-center gap-2">
+            <Share2 className="h-4 w-4" />
+            Info Flow
+          </TabsTrigger>
+          <TabsTrigger value="deception" className="flex items-center gap-2">
+            <Scale className="h-4 w-4" />
+            Consistency
+          </TabsTrigger>
+          <TabsTrigger value="audit" className="flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            Audit
           </TabsTrigger>
           <TabsTrigger value="usage" className="flex items-center gap-2">
             <DollarSign className="h-4 w-4" />
@@ -316,6 +336,22 @@ export default function Insights() {
 
         <TabsContent value="alerts">
           <IntelligenceAlertManager />
+        </TabsContent>
+
+        <TabsContent value="trajectory">
+          <RelationshipTrajectoryPanel />
+        </TabsContent>
+
+        <TabsContent value="info-flow">
+          <InformationFlowPanel />
+        </TabsContent>
+
+        <TabsContent value="deception">
+          <DeceptionAnalysisPanel />
+        </TabsContent>
+
+        <TabsContent value="audit">
+          <AuditCompliancePanel />
         </TabsContent>
 
         <TabsContent value="usage">

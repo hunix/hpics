@@ -10,14 +10,21 @@ import jsPDF from 'jspdf';
 import { format } from 'date-fns';
 
 interface DossierData {
-  contact: {
+  contact?: {
     first_name: string;
     last_name: string | null;
     organization: string | null;
     title: string | null;
   };
+  profiles?: {
+    id: string;
+    first_name: string;
+    last_name: string | null;
+  };
+  title?: string;
   generated_at: string;
-  content: any;
+  content?: any;
+  sections?: any;
   classification?: string;
 }
 
@@ -25,17 +32,28 @@ interface DossierExporterProps {
   dossier: DossierData;
   variant?: 'default' | 'outline' | 'ghost';
   size?: 'default' | 'sm' | 'lg' | 'icon';
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function DossierExporter({ dossier, variant = 'outline', size = 'sm' }: DossierExporterProps) {
-  const [open, setOpen] = useState(false);
+export function DossierExporter({ dossier, variant = 'outline', size = 'sm', open: controlledOpen, onOpenChange }: DossierExporterProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
   const [exporting, setExporting] = useState(false);
   const [format_, setFormat] = useState<'pdf' | 'markdown'>('pdf');
   const [includeClassification, setIncludeClassification] = useState(true);
   const [includeTimestamp, setIncludeTimestamp] = useState(true);
   const [redactSensitive, setRedactSensitive] = useState(false);
 
-  const contactName = `${dossier.contact.first_name} ${dossier.contact.last_name || ''}`.trim();
+  const contactName = dossier.contact 
+    ? `${dossier.contact.first_name} ${dossier.contact.last_name || ''}`.trim()
+    : dossier.profiles 
+      ? `${dossier.profiles.first_name} ${dossier.profiles.last_name || ''}`.trim()
+      : dossier.title || 'Unknown';
+  
+  const content = dossier.content || dossier.sections || {};
+  const organization = dossier.contact?.organization;
 
   const generatePDF = async () => {
     const doc = new jsPDF();
@@ -62,10 +80,10 @@ export function DossierExporter({ dossier, variant = 'outline', size = 'sm' }: D
     doc.text(contactName, pageWidth / 2, y, { align: 'center' });
     y += 10;
 
-    if (dossier.contact.organization) {
+    if (organization) {
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
-      doc.text(dossier.contact.organization, pageWidth / 2, y, { align: 'center' });
+      doc.text(organization, pageWidth / 2, y, { align: 'center' });
       y += 8;
     }
 
@@ -84,10 +102,9 @@ export function DossierExporter({ dossier, variant = 'outline', size = 'sm' }: D
     y += 10;
 
     // Content sections
+    // Content sections (now using 'content' variable)
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
-
-    const content = dossier.content;
 
     const addSection = (title: string, text: string | string[]) => {
       if (!text || (Array.isArray(text) && text.length === 0)) return;
@@ -186,7 +203,6 @@ export function DossierExporter({ dossier, variant = 'outline', size = 'sm' }: D
   };
 
   const generateMarkdown = () => {
-    const content = dossier.content;
     let md = '';
 
     if (includeClassification && dossier.classification) {
@@ -195,8 +211,8 @@ export function DossierExporter({ dossier, variant = 'outline', size = 'sm' }: D
 
     md += `# Intelligence Dossier: ${contactName}\n\n`;
 
-    if (dossier.contact.organization) {
-      md += `**Organization:** ${dossier.contact.organization}\n\n`;
+    if (organization) {
+      md += `**Organization:** ${organization}\n\n`;
     }
 
     if (includeTimestamp) {
