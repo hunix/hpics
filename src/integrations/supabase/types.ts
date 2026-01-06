@@ -56,6 +56,81 @@ export type Database = {
           },
         ]
       }
+      ai_guided_interviews: {
+        Row: {
+          completed_at: string | null
+          completeness_score: number | null
+          confidence_score: number | null
+          conversation_history: Json
+          created_at: string | null
+          current_question: string | null
+          data_applied: boolean | null
+          extracted_data: Json | null
+          id: string
+          interview_type: string
+          profile_id: string
+          questions_asked: number | null
+          questions_remaining: number | null
+          started_at: string | null
+          status: string | null
+          topic_focus: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completeness_score?: number | null
+          confidence_score?: number | null
+          conversation_history?: Json
+          created_at?: string | null
+          current_question?: string | null
+          data_applied?: boolean | null
+          extracted_data?: Json | null
+          id?: string
+          interview_type: string
+          profile_id: string
+          questions_asked?: number | null
+          questions_remaining?: number | null
+          started_at?: string | null
+          status?: string | null
+          topic_focus?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          completeness_score?: number | null
+          confidence_score?: number | null
+          conversation_history?: Json
+          created_at?: string | null
+          current_question?: string | null
+          data_applied?: boolean | null
+          extracted_data?: Json | null
+          id?: string
+          interview_type?: string
+          profile_id?: string
+          questions_asked?: number | null
+          questions_remaining?: number | null
+          started_at?: string | null
+          status?: string | null
+          topic_focus?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_guided_interviews_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "ai_guided_interviews_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_model_preferences: {
         Row: {
           analysis_type: string
@@ -882,6 +957,108 @@ export type Database = {
           },
         ]
       }
+      contact_communication_preferences: {
+        Row: {
+          ai_analysis: Json | null
+          ai_analyzed_at: string | null
+          avoid_channels: string[] | null
+          best_contact_times: Json | null
+          communication_style: string | null
+          confidence_score: number | null
+          conflict_resolution_style: string | null
+          created_at: string | null
+          decision_style: string | null
+          favorite_topics: string[] | null
+          how_they_show_appreciation: string | null
+          how_to_apologize: string | null
+          humor_receptivity: string | null
+          id: string
+          ideal_meeting_duration: string | null
+          influence_factors: string[] | null
+          meeting_preference: string | null
+          preferred_channels: string[] | null
+          preferred_greeting: string | null
+          profile_id: string
+          response_speed: string | null
+          sensitivities: string | null
+          small_talk_preference: string | null
+          topics_to_avoid: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          ai_analyzed_at?: string | null
+          avoid_channels?: string[] | null
+          best_contact_times?: Json | null
+          communication_style?: string | null
+          confidence_score?: number | null
+          conflict_resolution_style?: string | null
+          created_at?: string | null
+          decision_style?: string | null
+          favorite_topics?: string[] | null
+          how_they_show_appreciation?: string | null
+          how_to_apologize?: string | null
+          humor_receptivity?: string | null
+          id?: string
+          ideal_meeting_duration?: string | null
+          influence_factors?: string[] | null
+          meeting_preference?: string | null
+          preferred_channels?: string[] | null
+          preferred_greeting?: string | null
+          profile_id: string
+          response_speed?: string | null
+          sensitivities?: string | null
+          small_talk_preference?: string | null
+          topics_to_avoid?: string[] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ai_analysis?: Json | null
+          ai_analyzed_at?: string | null
+          avoid_channels?: string[] | null
+          best_contact_times?: Json | null
+          communication_style?: string | null
+          confidence_score?: number | null
+          conflict_resolution_style?: string | null
+          created_at?: string | null
+          decision_style?: string | null
+          favorite_topics?: string[] | null
+          how_they_show_appreciation?: string | null
+          how_to_apologize?: string | null
+          humor_receptivity?: string | null
+          id?: string
+          ideal_meeting_duration?: string | null
+          influence_factors?: string[] | null
+          meeting_preference?: string | null
+          preferred_channels?: string[] | null
+          preferred_greeting?: string | null
+          profile_id?: string
+          response_speed?: string | null
+          sensitivities?: string | null
+          small_talk_preference?: string | null
+          topics_to_avoid?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_communication_preferences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_communication_preferences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_devices: {
         Row: {
           brand: string | null
@@ -1202,6 +1379,99 @@ export type Database = {
           },
         ]
       }
+      contact_interaction_notes: {
+        Row: {
+          action_items: string[] | null
+          ai_extracted_insights: Json | null
+          ai_processed_at: string | null
+          audio_transcription: string | null
+          audio_url: string | null
+          created_at: string | null
+          duration_minutes: number | null
+          follow_up_date: string | null
+          follow_up_needed: boolean | null
+          follow_up_reason: string | null
+          id: string
+          interaction_date: string
+          interaction_type: string
+          location: string | null
+          mood_observed: string | null
+          notable_changes: string | null
+          note_text: string
+          profile_id: string
+          promises_made: string[] | null
+          relationship_temperature: string | null
+          topics_discussed: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          action_items?: string[] | null
+          ai_extracted_insights?: Json | null
+          ai_processed_at?: string | null
+          audio_transcription?: string | null
+          audio_url?: string | null
+          created_at?: string | null
+          duration_minutes?: number | null
+          follow_up_date?: string | null
+          follow_up_needed?: boolean | null
+          follow_up_reason?: string | null
+          id?: string
+          interaction_date?: string
+          interaction_type: string
+          location?: string | null
+          mood_observed?: string | null
+          notable_changes?: string | null
+          note_text: string
+          profile_id: string
+          promises_made?: string[] | null
+          relationship_temperature?: string | null
+          topics_discussed?: string[] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          action_items?: string[] | null
+          ai_extracted_insights?: Json | null
+          ai_processed_at?: string | null
+          audio_transcription?: string | null
+          audio_url?: string | null
+          created_at?: string | null
+          duration_minutes?: number | null
+          follow_up_date?: string | null
+          follow_up_needed?: boolean | null
+          follow_up_reason?: string | null
+          id?: string
+          interaction_date?: string
+          interaction_type?: string
+          location?: string | null
+          mood_observed?: string | null
+          notable_changes?: string | null
+          note_text?: string
+          profile_id?: string
+          promises_made?: string[] | null
+          relationship_temperature?: string | null
+          topics_discussed?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_interaction_notes_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_interaction_notes_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_interests: {
         Row: {
           confidence_score: number | null
@@ -1383,6 +1653,81 @@ export type Database = {
           },
           {
             foreignKeyName: "contact_languages_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_life_milestones: {
+        Row: {
+          approximate_date: string | null
+          created_at: string | null
+          description: string | null
+          emotional_valence: string | null
+          event_date: string | null
+          id: string
+          impact_level: string | null
+          milestone_type: string
+          profile_id: string
+          related_contacts: string[] | null
+          source: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+          user_id: string
+          verified: boolean | null
+          your_involvement: string | null
+        }
+        Insert: {
+          approximate_date?: string | null
+          created_at?: string | null
+          description?: string | null
+          emotional_valence?: string | null
+          event_date?: string | null
+          id?: string
+          impact_level?: string | null
+          milestone_type: string
+          profile_id: string
+          related_contacts?: string[] | null
+          source?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+          verified?: boolean | null
+          your_involvement?: string | null
+        }
+        Update: {
+          approximate_date?: string | null
+          created_at?: string | null
+          description?: string | null
+          emotional_valence?: string | null
+          event_date?: string | null
+          id?: string
+          impact_level?: string | null
+          milestone_type?: string
+          profile_id?: string
+          related_contacts?: string[] | null
+          source?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+          verified?: boolean | null
+          your_involvement?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_life_milestones_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_life_milestones_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -1682,6 +2027,102 @@ export type Database = {
             foreignKeyName: "contact_personal_info_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_playbooks: {
+        Row: {
+          ai_generated: boolean | null
+          ai_generated_at: string | null
+          ai_model_used: string | null
+          created_at: string | null
+          donts: string[] | null
+          dos: string[] | null
+          gift_giving_notes: string | null
+          how_to_ask_favor: string | null
+          how_to_celebrate_with: string | null
+          how_to_comfort: string | null
+          how_to_deliver_bad_news: string | null
+          how_to_give_feedback: string | null
+          human_verified: boolean | null
+          id: string
+          ideal_contact_frequency: string | null
+          personality_summary: string | null
+          profile_id: string
+          relationship_investment_tips: string[] | null
+          signs_of_distance: string[] | null
+          signs_of_openness: string[] | null
+          signs_of_stress: string[] | null
+          updated_at: string | null
+          user_id: string
+          working_with_them: string | null
+        }
+        Insert: {
+          ai_generated?: boolean | null
+          ai_generated_at?: string | null
+          ai_model_used?: string | null
+          created_at?: string | null
+          donts?: string[] | null
+          dos?: string[] | null
+          gift_giving_notes?: string | null
+          how_to_ask_favor?: string | null
+          how_to_celebrate_with?: string | null
+          how_to_comfort?: string | null
+          how_to_deliver_bad_news?: string | null
+          how_to_give_feedback?: string | null
+          human_verified?: boolean | null
+          id?: string
+          ideal_contact_frequency?: string | null
+          personality_summary?: string | null
+          profile_id: string
+          relationship_investment_tips?: string[] | null
+          signs_of_distance?: string[] | null
+          signs_of_openness?: string[] | null
+          signs_of_stress?: string[] | null
+          updated_at?: string | null
+          user_id: string
+          working_with_them?: string | null
+        }
+        Update: {
+          ai_generated?: boolean | null
+          ai_generated_at?: string | null
+          ai_model_used?: string | null
+          created_at?: string | null
+          donts?: string[] | null
+          dos?: string[] | null
+          gift_giving_notes?: string | null
+          how_to_ask_favor?: string | null
+          how_to_celebrate_with?: string | null
+          how_to_comfort?: string | null
+          how_to_deliver_bad_news?: string | null
+          how_to_give_feedback?: string | null
+          human_verified?: boolean | null
+          id?: string
+          ideal_contact_frequency?: string | null
+          personality_summary?: string | null
+          profile_id?: string
+          relationship_investment_tips?: string[] | null
+          signs_of_distance?: string[] | null
+          signs_of_openness?: string[] | null
+          signs_of_stress?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+          working_with_them?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_playbooks_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_playbooks_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },

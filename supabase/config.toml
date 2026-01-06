@@ -101,3 +101,6 @@ verify_jwt = false
 
 [functions.aggregate-bulk-results]
 verify_jwt = false
+
+[functions.generate-playbook]
+verify_jwt = false
