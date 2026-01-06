@@ -48,8 +48,8 @@ export function useDataQualityScanner() {
         supabase.from('contact_methods').select('id, profile_id, contact_type, value'),
         supabase.from('contact_relationships').select('id, from_profile_id, to_profile_id, relationship_type').eq('user_id', user.id),
         supabase.from('communications').select('profile_id, occurred_at').eq('user_id', user.id).order('occurred_at', { ascending: false }),
-        supabase.from('media').select('id, profile_id, title, storage_path').eq('user_id', user.id),
-        supabase.from('documents').select('id, profile_id, title, storage_path').eq('user_id', user.id),
+        supabase.from('media').select('id, profile_id, storage_path').eq('user_id', user.id),
+        supabase.from('documents').select('id, profile_id, storage_path').eq('user_id', user.id),
       ]);
 
       const profileMethodsMap = new Map<string, typeof contactMethods>();
@@ -192,8 +192,8 @@ export function useDataQualityScanner() {
             severity: 'warning',
             entity: 'media',
             entityId: m.id,
-            entityName: m.title || 'Unnamed media',
-            description: `Media file "${m.title || 'Unnamed'}" is not linked to any contact`,
+            entityName: m.id.slice(0, 8),
+            description: `Media file is not linked to any contact`,
             suggestedFix: 'Link this media to a contact or delete it',
             autoFixAvailable: false,
           });
@@ -209,8 +209,8 @@ export function useDataQualityScanner() {
             severity: 'warning',
             entity: 'document',
             entityId: d.id,
-            entityName: d.title || 'Unnamed document',
-            description: `Document "${d.title || 'Unnamed'}" is not linked to any contact`,
+            entityName: d.id.slice(0, 8),
+            description: `Document is not linked to any contact`,
             suggestedFix: 'Link this document to a contact or delete it',
             autoFixAvailable: false,
           });
