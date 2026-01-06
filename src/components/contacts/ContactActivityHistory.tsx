@@ -5,7 +5,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -17,7 +16,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Activity, Brain, Eye, Volume2, Image, FileText, Sparkles,
-  Clock, DollarSign, CheckCircle, XCircle, Loader2, Filter, Download
+  Clock, DollarSign, CheckCircle, XCircle, Loader2, Filter, Download,
+  Users, MessageSquare, Target
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -81,11 +81,75 @@ export function ContactActivityHistory({ profileId, contactName }: ContactActivi
     enabled: !!user && !!profileId,
   });
 
+  // Fetch AI analyses (personality, sentiment, playbook, relationship_score)
+  const { data: aiAnalyses, isLoading: aiAnalysesLoading } = useQuery({
+    queryKey: ['contact-ai-analyses', profileId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ai_analyses')
+        .select('*')
+        .eq('profile_id', profileId)
+        .order('generated_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!user && !!profileId,
+  });
+
+  // Fetch facial analyses
+  const { data: facialAnalyses, isLoading: facialLoading } = useQuery({
+    queryKey: ['contact-facial-analyses', profileId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('facial_analyses')
+        .select('*')
+        .eq('profile_id', profileId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!user && !!profileId,
+  });
+
+  // Fetch vocal analyses
+  const { data: vocalAnalyses, isLoading: vocalLoading } = useQuery({
+    queryKey: ['contact-vocal-analyses', profileId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('vocal_analyses')
+        .select('*')
+        .eq('profile_id', profileId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!user && !!profileId,
+  });
+
+  // Fetch body language analyses
+  const { data: bodyLanguageAnalyses, isLoading: bodyLanguageLoading } = useQuery({
+    queryKey: ['contact-body-language-analyses', profileId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('body_language_analyses')
+        .select('*')
+        .eq('profile_id', profileId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!user && !!profileId,
+  });
+
   // Combine and sort all activities
   const allActivities = useMemo(() => {
     const activities: Array<{
       id: string;
-      type: 'ai_usage' | 'media_analysis' | 'behavioral';
+      type: string;
       subtype: string;
       timestamp: string;
       status: string;
@@ -136,11 +200,67 @@ export function ContactActivityHistory({ profileId, contactName }: ContactActivi
       });
     });
 
+    // Add AI analyses (personality, sentiment, playbook, relationship_score)
+    aiAnalyses?.forEach((analysis) => {
+      activities.push({
+        id: analysis.id,
+        type: 'ai_analysis',
+        subtype: analysis.analysis_type,
+        timestamp: analysis.generated_at,
+        status: 'completed',
+        cost: null,
+        model: null,
+        details: `${analysis.analysis_type.charAt(0).toUpperCase() + analysis.analysis_type.slice(1).replace('_', ' ')} analysis`,
+      });
+    });
+
+    // Add facial analyses
+    facialAnalyses?.forEach((analysis) => {
+      activities.push({
+        id: analysis.id,
+        type: 'facial',
+        subtype: 'facial_analysis',
+        timestamp: analysis.created_at,
+        status: 'completed',
+        cost: null,
+        model: analysis.ai_model_used,
+        details: 'Facial expression analysis',
+      });
+    });
+
+    // Add vocal analyses
+    vocalAnalyses?.forEach((analysis) => {
+      activities.push({
+        id: analysis.id,
+        type: 'vocal',
+        subtype: 'vocal_analysis',
+        timestamp: analysis.created_at,
+        status: 'completed',
+        cost: null,
+        model: analysis.ai_model_used,
+        details: 'Vocal pattern analysis',
+      });
+    });
+
+    // Add body language analyses
+    bodyLanguageAnalyses?.forEach((analysis) => {
+      activities.push({
+        id: analysis.id,
+        type: 'body_language',
+        subtype: 'body_language_analysis',
+        timestamp: analysis.created_at,
+        status: 'completed',
+        cost: null,
+        model: analysis.ai_model_used,
+        details: 'Body language analysis',
+      });
+    });
+
     // Sort by timestamp descending
     return activities.sort(
       (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
-  }, [usageLogs, mediaAnalyses, behavioralAnalyses]);
+  }, [usageLogs, mediaAnalyses, behavioralAnalyses, aiAnalyses, facialAnalyses, vocalAnalyses, bodyLanguageAnalyses]);
 
   // Apply filters
   const filteredActivities = useMemo(() => {
@@ -152,6 +272,10 @@ export function ContactActivityHistory({ profileId, contactName }: ContactActivi
           return (
             a.type === 'media_analysis' ||
             a.type === 'behavioral' ||
+            a.type === 'ai_analysis' ||
+            a.type === 'facial' ||
+            a.type === 'vocal' ||
+            a.type === 'body_language' ||
             a.subtype.includes('analyze')
           );
         }
@@ -184,12 +308,19 @@ export function ContactActivityHistory({ profileId, contactName }: ContactActivi
     return filteredActivities.reduce((sum, a) => sum + (a.cost || 0), 0);
   }, [filteredActivities]);
 
-  const isLoading = logsLoading || analysesLoading || behavioralLoading;
+  const isLoading = logsLoading || analysesLoading || behavioralLoading || aiAnalysesLoading || facialLoading || vocalLoading || bodyLanguageLoading;
 
   const getActivityIcon = (type: string, subtype: string) => {
     if (type === 'behavioral' || subtype.includes('behavioral')) return Brain;
-    if (subtype.includes('facial') || subtype.includes('face')) return Eye;
-    if (subtype.includes('vocal') || subtype.includes('audio')) return Volume2;
+    if (type === 'facial' || subtype.includes('facial') || subtype.includes('face')) return Eye;
+    if (type === 'vocal' || subtype.includes('vocal') || subtype.includes('audio')) return Volume2;
+    if (type === 'body_language') return Users;
+    if (type === 'ai_analysis') {
+      if (subtype === 'personality') return Brain;
+      if (subtype === 'sentiment') return MessageSquare;
+      if (subtype === 'relationship_score') return Target;
+      return Sparkles;
+    }
     if (type === 'media_analysis') return Image;
     if (subtype.includes('generate')) return Sparkles;
     if (subtype.includes('enrich')) return FileText;
