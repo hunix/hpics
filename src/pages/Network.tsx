@@ -259,6 +259,12 @@ export default function NetworkPage() {
     favorite: '#fbbf24',
   };
 
+  // Get decay opacity for visualization
+  const getDecayOpacity = (decayLevel: number) => {
+    if (!showDecay) return 1;
+    return Math.max(0.3, 1 - (decayLevel / 150)); // Min opacity 0.3
+  };
+
   // Get node color based on selected coloring mode
   const getNodeColor = (node: NetworkNode): string => {
     if (colorBy === 'cluster' && node.clusterId !== undefined) {
@@ -356,10 +362,10 @@ export default function NetworkPage() {
           d.fy = null;
         }));
 
-    // Node circles with decay opacity
+    // Node circles with decay opacity and dynamic coloring
     node.append('circle')
-      .attr('r', (d) => 10 + (d.importance / 10))
-      .attr('fill', (d) => relationshipColors[d.type] || '#999')
+      .attr('r', (d) => 10 + (d.importance / 10) + ((d.pageRank || 0) * 5))
+      .attr('fill', (d) => getNodeColor(d))
       .attr('fill-opacity', (d) => getDecayOpacity(d.decayLevel))
       .attr('stroke', (d) => d.isFavorite ? '#fbbf24' : '#fff')
       .attr('stroke-width', (d) => d.isFavorite ? 3 : 2);
@@ -604,6 +610,28 @@ export default function NetworkPage() {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Layers className="h-4 w-4" />
+                  Color By
+                </Label>
+                <Select value={colorBy} onValueChange={(v) => setColorBy(v as 'type' | 'cluster' | 'pagerank')}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cluster">Cluster (Community)</SelectItem>
+                    <SelectItem value="type">Relationship Type</SelectItem>
+                    <SelectItem value="pagerank">PageRank (Influence)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {colorBy === 'cluster' && 'Colors show detected communities'}
+                  {colorBy === 'type' && 'Colors show relationship categories'}
+                  {colorBy === 'pagerank' && 'Blue→Red gradient shows influence'}
+                </p>
+              </div>
+
               <div className="pt-4 border-t space-y-3">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="show-decay" className="flex items-center gap-2">
@@ -710,22 +738,84 @@ export default function NetworkPage() {
 
         {/* Insights */}
         {networkData && networkData.nodes.length > 0 && (
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-4">
+            {/* Top Influencers by PageRank */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Most Connected</CardTitle>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                  Top Influencers
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   {networkData.nodes
-                    .sort((a, b) => b.importance - a.importance)
+                    .sort((a, b) => (b.pageRank || 0) - (a.pageRank || 0))
                     .slice(0, 5)
                     .map((node) => (
                       <div key={node.id} className="flex items-center justify-between">
                         <span className="text-sm truncate">{node.name}</span>
-                        <Badge variant="secondary">{node.importance}%</Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {((node.pageRank || 0) * 100).toFixed(0)}%
+                        </Badge>
                       </div>
                     ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Bridge Connectors by Betweenness */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Target className="h-4 w-4 text-orange-500" />
+                  Bridge Connectors
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {networkData.nodes
+                    .sort((a, b) => (b.betweenness || 0) - (a.betweenness || 0))
+                    .slice(0, 5)
+                    .map((node) => (
+                      <div key={node.id} className="flex items-center justify-between">
+                        <span className="text-sm truncate">{node.name}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {((node.betweenness || 0) * 100).toFixed(0)}%
+                        </Badge>
+                      </div>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Clusters */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Layers className="h-4 w-4 text-violet-500" />
+                  Clusters ({networkMetrics?.clusterCount || 0})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {networkMetrics && Array.from(new Set(networkData.nodes.map(n => n.clusterId)))
+                    .slice(0, 5)
+                    .map((clusterId) => {
+                      const clusterNodes = networkData.nodes.filter(n => n.clusterId === clusterId);
+                      return (
+                        <div key={clusterId} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="h-3 w-3 rounded-full" 
+                              style={{ backgroundColor: getClusterColor(clusterId || 0) }}
+                            />
+                            <span className="text-sm">Cluster {(clusterId || 0) + 1}</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">{clusterNodes.length} members</span>
+                        </div>
+                      );
+                    })}
                 </div>
               </CardContent>
             </Card>

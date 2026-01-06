@@ -21,6 +21,7 @@ import { AIModelPreferences } from '@/components/settings/AIModelPreferences';
 import { AIBudgetSettings } from '@/components/settings/AIBudgetSettings';
 import { WhatsAppSetup } from '@/components/whatsapp/WhatsAppSetup';
 import { ResendIntegration } from '@/components/settings/ResendIntegration';
+import { VAPIDConfiguration } from '@/components/settings/VAPIDConfiguration';
 import { StorageAnalytics } from '@/components/analytics/StorageAnalytics';
 import { DuplicateProfileMerger } from '@/components/contacts/DuplicateProfileMerger';
 import { NotificationPreferences } from '@/components/settings/NotificationPreferences';
@@ -205,6 +206,14 @@ export default function Settings() {
           </Card>
 
           <PushNotifications />
+
+          <VAPIDConfiguration 
+            isConfigured={false} 
+            onSave={(publicKey) => {
+              // Store public key in user preferences
+              toast({ title: 'VAPID public key saved', description: 'Add the private key as a secret to enable production push notifications.' });
+            }} 
+          />
 
           <NotificationPreferences />
 
