@@ -4,7 +4,7 @@ import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Brain, Sparkles, TrendingUp, Users, Zap, ArrowRight, DollarSign, Shield, Network, FileText, AlertTriangle } from 'lucide-react';
+import { Brain, Sparkles, TrendingUp, Users, Zap, ArrowRight, DollarSign, Shield, Network, FileText, AlertTriangle, Triangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
@@ -14,6 +14,8 @@ import { NetworkIntelligencePanel } from '@/components/intelligence/NetworkIntel
 import { TrustAssessmentBrowser } from '@/components/intelligence/TrustAssessmentBrowser';
 import { DossierBrowser } from '@/components/intelligence/DossierBrowser';
 import { IntelligenceAlertManager } from '@/components/intelligence/IntelligenceAlertManager';
+import { CommunicationTriangulationPanel } from '@/components/intelligence/CommunicationTriangulationPanel';
+import { RelationshipTrajectoryPanel } from '@/components/intelligence/RelationshipTrajectoryPanel';
 
 export default function Insights() {
   const { user } = useAuth();
@@ -69,6 +71,14 @@ export default function Insights() {
           <TabsTrigger value="network" className="flex items-center gap-2">
             <Network className="h-4 w-4" />
             Network
+          </TabsTrigger>
+          <TabsTrigger value="triangulation" className="flex items-center gap-2">
+            <Triangle className="h-4 w-4" />
+            Triangulation
+          </TabsTrigger>
+          <TabsTrigger value="trajectories" className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4" />
+            Trajectories
           </TabsTrigger>
           <TabsTrigger value="trust" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
@@ -268,6 +278,14 @@ export default function Insights() {
 
         <TabsContent value="network">
           <NetworkIntelligencePanel />
+        </TabsContent>
+
+        <TabsContent value="triangulation">
+          <CommunicationTriangulationPanel />
+        </TabsContent>
+
+        <TabsContent value="trajectories">
+          <RelationshipTrajectoryPanel />
         </TabsContent>
 
         <TabsContent value="trust">
