@@ -13,12 +13,14 @@ import {
   BarChart3,
   Clock
 } from 'lucide-react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
 export default function Reports() {
+  const queryClient = useQueryClient();
+
   const { data: reports = [], isLoading } = useQuery({
     queryKey: ['generated-reports'],
     queryFn: async () => {
@@ -62,8 +64,43 @@ export default function Reports() {
       if (response.error) throw new Error(response.error.message);
       return response.data;
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast.success('Executive summary generated');
+      queryClient.invalidateQueries({ queryKey: ['generated-reports'] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const generateHealthReportMutation = useMutation({
+    mutationFn: async () => {
+      const response = await supabase.functions.invoke('calculate-relationship-scores', {
+        body: { generateReport: true },
+      });
+      if (response.error) throw new Error(response.error.message);
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success('Relationship health report generated');
+      queryClient.invalidateQueries({ queryKey: ['generated-reports'] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const generateNetworkReportMutation = useMutation({
+    mutationFn: async () => {
+      const response = await supabase.functions.invoke('analyze-network-intelligence', {
+        body: { generateReport: true },
+      });
+      if (response.error) throw new Error(response.error.message);
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success('Network analysis report generated');
+      queryClient.invalidateQueries({ queryKey: ['generated-reports'] });
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -149,10 +186,10 @@ export default function Reports() {
                     <div className="p-4 bg-muted rounded-lg text-sm">
                       <h4 className="font-medium mb-2">Summary Generated</h4>
                       <div className="grid grid-cols-2 gap-2 text-muted-foreground">
-                        <div>Contacts: {generateSummaryMutation.data.summary.stats.totalContacts}</div>
-                        <div>New: {generateSummaryMutation.data.summary.stats.newContacts}</div>
-                        <div>Communications: {generateSummaryMutation.data.summary.stats.totalCommunications}</div>
-                        <div>Avg Score: {generateSummaryMutation.data.summary.stats.averageRelationshipScore}</div>
+                        <div>Contacts: {generateSummaryMutation.data.summary?.stats?.totalContacts ?? 0}</div>
+                        <div>New: {generateSummaryMutation.data.summary?.stats?.newContacts ?? 0}</div>
+                        <div>Communications: {generateSummaryMutation.data.summary?.stats?.totalCommunications ?? 0}</div>
+                        <div>Avg Score: {generateSummaryMutation.data.summary?.stats?.averageRelationshipScore ?? 'N/A'}</div>
                       </div>
                     </div>
                   )}
@@ -171,10 +208,22 @@ export default function Reports() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <Button className="w-full">
+                <CardContent className="space-y-4">
+                  <Button 
+                    className="w-full" 
+                    onClick={() => generateHealthReportMutation.mutate()}
+                    disabled={generateHealthReportMutation.isPending}
+                  >
+                    {generateHealthReportMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : null}
                     Generate Report
                   </Button>
+                  {generateHealthReportMutation.data && (
+                    <div className="p-4 bg-muted rounded-lg text-sm">
+                      <p className="text-muted-foreground">Report generated successfully!</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -190,10 +239,22 @@ export default function Reports() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <Button className="w-full">
+                <CardContent className="space-y-4">
+                  <Button 
+                    className="w-full"
+                    onClick={() => generateNetworkReportMutation.mutate()}
+                    disabled={generateNetworkReportMutation.isPending}
+                  >
+                    {generateNetworkReportMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : null}
                     Generate Report
                   </Button>
+                  {generateNetworkReportMutation.data && (
+                    <div className="p-4 bg-muted rounded-lg text-sm">
+                      <p className="text-muted-foreground">Report generated successfully!</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>

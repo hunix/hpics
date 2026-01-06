@@ -39,6 +39,7 @@ import { ContactDocumentsManager } from '@/components/contacts/ContactDocumentsM
 import { ContactMediaManager } from '@/components/contacts/ContactMediaManager';
 import { ContactGroupSelector } from '@/components/contacts/ContactGroupSelector';
 import { RecordingsManager } from '@/components/recordings/RecordingsManager';
+import { VoiceNotesManager } from '@/components/contacts/VoiceNotesManager';
 import { BehavioralAnalysis } from '@/components/analysis/BehavioralAnalysis';
 import { FacialAnalysis } from '@/components/analysis/FacialAnalysis';
 import { BodyLanguageAnalysis } from '@/components/analysis/BodyLanguageAnalysis';
@@ -76,7 +77,7 @@ import type { Tables } from '@/integrations/supabase/types';
 type Profile = Tables<'profiles'> & { relationship_subtype?: string; hierarchy_level?: string };
 
 type SectionId = 
-  | 'overview' | 'personal-info' | 'contact' | 'documents' | 'media' | 'recordings'
+  | 'overview' | 'personal-info' | 'contact' | 'documents' | 'media' | 'recordings' | 'voice-notes'
   | 'outreach' | 'templates' | 'briefing' | 'whatsapp' | 'emails'
   | 'interests' | 'gifts' | 'goals' | 'experiences' | 'relationships' | 'kids-schools'
   | 'education' | 'messages' | 'timeline' | 'groups' | 'enrich'
@@ -100,6 +101,7 @@ const sections: NavSection[] = [
   { id: 'documents', label: 'Documents', icon: FileText, group: 'Files' },
   { id: 'media', label: 'Media', icon: Image, group: 'Files' },
   { id: 'recordings', label: 'Recordings', icon: Mic, group: 'Files' },
+  { id: 'voice-notes', label: 'Voice Notes', icon: Volume2, group: 'Files' },
   // New Intelligence section
   { id: 'milestones', label: 'Life Milestones', icon: Milestone, group: 'Intelligence' },
   { id: 'comm-prefs', label: 'How to Interact', icon: Settings2, group: 'Intelligence' },
@@ -283,6 +285,8 @@ export default function ContactDetail() {
         return <ContactMediaManager profileId={contact.id} contactName={contactName} />;
       case 'recordings':
         return <RecordingsManager profileId={contact.id} profileName={contactName} />;
+      case 'voice-notes':
+        return <VoiceNotesManager profileId={contact.id} />;
       // New Intelligence sections
       case 'milestones':
         return <LifeMilestonesManager profileId={contact.id} contactName={contactName} />;
