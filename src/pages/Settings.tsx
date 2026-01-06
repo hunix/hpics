@@ -28,6 +28,7 @@ import { NotificationPreferences } from '@/components/settings/NotificationPrefe
 import { CalendarSyncSettings } from '@/components/settings/CalendarSyncSettings';
 import { WebhookManager } from '@/components/settings/WebhookManager';
 import { WorkspaceSettings } from '@/components/settings/WorkspaceSettings';
+import { CronJobManager } from '@/components/settings/CronJobManager';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -250,6 +251,7 @@ export default function Settings() {
           <WhatsAppSetup />
           <WebhookManager />
           <EmailIntegration />
+          <CronJobManager />
         </TabsContent>
 
         <TabsContent value="teams" className="space-y-6 mt-6">
