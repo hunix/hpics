@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { SmartNameInput } from '@/components/ui/SmartNameInput';
 import {
   Select,
   SelectContent,
@@ -171,19 +172,21 @@ export function ContactDialog({ open, onOpenChange, contact }: ContactDialogProp
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="first_name">First Name *</Label>
-              <Input
+              <SmartNameInput
                 id="first_name"
                 value={formData.first_name}
-                onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                required
+                onChange={(value) => setFormData({ ...formData, first_name: value })}
+                placeholder="First name"
+                nameType="first"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="last_name">Last Name</Label>
-              <Input
+              <SmartNameInput
                 id="last_name"
                 value={formData.last_name}
-                onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                onChange={(value) => setFormData({ ...formData, last_name: value })}
+                placeholder="Last name"
               />
             </div>
           </div>
