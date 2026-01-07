@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, MessageSquare, Calendar, Star, Clock, TrendingUp, BarChart3, Network, Sparkles, UserPlus, Target, Activity, Shield, Brain, ShieldCheck, Zap, Radio, AlertTriangle, PieChart, CalendarClock, UsersRound, Fingerprint } from 'lucide-react';
+import { Users, MessageSquare, Calendar, Star, Clock, TrendingUp, BarChart3, Network, Sparkles, UserPlus, Target, Activity, Shield, Brain, ShieldCheck, Zap, Radio, AlertTriangle, PieChart, CalendarClock, UsersRound, Fingerprint, Gift, Link2, Compass } from 'lucide-react';
 
 // All available dashlet types
 export interface DashletConfig {
@@ -34,7 +34,11 @@ export type DashletType =
   | 'ai-contact-grouping'
   | 'calendar-sync-status'
   | 'biometric-status'
-  | 'influence-overview';
+  | 'influence-overview'
+  | 'relationship-forecast'
+  | 'network-risk'
+  | 'introduction-matcher'
+  | 'daily-briefing';
 
 export interface DashletDefinition {
   type: DashletType;
@@ -235,6 +239,38 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Influence Command Center',
     description: 'Pending influence actions and methodology effectiveness',
     icon: Target,
+    defaultVisible: true,
+    category: 'ai',
+  },
+  {
+    type: 'relationship-forecast',
+    title: 'Relationship Forecast',
+    description: '30-day trajectory predictions for your network',
+    icon: TrendingUp,
+    defaultVisible: true,
+    category: 'ai',
+  },
+  {
+    type: 'network-risk',
+    title: 'Network Risk Monitor',
+    description: 'At-risk relationships and AI recommendations',
+    icon: Shield,
+    defaultVisible: true,
+    category: 'ai',
+  },
+  {
+    type: 'introduction-matcher',
+    title: 'Introduction Matcher',
+    description: 'High-value connection opportunities in your network',
+    icon: Link2,
+    defaultVisible: true,
+    category: 'ai',
+  },
+  {
+    type: 'daily-briefing',
+    title: 'Daily Briefing',
+    description: 'Today\'s priorities, alerts, and opportunities',
+    icon: Compass,
     defaultVisible: true,
     category: 'ai',
   },
