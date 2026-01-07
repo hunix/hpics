@@ -12,26 +12,37 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "No authorization header" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // Create client with user's auth header for getClaims
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    // Validate JWT using getClaims
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    
+    const userId = claimsData.claims.sub as string;
+    
+    // Use service role client for database operations
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Fetch contacts with their details
     const { data: contacts, error: contactsError } = await supabase
@@ -41,7 +52,7 @@ serve(async (req) => {
         relationship_type, interests:contact_interests(interest),
         groups:contact_group_members(group:contact_groups(name))
       `)
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .limit(200);
 
     if (contactsError) {
@@ -62,7 +73,7 @@ serve(async (req) => {
     const { data: existingGroups } = await supabase
       .from("contact_groups")
       .select("name")
-      .eq("user_id", user.id);
+      .eq("user_id", userId);
 
     const existingGroupNames = (existingGroups || []).map(g => g.name.toLowerCase());
 
@@ -158,7 +169,7 @@ Rules:
         .map(c => ({ id: c.id, name: c.name }));
 
       await supabase.from("ai_group_suggestions").insert({
-        user_id: user.id,
+        user_id: userId,
         group_name: suggestion.groupName,
         description: suggestion.description,
         reasoning: suggestion.reasoning,
