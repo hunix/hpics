@@ -28,15 +28,24 @@ serve(async (req) => {
 
     // Validate JWT using getClaims
     const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+    let userId: string;
+    try {
+      const { data: claimsData, error: claimsError } = await (supabaseClient.auth as any).getClaims(token);
+      if (claimsError || !claimsData?.claims) {
+        return new Response(JSON.stringify({ error: 'Session expired. Please log in again.' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      userId = claimsData.claims.sub as string;
+    } catch (authError) {
+      console.error('Auth error:', authError);
+      return new Response(JSON.stringify({ error: 'Session expired. Please log in again.' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    
-    const user = { id: claimsData.claims.sub as string };
+    const user = { id: userId };
 
     // Fetch contacts with their last communication
     const { data: profiles, error: profilesError } = await supabaseClient
