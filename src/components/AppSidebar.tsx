@@ -1,7 +1,8 @@
-import { Users, MessageSquare, FileText, Image, Calendar, Brain, LayoutDashboard, LogOut, Upload, Settings, Network, CalendarDays, Video, Scan, BarChart3, FileBarChart, UsersRound, Download } from 'lucide-react';
+import { Users, MessageSquare, FileText, Image, Calendar, Brain, LayoutDashboard, LogOut, Upload, Settings, Network, CalendarDays, Video, Scan, BarChart3, FileBarChart, UsersRound, Download, Shield } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { ClearanceBadge } from '@/components/security/ClearanceBadge';
 import {
   Sidebar,
   SidebarContent,
@@ -35,6 +36,7 @@ const toolsNavItems = [
   { title: 'Network Map', url: '/network', icon: Network },
   { title: 'Reports', url: '/reports', icon: FileBarChart },
   { title: 'Team', url: '/team', icon: UsersRound },
+  { title: 'Security Center', url: '/security', icon: Shield },
   { title: 'Import Data', url: '/import', icon: Upload },
   { title: 'Install App', url: '/install', icon: Download },
   { title: 'Settings', url: '/settings', icon: Settings },
@@ -105,6 +107,8 @@ export function AppSidebar() {
 
       <SidebarFooter className="border-t border-sidebar-border p-4">
         <div className="flex flex-col gap-2">
+          <ClearanceBadge />
+          <Separator />
           <ThemeToggle />
           <Separator />
           <p className="text-xs text-muted-foreground truncate">{user?.email}</p>

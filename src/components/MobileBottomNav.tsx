@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Users, Calendar, MessageSquare, MoreHorizontal, Settings, Network, FileText, BarChart3 } from 'lucide-react';
+import { Home, Users, Calendar, MessageSquare, MoreHorizontal, Settings, Network, FileText, BarChart3, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hapticFeedback } from '@/lib/nativeFeatures';
 import {
@@ -26,6 +26,7 @@ const moreNavItems: NavItem[] = [
   { path: '/network', label: 'Network', icon: Network },
   { path: '/documents', label: 'Documents', icon: FileText },
   { path: '/reports', label: 'Reports', icon: BarChart3 },
+  { path: '/security', label: 'Security', icon: Shield },
   { path: '/settings', label: 'Settings', icon: Settings },
 ];
 
