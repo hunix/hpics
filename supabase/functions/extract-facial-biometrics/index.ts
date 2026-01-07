@@ -14,20 +14,36 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
+    // Create client with user's auth header for getClaims
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    // Validate JWT using getClaims
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      throw new Error('Invalid authorization');
+    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
+    
+    const userId = claimsData.claims.sub as string;
+    
+    // Use service role client for database operations
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { imageUrl, profileId, sourceType = 'media', sourceId } = await req.json();
 
@@ -41,7 +57,7 @@ serve(async (req) => {
     const { data: sample, error: sampleError } = await supabase
       .from('biometric_samples')
       .insert({
-        user_id: user.id,
+        user_id: userId,
         profile_id: profileId,
         biometric_type: 'face',
         source_type: sourceType,
@@ -140,7 +156,7 @@ If no face is detected, return: { "faces_detected": 0, "error": "No face detecte
 
     // Log AI usage
     await supabase.from('ai_usage_logs').insert({
-      user_id: user.id,
+      user_id: userId,
       profile_id: profileId,
       function_name: 'extract-facial-biometrics',
       provider: 'openrouter',
@@ -193,7 +209,7 @@ If no face is detected, return: { "faces_detected": 0, "error": "No face detecte
     const { data: existingBio } = await supabase
       .from('contact_biometrics')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('profile_id', profileId)
       .single();
 
@@ -219,7 +235,7 @@ If no face is detected, return: { "faces_detected": 0, "error": "No face detecte
       await supabase
         .from('contact_biometrics')
         .insert({
-          user_id: user.id,
+          user_id: userId,
           profile_id: profileId,
           facial_landmarks: primaryFace.landmarks,
           facial_features: primaryFace.features,

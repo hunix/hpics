@@ -891,27 +891,37 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing authorization' }), {
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
+    // Create client with user's auth header for getClaims
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    // Validate JWT using getClaims
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid token' }), {
+    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    
+    const userId = claimsData.claims.sub as string;
+    
+    // Use service role client for database operations
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body: MetadataRequest = await req.json();
     const { mode, mediaIds = [], documentIds = [], regenerate = false, model = 'google/gemini-2.5-flash' } = body;
@@ -1136,7 +1146,7 @@ Use this precise transcription to analyze the audio content. Focus on extracting
           .eq('id', mediaId);
 
         await supabase.from('ai_usage_logs').insert({
-          user_id: user.id,
+          user_id: userId,
           profile_id: media.profile_id,
           function_name: 'generate-media-metadata',
           provider: model.split('/')[0],
@@ -1270,7 +1280,7 @@ Use this precise transcription to analyze the audio content. Focus on extracting
           .eq('id', documentId);
 
         await supabase.from('ai_usage_logs').insert({
-          user_id: user.id,
+          user_id: userId,
           profile_id: doc.profile_id,
           function_name: 'generate-media-metadata',
           provider: model.split('/')[0],

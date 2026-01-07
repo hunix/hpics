@@ -14,20 +14,36 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
+    // Create client with user's auth header for getClaims
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    // Validate JWT using getClaims
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      throw new Error('Invalid authorization');
+    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
+    
+    const userId = claimsData.claims.sub as string;
+    
+    // Use service role client for database operations
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { 
       mediaUrl, 
@@ -63,7 +79,7 @@ serve(async (req) => {
           avatar_url
         )
       `)
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     if (bioError) {
       console.error('Error fetching biometrics:', bioError);
@@ -232,7 +248,7 @@ Sort matches by confidence descending. Only include matches with confidence > 0.
 
     // Log AI usage
     await supabase.from('ai_usage_logs').insert({
-      user_id: user.id,
+      user_id: userId,
       function_name: 'match-biometrics',
       provider: 'openrouter',
       model_name: 'google/gemini-2.5-flash',
@@ -266,7 +282,7 @@ Sort matches by confidence descending. Only include matches with confidence > 0.
     const { data: matchRecord } = await supabase
       .from('biometric_matches')
       .insert({
-        user_id: user.id,
+        user_id: userId,
         source_type: sourceType || 'unknown',
         source_id: sourceId,
         match_type: matchType,
@@ -288,7 +304,7 @@ Sort matches by confidence descending. Only include matches with confidence > 0.
           .upsert({
             media_id: sourceId,
             profile_id: bestMatch.profile_id,
-            user_id: user.id,
+            user_id: userId,
             confidence: bestMatch.confidence,
             auto_detected: true
           }, {
