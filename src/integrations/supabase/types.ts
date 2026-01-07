@@ -1233,6 +1233,57 @@ export type Database = {
         }
         Relationships: []
       }
+      bulk_operation_queue: {
+        Row: {
+          completed_at: string | null
+          completed_items: number | null
+          created_at: string | null
+          error_message: string | null
+          failed_items: number | null
+          id: string
+          metadata: Json | null
+          operation_type: string
+          progress: number | null
+          started_at: string | null
+          status: string | null
+          target_ids: string[]
+          total_items: number
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_items?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          failed_items?: number | null
+          id?: string
+          metadata?: Json | null
+          operation_type: string
+          progress?: number | null
+          started_at?: string | null
+          status?: string | null
+          target_ids: string[]
+          total_items: number
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_items?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          failed_items?: number | null
+          id?: string
+          metadata?: Json | null
+          operation_type?: string
+          progress?: number | null
+          started_at?: string | null
+          status?: string | null
+          target_ids?: string[]
+          total_items?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       certifications: {
         Row: {
           created_at: string
@@ -6114,6 +6165,33 @@ export type Database = {
         }
         Relationships: []
       }
+      query_cache: {
+        Row: {
+          cache_key: string
+          created_at: string | null
+          expires_at: string
+          id: string
+          result: Json
+          user_id: string
+        }
+        Insert: {
+          cache_key: string
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          result: Json
+          user_id: string
+        }
+        Update: {
+          cache_key?: string
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          result?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       relationship_goals: {
         Row: {
           created_at: string
@@ -6621,6 +6699,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      storage_snapshots: {
+        Row: {
+          created_at: string | null
+          id: string
+          media_by_type: Json | null
+          snapshot_date: string
+          total_contacts: number | null
+          total_document_bytes: number | null
+          total_document_files: number | null
+          total_media_bytes: number | null
+          total_media_files: number | null
+          total_messages: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          media_by_type?: Json | null
+          snapshot_date: string
+          total_contacts?: number | null
+          total_document_bytes?: number | null
+          total_document_files?: number | null
+          total_media_bytes?: number | null
+          total_media_files?: number | null
+          total_messages?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          media_by_type?: Json | null
+          snapshot_date?: string
+          total_contacts?: number | null
+          total_document_bytes?: number | null
+          total_document_files?: number | null
+          total_media_bytes?: number | null
+          total_media_files?: number | null
+          total_messages?: number | null
+          user_id?: string
+        }
+        Relationships: []
       }
       synced_calendar_events: {
         Row: {
@@ -7542,7 +7662,19 @@ export type Database = {
       }
     }
     Functions: {
+      archive_old_messages: {
+        Args: { days_old?: number }
+        Returns: {
+          archived_count: number
+          freed_bytes: number
+        }[]
+      }
       bootstrap_first_admin: { Args: never; Returns: boolean }
+      clean_expired_cache: { Args: never; Returns: number }
+      create_storage_snapshot: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       find_cross_reference_matches: {
         Args: {
           p_normalized_value: string
@@ -7570,6 +7702,10 @@ export type Database = {
           total_bytes: number
           user_id: string
         }[]
+      }
+      get_or_set_cache: {
+        Args: { p_cache_key: string; p_ttl_seconds?: number; p_user_id: string }
+        Returns: Json
       }
       get_single_contact_storage: {
         Args: { p_profile_id: string; p_user_id: string }
