@@ -1,11 +1,11 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, User, Loader2 } from 'lucide-react';
+import { Plus, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { ContactDialog } from '@/components/contacts/ContactDialog';
 import { ContactsToolbar, ViewMode, SortOption } from '@/components/contacts/ContactsToolbar';
@@ -49,7 +49,6 @@ export default function Contacts() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { trackBulkOperation } = useSecurityMonitor();
-  const loadMoreRef = useRef<HTMLDivElement>(null);
   
   // UI State
   const [searchQuery, setSearchQuery] = useState('');
@@ -119,24 +118,6 @@ export default function Contacts() {
     if (!relationshipFilter) return [];
     return getSubtypesForRelationship(relationshipFilter);
   }, [relationshipFilter]);
-
-  // Intersection observer for infinite scroll
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const toggleFavoriteMutation = useMutation({
     mutationFn: async ({ id, isFavorite }: { id: string; isFavorite: boolean }) => {
@@ -299,6 +280,10 @@ export default function Contacts() {
               onToggleFavorite={(id, isFav) => toggleFavoriteMutation.mutate({ id, isFavorite: isFav })}
               relationshipColors={relationshipColors}
               viewMode={viewMode}
+              hasNextPage={hasNextPage}
+              isFetchingNextPage={isFetchingNextPage}
+              fetchNextPage={fetchNextPage}
+              totalCount={totalCount}
             />
           );
         case 'avatars':
@@ -312,31 +297,16 @@ export default function Contacts() {
               onToggleFavorite={(id, isFav) => toggleFavoriteMutation.mutate({ id, isFavorite: isFav })}
               relationshipColors={relationshipColors}
               columns={viewMode === 'avatars' ? 6 : 3}
+              hasNextPage={hasNextPage}
+              isFetchingNextPage={isFetchingNextPage}
+              fetchNextPage={fetchNextPage}
+              totalCount={totalCount}
             />
           );
       }
     })();
 
-    return (
-      <div className="space-y-4">
-        {viewContent}
-        
-        {/* Load more trigger */}
-        <div ref={loadMoreRef} className="py-4 flex justify-center">
-          {isFetchingNextPage && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Loading more contacts...</span>
-            </div>
-          )}
-          {!hasNextPage && contacts.length > 0 && (
-            <span className="text-sm text-muted-foreground">
-              Showing all {totalCount} contacts
-            </span>
-          )}
-        </div>
-      </div>
-    );
+    return viewContent;
   };
 
   return (
