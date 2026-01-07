@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -7,10 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { 
   Activity, MessageSquare, Mail, Phone, Video, FileText, 
   Image, Brain, AlertTriangle, MapPin, RefreshCw, Filter,
-  ChevronDown, Clock
+  ChevronDown, Clock, Bell, BellOff
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -19,7 +21,10 @@ import {
   DropdownMenuContent,
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
+import { toast } from 'sonner';
 
 interface ActivityItem {
   id: string;
@@ -58,11 +63,108 @@ const sourceColors: Record<string, string> = {
   ai: 'bg-pink-500/10 text-pink-600',
 };
 
+const FILTER_STORAGE_KEY = 'activity-feed-filters';
+const NOTIFICATIONS_KEY = 'activity-feed-notifications';
+
 export function LiveActivityFeed() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [filter, setFilter] = useState<string[]>(['all']);
+  
+  // Load persisted filter preferences
+  const [filter, setFilter] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(FILTER_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : ['all'];
+    } catch {
+      return ['all'];
+    }
+  });
+  
   const [isRealtime, setIsRealtime] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
+    try {
+      return localStorage.getItem(NOTIFICATIONS_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+
+  // Check notification permission on mount
+  useEffect(() => {
+    if ('Notification' in window) {
+      setNotificationPermission(Notification.permission);
+    }
+  }, []);
+
+  // Persist filter preferences
+  useEffect(() => {
+    try {
+      localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(filter));
+    } catch {
+      // Ignore storage errors
+    }
+  }, [filter]);
+
+  // Request notification permission
+  const requestNotificationPermission = useCallback(async () => {
+    if (!('Notification' in window)) {
+      toast.error('Notifications not supported in this browser');
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    setNotificationPermission(permission);
+    
+    if (permission === 'granted') {
+      setNotificationsEnabled(true);
+      localStorage.setItem(NOTIFICATIONS_KEY, 'true');
+      toast.success('Desktop notifications enabled');
+    } else {
+      toast.error('Notification permission denied');
+    }
+  }, []);
+
+  const toggleNotifications = useCallback(() => {
+    if (notificationsEnabled) {
+      setNotificationsEnabled(false);
+      localStorage.setItem(NOTIFICATIONS_KEY, 'false');
+    } else {
+      if (notificationPermission === 'granted') {
+        setNotificationsEnabled(true);
+        localStorage.setItem(NOTIFICATIONS_KEY, 'true');
+      } else {
+        requestNotificationPermission();
+      }
+    }
+  }, [notificationsEnabled, notificationPermission, requestNotificationPermission]);
+
+  // Send desktop notification
+  const sendNotification = useCallback((item: ActivityItem) => {
+    if (!notificationsEnabled || notificationPermission !== 'granted') return;
+
+    const title = item.is_anomaly ? '⚠️ Anomaly Detected' : item.title;
+    const body = item.description || item.anomaly_reason || 'New activity in your network';
+
+    try {
+      const notification = new Notification(title, {
+        body,
+        icon: '/pwa-192x192.png',
+        tag: item.id,
+        requireInteraction: item.is_anomaly,
+      });
+
+      notification.onclick = () => {
+        window.focus();
+        if (item.profile_id) {
+          navigate(`/contacts/${item.profile_id}`);
+        }
+        notification.close();
+      };
+    } catch (error) {
+      console.error('Failed to send notification:', error);
+    }
+  }, [notificationsEnabled, notificationPermission, navigate]);
 
   const { data: activities, isLoading, refetch } = useQuery({
     queryKey: ['activity-feed', user?.id, filter],
@@ -89,7 +191,7 @@ export function LiveActivityFeed() {
     refetchInterval: isRealtime ? 30000 : false,
   });
 
-  // Subscribe to realtime updates
+  // Subscribe to realtime updates with notifications
   useEffect(() => {
     if (!user || !isRealtime) return;
 
@@ -103,8 +205,14 @@ export function LiveActivityFeed() {
           table: 'contact_activity_feed',
           filter: `user_id=eq.${user.id}`,
         },
-        () => {
+        (payload) => {
           refetch();
+          
+          // Send notification for high priority or anomaly activities
+          const newActivity = payload.new as ActivityItem;
+          if (newActivity.is_anomaly || newActivity.importance_score >= 7) {
+            sendNotification(newActivity);
+          }
         }
       )
       .subscribe();
@@ -112,7 +220,7 @@ export function LiveActivityFeed() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, isRealtime, refetch]);
+  }, [user, isRealtime, refetch, sendNotification]);
 
   const activityTypes = [
     { value: 'all', label: 'All Activities' },
@@ -182,15 +290,34 @@ export function LiveActivityFeed() {
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant={notificationsEnabled ? 'default' : 'outline'}
+              size="sm"
+              onClick={toggleNotifications}
+              title={notificationsEnabled ? 'Disable notifications' : 'Enable notifications'}
+            >
+              {notificationsEnabled ? (
+                <Bell className="h-4 w-4" />
+              ) : (
+                <BellOff className="h-4 w-4" />
+              )}
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">
                   <Filter className="h-4 w-4 mr-1" />
                   Filter
+                  {!filter.includes('all') && (
+                    <Badge variant="secondary" className="ml-1 h-5 px-1.5">
+                      {filter.length}
+                    </Badge>
+                  )}
                   <ChevronDown className="h-3 w-3 ml-1" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Activity Types</DropdownMenuLabel>
+                <DropdownMenuSeparator />
                 {activityTypes.map(type => (
                   <DropdownMenuCheckboxItem
                     key={type.value}
@@ -233,7 +360,7 @@ export function LiveActivityFeed() {
                             Anomaly
                           </Badge>
                         )}
-                        {item.importance_score >= 80 && (
+                        {item.importance_score >= 8 && (
                           <Badge variant="secondary">High Priority</Badge>
                         )}
                       </div>

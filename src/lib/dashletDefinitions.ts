@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, MessageSquare, Calendar, Star, Clock, TrendingUp, BarChart3, Network, Sparkles, UserPlus, Target, Activity, Shield, Brain, ShieldCheck, Zap, Radio, AlertTriangle } from 'lucide-react';
+import { Users, MessageSquare, Calendar, Star, Clock, TrendingUp, BarChart3, Network, Sparkles, UserPlus, Target, Activity, Shield, Brain, ShieldCheck, Zap, Radio, AlertTriangle, PieChart, CalendarClock, UsersRound } from 'lucide-react';
 
 // All available dashlet types
 export interface DashletConfig {
@@ -29,7 +29,10 @@ export type DashletType =
   | 'data-quality'
   | 'proactive-actions'
   | 'live-activity-feed'
-  | 'anomaly-detection';
+  | 'anomaly-detection'
+  | 'relationship-analytics'
+  | 'ai-contact-grouping'
+  | 'calendar-sync-status';
 
 export interface DashletDefinition {
   type: DashletType;
@@ -192,6 +195,30 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     icon: AlertTriangle,
     defaultVisible: true,
     category: 'ai',
+  },
+  {
+    type: 'relationship-analytics',
+    title: 'Relationship Analytics',
+    description: 'Communication trends, engagement charts, and metrics',
+    icon: PieChart,
+    defaultVisible: true,
+    category: 'relationships',
+  },
+  {
+    type: 'ai-contact-grouping',
+    title: 'AI Contact Grouping',
+    description: 'AI-suggested smart groups based on patterns',
+    icon: UsersRound,
+    defaultVisible: true,
+    category: 'ai',
+  },
+  {
+    type: 'calendar-sync-status',
+    title: 'Calendar Sync Status',
+    description: 'Monitor calendar synchronization status',
+    icon: CalendarClock,
+    defaultVisible: true,
+    category: 'tools',
   },
 ];
 

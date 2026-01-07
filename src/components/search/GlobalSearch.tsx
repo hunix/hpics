@@ -22,9 +22,12 @@ import {
   Clock,
   Building2,
   Briefcase,
+  Filter,
+  Star,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
+import { AdvancedContactSearch } from "./AdvancedContactSearch";
 
 interface SearchResult {
   id: string;
@@ -288,16 +291,19 @@ export function GlobalSearch() {
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground bg-muted/50 hover:bg-muted rounded-md border border-border transition-colors"
-      >
-        <Search className="h-4 w-4" />
-        <span className="hidden sm:inline">Search...</span>
-        <kbd className="hidden sm:inline-flex h-5 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-          <span className="text-xs">⌘</span>K
-        </kbd>
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground bg-muted/50 hover:bg-muted rounded-md border border-border transition-colors"
+        >
+          <Search className="h-4 w-4" />
+          <span className="hidden sm:inline">Search...</span>
+          <kbd className="hidden sm:inline-flex h-5 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+            <span className="text-xs">⌘</span>K
+          </kbd>
+        </button>
+        <AdvancedContactSearch />
+      </div>
 
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput 

@@ -173,3 +173,9 @@ verify_jwt = false
 
 [functions.generate-executive-summary]
 verify_jwt = false
+
+[functions.suggest-contact-groups]
+verify_jwt = false
+
+[functions.auto-sync-calendars]
+verify_jwt = false
