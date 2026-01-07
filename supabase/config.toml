@@ -212,3 +212,6 @@ verify_jwt = false
 
 [functions.analyze-conversation-deep]
 verify_jwt = false
+
+[functions.aggregate-media-intelligence]
+verify_jwt = false

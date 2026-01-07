@@ -17,10 +17,17 @@ interface BulkMetadataGeneratorProps {
 }
 
 const MODEL_OPTIONS = [
-  { value: 'google/gemini-2.5-flash', label: 'Gemini 2.5 Flash (Recommended)', costPer1K: 0.075 },
-  { value: 'google/gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite (Cheapest)', costPer1K: 0.019 },
-  { value: 'google/gemini-2.5-pro', label: 'Gemini 2.5 Pro (High Quality)', costPer1K: 1.25 },
-  { value: 'google/gemini-3-pro-preview', label: 'Gemini 3 Pro (Best Quality)', costPer1K: 1.5 },
+  { value: 'google/gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite (Fastest)', costPer1K: 0.019, tier: 'quick' },
+  { value: 'google/gemini-2.5-flash', label: 'Gemini 2.5 Flash (Recommended)', costPer1K: 0.075, tier: 'standard' },
+  { value: 'google/gemini-2.5-pro', label: 'Gemini 2.5 Pro (High Quality)', costPer1K: 1.25, tier: 'deep' },
+  { value: 'google/gemini-3-pro-preview', label: 'Gemini 3 Pro (Best Quality)', costPer1K: 1.5, tier: 'maximum' },
+];
+
+const ANALYSIS_TIERS = [
+  { value: 'quick', label: 'Quick Scan', description: 'Basic metadata + tags', modelDefault: 'google/gemini-2.5-flash-lite', costMultiplier: 0.3 },
+  { value: 'standard', label: 'Standard', description: 'Full analysis schema', modelDefault: 'google/gemini-2.5-flash', costMultiplier: 1.0 },
+  { value: 'deep', label: 'Deep Intelligence', description: 'All modes + cross-reference', modelDefault: 'google/gemini-2.5-pro', costMultiplier: 2.5 },
+  { value: 'maximum', label: 'Maximum Intelligence', description: 'Gemini 3 Pro + aggregation', modelDefault: 'google/gemini-3-pro-preview', costMultiplier: 4.0 },
 ];
 
 // Estimated tokens per file type (enhanced metadata uses more output tokens)
@@ -36,16 +43,27 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const [selectedTier, setSelectedTier] = useState('standard');
   const [selectedModel, setSelectedModel] = useState('google/gemini-2.5-flash');
   const [includeImages, setIncludeImages] = useState(true);
   const [includeAudio, setIncludeAudio] = useState(true);
   const [includeVideos, setIncludeVideos] = useState(true);
   const [includeDocuments, setIncludeDocuments] = useState(true);
   const [skipProcessed, setSkipProcessed] = useState(true);
+  const [runAggregation, setRunAggregation] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [progress, setProgress] = useState({ completed: 0, failed: 0, total: 0, current: '' });
   const [totalCost, setTotalCost] = useState(0);
+
+  // Update model when tier changes
+  const handleTierChange = (tier: string) => {
+    setSelectedTier(tier);
+    const tierConfig = ANALYSIS_TIERS.find(t => t.value === tier);
+    if (tierConfig) {
+      setSelectedModel(tierConfig.modelDefault);
+    }
+  };
 
   // Fetch media counts using RPC to avoid 1000 row limit
   const { data: mediaCounts } = useQuery({
@@ -90,12 +108,13 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
     enabled: !!user,
   });
 
-  // Calculate estimated cost
+  // Calculate estimated cost with tier multiplier
   const estimatedCost = (() => {
     if (!mediaCounts || !documentCounts) return 0;
 
     const model = MODEL_OPTIONS.find(m => m.value === selectedModel);
-    if (!model) return 0;
+    const tier = ANALYSIS_TIERS.find(t => t.value === selectedTier);
+    if (!model || !tier) return 0;
 
     let totalTokens = 0;
     if (includeImages) totalTokens += mediaCounts.counts.image * TOKEN_ESTIMATES.image;
@@ -103,7 +122,8 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
     if (includeVideos) totalTokens += mediaCounts.counts.video * TOKEN_ESTIMATES.video;
     if (includeDocuments) totalTokens += documentCounts.count * TOKEN_ESTIMATES.document;
 
-    return (totalTokens / 1_000_000) * model.costPer1K;
+    // Apply tier cost multiplier
+    return (totalTokens / 1_000_000) * model.costPer1K * tier.costMultiplier;
   })();
 
   const totalItems = (() => {
@@ -139,6 +159,7 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
           documentIds,
           regenerate: !skipProcessed,
           model: selectedModel,
+          tier: selectedTier,
         }),
         signal: abortSignal,
       }
@@ -348,6 +369,28 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
           </div>
         </div>
 
+        {/* Analysis Tier Selection */}
+        <div className="space-y-3">
+          <label className="text-sm font-medium">Analysis Depth</label>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {ANALYSIS_TIERS.map((tier) => (
+              <button
+                key={tier.value}
+                onClick={() => handleTierChange(tier.value)}
+                disabled={isProcessing}
+                className={`p-3 rounded-lg border text-left transition-colors ${
+                  selectedTier === tier.value 
+                    ? 'border-primary bg-primary/5' 
+                    : 'border-border hover:border-primary/50'
+                } ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <span className="font-medium text-sm block">{tier.label}</span>
+                <span className="text-xs text-muted-foreground">{tier.description}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Model selection */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -367,14 +410,26 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Options</label>
-            <label className="flex items-center gap-2 cursor-pointer p-2 border rounded-md">
-              <Checkbox
-                checked={skipProcessed}
-                onCheckedChange={(c) => setSkipProcessed(!!c)}
-                disabled={isProcessing}
-              />
-              <span className="text-sm">Skip already processed</span>
-            </label>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer p-2 border rounded-md">
+                <Checkbox
+                  checked={skipProcessed}
+                  onCheckedChange={(c) => setSkipProcessed(!!c)}
+                  disabled={isProcessing}
+                />
+                <span className="text-sm">Skip already processed</span>
+              </label>
+              {selectedTier === 'maximum' && (
+                <label className="flex items-center gap-2 cursor-pointer p-2 border rounded-md">
+                  <Checkbox
+                    checked={runAggregation}
+                    onCheckedChange={(c) => setRunAggregation(!!c)}
+                    disabled={isProcessing}
+                  />
+                  <span className="text-sm">Run cross-media aggregation</span>
+                </label>
+              )}
+            </div>
           </div>
         </div>
 
