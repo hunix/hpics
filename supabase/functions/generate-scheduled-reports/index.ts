@@ -22,10 +22,13 @@ serve(async (req) => {
 
     const authHeader = req.headers.get("Authorization");
     if (authHeader) {
+      const authClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+        global: { headers: { Authorization: authHeader } }
+      });
       const token = authHeader.replace("Bearer ", "");
-      const { data: { user } } = await supabase.auth.getUser(token);
-      if (user) {
-        targetUserId = user.id;
+      const { data: claimsData } = await (authClient.auth as any).getClaims(token);
+      if (claimsData?.claims?.sub) {
+        targetUserId = claimsData.claims.sub;
       }
     }
 

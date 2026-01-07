@@ -26,19 +26,22 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await (supabase.auth as any).getClaims(token);
+    if (claimsError || !claimsData?.claims?.sub) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    const userId = claimsData.claims.sub;
+
     // Fetch active rules
     const { data: rules } = await supabase
       .from('intelligence_alert_rules')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('is_active', true);
 
     if (!rules || rules.length === 0) {
@@ -51,28 +54,28 @@ serve(async (req) => {
     const { data: profiles } = await supabase
       .from('profiles')
       .select('id, first_name, last_name, last_contact_date, is_favorite')
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     // Fetch recent communications
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     const { data: communications } = await supabase
       .from('communications')
       .select('profile_id, occurred_at, sentiment_score, content')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .gte('occurred_at', thirtyDaysAgo);
 
     // Fetch recent messages
     const { data: messages } = await supabase
       .from('messages')
       .select('conversation_id, sent_at, content, conversations!inner(profile_id)')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .gte('sent_at', thirtyDaysAgo);
 
     // Fetch behavioral baselines
     const { data: baselines } = await supabase
       .from('behavioral_baselines')
       .select('*')
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     const alertsToCreate: any[] = [];
     const now = new Date();
@@ -191,7 +194,7 @@ serve(async (req) => {
           const { data: existingAlerts } = await supabase
             .from('intelligence_alerts')
             .select('id')
-            .eq('user_id', user.id)
+            .eq('user_id', userId)
             .eq('profile_id', profileId)
             .eq('alert_type', rule.rule_type)
             .eq('is_acknowledged', false)
@@ -199,7 +202,7 @@ serve(async (req) => {
 
           if (!existingAlerts || existingAlerts.length === 0) {
             alertsToCreate.push({
-              user_id: user.id,
+              user_id: userId,
               rule_id: rule.id,
               profile_id: profileId,
               alert_type: rule.rule_type,

@@ -33,15 +33,21 @@ serve(async (req) => {
       });
     }
 
+    const authClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    const { data: claimsData, error: claimsError } = await (authClient.auth as any).getClaims(token);
     
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
+    if (claimsError || !claimsData?.claims?.sub) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const userId = claimsData.claims.sub;
 
     const body: TokenRequest = await req.json();
     const { action, code, refreshToken, clientId, clientSecret, redirectUri } = body;
@@ -119,7 +125,7 @@ serve(async (req) => {
       const { error: upsertError } = await supabase
         .from('google_calendar_config')
         .upsert({
-          user_id: user.id,
+          user_id: userId,
           email: userInfo.email,
           access_token: tokenData.access_token,
           refresh_token: tokenData.refresh_token,
@@ -150,7 +156,7 @@ serve(async (req) => {
       await supabase
         .from('google_calendar_config')
         .delete()
-        .eq('user_id', user.id);
+        .eq('user_id', userId);
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

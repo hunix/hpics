@@ -239,9 +239,13 @@ serve(async (req) => {
       });
     } else {
       // Authenticated mode: Process only the requesting user
+      const authClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+        global: { headers: { Authorization: authHeader! } }
+      });
       const token = authHeader!.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-      if (authError || !user) throw new Error('Unauthorized');
+      const { data: claimsData, error: claimsError } = await (authClient.auth as any).getClaims(token);
+      if (claimsError || !claimsData?.claims?.sub) throw new Error('Unauthorized');
+      const user = { id: claimsData.claims.sub };
 
       const result = await generateSummaryForUser(supabase, user.id, lovableApiKey);
 

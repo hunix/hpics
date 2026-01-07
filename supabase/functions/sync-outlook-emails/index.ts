@@ -47,26 +47,34 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
+    const authClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    const { data: claimsData, error: claimsError } = await (authClient.auth as any).getClaims(token);
     
-    if (userError || !user) {
+    if (claimsError || !claimsData?.claims?.sub) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    const userId = claimsData.claims.sub;
+
     const body: SyncRequest = await req.json().catch(() => ({}));
     const { fullSync = false, daysBack = 90, profileId } = body;
 
-    console.log(`[sync-outlook-emails] Starting sync for user: ${user.id}, fullSync: ${fullSync}, daysBack: ${daysBack}`);
+    console.log(`[sync-outlook-emails] Starting sync for user: ${userId}, fullSync: ${fullSync}, daysBack: ${daysBack}`);
 
     // Get OAuth tokens
     const { data: oauthToken, error: tokenError } = await supabase
       .from('oauth_tokens')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('provider', 'microsoft')
       .single();
 
@@ -89,7 +97,7 @@ Deno.serve(async (req) => {
       const { data: config } = await supabase
         .from('outlook_config')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .single();
 
       if (!config) {
@@ -211,7 +219,7 @@ Deno.serve(async (req) => {
         const { data: thread, error: threadError } = await supabase
           .from('email_threads')
           .upsert({
-            user_id: user.id,
+            user_id: userId,
             profile_id: matchedProfileId,
             conversation_id: msg.conversationId,
             subject: msg.subject,
@@ -233,7 +241,7 @@ Deno.serve(async (req) => {
         const { error: msgError } = await supabase
           .from('email_messages')
           .upsert({
-            user_id: user.id,
+            user_id: userId,
             thread_id: thread.id,
             external_id: msg.id,
             sender_email: senderEmail || '',
@@ -270,7 +278,7 @@ Deno.serve(async (req) => {
 
     // Update message counts for threads (ignore if function doesn't exist)
     try {
-      await supabase.rpc('update_email_thread_counts', { p_user_id: user.id });
+      await supabase.rpc('update_email_thread_counts', { p_user_id: userId });
     } catch {
       // Function might not exist yet, that's ok
     }
@@ -279,12 +287,12 @@ Deno.serve(async (req) => {
     await supabase
       .from('outlook_config')
       .update({ last_sync_at: new Date().toISOString() })
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     await supabase
       .from('email_accounts')
       .update({ last_sync_at: new Date().toISOString() })
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('provider', 'outlook');
 
     console.log(`[sync-outlook-emails] Sync complete. Total synced: ${totalSynced}`);

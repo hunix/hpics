@@ -44,16 +44,27 @@ serve(async (req) => {
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      throw new Error("No authorization header");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
+    const authClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } }
+    });
 
-    if (authError || !user) {
-      throw new Error("Unauthorized");
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await (authClient.auth as any).getClaims(token);
+
+    if (claimsError || !claimsData?.claims?.sub) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
+
+    const userId = claimsData.claims.sub;
 
     const { sessionId, action, itemId, modes, context, depth } = await req.json();
 
@@ -67,7 +78,7 @@ serve(async (req) => {
           paused_at: null 
         })
         .eq("id", sessionId)
-        .eq("user_id", user.id);
+        .eq("user_id", userId);
 
       // Get next pending item
       const { data: nextItem, error: itemError } = await supabase
@@ -272,7 +283,7 @@ serve(async (req) => {
         .from("bulk_analysis_sessions")
         .update({ status: "paused", paused_at: new Date().toISOString() })
         .eq("id", sessionId)
-        .eq("user_id", user.id);
+        .eq("user_id", userId);
 
       return new Response(
         JSON.stringify({ paused: true }),
@@ -285,7 +296,7 @@ serve(async (req) => {
         .from("bulk_analysis_sessions")
         .update({ status: "cancelled", completed_at: new Date().toISOString() })
         .eq("id", sessionId)
-        .eq("user_id", user.id);
+        .eq("user_id", userId);
 
       return new Response(
         JSON.stringify({ cancelled: true }),
@@ -344,7 +355,7 @@ serve(async (req) => {
           items:bulk_analysis_items(*)
         `)
         .eq("id", sessionId)
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .single();
 
       return new Response(

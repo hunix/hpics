@@ -42,21 +42,27 @@ serve(async (req) => {
       });
     }
 
+    const authClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    const { data: claimsData, error: claimsError } = await (authClient.auth as any).getClaims(token);
     
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
+    if (claimsError || !claimsData?.claims?.sub) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    const userId = claimsData.claims.sub;
+
     // Get Outlook config from oauth_tokens
     const { data: config, error: configError } = await supabase
       .from('oauth_tokens')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('provider', 'outlook')
       .single();
 
@@ -73,7 +79,7 @@ serve(async (req) => {
     const { data: session } = await supabase
       .from('import_sessions')
       .insert({
-        user_id: user.id,
+        user_id: userId,
         source: 'outlook',
         status: 'processing',
         started_at: new Date().toISOString(),
@@ -121,7 +127,7 @@ serve(async (req) => {
           const { data: existing } = await supabase
             .from('contact_methods')
             .select('profile_id')
-            .eq('user_id', user.id)
+            .eq('user_id', userId)
             .eq('type', 'email')
             .eq('value', email)
             .limit(1);
@@ -138,7 +144,7 @@ serve(async (req) => {
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .insert({
-            user_id: user.id,
+            user_id: userId,
             first_name: contact.givenName || contact.displayName?.split(' ')[0] || '',
             last_name: contact.surname || (contact.displayName?.split(' ').slice(1).join(' ')) || '',
             organization: contact.companyName || null,
@@ -162,7 +168,7 @@ serve(async (req) => {
         
         for (const emailAddr of contact.emailAddresses || []) {
           contactMethods.push({
-            user_id: user.id,
+            user_id: userId,
             profile_id: profile.id,
             type: 'email',
             value: emailAddr.address,
@@ -172,7 +178,7 @@ serve(async (req) => {
 
         if (contact.mobilePhone) {
           contactMethods.push({
-            user_id: user.id,
+            user_id: userId,
             profile_id: profile.id,
             type: 'phone',
             value: contact.mobilePhone,
@@ -182,7 +188,7 @@ serve(async (req) => {
 
         for (const phone of contact.businessPhones || []) {
           contactMethods.push({
-            user_id: user.id,
+            user_id: userId,
             profile_id: profile.id,
             type: 'phone',
             value: phone,
@@ -192,7 +198,7 @@ serve(async (req) => {
 
         for (const phone of contact.homePhones || []) {
           contactMethods.push({
-            user_id: user.id,
+            user_id: userId,
             profile_id: profile.id,
             type: 'phone',
             value: phone,

@@ -35,21 +35,27 @@ serve(async (req) => {
       });
     }
 
+    const authClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    const { data: claimsData, error: claimsError } = await (authClient.auth as any).getClaims(token);
     
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
+    if (claimsError || !claimsData?.claims?.sub) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    const userId = claimsData.claims.sub;
+
     // Get Google Calendar config
     const { data: config, error: configError } = await supabase
       .from('google_calendar_config')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .single();
 
     if (configError || !config) {
@@ -102,7 +108,7 @@ serve(async (req) => {
       const { data: existing } = await supabase
         .from('events')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('external_id', event.id)
         .maybeSingle();
 
@@ -123,7 +129,7 @@ serve(async (req) => {
         const { data: newEvent } = await supabase
           .from('events')
           .insert({
-            user_id: user.id,
+            user_id: userId,
             title: event.summary,
             description: event.description || null,
             event_date: eventDate,
@@ -144,7 +150,7 @@ serve(async (req) => {
             const { data: contact } = await supabase
               .from('contact_methods')
               .select('profile_id')
-              .eq('user_id', user.id)
+              .eq('user_id', userId)
               .eq('type', 'email')
               .ilike('value', attendee.email)
               .maybeSingle();
@@ -170,7 +176,7 @@ serve(async (req) => {
         sync_status: 'completed',
         events_synced: (config.events_synced || 0) + synced,
       })
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     return new Response(JSON.stringify({
       success: true,
