@@ -33,6 +33,10 @@ import { AIContactGrouping } from '@/components/contacts/AIContactGrouping';
 import { CalendarSyncStatus } from '@/components/dashboard/CalendarSyncStatus';
 import { BiometricStatusWidget } from '@/components/dashboard/BiometricStatusWidget';
 import { RelationshipOverviewWidget } from '@/components/intelligence/RelationshipOverviewWidget';
+import { RelationshipForecastWidget } from '@/components/intelligence/RelationshipForecastWidget';
+import { NetworkRiskPanel } from '@/components/intelligence/NetworkRiskPanel';
+import { IntroductionMatcherPanel } from '@/components/intelligence/IntroductionMatcherPanel';
+import { DailyBriefingWidget } from '@/components/intelligence/DailyBriefingWidget';
 import type { DashletType } from '@/lib/dashletDefinitions';
 
 export default function Dashboard() {
@@ -326,6 +330,14 @@ export default function Dashboard() {
         return <BiometricStatusWidget />;
       case 'influence-overview':
         return <RelationshipOverviewWidget />;
+      case 'relationship-forecast':
+        return <RelationshipForecastWidget />;
+      case 'network-risk':
+        return <NetworkRiskPanel />;
+      case 'introduction-matcher':
+        return <IntroductionMatcherPanel />;
+      case 'daily-briefing':
+        return <DailyBriefingWidget />;
       default:
         return null;
     }

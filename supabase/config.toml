@@ -248,3 +248,9 @@ verify_jwt = false
 
 [functions.analyze-methodology-effectiveness]
 verify_jwt = false
+
+[functions.detect-shared-experiences]
+verify_jwt = false
+
+[functions.detect-life-milestones]
+verify_jwt = false
