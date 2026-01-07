@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Play, Clock, Calendar, Bell, FileText, Brain, RefreshCw } from 'lucide-react';
+import { Loader2, Play, Clock, Calendar, Bell, FileText, Brain, Zap } from 'lucide-react';
 
 interface CronJob {
   id: string;
@@ -51,11 +50,18 @@ const defaultJobs: Omit<CronJob, 'enabled'>[] = [
     functionName: 'generate-scheduled-reports',
     icon: FileText,
   },
+  {
+    id: 'push-triggers',
+    name: 'Push Notification Triggers',
+    description: 'Check for events, decay alerts, and send push notifications',
+    schedule: '*/15 * * * *', // Every 15 minutes
+    functionName: 'trigger-push-notifications',
+    icon: Zap,
+  },
 ];
 
 export function CronJobManager() {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [runningJobs, setRunningJobs] = useState<Set<string>>(new Set());
 
   // This would typically fetch from a cron_jobs table if you have one
@@ -110,10 +116,19 @@ export function CronJobManager() {
     const parts = cron.split(' ');
     const [minute, hour, dayOfMonth, month, dayOfWeek] = parts;
 
-    if (dayOfWeek === '0' && hour === '9') return 'Every Sunday at 9 AM';
-    if (dayOfWeek === '1' && hour === '7') return 'Every Monday at 7 AM';
+    // Every X minutes
+    if (minute.startsWith('*/')) {
+      const interval = minute.slice(2);
+      return `Every ${interval} minutes`;
+    }
+
+    if (dayOfWeek === '0' && hour === '9') return 'Every Sunday at 9 AM UTC';
+    if (dayOfWeek === '1' && hour === '7') return 'Every Monday at 7 AM UTC';
     if (dayOfMonth === '*' && month === '*' && dayOfWeek === '*') {
-      return `Daily at ${parseInt(hour)}:${minute.padStart(2, '0')} ${parseInt(hour) >= 12 ? 'PM' : 'AM'}`;
+      const hourNum = parseInt(hour);
+      const ampm = hourNum >= 12 ? 'PM' : 'AM';
+      const displayHour = hourNum > 12 ? hourNum - 12 : hourNum === 0 ? 12 : hourNum;
+      return `Daily at ${displayHour}:${minute.padStart(2, '0')} ${ampm} UTC`;
     }
     return cron;
   };

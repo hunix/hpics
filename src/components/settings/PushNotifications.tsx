@@ -8,9 +8,28 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { Bell, BellOff, Smartphone, Calendar, UserCheck, Loader2 } from 'lucide-react';
+import { Bell, BellOff, Smartphone, Calendar, UserCheck, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 
-export function PushNotifications() {
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+interface PushNotificationsProps {
+  vapidPublicKey?: string;
+}
+
+export function PushNotifications({ vapidPublicKey }: PushNotificationsProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -19,6 +38,8 @@ export function PushNotifications() {
   const [followUpReminders, setFollowUpReminders] = useState(true);
   const [eventReminders, setEventReminders] = useState(true);
   const [decayAlerts, setDecayAlerts] = useState(true);
+
+  const isProductionMode = !!vapidPublicKey && vapidPublicKey.length > 60;
 
   useEffect(() => {
     setIsSupported('Notification' in window && 'serviceWorker' in navigator);
@@ -53,23 +74,38 @@ export function PushNotifications() {
       // Register service worker and get push subscription
       const registration = await navigator.serviceWorker.ready;
       
-      // In production, use your VAPID public key
-      // For demo, we'll create a simulated subscription
-      const existingSubscription = await registration.pushManager.getSubscription();
-      
-      let sub = existingSubscription;
-      if (!sub) {
-        // Create demo subscription record (in production, use real VAPID keys)
-        sub = {
-          endpoint: `https://push.example.com/${crypto.randomUUID()}`,
-          getKey: (name: string) => new Uint8Array(32),
-        } as unknown as PushSubscription;
-      }
+      let sub: PushSubscription | null = null;
+      let endpoint: string;
+      let p256dh: string;
+      let auth: string;
 
-      const endpoint = sub.endpoint;
-      // Demo keys - in production, these come from the actual subscription
-      const p256dh = btoa(String.fromCharCode(...new Uint8Array(32)));
-      const auth = btoa(String.fromCharCode(...new Uint8Array(16)));
+      if (isProductionMode) {
+        // Production mode: Use real VAPID key
+        const existingSubscription = await registration.pushManager.getSubscription();
+        
+        if (existingSubscription) {
+          // Unsubscribe old subscription to get new one with correct VAPID key
+          await existingSubscription.unsubscribe();
+        }
+
+        const appServerKey = urlBase64ToUint8Array(vapidPublicKey!);
+        sub = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: appServerKey.buffer as ArrayBuffer
+        });
+
+        endpoint = sub.endpoint;
+        const p256dhKey = sub.getKey('p256dh');
+        const authKey = sub.getKey('auth');
+        
+        p256dh = p256dhKey ? btoa(String.fromCharCode(...Array.from(new Uint8Array(p256dhKey)))) : '';
+        auth = authKey ? btoa(String.fromCharCode(...Array.from(new Uint8Array(authKey)))) : '';
+      } else {
+        // Demo mode: Create simulated subscription
+        endpoint = `https://push.example.com/demo/${crypto.randomUUID()}`;
+        p256dh = btoa(String.fromCharCode(...new Uint8Array(65)));
+        auth = btoa(String.fromCharCode(...new Uint8Array(16)));
+      }
 
       const { error } = await supabase.from('push_subscriptions').upsert({
         user_id: user!.id,
@@ -82,12 +118,15 @@ export function PushNotifications() {
       });
 
       if (error) throw error;
+      return isProductionMode;
     },
-    onSuccess: () => {
+    onSuccess: (isProd) => {
       queryClient.invalidateQueries({ queryKey: ['push-subscription'] });
       toast({ 
         title: 'Push notifications enabled', 
-        description: 'You will receive notifications for reminders and alerts.' 
+        description: isProd 
+          ? 'Production mode: You will receive real push notifications.'
+          : 'Demo mode: Configure VAPID keys for production notifications.'
       });
     },
     onError: (error) => {
@@ -123,7 +162,9 @@ export function PushNotifications() {
   const testNotification = () => {
     if (permission === 'granted') {
       new Notification('PICS Notification Test', {
-        body: 'Push notifications are working correctly!',
+        body: isProductionMode 
+          ? 'Production push notifications are working!' 
+          : 'Demo mode notification. Configure VAPID keys for production.',
         icon: '/pwa-192x192.png',
         badge: '/pwa-192x192.png',
       });
@@ -155,7 +196,21 @@ export function PushNotifications() {
         <CardTitle className="flex items-center gap-2">
           <Bell className="h-5 w-5" />
           Push Notifications
-          {subscription && <Badge variant="secondary" className="ml-2">Active</Badge>}
+          {subscription && (
+            <Badge variant={isProductionMode ? "default" : "secondary"} className="ml-2">
+              {isProductionMode ? (
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Production
+                </span>
+              ) : (
+                <span className="flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  Demo Mode
+                </span>
+              )}
+            </Badge>
+          )}
         </CardTitle>
         <CardDescription>
           Get notified about follow-up reminders, upcoming events, and relationship alerts.
@@ -168,6 +223,12 @@ export function PushNotifications() {
           </div>
         ) : subscription ? (
           <>
+            {!isProductionMode && (
+              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-sm text-amber-600 dark:text-amber-400">
+                Running in demo mode. Configure VAPID keys below for production push notifications.
+              </div>
+            )}
+
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -240,6 +301,11 @@ export function PushNotifications() {
               <p className="text-sm text-muted-foreground mt-1">
                 Stay on top of your relationships with timely reminders and alerts.
               </p>
+              {!isProductionMode && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                  Demo mode active. Configure VAPID keys for production notifications.
+                </p>
+              )}
             </div>
             <Button
               onClick={() => subscribeMutation.mutate()}

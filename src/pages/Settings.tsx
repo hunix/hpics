@@ -52,6 +52,24 @@ export default function Settings() {
     enabled: !!user,
   });
 
+  // Fetch VAPID configuration from app_settings
+  const { data: vapidConfig } = useQuery({
+    queryKey: ['app-settings', 'vapid', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('*')
+        .eq('user_id', user!.id)
+        .eq('setting_key', 'vapid_public_key')
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const vapidPublicKey = vapidConfig?.setting_value || '';
+  const isVapidConfigured = vapidPublicKey.length > 60;
+
   useEffect(() => {
     if (preferences) {
       setEmailReminders(preferences.email_reminders ?? true);
@@ -91,6 +109,14 @@ export default function Settings() {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     },
   });
+
+  const handleVapidSave = (publicKey: string) => {
+    queryClient.invalidateQueries({ queryKey: ['app-settings', 'vapid'] });
+    toast({ 
+      title: 'VAPID public key saved', 
+      description: 'Add the private key as a secret named VAPID_PRIVATE_KEY to enable production push notifications.' 
+    });
+  };
 
   return (
     <AppLayout title="Settings">
@@ -213,14 +239,12 @@ export default function Settings() {
             </CardContent>
           </Card>
 
-          <PushNotifications />
+          <PushNotifications vapidPublicKey={vapidPublicKey} />
 
           <VAPIDConfiguration 
-            isConfigured={false} 
-            onSave={(publicKey) => {
-              // Store public key in user preferences
-              toast({ title: 'VAPID public key saved', description: 'Add the private key as a secret to enable production push notifications.' });
-            }} 
+            isConfigured={isVapidConfigured}
+            currentPublicKey={vapidPublicKey}
+            onSave={handleVapidSave} 
           />
 
           <NotificationPreferences />
@@ -307,7 +331,7 @@ export default function Settings() {
             </CardContent>
           </Card>
 
-          <PushNotifications />
+          <PushNotifications vapidPublicKey={vapidPublicKey} />
         </TabsContent>
       </Tabs>
     </AppLayout>

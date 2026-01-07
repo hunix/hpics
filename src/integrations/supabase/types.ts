@@ -393,6 +393,36 @@ export type Database = {
           },
         ]
       }
+      app_settings: {
+        Row: {
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          setting_key: string
+          setting_value: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          setting_key: string
+          setting_value?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          setting_key?: string
+          setting_value?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       behavioral_analyses: {
         Row: {
           ai_model_used: string | null

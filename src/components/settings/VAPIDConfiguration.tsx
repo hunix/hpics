@@ -1,22 +1,62 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Key, Eye, EyeOff, ExternalLink, Shield, Info, Copy, CheckCircle2 } from 'lucide-react';
+import { Key, Eye, EyeOff, ExternalLink, Shield, Info, Copy, CheckCircle2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface VAPIDConfigurationProps {
   isConfigured: boolean;
+  currentPublicKey?: string;
   onSave: (publicKey: string) => void;
 }
 
-export function VAPIDConfiguration({ isConfigured, onSave }: VAPIDConfigurationProps) {
+export function VAPIDConfiguration({ isConfigured, currentPublicKey, onSave }: VAPIDConfigurationProps) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [publicKey, setPublicKey] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (currentPublicKey) {
+      setPublicKey(currentPublicKey);
+    }
+  }, [currentPublicKey]);
+
+  const saveMutation = useMutation({
+    mutationFn: async (key: string) => {
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('app_settings')
+        .upsert({
+          user_id: user.id,
+          setting_key: 'vapid_public_key',
+          setting_value: key,
+          metadata: { updated_at: new Date().toISOString() }
+        }, {
+          onConflict: 'user_id,setting_key'
+        });
+
+      if (error) throw error;
+      return key;
+    },
+    onSuccess: (key) => {
+      queryClient.invalidateQueries({ queryKey: ['app-settings'] });
+      onSave(key);
+      toast.success('VAPID public key saved to database');
+    },
+    onError: (error) => {
+      toast.error(`Failed to save: ${error.message}`);
+    }
+  });
 
   const handleSave = () => {
     if (!publicKey.trim()) {
@@ -28,8 +68,7 @@ export function VAPIDConfiguration({ isConfigured, onSave }: VAPIDConfigurationP
       toast.warning('VAPID public keys are typically 65+ characters (base64url encoded)');
     }
 
-    onSave(publicKey);
-    toast.info('VAPID public key saved. The private key must be added as a secret.');
+    saveMutation.mutate(publicKey);
   };
 
   const copyExample = () => {
@@ -51,10 +90,10 @@ export function VAPIDConfiguration({ isConfigured, onSave }: VAPIDConfigurationP
             {isConfigured ? (
               <span className="flex items-center gap-1">
                 <CheckCircle2 className="h-3 w-3" />
-                Configured
+                Production Mode
               </span>
             ) : (
-              "Not configured"
+              "Demo Mode"
             )}
           </Badge>
         </div>
@@ -63,11 +102,13 @@ export function VAPIDConfiguration({ isConfigured, onSave }: VAPIDConfigurationP
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Alert>
+        <Alert variant={isConfigured ? "default" : "destructive"}>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            VAPID (Voluntary Application Server Identification) keys are required for secure 
-            web push notifications in production. Without them, push notifications use demo mode.
+            {isConfigured 
+              ? "VAPID keys are configured. Push notifications will work in production."
+              : "VAPID (Voluntary Application Server Identification) keys are required for secure web push notifications. Without them, push notifications use demo mode."
+            }
           </AlertDescription>
         </Alert>
 
@@ -127,7 +168,7 @@ export function VAPIDConfiguration({ isConfigured, onSave }: VAPIDConfigurationP
           <ol className="list-decimal list-inside space-y-1 ml-2">
             <li>Run the command above in your terminal</li>
             <li>Copy the Public Key here</li>
-            <li>Add the Private Key as a secret (Settings → Secrets)</li>
+            <li>Add the Private Key as a secret named VAPID_PRIVATE_KEY</li>
           </ol>
           
           <a
@@ -141,8 +182,12 @@ export function VAPIDConfiguration({ isConfigured, onSave }: VAPIDConfigurationP
           </a>
         </div>
 
-        <Button onClick={handleSave} disabled={!publicKey.trim()}>
-          Save Public Key
+        <Button 
+          onClick={handleSave} 
+          disabled={!publicKey.trim() || saveMutation.isPending}
+        >
+          {saveMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          {isConfigured ? 'Update Public Key' : 'Save Public Key'}
         </Button>
       </CardContent>
     </Card>
