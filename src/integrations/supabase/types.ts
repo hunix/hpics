@@ -7703,6 +7703,28 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_document_folders: {
+        Args: { p_user_id: string }
+        Returns: {
+          first_name: string
+          last_name: string
+          profile_id: string
+          total_bytes: number
+          total_files: number
+        }[]
+      }
+      get_media_folders: {
+        Args: { p_user_id: string }
+        Returns: {
+          audio_count: number
+          first_name: string
+          image_count: number
+          last_name: string
+          profile_id: string
+          total_files: number
+          video_count: number
+        }[]
+      }
       get_or_set_cache: {
         Args: { p_cache_key: string; p_ttl_seconds?: number; p_user_id: string }
         Returns: Json
