@@ -70,7 +70,7 @@ import { TemporalAnalysisPanel } from '@/components/intelligence/TemporalAnalysi
 import { RelationshipTrajectoryPanel } from '@/components/intelligence/RelationshipTrajectoryPanel';
 import { CommunicationTriangulationPanel } from '@/components/intelligence/CommunicationTriangulationPanel';
 import { DeceptionAnalysisPanel } from '@/components/intelligence/DeceptionAnalysisPanel';
-import { BiometricIdentityPanel } from '@/components/contacts/BiometricIdentityPanel';
+import { BiometricSignatureBuilder } from '@/components/contacts/BiometricSignatureBuilder';
 import { cn } from '@/lib/utils';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
 import { ProfileCompletenessWidget } from '@/components/contacts/ProfileCompletenessWidget';
@@ -311,7 +311,7 @@ export default function ContactDetail() {
       case 'comparison':
         return <AnalysisComparison profileId={contact.id} profileName={contactName} />;
       case 'biometrics':
-        return <BiometricIdentityPanel profileId={contact.id} profileName={contactName} />;
+        return <BiometricSignatureBuilder profileId={contact.id} profileName={contactName} avatarUrl={contact.avatar_url} />;
       case 'outreach':
         return <OptimalOutreach profileId={contact.id} contactName={contactName} />;
       case 'templates':
