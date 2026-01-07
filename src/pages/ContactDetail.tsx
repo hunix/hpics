@@ -71,6 +71,7 @@ import { RelationshipTrajectoryPanel } from '@/components/intelligence/Relations
 import { CommunicationTriangulationPanel } from '@/components/intelligence/CommunicationTriangulationPanel';
 import { DeceptionAnalysisPanel } from '@/components/intelligence/DeceptionAnalysisPanel';
 import { BiometricSignatureBuilder } from '@/components/contacts/BiometricSignatureBuilder';
+import { InfluenceDashboard } from '@/components/intelligence/InfluenceDashboard';
 import { cn } from '@/lib/utils';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
 import { ProfileCompletenessWidget } from '@/components/contacts/ProfileCompletenessWidget';
@@ -85,7 +86,7 @@ type SectionId =
   | 'education' | 'messages' | 'timeline' | 'groups' | 'enrich'
   | 'behavioral' | 'facial' | 'body-language' | 'vocal' | 'comparison' | 'biometrics'
   | 'financial' | 'observations'
-  | 'milestones' | 'comm-prefs' | 'interaction-notes' | 'playbook'
+  | 'milestones' | 'comm-prefs' | 'interaction-notes' | 'playbook' | 'influence'
   | 'activity' | 'trust-assessment' | 'dossier' | 'network-intel' | 'locations'
   | 'temporal' | 'trajectory' | 'triangulation' | 'consistency';
 
@@ -109,6 +110,7 @@ const sections: NavSection[] = [
   { id: 'comm-prefs', label: 'How to Interact', icon: Settings2, group: 'Intelligence' },
   { id: 'interaction-notes', label: 'Interaction Notes', icon: StickyNote, group: 'Intelligence' },
   { id: 'playbook', label: 'Interaction Playbook', icon: BookOpen, group: 'Intelligence' },
+  { id: 'influence', label: 'Influence & Strategy', icon: Target, group: 'Intelligence' },
   { id: 'outreach', label: 'Outreach Timing', icon: Clock, group: 'Communication' },
   { id: 'templates', label: 'Message Templates', icon: Sparkles, group: 'Communication' },
   { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, group: 'Communication' },
@@ -300,6 +302,8 @@ export default function ContactDetail() {
         return <InteractionNotesManager profileId={contact.id} contactName={contactName} />;
       case 'playbook':
         return <ContactPlaybook profileId={contact.id} contactName={contactName} />;
+      case 'influence':
+        return <InfluenceDashboard profileId={contact.id} contactName={contactName} />;
       case 'behavioral':
         return <BehavioralAnalysis profileId={contact.id} profileName={contactName} />;
       case 'facial':
