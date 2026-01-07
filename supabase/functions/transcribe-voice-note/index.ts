@@ -106,6 +106,37 @@ serve(async (req) => {
       .eq('id', voiceNoteId)
       .eq('user_id', userId);
 
+    // Get voice note details for biometric matching
+    const { data: voiceNote } = await supabase
+      .from('voice_notes')
+      .select('profile_id')
+      .eq('id', voiceNoteId)
+      .single();
+
+    // Queue voice biometric matching if transcription is substantial
+    if (transcription && transcription.split(/\s+/).length >= 10 && voiceNote?.profile_id) {
+      try {
+        // Create a biometric match record for voice analysis
+        await supabase.from('biometric_matches').insert({
+          user_id: userId,
+          source_type: 'voice_note',
+          source_id: voiceNoteId,
+          match_type: 'voice',
+          auto_tagged: false,
+          confidence_score: 0, // Will be updated when match-biometrics runs
+          alternative_matches: { 
+            pending_analysis: true,
+            word_count: transcription.split(/\s+/).length,
+            audio_url: audioUrl 
+          },
+        });
+        console.log(`Queued voice biometric matching for voice note ${voiceNoteId}`);
+      } catch (bioError) {
+        console.log(`Voice biometric queue error for ${voiceNoteId}:`, bioError);
+        // Non-blocking - don't fail the main process
+      }
+    }
+
     // Log AI usage
     await supabase.from('ai_usage_logs').insert({
       user_id: userId,

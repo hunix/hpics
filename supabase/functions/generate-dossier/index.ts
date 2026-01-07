@@ -26,13 +26,19 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    const token = authHeader.replace('Bearer ', '');
+    const authClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    );
+    const { data: claimsData, error: authError } = await (authClient.auth as any).getClaims(token);
+    if (authError || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    const userId = claimsData.claims.sub;
 
     const { profile_id, dossier_type = 'full', classification = 'internal' } = await req.json();
     if (!profile_id) {
@@ -79,7 +85,7 @@ serve(async (req) => {
       supabase.from('contact_skills').select('*').eq('profile_id', profile_id),
       supabase.from('contact_observations').select('*').eq('profile_id', profile_id),
       supabase.from('communications').select('*').eq('profile_id', profile_id).order('occurred_at', { ascending: false }).limit(100),
-      supabase.from('messages').select('*, conversations!inner(profile_id)').eq('user_id', user.id).limit(200),
+      supabase.from('messages').select('*, conversations!inner(profile_id)').eq('user_id', userId).limit(200),
       supabase.from('behavioral_analyses').select('*').eq('profile_id', profile_id).order('created_at', { ascending: false }).limit(3),
       supabase.from('facial_analyses').select('*').eq('profile_id', profile_id).order('created_at', { ascending: false }).limit(3),
       supabase.from('vocal_analyses').select('*').eq('profile_id', profile_id).order('created_at', { ascending: false }).limit(3),
@@ -341,7 +347,7 @@ Be objective, evidence-based, and professionally formatted. Output as JSON with 
 
     // Store dossier
     const dossierData = {
-      user_id: user.id,
+      user_id: userId,
       profile_id,
       dossier_type,
       title: `${dossier_type.replace('_', ' ').toUpperCase()} - ${profile.first_name} ${profile.last_name}`,

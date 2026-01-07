@@ -246,12 +246,17 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get user from token
+    // Get user from token using getClaims
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      throw new Error('Unauthorized');
+    const authClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!);
+    const { data: claimsData, error: authError } = await (authClient.auth as any).getClaims(token);
+    if (authError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
+    const userId = claimsData.claims.sub;
 
     const { 
       media_id, 
@@ -421,7 +426,7 @@ Be thorough and extract maximum intelligence.`;
       media_id: media_id || null,
       document_id: document_id || null,
       profile_id: profile_id || null,
-      user_id: user.id,
+      user_id: userId,
       media_type,
       analysis_context,
       analysis_modes,
