@@ -6785,6 +6785,54 @@ export type Database = {
           },
         ]
       }
+      prompt_versions: {
+        Row: {
+          avg_cost_cents: number | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          model_tier: string | null
+          prompt_key: string
+          prompt_text: string
+          success_rate: number | null
+          updated_at: string | null
+          usage_count: number | null
+          user_id: string
+          variables: string[] | null
+          version: number
+        }
+        Insert: {
+          avg_cost_cents?: number | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          model_tier?: string | null
+          prompt_key: string
+          prompt_text: string
+          success_rate?: number | null
+          updated_at?: string | null
+          usage_count?: number | null
+          user_id: string
+          variables?: string[] | null
+          version?: number
+        }
+        Update: {
+          avg_cost_cents?: number | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          model_tier?: string | null
+          prompt_key?: string
+          prompt_text?: string
+          success_rate?: number | null
+          updated_at?: string | null
+          usage_count?: number | null
+          user_id?: string
+          variables?: string[] | null
+          version?: number
+        }
+        Relationships: []
+      }
       psychological_profile_history: {
         Row: {
           changes_detected: Json | null
@@ -7064,6 +7112,89 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      relationship_opportunities: {
+        Row: {
+          confidence_score: number | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          metadata: Json | null
+          opportunity_type: string
+          optimal_timing: string | null
+          priority: number | null
+          profile_id: string
+          status: string | null
+          suggested_action: string | null
+          suggested_methodology_id: string | null
+          trigger_event: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          opportunity_type: string
+          optimal_timing?: string | null
+          priority?: number | null
+          profile_id: string
+          status?: string | null
+          suggested_action?: string | null
+          suggested_methodology_id?: string | null
+          trigger_event?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          opportunity_type?: string
+          optimal_timing?: string | null
+          priority?: number | null
+          profile_id?: string
+          status?: string | null
+          suggested_action?: string | null
+          suggested_methodology_id?: string | null
+          trigger_event?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relationship_opportunities_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "relationship_opportunities_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "relationship_opportunities_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relationship_opportunities_suggested_methodology_id_fkey"
+            columns: ["suggested_methodology_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_methodologies"
             referencedColumns: ["id"]
           },
         ]
