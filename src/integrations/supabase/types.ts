@@ -51,6 +51,13 @@ export type Database = {
             foreignKeyName: "ai_analyses_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "ai_analyses_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -165,6 +172,13 @@ export type Database = {
             foreignKeyName: "ai_guided_interviews_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "ai_guided_interviews_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -267,6 +281,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "ai_usage_logs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -427,6 +448,13 @@ export type Database = {
             foreignKeyName: "analysis_sessions_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "analysis_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -520,6 +548,13 @@ export type Database = {
             foreignKeyName: "behavioral_analyses_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "behavioral_analyses_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -600,6 +635,13 @@ export type Database = {
             foreignKeyName: "behavioral_anomalies_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "behavioral_anomalies_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -651,6 +693,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "behavioral_baselines_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -717,6 +766,13 @@ export type Database = {
             foreignKeyName: "biometric_matches_matched_profile_id_fkey"
             columns: ["matched_profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "biometric_matches_matched_profile_id_fkey"
+            columns: ["matched_profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -725,6 +781,13 @@ export type Database = {
             columns: ["user_corrected_profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "biometric_matches_user_corrected_profile_id_fkey"
+            columns: ["user_corrected_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -791,6 +854,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "biometric_samples_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -902,6 +972,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "body_language_analyses_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -1029,6 +1106,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "bulk_analysis_items_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -1201,6 +1285,13 @@ export type Database = {
             foreignKeyName: "certifications_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "certifications_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1252,6 +1343,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "communications_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -1327,6 +1425,13 @@ export type Database = {
             foreignKeyName: "connection_intelligence_profile_a_id_fkey"
             columns: ["profile_a_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "connection_intelligence_profile_a_id_fkey"
+            columns: ["profile_a_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1335,6 +1440,13 @@ export type Database = {
             columns: ["profile_b_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "connection_intelligence_profile_b_id_fkey"
+            columns: ["profile_b_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -1401,6 +1513,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_activity_feed_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -1482,6 +1601,13 @@ export type Database = {
             foreignKeyName: "contact_bank_accounts_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_bank_accounts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1554,6 +1680,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_biometrics_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -1662,6 +1795,13 @@ export type Database = {
             foreignKeyName: "contact_communication_preferences_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_communication_preferences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1710,6 +1850,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_devices_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -1779,6 +1926,13 @@ export type Database = {
             foreignKeyName: "contact_financial_history_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_financial_history_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1827,6 +1981,13 @@ export type Database = {
             foreignKeyName: "contact_graduations_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_graduations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1864,6 +2025,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_group_members_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -1982,6 +2150,13 @@ export type Database = {
             foreignKeyName: "contact_identity_documents_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_identity_documents_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -2075,6 +2250,13 @@ export type Database = {
             foreignKeyName: "contact_interaction_notes_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_interaction_notes_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -2123,6 +2305,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_interests_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -2204,6 +2393,13 @@ export type Database = {
             foreignKeyName: "contact_kids_schools_child_profile_id_fkey"
             columns: ["child_profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_kids_schools_child_profile_id_fkey"
+            columns: ["child_profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -2212,6 +2408,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_kids_schools_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -2257,6 +2460,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_languages_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -2332,6 +2542,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_life_milestones_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -2428,6 +2645,13 @@ export type Database = {
             foreignKeyName: "contact_locations_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_locations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -2467,6 +2691,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_methods_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -2539,6 +2770,13 @@ export type Database = {
             foreignKeyName: "contact_observations_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_observations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -2593,6 +2831,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_payment_accounts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -2725,6 +2970,13 @@ export type Database = {
             foreignKeyName: "contact_personal_info_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: true
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_personal_info_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -2821,6 +3073,13 @@ export type Database = {
             foreignKeyName: "contact_playbooks_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_playbooks_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -2899,6 +3158,13 @@ export type Database = {
             foreignKeyName: "contact_properties_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_properties_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -2968,6 +3234,13 @@ export type Database = {
             foreignKeyName: "contact_relationships_from_profile_id_fkey"
             columns: ["from_profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_relationships_from_profile_id_fkey"
+            columns: ["from_profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -2976,6 +3249,13 @@ export type Database = {
             columns: ["to_profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_relationships_to_profile_id_fkey"
+            columns: ["to_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -3057,6 +3337,13 @@ export type Database = {
             foreignKeyName: "contact_residences_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_residences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -3099,6 +3386,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_skills_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -3159,6 +3453,13 @@ export type Database = {
             foreignKeyName: "contact_travel_history_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_travel_history_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -3213,6 +3514,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_vehicles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -3421,6 +3729,13 @@ export type Database = {
             foreignKeyName: "conversations_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "conversations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -3514,6 +3829,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "cross_references_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -3634,6 +3956,13 @@ export type Database = {
             foreignKeyName: "document_embeddings_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "document_embeddings_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -3700,6 +4029,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "documents_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -3790,6 +4126,13 @@ export type Database = {
             foreignKeyName: "dossiers_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "dossiers_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -3853,6 +4196,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "education_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -4017,6 +4367,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "email_threads_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -4223,6 +4580,13 @@ export type Database = {
             foreignKeyName: "events_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "events_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -4283,6 +4647,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "facial_analyses_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -4406,6 +4777,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "gift_ideas_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -4742,6 +5120,13 @@ export type Database = {
             foreignKeyName: "intelligence_alerts_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "intelligence_alerts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -4899,6 +5284,13 @@ export type Database = {
             foreignKeyName: "media_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "media_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -5036,6 +5428,13 @@ export type Database = {
             foreignKeyName: "media_analyses_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "media_analyses_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -5085,6 +5484,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "media_contact_tags_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -5229,6 +5635,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "meeting_recordings_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -5656,6 +6069,13 @@ export type Database = {
             foreignKeyName: "psychological_profiles_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "psychological_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -5758,6 +6178,13 @@ export type Database = {
             foreignKeyName: "relationship_goals_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "relationship_goals_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -5818,6 +6245,13 @@ export type Database = {
             foreignKeyName: "relationship_scores_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "relationship_scores_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -5860,6 +6294,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "relationship_trends_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -6169,6 +6610,13 @@ export type Database = {
             foreignKeyName: "shared_experiences_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "shared_experiences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -6229,6 +6677,13 @@ export type Database = {
             columns: ["matched_profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "synced_calendar_events_matched_profile_id_fkey"
+            columns: ["matched_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -6301,6 +6756,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "trust_assessments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -6494,6 +6956,13 @@ export type Database = {
             foreignKeyName: "video_mosaics_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "video_mosaics_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -6560,6 +7029,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "vocal_analyses_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -6633,6 +7109,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "voice_notes_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
             referencedColumns: ["profile_id"]
           },
           {
@@ -6907,6 +7390,13 @@ export type Database = {
             foreignKeyName: "whatsapp_import_sessions_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_import_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -7032,31 +7522,21 @@ export type Database = {
           total_bytes: number | null
           user_id: string | null
         }
-        Insert: {
-          avatar_url?: string | null
-          document_bytes?: never
-          document_count?: never
-          first_name?: string | null
-          last_name?: string | null
-          media_bytes?: never
-          media_count?: never
-          message_count?: never
-          profile_id?: string | null
-          total_bytes?: never
-          user_id?: string | null
-        }
-        Update: {
-          avatar_url?: string | null
-          document_bytes?: never
-          document_count?: never
-          first_name?: string | null
-          last_name?: string | null
-          media_bytes?: never
-          media_count?: never
-          message_count?: never
-          profile_id?: string | null
-          total_bytes?: never
-          user_id?: string | null
+        Relationships: []
+      }
+      contact_storage_stats_mv: {
+        Row: {
+          avatar_url: string | null
+          document_bytes: number | null
+          document_count: number | null
+          first_name: string | null
+          last_name: string | null
+          media_bytes: number | null
+          media_count: number | null
+          message_count: number | null
+          profile_id: string | null
+          total_bytes: number | null
+          user_id: string | null
         }
         Relationships: []
       }
@@ -7154,6 +7634,29 @@ export type Database = {
         }
         Returns: Json
       }
+      refresh_contact_storage_stats: { Args: never; Returns: undefined }
+      search_contacts_v2: {
+        Args: {
+          p_is_favorite?: boolean
+          p_limit?: number
+          p_offset?: number
+          p_relationship_type?: string
+          p_search_query?: string
+          p_user_id: string
+        }
+        Returns: {
+          avatar_url: string
+          first_name: string
+          id: string
+          is_favorite: boolean
+          job_title: string
+          last_name: string
+          organization: string
+          relationship_type: string
+          tags: string[]
+          total_count: number
+        }[]
+      }
       search_document_embeddings: {
         Args: {
           p_limit?: number
@@ -7169,6 +7672,24 @@ export type Database = {
           profile_id: string
           source_id: string
           source_type: string
+        }[]
+      }
+      search_messages_v2: {
+        Args: {
+          p_conversation_id?: string
+          p_cursor_time?: string
+          p_limit?: number
+          p_profile_id?: string
+          p_search_query?: string
+          p_user_id: string
+        }
+        Returns: {
+          content: string
+          conversation_id: string
+          id: string
+          is_from_contact: boolean
+          profile_id: string
+          sent_at: string
         }[]
       }
     }
