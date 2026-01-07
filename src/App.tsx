@@ -29,6 +29,7 @@ import BulkAnalysisDashboard from "./pages/BulkAnalysisDashboard";
 import Reports from "./pages/Reports";
 import TeamDashboard from "./pages/TeamDashboard";
 import Install from "./pages/Install";
+import Security from "./pages/Security";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -66,6 +67,7 @@ const App = () => (
                     <Route path="/reports" element={<Reports />} />
                     <Route path="/team" element={<TeamDashboard />} />
                     <Route path="/install" element={<Install />} />
+                    <Route path="/security" element={<Security />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </BrowserRouter>

@@ -3426,6 +3426,63 @@ export type Database = {
           },
         ]
       }
+      cross_references: {
+        Row: {
+          confidence: number | null
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          normalized_value: string | null
+          profile_id: string | null
+          reference_type: string
+          reference_value: string
+          source: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          normalized_value?: string | null
+          profile_id?: string | null
+          reference_type: string
+          reference_value: string
+          source?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          normalized_value?: string | null
+          profile_id?: string | null
+          reference_type?: string
+          reference_value?: string
+          source?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cross_references_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "cross_references_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dashboard_layouts: {
         Row: {
           created_at: string
@@ -3929,6 +3986,140 @@ export type Database = {
           },
         ]
       }
+      encrypted_fields: {
+        Row: {
+          column_name: string
+          created_at: string | null
+          data_classification: Database["public"]["Enums"]["clearance_level"]
+          encryption_enabled: boolean | null
+          encryption_key_id: string | null
+          id: string
+          table_name: string
+          user_id: string
+        }
+        Insert: {
+          column_name: string
+          created_at?: string | null
+          data_classification: Database["public"]["Enums"]["clearance_level"]
+          encryption_enabled?: boolean | null
+          encryption_key_id?: string | null
+          id?: string
+          table_name: string
+          user_id: string
+        }
+        Update: {
+          column_name?: string
+          created_at?: string | null
+          data_classification?: Database["public"]["Enums"]["clearance_level"]
+          encryption_enabled?: boolean | null
+          encryption_key_id?: string | null
+          id?: string
+          table_name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encrypted_fields_encryption_key_id_fkey"
+            columns: ["encryption_key_id"]
+            isOneToOne: false
+            referencedRelation: "encryption_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      encryption_keys: {
+        Row: {
+          algorithm: string | null
+          created_at: string | null
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          key_hash: string
+          key_name: string
+          key_version: number | null
+          rotated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          algorithm?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_hash: string
+          key_name: string
+          key_version?: number | null
+          rotated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          algorithm?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_hash?: string
+          key_name?: string
+          key_version?: number | null
+          rotated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      entity_links: {
+        Row: {
+          confidence_score: number | null
+          created_at: string | null
+          discovered_at: string | null
+          evidence: Json | null
+          id: string
+          is_confirmed: boolean | null
+          link_type: string
+          source_id: string
+          source_type: string
+          target_id: string
+          target_type: string
+          user_id: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string | null
+          discovered_at?: string | null
+          evidence?: Json | null
+          id?: string
+          is_confirmed?: boolean | null
+          link_type: string
+          source_id: string
+          source_type: string
+          target_id: string
+          target_type: string
+          user_id: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string | null
+          discovered_at?: string | null
+          evidence?: Json | null
+          id?: string
+          is_confirmed?: boolean | null
+          link_type?: string
+          source_id?: string
+          source_type?: string
+          target_id?: string
+          target_type?: string
+          user_id?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           created_at: string
@@ -4279,6 +4470,66 @@ export type Database = {
           sync_status?: string | null
           token_expires_at?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      immutable_audit_logs: {
+        Row: {
+          action_type: string
+          clearance_used: Database["public"]["Enums"]["clearance_level"] | null
+          created_at: string
+          current_hash: string
+          data_classification:
+            | Database["public"]["Enums"]["clearance_level"]
+            | null
+          id: string
+          ip_address: unknown
+          previous_hash: string
+          request_metadata: Json | null
+          resource_id: string | null
+          resource_type: string
+          response_status: string | null
+          sequence_number: number
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          clearance_used?: Database["public"]["Enums"]["clearance_level"] | null
+          created_at?: string
+          current_hash: string
+          data_classification?:
+            | Database["public"]["Enums"]["clearance_level"]
+            | null
+          id?: string
+          ip_address?: unknown
+          previous_hash: string
+          request_metadata?: Json | null
+          resource_id?: string | null
+          resource_type: string
+          response_status?: string | null
+          sequence_number?: number
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          clearance_used?: Database["public"]["Enums"]["clearance_level"] | null
+          created_at?: string
+          current_hash?: string
+          data_classification?:
+            | Database["public"]["Enums"]["clearance_level"]
+            | null
+          id?: string
+          ip_address?: unknown
+          previous_hash?: string
+          request_metadata?: Json | null
+          resource_id?: string | null
+          resource_type?: string
+          response_status?: string | null
+          sequence_number?: number
+          user_agent?: string | null
           user_id?: string
         }
         Relationships: []
@@ -5698,6 +5949,51 @@ export type Database = {
         }
         Relationships: []
       }
+      sensitive_data_access_log: {
+        Row: {
+          access_granted: boolean
+          access_type: string
+          created_at: string | null
+          data_classification: Database["public"]["Enums"]["clearance_level"]
+          denial_reason: string | null
+          id: string
+          ip_address: unknown
+          record_id: string | null
+          table_name: string
+          user_agent: string | null
+          user_clearance: Database["public"]["Enums"]["clearance_level"] | null
+          user_id: string
+        }
+        Insert: {
+          access_granted: boolean
+          access_type: string
+          created_at?: string | null
+          data_classification: Database["public"]["Enums"]["clearance_level"]
+          denial_reason?: string | null
+          id?: string
+          ip_address?: unknown
+          record_id?: string | null
+          table_name: string
+          user_agent?: string | null
+          user_clearance?: Database["public"]["Enums"]["clearance_level"] | null
+          user_id: string
+        }
+        Update: {
+          access_granted?: boolean
+          access_type?: string
+          created_at?: string | null
+          data_classification?: Database["public"]["Enums"]["clearance_level"]
+          denial_reason?: string | null
+          id?: string
+          ip_address?: unknown
+          record_id?: string | null
+          table_name?: string
+          user_agent?: string | null
+          user_clearance?: Database["public"]["Enums"]["clearance_level"] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       shared_experiences: {
         Row: {
           created_at: string
@@ -5961,6 +6257,45 @@ export type Database = {
           reminder_email?: string | null
           theme?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          clearance: Database["public"]["Enums"]["clearance_level"]
+          clearance_expires_at: string | null
+          clearance_granted_at: string | null
+          compartments: string[] | null
+          created_at: string | null
+          granted_by: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          clearance?: Database["public"]["Enums"]["clearance_level"]
+          clearance_expires_at?: string | null
+          clearance_granted_at?: string | null
+          compartments?: string[] | null
+          created_at?: string | null
+          granted_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          clearance?: Database["public"]["Enums"]["clearance_level"]
+          clearance_expires_at?: string | null
+          clearance_granted_at?: string | null
+          compartments?: string[] | null
+          created_at?: string | null
+          granted_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
@@ -6610,6 +6945,18 @@ export type Database = {
       }
     }
     Functions: {
+      find_cross_reference_matches: {
+        Args: {
+          p_normalized_value: string
+          p_reference_type: string
+          p_user_id: string
+        }
+        Returns: {
+          confidence: number
+          profile_id: string
+          source: string
+        }[]
+      }
       get_contact_storage_stats: {
         Args: { p_user_id: string }
         Returns: {
@@ -6650,6 +6997,28 @@ export type Database = {
           total_messages: number
         }[]
       }
+      get_user_clearance: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["clearance_level"]
+      }
+      has_clearance: {
+        Args: {
+          _required: Database["public"]["Enums"]["clearance_level"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      has_compartment: {
+        Args: { _compartment: string; _user_id: string }
+        Returns: boolean
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       increment_bulk_session_progress: {
         Args: {
           p_cost_cents?: number
@@ -6686,6 +7055,13 @@ export type Database = {
       }
     }
     Enums: {
+      app_role: "admin" | "supervisor" | "analyst" | "viewer"
+      clearance_level:
+        | "uncleared"
+        | "confidential"
+        | "secret"
+        | "top_secret"
+        | "sci"
       communication_channel:
         | "email"
         | "phone"
@@ -6866,6 +7242,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "supervisor", "analyst", "viewer"],
+      clearance_level: [
+        "uncleared",
+        "confidential",
+        "secret",
+        "top_secret",
+        "sci",
+      ],
       communication_channel: [
         "email",
         "phone",
