@@ -7702,6 +7702,46 @@ export type Database = {
           letter: string
         }[]
       }
+      get_contact_media_counts: {
+        Args: {
+          p_profile_id?: string
+          p_skip_analyzed?: boolean
+          p_user_id: string
+        }
+        Returns: {
+          analyzed_count: number
+          audio_count: number
+          image_count: number
+          total_count: number
+          video_count: number
+        }[]
+      }
+      get_contact_media_paginated: {
+        Args: {
+          p_limit?: number
+          p_media_type?: string
+          p_offset?: number
+          p_profile_id: string
+          p_search_query?: string
+          p_sort_by?: string
+          p_sort_order?: string
+          p_user_id: string
+        }
+        Returns: {
+          ai_generation_status: string
+          ai_metadata: Json
+          caption: string
+          created_at: string
+          file_size: number
+          file_url: string
+          id: string
+          mime_type: string
+          profile_id: string
+          storage_path: string
+          thumbnail_url: string
+          total_count: number
+        }[]
+      }
       get_contact_storage_stats: {
         Args: { p_user_id: string }
         Returns: {
@@ -7738,6 +7778,22 @@ export type Database = {
           profile_id: string
           total_files: number
           video_count: number
+        }[]
+      }
+      get_media_ids_for_analysis: {
+        Args: {
+          p_limit?: number
+          p_media_types?: string[]
+          p_offset?: number
+          p_profile_id?: string
+          p_skip_analyzed?: boolean
+          p_user_id: string
+        }
+        Returns: {
+          file_size: number
+          id: string
+          mime_type: string
+          storage_path: string
         }[]
       }
       get_or_set_cache: {
