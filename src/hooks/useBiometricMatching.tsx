@@ -48,9 +48,10 @@ interface BiometricMatch {
   created_at: string;
   profiles?: {
     id: string;
-    name: string;
+    first_name: string | null;
+    last_name: string | null;
     avatar_url: string | null;
-  };
+  } | null;
 }
 
 export function useBiometricProfiles() {
@@ -110,14 +111,17 @@ export function usePendingMatches() {
 
       const { data, error } = await supabase
         .from('biometric_matches')
-        .select('*')
+        .select(`
+          *,
+          profiles:matched_profile_id (id, first_name, last_name, avatar_url)
+        `)
         .eq('user_id', user.id)
         .is('user_confirmed', null)
         .order('created_at', { ascending: false })
         .limit(50);
 
       if (error) throw error;
-      return data as unknown as BiometricMatch[];
+      return (data || []) as unknown as BiometricMatch[];
     },
     enabled: !!user
   });

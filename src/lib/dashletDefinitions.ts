@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, MessageSquare, Calendar, Star, Clock, TrendingUp, BarChart3, Network, Sparkles, UserPlus, Target, Activity, Shield, Brain, ShieldCheck, Zap, Radio, AlertTriangle, PieChart, CalendarClock, UsersRound } from 'lucide-react';
+import { Users, MessageSquare, Calendar, Star, Clock, TrendingUp, BarChart3, Network, Sparkles, UserPlus, Target, Activity, Shield, Brain, ShieldCheck, Zap, Radio, AlertTriangle, PieChart, CalendarClock, UsersRound, Fingerprint } from 'lucide-react';
 
 // All available dashlet types
 export interface DashletConfig {
@@ -32,7 +32,8 @@ export type DashletType =
   | 'anomaly-detection'
   | 'relationship-analytics'
   | 'ai-contact-grouping'
-  | 'calendar-sync-status';
+  | 'calendar-sync-status'
+  | 'biometric-status';
 
 export interface DashletDefinition {
   type: DashletType;
@@ -219,6 +220,14 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     icon: CalendarClock,
     defaultVisible: true,
     category: 'tools',
+  },
+  {
+    type: 'biometric-status',
+    title: 'Biometric Identity',
+    description: 'Overview of contact biometric enrollment and pending matches',
+    icon: Fingerprint,
+    defaultVisible: true,
+    category: 'ai',
   },
 ];
 

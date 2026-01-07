@@ -18,7 +18,7 @@ import {
   FileText, Image, Target, Gift, Heart, Clock,
   Calendar, Sparkles, Users, ChevronRight, Building,
   Mic, Eye, Activity, Volume2, UserCircle, GitCompare, Wallet, Link2, Mail, UserCheck,
-  Milestone, Settings2, StickyNote, BookOpen, Shield, Network, Globe, TrendingUp, Triangle, Search
+  Milestone, Settings2, StickyNote, BookOpen, Shield, Network, Globe, TrendingUp, Triangle, Search, Fingerprint
 } from 'lucide-react';
 import { ContactDialog } from '@/components/contacts/ContactDialog';
 import { ContactMethodsManager } from '@/components/contacts/ContactMethodsManager';
@@ -70,6 +70,7 @@ import { TemporalAnalysisPanel } from '@/components/intelligence/TemporalAnalysi
 import { RelationshipTrajectoryPanel } from '@/components/intelligence/RelationshipTrajectoryPanel';
 import { CommunicationTriangulationPanel } from '@/components/intelligence/CommunicationTriangulationPanel';
 import { DeceptionAnalysisPanel } from '@/components/intelligence/DeceptionAnalysisPanel';
+import { BiometricIdentityPanel } from '@/components/contacts/BiometricIdentityPanel';
 import { cn } from '@/lib/utils';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
 import { ProfileCompletenessWidget } from '@/components/contacts/ProfileCompletenessWidget';
@@ -82,7 +83,7 @@ type SectionId =
   | 'outreach' | 'templates' | 'briefing' | 'whatsapp' | 'emails'
   | 'interests' | 'gifts' | 'goals' | 'experiences' | 'relationships' | 'kids-schools'
   | 'education' | 'messages' | 'timeline' | 'groups' | 'enrich'
-  | 'behavioral' | 'facial' | 'body-language' | 'vocal' | 'comparison'
+  | 'behavioral' | 'facial' | 'body-language' | 'vocal' | 'comparison' | 'biometrics'
   | 'financial' | 'observations'
   | 'milestones' | 'comm-prefs' | 'interaction-notes' | 'playbook'
   | 'activity' | 'trust-assessment' | 'dossier' | 'network-intel' | 'locations'
@@ -128,6 +129,7 @@ const sections: NavSection[] = [
   { id: 'body-language', label: 'Body Language', icon: Activity, group: 'Analysis' },
   { id: 'vocal', label: 'Vocal Analysis', icon: Volume2, group: 'Analysis' },
   { id: 'comparison', label: 'Compare Over Time', icon: GitCompare, group: 'Analysis' },
+  { id: 'biometrics', label: 'Biometric Identity', icon: Fingerprint, group: 'Analysis' },
   { id: 'interests', label: 'Interests', icon: Heart, group: 'Relationship' },
   { id: 'gifts', label: 'Gifts', icon: Gift, group: 'Relationship' },
   { id: 'goals', label: 'Goals', icon: Target, group: 'Relationship' },
@@ -308,6 +310,8 @@ export default function ContactDetail() {
         return <VocalAnalysis profileId={contact.id} profileName={contactName} />;
       case 'comparison':
         return <AnalysisComparison profileId={contact.id} profileName={contactName} />;
+      case 'biometrics':
+        return <BiometricIdentityPanel profileId={contact.id} profileName={contactName} />;
       case 'outreach':
         return <OptimalOutreach profileId={contact.id} contactName={contactName} />;
       case 'templates':

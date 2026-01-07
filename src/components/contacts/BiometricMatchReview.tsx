@@ -74,6 +74,7 @@ export function BiometricMatchReview() {
 
   const currentMatch = pendingMatches[currentIndex];
   const profile = currentMatch?.profiles;
+  const profileName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 'Unknown Contact';
 
   const handleConfirm = async () => {
     await confirmMatch.mutateAsync({
@@ -174,7 +175,7 @@ export function BiometricMatchReview() {
               </AvatarFallback>
             </Avatar>
             <div>
-              <p className="font-medium">{profile?.name || 'Unknown Contact'}</p>
+              <p className="font-medium">{profileName}</p>
               <p className="text-xs text-muted-foreground">
                 Detected from {currentMatch.source_type}
               </p>
