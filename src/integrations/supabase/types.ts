@@ -802,6 +802,48 @@ export type Database = {
           },
         ]
       }
+      biometric_settings: {
+        Row: {
+          auto_tag_enabled: boolean
+          auto_tag_face_threshold: number
+          auto_tag_voice_threshold: number
+          created_at: string
+          face_match_threshold: number
+          id: string
+          notify_on_match: boolean
+          notify_threshold: number
+          updated_at: string
+          user_id: string
+          voice_match_threshold: number
+        }
+        Insert: {
+          auto_tag_enabled?: boolean
+          auto_tag_face_threshold?: number
+          auto_tag_voice_threshold?: number
+          created_at?: string
+          face_match_threshold?: number
+          id?: string
+          notify_on_match?: boolean
+          notify_threshold?: number
+          updated_at?: string
+          user_id: string
+          voice_match_threshold?: number
+        }
+        Update: {
+          auto_tag_enabled?: boolean
+          auto_tag_face_threshold?: number
+          auto_tag_voice_threshold?: number
+          created_at?: string
+          face_match_threshold?: number
+          id?: string
+          notify_on_match?: boolean
+          notify_threshold?: number
+          updated_at?: string
+          user_id?: string
+          voice_match_threshold?: number
+        }
+        Relationships: []
+      }
       body_language_analyses: {
         Row: {
           ai_model_used: string | null
