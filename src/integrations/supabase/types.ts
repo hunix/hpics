@@ -711,6 +711,76 @@ export type Database = {
           },
         ]
       }
+      biometric_enrollment_sessions: {
+        Row: {
+          aggregate_signature: Json | null
+          ai_model: string | null
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          profile_id: string
+          quality_scores: Json | null
+          samples_required: number | null
+          samples_uploaded: number | null
+          session_type: string
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          aggregate_signature?: Json | null
+          ai_model?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          profile_id: string
+          quality_scores?: Json | null
+          samples_required?: number | null
+          samples_uploaded?: number | null
+          session_type: string
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          aggregate_signature?: Json | null
+          ai_model?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          profile_id?: string
+          quality_scores?: Json | null
+          samples_required?: number | null
+          samples_uploaded?: number | null
+          session_type?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "biometric_enrollment_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "biometric_enrollment_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "biometric_enrollment_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       biometric_matches: {
         Row: {
           alternative_matches: Json | null
@@ -1667,63 +1737,132 @@ export type Database = {
       contact_biometrics: {
         Row: {
           ai_model_used: string | null
+          body_language_baseline: Json | null
+          body_measurements: Json | null
           created_at: string | null
+          cross_id_enabled: boolean | null
+          cross_id_matches: Json | null
+          detected_in_contacts: Json | null
+          facial_age_estimation: Json | null
           facial_confidence: number | null
           facial_embedding: string | null
           facial_features: Json | null
           facial_landmarks: Json | null
           facial_last_updated: string | null
+          facial_multi_angle_data: Json | null
           facial_sample_count: number | null
+          facial_unique_identifiers: Json | null
+          fingerprint_data: Json | null
+          fingerprint_samples_count: number | null
+          gait_patterns: Json | null
+          handwriting_confidence: number | null
+          handwriting_features: Json | null
+          handwriting_last_updated: string | null
+          handwriting_samples_count: number | null
           id: string
           identity_confidence: number | null
           profile_id: string
+          signature_confidence: number | null
+          signature_features: Json | null
+          signature_last_updated: string | null
+          signature_samples_count: number | null
+          signature_strength: number | null
           updated_at: string | null
           user_id: string
           voice_characteristics: Json | null
           voice_confidence: number | null
+          voice_deception_baseline: Json | null
           voice_embedding: string | null
+          voice_emotional_baseline: Json | null
           voice_last_updated: string | null
           voice_sample_count: number | null
+          voice_speaker_profile: Json | null
         }
         Insert: {
           ai_model_used?: string | null
+          body_language_baseline?: Json | null
+          body_measurements?: Json | null
           created_at?: string | null
+          cross_id_enabled?: boolean | null
+          cross_id_matches?: Json | null
+          detected_in_contacts?: Json | null
+          facial_age_estimation?: Json | null
           facial_confidence?: number | null
           facial_embedding?: string | null
           facial_features?: Json | null
           facial_landmarks?: Json | null
           facial_last_updated?: string | null
+          facial_multi_angle_data?: Json | null
           facial_sample_count?: number | null
+          facial_unique_identifiers?: Json | null
+          fingerprint_data?: Json | null
+          fingerprint_samples_count?: number | null
+          gait_patterns?: Json | null
+          handwriting_confidence?: number | null
+          handwriting_features?: Json | null
+          handwriting_last_updated?: string | null
+          handwriting_samples_count?: number | null
           id?: string
           identity_confidence?: number | null
           profile_id: string
+          signature_confidence?: number | null
+          signature_features?: Json | null
+          signature_last_updated?: string | null
+          signature_samples_count?: number | null
+          signature_strength?: number | null
           updated_at?: string | null
           user_id: string
           voice_characteristics?: Json | null
           voice_confidence?: number | null
+          voice_deception_baseline?: Json | null
           voice_embedding?: string | null
+          voice_emotional_baseline?: Json | null
           voice_last_updated?: string | null
           voice_sample_count?: number | null
+          voice_speaker_profile?: Json | null
         }
         Update: {
           ai_model_used?: string | null
+          body_language_baseline?: Json | null
+          body_measurements?: Json | null
           created_at?: string | null
+          cross_id_enabled?: boolean | null
+          cross_id_matches?: Json | null
+          detected_in_contacts?: Json | null
+          facial_age_estimation?: Json | null
           facial_confidence?: number | null
           facial_embedding?: string | null
           facial_features?: Json | null
           facial_landmarks?: Json | null
           facial_last_updated?: string | null
+          facial_multi_angle_data?: Json | null
           facial_sample_count?: number | null
+          facial_unique_identifiers?: Json | null
+          fingerprint_data?: Json | null
+          fingerprint_samples_count?: number | null
+          gait_patterns?: Json | null
+          handwriting_confidence?: number | null
+          handwriting_features?: Json | null
+          handwriting_last_updated?: string | null
+          handwriting_samples_count?: number | null
           id?: string
           identity_confidence?: number | null
           profile_id?: string
+          signature_confidence?: number | null
+          signature_features?: Json | null
+          signature_last_updated?: string | null
+          signature_samples_count?: number | null
+          signature_strength?: number | null
           updated_at?: string | null
           user_id?: string
           voice_characteristics?: Json | null
           voice_confidence?: number | null
+          voice_deception_baseline?: Json | null
           voice_embedding?: string | null
+          voice_emotional_baseline?: Json | null
           voice_last_updated?: string | null
           voice_sample_count?: number | null
+          voice_speaker_profile?: Json | null
         }
         Relationships: [
           {
@@ -3833,6 +3972,98 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      cross_contact_detections: {
+        Row: {
+          confidence_score: number | null
+          created_at: string | null
+          detected_features: Json | null
+          detected_profile_id: string
+          detection_type: string
+          id: string
+          media_id: string | null
+          owner_profile_id: string
+          timestamp_in_media: string | null
+          user_id: string
+          verified: boolean | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string | null
+          detected_features?: Json | null
+          detected_profile_id: string
+          detection_type: string
+          id?: string
+          media_id?: string | null
+          owner_profile_id: string
+          timestamp_in_media?: string | null
+          user_id: string
+          verified?: boolean | null
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string | null
+          detected_features?: Json | null
+          detected_profile_id?: string
+          detection_type?: string
+          id?: string
+          media_id?: string | null
+          owner_profile_id?: string
+          timestamp_in_media?: string | null
+          user_id?: string
+          verified?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cross_contact_detections_detected_profile_id_fkey"
+            columns: ["detected_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "cross_contact_detections_detected_profile_id_fkey"
+            columns: ["detected_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "cross_contact_detections_detected_profile_id_fkey"
+            columns: ["detected_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cross_contact_detections_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cross_contact_detections_owner_profile_id_fkey"
+            columns: ["owner_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "cross_contact_detections_owner_profile_id_fkey"
+            columns: ["owner_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "cross_contact_detections_owner_profile_id_fkey"
+            columns: ["owner_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cross_references: {
         Row: {
