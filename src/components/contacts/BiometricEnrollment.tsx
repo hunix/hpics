@@ -11,8 +11,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Camera, 
@@ -21,8 +19,6 @@ import {
   Image as ImageIcon, 
   Music,
   Loader2,
-  CheckCircle2,
-  AlertCircle
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,12 +29,73 @@ import {
 } from '@/hooks/useBiometricMatching';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
 
+interface MediaCardProps {
+  id: string;
+  fileName: string;
+  storagePath: string | null;
+  isProcessing: boolean;
+  disabled: boolean;
+  onSelect: () => void;
+  type: 'image' | 'audio';
+}
+
+function MediaCard({ id, fileName, storagePath, isProcessing, disabled, onSelect, type }: MediaCardProps) {
+  const { signedUrl } = useSignedUrl({ bucket: 'media', path: storagePath });
+
+  return (
+    <Card 
+      className={`cursor-pointer transition-all hover:ring-2 hover:ring-primary ${isProcessing ? 'ring-2 ring-primary opacity-50' : ''} ${disabled && !isProcessing ? 'opacity-50 pointer-events-none' : ''}`}
+      onClick={onSelect}
+    >
+      <CardContent className="p-0 aspect-square relative overflow-hidden rounded-lg">
+        {type === 'image' && signedUrl ? (
+          <img 
+            src={signedUrl}
+            alt={fileName}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-muted">
+            <ImageIcon className="h-8 w-8 text-muted-foreground" />
+          </div>
+        )}
+        
+        {isProcessing && (
+          <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        )}
+        
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+          <p className="text-xs text-white truncate">{fileName}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 interface BiometricEnrollmentProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   profileId: string;
   profileName: string;
   enrollmentType: 'face' | 'voice';
+}
+
+interface MediaItem {
+  id: string;
+  file_url: string | null;
+  mime_type: string | null;
+  storage_path: string | null;
+  created_at: string;
+}
+
+interface VoiceNoteItem {
+  id: string;
+  title: string | null;
+  storage_path: string | null;
+  transcription: string | null;
+  created_at: string;
 }
 
 export function BiometricEnrollment({
@@ -70,7 +127,7 @@ export function BiometricEnrollment({
 
       const { data, error } = await supabase
         .from('media')
-        .select('id, original_filename, mime_type, storage_path, created_at')
+        .select('id, file_url, mime_type, storage_path, created_at')
         .eq('user_id', user.id)
         .eq('profile_id', profileId)
         .in('mime_type', mimeFilter)
@@ -78,7 +135,7 @@ export function BiometricEnrollment({
         .limit(50);
 
       if (error) throw error;
-      return data as { id: string; original_filename: string; mime_type: string; storage_path: string; created_at: string }[];
+      return (data || []) as MediaItem[];
     },
     enabled: !!user && !!profileId && open
   });
@@ -94,17 +151,17 @@ export function BiometricEnrollment({
         .select('id, title, storage_path, transcription, created_at')
         .eq('user_id', user.id)
         .eq('profile_id', profileId)
-        .eq('status', 'completed')
         .order('created_at', { ascending: false })
         .limit(50);
 
       if (error) throw error;
-      return data;
+      return (data || []) as VoiceNoteItem[];
     },
     enabled: !!user && !!profileId && open && enrollmentType === 'voice'
   });
 
-  const handleEnrollFromMedia = async (mediaId: string, storagePath: string) => {
+  const handleEnrollFromMedia = async (mediaId: string, storagePath: string | null) => {
+    if (!storagePath) return;
     setProcessingId(mediaId);
     
     try {
@@ -139,12 +196,13 @@ export function BiometricEnrollment({
     }
   };
 
-  const handleEnrollFromVoiceNote = async (voiceNoteId: string, storagePath: string, transcription?: string) => {
+  const handleEnrollFromVoiceNote = async (voiceNoteId: string, storagePath: string | null, transcription?: string | null) => {
+    if (!storagePath) return;
     setProcessingId(voiceNoteId);
     
     try {
       const { data: signedData } = await supabase.storage
-        .from('voice-notes')
+        .from('recordings')
         .createSignedUrl(storagePath, 3600);
 
       if (!signedData?.signedUrl) {
@@ -190,6 +248,18 @@ export function BiometricEnrollment({
     } finally {
       setProcessingId(null);
     }
+  };
+
+  const getFileName = (media: MediaItem) => {
+    if (media.file_url) {
+      try {
+        const url = new URL(media.file_url);
+        return url.pathname.split('/').pop() || 'Unknown file';
+      } catch {
+        return media.file_url.split('/').pop() || 'Unknown file';
+      }
+    }
+    return 'Unknown file';
   };
 
   return (
@@ -239,7 +309,7 @@ export function BiometricEnrollment({
                       <MediaCard
                         key={media.id}
                         id={media.id}
-                        fileName={media.original_filename}
+                        fileName={getFileName(media)}
                         storagePath={media.storage_path}
                         isProcessing={processingId === media.id}
                         disabled={isProcessing}
@@ -282,7 +352,7 @@ export function BiometricEnrollment({
                               <Button
                                 size="sm"
                                 onClick={() => handleEnrollFromVoiceNote(note.id, note.storage_path, note.transcription)}
-                                disabled={isProcessing}
+                                disabled={isProcessing || !note.storage_path}
                               >
                                 {processingId === note.id ? (
                                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -316,12 +386,12 @@ export function BiometricEnrollment({
                             <CardContent className="p-3 flex items-center justify-between">
                               <div className="flex items-center gap-3">
                                 <Music className="h-4 w-4 text-muted-foreground" />
-                                <p className="font-medium text-sm">{media.original_filename}</p>
+                                <p className="font-medium text-sm">{getFileName(media)}</p>
                               </div>
                               <Button
                                 size="sm"
                                 onClick={() => handleEnrollFromMedia(media.id, media.storage_path)}
-                                disabled={isProcessing}
+                                disabled={isProcessing || !media.storage_path}
                               >
                                 {processingId === media.id ? (
                                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -380,56 +450,5 @@ export function BiometricEnrollment({
         </Tabs>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function MediaCard({
-  id,
-  fileName,
-  storagePath,
-  isProcessing,
-  disabled,
-  onSelect,
-  type
-}: {
-  id: string;
-  fileName: string;
-  storagePath: string;
-  isProcessing: boolean;
-  disabled: boolean;
-  onSelect: () => void;
-  type: 'image' | 'audio';
-}) {
-  const { signedUrl } = useSignedUrl('media', storagePath);
-
-  return (
-    <Card 
-      className={`cursor-pointer transition-all hover:ring-2 hover:ring-primary ${isProcessing ? 'ring-2 ring-primary opacity-50' : ''} ${disabled && !isProcessing ? 'opacity-50 pointer-events-none' : ''}`}
-      onClick={onSelect}
-    >
-      <CardContent className="p-0 aspect-square relative overflow-hidden rounded-lg">
-        {type === 'image' && signedUrl ? (
-          <img 
-            src={signedUrl}
-            alt={fileName}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-muted">
-            <ImageIcon className="h-8 w-8 text-muted-foreground" />
-          </div>
-        )}
-        
-        {isProcessing && (
-          <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin" />
-          </div>
-        )}
-        
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-          <p className="text-xs text-white truncate">{fileName}</p>
-        </div>
-      </CardContent>
-    </Card>
   );
 }

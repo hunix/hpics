@@ -31,6 +31,7 @@ import { AnomalyDetectionWidget } from '@/components/intelligence/AnomalyDetecti
 import { RelationshipAnalytics } from '@/components/dashboard/RelationshipAnalytics';
 import { AIContactGrouping } from '@/components/contacts/AIContactGrouping';
 import { CalendarSyncStatus } from '@/components/dashboard/CalendarSyncStatus';
+import { BiometricStatusWidget } from '@/components/dashboard/BiometricStatusWidget';
 import type { DashletType } from '@/lib/dashletDefinitions';
 
 export default function Dashboard() {
@@ -320,6 +321,8 @@ export default function Dashboard() {
         return <AIContactGrouping />;
       case 'calendar-sync-status':
         return <CalendarSyncStatus />;
+      case 'biometric-status':
+        return <BiometricStatusWidget />;
       default:
         return null;
     }
