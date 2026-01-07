@@ -1,6 +1,7 @@
 import { useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { useClearance, ClearanceLevel } from './useClearance';
 import { toast } from 'sonner';
 
 interface AccessLogEntry {
@@ -13,10 +14,10 @@ interface AccessLogEntry {
 
 // Data classification levels for government-class security
 export const DATA_CLASSIFICATION = {
-  public: { level: 0, label: 'Public', color: 'text-green-600' },
-  internal: { level: 1, label: 'Internal', color: 'text-blue-600' },
-  confidential: { level: 2, label: 'Confidential', color: 'text-yellow-600' },
-  restricted: { level: 3, label: 'Restricted', color: 'text-red-600' },
+  public: { level: 0, label: 'Public', color: 'text-green-600', requiredClearance: 'uncleared' as ClearanceLevel },
+  internal: { level: 1, label: 'Internal', color: 'text-blue-600', requiredClearance: 'uncleared' as ClearanceLevel },
+  confidential: { level: 2, label: 'Confidential', color: 'text-yellow-600', requiredClearance: 'confidential' as ClearanceLevel },
+  restricted: { level: 3, label: 'Restricted', color: 'text-red-600', requiredClearance: 'secret' as ClearanceLevel },
 } as const;
 
 // Table to classification mapping
@@ -37,10 +38,17 @@ export const TABLE_CLASSIFICATIONS: Record<string, keyof typeof DATA_CLASSIFICAT
   vocal_analyses: 'restricted',
   whatsapp_config: 'restricted',
   outlook_config: 'restricted',
+  psychological_profiles: 'restricted',
+  trust_assessments: 'restricted',
+  contact_biometrics: 'restricted',
+  biometric_samples: 'restricted',
+  immutable_audit_logs: 'restricted',
+  encryption_keys: 'restricted',
 };
 
 export function useSensitiveDataAccess() {
   const { user } = useAuth();
+  const { hasClearance, currentClearance } = useClearance();
   const accessCache = useRef<Map<string, number>>(new Map());
   const RATE_LIMIT_WINDOW = 60000; // 1 minute
   const MAX_SENSITIVE_ACCESSES = 50; // Max accesses per minute
@@ -104,14 +112,16 @@ export function useSensitiveDataAccess() {
     [user]
   );
 
-  // Check if user can access sensitive data
+  // Check if user can access sensitive data based on clearance
   const canAccess = useCallback(
-    (tableName: string) => {
-      const classification = TABLE_CLASSIFICATIONS[tableName] || 'public';
-      // In a full implementation, this would check user clearance levels
-      return true; // For now, allow authenticated users
+    (tableName: string): boolean => {
+      const classificationKey = TABLE_CLASSIFICATIONS[tableName] || 'public';
+      const classification = DATA_CLASSIFICATION[classificationKey];
+      
+      // Check if user has required clearance for this data classification
+      return hasClearance(classification.requiredClearance);
     },
-    []
+    [hasClearance]
   );
 
   // Get classification for a table
