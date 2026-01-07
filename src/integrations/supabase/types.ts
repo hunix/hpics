@@ -7687,6 +7687,21 @@ export type Database = {
           source: string
         }[]
       }
+      get_contact_filter_options: {
+        Args: { p_user_id: string }
+        Returns: {
+          relationships: string[]
+          subtypes: string[]
+          tags: string[]
+        }[]
+      }
+      get_contact_letter_counts: {
+        Args: { p_user_id: string }
+        Returns: {
+          count: number
+          letter: string
+        }[]
+      }
       get_contact_storage_stats: {
         Args: { p_user_id: string }
         Returns: {
@@ -7810,6 +7825,37 @@ export type Database = {
           job_title: string
           last_name: string
           organization: string
+          relationship_type: string
+          tags: string[]
+          total_count: number
+        }[]
+      }
+      search_contacts_v3: {
+        Args: {
+          p_first_letter?: string
+          p_is_favorite?: boolean
+          p_limit?: number
+          p_offset?: number
+          p_relationship_subtype?: string
+          p_relationship_type?: string
+          p_search_query?: string
+          p_sort_by?: string
+          p_sort_order?: string
+          p_tag?: string
+          p_user_id: string
+        }
+        Returns: {
+          avatar_url: string
+          country: string
+          created_at: string
+          first_name: string
+          hierarchy_level: string
+          id: string
+          is_favorite: boolean
+          job_title: string
+          last_name: string
+          organization: string
+          relationship_subtype: string
           relationship_type: string
           tags: string[]
           total_count: number
