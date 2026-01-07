@@ -215,3 +215,9 @@ verify_jwt = false
 
 [functions.aggregate-media-intelligence]
 verify_jwt = false
+
+[functions.analyze-influence-profile]
+verify_jwt = false
+
+[functions.generate-influence-strategy]
+verify_jwt = false
