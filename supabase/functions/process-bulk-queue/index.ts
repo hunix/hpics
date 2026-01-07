@@ -55,16 +55,23 @@ serve(async (req) => {
     });
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await (authClient.auth as any).getClaims(token);
-
-    if (claimsError || !claimsData?.claims?.sub) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    let userId: string;
+    try {
+      const { data: claimsData, error: claimsError } = await (authClient.auth as any).getClaims(token);
+      if (claimsError || !claimsData?.claims?.sub) {
+        return new Response(JSON.stringify({ error: "Session expired. Please log in again." }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      userId = claimsData.claims.sub as string;
+    } catch (authError) {
+      console.error("Auth error:", authError);
+      return new Response(JSON.stringify({ error: "Session expired. Please log in again." }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const userId = claimsData.claims.sub;
 
     const { sessionId, action, itemId, modes, context, depth } = await req.json();
 

@@ -188,3 +188,24 @@ verify_jwt = false
 
 [functions.match-biometrics]
 verify_jwt = false
+
+[functions.encrypt-field]
+verify_jwt = false
+
+[functions.decrypt-field]
+verify_jwt = false
+
+[functions.log-audit-event]
+verify_jwt = false
+
+[functions.cross-reference-analysis]
+verify_jwt = false
+
+[functions.rotate-encryption-keys]
+verify_jwt = false
+
+[functions.trigger-webhook]
+verify_jwt = false
+
+[functions.crypto-shred]
+verify_jwt = false

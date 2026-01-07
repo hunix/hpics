@@ -35,9 +35,20 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+    const token = authHeader.replace('Bearer ', '');
+    let user: { id: string };
+    try {
+      const { data: claimsData, error: claimsError } = await (supabaseClient.auth as any).getClaims(token);
+      if (claimsError || !claimsData?.claims) {
+        return new Response(JSON.stringify({ error: 'Session expired. Please log in again.' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      user = { id: claimsData.claims.sub as string };
+    } catch (authError) {
+      console.error('Auth error:', authError);
+      return new Response(JSON.stringify({ error: 'Session expired. Please log in again.' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

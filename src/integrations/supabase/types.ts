@@ -3426,6 +3426,48 @@ export type Database = {
           },
         ]
       }
+      counter_surveillance_events: {
+        Row: {
+          created_at: string | null
+          description: string
+          detected_at: string | null
+          event_type: string
+          evidence: Json | null
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          severity: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          detected_at?: string | null
+          event_type: string
+          evidence?: Json | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          detected_at?: string | null
+          event_type?: string
+          evidence?: Json | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       cross_references: {
         Row: {
           confidence: number | null
@@ -4712,6 +4754,42 @@ export type Database = {
           },
         ]
       }
+      key_rotation_schedule: {
+        Row: {
+          auto_rotate: boolean | null
+          created_at: string | null
+          id: string
+          key_name: string
+          last_rotated_at: string | null
+          next_rotation_at: string | null
+          rotation_interval_days: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          auto_rotate?: boolean | null
+          created_at?: string | null
+          id?: string
+          key_name: string
+          last_rotated_at?: string | null
+          next_rotation_at?: string | null
+          rotation_interval_days?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          auto_rotate?: boolean | null
+          created_at?: string | null
+          id?: string
+          key_name?: string
+          last_rotated_at?: string | null
+          next_rotation_at?: string | null
+          rotation_interval_days?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       local_ai_endpoints: {
         Row: {
           api_format: string | null
@@ -5871,6 +5949,45 @@ export type Database = {
         }
         Relationships: []
       }
+      secure_deletion_records: {
+        Row: {
+          created_at: string | null
+          deleted_at: string | null
+          deletion_method: string | null
+          destruction_certificate: Json | null
+          id: string
+          record_id: string
+          record_summary: string | null
+          record_type: string
+          shredding_passes: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          deleted_at?: string | null
+          deletion_method?: string | null
+          destruction_certificate?: Json | null
+          id?: string
+          record_id: string
+          record_summary?: string | null
+          record_type: string
+          shredding_passes?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          deleted_at?: string | null
+          deletion_method?: string | null
+          destruction_certificate?: Json | null
+          id?: string
+          record_id?: string
+          record_summary?: string | null
+          record_type?: string
+          shredding_passes?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       security_alerts: {
         Row: {
           acknowledged_at: string | null
@@ -6945,6 +7062,7 @@ export type Database = {
       }
     }
     Functions: {
+      bootstrap_first_admin: { Args: never; Returns: boolean }
       find_cross_reference_matches: {
         Args: {
           p_normalized_value: string

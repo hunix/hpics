@@ -31,14 +31,23 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
-    const { data: claimsData, error: userError } = await (authClient.auth as any).getClaims(token);
-    if (userError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+    let userId: string;
+    try {
+      const { data: claimsData, error: userError } = await (authClient.auth as any).getClaims(token);
+      if (userError || !claimsData?.claims) {
+        return new Response(JSON.stringify({ error: 'Session expired. Please log in again.' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      userId = claimsData.claims.sub as string;
+    } catch (authError) {
+      console.error('Auth error:', authError);
+      return new Response(JSON.stringify({ error: 'Session expired. Please log in again.' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    const userId = claimsData.claims.sub;
 
     // Fetch all contacts with their details
     const { data: profiles, error: profilesError } = await supabaseClient
