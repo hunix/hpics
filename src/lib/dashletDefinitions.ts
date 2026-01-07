@@ -33,7 +33,8 @@ export type DashletType =
   | 'relationship-analytics'
   | 'ai-contact-grouping'
   | 'calendar-sync-status'
-  | 'biometric-status';
+  | 'biometric-status'
+  | 'influence-overview';
 
 export interface DashletDefinition {
   type: DashletType;
@@ -226,6 +227,14 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Biometric Identity',
     description: 'Overview of contact biometric enrollment and pending matches',
     icon: Fingerprint,
+    defaultVisible: true,
+    category: 'ai',
+  },
+  {
+    type: 'influence-overview',
+    title: 'Influence Command Center',
+    description: 'Pending influence actions and methodology effectiveness',
+    icon: Target,
     defaultVisible: true,
     category: 'ai',
   },
