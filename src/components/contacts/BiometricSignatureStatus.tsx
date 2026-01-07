@@ -20,7 +20,7 @@ interface BiometricSignatureStatusProps {
 }
 
 interface ModuleConfig {
-  id: string;
+  id: BiometricTab;
   label: string;
   icon: React.ElementType;
   color: string;
