@@ -65,17 +65,77 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
   const viewMode = preferences.media_view_mode as ViewMode;
   const itemsPerPage = preferences.media_items_per_page;
 
-  // Fetch all media for this contact (for counting and client-side filtering)
-  const { data: allMedia, isLoading } = useQuery({
-    queryKey: ['contact-media', profileId],
+  // Fetch total count for this contact (to bypass 1000 limit display)
+  const { data: totalCount } = useQuery({
+    queryKey: ['contact-media-count', profileId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('media')
-        .select('*')
-        .eq('profile_id', profileId)
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.rpc('get_contact_media_counts', {
+        p_user_id: user!.id,
+        p_profile_id: profileId,
+        p_skip_analyzed: false
+      });
       if (error) throw error;
-      return data;
+      return data?.[0]?.total_count || 0;
+    },
+    enabled: !!user && !!profileId,
+  });
+
+  // Fetch paginated media using RPC to avoid 1000 row limit
+  const { data: allMedia, isLoading } = useQuery({
+    queryKey: ['contact-media', profileId, searchQuery, typeFilter, sortOption],
+    queryFn: async () => {
+      // Determine sort field and direction
+      let sortField = 'created_at';
+      let sortDirection = 'desc';
+      
+      switch (sortOption) {
+        case 'date-asc':
+          sortField = 'created_at';
+          sortDirection = 'asc';
+          break;
+        case 'size-desc':
+          sortField = 'file_size';
+          sortDirection = 'desc';
+          break;
+        case 'size-asc':
+          sortField = 'file_size';
+          sortDirection = 'asc';
+          break;
+        case 'name':
+          sortField = 'caption';
+          sortDirection = 'asc';
+          break;
+        default:
+          sortField = 'created_at';
+          sortDirection = 'desc';
+      }
+
+      // Fetch ALL media using pagination
+      const allItems: any[] = [];
+      let offset = 0;
+      const batchSize = 500;
+      
+      while (true) {
+        const { data, error } = await supabase.rpc('get_contact_media_paginated', {
+          p_user_id: user!.id,
+          p_profile_id: profileId,
+          p_search_query: searchQuery.trim() || null,
+          p_media_type: typeFilter,
+          p_sort_field: sortField,
+          p_sort_direction: sortDirection,
+          p_limit: batchSize,
+          p_offset: offset
+        });
+        
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        
+        allItems.push(...data);
+        if (data.length < batchSize) break;
+        offset += batchSize;
+      }
+      
+      return allItems;
     },
     enabled: !!user && !!profileId,
   });
@@ -95,44 +155,10 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
     ].filter(o => o.count > 0);
   }, [allMedia]);
 
-  // Filter and sort media
+  // Filtered media is already filtered/sorted by the RPC call
   const filteredMedia = useMemo(() => {
-    if (!allMedia) return [];
-    
-    let result = [...allMedia];
-    
-    // Search filter
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(item => 
-        item.caption?.toLowerCase().includes(q)
-      );
-    }
-    
-    // Type filter
-    if (typeFilter) {
-      result = result.filter(item => getCategoryFromMime(item.mime_type) === typeFilter);
-    }
-    
-    // Sort
-    result.sort((a, b) => {
-      switch (sortOption) {
-        case 'date-asc':
-          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-        case 'size-desc':
-          return (b.file_size || 0) - (a.file_size || 0);
-        case 'size-asc':
-          return (a.file_size || 0) - (b.file_size || 0);
-        case 'name':
-          return (a.caption || '').localeCompare(b.caption || '');
-        case 'date-desc':
-        default:
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      }
-    });
-    
-    return result;
-  }, [allMedia, searchQuery, typeFilter, sortOption]);
+    return allMedia || [];
+  }, [allMedia]);
 
   // Paginate
   const totalPages = Math.ceil(filteredMedia.length / itemsPerPage);
@@ -307,13 +333,11 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
             <CardTitle className="flex items-center gap-2">
               <Image className="h-5 w-5" />
               Media
-              {aiMetadataCount > 0 && (
-                <span className="text-xs font-normal text-muted-foreground">
-                  ({aiMetadataCount} AI analyzed)
-                </span>
-              )}
+              <span className="text-xs font-normal text-muted-foreground">
+                ({totalCount || filteredMedia.length} total{aiMetadataCount > 0 ? `, ${aiMetadataCount} AI analyzed` : ''})
+              </span>
             </CardTitle>
-            <CardDescription>Photos and images related to {contactName}</CardDescription>
+            <CardDescription>Photos, videos and audio related to {contactName}</CardDescription>
           </div>
           <div className="flex gap-2">
             {pendingCount > 0 && (
