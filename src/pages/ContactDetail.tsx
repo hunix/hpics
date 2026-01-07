@@ -73,6 +73,8 @@ import { DeceptionAnalysisPanel } from '@/components/intelligence/DeceptionAnaly
 import { BiometricSignatureBuilder } from '@/components/contacts/BiometricSignatureBuilder';
 import { InfluenceDashboard } from '@/components/intelligence/InfluenceDashboard';
 import { UnifiedIntelligencePanel } from '@/components/intelligence/UnifiedIntelligencePanel';
+import { SharedExperiencesPanel } from '@/components/intelligence/SharedExperiencesPanel';
+import { CrossModalSynthesisPanel } from '@/components/intelligence/CrossModalSynthesisPanel';
 import { cn } from '@/lib/utils';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
 import { ProfileCompletenessWidget } from '@/components/contacts/ProfileCompletenessWidget';
@@ -85,11 +87,11 @@ type SectionId =
   | 'outreach' | 'templates' | 'briefing' | 'whatsapp' | 'emails'
   | 'interests' | 'gifts' | 'goals' | 'experiences' | 'relationships' | 'kids-schools'
   | 'education' | 'messages' | 'timeline' | 'groups' | 'enrich'
-  | 'behavioral' | 'facial' | 'body-language' | 'vocal' | 'comparison' | 'biometrics'
+  | 'behavioral' | 'facial' | 'body-language' | 'vocal' | 'comparison' | 'biometrics' | 'cross-modal'
   | 'financial' | 'observations'
   | 'milestones' | 'comm-prefs' | 'interaction-notes' | 'playbook' | 'influence'
   | 'activity' | 'trust-assessment' | 'dossier' | 'network-intel' | 'locations'
-  | 'temporal' | 'trajectory' | 'triangulation' | 'consistency' | 'unified-profile';
+  | 'temporal' | 'trajectory' | 'triangulation' | 'consistency' | 'unified-profile' | 'shared-experiences';
 
 interface NavSection {
   id: SectionId;
@@ -134,10 +136,12 @@ const sections: NavSection[] = [
   { id: 'vocal', label: 'Vocal Analysis', icon: Volume2, group: 'Analysis' },
   { id: 'comparison', label: 'Compare Over Time', icon: GitCompare, group: 'Analysis' },
   { id: 'biometrics', label: 'Biometric Identity', icon: Fingerprint, group: 'Analysis' },
+  { id: 'cross-modal', label: 'Cross-Modal Synthesis', icon: Brain, group: 'Analysis' },
   { id: 'interests', label: 'Interests', icon: Heart, group: 'Relationship' },
   { id: 'gifts', label: 'Gifts', icon: Gift, group: 'Relationship' },
   { id: 'goals', label: 'Goals', icon: Target, group: 'Relationship' },
   { id: 'experiences', label: 'Experiences', icon: Heart, group: 'Relationship' },
+  { id: 'shared-experiences', label: 'Shared Experiences', icon: Users, group: 'Relationship' },
   { id: 'relationships', label: 'Family & Connections', icon: Link2, group: 'Family' },
   { id: 'kids-schools', label: 'Kids Schools', icon: GraduationCap, group: 'Family' },
   { id: 'education', label: 'Education & Skills', icon: GraduationCap, group: 'Professional' },
@@ -318,6 +322,8 @@ export default function ContactDetail() {
         return <VocalAnalysis profileId={contact.id} profileName={contactName} />;
       case 'comparison':
         return <AnalysisComparison profileId={contact.id} profileName={contactName} />;
+      case 'cross-modal':
+        return <CrossModalSynthesisPanel profileId={contact.id} />;
       case 'biometrics':
         return <BiometricSignatureBuilder profileId={contact.id} profileName={contactName} avatarUrl={contact.avatar_url} />;
       case 'outreach':
@@ -356,6 +362,8 @@ export default function ContactDetail() {
         return <RelationshipGoals profileId={contact.id} contactName={contactName} />;
       case 'experiences':
         return <SharedExperiences profileId={contact.id} contactName={contactName} />;
+      case 'shared-experiences':
+        return <SharedExperiencesPanel profileId={contact.id} />;
       case 'relationships':
         return <ContactRelationshipsManager profileId={contact.id} contactName={contactName} />;
       case 'kids-schools':

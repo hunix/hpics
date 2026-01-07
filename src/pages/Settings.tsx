@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Sun, Bell, Mail, Loader2, Smartphone, Link2, Bot, Cpu, MessageCircle, HardDrive, Trash2, Users, Fingerprint } from 'lucide-react';
+import { Moon, Sun, Bell, Mail, Loader2, Smartphone, Link2, Bot, Cpu, MessageCircle, HardDrive, Trash2, Users, Fingerprint, DollarSign } from 'lucide-react';
 import { AnalyticsExport } from '@/components/analytics/AnalyticsExport';
 import { EmailIntegration } from '@/components/settings/EmailIntegration';
 import { OutlookIntegration } from '@/components/settings/OutlookIntegration';
@@ -19,6 +19,7 @@ import { PushNotifications } from '@/components/settings/PushNotifications';
 import { LocalAIEndpoints } from '@/components/settings/LocalAIEndpoints';
 import { AIModelPreferences } from '@/components/settings/AIModelPreferences';
 import { AIBudgetSettings } from '@/components/settings/AIBudgetSettings';
+import { AICostDashboard } from '@/components/ai/AICostDashboard';
 import { WhatsAppSetup } from '@/components/whatsapp/WhatsAppSetup';
 import { ResendIntegration } from '@/components/settings/ResendIntegration';
 import { VAPIDConfiguration } from '@/components/settings/VAPIDConfiguration';
@@ -124,7 +125,7 @@ export default function Settings() {
   return (
     <AppLayout title="Settings">
       <Tabs defaultValue="general" className="max-w-5xl">
-        <TabsList className="grid w-full grid-cols-10">
+        <TabsList className="grid w-full grid-cols-11">
           <TabsTrigger value="general">
             <Sun className="h-4 w-4 mr-2" />
             General
@@ -156,6 +157,10 @@ export default function Settings() {
           <TabsTrigger value="ai-models">
             <Cpu className="h-4 w-4 mr-2" />
             AI Models
+          </TabsTrigger>
+          <TabsTrigger value="ai-costs">
+            <DollarSign className="h-4 w-4 mr-2" />
+            AI Costs
           </TabsTrigger>
           <TabsTrigger value="local-ai">
             <Bot className="h-4 w-4 mr-2" />
@@ -298,6 +303,10 @@ export default function Settings() {
         <TabsContent value="ai-models" className="space-y-6 mt-6">
           <AIModelPreferences />
           <AIBudgetSettings />
+        </TabsContent>
+
+        <TabsContent value="ai-costs" className="space-y-6 mt-6">
+          <AICostDashboard />
         </TabsContent>
 
         <TabsContent value="local-ai" className="space-y-6 mt-6">
