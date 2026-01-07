@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -289,75 +290,51 @@ serve(async (req) => {
     console.log(`Sending to AI for analysis...`);
 
     // ============================================
-    // PHASE 3: Call AI for comprehensive analysis
+    // PHASE 3: Call AI for comprehensive analysis using unified client
     // ============================================
 
-    const model = model_preference || 'google/gemini-2.5-pro';
+    const model = model_preference || selectModel('quality'); // Use quality tier for deep analysis
     
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.3,
-        max_tokens: 16000,
-      }),
+    console.log(`Using model: ${model}`);
+    
+    const aiResult = await callAI({
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      userId: user.id,
+      functionName: 'deep-psychological-analysis',
+      profileId: profile_id,
+      temperature: 0.3,
+      maxTokens: 16000,
+      metadata: { analysis_depth, dataCompleteness },
     });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI API error:', errorText);
-      throw new Error(`AI API error: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
-    const analysisText = aiData.choices?.[0]?.message?.content;
-
-    if (!analysisText) {
-      throw new Error('No analysis returned from AI');
-    }
-
-    console.log('AI analysis received, parsing...');
+    console.log(`AI analysis received (${aiResult.totalTokens} tokens, ${aiResult.costCents}¢)`);
 
     // ============================================
     // PHASE 4: Parse AI response
     // ============================================
 
-    let analysisResult;
-    try {
-      // Extract JSON from the response
-      const jsonMatch = analysisText.match(/```json\n?([\s\S]*?)\n?```/) || 
-                       analysisText.match(/\{[\s\S]*\}/);
-      const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : analysisText;
-      analysisResult = JSON.parse(jsonStr);
-    } catch (parseError) {
-      console.error('Failed to parse AI response as JSON:', parseError);
-      // Create a minimal valid structure
-      analysisResult = {
-        personality_ocean: null,
-        dark_triad: null,
-        attachment_style: null,
-        emotional_intelligence: null,
-        cognitive_profile: null,
-        communication_dna: null,
-        psychiatric_indicators: null,
-        deception_analysis: null,
-        behavioral_predictions: null,
-        flags: { red_flags: [], yellow_flags: [], green_flags: [], certainties: [] },
-        action_plans: { immediate: [], short_term: [], long_term: [], do_not_do: [] },
-        relationship_dynamics: null,
-        values_profile: null,
-        confidence_score: 30,
-        raw_analysis: analysisText
-      };
-    }
+    // Parse AI response - use any for flexible structure
+    const analysisResult: any = parseAIJson(aiResult.content, {
+      personality_ocean: null,
+      dark_triad: null,
+      attachment_style: null,
+      emotional_intelligence: null,
+      cognitive_profile: null,
+      communication_dna: null,
+      psychiatric_indicators: null,
+      deception_analysis: null,
+      behavioral_predictions: null,
+      flags: { red_flags: [], yellow_flags: [], green_flags: [], certainties: [] },
+      action_plans: { immediate: [], short_term: [], long_term: [], do_not_do: [] },
+      relationship_dynamics: null,
+      values_profile: null,
+      confidence_score: 30,
+      raw_analysis: aiResult.content
+    });
 
     // ============================================
     // PHASE 5: Save to database

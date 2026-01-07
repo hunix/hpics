@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, parseAIJson } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -95,68 +96,40 @@ Generate a comprehensive meeting briefing with the following sections:
 
 Return as JSON with these exact keys: executiveSummary, keyFacts (array), recentContext, conversationStarters (array), topicsToAvoid (array), actionItems (array), relationshipHealth (object with status, score, recommendations array)`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: 'You are a professional relationship intelligence assistant. Always respond with valid JSON.' },
-          { role: 'user', content: prompt }
-        ],
-        tools: [{
-          type: 'function',
-          function: {
-            name: 'generate_briefing',
-            description: 'Generate a comprehensive meeting briefing',
-            parameters: {
-              type: 'object',
-              properties: {
-                executiveSummary: { type: 'string' },
-                keyFacts: { type: 'array', items: { type: 'string' } },
-                recentContext: { type: 'string' },
-                conversationStarters: { type: 'array', items: { type: 'string' } },
-                topicsToAvoid: { type: 'array', items: { type: 'string' } },
-                actionItems: { type: 'array', items: { type: 'string' } },
-                relationshipHealth: {
-                  type: 'object',
-                  properties: {
-                    status: { type: 'string' },
-                    score: { type: 'number' },
-                    recommendations: { type: 'array', items: { type: 'string' } }
-                  },
-                  required: ['status', 'score', 'recommendations']
-                }
-              },
-              required: ['executiveSummary', 'keyFacts', 'recentContext', 'conversationStarters', 'topicsToAvoid', 'actionItems', 'relationshipHealth']
-            }
-          }
-        }],
-        tool_choice: { type: 'function', function: { name: 'generate_briefing' } }
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI Gateway error:', response.status, errorText);
-      throw new Error(`AI Gateway error: ${response.status}`);
+    // Get user ID from auth if possible
+    const authHeader = req.headers.get('Authorization');
+    let userId = 'anonymous';
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user } } = await supabase.auth.getUser(token);
+      userId = user?.id || 'anonymous';
     }
 
-    const data = await response.json();
-    console.log('AI response:', JSON.stringify(data));
-    
+    const aiResponse = await callAI({
+      model: 'google/gemini-2.5-flash',
+      messages: [
+        { role: 'system', content: 'You are a professional relationship intelligence assistant. Always respond with valid JSON.' },
+        { role: 'user', content: prompt }
+      ],
+      userId,
+      functionName: 'generate-briefing',
+      profileId: profileId,
+      maxTokens: 2000,
+    });
+
     let briefing;
-    if (data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments) {
-      briefing = JSON.parse(data.choices[0].message.tool_calls[0].function.arguments);
-    } else if (data.choices?.[0]?.message?.content) {
-      const content = data.choices[0].message.content;
-      const jsonMatch = content.match(/```json\n?([\s\S]*?)\n?```/) || content.match(/\{[\s\S]*\}/);
-      briefing = JSON.parse(jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content);
-    } else {
-      throw new Error('Unexpected AI response format');
+    try {
+      briefing = parseAIJson(aiResponse.content, {
+        executiveSummary: 'Unable to generate briefing',
+        keyFacts: [],
+        recentContext: 'No recent context available',
+        conversationStarters: [],
+        topicsToAvoid: [],
+        actionItems: [],
+        relationshipHealth: { status: 'unknown', score: 50, recommendations: [] }
+      });
+    } catch (e) {
+      throw new Error('Failed to parse briefing response');
     }
 
     return new Response(JSON.stringify({ 

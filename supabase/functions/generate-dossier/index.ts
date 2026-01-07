@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -264,26 +265,18 @@ serve(async (req) => {
       })),
     };
 
-    // 10. Key Findings & Recommendations (AI-generated)
+    // 10. Key Findings & Recommendations (AI-generated via unified client)
     let keyFindings: any[] = [];
     let recommendations: any[] = [];
     let riskAssessment: any = null;
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (LOVABLE_API_KEY) {
-      try {
-        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            messages: [
-              {
-                role: 'system',
-                content: `You are an intelligence analyst generating a ${dossier_type} dossier. Analyze the provided data and generate:
+    try {
+      const aiResponse = await callAI({
+        model: selectModel('quality'), // Use quality model for dossiers
+        messages: [
+          {
+            role: 'system',
+            content: `You are an intelligence analyst generating a ${dossier_type} dossier. Analyze the provided data and generate:
 1. Key findings (3-7 critical insights)
 2. Risk assessment (overall risk level and specific risks)
 3. Strategic recommendations (3-5 actionable items)
@@ -294,44 +287,34 @@ Be objective, evidence-based, and professionally formatted. Output as JSON with 
   "risk_assessment": {"overall_risk": "low|medium|high|critical", "specific_risks": [{"risk": "...", "likelihood": "...", "impact": "..."}]},
   "recommendations": [{"action": "...", "priority": "...", "rationale": "..."}]
 }`
-              },
-              {
-                role: 'user',
-                content: JSON.stringify({
-                  dossier_type,
-                  executive_summary: sections.executive_summary,
-                  trust_assessment: sections.trust_assessment,
-                  psychological_summary: sections.psychological?.profile ? {
-                    personality: sections.psychological.profile.personality_assessment,
-                    risk_markers: sections.psychological.profile.risk_markers,
-                  } : null,
-                  active_anomalies: sections.alerts.active_anomalies,
-                  relationship_type: profile.relationship_type,
-                })
-              }
-            ],
-            max_tokens: 1500,
-          }),
-        });
-
-        if (response.ok) {
-          const aiData = await response.json();
-          const content = aiData.choices?.[0]?.message?.content || '';
-          try {
-            const jsonMatch = content.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              const parsed = JSON.parse(jsonMatch[0]);
-              keyFindings = parsed.key_findings || [];
-              riskAssessment = parsed.risk_assessment;
-              recommendations = parsed.recommendations || [];
-            }
-          } catch (e) {
-            console.error('Failed to parse AI response:', e);
+          },
+          {
+            role: 'user',
+            content: JSON.stringify({
+              dossier_type,
+              executive_summary: sections.executive_summary,
+              trust_assessment: sections.trust_assessment,
+              psychological_summary: sections.psychological?.profile ? {
+                personality: sections.psychological.profile.personality_assessment,
+                risk_markers: sections.psychological.profile.risk_markers,
+              } : null,
+              active_anomalies: sections.alerts.active_anomalies,
+              relationship_type: profile.relationship_type,
+            })
           }
-        }
-      } catch (e) {
-        console.error('AI dossier generation error:', e);
-      }
+        ],
+        userId,
+        functionName: 'generate-dossier',
+        profileId: profile_id,
+        maxTokens: 1500,
+      });
+
+      const parsed = parseAIJson(aiResponse.content, { key_findings: [], risk_assessment: null, recommendations: [] });
+      keyFindings = parsed.key_findings || [];
+      riskAssessment = parsed.risk_assessment;
+      recommendations = parsed.recommendations || [];
+    } catch (e) {
+      console.error('AI dossier generation error:', e);
     }
 
     sections.key_findings = keyFindings;
