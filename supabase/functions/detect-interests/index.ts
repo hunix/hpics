@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { profileId } = await req.json();
+    const { profileId, modelTier = 'speed' } = await req.json();
     
     if (!profileId) {
       throw new Error('Profile ID is required');
@@ -20,11 +21,9 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
-    
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch all available data for this profile
+    // Fetch all available data for this profile in parallel
     const [profileResult, communicationsResult, educationResult, skillsResult, experiencesResult] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', profileId).single(),
       supabase.from('communications').select('*').eq('profile_id', profileId).order('occurred_at', { ascending: false }).limit(50),
@@ -63,88 +62,42 @@ SHARED EXPERIENCES:
 ${experiences.length > 0 ? experiences.map(e => `- ${e.title} (${e.experience_type})`).join('\n') : 'No experiences recorded'}
 
 Based on all available information, identify likely interests and hobbies. Categorize each as: hobby, topic, brand, food, travel, sport, music, or other.
+For each interest, provide a confidence score (0-1) based on how strongly the evidence supports it.
 
-For each interest, provide a confidence score (0-1) based on how strongly the evidence supports it.`;
+Return JSON: { "interests": [{ "name": "...", "type": "...", "confidence": 0.0-1.0, "reasoning": "..." }] }`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: 'You are an interest detection AI. Analyze profiles to identify likely interests and hobbies.' },
-          { role: 'user', content: prompt }
-        ],
-        tools: [{
-          type: 'function',
-          function: {
-            name: 'detect_interests',
-            description: 'Detect interests from profile data',
-            parameters: {
-              type: 'object',
-              properties: {
-                interests: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      name: { type: 'string' },
-                      type: { type: 'string', enum: ['hobby', 'topic', 'brand', 'food', 'travel', 'sport', 'music', 'other'] },
-                      confidence: { type: 'number' },
-                      reasoning: { type: 'string' }
-                    },
-                    required: ['name', 'type', 'confidence', 'reasoning']
-                  }
-                }
-              },
-              required: ['interests']
-            }
-          }
-        }],
-        tool_choice: { type: 'function', function: { name: 'detect_interests' } }
-      }),
+    // Use unified AI client with speed tier for quick detection
+    const aiResponse = await callAI({
+      model: selectModel(modelTier as any),
+      messages: [
+        { role: 'system', content: 'You are an interest detection AI. Analyze profiles to identify likely interests and hobbies. Respond with valid JSON only.' },
+        { role: 'user', content: prompt }
+      ],
+      userId: profile.user_id,
+      functionName: 'detect-interests',
+      profileId: profileId,
+      temperature: 0.5,
+      metadata: { dataPoints: communications.length + education.length + skills.length },
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI Gateway error:', response.status, errorText);
-      throw new Error(`AI Gateway error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('AI response:', JSON.stringify(data));
-    
-    let detected;
-    if (data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments) {
-      detected = JSON.parse(data.choices[0].message.tool_calls[0].function.arguments);
-    } else {
-      throw new Error('Unexpected AI response format');
-    }
-
-    // Get user_id from profile
-    const userId = profile.user_id;
+    const detected = parseAIJson(aiResponse.content, { interests: [] });
 
     // Store detected interests (only high confidence ones)
-    const highConfidenceInterests = detected.interests.filter((i: any) => i.confidence >= 0.6);
+    const allInterests = (detected.interests || []) as Array<{ name: string; type: string; confidence: number; reasoning: string }>;
+    const highConfidenceInterests = allInterests.filter(i => i.confidence >= 0.6);
     
     if (highConfidenceInterests.length > 0) {
-      const interestsToInsert = highConfidenceInterests.map((interest: any) => ({
-        user_id: userId,
-        profile_id: profileId,
-        interest_type: interest.type,
-        name: interest.name,
-        notes: interest.reasoning,
-        source: 'ai_detected',
-        confidence_score: interest.confidence
-      }));
-
-      // Upsert to avoid duplicates
-      for (const interest of interestsToInsert) {
+      for (const interest of highConfidenceInterests) {
         await supabase.from('contact_interests')
-          .upsert(interest, { 
+          .upsert({
+            user_id: profile.user_id,
+            profile_id: profileId,
+            interest_type: interest.type,
+            name: interest.name,
+            notes: interest.reasoning,
+            source: 'ai_detected',
+            confidence_score: interest.confidence
+          }, { 
             onConflict: 'profile_id,name',
             ignoreDuplicates: true 
           });
@@ -153,8 +106,10 @@ For each interest, provide a confidence score (0-1) based on how strongly the ev
 
     return new Response(JSON.stringify({ 
       success: true, 
-      detectedInterests: detected.interests,
+      detectedInterests: detected.interests || [],
       savedCount: highConfidenceInterests.length,
+      tokensUsed: aiResponse.totalTokens,
+      costCents: aiResponse.costCents,
       generatedAt: new Date().toISOString()
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

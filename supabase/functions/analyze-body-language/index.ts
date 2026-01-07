@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { profileId, userId, videoUrl, recordingId, localEndpoint } = await req.json();
+    const { profileId, userId, videoUrl, recordingId, modelTier = 'balanced' } = await req.json();
     
     if (!profileId || !userId) {
       throw new Error('Profile ID and User ID are required');
@@ -22,23 +23,14 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch contact info
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('first_name, last_name, job_title')
-      .eq('id', profileId)
-      .single();
+    // Fetch contact info and transcription in parallel
+    const [profileResult, recordingResult] = await Promise.all([
+      supabase.from('profiles').select('first_name, last_name, job_title').eq('id', profileId).single(),
+      recordingId ? supabase.from('meeting_recordings').select('transcription').eq('id', recordingId).single() : Promise.resolve({ data: null }),
+    ]);
 
-    // Fetch transcription if available
-    let transcription = '';
-    if (recordingId) {
-      const { data: recording } = await supabase
-        .from('meeting_recordings')
-        .select('transcription')
-        .eq('id', recordingId)
-        .single();
-      transcription = recording?.transcription || '';
-    }
+    const profile = profileResult.data;
+    const transcription = recordingResult.data?.transcription || '';
 
     const systemPrompt = `You are an expert in body language analysis, kinesics, and non-verbal communication. Analyze body language to understand psychological states, confidence levels, interpersonal dynamics, and hidden communication.
 
@@ -51,7 +43,8 @@ Focus on:
 6. Comfort Indicators - Self-soothing behaviors, barriers, openness signals
 7. Power Dynamics - Dominance/submission cues, status indicators
 
-Provide insights for improving interpersonal interactions and negotiations.`;
+Provide insights for improving interpersonal interactions and negotiations.
+Respond with valid JSON only.`;
 
     const userPrompt = `Provide a comprehensive body language analysis for ${profile?.first_name} ${profile?.last_name || ''} (${profile?.job_title || 'Unknown role'}).
 
@@ -110,74 +103,30 @@ Provide analysis in JSON format:
   "summary": "..."
 }`;
 
-    let analysisResult;
-    let aiModelUsed = 'lovable-ai/gemini-2.5-flash';
+    // Use unified AI client
+    const aiResponse = await callAI({
+      model: selectModel(modelTier as any),
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      userId: userId,
+      functionName: 'analyze-body-language',
+      profileId: profileId,
+      recordingId: recordingId,
+      temperature: 0.6,
+      metadata: { hasVideo: !!videoUrl, hasTranscription: !!transcription },
+    });
 
-    // Try local endpoint first
-    if (localEndpoint) {
-      try {
-        console.log('Attempting local AI endpoint for body language analysis:', localEndpoint);
-        const localResponse = await fetch(`${localEndpoint}/v1/chat/completions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt }
-            ],
-            temperature: 0.6,
-            max_tokens: 4000,
-          }),
-        });
-
-        if (localResponse.ok) {
-          const localResult = await localResponse.json();
-          analysisResult = localResult.choices?.[0]?.message?.content;
-          aiModelUsed = `local/${localEndpoint}`;
-        }
-      } catch (localError) {
-        console.log('Local endpoint failed:', localError);
-      }
-    }
-
-    // Fall back to Lovable AI
-    if (!analysisResult) {
-      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-      if (!LOVABLE_API_KEY) {
-        throw new Error('No AI API key available');
-      }
-
-      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`AI analysis failed: ${response.status}`);
-      }
-
-      const result = await response.json();
-      analysisResult = result.choices?.[0]?.message?.content;
-    }
-
-    // Parse JSON
-    let parsedAnalysis;
-    try {
-      const jsonMatch = analysisResult.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, analysisResult];
-      parsedAnalysis = JSON.parse(jsonMatch[1].trim());
-    } catch (parseError) {
-      parsedAnalysis = { raw_text: analysisResult, parse_error: true };
-    }
+    const parsedAnalysis = parseAIJson(aiResponse.content, {
+      posture_analysis: { primary_posture: 'neutral', comfort_level: 50 },
+      gesture_patterns: {},
+      movement_indicators: { overall_activity: 'medium' },
+      rapport_signals: { synchrony_level: 50 },
+      comfort_indicators: { overall_comfort: 50 },
+      confidence_score: 30,
+      summary: 'Analysis framework provided'
+    });
 
     // Store analysis
     const { data: analysis, error: insertError } = await supabase
@@ -194,7 +143,7 @@ Provide analysis in JSON format:
         comfort_indicators: parsedAnalysis.comfort_indicators || null,
         confidence_score: parsedAnalysis.confidence_score || null,
         raw_analysis: parsedAnalysis,
-        ai_model_used: aiModelUsed,
+        ai_model_used: aiResponse.model,
       })
       .select()
       .single();
@@ -204,6 +153,8 @@ Provide analysis in JSON format:
     return new Response(JSON.stringify({
       success: true,
       analysis,
+      tokensUsed: aiResponse.totalTokens,
+      costCents: aiResponse.costCents,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
