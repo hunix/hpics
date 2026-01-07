@@ -53,20 +53,27 @@ export function useRelationshipAnalytics(dateRange: DateRange = '30d') {
         .gte('sent_at', startDateStr);
 
       // Fetch contacts with relationship scores
-      const { data: contacts } = await supabase
+      const { data: profilesData } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, relationship_score, last_contacted_at')
+        .select('id, first_name, last_name, last_contact_date')
         .eq('user_id', user!.id)
-        .not('relationship_score', 'is', null)
-        .order('relationship_score', { ascending: false })
+        .limit(50);
+
+      // Fetch relationship scores
+      const { data: scoresData } = await supabase
+        .from('relationship_scores')
+        .select('profile_id, overall_score')
+        .eq('user_id', user!.id)
+        .order('overall_score', { ascending: false })
         .limit(10);
 
-      // Fetch relationship scores history
-      const { data: scoreHistory } = await supabase
-        .from('relationship_score_history')
-        .select('profile_id, score, recorded_at')
-        .eq('user_id', user!.id)
-        .gte('recorded_at', startDateStr);
+      // Combine profiles with scores
+      const scoreMap = new Map((scoresData || []).map(s => [s.profile_id, s.overall_score]));
+      const contacts = (profilesData || [])
+        .map(p => ({ ...p, relationship_score: scoreMap.get(p.id) || null }))
+        .filter(p => p.relationship_score !== null)
+        .sort((a, b) => (b.relationship_score || 0) - (a.relationship_score || 0))
+        .slice(0, 10);
 
       const allComms = communications || [];
 
@@ -106,8 +113,8 @@ export function useRelationshipAnalytics(dateRange: DateRange = '30d') {
       }));
 
       // Response metrics (simplified - based on direction patterns)
-      const outgoing = allComms.filter(c => c.direction === 'outgoing').length;
-      const incoming = allComms.filter(c => c.direction === 'incoming').length;
+      const outgoingCount = allComms.filter(c => String(c.direction) === 'outgoing').length;
+      const incomingCount = allComms.filter(c => String(c.direction) === 'incoming').length;
       const responseMetrics = {
         avgResponseTime: 4.5, // Hours - placeholder
         fastestResponse: 0.5,
@@ -115,14 +122,14 @@ export function useRelationshipAnalytics(dateRange: DateRange = '30d') {
       };
 
       // Relationship growth by month
-      const { data: allContacts } = await supabase
+      const { data: allContactsData } = await supabase
         .from('profiles')
-        .select('id, created_at, is_active')
+        .select('id, created_at')
         .eq('user_id', user!.id)
         .gte('created_at', startDateStr);
 
       const growthByMonth = new Map<string, { added: number; lost: number }>();
-      (allContacts || []).forEach(contact => {
+      (allContactsData || []).forEach(contact => {
         const month = format(new Date(contact.created_at), 'MMM yyyy');
         const current = growthByMonth.get(month) || { added: 0, lost: 0 };
         current.added++;
@@ -154,7 +161,7 @@ export function useRelationshipAnalytics(dateRange: DateRange = '30d') {
         id: c.id,
         name: `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unnamed',
         score: c.relationship_score || 0,
-        lastContact: c.last_contacted_at || 'Never',
+        lastContact: c.last_contact_date || 'Never',
       }));
 
       // Unique contacts communicated with

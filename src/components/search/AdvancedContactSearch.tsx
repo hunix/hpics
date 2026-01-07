@@ -105,34 +105,57 @@ export function AdvancedContactSearch() {
   const { data: results, isLoading: isSearching } = useQuery({
     queryKey: ['advanced-search', user?.id, filters],
     queryFn: async () => {
+      // Fetch profiles
       let query = supabase
         .from('profiles')
         .select(`
           id, first_name, last_name, organization, job_title, 
-          address, country, relationship_type, relationship_score, 
-          last_contacted_at, avatar_url, created_at
+          relationship_type, avatar_url, created_at, last_contact_date
         `)
         .eq('user_id', user!.id);
 
       // Apply filters
       if (filters.relationshipType) {
-        query = query.eq('relationship_type', filters.relationshipType);
+        query = query.eq('relationship_type', filters.relationshipType as any);
       }
 
       if (filters.organization) {
         query = query.ilike('organization', `%${filters.organization}%`);
       }
 
+      const { data: profiles } = await query.limit(100);
+
+      if (!profiles) return [];
+
+      // Get relationship scores
+      const { data: scores } = await supabase
+        .from('relationship_scores')
+        .select('profile_id, overall_score')
+        .eq('user_id', user!.id);
+
+      const scoreMap = new Map((scores || []).map(s => [s.profile_id, s.overall_score]));
+
+      // Get locations for filtering
+      let locationProfileIds: Set<string> | null = null;
       if (filters.location) {
-        query = query.or(`address.ilike.%${filters.location}%,country.ilike.%${filters.location}%`);
+        const { data: locations } = await supabase
+          .from('contact_locations')
+          .select('profile_id, city, country')
+          .eq('user_id', user!.id)
+          .or(`city.ilike.%${filters.location}%,country.ilike.%${filters.location}%`);
+
+        locationProfileIds = new Set((locations || []).map(l => l.profile_id));
       }
 
-      const { data: contacts } = await query.limit(100);
-
-      if (!contacts) return [];
+      // Enrich profiles with scores and apply location filter
+      let enrichedContacts = profiles
+        .filter(p => !locationProfileIds || locationProfileIds.has(p.id))
+        .map(p => ({
+          ...p,
+          relationship_score: scoreMap.get(p.id) || null,
+        }));
 
       // Filter by group membership if needed
-      let filteredContacts = contacts;
       if (filters.groupId) {
         const { data: members } = await supabase
           .from('contact_group_members')
@@ -140,22 +163,22 @@ export function AdvancedContactSearch() {
           .eq('group_id', filters.groupId);
 
         const memberIds = new Set((members || []).map(m => m.profile_id));
-        filteredContacts = contacts.filter(c => memberIds.has(c.id));
+        enrichedContacts = enrichedContacts.filter(c => memberIds.has(c.id));
       }
 
       // Apply text search with fuzzy matching
       if (filters.query) {
         if (filters.fuzzyEnabled) {
-          filteredContacts = fuzzySearch(filteredContacts, filters.query, {
+          enrichedContacts = fuzzySearch(enrichedContacts, filters.query, {
             keys: ['first_name', 'last_name', 'organization', 'job_title'],
             threshold: 0.6,
           });
-          filteredContacts = rankByRelevance(filteredContacts, filters.query, [
+          enrichedContacts = rankByRelevance(enrichedContacts, filters.query, [
             'first_name', 'last_name', 'organization',
           ]);
         } else {
           const queryLower = filters.query.toLowerCase();
-          filteredContacts = filteredContacts.filter(c => {
+          enrichedContacts = enrichedContacts.filter(c => {
             const fullText = [c.first_name, c.last_name, c.organization, c.job_title]
               .filter(Boolean).join(' ').toLowerCase();
             return fullText.includes(queryLower);
@@ -166,31 +189,31 @@ export function AdvancedContactSearch() {
       // Sort results
       switch (filters.sortBy) {
         case 'score':
-          filteredContacts.sort((a, b) => (b.relationship_score || 0) - (a.relationship_score || 0));
+          enrichedContacts.sort((a, b) => (b.relationship_score || 0) - (a.relationship_score || 0));
           break;
         case 'lastContact':
-          filteredContacts.sort((a, b) => {
-            const dateA = a.last_contacted_at ? new Date(a.last_contacted_at).getTime() : 0;
-            const dateB = b.last_contacted_at ? new Date(b.last_contacted_at).getTime() : 0;
+          enrichedContacts.sort((a, b) => {
+            const dateA = a.last_contact_date ? new Date(a.last_contact_date).getTime() : 0;
+            const dateB = b.last_contact_date ? new Date(b.last_contact_date).getTime() : 0;
             return dateB - dateA;
           });
           break;
         case 'created':
-          filteredContacts.sort((a, b) => {
+          enrichedContacts.sort((a, b) => {
             const dateA = new Date(a.created_at).getTime();
             const dateB = new Date(b.created_at).getTime();
             return dateB - dateA;
           });
           break;
         default:
-          filteredContacts.sort((a, b) => {
+          enrichedContacts.sort((a, b) => {
             const nameA = `${a.first_name || ''} ${a.last_name || ''}`.toLowerCase();
             const nameB = `${b.first_name || ''} ${b.last_name || ''}`.toLowerCase();
             return nameA.localeCompare(nameB);
           });
       }
 
-      return filteredContacts;
+      return enrichedContacts;
     },
     enabled: !!user && open,
   });
@@ -487,17 +510,11 @@ export function AdvancedContactSearch() {
                             {contact.organization}
                           </span>
                         )}
-                        {contact.city && (
-                          <span className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            {contact.city}
-                          </span>
-                        )}
                       </div>
                     </div>
                     {contact.relationship_score && (
                       <Badge variant="secondary">
-                        {contact.relationship_score}%
+                        {Math.round(contact.relationship_score)}%
                       </Badge>
                     )}
                   </div>

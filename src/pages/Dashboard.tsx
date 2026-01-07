@@ -28,6 +28,9 @@ import { DataQualityMonitor } from '@/components/intelligence/DataQualityMonitor
 import { ProactiveActionsWidget } from '@/components/intelligence/ProactiveActionsWidget';
 import { LiveActivityFeed } from '@/components/intelligence/LiveActivityFeed';
 import { AnomalyDetectionWidget } from '@/components/intelligence/AnomalyDetectionWidget';
+import { RelationshipAnalytics } from '@/components/dashboard/RelationshipAnalytics';
+import { AIContactGrouping } from '@/components/contacts/AIContactGrouping';
+import { CalendarSyncStatus } from '@/components/dashboard/CalendarSyncStatus';
 import type { DashletType } from '@/lib/dashletDefinitions';
 
 export default function Dashboard() {
@@ -311,6 +314,12 @@ export default function Dashboard() {
         return <LiveActivityFeed />;
       case 'anomaly-detection':
         return <AnomalyDetectionWidget />;
+      case 'relationship-analytics':
+        return <RelationshipAnalytics />;
+      case 'ai-contact-grouping':
+        return <AIContactGrouping />;
+      case 'calendar-sync-status':
+        return <CalendarSyncStatus />;
       default:
         return null;
     }
