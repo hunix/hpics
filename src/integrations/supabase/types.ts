@@ -56,6 +56,45 @@ export type Database = {
           },
         ]
       }
+      ai_group_suggestions: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          description: string | null
+          group_name: string
+          id: string
+          reasoning: string | null
+          status: string | null
+          suggested_members: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          description?: string | null
+          group_name: string
+          id?: string
+          reasoning?: string | null
+          status?: string | null
+          suggested_members?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          description?: string | null
+          group_name?: string
+          id?: string
+          reasoning?: string | null
+          status?: string | null
+          suggested_members?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_guided_interviews: {
         Row: {
           completed_at: string | null
@@ -3933,6 +3972,7 @@ export type Database = {
       google_calendar_config: {
         Row: {
           access_token: string | null
+          auto_sync_enabled: boolean | null
           calendar_ids: string[] | null
           created_at: string
           email: string | null
@@ -3941,6 +3981,7 @@ export type Database = {
           last_sync_at: string | null
           refresh_token: string | null
           sync_enabled: boolean | null
+          sync_interval_minutes: number | null
           sync_status: string | null
           token_expires_at: string | null
           updated_at: string
@@ -3948,6 +3989,7 @@ export type Database = {
         }
         Insert: {
           access_token?: string | null
+          auto_sync_enabled?: boolean | null
           calendar_ids?: string[] | null
           created_at?: string
           email?: string | null
@@ -3956,6 +3998,7 @@ export type Database = {
           last_sync_at?: string | null
           refresh_token?: string | null
           sync_enabled?: boolean | null
+          sync_interval_minutes?: number | null
           sync_status?: string | null
           token_expires_at?: string | null
           updated_at?: string
@@ -3963,6 +4006,7 @@ export type Database = {
         }
         Update: {
           access_token?: string | null
+          auto_sync_enabled?: boolean | null
           calendar_ids?: string[] | null
           created_at?: string
           email?: string | null
@@ -3971,6 +4015,7 @@ export type Database = {
           last_sync_at?: string | null
           refresh_token?: string | null
           sync_enabled?: boolean | null
+          sync_interval_minutes?: number | null
           sync_status?: string | null
           token_expires_at?: string | null
           updated_at?: string
@@ -4718,36 +4763,42 @@ export type Database = {
         Row: {
           access_token: string
           account_email: string | null
+          auto_sync_enabled: boolean | null
           created_at: string | null
           expires_at: string
           id: string
           provider: string
           refresh_token: string | null
           scopes: string[] | null
+          sync_interval_minutes: number | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
           access_token: string
           account_email?: string | null
+          auto_sync_enabled?: boolean | null
           created_at?: string | null
           expires_at: string
           id?: string
           provider: string
           refresh_token?: string | null
           scopes?: string[] | null
+          sync_interval_minutes?: number | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
           access_token?: string
           account_email?: string | null
+          auto_sync_enabled?: boolean | null
           created_at?: string | null
           expires_at?: string
           id?: string
           provider?: string
           refresh_token?: string | null
           scopes?: string[] | null
+          sync_interval_minutes?: number | null
           updated_at?: string | null
           user_id?: string
         }
@@ -5272,6 +5323,39 @@ export type Database = {
           recipients?: string[] | null
           report_type?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      saved_searches: {
+        Row: {
+          created_at: string
+          filters: Json
+          id: string
+          is_pinned: boolean | null
+          name: string
+          updated_at: string
+          use_count: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          is_pinned?: boolean | null
+          name: string
+          updated_at?: string
+          use_count?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          is_pinned?: boolean | null
+          name?: string
+          updated_at?: string
+          use_count?: number | null
           user_id?: string
         }
         Relationships: []
