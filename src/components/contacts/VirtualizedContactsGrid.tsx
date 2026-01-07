@@ -146,6 +146,8 @@ export function VirtualizedContactsGrid({
 }: VirtualizedContactsGridProps) {
   const navigate = useNavigate();
   const parentRef = useRef<HTMLDivElement>(null);
+  const userHasScrolledRef = useRef(false);
+  const lastFetchTimeRef = useRef(0);
 
   // Calculate rows based on columns
   const rows = Math.ceil(contacts.length / columns);
@@ -157,15 +159,42 @@ export function VirtualizedContactsGrid({
     overscan: 3,
   });
 
-  // Scroll-based infinite loading - inside the scroll container
+  // Track user interaction - only allow infinite scroll after user scrolls
   useEffect(() => {
     const scrollElement = parentRef.current;
-    if (!scrollElement || !hasNextPage || isFetchingNextPage || !fetchNextPage) return;
+    if (!scrollElement) return;
+
+    const markUserScrolled = () => {
+      userHasScrolledRef.current = true;
+    };
+
+    scrollElement.addEventListener('wheel', markUserScrolled, { passive: true, once: true });
+    scrollElement.addEventListener('touchmove', markUserScrolled, { passive: true, once: true });
+    
+    return () => {
+      scrollElement.removeEventListener('wheel', markUserScrolled);
+      scrollElement.removeEventListener('touchmove', markUserScrolled);
+    };
+  }, []);
+
+  // Scroll-based infinite loading - only triggers after user interaction
+  useEffect(() => {
+    const scrollElement = parentRef.current;
+    if (!scrollElement || !fetchNextPage) return;
 
     const handleScroll = () => {
+      // Only load more if user has actually scrolled
+      if (!userHasScrolledRef.current) return;
+      if (!hasNextPage || isFetchingNextPage) return;
+      
+      // Throttle: only fetch once per 500ms
+      const now = Date.now();
+      if (now - lastFetchTimeRef.current < 500) return;
+
       const { scrollTop, scrollHeight, clientHeight } = scrollElement;
       // Load more when 300px from bottom
       if (scrollHeight - scrollTop - clientHeight < 300) {
+        lastFetchTimeRef.current = now;
         fetchNextPage();
       }
     };
