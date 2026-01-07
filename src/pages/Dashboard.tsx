@@ -32,6 +32,7 @@ import { RelationshipAnalytics } from '@/components/dashboard/RelationshipAnalyt
 import { AIContactGrouping } from '@/components/contacts/AIContactGrouping';
 import { CalendarSyncStatus } from '@/components/dashboard/CalendarSyncStatus';
 import { BiometricStatusWidget } from '@/components/dashboard/BiometricStatusWidget';
+import { RelationshipOverviewWidget } from '@/components/intelligence/RelationshipOverviewWidget';
 import type { DashletType } from '@/lib/dashletDefinitions';
 
 export default function Dashboard() {
@@ -323,6 +324,8 @@ export default function Dashboard() {
         return <CalendarSyncStatus />;
       case 'biometric-status':
         return <BiometricStatusWidget />;
+      case 'influence-overview':
+        return <RelationshipOverviewWidget />;
       default:
         return null;
     }

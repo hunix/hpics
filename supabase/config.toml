@@ -221,3 +221,30 @@ verify_jwt = false
 
 [functions.generate-influence-strategy]
 verify_jwt = false
+
+[functions.cross-identify-biometrics]
+verify_jwt = false
+
+[functions.extract-body-biometrics]
+verify_jwt = false
+
+[functions.extract-facial-multiview]
+verify_jwt = false
+
+[functions.extract-handwriting-biometrics]
+verify_jwt = false
+
+[functions.extract-signature-biometrics]
+verify_jwt = false
+
+[functions.extract-voice-advanced]
+verify_jwt = false
+
+[functions.process-influence-reminders]
+verify_jwt = false
+
+[functions.detect-influence-opportunities]
+verify_jwt = false
+
+[functions.analyze-methodology-effectiveness]
+verify_jwt = false

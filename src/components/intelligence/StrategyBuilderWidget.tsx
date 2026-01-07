@@ -15,6 +15,7 @@ import {
   MessageSquare, Calendar, ChevronRight, Copy, RefreshCw
 } from 'lucide-react';
 import { useInfluenceStrategies, useGenerateStrategy, useUpdateStrategy } from '@/hooks/useInfluenceProfile';
+import { OutcomeRecordingDialog } from './OutcomeRecordingDialog';
 
 interface StrategyBuilderWidgetProps {
   profileId: string;
@@ -39,6 +40,8 @@ export function StrategyBuilderWidget({ profileId, contactName }: StrategyBuilde
   const [goalType, setGoalType] = useState('');
   const [goalDescription, setGoalDescription] = useState('');
   const [context, setContext] = useState('');
+  const [outcomeDialogOpen, setOutcomeDialogOpen] = useState(false);
+  const [selectedStrategy, setSelectedStrategy] = useState<{ id: string; name: string; status: string } | null>(null);
   
   const { data: strategies, isLoading } = useInfluenceStrategies(profileId);
   const generateMutation = useGenerateStrategy();
@@ -70,13 +73,34 @@ export function StrategyBuilderWidget({ profileId, contactName }: StrategyBuilde
     toast({ title: 'Copied', description: 'Text copied to clipboard.' });
   };
 
-  const handleUpdateStatus = async (strategyId: string, status: string) => {
+  const handleUpdateStatus = async (strategyId: string, strategyName: string, status: string) => {
+    // If marking as successful or failed, show outcome dialog
+    if (status === 'successful' || status === 'failed') {
+      setSelectedStrategy({ id: strategyId, name: strategyName, status });
+      setOutcomeDialogOpen(true);
+      return;
+    }
+    
     try {
       await updateMutation.mutateAsync({ strategyId, updates: { status } });
       toast({ title: 'Status updated' });
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     }
+  };
+
+  const handleOutcomeComplete = async () => {
+    if (selectedStrategy) {
+      try {
+        await updateMutation.mutateAsync({ 
+          strategyId: selectedStrategy.id, 
+          updates: { status: selectedStrategy.status } 
+        });
+      } catch (error: any) {
+        toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      }
+    }
+    setSelectedStrategy(null);
   };
 
   const activeStrategies = strategies?.filter(s => s.status === 'active' || s.status === 'draft') || [];
@@ -259,14 +283,14 @@ export function StrategyBuilderWidget({ profileId, contactName }: StrategyBuilde
 
                       {/* Actions */}
                       <div className="flex gap-2 pt-2">
-                        <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(strategy.id, 'executed')}>
+                        <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(strategy.id, strategy.strategy_name, 'executed')}>
                           <CheckCircle className="h-4 w-4 mr-1" />
                           Mark Executed
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(strategy.id, 'successful')}>
+                        <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(strategy.id, strategy.strategy_name, 'successful')}>
                           ✅ Successful
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(strategy.id, 'failed')}>
+                        <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(strategy.id, strategy.strategy_name, 'failed')}>
                           ❌ Failed
                         </Button>
                       </div>
@@ -310,6 +334,16 @@ export function StrategyBuilderWidget({ profileId, contactName }: StrategyBuilde
           </CardContent>
         </Card>
       )}
+
+      {/* Outcome Recording Dialog */}
+      <OutcomeRecordingDialog
+        open={outcomeDialogOpen}
+        onOpenChange={setOutcomeDialogOpen}
+        profileId={profileId}
+        strategyId={selectedStrategy?.id}
+        methodologyName={selectedStrategy?.name || 'Strategy'}
+        onComplete={handleOutcomeComplete}
+      />
     </div>
   );
 }
