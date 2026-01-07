@@ -401,9 +401,7 @@ export default function Documents() {
                         key={folder.profileId}
                         name={`${folder.firstName} ${folder.lastName || ''}`.trim()}
                         totalFiles={folder.totalFiles}
-                        counts={{
-                          typeCounts: folder.typeCounts,
-                        }}
+                        counts={{}}
                         onClick={() => handleOpenFolder(folder)}
                       />
                     ))}

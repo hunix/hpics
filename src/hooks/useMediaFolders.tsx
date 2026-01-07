@@ -18,44 +18,30 @@ export function useMediaFolders() {
   return useQuery({
     queryKey: ['media-folders', user?.id],
     queryFn: async () => {
-      // Fetch media with profile info, grouped by profile
-      const { data, error } = await supabase
-        .from('media')
-        .select('profile_id, mime_type, profiles!inner(first_name, last_name)')
-        .not('profile_id', 'is', null);
+      // Use server-side aggregation to avoid 1000-row limit
+      const { data, error } = await supabase.rpc('get_media_folders', {
+        p_user_id: user!.id
+      });
 
       if (error) throw error;
 
-      // Aggregate counts by profile
-      const folderMap = new Map<string, MediaFolder>();
-
-      for (const item of data || []) {
-        const profileId = item.profile_id!;
-        const profile = item.profiles as { first_name: string; last_name: string | null };
-        
-        if (!folderMap.has(profileId)) {
-          folderMap.set(profileId, {
-            profileId,
-            firstName: profile.first_name,
-            lastName: profile.last_name,
-            totalFiles: 0,
-            imageCount: 0,
-            audioCount: 0,
-            videoCount: 0,
-          });
-        }
-
-        const folder = folderMap.get(profileId)!;
-        folder.totalFiles++;
-
-        const mimeType = item.mime_type || '';
-        if (mimeType.startsWith('image/')) folder.imageCount++;
-        else if (mimeType.startsWith('audio/')) folder.audioCount++;
-        else if (mimeType.startsWith('video/')) folder.videoCount++;
-      }
-
-      // Sort by total files descending
-      return Array.from(folderMap.values()).sort((a, b) => b.totalFiles - a.totalFiles);
+      return (data || []).map((f: {
+        profile_id: string;
+        first_name: string;
+        last_name: string | null;
+        total_files: number;
+        image_count: number;
+        audio_count: number;
+        video_count: number;
+      }) => ({
+        profileId: f.profile_id,
+        firstName: f.first_name,
+        lastName: f.last_name,
+        totalFiles: Number(f.total_files),
+        imageCount: Number(f.image_count),
+        audioCount: Number(f.audio_count),
+        videoCount: Number(f.video_count),
+      }));
     },
     enabled: !!user,
   });

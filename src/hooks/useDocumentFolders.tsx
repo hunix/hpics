@@ -7,7 +7,7 @@ export interface DocumentFolder {
   firstName: string;
   lastName: string | null;
   totalFiles: number;
-  typeCounts: Record<string, number>;
+  totalBytes: number;
 }
 
 export function useDocumentFolders() {
@@ -16,37 +16,26 @@ export function useDocumentFolders() {
   return useQuery({
     queryKey: ['document-folders', user?.id],
     queryFn: async () => {
-      // Fetch documents with profile info
-      const { data, error } = await supabase
-        .from('documents')
-        .select('profile_id, document_type, profiles!inner(first_name, last_name)')
-        .not('profile_id', 'is', null);
+      // Use server-side aggregation to avoid 1000-row limit
+      const { data, error } = await supabase.rpc('get_document_folders', {
+        p_user_id: user!.id
+      });
 
       if (error) throw error;
 
-      // Aggregate counts by profile
-      const folderMap = new Map<string, DocumentFolder>();
-
-      for (const item of data || []) {
-        const profileId = item.profile_id!;
-        const profile = item.profiles as { first_name: string; last_name: string | null };
-        
-        if (!folderMap.has(profileId)) {
-          folderMap.set(profileId, {
-            profileId,
-            firstName: profile.first_name,
-            lastName: profile.last_name,
-            totalFiles: 0,
-            typeCounts: {},
-          });
-        }
-
-        const folder = folderMap.get(profileId)!;
-        folder.totalFiles++;
-        folder.typeCounts[item.document_type] = (folder.typeCounts[item.document_type] || 0) + 1;
-      }
-
-      return Array.from(folderMap.values()).sort((a, b) => b.totalFiles - a.totalFiles);
+      return (data || []).map((f: {
+        profile_id: string;
+        first_name: string;
+        last_name: string | null;
+        total_files: number;
+        total_bytes: number;
+      }) => ({
+        profileId: f.profile_id,
+        firstName: f.first_name,
+        lastName: f.last_name,
+        totalFiles: Number(f.total_files),
+        totalBytes: Number(f.total_bytes),
+      }));
     },
     enabled: !!user,
   });
