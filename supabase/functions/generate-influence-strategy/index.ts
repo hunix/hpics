@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, parseAIJson } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -140,80 +141,33 @@ Generate a comprehensive strategy including:
 14. Risks and fallback strategy
 15. Abort signals (when to stop)`;
 
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: modelKey,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        tools: [{
-          type: 'function',
-          function: {
-            name: 'create_influence_strategy',
-            description: 'Create a comprehensive influence strategy for achieving a goal with a contact',
-            parameters: {
-              type: 'object',
-              properties: {
-                strategy_name: { type: 'string', description: 'Short memorable name for this strategy' },
-                strategy_summary: { type: 'string', description: 'One paragraph summary of the approach' },
-                preparation_steps: { type: 'array', items: { type: 'object', properties: { order: { type: 'number' }, action: { type: 'string' }, details: { type: 'string' }, timing: { type: 'string' } } } },
-                execution_steps: { type: 'array', items: { type: 'object', properties: { order: { type: 'number' }, action: { type: 'string' }, details: { type: 'string' }, success_indicator: { type: 'string' } } } },
-                follow_up_steps: { type: 'array', items: { type: 'object', properties: { order: { type: 'number' }, action: { type: 'string' }, timing: { type: 'string' } } } },
-                opening_scripts: { type: 'array', items: { type: 'string' }, description: 'Three opening script options' },
-                transition_phrases: { type: 'array', items: { type: 'string' }, description: 'Phrases to transition to main ask' },
-                closing_scripts: { type: 'array', items: { type: 'string' }, description: 'Three closing script options' },
-                objection_handlers: { type: 'array', items: { type: 'object', properties: { objection: { type: 'string' }, response: { type: 'string' }, followup: { type: 'string' } } } },
-                recovery_phrases: { type: 'array', items: { type: 'string' }, description: 'Phrases if things go sideways' },
-                things_to_mention: { type: 'array', items: { type: 'string' }, description: 'Personalized details to reference' },
-                things_to_avoid: { type: 'array', items: { type: 'string' }, description: 'Topics/phrases to avoid' },
-                emotional_hooks: { type: 'array', items: { type: 'string' }, description: 'Emotional levers to use' },
-                optimal_timing: { type: 'object', properties: { best_day: { type: 'string' }, best_time: { type: 'string' }, context: { type: 'string' }, avoid: { type: 'array', items: { type: 'string' } } } },
-                duration_estimate: { type: 'string' },
-                urgency_level: { type: 'string', enum: ['low', 'medium', 'high', 'urgent'] },
-                success_probability: { type: 'number', description: 'Estimated success probability 0-100' },
-                risks: { type: 'array', items: { type: 'object', properties: { description: { type: 'string' }, likelihood: { type: 'string', enum: ['low', 'medium', 'high'] }, mitigation: { type: 'string' } } } },
-                fallback_strategy: { type: 'string', description: 'What to do if main strategy fails' },
-                abort_signals: { type: 'array', items: { type: 'string' }, description: 'Signs to stop/pivot' },
-                methodologies_applied: { type: 'array', items: { type: 'string' }, description: 'Names of methodologies used' }
-              },
-              required: ['strategy_name', 'strategy_summary', 'preparation_steps', 'execution_steps', 'opening_scripts', 'closing_scripts', 'things_to_mention', 'things_to_avoid', 'success_probability', 'methodologies_applied']
-            }
-          }
-        }],
-        tool_choice: { type: 'function', function: { name: 'create_influence_strategy' } }
-      })
+    // Call AI using unified client
+    const aiResult = await callAI({
+      model: modelKey,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      userId: user.id,
+      functionName: 'generate-influence-strategy',
+      profileId: profileId,
+      maxTokens: 4000,
+      metadata: { goalType, goalDescription },
     });
 
-    if (!aiResponse.ok) {
-      if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-      if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: 'AI credits exhausted. Please add more credits.' }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-      throw new Error(`AI request failed: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    
-    if (!toolCall) {
-      throw new Error('No tool call in AI response');
-    }
-
-    const strategy = JSON.parse(toolCall.function.arguments);
+    // Parse the strategy response - use any for flexible AI response structure
+    const strategy: any = parseAIJson(aiResult.content, {
+      strategy_name: 'Default Strategy',
+      strategy_summary: 'Unable to generate strategy',
+      preparation_steps: [],
+      execution_steps: [],
+      opening_scripts: [],
+      closing_scripts: [],
+      things_to_mention: [],
+      things_to_avoid: [],
+      success_probability: 50,
+      methodologies_applied: []
+    });
 
     // Save the strategy
     const { data: savedStrategy, error: saveError } = await supabase

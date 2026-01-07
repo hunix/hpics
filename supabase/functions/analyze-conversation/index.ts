@@ -1,8 +1,9 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, parseAIJson } from "../_shared/ai-client.ts";
 
-const FUNCTION_VERSION = "2026-01-05-paginated-v3";
+const FUNCTION_VERSION = "2026-01-07-unified-ai-v1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -324,73 +325,39 @@ Be specific and actionable. Include 8-12 meaningful insights. Detect any anomali
 CONVERSATION:
 ${formattedMessages}`;
 
-    console.log(`Calling Lovable AI (${selectedModel}) for analysis...`);
+    console.log(`Calling unified AI client (${selectedModel}) for analysis...`);
 
-    // Build request body with model-specific parameters
-    const { maxTokensKey, includeTemperature } = getModelParams(selectedModel);
-    const requestBody: any = {
+    // Use unified AI client for automatic logging and cost tracking
+    const aiResponse = await callAI({
       model: selectedModel,
       messages: [
         { role: 'system', content: 'You are an expert conversation analyst specializing in relationship dynamics and communication patterns. Always respond with valid JSON only, no markdown or extra text.' },
         { role: 'user', content: aiPrompt }
       ],
-      [maxTokensKey]: 6000,
-    };
-    if (includeTemperature) {
-      requestBody.temperature = 0.3;
-    }
-    
-    console.log(`AI request params: ${maxTokensKey}=6000, temperature=${includeTemperature ? '0.3' : 'N/A'}`);
-
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
+      userId,
+      functionName: 'analyze-conversation',
+      profileId: conversation.profile_id,
+      temperature: 0.3,
+      maxTokens: 6000,
+      metadata: {
+        conversationId,
+        totalMessages: messages.length,
+        samplingStrategy,
       },
-      body: JSON.stringify(requestBody),
     });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI API error:', errorText);
-      if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: 'AI credits exhausted. Please add credits to continue.' }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      throw new Error(`AI API error: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
-    const aiContent = aiData.choices[0].message.content;
-    
-    console.log('AI response received, parsing...');
+    console.log(`AI response received (${aiResponse.totalTokens} tokens, ${aiResponse.costCents}¢)`);
 
     // Parse AI response
-    let aiAnalysis;
-    try {
-      const cleanedContent = aiContent.replace(/```json\n?|\n?```/g, '').trim();
-      aiAnalysis = JSON.parse(cleanedContent);
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', aiContent);
-      aiAnalysis = {
-        sentiment: { overall: 'neutral', timeline: [] },
-        intents: {},
-        topics: [],
-        anomalies: [],
-        relationship_health_score: 50,
-        insights: ['Analysis completed but detailed insights could not be extracted.'],
-        recommended_actions: []
-      };
-    }
+    const aiAnalysis = parseAIJson(aiResponse.content, {
+      sentiment: { overall: 'neutral', timeline: [] },
+      intents: {},
+      topics: [],
+      anomalies: [],
+      relationship_health_score: 50,
+      insights: ['Analysis completed but detailed insights could not be extracted.'],
+      recommended_actions: []
+    });
 
     // Compile full analysis
     const fullAnalysis = {

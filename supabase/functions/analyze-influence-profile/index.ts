@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, parseAIJson } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -153,87 +154,36 @@ Generate a comprehensive influence profile including:
 8. Timing and channel preferences
 9. Overall influence score and confidence level`;
 
-    // Call AI
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: modelKey,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        tools: [{
-          type: 'function',
-          function: {
-            name: 'create_influence_profile',
-            description: 'Create a comprehensive influence profile for the contact',
-            parameters: {
-              type: 'object',
-              properties: {
-                reciprocity_susceptibility: { type: 'number', description: 'Score 0-100 for reciprocity principle' },
-                commitment_consistency_susceptibility: { type: 'number', description: 'Score 0-100 for commitment principle' },
-                social_proof_susceptibility: { type: 'number', description: 'Score 0-100 for social proof' },
-                authority_susceptibility: { type: 'number', description: 'Score 0-100 for authority principle' },
-                liking_susceptibility: { type: 'number', description: 'Score 0-100 for liking principle' },
-                scarcity_susceptibility: { type: 'number', description: 'Score 0-100 for scarcity principle' },
-                unity_susceptibility: { type: 'number', description: 'Score 0-100 for unity principle' },
-                decision_style: { type: 'string', enum: ['analytical', 'intuitive', 'spontaneous', 'dependent', 'avoidant'] },
-                information_preference: { type: 'string', enum: ['detailed', 'summary', 'visual', 'examples', 'data'] },
-                risk_appetite: { type: 'string', enum: ['conservative', 'moderate', 'aggressive'] },
-                time_pressure_response: { type: 'string', enum: ['panics', 'focuses', 'stalls', 'avoids'] },
-                thinking_style: { type: 'string', enum: ['logical', 'emotional', 'pragmatic', 'creative'] },
-                attention_span: { type: 'string', enum: ['short', 'medium', 'long'] },
-                positive_triggers: { type: 'array', items: { type: 'string' }, description: 'What makes them receptive' },
-                negative_triggers: { type: 'array', items: { type: 'string' }, description: 'What shuts them down' },
-                power_words: { type: 'array', items: { type: 'string' }, description: 'Words that resonate' },
-                avoid_words: { type: 'array', items: { type: 'string' }, description: 'Words to avoid' },
-                fear_motivators: { type: 'array', items: { type: 'string' } },
-                desire_motivators: { type: 'array', items: { type: 'string' } },
-                ego_sensitivities: { type: 'array', items: { type: 'string' } },
-                recommended_methodologies: { type: 'array', items: { type: 'string' }, description: 'Best methodology names for this contact' },
-                approach_sequence: { type: 'array', items: { type: 'object', properties: { order: { type: 'number' }, action: { type: 'string' }, rationale: { type: 'string' } } } },
-                timing_preferences: { type: 'object', properties: { best_days: { type: 'array', items: { type: 'string' } }, best_times: { type: 'array', items: { type: 'string' } }, avoid_times: { type: 'array', items: { type: 'string' } } } },
-                channel_preferences: { type: 'object', properties: { preferred: { type: 'array', items: { type: 'string' } }, avoid: { type: 'array', items: { type: 'string' } } } },
-                overall_influence_score: { type: 'number', description: 'Overall ease of influence 0-100' },
-                confidence_score: { type: 'number', description: 'Confidence in this analysis 0-100' },
-                evidence_sources: { type: 'array', items: { type: 'object', properties: { type: { type: 'string' }, description: { type: 'string' }, confidence: { type: 'number' } } } }
-              },
-              required: ['reciprocity_susceptibility', 'commitment_consistency_susceptibility', 'social_proof_susceptibility', 'authority_susceptibility', 'liking_susceptibility', 'scarcity_susceptibility', 'unity_susceptibility', 'positive_triggers', 'negative_triggers', 'power_words', 'avoid_words', 'recommended_methodologies', 'overall_influence_score', 'confidence_score']
-            }
-          }
-        }],
-        tool_choice: { type: 'function', function: { name: 'create_influence_profile' } }
-      })
+    // Call AI using unified client
+    const aiResult = await callAI({
+      model: modelKey,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      userId: user.id,
+      functionName: 'analyze-influence-profile',
+      profileId: profileId,
+      maxTokens: 4000,
     });
 
-    if (!aiResponse.ok) {
-      if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-      if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: 'AI credits exhausted. Please add more credits.' }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-      throw new Error(`AI request failed: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    
-    if (!toolCall) {
-      throw new Error('No tool call in AI response');
-    }
-
-    const analysis = JSON.parse(toolCall.function.arguments);
+    // Parse response - use any for flexible AI response structure
+    const analysis: any = parseAIJson(aiResult.content, {
+      reciprocity_susceptibility: 50,
+      commitment_consistency_susceptibility: 50,
+      social_proof_susceptibility: 50,
+      authority_susceptibility: 50,
+      liking_susceptibility: 50,
+      scarcity_susceptibility: 50,
+      unity_susceptibility: 50,
+      positive_triggers: [],
+      negative_triggers: [],
+      power_words: [],
+      avoid_words: [],
+      recommended_methodologies: [],
+      overall_influence_score: 50,
+      confidence_score: 30
+    });
 
     // Upsert the influence profile
     const { data: savedProfile, error: saveError } = await supabase
