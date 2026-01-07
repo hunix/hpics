@@ -46,16 +46,27 @@ serve(async (req) => {
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      throw new Error("No authorization header");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
+    const authClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } }
+    });
 
-    if (authError || !user) {
-      throw new Error("Unauthorized");
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await (authClient.auth as any).getClaims(token);
+
+    if (claimsError || !claimsData?.claims?.sub) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
+
+    const userId = claimsData.claims.sub;
 
     const { sessionId } = await req.json();
 
@@ -64,7 +75,7 @@ serve(async (req) => {
       .from("bulk_analysis_sessions")
       .select("*")
       .eq("id", sessionId)
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .single();
 
     if (sessionError || !session) {

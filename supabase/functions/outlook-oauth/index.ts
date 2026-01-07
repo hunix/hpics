@@ -41,21 +41,29 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Get user from token
+    const authClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    // Get user from token using getClaims
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    const { data: claimsData, error: claimsError } = await (authClient.auth as any).getClaims(token);
     
-    if (userError || !user) {
+    if (claimsError || !claimsData?.claims?.sub) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    const userId = claimsData.claims.sub;
+
     const body: TokenRequest = await req.json();
     const { action, code, refreshToken, clientId, tenantId, redirectUri } = body;
 
-    console.log(`[outlook-oauth] Action: ${action} for user: ${user.id}`);
+    console.log(`[outlook-oauth] Action: ${action} for user: ${userId}`);
 
     const tokenEndpoint = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
 
@@ -112,7 +120,7 @@ Deno.serve(async (req) => {
       const { error: upsertError } = await supabase
         .from('oauth_tokens')
         .upsert({
-          user_id: user.id,
+          user_id: userId,
           provider: 'microsoft',
           access_token: tokens.access_token,
           refresh_token: tokens.refresh_token,
@@ -136,7 +144,7 @@ Deno.serve(async (req) => {
       await supabase
         .from('email_accounts')
         .upsert({
-          user_id: user.id,
+          user_id: userId,
           provider: 'outlook',
           email: accountEmail,
           display_name: userInfo.displayName,
@@ -199,7 +207,7 @@ Deno.serve(async (req) => {
           expires_at: expiresAt.toISOString(),
           updated_at: new Date().toISOString(),
         })
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('provider', 'microsoft');
 
       return new Response(JSON.stringify({
@@ -214,13 +222,13 @@ Deno.serve(async (req) => {
       await supabase
         .from('oauth_tokens')
         .delete()
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('provider', 'microsoft');
 
       await supabase
         .from('email_accounts')
         .update({ is_connected: false, sync_enabled: false })
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('provider', 'outlook');
 
       return new Response(JSON.stringify({ success: true }), {

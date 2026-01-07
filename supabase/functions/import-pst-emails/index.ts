@@ -51,14 +51,17 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // Verify user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    // Verify user using getClaims
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await (supabase.auth as any).getClaims(token);
+    if (claimsError || !claimsData?.claims?.sub) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const userId = claimsData.claims.sub;
 
     const { emails, options }: ImportRequest = await req.json();
     
@@ -69,7 +72,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Processing batch of ${emails.length} emails for user ${user.id}`);
+    console.log(`Processing batch of ${emails.length} emails for user ${userId}`);
 
     // Fetch contact email mappings
     const { data: contactMethods } = await supabase
@@ -90,7 +93,7 @@ Deno.serve(async (req) => {
       const { data: existing } = await supabase
         .from('email_messages')
         .select('external_id')
-        .eq('user_id', user.id);
+        .eq('user_id', userId);
       
       if (existing) {
         existingIds = new Set(existing.map(e => e.external_id));
@@ -149,7 +152,7 @@ Deno.serve(async (req) => {
           const { data: existingThread } = await supabase
             .from('email_threads')
             .select('id')
-            .eq('user_id', user.id)
+            .eq('user_id', userId)
             .eq('subject', email.subject || '(No Subject)')
             .eq('profile_id', matchedProfileId)
             .single();
@@ -161,7 +164,7 @@ Deno.serve(async (req) => {
             const { data: newThread, error: threadError } = await supabase
               .from('email_threads')
               .insert({
-                user_id: user.id,
+                user_id: userId,
                 profile_id: matchedProfileId,
                 subject: email.subject || '(No Subject)',
                 folder: email.folder.includes('Sent') ? 'sent' : 'inbox',
@@ -189,7 +192,7 @@ Deno.serve(async (req) => {
         const { error: messageError } = await supabase
           .from('email_messages')
           .insert({
-            user_id: user.id,
+            user_id: userId,
             thread_id: threadId,
             external_id: email.messageId,
             subject: email.subject,
