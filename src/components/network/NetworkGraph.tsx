@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Share2, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Share2, ZoomIn, ZoomOut, AlertTriangle } from 'lucide-react';
 import * as d3 from 'd3';
 
 interface NetworkNode {
@@ -35,36 +36,79 @@ const relationshipColors: Record<string, string> = {
   other: '#9ca3af',
 };
 
+// Maximum nodes before sampling kicks in
+const MAX_NODES = 500;
+
+type SamplingStrategy = 'favorites' | 'recent' | 'connected';
+
 export function NetworkGraph() {
   const { user } = useAuth();
   const svgRef = useRef<SVGSVGElement>(null);
   const [selectedNode, setSelectedNode] = useState<NetworkNode | null>(null);
   const [zoom, setZoom] = useState(1);
+  const [strategy, setStrategy] = useState<SamplingStrategy>('favorites');
 
   const { data: networkData, isLoading } = useQuery({
-    queryKey: ['network-graph', user?.id],
+    queryKey: ['network-graph', user?.id, strategy],
     queryFn: async () => {
-      // Fetch profiles
-      const { data: profiles } = await supabase
+      // Get total count first
+      const { count: totalCount } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, organization, relationship_type, is_favorite, tags')
+        .select('*', { count: 'exact', head: true })
         .eq('user_id', user!.id);
 
-      // Fetch interests
+      const needsSampling = (totalCount || 0) > MAX_NODES;
+
+      // Build query based on strategy
+      let query = supabase
+        .from('profiles')
+        .select('id, first_name, last_name, organization, relationship_type, is_favorite, tags, created_at, updated_at')
+        .eq('user_id', user!.id);
+
+      if (needsSampling) {
+        switch (strategy) {
+          case 'favorites':
+            query = query.order('is_favorite', { ascending: false }).order('created_at', { ascending: false });
+            break;
+          case 'recent':
+            query = query.order('updated_at', { ascending: false });
+            break;
+          case 'connected':
+          default:
+            query = query.order('is_favorite', { ascending: false }).order('updated_at', { ascending: false });
+            break;
+        }
+        query = query.limit(MAX_NODES);
+      }
+
+      const { data: profiles } = await query;
+      const profileIds = (profiles || []).map(p => p.id);
+
+      // Fetch relationships for the selected profiles
+      const { data: relationships } = await supabase
+        .from('contact_relationships')
+        .select('from_profile_id, to_profile_id, relationship_type')
+        .eq('user_id', user!.id)
+        .in('from_profile_id', profileIds)
+        .in('to_profile_id', profileIds);
+
+      // Fetch shared data for inferring connections
       const { data: interests } = await supabase
         .from('contact_interests')
         .select('profile_id, name')
-        .eq('user_id', user!.id);
+        .eq('user_id', user!.id)
+        .in('profile_id', profileIds);
 
-      // Fetch skills
       const { data: skills } = await supabase
         .from('contact_skills')
         .select('profile_id, skill_name')
-        .eq('user_id', user!.id);
+        .eq('user_id', user!.id)
+        .in('profile_id', profileIds);
 
+      // Build nodes
       const nodes: NetworkNode[] = (profiles || []).map(p => ({
         id: p.id,
-        name: `${p.first_name} ${p.last_name || ''}`.trim(),
+        name: `${p.first_name} ${p.last_name || ''}`.trim() || 'Unknown',
         group: p.relationship_type || 'other',
         organization: p.organization || undefined,
         isFavorite: p.is_favorite || false,
@@ -96,21 +140,39 @@ export function NetworkGraph() {
         }
       });
 
+      // Add explicit relationships
+      (relationships || []).forEach(r => {
+        const existing = links.find(l => 
+          (l.source === r.from_profile_id && l.target === r.to_profile_id) ||
+          (l.source === r.to_profile_id && l.target === r.from_profile_id)
+        );
+        if (existing) {
+          existing.strength += 3;
+        } else {
+          links.push({
+            source: r.from_profile_id,
+            target: r.to_profile_id,
+            type: r.relationship_type || 'relationship',
+            strength: 3,
+          });
+        }
+      });
+
       // Create links for shared interests
-      interestsMap.forEach((profileIds, interest) => {
-        if (profileIds.length > 1) {
-          for (let i = 0; i < profileIds.length; i++) {
-            for (let j = i + 1; j < profileIds.length; j++) {
+      interestsMap.forEach((pIds) => {
+        if (pIds.length > 1) {
+          for (let i = 0; i < pIds.length; i++) {
+            for (let j = i + 1; j < pIds.length; j++) {
               const existing = links.find(l => 
-                (l.source === profileIds[i] && l.target === profileIds[j]) ||
-                (l.source === profileIds[j] && l.target === profileIds[i])
+                (l.source === pIds[i] && l.target === pIds[j]) ||
+                (l.source === pIds[j] && l.target === pIds[i])
               );
               if (existing) {
                 existing.strength += 1;
               } else {
                 links.push({
-                  source: profileIds[i],
-                  target: profileIds[j],
+                  source: pIds[i],
+                  target: pIds[j],
                   type: 'interest',
                   strength: 1,
                 });
@@ -121,20 +183,20 @@ export function NetworkGraph() {
       });
 
       // Create links for shared skills
-      skillsMap.forEach((profileIds) => {
-        if (profileIds.length > 1) {
-          for (let i = 0; i < profileIds.length; i++) {
-            for (let j = i + 1; j < profileIds.length; j++) {
+      skillsMap.forEach((pIds) => {
+        if (pIds.length > 1) {
+          for (let i = 0; i < pIds.length; i++) {
+            for (let j = i + 1; j < pIds.length; j++) {
               const existing = links.find(l => 
-                (l.source === profileIds[i] && l.target === profileIds[j]) ||
-                (l.source === profileIds[j] && l.target === profileIds[i])
+                (l.source === pIds[i] && l.target === pIds[j]) ||
+                (l.source === pIds[j] && l.target === pIds[i])
               );
               if (existing) {
                 existing.strength += 1;
               } else {
                 links.push({
-                  source: profileIds[i],
-                  target: profileIds[j],
+                  source: pIds[i],
+                  target: pIds[j],
                   type: 'skill',
                   strength: 1,
                 });
@@ -145,20 +207,20 @@ export function NetworkGraph() {
       });
 
       // Create links for same organization
-      orgsMap.forEach((profileIds) => {
-        if (profileIds.length > 1) {
-          for (let i = 0; i < profileIds.length; i++) {
-            for (let j = i + 1; j < profileIds.length; j++) {
+      orgsMap.forEach((pIds) => {
+        if (pIds.length > 1) {
+          for (let i = 0; i < pIds.length; i++) {
+            for (let j = i + 1; j < pIds.length; j++) {
               const existing = links.find(l => 
-                (l.source === profileIds[i] && l.target === profileIds[j]) ||
-                (l.source === profileIds[j] && l.target === profileIds[i])
+                (l.source === pIds[i] && l.target === pIds[j]) ||
+                (l.source === pIds[j] && l.target === pIds[i])
               );
               if (existing) {
                 existing.strength += 2;
               } else {
                 links.push({
-                  source: profileIds[i],
-                  target: profileIds[j],
+                  source: pIds[i],
+                  target: pIds[j],
                   type: 'organization',
                   strength: 2,
                 });
@@ -168,9 +230,10 @@ export function NetworkGraph() {
         }
       });
 
-      return { nodes, links };
+      return { nodes, links, totalNodes: totalCount || 0, sampled: needsSampling };
     },
     enabled: !!user,
+    staleTime: 60000,
   });
 
   useEffect(() => {
@@ -232,8 +295,8 @@ export function NetworkGraph() {
         }) as any);
 
     node.append('circle')
-      .attr('r', (d) => d.isFavorite ? 18 : 14)
-      .attr('fill', (d) => relationshipColors[d.group] || '#9ca3af')
+      .attr('r', (d: NetworkNode) => d.isFavorite ? 18 : 14)
+      .attr('fill', (d: NetworkNode) => relationshipColors[d.group] || '#9ca3af')
       .attr('stroke', '#fff')
       .attr('stroke-width', 2);
 
@@ -242,10 +305,10 @@ export function NetworkGraph() {
       .attr('text-anchor', 'middle')
       .attr('font-size', '10px')
       .attr('fill', 'currentColor')
-      .text((d) => d.name.length > 15 ? d.name.slice(0, 15) + '...' : d.name);
+      .text((d: NetworkNode) => d.name.length > 15 ? d.name.slice(0, 15) + '...' : d.name);
 
     node.on('click', (_, d) => {
-      setSelectedNode(d);
+      setSelectedNode(d as NetworkNode);
     });
 
     simulation.on('tick', () => {
