@@ -1,10 +1,10 @@
-import { useRef, memo, useCallback } from 'react';
+import { useRef, memo, useCallback, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Star } from 'lucide-react';
+import { Star, Loader2 } from 'lucide-react';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
 import { CountryFlag } from './CountryFlag';
 import type { Tables } from '@/integrations/supabase/types';
@@ -22,6 +22,10 @@ interface VirtualizedContactsListProps {
   onToggleFavorite: (id: string, isFavorite: boolean) => void;
   relationshipColors: Record<string, string>;
   viewMode: 'cards' | 'list' | 'table';
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
+  fetchNextPage?: () => void;
+  totalCount?: number;
 }
 
 // Memoized contact row to prevent unnecessary re-renders
@@ -134,6 +138,10 @@ export function VirtualizedContactsList({
   onSelectionChange,
   onToggleFavorite,
   relationshipColors,
+  hasNextPage,
+  isFetchingNextPage,
+  fetchNextPage,
+  totalCount,
 }: VirtualizedContactsListProps) {
   const navigate = useNavigate();
   const parentRef = useRef<HTMLDivElement>(null);
@@ -144,6 +152,23 @@ export function VirtualizedContactsList({
     estimateSize: () => 64,
     overscan: 10,
   });
+
+  // Scroll-based infinite loading - inside the scroll container
+  useEffect(() => {
+    const scrollElement = parentRef.current;
+    if (!scrollElement || !hasNextPage || isFetchingNextPage || !fetchNextPage) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = scrollElement;
+      // Load more when 300px from bottom
+      if (scrollHeight - scrollTop - clientHeight < 300) {
+        fetchNextPage();
+      }
+    };
+
+    scrollElement.addEventListener('scroll', handleScroll, { passive: true });
+    return () => scrollElement.removeEventListener('scroll', handleScroll);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const handleClick = useCallback(
     (id: string) => {
@@ -193,12 +218,30 @@ export function VirtualizedContactsList({
               );
             })}
           </div>
+
+          {/* Loading indicator inside scroll container */}
+          {isFetchingNextPage && (
+            <div className="py-4 flex items-center justify-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Loading more...</span>
+            </div>
+          )}
         </div>
 
         {/* Footer with contact count */}
         <div className="px-4 py-2 border-t bg-muted/50 text-sm text-muted-foreground">
-          Showing {contacts.length} contacts
-          {selectedIds.size > 0 && ` • ${selectedIds.size} selected`}
+          {totalCount !== undefined ? (
+            <>
+              Showing {contacts.length} of {totalCount} contacts
+              {selectedIds.size > 0 && ` • ${selectedIds.size} selected`}
+              {!hasNextPage && contacts.length === totalCount && ' • All loaded'}
+            </>
+          ) : (
+            <>
+              Showing {contacts.length} contacts
+              {selectedIds.size > 0 && ` • ${selectedIds.size} selected`}
+            </>
+          )}
         </div>
       </CardContent>
     </Card>
