@@ -50,13 +50,13 @@ export function BiometricBatchScan() {
         .from('media')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .in('media_type', ['image', 'photo']);
+        .like('mime_type', 'image/%');
         
       const audioResult = await supabase
         .from('media')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .eq('media_type', 'audio');
+        .like('mime_type', 'audio/%');
 
       return {
         images: imagesResult.count || 0,
@@ -66,28 +66,36 @@ export function BiometricBatchScan() {
     enabled: !!user
   });
 
+  interface MediaItem {
+    id: string;
+    file_url: string | null;
+    storage_path: string | null;
+    profile_id: string | null;
+    caption: string | null;
+  }
+
   // Get media items for scanning
-  const fetchMediaForScan = async (type: 'images' | 'audio', limit: number = 50) => {
+  const fetchMediaForScan = async (type: 'images' | 'audio', limit: number = 50): Promise<MediaItem[]> => {
     if (!user) return [];
 
     if (type === 'images') {
       const { data } = await supabase
         .from('media')
-        .select('id, file_url, storage_path, profile_id, file_name')
+        .select('id, file_url, storage_path, profile_id, caption')
         .eq('user_id', user.id)
-        .in('media_type', ['image', 'photo'])
+        .like('mime_type', 'image/%')
         .order('created_at', { ascending: false })
         .limit(limit);
-      return data || [];
+      return (data || []) as MediaItem[];
     } else {
       const { data } = await supabase
         .from('media')
-        .select('id, file_url, storage_path, profile_id, file_name')
+        .select('id, file_url, storage_path, profile_id, caption')
         .eq('user_id', user.id)
-        .eq('media_type', 'audio')
+        .like('mime_type', 'audio/%')
         .order('created_at', { ascending: false })
         .limit(limit);
-      return data || [];
+      return (data || []) as MediaItem[];
     }
   };
 
@@ -98,16 +106,16 @@ export function BiometricBatchScan() {
     setProgress({ total: 0, processed: 0, successful: 0, failed: 0 });
 
     try {
-      const allItems: Array<{ id: string; file_url: string | null; storage_path: string | null; profile_id: string | null; file_name: string | null; type: 'face' | 'voice' }> = [];
+      const allItems: Array<MediaItem & { type: 'face' | 'voice' }> = [];
 
       if (scanType.images) {
         const images = await fetchMediaForScan('images');
-        images.forEach(i => allItems.push({ ...i, type: 'face' }));
+        images.forEach(i => allItems.push({ ...i, type: 'face' as const }));
       }
 
       if (scanType.audio) {
         const audio = await fetchMediaForScan('audio');
-        audio.forEach(a => allItems.push({ ...a, type: 'voice' }));
+        audio.forEach(a => allItems.push({ ...a, type: 'voice' as const }));
       }
 
       setProgress(p => ({ ...p!, total: allItems.length }));
@@ -120,7 +128,7 @@ export function BiometricBatchScan() {
         setProgress(p => ({ 
           ...p!, 
           processed: i, 
-          currentItem: item.file_name || item.id 
+          currentItem: item.caption || item.id 
         }));
 
         try {
@@ -148,11 +156,11 @@ export function BiometricBatchScan() {
               failed++;
             }
           } else {
-            // Voice processing
-            let audioUrl = item.audio_url;
+            // Voice processing - use file_url for audio
+            let audioUrl = item.file_url;
             if (item.storage_path && !audioUrl) {
               const { data: urlData } = await supabase.storage
-                .from('voice_notes')
+                .from('media')
                 .createSignedUrl(item.storage_path, 3600);
               audioUrl = urlData?.signedUrl;
             }
@@ -162,9 +170,8 @@ export function BiometricBatchScan() {
                 body: { 
                   audioUrl, 
                   profileId: item.profile_id, 
-                  sourceType: 'voice_note', 
-                  sourceId: item.id,
-                  transcription: item.transcription
+                  sourceType: 'media', 
+                  sourceId: item.id
                 }
               });
               successful++;

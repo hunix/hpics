@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Sun, Bell, Mail, Loader2, Smartphone, Link2, Bot, Cpu, MessageCircle, HardDrive, Trash2, Users } from 'lucide-react';
+import { Moon, Sun, Bell, Mail, Loader2, Smartphone, Link2, Bot, Cpu, MessageCircle, HardDrive, Trash2, Users, Fingerprint } from 'lucide-react';
 import { AnalyticsExport } from '@/components/analytics/AnalyticsExport';
 import { EmailIntegration } from '@/components/settings/EmailIntegration';
 import { OutlookIntegration } from '@/components/settings/OutlookIntegration';
@@ -29,6 +29,9 @@ import { CalendarSyncSettings } from '@/components/settings/CalendarSyncSettings
 import { WebhookManager } from '@/components/settings/WebhookManager';
 import { WorkspaceSettings } from '@/components/settings/WorkspaceSettings';
 import { CronJobManager } from '@/components/settings/CronJobManager';
+import { BiometricSettings } from '@/components/settings/BiometricSettings';
+import { BiometricBatchScan } from '@/components/settings/BiometricBatchScan';
+import { BiometricAnalyticsDashboard } from '@/components/settings/BiometricAnalyticsDashboard';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -121,7 +124,7 @@ export default function Settings() {
   return (
     <AppLayout title="Settings">
       <Tabs defaultValue="general" className="max-w-5xl">
-        <TabsList className="grid w-full grid-cols-9">
+        <TabsList className="grid w-full grid-cols-10">
           <TabsTrigger value="general">
             <Sun className="h-4 w-4 mr-2" />
             General
@@ -129,6 +132,10 @@ export default function Settings() {
           <TabsTrigger value="notifications">
             <Bell className="h-4 w-4 mr-2" />
             Notifications
+          </TabsTrigger>
+          <TabsTrigger value="biometrics">
+            <Fingerprint className="h-4 w-4 mr-2" />
+            Biometrics
           </TabsTrigger>
           <TabsTrigger value="storage">
             <HardDrive className="h-4 w-4 mr-2" />
@@ -255,6 +262,12 @@ export default function Settings() {
               Save Settings
             </Button>
           </div>
+        </TabsContent>
+
+        <TabsContent value="biometrics" className="space-y-6 mt-6">
+          <BiometricSettings />
+          <BiometricBatchScan />
+          <BiometricAnalyticsDashboard />
         </TabsContent>
 
         <TabsContent value="storage" className="space-y-6 mt-6">
