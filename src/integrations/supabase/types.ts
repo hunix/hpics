@@ -662,6 +662,146 @@ export type Database = {
           },
         ]
       }
+      biometric_matches: {
+        Row: {
+          alternative_matches: Json | null
+          auto_tagged: boolean | null
+          confidence_score: number | null
+          created_at: string | null
+          id: string
+          match_type: string
+          matched_profile_id: string | null
+          source_id: string | null
+          source_type: string
+          user_confirmed: boolean | null
+          user_corrected_profile_id: string | null
+          user_id: string
+        }
+        Insert: {
+          alternative_matches?: Json | null
+          auto_tagged?: boolean | null
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string
+          match_type: string
+          matched_profile_id?: string | null
+          source_id?: string | null
+          source_type: string
+          user_confirmed?: boolean | null
+          user_corrected_profile_id?: string | null
+          user_id: string
+        }
+        Update: {
+          alternative_matches?: Json | null
+          auto_tagged?: boolean | null
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string
+          match_type?: string
+          matched_profile_id?: string | null
+          source_id?: string | null
+          source_type?: string
+          user_confirmed?: boolean | null
+          user_corrected_profile_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "biometric_matches_matched_profile_id_fkey"
+            columns: ["matched_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "biometric_matches_matched_profile_id_fkey"
+            columns: ["matched_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "biometric_matches_user_corrected_profile_id_fkey"
+            columns: ["user_corrected_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "biometric_matches_user_corrected_profile_id_fkey"
+            columns: ["user_corrected_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      biometric_samples: {
+        Row: {
+          biometric_type: string
+          created_at: string | null
+          embedding: string | null
+          error_message: string | null
+          features: Json | null
+          id: string
+          processed_at: string | null
+          profile_id: string
+          quality_score: number | null
+          source_id: string | null
+          source_type: string
+          source_url: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          biometric_type: string
+          created_at?: string | null
+          embedding?: string | null
+          error_message?: string | null
+          features?: Json | null
+          id?: string
+          processed_at?: string | null
+          profile_id: string
+          quality_score?: number | null
+          source_id?: string | null
+          source_type: string
+          source_url?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          biometric_type?: string
+          created_at?: string | null
+          embedding?: string | null
+          error_message?: string | null
+          features?: Json | null
+          id?: string
+          processed_at?: string | null
+          profile_id?: string
+          quality_score?: number | null
+          source_id?: string | null
+          source_type?: string
+          source_url?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "biometric_samples_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "biometric_samples_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       body_language_analyses: {
         Row: {
           ai_model_used: string | null
@@ -1298,6 +1438,84 @@ export type Database = {
           },
           {
             foreignKeyName: "contact_bank_accounts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_biometrics: {
+        Row: {
+          ai_model_used: string | null
+          created_at: string | null
+          facial_confidence: number | null
+          facial_embedding: string | null
+          facial_features: Json | null
+          facial_landmarks: Json | null
+          facial_last_updated: string | null
+          facial_sample_count: number | null
+          id: string
+          identity_confidence: number | null
+          profile_id: string
+          updated_at: string | null
+          user_id: string
+          voice_characteristics: Json | null
+          voice_confidence: number | null
+          voice_embedding: string | null
+          voice_last_updated: string | null
+          voice_sample_count: number | null
+        }
+        Insert: {
+          ai_model_used?: string | null
+          created_at?: string | null
+          facial_confidence?: number | null
+          facial_embedding?: string | null
+          facial_features?: Json | null
+          facial_landmarks?: Json | null
+          facial_last_updated?: string | null
+          facial_sample_count?: number | null
+          id?: string
+          identity_confidence?: number | null
+          profile_id: string
+          updated_at?: string | null
+          user_id: string
+          voice_characteristics?: Json | null
+          voice_confidence?: number | null
+          voice_embedding?: string | null
+          voice_last_updated?: string | null
+          voice_sample_count?: number | null
+        }
+        Update: {
+          ai_model_used?: string | null
+          created_at?: string | null
+          facial_confidence?: number | null
+          facial_embedding?: string | null
+          facial_features?: Json | null
+          facial_landmarks?: Json | null
+          facial_last_updated?: string | null
+          facial_sample_count?: number | null
+          id?: string
+          identity_confidence?: number | null
+          profile_id?: string
+          updated_at?: string | null
+          user_id?: string
+          voice_characteristics?: Json | null
+          voice_confidence?: number | null
+          voice_embedding?: string | null
+          voice_last_updated?: string | null
+          voice_sample_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_biometrics_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_biometrics_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"

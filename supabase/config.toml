@@ -179,3 +179,12 @@ verify_jwt = false
 
 [functions.auto-sync-calendars]
 verify_jwt = false
+
+[functions.extract-facial-biometrics]
+verify_jwt = false
+
+[functions.extract-voice-biometrics]
+verify_jwt = false
+
+[functions.match-biometrics]
+verify_jwt = false
