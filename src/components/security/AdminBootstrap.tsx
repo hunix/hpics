@@ -5,11 +5,15 @@ import { Shield, AlertTriangle, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useClearance } from "@/hooks/useClearance";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
 
 export function AdminBootstrap() {
   const [isBootstrapping, setIsBootstrapping] = useState(false);
   const [bootstrapped, setBootstrapped] = useState(false);
-  const { userRole, refetchUserRole } = useClearance();
+  const { userRole } = useClearance();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const handleBootstrap = async () => {
     setIsBootstrapping(true);
@@ -25,7 +29,7 @@ export function AdminBootstrap() {
       if (data === true) {
         setBootstrapped(true);
         toast.success('You are now the system administrator with SCI clearance');
-        refetchUserRole();
+        queryClient.invalidateQueries({ queryKey: ['user-role', user?.id] });
       } else {
         toast.error('Admin bootstrap not available - an admin already exists');
       }
