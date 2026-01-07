@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,46 +21,41 @@ serve(async (req) => {
       });
     }
 
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    // Validate JWT using getClaims
+    // Validate JWT
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
     const token = authHeader.replace('Bearer ', '');
-    let userId: string;
-    try {
-      const { data: claimsData, error: claimsError } = await (supabaseClient.auth as any).getClaims(token);
-      if (claimsError || !claimsData?.claims) {
-        return new Response(JSON.stringify({ error: 'Session expired. Please log in again.' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      userId = claimsData.claims.sub as string;
-    } catch (authError) {
-      console.error('Auth error:', authError);
-      return new Response(JSON.stringify({ error: 'Session expired. Please log in again.' }), {
+    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: 'Session expired' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    const user = { id: userId };
+    const userId = claimsData.claims.sub as string;
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const { modelTier = 'speed' } = await req.json();
 
     // Fetch contacts with their last communication
-    const { data: profiles, error: profilesError } = await supabaseClient
+    const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
       .select('id, first_name, last_name, relationship_type, last_contact_date, is_favorite')
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     if (profilesError) throw profilesError;
 
     // Fetch recent communications
-    const { data: communications, error: commsError } = await supabaseClient
+    const { data: communications, error: commsError } = await supabase
       .from('communications')
       .select('profile_id, occurred_at, channel, direction')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .order('occurred_at', { ascending: false });
 
     if (commsError) throw commsError;
@@ -85,123 +81,43 @@ serve(async (req) => {
       };
     });
 
-    // Call Lovable AI for intelligent suggestions
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      // Fallback to rule-based suggestions if AI not available
-      const suggestions = contactsWithActivity
-        .filter(c => c.daysSinceContact > 14)
-        .sort((a, b) => {
-          if (a.isFavorite && !b.isFavorite) return -1;
-          if (!a.isFavorite && b.isFavorite) return 1;
-          return b.daysSinceContact - a.daysSinceContact;
-        })
-        .slice(0, 5)
-        .map(c => ({
-          contactId: c.id,
-          contactName: c.name,
-          priority: c.daysSinceContact > 60 ? 'high' : c.daysSinceContact > 30 ? 'medium' : 'low',
-          reason: `It's been ${c.daysSinceContact} days since your last interaction`,
-          suggestedAction: `Reach out via ${c.recentChannels[0] || 'email'} to check in`,
-          daysSinceContact: c.daysSinceContact,
-        }));
-
-      return new Response(JSON.stringify({ suggestions }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const systemPrompt = `You are a personal relationship manager AI. Analyze the user's contacts and their communication patterns to suggest who they should follow up with. Consider:
+    // Use unified AI client for intelligent suggestions
+    const aiResponse = await callAI({
+      model: selectModel(modelTier as any),
+      messages: [
+        { 
+          role: 'system', 
+          content: `You are a personal relationship manager AI. Analyze the user's contacts and their communication patterns to suggest who they should follow up with. Consider:
 - How long since last contact (priority increases with time)
 - Relationship type (family/close friends need more frequent contact)
 - Whether the contact is marked as favorite
 - Communication patterns and preferred channels
 
-Return suggestions in the exact JSON format specified.`;
+Return JSON only.` 
+        },
+        { 
+          role: 'user', 
+          content: `Here are my contacts with activity data:
+${JSON.stringify(contactsWithActivity.slice(0, 50), null, 2)}
 
-    const userPrompt = `Here are my contacts with their activity data:
-${JSON.stringify(contactsWithActivity, null, 2)}
+Return JSON: { "suggestions": [{ "contactId": "uuid", "contactName": "name", "priority": "high/medium/low", "reason": "...", "suggestedAction": "...", "daysSinceContact": number }] }
 
-Please suggest up to 5 contacts I should follow up with, prioritized by urgency and relationship importance.`;
-
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        tools: [{
-          type: 'function',
-          function: {
-            name: 'suggest_followups',
-            description: 'Return follow-up suggestions for contacts',
-            parameters: {
-              type: 'object',
-              properties: {
-                suggestions: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      contactId: { type: 'string' },
-                      contactName: { type: 'string' },
-                      priority: { type: 'string', enum: ['high', 'medium', 'low'] },
-                      reason: { type: 'string' },
-                      suggestedAction: { type: 'string' },
-                      daysSinceContact: { type: 'number' },
-                    },
-                    required: ['contactId', 'contactName', 'priority', 'reason', 'suggestedAction', 'daysSinceContact'],
-                  },
-                },
-              },
-              required: ['suggestions'],
-            },
-          },
-        }],
-        tool_choice: { type: 'function', function: { name: 'suggest_followups' } },
-      }),
+Suggest up to 5 contacts I should follow up with.` 
+        }
+      ],
+      userId: userId,
+      functionName: 'suggest-followups',
+      temperature: 0.7,
+      metadata: { contactCount: contactsWithActivity.length },
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI gateway error:', response.status, errorText);
-      
-      // Fallback to rule-based
-      const suggestions = contactsWithActivity
-        .filter(c => c.daysSinceContact > 14)
-        .sort((a, b) => b.daysSinceContact - a.daysSinceContact)
-        .slice(0, 5)
-        .map(c => ({
-          contactId: c.id,
-          contactName: c.name,
-          priority: c.daysSinceContact > 60 ? 'high' : c.daysSinceContact > 30 ? 'medium' : 'low' as const,
-          reason: `It's been ${c.daysSinceContact} days since your last interaction`,
-          suggestedAction: 'Send a quick message to check in',
-          daysSinceContact: c.daysSinceContact,
-        }));
+    const result = parseAIJson(aiResponse.content, { suggestions: [] });
 
-      return new Response(JSON.stringify({ suggestions }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const aiResponse = await response.json();
-    const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
-    
-    if (toolCall?.function?.arguments) {
-      const result = JSON.parse(toolCall.function.arguments);
-      return new Response(JSON.stringify(result), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    return new Response(JSON.stringify({ suggestions: [] }), {
+    return new Response(JSON.stringify({
+      ...result,
+      tokensUsed: aiResponse.totalTokens,
+      costCents: aiResponse.costCents,
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 

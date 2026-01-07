@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,35 +24,25 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
     
-    // Create client with user's auth header for getClaims
+    // Validate JWT
     const authClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     });
     
-    // Validate JWT using getClaims
     const token = authHeader.replace('Bearer ', '');
-    let userId: string;
-    try {
-      const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
-      if (claimsError || !claimsData?.claims) {
-        return new Response(JSON.stringify({ error: 'Session expired. Please log in again.' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      userId = claimsData.claims.sub as string;
-    } catch (authError) {
-      console.error('Auth error:', authError);
-      return new Response(JSON.stringify({ error: 'Session expired. Please log in again.' }), {
+    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: 'Session expired' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    const userId = claimsData.claims.sub as string;
     
-    // Use service role client for database operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const { modelTier = 'balanced' } = await req.json();
 
     // Fetch all profiles with their communication data
     const { data: profiles, error: profilesError } = await supabase
@@ -66,26 +57,20 @@ serve(async (req) => {
     const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
     // Analyze each profile for risk
-    const riskAnalysis = await Promise.all(profiles.map(async (profile) => {
-      const { data: communications } = await supabase
-        .from('communications')
-        .select('*')
-        .eq('profile_id', profile.id)
-        .gte('occurred_at', oneMonthAgo.toISOString())
-        .order('occurred_at', { ascending: false });
+    const riskAnalysis = await Promise.all((profiles || []).map(async (profile) => {
+      const [commResult, trendsResult] = await Promise.all([
+        supabase.from('communications').select('*').eq('profile_id', profile.id).gte('occurred_at', oneMonthAgo.toISOString()).order('occurred_at', { ascending: false }),
+        supabase.from('relationship_trends').select('*').eq('profile_id', profile.id).order('recorded_at', { ascending: false }).limit(4),
+      ]);
 
-      const { data: recentTrends } = await supabase
-        .from('relationship_trends')
-        .select('*')
-        .eq('profile_id', profile.id)
-        .order('recorded_at', { ascending: false })
-        .limit(4);
+      const communications = commResult.data || [];
+      const recentTrends = trendsResult.data || [];
 
       const lastContact = profile.last_contact_date ? new Date(profile.last_contact_date) : null;
       const daysSinceContact = lastContact ? Math.floor((now.getTime() - lastContact.getTime()) / (1000 * 60 * 60 * 24)) : 999;
       
-      const recentComms = communications?.filter(c => new Date(c.occurred_at) >= twoWeeksAgo) || [];
-      const olderComms = communications?.filter(c => new Date(c.occurred_at) < twoWeeksAgo) || [];
+      const recentComms = communications.filter(c => new Date(c.occurred_at) >= twoWeeksAgo);
+      const olderComms = communications.filter(c => new Date(c.occurred_at) < twoWeeksAgo);
       
       // Calculate risk factors
       let riskScore = 0;
@@ -111,17 +96,17 @@ serve(async (req) => {
         riskFactors.push('Communication frequency declining');
       }
 
-      // Factor 3: Sentiment trend (if we have trends data)
+      // Factor 3: Sentiment trend
       if (recentTrends && recentTrends.length >= 2) {
-        const sentimentTrend = recentTrends[0].sentiment_avg - recentTrends[recentTrends.length - 1].sentiment_avg;
+        const sentimentTrend = (recentTrends[0] as any).sentiment_avg - (recentTrends[recentTrends.length - 1] as any).sentiment_avg;
         if (sentimentTrend < -0.2) {
           riskScore += 15;
           riskFactors.push('Sentiment has been declining');
         }
       }
 
-      // Factor 4: Important relationship types get higher risk scores faster
-      if (['family', 'friend', 'mentor', 'client'].includes(profile.relationship_type) && daysSinceContact > 14) {
+      // Factor 4: Important relationship types
+      if (['family', 'friend', 'mentor', 'client'].includes(profile.relationship_type || '') && daysSinceContact > 14) {
         riskScore += 10;
         riskFactors.push(`Important ${profile.relationship_type} relationship needs attention`);
       }
@@ -146,7 +131,7 @@ serve(async (req) => {
       .slice(0, 10);
 
     // Generate AI recommendations for top risks
-    let aiRecommendations = [];
+    let aiRecommendations: Array<{ name: string; action: string; urgency: string }> = [];
     if (atRiskRelationships.length > 0) {
       const topRisks = atRiskRelationships.slice(0, 5);
       
@@ -154,64 +139,30 @@ serve(async (req) => {
 
 ${topRisks.map(r => `- ${r.name} (${r.relationshipType}): ${r.riskFactors.join(', ')}`).join('\n')}
 
-Provide 1 specific recommendation per person. Be concise and actionable.`;
+Return JSON: { "recommendations": [{ "name": "person name", "action": "specific action", "urgency": "immediate/this_week/this_month" }] }`;
 
       try {
-        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${lovableApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            messages: [
-              { role: 'system', content: 'You are a relationship coach. Give brief, specific recommendations.' },
-              { role: 'user', content: prompt }
-            ],
-            tools: [{
-              type: 'function',
-              function: {
-                name: 'provide_recommendations',
-                description: 'Provide relationship re-engagement recommendations',
-                parameters: {
-                  type: 'object',
-                  properties: {
-                    recommendations: {
-                      type: 'array',
-                      items: {
-                        type: 'object',
-                        properties: {
-                          name: { type: 'string' },
-                          action: { type: 'string' },
-                          urgency: { type: 'string', enum: ['immediate', 'this_week', 'this_month'] }
-                        },
-                        required: ['name', 'action', 'urgency']
-                      }
-                    }
-                  },
-                  required: ['recommendations']
-                }
-              }
-            }],
-            tool_choice: { type: 'function', function: { name: 'provide_recommendations' } }
-          }),
+        const aiResponse = await callAI({
+          model: selectModel(modelTier as any),
+          messages: [
+            { role: 'system', content: 'You are a relationship coach. Give brief, specific recommendations. Respond with valid JSON only.' },
+            { role: 'user', content: prompt }
+          ],
+          userId: userId,
+          functionName: 'predict-risks',
+          temperature: 0.7,
+          metadata: { atRiskCount: topRisks.length },
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          if (data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments) {
-            const parsed = JSON.parse(data.choices[0].message.tool_calls[0].function.arguments);
-            aiRecommendations = parsed.recommendations;
-          }
-        }
+        const parsed = parseAIJson(aiResponse.content, { recommendations: [] });
+        aiRecommendations = parsed.recommendations || [];
       } catch (aiError) {
         console.error('AI recommendation error:', aiError);
       }
     }
 
     // Calculate network health stats
-    const totalContacts = profiles.length;
+    const totalContacts = profiles?.length || 0;
     const healthyCount = riskAnalysis.filter(r => r.riskLevel === 'low').length;
     const atRiskCount = riskAnalysis.filter(r => r.riskLevel === 'medium').length;
     const criticalCount = riskAnalysis.filter(r => r.riskLevel === 'high').length;

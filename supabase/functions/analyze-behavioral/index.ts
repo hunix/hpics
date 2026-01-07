@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { profileId, userId, videoUrl, analysisType, localEndpoint } = await req.json();
+    const { profileId, userId, videoUrl, analysisType, modelTier = 'balanced' } = await req.json();
     
     if (!profileId || !userId) {
       throw new Error('Profile ID and User ID are required');
@@ -22,23 +23,14 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch contact info for context
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('first_name, last_name, bio, job_title, organization')
-      .eq('id', profileId)
-      .single();
+    // Fetch contact info and transcriptions in parallel
+    const [profileResult, recordingsResult] = await Promise.all([
+      supabase.from('profiles').select('first_name, last_name, bio, job_title, organization').eq('id', profileId).single(),
+      supabase.from('meeting_recordings').select('transcription, transcription_with_speakers').eq('profile_id', profileId).eq('status', 'completed').order('created_at', { ascending: false }).limit(5),
+    ]);
 
-    // Fetch any transcribed recordings for text-based analysis
-    const { data: recordings } = await supabase
-      .from('meeting_recordings')
-      .select('transcription, transcription_with_speakers')
-      .eq('profile_id', profileId)
-      .eq('status', 'completed')
-      .order('created_at', { ascending: false })
-      .limit(5);
-
-    const transcriptions = recordings?.map(r => r.transcription).filter(Boolean).join('\n\n') || '';
+    const profile = profileResult.data;
+    const transcriptions = recordingsResult.data?.map(r => r.transcription).filter(Boolean).join('\n\n') || '';
 
     const systemPrompt = `You are an expert behavioral psychologist and analyst specializing in understanding human behavior patterns through communication analysis. Your task is to analyze the provided transcriptions and available data to identify behavioral patterns, personality indicators, and psychological insights.
 
@@ -51,7 +43,8 @@ Focus on:
 6. Values and Motivations - What drives them based on their communication
 7. Cognitive Patterns - Logical vs emotional reasoning, detail-oriented vs big-picture
 
-Provide actionable insights for relationship building and professional interactions.`;
+Provide actionable insights for relationship building and professional interactions.
+Respond with valid JSON only.`;
 
     const userPrompt = `Analyze the following person and their communication patterns:
 
@@ -64,7 +57,7 @@ Analysis Type: ${analysisType || 'screening'}
 Transcriptions from meetings/conversations:
 ${transcriptions || 'No transcriptions available - provide general guidance based on profile.'}
 
-Provide a comprehensive behavioral analysis in JSON format with the following structure:
+Provide a comprehensive behavioral analysis in JSON format:
 {
   "personality_indicators": {
     "openness": { "score": 0-100, "evidence": ["..."], "description": "..." },
@@ -88,79 +81,26 @@ Provide a comprehensive behavioral analysis in JSON format with the following st
   "summary": "..."
 }`;
 
-    let analysisResult;
-    let aiModelUsed = 'lovable-ai/gemini-2.5-flash';
+    // Use unified AI client
+    const aiResponse = await callAI({
+      model: selectModel(modelTier as any),
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      userId: userId,
+      functionName: 'analyze-behavioral',
+      profileId: profileId,
+      temperature: 0.7,
+      metadata: { analysisType, hasTranscriptions: !!transcriptions },
+    });
 
-    // Try local endpoint first if provided
-    if (localEndpoint) {
-      try {
-        console.log('Attempting local AI endpoint:', localEndpoint);
-        const localResponse = await fetch(`${localEndpoint}/v1/chat/completions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt }
-            ],
-            temperature: 0.7,
-            max_tokens: 4000,
-          }),
-        });
-
-        if (localResponse.ok) {
-          const localResult = await localResponse.json();
-          analysisResult = localResult.choices?.[0]?.message?.content;
-          aiModelUsed = `local/${localEndpoint}`;
-          console.log('Local AI analysis successful');
-        }
-      } catch (localError) {
-        console.log('Local endpoint failed, falling back to Lovable AI:', localError);
-      }
-    }
-
-    // Fall back to Lovable AI Gateway
-    if (!analysisResult) {
-      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-      if (!LOVABLE_API_KEY) {
-        throw new Error('No AI API key available');
-      }
-
-      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Lovable AI error:', errorText);
-        throw new Error(`AI analysis failed: ${response.status}`);
-      }
-
-      const result = await response.json();
-      analysisResult = result.choices?.[0]?.message?.content;
-    }
-
-    // Parse the JSON response
-    let parsedAnalysis;
-    try {
-      // Extract JSON from potential markdown code blocks
-      const jsonMatch = analysisResult.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, analysisResult];
-      parsedAnalysis = JSON.parse(jsonMatch[1].trim());
-    } catch (parseError) {
-      console.error('Failed to parse analysis JSON:', parseError);
-      parsedAnalysis = { raw_text: analysisResult, parse_error: true };
-    }
+    const parsedAnalysis = parseAIJson(aiResponse.content, { 
+      personality_indicators: null,
+      behavioral_patterns: null,
+      confidence_score: 30,
+      summary: 'Analysis could not be completed'
+    });
 
     // Store the analysis
     const { data: analysis, error: insertError } = await supabase
@@ -174,7 +114,7 @@ Provide a comprehensive behavioral analysis in JSON format with the following st
         behavioral_patterns: parsedAnalysis.behavioral_patterns || null,
         confidence_score: parsedAnalysis.confidence_score || null,
         raw_analysis: parsedAnalysis,
-        ai_model_used: aiModelUsed,
+        ai_model_used: aiResponse.model,
       })
       .select()
       .single();
@@ -187,6 +127,8 @@ Provide a comprehensive behavioral analysis in JSON format with the following st
     return new Response(JSON.stringify({
       success: true,
       analysis,
+      tokensUsed: aiResponse.totalTokens,
+      costCents: aiResponse.costCents,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { profileId, userId, videoUrl, recordingId, localEndpoint } = await req.json();
+    const { profileId, userId, videoUrl, recordingId, modelTier = 'quality' } = await req.json();
     
     if (!profileId || !userId) {
       throw new Error('Profile ID and User ID are required');
@@ -22,23 +23,14 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch contact info for context
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('first_name, last_name')
-      .eq('id', profileId)
-      .single();
+    // Fetch contact info and transcription in parallel
+    const [profileResult, recordingResult] = await Promise.all([
+      supabase.from('profiles').select('first_name, last_name').eq('id', profileId).single(),
+      recordingId ? supabase.from('meeting_recordings').select('transcription, transcription_with_speakers').eq('id', recordingId).single() : Promise.resolve({ data: null }),
+    ]);
 
-    // Fetch transcription if available for cross-referencing
-    let transcription = '';
-    if (recordingId) {
-      const { data: recording } = await supabase
-        .from('meeting_recordings')
-        .select('transcription, transcription_with_speakers')
-        .eq('id', recordingId)
-        .single();
-      transcription = recording?.transcription || '';
-    }
+    const profile = profileResult.data;
+    const transcription = recordingResult.data?.transcription || '';
 
     const systemPrompt = `You are an expert in micro-expression analysis, facial action coding system (FACS), and deception detection. Analyze facial expressions and micro-expressions to understand emotional states, stress levels, and potential deception indicators.
 
@@ -50,7 +42,8 @@ Focus on:
 5. Genuine vs Masked Emotions - Detecting when expressions are authentic or performed
 6. Baseline Deviations - Changes from their normal expression patterns
 
-Important: This analysis is for professional insight purposes. Always maintain ethical considerations.`;
+Important: This analysis is for professional insight purposes. Always maintain ethical considerations.
+Respond with valid JSON only.`;
 
     const userPrompt = `Provide a facial expression and micro-expression analysis for ${profile?.first_name} ${profile?.last_name || ''}.
 
@@ -105,78 +98,29 @@ Provide analysis in JSON format:
   "summary": "..."
 }`;
 
-    let analysisResult;
-    let aiModelUsed = 'lovable-ai/gemini-2.5-pro';
+    // Use quality tier for facial analysis (needs visual reasoning)
+    const aiResponse = await callAI({
+      model: selectModel(modelTier as any),
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      userId: userId,
+      functionName: 'analyze-facial',
+      profileId: profileId,
+      recordingId: recordingId,
+      temperature: 0.5,
+      metadata: { hasVideo: !!videoUrl, hasTranscription: !!transcription },
+    });
 
-    // Try local endpoint first if provided (for specialized vision models)
-    if (localEndpoint) {
-      try {
-        console.log('Attempting local AI endpoint for facial analysis:', localEndpoint);
-        const localResponse = await fetch(`${localEndpoint}/v1/chat/completions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt }
-            ],
-            temperature: 0.5,
-            max_tokens: 4000,
-          }),
-        });
-
-        if (localResponse.ok) {
-          const localResult = await localResponse.json();
-          analysisResult = localResult.choices?.[0]?.message?.content;
-          aiModelUsed = `local/${localEndpoint}`;
-          console.log('Local AI facial analysis successful');
-        }
-      } catch (localError) {
-        console.log('Local endpoint failed, falling back to Lovable AI:', localError);
-      }
-    }
-
-    // Fall back to Lovable AI Gateway with vision-capable model
-    if (!analysisResult) {
-      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-      if (!LOVABLE_API_KEY) {
-        throw new Error('No AI API key available');
-      }
-
-      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-pro',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Lovable AI error:', errorText);
-        throw new Error(`AI analysis failed: ${response.status}`);
-      }
-
-      const result = await response.json();
-      analysisResult = result.choices?.[0]?.message?.content;
-    }
-
-    // Parse the JSON response
-    let parsedAnalysis;
-    try {
-      const jsonMatch = analysisResult.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, analysisResult];
-      parsedAnalysis = JSON.parse(jsonMatch[1].trim());
-    } catch (parseError) {
-      console.error('Failed to parse analysis JSON:', parseError);
-      parsedAnalysis = { raw_text: analysisResult, parse_error: true };
-    }
+    const parsedAnalysis = parseAIJson(aiResponse.content, { 
+      micro_expressions: [],
+      emotional_timeline: [],
+      stress_indicators: { overall_level: 50 },
+      deception_indicators: { risk_level: 'low', confidence: 30 },
+      confidence_score: 30,
+      summary: 'Analysis framework provided'
+    });
 
     // Store the analysis
     const { data: analysis, error: insertError } = await supabase
@@ -192,7 +136,7 @@ Provide analysis in JSON format:
         deception_indicators: parsedAnalysis.deception_indicators || null,
         confidence_score: parsedAnalysis.confidence_score || null,
         raw_analysis: parsedAnalysis,
-        ai_model_used: aiModelUsed,
+        ai_model_used: aiResponse.model,
       })
       .select()
       .single();
@@ -205,6 +149,8 @@ Provide analysis in JSON format:
     return new Response(JSON.stringify({
       success: true,
       analysis,
+      tokensUsed: aiResponse.totalTokens,
+      costCents: aiResponse.costCents,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

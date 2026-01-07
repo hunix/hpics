@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { profileId, occasion, priceRange } = await req.json();
+    const { profileId, occasion, priceRange, modelTier = 'balanced' } = await req.json();
     
     if (!profileId) {
       throw new Error('Profile ID is required');
@@ -20,16 +21,15 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
-    
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch profile and interests
-    const [profileResult, interestsResult, educationResult, skillsResult] = await Promise.all([
+    // Fetch profile, interests, education, skills, and shared experiences in parallel
+    const [profileResult, interestsResult, educationResult, skillsResult, experiencesResult] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', profileId).single(),
       supabase.from('contact_interests').select('*').eq('profile_id', profileId),
       supabase.from('education').select('*').eq('profile_id', profileId),
       supabase.from('contact_skills').select('*').eq('profile_id', profileId),
+      supabase.from('shared_experiences').select('*').eq('profile_id', profileId).limit(10),
     ]);
 
     if (profileResult.error) throw profileResult.error;
@@ -38,6 +38,7 @@ serve(async (req) => {
     const interests = interestsResult.data || [];
     const education = educationResult.data || [];
     const skills = skillsResult.data || [];
+    const experiences = experiencesResult.data || [];
 
     const prompt = `You are a thoughtful gift suggestion expert. Based on the following information about a person, suggest 5 personalized gift ideas.
 
@@ -57,77 +58,35 @@ ${education.length > 0 ? education.map(e => `- ${e.institution_name}${e.field_of
 SKILLS:
 ${skills.length > 0 ? skills.map(s => s.skill_name).join(', ') : 'No skills recorded'}
 
+SHARED EXPERIENCES:
+${experiences.length > 0 ? experiences.map(e => `- ${e.title} (${e.experience_type})`).join('\n') : 'No shared experiences'}
+
 ${occasion ? `OCCASION: ${occasion}` : ''}
 ${priceRange ? `PRICE RANGE: ${priceRange}` : 'PRICE RANGE: Any'}
 
-Suggest 5 thoughtful, personalized gift ideas. For each gift, explain WHY it would be meaningful for this specific person based on their profile.`;
+Return a JSON object with a "gifts" array containing 5 gift suggestions. Each gift should have: title, description, reasoning (why it's meaningful), priceRange (budget/moderate/premium/luxury), and category.`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: 'You are a thoughtful gift suggestion expert. Always respond with valid JSON.' },
-          { role: 'user', content: prompt }
-        ],
-        tools: [{
-          type: 'function',
-          function: {
-            name: 'suggest_gifts',
-            description: 'Suggest personalized gift ideas',
-            parameters: {
-              type: 'object',
-              properties: {
-                gifts: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      title: { type: 'string' },
-                      description: { type: 'string' },
-                      reasoning: { type: 'string' },
-                      priceRange: { type: 'string', enum: ['budget', 'moderate', 'premium', 'luxury'] },
-                      category: { type: 'string' }
-                    },
-                    required: ['title', 'description', 'reasoning', 'priceRange', 'category']
-                  }
-                }
-              },
-              required: ['gifts']
-            }
-          }
-        }],
-        tool_choice: { type: 'function', function: { name: 'suggest_gifts' } }
-      }),
+    // Use unified AI client
+    const aiResponse = await callAI({
+      model: selectModel(modelTier as any),
+      messages: [
+        { role: 'system', content: 'You are a thoughtful gift suggestion expert. Always respond with valid JSON only, no markdown.' },
+        { role: 'user', content: prompt }
+      ],
+      userId: profile.user_id,
+      functionName: 'suggest-gifts',
+      profileId: profileId,
+      temperature: 0.8,
+      metadata: { occasion, priceRange },
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI Gateway error:', response.status, errorText);
-      throw new Error(`AI Gateway error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('AI response:', JSON.stringify(data));
-    
-    let suggestions;
-    if (data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments) {
-      suggestions = JSON.parse(data.choices[0].message.tool_calls[0].function.arguments);
-    } else if (data.choices?.[0]?.message?.content) {
-      const content = data.choices[0].message.content;
-      const jsonMatch = content.match(/```json\n?([\s\S]*?)\n?```/) || content.match(/\{[\s\S]*\}/);
-      suggestions = JSON.parse(jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content);
-    } else {
-      throw new Error('Unexpected AI response format');
-    }
+    const suggestions = parseAIJson(aiResponse.content, { gifts: [] });
 
     return new Response(JSON.stringify({ 
       success: true, 
-      gifts: suggestions.gifts,
+      gifts: suggestions.gifts || [],
+      tokensUsed: aiResponse.totalTokens,
+      costCents: aiResponse.costCents,
       generatedAt: new Date().toISOString()
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
