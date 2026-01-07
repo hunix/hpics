@@ -8,7 +8,7 @@ export interface ModelPricing {
 }
 
 export const AI_MODEL_PRICING: Record<string, ModelPricing> = {
-  // Lovable AI Gateway (Google)
+  // Lovable AI Gateway (Google) - Current Models
   'google/gemini-2.5-flash': {
     provider: 'google',
     model: 'google/gemini-2.5-flash',
@@ -30,8 +30,30 @@ export const AI_MODEL_PRICING: Record<string, ModelPricing> = {
     outputPer1M: 0.075,
     displayName: 'Gemini 2.5 Flash Lite',
   },
+  // Google Gemini 3 Models (Next Gen)
+  'google/gemini-3-pro-preview': {
+    provider: 'google',
+    model: 'google/gemini-3-pro-preview',
+    inputPer1M: 1.50,
+    outputPer1M: 12.00,
+    displayName: 'Gemini 3 Pro Preview',
+  },
+  'google/gemini-2.5-flash-image': {
+    provider: 'google',
+    model: 'google/gemini-2.5-flash-image',
+    inputPer1M: 0.10,
+    outputPer1M: 0.40,
+    displayName: 'Gemini 2.5 Flash Image',
+  },
+  'google/gemini-3-pro-image-preview': {
+    provider: 'google',
+    model: 'google/gemini-3-pro-image-preview',
+    inputPer1M: 2.00,
+    outputPer1M: 15.00,
+    displayName: 'Gemini 3 Pro Image Preview',
+  },
   
-  // OpenAI models
+  // OpenAI GPT-5 Models
   'openai/gpt-5': {
     provider: 'openai',
     model: 'openai/gpt-5',

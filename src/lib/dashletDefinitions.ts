@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, MessageSquare, Calendar, Star, Clock, TrendingUp, BarChart3, Network, Sparkles, UserPlus, Target, Activity, Shield, Brain, ShieldCheck, Zap, Radio, AlertTriangle, PieChart, CalendarClock, UsersRound, Fingerprint, Gift, Link2, Compass } from 'lucide-react';
+import { Users, MessageSquare, Calendar, Star, Clock, TrendingUp, BarChart3, Network, Sparkles, UserPlus, Target, Activity, Shield, Brain, ShieldCheck, Zap, Radio, AlertTriangle, PieChart, CalendarClock, UsersRound, Fingerprint, Gift, Link2, Compass, Send } from 'lucide-react';
 
 // All available dashlet types
 export interface DashletConfig {
@@ -38,7 +38,9 @@ export type DashletType =
   | 'relationship-forecast'
   | 'network-risk'
   | 'introduction-matcher'
-  | 'daily-briefing';
+  | 'daily-briefing'
+  | 'gift-suggestions'
+  | 'outreach-scheduler';
 
 export interface DashletDefinition {
   type: DashletType;
@@ -272,6 +274,22 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     description: 'Today\'s priorities, alerts, and opportunities',
     icon: Compass,
     defaultVisible: true,
+    category: 'ai',
+  },
+  {
+    type: 'gift-suggestions',
+    title: 'Gift Suggestions',
+    description: 'AI-powered personalized gift recommendations',
+    icon: Gift,
+    defaultVisible: false,
+    category: 'ai',
+  },
+  {
+    type: 'outreach-scheduler',
+    title: 'Outreach Scheduler',
+    description: 'Optimal timing recommendations for contacting',
+    icon: Send,
+    defaultVisible: false,
     category: 'ai',
   },
 ];

@@ -43,7 +43,7 @@ interface OutreachTiming {
 }
 
 interface OutreachSchedulerWidgetProps {
-  profileId: string;
+  profileId?: string;
   profileName?: string;
 }
 

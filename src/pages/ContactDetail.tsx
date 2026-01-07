@@ -72,6 +72,7 @@ import { CommunicationTriangulationPanel } from '@/components/intelligence/Commu
 import { DeceptionAnalysisPanel } from '@/components/intelligence/DeceptionAnalysisPanel';
 import { BiometricSignatureBuilder } from '@/components/contacts/BiometricSignatureBuilder';
 import { InfluenceDashboard } from '@/components/intelligence/InfluenceDashboard';
+import { UnifiedIntelligencePanel } from '@/components/intelligence/UnifiedIntelligencePanel';
 import { cn } from '@/lib/utils';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
 import { ProfileCompletenessWidget } from '@/components/contacts/ProfileCompletenessWidget';
@@ -88,7 +89,7 @@ type SectionId =
   | 'financial' | 'observations'
   | 'milestones' | 'comm-prefs' | 'interaction-notes' | 'playbook' | 'influence'
   | 'activity' | 'trust-assessment' | 'dossier' | 'network-intel' | 'locations'
-  | 'temporal' | 'trajectory' | 'triangulation' | 'consistency';
+  | 'temporal' | 'trajectory' | 'triangulation' | 'consistency' | 'unified-profile';
 
 interface NavSection {
   id: SectionId;
@@ -106,6 +107,7 @@ const sections: NavSection[] = [
   { id: 'recordings', label: 'Recordings', icon: Mic, group: 'Files' },
   { id: 'voice-notes', label: 'Voice Notes', icon: Volume2, group: 'Files' },
   // New Intelligence section
+  { id: 'unified-profile', label: 'Unified Intelligence', icon: Brain, group: 'Intelligence' },
   { id: 'milestones', label: 'Life Milestones', icon: Milestone, group: 'Intelligence' },
   { id: 'comm-prefs', label: 'How to Interact', icon: Settings2, group: 'Intelligence' },
   { id: 'interaction-notes', label: 'Interaction Notes', icon: StickyNote, group: 'Intelligence' },
@@ -294,6 +296,8 @@ export default function ContactDetail() {
       case 'voice-notes':
         return <VoiceNotesManager profileId={contact.id} />;
       // New Intelligence sections
+      case 'unified-profile':
+        return <UnifiedIntelligencePanel profileId={contact.id} contactName={contactName} />;
       case 'milestones':
         return <LifeMilestonesManager profileId={contact.id} contactName={contactName} />;
       case 'comm-prefs':

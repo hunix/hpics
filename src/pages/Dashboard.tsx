@@ -37,6 +37,8 @@ import { RelationshipForecastWidget } from '@/components/intelligence/Relationsh
 import { NetworkRiskPanel } from '@/components/intelligence/NetworkRiskPanel';
 import { IntroductionMatcherPanel } from '@/components/intelligence/IntroductionMatcherPanel';
 import { DailyBriefingWidget } from '@/components/intelligence/DailyBriefingWidget';
+import { GiftSuggestionsWidget } from '@/components/intelligence/GiftSuggestionsWidget';
+import { OutreachSchedulerWidget } from '@/components/intelligence/OutreachSchedulerWidget';
 import type { DashletType } from '@/lib/dashletDefinitions';
 
 export default function Dashboard() {
@@ -338,6 +340,10 @@ export default function Dashboard() {
         return <IntroductionMatcherPanel />;
       case 'daily-briefing':
         return <DailyBriefingWidget />;
+      case 'gift-suggestions':
+        return null; // Gift suggestions require a specific profileId - show in contact detail
+      case 'outreach-scheduler':
+        return <OutreachSchedulerWidget />;
       default:
         return null;
     }
