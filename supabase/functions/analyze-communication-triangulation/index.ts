@@ -51,42 +51,48 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    const token = authHeader.replace('Bearer ', '');
+    const authClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    );
+    const { data: claimsData, error: authError } = await (authClient.auth as any).getClaims(token);
+    if (authError || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    const userId = claimsData.claims.sub;
 
     // Fetch profiles
     const { data: profiles } = await supabase
       .from('profiles')
       .select('id, first_name, last_name')
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     // Fetch communications
     const { data: communications } = await supabase
       .from('communications')
       .select('profile_id, channel, direction, occurred_at')
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     // Fetch conversations with messages
     const { data: conversations } = await supabase
       .from('conversations')
       .select('id, profile_id')
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     const { data: messages } = await supabase
       .from('messages')
       .select('conversation_id, is_from_contact, sent_at, source')
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     // Fetch explicit relationships
     const { data: relationships } = await supabase
       .from('contact_relationships')
       .select('from_profile_id, to_profile_id, relationship_type')
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
     const conversationToProfile = new Map(conversations?.map(c => [c.id, c.profile_id]) || []);

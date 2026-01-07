@@ -26,13 +26,19 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    const token = authHeader.replace('Bearer ', '');
+    const authClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    );
+    const { data: claimsData, error: authError } = await (authClient.auth as any).getClaims(token);
+    if (authError || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    const userId = claimsData.claims.sub;
 
     const { profile_id } = await req.json();
     if (!profile_id) {
@@ -277,7 +283,7 @@ serve(async (req) => {
 
     // Store trust assessment
     const trustData = {
-      user_id: user.id,
+      user_id: userId,
       profile_id,
       overall_trust_score: overallTrustScore,
       authenticity_score: authenticityScore,

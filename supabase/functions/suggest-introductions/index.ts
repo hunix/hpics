@@ -26,19 +26,25 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    if (userError || !user) {
+    const token = authHeader.replace('Bearer ', '');
+    const authClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    );
+    const { data: claimsData, error: userError } = await (authClient.auth as any).getClaims(token);
+    if (userError || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    const userId = claimsData.claims.sub;
 
     // Fetch all contacts with their details
     const { data: profiles, error: profilesError } = await supabaseClient
       .from('profiles')
       .select('id, first_name, last_name, organization, job_title, relationship_type, bio, tags')
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     if (profilesError) throw profilesError;
     if (!profiles || profiles.length < 2) {
@@ -54,7 +60,7 @@ serve(async (req) => {
     const { data: interests, error: interestsError } = await supabaseClient
       .from('contact_interests')
       .select('profile_id, name, interest_type')
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     if (interestsError) throw interestsError;
 
@@ -62,7 +68,7 @@ serve(async (req) => {
     const { data: skills, error: skillsError } = await supabaseClient
       .from('contact_skills')
       .select('profile_id, skill_name')
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     if (skillsError) throw skillsError;
 

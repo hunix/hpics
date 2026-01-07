@@ -22,10 +22,16 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'No authorization header' }), { status: 401, headers: corsHeaders });
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-    if (authError || !user) {
+    const token = authHeader.replace('Bearer ', '');
+    const authClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    );
+    const { data: claimsData, error: authError } = await (authClient.auth as any).getClaims(token);
+    if (authError || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
     }
+    const userId = claimsData.claims.sub;
 
     const { profile_id } = await req.json();
     if (!profile_id) {
@@ -175,7 +181,7 @@ Be specific and actionable. Base recommendations on the actual data provided.`;
       .from('contact_playbooks')
       .select('id')
       .eq('profile_id', profile_id)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .maybeSingle();
 
     if (existing) {
@@ -192,7 +198,7 @@ Be specific and actionable. Base recommendations on the actual data provided.`;
       await supabase
         .from('contact_playbooks')
         .insert({
-          user_id: user.id,
+          user_id: userId,
           profile_id: profile_id,
           ...playbook,
           ai_generated: true,

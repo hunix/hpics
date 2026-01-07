@@ -43,13 +43,19 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    const token = authHeader.replace('Bearer ', '');
+    const authClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    );
+    const { data: claimsData, error: authError } = await (authClient.auth as any).getClaims(token);
+    if (authError || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    const userId = claimsData.claims.sub;
 
     const body = await req.json().catch(() => ({}));
     const profileIds = body.profileIds as string[] | undefined;
@@ -62,7 +68,7 @@ serve(async (req) => {
     let profileQuery = supabase
       .from('profiles')
       .select('id, first_name, last_name, relationship_type, is_favorite')
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
     
     if (profileIds && profileIds.length > 0) {
       profileQuery = profileQuery.in('id', profileIds);
@@ -74,32 +80,32 @@ serve(async (req) => {
     const { data: communications } = await supabase
       .from('communications')
       .select('profile_id, occurred_at, sentiment_score, channel')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .gte('occurred_at', ninetyDaysAgo.toISOString());
 
     // Fetch messages
     const { data: conversations } = await supabase
       .from('conversations')
       .select('id, profile_id')
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     const { data: messages } = await supabase
       .from('messages')
       .select('conversation_id, sent_at, is_from_contact')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .gte('sent_at', ninetyDaysAgo.toISOString());
 
     // Fetch events
     const { data: events } = await supabase
       .from('events')
       .select('profile_id, event_date, event_type')
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     // Fetch interaction notes
     const { data: notes } = await supabase
       .from('contact_interaction_notes')
       .select('profile_id, interaction_date, mood_observed, relationship_temperature')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .gte('interaction_date', ninetyDaysAgo.toISOString());
 
     const conversationToProfile = new Map(conversations?.map(c => [c.id, c.profile_id]) || []);

@@ -1160,6 +1160,34 @@ Use this precise transcription to analyze the audio content. Focus on extracting
           request_metadata: { mediaId, mimeType: media.mime_type },
         });
 
+        // Trigger biometric matching for images with detected faces
+        if (isImage && metadata.people?.count > 0 && metadata.people?.faces?.length > 0) {
+          try {
+            // Queue biometric match for each detected face (high confidence faces only)
+            const facesWithPotential = metadata.people.faces.filter((f: any) => f.is_primary_subject);
+            if (facesWithPotential.length > 0) {
+              // Create a biometric match record for review
+              await supabase.from('biometric_matches').insert({
+                user_id: userId,
+                source_type: 'media',
+                source_id: mediaId,
+                match_type: 'facial',
+                auto_tagged: false,
+                confidence_score: 0, // Will be updated when match-biometrics runs
+                alternative_matches: { 
+                  pending_analysis: true,
+                  faces_detected: metadata.people.count,
+                  media_url: signedUrlData.signedUrl 
+                },
+              });
+              console.log(`Queued biometric matching for media ${mediaId} with ${metadata.people.count} faces`);
+            }
+          } catch (bioError) {
+            console.log(`Biometric queue error for media ${mediaId}:`, bioError);
+            // Non-blocking - don't fail the main process
+          }
+        }
+
         results.push({ id: mediaId, type: 'media', success: true });
         console.log(`Processed media ${mediaId}: ${inputTokens + outputTokens} tokens, $${(costCents / 100).toFixed(4)}`);
 
