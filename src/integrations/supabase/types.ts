@@ -2352,6 +2352,148 @@ export type Database = {
           },
         ]
       }
+      contact_influence_profiles: {
+        Row: {
+          ai_model_used: string | null
+          approach_sequence: Json | null
+          attention_span: string | null
+          authority_susceptibility: number | null
+          avoid_words: string[] | null
+          channel_preferences: Json | null
+          commitment_consistency_susceptibility: number | null
+          confidence_score: number | null
+          created_at: string
+          decision_style: string | null
+          desire_motivators: string[] | null
+          ego_sensitivities: string[] | null
+          emotional_buying_triggers: Json | null
+          evidence_sources: Json | null
+          fear_motivators: string[] | null
+          id: string
+          information_preference: string | null
+          last_analyzed_at: string | null
+          liking_susceptibility: number | null
+          memory_anchors: Json | null
+          negative_triggers: Json | null
+          overall_influence_score: number | null
+          positive_triggers: Json | null
+          power_words: string[] | null
+          profile_id: string
+          reciprocity_susceptibility: number | null
+          recommended_methodologies: string[] | null
+          risk_appetite: string | null
+          scarcity_susceptibility: number | null
+          social_proof_susceptibility: number | null
+          thinking_style: string | null
+          time_pressure_response: string | null
+          timing_preferences: Json | null
+          unity_susceptibility: number | null
+          updated_at: string
+          user_id: string
+          validation_needs: Json | null
+        }
+        Insert: {
+          ai_model_used?: string | null
+          approach_sequence?: Json | null
+          attention_span?: string | null
+          authority_susceptibility?: number | null
+          avoid_words?: string[] | null
+          channel_preferences?: Json | null
+          commitment_consistency_susceptibility?: number | null
+          confidence_score?: number | null
+          created_at?: string
+          decision_style?: string | null
+          desire_motivators?: string[] | null
+          ego_sensitivities?: string[] | null
+          emotional_buying_triggers?: Json | null
+          evidence_sources?: Json | null
+          fear_motivators?: string[] | null
+          id?: string
+          information_preference?: string | null
+          last_analyzed_at?: string | null
+          liking_susceptibility?: number | null
+          memory_anchors?: Json | null
+          negative_triggers?: Json | null
+          overall_influence_score?: number | null
+          positive_triggers?: Json | null
+          power_words?: string[] | null
+          profile_id: string
+          reciprocity_susceptibility?: number | null
+          recommended_methodologies?: string[] | null
+          risk_appetite?: string | null
+          scarcity_susceptibility?: number | null
+          social_proof_susceptibility?: number | null
+          thinking_style?: string | null
+          time_pressure_response?: string | null
+          timing_preferences?: Json | null
+          unity_susceptibility?: number | null
+          updated_at?: string
+          user_id: string
+          validation_needs?: Json | null
+        }
+        Update: {
+          ai_model_used?: string | null
+          approach_sequence?: Json | null
+          attention_span?: string | null
+          authority_susceptibility?: number | null
+          avoid_words?: string[] | null
+          channel_preferences?: Json | null
+          commitment_consistency_susceptibility?: number | null
+          confidence_score?: number | null
+          created_at?: string
+          decision_style?: string | null
+          desire_motivators?: string[] | null
+          ego_sensitivities?: string[] | null
+          emotional_buying_triggers?: Json | null
+          evidence_sources?: Json | null
+          fear_motivators?: string[] | null
+          id?: string
+          information_preference?: string | null
+          last_analyzed_at?: string | null
+          liking_susceptibility?: number | null
+          memory_anchors?: Json | null
+          negative_triggers?: Json | null
+          overall_influence_score?: number | null
+          positive_triggers?: Json | null
+          power_words?: string[] | null
+          profile_id?: string
+          reciprocity_susceptibility?: number | null
+          recommended_methodologies?: string[] | null
+          risk_appetite?: string | null
+          scarcity_susceptibility?: number | null
+          social_proof_susceptibility?: number | null
+          thinking_style?: string | null
+          time_pressure_response?: string | null
+          timing_preferences?: Json | null
+          unity_susceptibility?: number | null
+          updated_at?: string
+          user_id?: string
+          validation_needs?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_influence_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_influence_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_influence_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_interaction_notes: {
         Row: {
           action_items: string[] | null
@@ -5287,6 +5429,264 @@ export type Database = {
         }
         Relationships: []
       }
+      influence_actions: {
+        Row: {
+          action_description: string | null
+          action_title: string
+          action_type: string
+          actual_channel: string | null
+          completed_at: string | null
+          created_at: string
+          effectiveness_rating: number | null
+          id: string
+          notes: string | null
+          optimal_window_end: string | null
+          optimal_window_start: string | null
+          outcome: string | null
+          priority: string | null
+          profile_id: string
+          reminder_before_minutes: number | null
+          response_received: string | null
+          scheduled_for: string | null
+          status: string | null
+          strategy_id: string | null
+          suggested_channel: string | null
+          suggested_message: string | null
+          talking_points: string[] | null
+          things_to_avoid: string[] | null
+          things_to_mention: string[] | null
+          trigger_context: Json | null
+          trigger_event: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_description?: string | null
+          action_title: string
+          action_type: string
+          actual_channel?: string | null
+          completed_at?: string | null
+          created_at?: string
+          effectiveness_rating?: number | null
+          id?: string
+          notes?: string | null
+          optimal_window_end?: string | null
+          optimal_window_start?: string | null
+          outcome?: string | null
+          priority?: string | null
+          profile_id: string
+          reminder_before_minutes?: number | null
+          response_received?: string | null
+          scheduled_for?: string | null
+          status?: string | null
+          strategy_id?: string | null
+          suggested_channel?: string | null
+          suggested_message?: string | null
+          talking_points?: string[] | null
+          things_to_avoid?: string[] | null
+          things_to_mention?: string[] | null
+          trigger_context?: Json | null
+          trigger_event?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_description?: string | null
+          action_title?: string
+          action_type?: string
+          actual_channel?: string | null
+          completed_at?: string | null
+          created_at?: string
+          effectiveness_rating?: number | null
+          id?: string
+          notes?: string | null
+          optimal_window_end?: string | null
+          optimal_window_start?: string | null
+          outcome?: string | null
+          priority?: string | null
+          profile_id?: string
+          reminder_before_minutes?: number | null
+          response_received?: string | null
+          scheduled_for?: string | null
+          status?: string | null
+          strategy_id?: string | null
+          suggested_channel?: string | null
+          suggested_message?: string | null
+          talking_points?: string[] | null
+          things_to_avoid?: string[] | null
+          things_to_mention?: string[] | null
+          trigger_context?: Json | null
+          trigger_event?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "influence_actions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "influence_actions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "influence_actions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "influence_actions_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "influence_strategies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      influence_strategies: {
+        Row: {
+          abort_signals: string[] | null
+          ai_model_used: string | null
+          closing_scripts: string[] | null
+          context: string | null
+          created_at: string
+          duration_estimate: string | null
+          emotional_hooks: string[] | null
+          executed_at: string | null
+          execution_steps: Json | null
+          fallback_strategy: string | null
+          follow_up_steps: Json | null
+          goal_description: string | null
+          goal_type: string
+          id: string
+          lessons_learned: Json | null
+          methodologies_applied: string[] | null
+          objection_handlers: Json | null
+          opening_scripts: string[] | null
+          optimal_timing: Json | null
+          outcome: string | null
+          outcome_rating: number | null
+          preparation_steps: Json | null
+          profile_id: string
+          recovery_phrases: string[] | null
+          risks: Json | null
+          status: string | null
+          strategy_name: string
+          strategy_summary: string | null
+          success_probability: number | null
+          things_to_avoid: string[] | null
+          things_to_mention: string[] | null
+          transition_phrases: string[] | null
+          updated_at: string
+          urgency_level: string | null
+          user_id: string
+        }
+        Insert: {
+          abort_signals?: string[] | null
+          ai_model_used?: string | null
+          closing_scripts?: string[] | null
+          context?: string | null
+          created_at?: string
+          duration_estimate?: string | null
+          emotional_hooks?: string[] | null
+          executed_at?: string | null
+          execution_steps?: Json | null
+          fallback_strategy?: string | null
+          follow_up_steps?: Json | null
+          goal_description?: string | null
+          goal_type: string
+          id?: string
+          lessons_learned?: Json | null
+          methodologies_applied?: string[] | null
+          objection_handlers?: Json | null
+          opening_scripts?: string[] | null
+          optimal_timing?: Json | null
+          outcome?: string | null
+          outcome_rating?: number | null
+          preparation_steps?: Json | null
+          profile_id: string
+          recovery_phrases?: string[] | null
+          risks?: Json | null
+          status?: string | null
+          strategy_name: string
+          strategy_summary?: string | null
+          success_probability?: number | null
+          things_to_avoid?: string[] | null
+          things_to_mention?: string[] | null
+          transition_phrases?: string[] | null
+          updated_at?: string
+          urgency_level?: string | null
+          user_id: string
+        }
+        Update: {
+          abort_signals?: string[] | null
+          ai_model_used?: string | null
+          closing_scripts?: string[] | null
+          context?: string | null
+          created_at?: string
+          duration_estimate?: string | null
+          emotional_hooks?: string[] | null
+          executed_at?: string | null
+          execution_steps?: Json | null
+          fallback_strategy?: string | null
+          follow_up_steps?: Json | null
+          goal_description?: string | null
+          goal_type?: string
+          id?: string
+          lessons_learned?: Json | null
+          methodologies_applied?: string[] | null
+          objection_handlers?: Json | null
+          opening_scripts?: string[] | null
+          optimal_timing?: Json | null
+          outcome?: string | null
+          outcome_rating?: number | null
+          preparation_steps?: Json | null
+          profile_id?: string
+          recovery_phrases?: string[] | null
+          risks?: Json | null
+          status?: string | null
+          strategy_name?: string
+          strategy_summary?: string | null
+          success_probability?: number | null
+          things_to_avoid?: string[] | null
+          things_to_mention?: string[] | null
+          transition_phrases?: string[] | null
+          updated_at?: string
+          urgency_level?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "influence_strategies_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "influence_strategies_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "influence_strategies_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       intelligence_alert_rules: {
         Row: {
           conditions: Json
@@ -5420,6 +5820,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      intelligence_methodologies: {
+        Row: {
+          ai_prompt_template: string | null
+          best_for: string[] | null
+          category: string
+          contraindications: string[] | null
+          created_at: string
+          description: string
+          difficulty_level: string | null
+          effectiveness_stats: Json | null
+          ethical_considerations: string | null
+          example_scripts: Json | null
+          id: string
+          name: string
+          psychological_basis: string | null
+          subcategory: string | null
+          success_indicators: string[] | null
+          technique_steps: Json
+          updated_at: string
+        }
+        Insert: {
+          ai_prompt_template?: string | null
+          best_for?: string[] | null
+          category: string
+          contraindications?: string[] | null
+          created_at?: string
+          description: string
+          difficulty_level?: string | null
+          effectiveness_stats?: Json | null
+          ethical_considerations?: string | null
+          example_scripts?: Json | null
+          id?: string
+          name: string
+          psychological_basis?: string | null
+          subcategory?: string | null
+          success_indicators?: string[] | null
+          technique_steps?: Json
+          updated_at?: string
+        }
+        Update: {
+          ai_prompt_template?: string | null
+          best_for?: string[] | null
+          category?: string
+          contraindications?: string[] | null
+          created_at?: string
+          description?: string
+          difficulty_level?: string | null
+          effectiveness_stats?: Json | null
+          ethical_considerations?: string | null
+          example_scripts?: Json | null
+          id?: string
+          name?: string
+          psychological_basis?: string | null
+          subcategory?: string | null
+          success_indicators?: string[] | null
+          technique_steps?: Json
+          updated_at?: string
+        }
+        Relationships: []
       }
       key_rotation_schedule: {
         Row: {
@@ -5994,6 +6454,115 @@ export type Database = {
             columns: ["media_id"]
             isOneToOne: false
             referencedRelation: "media"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      methodology_outcomes: {
+        Row: {
+          action_id: string | null
+          after_state: Json | null
+          applied_at: string
+          approach_used: string | null
+          before_state: Json | null
+          context: string | null
+          created_at: string
+          id: string
+          lessons: string | null
+          methodology_id: string | null
+          methodology_name: string
+          outcome: string
+          outcome_score: number | null
+          profile_id: string
+          relationship_delta: number | null
+          response_observed: string | null
+          strategy_id: string | null
+          tags: string[] | null
+          user_id: string
+        }
+        Insert: {
+          action_id?: string | null
+          after_state?: Json | null
+          applied_at?: string
+          approach_used?: string | null
+          before_state?: Json | null
+          context?: string | null
+          created_at?: string
+          id?: string
+          lessons?: string | null
+          methodology_id?: string | null
+          methodology_name: string
+          outcome: string
+          outcome_score?: number | null
+          profile_id: string
+          relationship_delta?: number | null
+          response_observed?: string | null
+          strategy_id?: string | null
+          tags?: string[] | null
+          user_id: string
+        }
+        Update: {
+          action_id?: string | null
+          after_state?: Json | null
+          applied_at?: string
+          approach_used?: string | null
+          before_state?: Json | null
+          context?: string | null
+          created_at?: string
+          id?: string
+          lessons?: string | null
+          methodology_id?: string | null
+          methodology_name?: string
+          outcome?: string
+          outcome_score?: number | null
+          profile_id?: string
+          relationship_delta?: number | null
+          response_observed?: string | null
+          strategy_id?: string | null
+          tags?: string[] | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "methodology_outcomes_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "influence_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "methodology_outcomes_methodology_id_fkey"
+            columns: ["methodology_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_methodologies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "methodology_outcomes_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "methodology_outcomes_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "methodology_outcomes_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "methodology_outcomes_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "influence_strategies"
             referencedColumns: ["id"]
           },
         ]
