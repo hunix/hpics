@@ -209,3 +209,6 @@ verify_jwt = false
 
 [functions.crypto-shred]
 verify_jwt = false
+
+[functions.analyze-conversation-deep]
+verify_jwt = false

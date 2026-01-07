@@ -19,7 +19,8 @@ interface BulkMetadataGeneratorProps {
 const MODEL_OPTIONS = [
   { value: 'google/gemini-2.5-flash', label: 'Gemini 2.5 Flash (Recommended)', costPer1K: 0.075 },
   { value: 'google/gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite (Cheapest)', costPer1K: 0.019 },
-  { value: 'google/gemini-2.5-pro', label: 'Gemini 2.5 Pro (Best Quality)', costPer1K: 1.25 },
+  { value: 'google/gemini-2.5-pro', label: 'Gemini 2.5 Pro (High Quality)', costPer1K: 1.25 },
+  { value: 'google/gemini-3-pro-preview', label: 'Gemini 3 Pro (Best Quality)', costPer1K: 1.5 },
 ];
 
 // Estimated tokens per file type (enhanced metadata uses more output tokens)
@@ -46,24 +47,29 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
   const [progress, setProgress] = useState({ completed: 0, failed: 0, total: 0, current: '' });
   const [totalCost, setTotalCost] = useState(0);
 
-  // Fetch media counts
+  // Fetch media counts using RPC to avoid 1000 row limit
   const { data: mediaCounts } = useQuery({
     queryKey: ['media-counts', profileId, skipProcessed],
     queryFn: async () => {
-      let query = supabase.from('media').select('id, mime_type, ai_generation_status');
-      if (profileId) query = query.eq('profile_id', profileId);
-      if (skipProcessed) query = query.neq('ai_generation_status', 'completed');
-
-      const { data, error } = await query;
-      if (error) throw error;
-
-      const counts = { image: 0, audio: 0, video: 0 };
-      data?.forEach((item) => {
-        if (item.mime_type?.startsWith('image/')) counts.image++;
-        else if (item.mime_type?.startsWith('audio/')) counts.audio++;
-        else if (item.mime_type?.startsWith('video/')) counts.video++;
+      // Use RPC function that counts ALL media
+      const { data: countData, error: countError } = await supabase.rpc('get_contact_media_counts', {
+        p_user_id: user!.id,
+        p_profile_id: profileId || null,
+        p_skip_analyzed: skipProcessed
       });
-      return { counts, items: data || [] };
+      
+      if (countError) throw countError;
+      
+      const counts = countData?.[0] || { image_count: 0, audio_count: 0, video_count: 0, total_count: 0 };
+      
+      return { 
+        counts: { 
+          image: Number(counts.image_count), 
+          audio: Number(counts.audio_count), 
+          video: Number(counts.video_count) 
+        },
+        totalCount: Number(counts.total_count)
+      };
     },
     enabled: !!user,
   });
@@ -158,24 +164,49 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
 
     abortController.current = new AbortController();
 
-    // Collect IDs to process
+  // Fetch all IDs to process using pagination
     const mediaToProcess: string[] = [];
     const documentsToProcess: string[] = [];
-
-    mediaCounts.items.forEach((item) => {
-      const isImage = item.mime_type?.startsWith('image/');
-      const isAudio = item.mime_type?.startsWith('audio/');
-      const isVideo = item.mime_type?.startsWith('video/');
-
-      if ((isImage && includeImages) || (isAudio && includeAudio) || (isVideo && includeVideos)) {
-        mediaToProcess.push(item.id);
+    
+    // Build media types array
+    const mediaTypes: string[] = [];
+    if (includeImages) mediaTypes.push('image');
+    if (includeAudio) mediaTypes.push('audio');
+    if (includeVideos) mediaTypes.push('video');
+    
+    // Fetch media IDs in batches using RPC
+    if (mediaTypes.length > 0) {
+      let offset = 0;
+      const batchSize = 500;
+      while (true) {
+        const { data, error } = await supabase.rpc('get_media_ids_for_analysis', {
+          p_user_id: user!.id,
+          p_profile_id: profileId || null,
+          p_media_types: mediaTypes,
+          p_skip_analyzed: skipProcessed,
+          p_limit: batchSize,
+          p_offset: offset
+        });
+        
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        
+        data.forEach((item: any) => mediaToProcess.push(item.id));
+        if (data.length < batchSize) break;
+        offset += batchSize;
       }
-    });
+    }
 
-    if (includeDocuments) {
-      documentCounts.items.forEach((item) => {
-        documentsToProcess.push(item.id);
-      });
+    // Fetch document IDs similarly
+    if (includeDocuments && documentCounts) {
+      let docQuery = supabase.from('documents').select('id');
+      if (profileId) docQuery = docQuery.eq('profile_id', profileId);
+      if (skipProcessed) docQuery = docQuery.neq('ai_generation_status', 'completed');
+      
+      const { data: docs, error: docError } = await docQuery;
+      if (!docError && docs) {
+        docs.forEach(doc => documentsToProcess.push(doc.id));
+      }
     }
 
     const allIds = [
