@@ -14,6 +14,101 @@ export type Database = {
   }
   public: {
     Tables: {
+      ab_test_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_variant: string
+          converted: boolean | null
+          converted_at: string | null
+          id: string
+          profile_id: string | null
+          test_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_variant: string
+          converted?: boolean | null
+          converted_at?: string | null
+          id?: string
+          profile_id?: string | null
+          test_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_variant?: string
+          converted?: boolean | null
+          converted_at?: string | null
+          id?: string
+          profile_id?: string | null
+          test_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ab_test_assignments_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "ab_tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ab_tests: {
+        Row: {
+          control_version_id: string | null
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          name: string
+          prompt_key: string
+          start_date: string | null
+          statistical_significance: number | null
+          test_status: string
+          traffic_split: Json
+          updated_at: string
+          user_id: string
+          variant_version_id: string | null
+          winner_version_id: string | null
+        }
+        Insert: {
+          control_version_id?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          name: string
+          prompt_key: string
+          start_date?: string | null
+          statistical_significance?: number | null
+          test_status?: string
+          traffic_split?: Json
+          updated_at?: string
+          user_id: string
+          variant_version_id?: string | null
+          winner_version_id?: string | null
+        }
+        Update: {
+          control_version_id?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          name?: string
+          prompt_key?: string
+          start_date?: string | null
+          statistical_significance?: number | null
+          test_status?: string
+          traffic_split?: Json
+          updated_at?: string
+          user_id?: string
+          variant_version_id?: string | null
+          winner_version_id?: string | null
+        }
+        Relationships: []
+      }
       ai_analyses: {
         Row: {
           analysis_type: string
@@ -4343,6 +4438,60 @@ export type Database = {
           },
         ]
       }
+      cost_anomaly_alerts: {
+        Row: {
+          anomaly_type: string
+          created_at: string
+          description: string | null
+          detected_value: number | null
+          deviation_percentage: number | null
+          expected_value: number | null
+          function_name: string | null
+          id: string
+          is_resolved: boolean | null
+          model_name: string | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          severity: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          anomaly_type: string
+          created_at?: string
+          description?: string | null
+          detected_value?: number | null
+          deviation_percentage?: number | null
+          expected_value?: number | null
+          function_name?: string | null
+          id?: string
+          is_resolved?: boolean | null
+          model_name?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          severity?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          anomaly_type?: string
+          created_at?: string
+          description?: string | null
+          detected_value?: number | null
+          deviation_percentage?: number | null
+          expected_value?: number | null
+          function_name?: string | null
+          id?: string
+          is_resolved?: boolean | null
+          model_name?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          severity?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       counter_surveillance_events: {
         Row: {
           created_at: string | null
@@ -6964,6 +7113,63 @@ export type Database = {
           },
         ]
       }
+      network_predictions: {
+        Row: {
+          accuracy_score: number | null
+          actual_outcome: string | null
+          confidence_score: number | null
+          contributing_factors: Json | null
+          created_at: string
+          id: string
+          model_version: string | null
+          outcome_date: string | null
+          predicted_date: string | null
+          predicted_outcome: string | null
+          prediction_type: string
+          profile_id: string
+          recommendations: Json | null
+          risk_score: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accuracy_score?: number | null
+          actual_outcome?: string | null
+          confidence_score?: number | null
+          contributing_factors?: Json | null
+          created_at?: string
+          id?: string
+          model_version?: string | null
+          outcome_date?: string | null
+          predicted_date?: string | null
+          predicted_outcome?: string | null
+          prediction_type: string
+          profile_id: string
+          recommendations?: Json | null
+          risk_score?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accuracy_score?: number | null
+          actual_outcome?: string | null
+          confidence_score?: number | null
+          contributing_factors?: Json | null
+          created_at?: string
+          id?: string
+          model_version?: string | null
+          outcome_date?: string | null
+          predicted_date?: string | null
+          predicted_outcome?: string | null
+          prediction_type?: string
+          profile_id?: string
+          recommendations?: Json | null
+          risk_score?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           alert_types_enabled: string[] | null
@@ -8103,6 +8309,57 @@ export type Database = {
           record_id?: string | null
           table_name?: string
           user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      security_findings: {
+        Row: {
+          affected_resource: string | null
+          assigned_to: string | null
+          created_at: string
+          description: string | null
+          finding_status: string | null
+          finding_type: string
+          id: string
+          remediation: string | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          scan_id: string | null
+          severity: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          affected_resource?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          description?: string | null
+          finding_status?: string | null
+          finding_type: string
+          id?: string
+          remediation?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          scan_id?: string | null
+          severity: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          affected_resource?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          description?: string | null
+          finding_status?: string | null
+          finding_type?: string
+          id?: string
+          remediation?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          scan_id?: string | null
+          severity?: string
+          title?: string
           user_id?: string
         }
         Relationships: []
