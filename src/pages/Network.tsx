@@ -22,6 +22,7 @@ import { differenceInDays } from 'date-fns';
 import { FamilyTreeGraph } from '@/components/network/FamilyTreeGraph';
 import { ChurnPredictionPanel } from '@/components/network/ChurnPredictionPanel';
 import { NetworkGrowthOptimizer } from '@/components/network/NetworkGrowthOptimizer';
+import { RelationshipGraphViewer } from '@/components/network/RelationshipGraphViewer';
 import { 
   calculateNetworkMetrics, 
   getClusterColor, 
@@ -893,6 +894,7 @@ export default function NetworkPage() {
             <ChurnPredictionPanel />
             <NetworkGrowthOptimizer />
           </div>
+          <RelationshipGraphViewer />
         </TabsContent>
       </Tabs>
     </AppLayout>
