@@ -720,6 +720,82 @@ export type Database = {
           },
         ]
       }
+      behavioral_predictions: {
+        Row: {
+          accuracy_score: number | null
+          actual_outcome: Json | null
+          confidence_score: number | null
+          created_at: string
+          features_used: Json | null
+          id: string
+          model_version: string | null
+          outcome_recorded_at: string | null
+          prediction_type: string
+          prediction_value: Json
+          profile_id: string
+          updated_at: string
+          user_id: string
+          valid_from: string
+          valid_until: string | null
+        }
+        Insert: {
+          accuracy_score?: number | null
+          actual_outcome?: Json | null
+          confidence_score?: number | null
+          created_at?: string
+          features_used?: Json | null
+          id?: string
+          model_version?: string | null
+          outcome_recorded_at?: string | null
+          prediction_type: string
+          prediction_value: Json
+          profile_id: string
+          updated_at?: string
+          user_id: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Update: {
+          accuracy_score?: number | null
+          actual_outcome?: Json | null
+          confidence_score?: number | null
+          created_at?: string
+          features_used?: Json | null
+          id?: string
+          model_version?: string | null
+          outcome_recorded_at?: string | null
+          prediction_type?: string
+          prediction_value?: Json
+          profile_id?: string
+          updated_at?: string
+          user_id?: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "behavioral_predictions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "behavioral_predictions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "behavioral_predictions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       biometric_enrollment_sessions: {
         Row: {
           aggregate_signature: Json | null
@@ -7292,6 +7368,106 @@ export type Database = {
           },
         ]
       }
+      relationship_inferences: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          evidence: Json | null
+          id: string
+          inference_type: string
+          is_verified: boolean | null
+          opportunity_score: number | null
+          opportunity_type: string | null
+          path_distance: number | null
+          path_profiles: string[] | null
+          relationship_strength: number | null
+          source_profile_id: string
+          target_profile_id: string
+          updated_at: string
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          evidence?: Json | null
+          id?: string
+          inference_type: string
+          is_verified?: boolean | null
+          opportunity_score?: number | null
+          opportunity_type?: string | null
+          path_distance?: number | null
+          path_profiles?: string[] | null
+          relationship_strength?: number | null
+          source_profile_id: string
+          target_profile_id: string
+          updated_at?: string
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          evidence?: Json | null
+          id?: string
+          inference_type?: string
+          is_verified?: boolean | null
+          opportunity_score?: number | null
+          opportunity_type?: string | null
+          path_distance?: number | null
+          path_profiles?: string[] | null
+          relationship_strength?: number | null
+          source_profile_id?: string
+          target_profile_id?: string
+          updated_at?: string
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relationship_inferences_source_profile_id_fkey"
+            columns: ["source_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "relationship_inferences_source_profile_id_fkey"
+            columns: ["source_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "relationship_inferences_source_profile_id_fkey"
+            columns: ["source_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relationship_inferences_target_profile_id_fkey"
+            columns: ["target_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "relationship_inferences_target_profile_id_fkey"
+            columns: ["target_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "relationship_inferences_target_profile_id_fkey"
+            columns: ["target_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       relationship_opportunities: {
         Row: {
           confidence_score: number | null
@@ -8798,6 +8974,19 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      find_connection_path: {
+        Args: {
+          p_max_depth?: number
+          p_source_id: string
+          p_target_id: string
+          p_user_id: string
+        }
+        Returns: {
+          distance: number
+          path: string[]
+          strength: number
+        }[]
+      }
       find_cross_reference_matches: {
         Args: {
           p_normalized_value: string
@@ -8922,6 +9111,14 @@ export type Database = {
       get_or_set_cache: {
         Args: { p_cache_key: string; p_ttl_seconds?: number; p_user_id: string }
         Returns: Json
+      }
+      get_shared_organizations: {
+        Args: { p_profile_ids: string[]; p_user_id: string }
+        Returns: {
+          organization_name: string
+          profile_count: number
+          profile_ids: string[]
+        }[]
       }
       get_single_contact_storage: {
         Args: { p_profile_id: string; p_user_id: string }
