@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
+import { callAI, parseAIJson, selectModel, getUserPreferredModel, FUNCTION_TO_ANALYSIS_TYPE } from "../_shared/ai-client.ts";
+import { getRAGContext, type Citation } from "../_shared/rag-helper.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -265,14 +266,28 @@ serve(async (req) => {
       })),
     };
 
-    // 10. Key Findings & Recommendations (AI-generated via unified client)
+    // 10. Key Findings & Recommendations (AI-generated via unified client with RAG)
     let keyFindings: any[] = [];
     let recommendations: any[] = [];
     let riskAssessment: any = null;
+    let citations: Citation[] = [];
 
     try {
+      // Get RAG context for enhanced analysis
+      const ragContext = await getRAGContext(
+        userId,
+        profile_id,
+        `${profile.first_name} ${profile.last_name} intelligence dossier analysis risk assessment`,
+        { maxResults: 10, sourceTypes: ['document', 'observation', 'analysis', 'communication'] }
+      );
+      citations = ragContext.citations;
+
+      // Get user's preferred model
+      const analysisType = FUNCTION_TO_ANALYSIS_TYPE['generate-dossier'] || 'dossier';
+      const preferredModel = await getUserPreferredModel(userId, analysisType, selectModel('quality'));
+
       const aiResponse = await callAI({
-        model: selectModel('quality'), // Use quality model for dossiers
+        model: preferredModel,
         messages: [
           {
             role: 'system',
@@ -281,10 +296,10 @@ serve(async (req) => {
 2. Risk assessment (overall risk level and specific risks)
 3. Strategic recommendations (3-5 actionable items)
 
-Be objective, evidence-based, and professionally formatted. Output as JSON with structure:
+Reference sources using [Source N] when citing evidence. Be objective, evidence-based, and professionally formatted. Output as JSON with structure:
 {
-  "key_findings": [{"finding": "...", "importance": "high|medium|low", "evidence": "..."}],
-  "risk_assessment": {"overall_risk": "low|medium|high|critical", "specific_risks": [{"risk": "...", "likelihood": "...", "impact": "..."}]},
+  "key_findings": [{"finding": "...", "importance": "high|medium|low", "evidence": "...", "sources": ["Source 1"]}],
+  "risk_assessment": {"overall_risk": "low|medium|high|critical", "specific_risks": [{"risk": "...", "likelihood": "...", "impact": "...", "sources": []}]},
   "recommendations": [{"action": "...", "priority": "...", "rationale": "..."}]
 }`
           },
@@ -300,13 +315,15 @@ Be objective, evidence-based, and professionally formatted. Output as JSON with 
               } : null,
               active_anomalies: sections.alerts.active_anomalies,
               relationship_type: profile.relationship_type,
+              // Include RAG context
+              relevant_context: ragContext.context,
             })
           }
         ],
         userId,
         functionName: 'generate-dossier',
         profileId: profile_id,
-        maxTokens: 1500,
+        maxTokens: 2000,
       });
 
       const parsed = parseAIJson(aiResponse.content, { key_findings: [], risk_assessment: null, recommendations: [] });
@@ -340,8 +357,9 @@ Be objective, evidence-based, and professionally formatted. Output as JSON with 
       key_findings: keyFindings,
       risk_assessment: riskAssessment,
       recommendations,
+      citations: citations.map(c => ({ source: c.source, type: c.type, relevance: c.relevance })),
       data_sources_used: Object.keys(sections),
-      ai_model_used: 'google/gemini-2.5-flash',
+      ai_model_used: 'google/gemini-2.5-pro',
       generated_at: new Date().toISOString(),
     };
 

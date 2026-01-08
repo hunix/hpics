@@ -1,7 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
+import { callAI, parseAIJson, selectModel, getUserPreferredModel, FUNCTION_TO_ANALYSIS_TYPE } from "../_shared/ai-client.ts";
+import { getRAGContext } from "../_shared/rag-helper.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -284,21 +285,32 @@ serve(async (req) => {
 
     const contactName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'This person';
     
-    const systemPrompt = buildSystemPrompt();
-    const userPrompt = buildUserPrompt(contactName, dataSources, analysis_depth, focus_areas);
+    // Get RAG context for enhanced analysis
+    const ragContext = await getRAGContext(
+      user.id,
+      profile_id,
+      `${contactName} psychological analysis personality behavior patterns`,
+      { maxResults: 15, sourceTypes: ['document', 'observation', 'analysis', 'communication'] }
+    );
 
-    console.log(`Sending to AI for analysis...`);
+    const systemPrompt = buildSystemPrompt();
+    const userPrompt = buildUserPrompt(contactName, dataSources, analysis_depth, focus_areas) + 
+      (ragContext.sourceCount > 0 ? `\n\n## Additional Context from Documents:\n${ragContext.context}` : '');
+
+    console.log(`Sending to AI for analysis with ${ragContext.sourceCount} RAG sources...`);
 
     // ============================================
     // PHASE 3: Call AI for comprehensive analysis using unified client
     // ============================================
 
-    const model = model_preference || selectModel('quality'); // Use quality tier for deep analysis
+    // Get user's preferred model
+    const analysisType = FUNCTION_TO_ANALYSIS_TYPE['deep-psychological-analysis'] || 'psychological_analysis';
+    const preferredModel = model_preference || await getUserPreferredModel(user.id, analysisType, selectModel('quality'));
     
-    console.log(`Using model: ${model}`);
+    console.log(`Using model: ${preferredModel}`);
     
     const aiResult = await callAI({
-      model,
+      model: preferredModel,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
@@ -385,7 +397,7 @@ serve(async (req) => {
       data_sources_used: dataSourcesUsed,
       last_analysis_at: new Date().toISOString(),
       analysis_version: '1.0',
-      analysis_model: model,
+      analysis_model: preferredModel,
     };
 
     if (existingProfile) {
