@@ -5237,6 +5237,59 @@ export type Database = {
           },
         ]
       }
+      embedding_metadata: {
+        Row: {
+          chunk_index: number | null
+          chunk_total: number | null
+          created_at: string | null
+          document_embedding_id: string | null
+          embedding_dimensions: number | null
+          embedding_model: string | null
+          id: string
+          is_stale: boolean | null
+          last_refreshed_at: string | null
+          quality_score: number | null
+          token_count: number | null
+          user_id: string
+        }
+        Insert: {
+          chunk_index?: number | null
+          chunk_total?: number | null
+          created_at?: string | null
+          document_embedding_id?: string | null
+          embedding_dimensions?: number | null
+          embedding_model?: string | null
+          id?: string
+          is_stale?: boolean | null
+          last_refreshed_at?: string | null
+          quality_score?: number | null
+          token_count?: number | null
+          user_id: string
+        }
+        Update: {
+          chunk_index?: number | null
+          chunk_total?: number | null
+          created_at?: string | null
+          document_embedding_id?: string | null
+          embedding_dimensions?: number | null
+          embedding_model?: string | null
+          id?: string
+          is_stale?: boolean | null
+          last_refreshed_at?: string | null
+          quality_score?: number | null
+          token_count?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "embedding_metadata_document_embedding_id_fkey"
+            columns: ["document_embedding_id"]
+            isOneToOne: false
+            referencedRelation: "document_embeddings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       encrypted_fields: {
         Row: {
           column_name: string
@@ -7737,6 +7790,81 @@ export type Database = {
         }
         Relationships: []
       }
+      query_suggestions: {
+        Row: {
+          created_at: string | null
+          id: string
+          relevance_score: number | null
+          suggestion_text: string
+          suggestion_type: string | null
+          use_count: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          relevance_score?: number | null
+          suggestion_text: string
+          suggestion_type?: string | null
+          use_count?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          relevance_score?: number | null
+          suggestion_text?: string
+          suggestion_type?: string | null
+          use_count?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      rag_query_logs: {
+        Row: {
+          avg_result_score: number | null
+          created_at: string | null
+          filters_applied: Json | null
+          id: string
+          query_embedding: string | null
+          query_text: string
+          response_time_ms: number | null
+          result_count: number | null
+          search_mode: string | null
+          top_result_score: number | null
+          user_feedback: string | null
+          user_id: string
+        }
+        Insert: {
+          avg_result_score?: number | null
+          created_at?: string | null
+          filters_applied?: Json | null
+          id?: string
+          query_embedding?: string | null
+          query_text: string
+          response_time_ms?: number | null
+          result_count?: number | null
+          search_mode?: string | null
+          top_result_score?: number | null
+          user_feedback?: string | null
+          user_id: string
+        }
+        Update: {
+          avg_result_score?: number | null
+          created_at?: string | null
+          filters_applied?: Json | null
+          id?: string
+          query_embedding?: string | null
+          query_text?: string
+          response_time_ms?: number | null
+          result_count?: number | null
+          search_mode?: string | null
+          top_result_score?: number | null
+          user_feedback?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       relationship_goals: {
         Row: {
           created_at: string
@@ -8169,7 +8297,9 @@ export type Database = {
           filters: Json
           id: string
           is_pinned: boolean | null
+          last_used_at: string | null
           name: string
+          query_text: string | null
           updated_at: string
           use_count: number | null
           user_id: string
@@ -8179,7 +8309,9 @@ export type Database = {
           filters?: Json
           id?: string
           is_pinned?: boolean | null
+          last_used_at?: string | null
           name: string
+          query_text?: string | null
           updated_at?: string
           use_count?: number | null
           user_id: string
@@ -8189,7 +8321,9 @@ export type Database = {
           filters?: Json
           id?: string
           is_pinned?: boolean | null
+          last_used_at?: string | null
           name?: string
+          query_text?: string | null
           updated_at?: string
           use_count?: number | null
           user_id?: string
@@ -9901,6 +10035,25 @@ export type Database = {
         }
         Returns: undefined
       }
+      keyword_search_documents: {
+        Args: {
+          match_count?: number
+          p_profile_id?: string
+          p_source_types?: string[]
+          p_user_id?: string
+          search_query: string
+        }
+        Returns: {
+          content: string
+          created_at: string
+          id: string
+          metadata: Json
+          profile_id: string
+          rank: number
+          source_id: string
+          source_type: string
+        }[]
+      }
       match_documents: {
         Args: {
           p_match_count?: number
@@ -9913,6 +10066,28 @@ export type Database = {
         Returns: {
           content: string
           content_summary: string
+          id: string
+          metadata: Json
+          profile_id: string
+          similarity: number
+          source_id: string
+          source_type: string
+        }[]
+      }
+      match_documents_v2: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          p_date_from?: string
+          p_date_to?: string
+          p_profile_id?: string
+          p_source_types?: string[]
+          p_user_id?: string
+          query_embedding: string
+        }
+        Returns: {
+          content: string
+          created_at: string
           id: string
           metadata: Json
           profile_id: string
