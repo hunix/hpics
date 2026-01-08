@@ -20,6 +20,8 @@ import {
 import * as d3 from 'd3';
 import { differenceInDays } from 'date-fns';
 import { FamilyTreeGraph } from '@/components/network/FamilyTreeGraph';
+import { ChurnPredictionPanel } from '@/components/network/ChurnPredictionPanel';
+import { NetworkGrowthOptimizer } from '@/components/network/NetworkGrowthOptimizer';
 import { 
   calculateNetworkMetrics, 
   getClusterColor, 
@@ -528,6 +530,10 @@ export default function NetworkPage() {
             <GitBranch className="h-4 w-4" />
             Family Tree
           </TabsTrigger>
+          <TabsTrigger value="intelligence" className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4" />
+            Intelligence
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="network">
@@ -880,6 +886,13 @@ export default function NetworkPage() {
 
         <TabsContent value="family">
           <FamilyTreeGraph />
+        </TabsContent>
+
+        <TabsContent value="intelligence" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ChurnPredictionPanel />
+            <NetworkGrowthOptimizer />
+          </div>
         </TabsContent>
       </Tabs>
     </AppLayout>

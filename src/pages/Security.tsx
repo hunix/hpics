@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ClearanceManager } from '@/components/security/ClearanceManager';
@@ -12,8 +11,9 @@ import { ForensicTimeline } from '@/components/intelligence/ForensicTimeline';
 import { CounterSurveillancePanel } from '@/components/security/CounterSurveillancePanel';
 import { KeyRotationPanel } from '@/components/security/KeyRotationPanel';
 import { AdminBootstrap } from '@/components/security/AdminBootstrap';
+import { SecurityFindingsViewer } from '@/components/security/SecurityFindingsViewer';
 import { useClearance } from '@/hooks/useClearance';
-import { Shield, Lock, Eye, Network, AlertTriangle, Users, Clock, Radar, Key } from 'lucide-react';
+import { Shield, Lock, Eye, Network, AlertTriangle, Users, Clock, Radar, Key, Bug } from 'lucide-react';
 
 export default function Security() {
   const { currentClearance, currentRole, CLEARANCE_LABELS, isAdmin } = useClearance();
@@ -78,6 +78,10 @@ export default function Security() {
               <Key className="h-4 w-4" />
               Key Management
             </TabsTrigger>
+            <TabsTrigger value="findings" className="flex items-center gap-2">
+              <Bug className="h-4 w-4" />
+              Findings
+            </TabsTrigger>
           </TabsList>
 
           {/* Security Dashboard */}
@@ -134,6 +138,13 @@ export default function Security() {
           <TabsContent value="keys">
             <ClearanceGate requiredRole="admin" showAccessDenied>
               <KeyRotationPanel />
+            </ClearanceGate>
+          </TabsContent>
+
+          {/* Security Findings */}
+          <TabsContent value="findings">
+            <ClearanceGate requiredClearance="confidential" showAccessDenied>
+              <SecurityFindingsViewer />
             </ClearanceGate>
           </TabsContent>
         </Tabs>
