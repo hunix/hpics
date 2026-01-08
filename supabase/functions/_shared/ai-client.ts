@@ -5,7 +5,16 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 interface AIMessage {
   role: 'system' | 'user' | 'assistant';
-  content: string;
+  content: string | any[]; // Allow multimodal content
+}
+
+interface AITool {
+  type: 'function';
+  function: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  };
 }
 
 interface AIRequestOptions {
@@ -23,6 +32,9 @@ interface AIRequestOptions {
   promptVersion?: number;
   // Budget enforcement
   enforceBudget?: boolean;
+  // Tool calling support
+  tools?: AITool[];
+  toolChoice?: { type: 'function'; function: { name: string } } | 'auto' | 'none';
 }
 
 interface AIResponse {
@@ -33,6 +45,7 @@ interface AIResponse {
   costCents: number;
   responseTimeMs: number;
   model: string;
+  toolCalls?: any[]; // Raw tool calls from response
 }
 
 interface ModelPricing {
@@ -67,6 +80,32 @@ function getProvider(model: string): string {
   if (model.startsWith('google/')) return 'google';
   if (model.startsWith('openai/')) return 'openai';
   return 'unknown';
+}
+
+// Custom error types for AI operations
+export class RateLimitError extends Error {
+  retryAfterMs: number;
+  constructor(retryAfterMs: number = 60000) {
+    super('Rate limit exceeded. Please try again later.');
+    this.name = 'RateLimitError';
+    this.retryAfterMs = retryAfterMs;
+  }
+}
+
+export class CreditsExhaustedError extends Error {
+  constructor() {
+    super('AI credits exhausted. Please add credits to continue.');
+    this.name = 'CreditsExhaustedError';
+  }
+}
+
+export class BudgetExceededError extends Error {
+  period: string;
+  constructor(period: string) {
+    super(`AI budget limit exceeded for ${period}. Please wait until the limit resets or increase your budget.`);
+    this.name = 'BudgetExceededError';
+    this.period = period;
+  }
 }
 
 // Budget check helper
@@ -147,7 +186,7 @@ export async function callAI(options: AIRequestOptions): Promise<AIResponse> {
   if (options.enforceBudget && options.userId) {
     const budgetCheck = await checkUserBudget(supabase, options.userId);
     if (budgetCheck.exceeded) {
-      throw new Error(`AI budget limit exceeded for ${budgetCheck.period}. Please wait until the limit resets or increase your budget.`);
+      throw new BudgetExceededError(budgetCheck.period || 'unknown');
     }
   }
 
@@ -171,6 +210,18 @@ export async function callAI(options: AIRequestOptions): Promise<AIResponse> {
 
     if (!response.ok) {
       const errorText = await response.text();
+      
+      // Handle rate limit errors specifically
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('Retry-After');
+        throw new RateLimitError(retryAfter ? parseInt(retryAfter) * 1000 : 60000);
+      }
+      
+      // Handle credits exhausted
+      if (response.status === 402) {
+        throw new CreditsExhaustedError();
+      }
+      
       throw new Error(`AI Gateway error ${response.status}: ${errorText}`);
     }
 
@@ -206,7 +257,7 @@ export async function callAI(options: AIRequestOptions): Promise<AIResponse> {
       function_name: options.functionName,
       model_name: model,
       provider: getProvider(model),
-      prompt_summary: options.messages[options.messages.length - 1]?.content?.substring(0, 500) || '',
+      prompt_summary: (typeof options.messages[options.messages.length - 1]?.content === 'string' ? (options.messages[options.messages.length - 1].content as string).substring(0, 500) : 'multimodal'),
       prompt_key: options.promptKey || null,
       prompt_version: options.promptVersion || null,
       estimated_cost_cents: 0,
@@ -232,7 +283,7 @@ export async function callAI(options: AIRequestOptions): Promise<AIResponse> {
     function_name: options.functionName,
     model_name: model,
     provider: getProvider(model),
-    prompt_summary: options.messages[options.messages.length - 1]?.content?.substring(0, 500) || '',
+    prompt_summary: (typeof options.messages[options.messages.length - 1]?.content === 'string' ? (options.messages[options.messages.length - 1].content as string).substring(0, 500) : 'multimodal'),
     prompt_key: options.promptKey || null,
     prompt_version: options.promptVersion || null,
     estimated_cost_cents: aiResponse.costCents,

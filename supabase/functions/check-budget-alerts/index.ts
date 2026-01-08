@@ -70,17 +70,17 @@ serve(async (req) => {
       });
     }
 
-    // Get user's budget settings
+    // Get user's budget settings from user_preferences (single source of truth)
     const { data: settings } = await supabase
-      .from('ai_budget_settings')
-      .select('*')
+      .from('user_preferences')
+      .select('ai_budget_daily_cents, ai_budget_weekly_cents, ai_budget_monthly_cents, ai_budget_alerts_enabled')
       .eq('user_id', userId)
       .maybeSingle();
 
-    const dailyBudget = settings?.daily_budget_cents || 500; // Default 500 cents = $5
-    const weeklyBudget = settings?.weekly_budget_cents || 2000; // Default $20
-    const monthlyBudget = settings?.monthly_budget_cents || 5000; // Default $50
-    const alertsEnabled = settings?.alerts_enabled ?? true;
+    const dailyBudget = settings?.ai_budget_daily_cents || 500; // Default 500 cents = $5
+    const weeklyBudget = settings?.ai_budget_weekly_cents || 2000; // Default $20
+    const monthlyBudget = settings?.ai_budget_monthly_cents || 5000; // Default $50
+    const alertsEnabled = settings?.ai_budget_alerts_enabled ?? true;
 
     // Calculate current spending for each period
     const now = new Date();

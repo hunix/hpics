@@ -382,6 +382,7 @@ Be thorough and extract maximum intelligence.`;
         media_id,
         document_id,
       },
+      enforceBudget: true,
     });
 
     // Parse JSON response

@@ -321,6 +321,7 @@ serve(async (req) => {
       temperature: 0.3,
       maxTokens: 16000,
       metadata: { analysis_depth, dataCompleteness },
+      enforceBudget: true,
     });
 
     console.log(`AI analysis received (${aiResult.totalTokens} tokens, ${aiResult.costCents}¢)`);
