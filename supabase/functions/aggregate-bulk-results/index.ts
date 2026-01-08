@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,7 +42,6 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const authHeader = req.headers.get("Authorization");
@@ -68,7 +68,7 @@ serve(async (req) => {
 
     const userId = claimsData.claims.sub;
 
-    const { sessionId } = await req.json();
+    const { sessionId, modelTier = 'balanced' } = await req.json();
 
     // Fetch session with all completed items
     const { data: session, error: sessionError } = await supabase
@@ -205,10 +205,10 @@ serve(async (req) => {
       });
     }
 
-    // Generate cross-contact insights using AI
+    // Generate cross-contact insights using unified AI client
     let crossContactInsights: CrossContactInsight[] = [];
     
-    if (lovableApiKey && contactAggregations.length > 1) {
+    if (contactAggregations.length > 1) {
       try {
         const prompt = `Analyze these contact aggregations and identify cross-contact patterns, shared experiences, or relationship dynamics:
 
@@ -232,24 +232,22 @@ Provide insights in JSON format:
   ]
 }`;
 
-        const aiResponse = await fetch("https://api.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${lovableApiKey}`,
+        const aiResponse = await callAI({
+          model: selectModel(modelTier as any),
+          messages: [{ role: "user", content: prompt }],
+          userId,
+          functionName: "aggregate-bulk-results",
+          temperature: 0.5,
+          maxTokens: 2000,
+          metadata: {
+            sessionId,
+            contactCount: contactAggregations.length,
+            totalItems: completedItems.length,
           },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [{ role: "user", content: prompt }],
-            response_format: { type: "json_object" },
-          }),
         });
 
-        if (aiResponse.ok) {
-          const aiResult = await aiResponse.json();
-          const parsed = JSON.parse(aiResult.choices[0].message.content);
-          crossContactInsights = parsed.crossContactInsights || [];
-        }
+        const parsed = parseAIJson(aiResponse.content, { crossContactInsights: [] });
+        crossContactInsights = parsed.crossContactInsights || [];
       } catch (aiError) {
         console.error("AI cross-contact analysis failed:", aiError);
       }

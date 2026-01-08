@@ -1,12 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-async function generateSummaryForUser(supabase: any, userId: string, lovableApiKey: string) {
+async function generateSummaryForUser(supabase: any, userId: string) {
   // Calculate week boundaries
   const now = new Date();
   const weekStart = new Date(now);
@@ -80,7 +81,7 @@ async function generateSummaryForUser(supabase: any, userId: string, lovableApiK
     .slice(0, 5)
     .map(([id, data]) => ({ profileId: id, name: data.name, interactions: data.count }));
 
-  // Generate AI summary
+  // Generate AI summary using unified client
   const prompt = `Generate a personalized weekly relationship summary based on this data:
 
 STATISTICS:
@@ -112,45 +113,37 @@ Be encouraging and specific.`;
   };
 
   try {
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
+    const aiResponse = await callAI({
+      model: selectModel('speed'), // Use speed tier for summaries
+      messages: [
+        { role: 'system', content: 'You are a supportive relationship coach providing weekly summaries.' },
+        { role: 'user', content: prompt }
+      ],
+      userId,
+      functionName: 'generate-weekly-summary',
+      temperature: 0.7,
+      maxTokens: 1500,
+      metadata: {
+        weekStart: weekStart.toISOString(),
+        weekEnd: weekEnd.toISOString(),
+        totalCommunications: stats.totalCommunications,
       },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: 'You are a supportive relationship coach providing weekly summaries.' },
-          { role: 'user', content: prompt }
-        ],
-        tools: [{
-          type: 'function',
-          function: {
-            name: 'generate_summary',
-            description: 'Generate weekly relationship summary',
-            parameters: {
-              type: 'object',
-              properties: {
-                executiveSummary: { type: 'string' },
-                highlights: { type: 'array', items: { type: 'string' } },
-                recommendations: { type: 'array', items: { type: 'string' } },
-                engagementScore: { type: 'number' }
-              },
-              required: ['executiveSummary', 'highlights', 'recommendations', 'engagementScore']
-            }
-          }
-        }],
-        tool_choice: { type: 'function', function: { name: 'generate_summary' } }
-      }),
     });
 
-    if (response.ok) {
-      const data = await response.json();
-      if (data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments) {
-        aiSummary = JSON.parse(data.choices[0].message.tool_calls[0].function.arguments);
-      }
-    }
+    // Parse structured output
+    const parsed = parseAIJson(aiResponse.content, {
+      executiveSummary: 'Your weekly summary is ready.',
+      highlights: [],
+      recommendations: [],
+      engagementScore: 50
+    });
+
+    aiSummary = {
+      executiveSummary: parsed.executiveSummary || aiSummary.executiveSummary,
+      highlights: parsed.highlights?.length ? parsed.highlights : aiSummary.highlights,
+      recommendations: parsed.recommendations?.length ? parsed.recommendations : aiSummary.recommendations,
+      engagementScore: parsed.engagementScore || aiSummary.engagementScore,
+    };
   } catch (err) {
     console.error('AI summary error:', err);
   }
@@ -196,7 +189,6 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
     
     const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -221,7 +213,7 @@ serve(async (req) => {
       const results = [];
       for (const { user_id } of users || []) {
         try {
-          const result = await generateSummaryForUser(supabase, user_id, lovableApiKey);
+          const result = await generateSummaryForUser(supabase, user_id);
           results.push(result);
         } catch (err) {
           console.error('Error generating summary for user:', user_id, err);
@@ -247,7 +239,7 @@ serve(async (req) => {
       if (claimsError || !claimsData?.claims?.sub) throw new Error('Unauthorized');
       const user = { id: claimsData.claims.sub };
 
-      const result = await generateSummaryForUser(supabase, user.id, lovableApiKey);
+      const result = await generateSummaryForUser(supabase, user.id);
 
       return new Response(JSON.stringify({ 
         success: true,
