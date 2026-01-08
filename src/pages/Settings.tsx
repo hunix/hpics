@@ -33,6 +33,7 @@ import { CronJobManager } from '@/components/settings/CronJobManager';
 import { BiometricSettings } from '@/components/settings/BiometricSettings';
 import { BiometricBatchScan } from '@/components/settings/BiometricBatchScan';
 import { BiometricAnalyticsDashboard } from '@/components/settings/BiometricAnalyticsDashboard';
+import { PromptVersionManager } from '@/components/settings/PromptVersionManager';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -303,6 +304,7 @@ export default function Settings() {
         <TabsContent value="ai-models" className="space-y-6 mt-6">
           <AIModelPreferences />
           <AIBudgetSettings />
+          <PromptVersionManager />
         </TabsContent>
 
         <TabsContent value="ai-costs" className="space-y-6 mt-6">
