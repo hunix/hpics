@@ -11,12 +11,17 @@ import {
   Download,
   Loader2,
   BarChart3,
-  Clock
+  Clock,
+  Network,
+  FileDown
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { PDFDossierGenerator } from '@/components/reports/PDFDossierGenerator';
+import { NetworkMapExport } from '@/components/reports/NetworkMapExport';
+import { ScheduledReportsManager } from '@/components/reports/ScheduledReportsManager';
 
 export default function Reports() {
   const queryClient = useQueryClient();
@@ -128,6 +133,14 @@ export default function Reports() {
             <TabsTrigger value="generate">
               <FileText className="h-4 w-4 mr-2" />
               Generate
+            </TabsTrigger>
+            <TabsTrigger value="dossiers">
+              <FileDown className="h-4 w-4 mr-2" />
+              Dossiers
+            </TabsTrigger>
+            <TabsTrigger value="network">
+              <Network className="h-4 w-4 mr-2" />
+              Network
             </TabsTrigger>
             <TabsTrigger value="history">
               <Clock className="h-4 w-4 mr-2" />
@@ -260,6 +273,18 @@ export default function Reports() {
             </div>
           </TabsContent>
 
+          <TabsContent value="dossiers" className="mt-6">
+            <div className="max-w-xl">
+              <PDFDossierGenerator />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="network" className="mt-6">
+            <div className="max-w-xl">
+              <NetworkMapExport />
+            </div>
+          </TabsContent>
+
           <TabsContent value="history" className="mt-6">
             <Card>
               <CardHeader>
@@ -305,39 +330,7 @@ export default function Reports() {
           </TabsContent>
 
           <TabsContent value="scheduled" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Scheduled Reports</CardTitle>
-                <CardDescription>Automatically generated on a schedule</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {schedules.length > 0 ? (
-                  <div className="space-y-3">
-                    {schedules.map((schedule: any) => (
-                      <div key={schedule.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div>
-                          <h4 className="font-medium">{schedule.name}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {schedule.frequency} • {schedule.report_type.replace('_', ' ')}
-                          </p>
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          Next: {schedule.next_scheduled_at 
-                            ? format(new Date(schedule.next_scheduled_at), 'MMM d')
-                            : 'Not scheduled'}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Calendar className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>No scheduled reports</p>
-                    <p className="text-sm">Set up automated report generation</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <ScheduledReportsManager />
           </TabsContent>
         </Tabs>
       </div>
