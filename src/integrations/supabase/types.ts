@@ -8196,6 +8196,39 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_job_logs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          job_name: string
+          result: Json | null
+          started_at: string
+          status: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          job_name: string
+          result?: Json | null
+          started_at?: string
+          status?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          job_name?: string
+          result?: Json | null
+          started_at?: string
+          status?: string | null
+        }
+        Relationships: []
+      }
       secure_deletion_records: {
         Row: {
           created_at: string | null
