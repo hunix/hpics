@@ -18,7 +18,7 @@ import {
   FileText, Image, Target, Gift, Heart, Clock,
   Calendar, Sparkles, Users, ChevronRight, Building,
   Mic, Eye, Activity, Volume2, UserCircle, GitCompare, Wallet, Link2, Mail, UserCheck,
-  Milestone, Settings2, StickyNote, BookOpen, Shield, Network, Globe, TrendingUp, Triangle, Search, Fingerprint
+  Milestone, Settings2, StickyNote, BookOpen, Shield, Network, Globe, TrendingUp, Triangle, Search, Fingerprint, Share2
 } from 'lucide-react';
 import { ContactDialog } from '@/components/contacts/ContactDialog';
 import { ContactMethodsManager } from '@/components/contacts/ContactMethodsManager';
@@ -79,6 +79,9 @@ import { OSINTPanel } from '@/components/intelligence/OSINTPanel';
 import { ThreatAssessmentTab } from '@/components/intelligence/ThreatAssessmentTab';
 import { InferredConnectionsPanel } from '@/components/intelligence/InferredConnectionsPanel';
 import { BehavioralPredictionsPanel } from '@/components/intelligence/BehavioralPredictionsPanel';
+import { ShareContactDialog } from '@/components/collaboration/ShareContactDialog';
+import { ContactCommentsPanel } from '@/components/collaboration/ContactCommentsPanel';
+import { TeamPresenceIndicator } from '@/components/collaboration/TeamPresenceIndicator';
 import { cn } from '@/lib/utils';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
 import { ProfileCompletenessWidget } from '@/components/contacts/ProfileCompletenessWidget';
@@ -96,7 +99,8 @@ type SectionId =
   | 'milestones' | 'comm-prefs' | 'interaction-notes' | 'playbook' | 'influence'
   | 'activity' | 'trust-assessment' | 'threat-assessment' | 'osint' | 'inferred-connections' | 'predictions'
   | 'dossier' | 'network-intel' | 'locations'
-  | 'temporal' | 'trajectory' | 'triangulation' | 'consistency' | 'unified-profile' | 'shared-experiences';
+  | 'temporal' | 'trajectory' | 'triangulation' | 'consistency' | 'unified-profile' | 'shared-experiences'
+  | 'team-notes';
 
 interface NavSection {
   id: SectionId;
@@ -159,9 +163,10 @@ const sections: NavSection[] = [
   { id: 'activity', label: 'Activity & Usage', icon: Activity, group: 'History' },
   { id: 'groups', label: 'Groups', icon: Users, group: 'Tools' },
   { id: 'enrich', label: 'Enrichment', icon: Sparkles, group: 'Tools' },
+  { id: 'team-notes', label: 'Team Notes', icon: MessageSquare, group: 'Collaboration' },
 ];
 
-const groupOrder = ['General', 'Files', 'Intelligence', 'Communication', 'AI Insights', 'Analysis', 'Relationship', 'Family', 'Professional', 'Financial', 'History', 'Tools'];
+const groupOrder = ['General', 'Files', 'Intelligence', 'Communication', 'AI Insights', 'Analysis', 'Relationship', 'Family', 'Professional', 'Financial', 'History', 'Tools', 'Collaboration'];
 
 export default function ContactDetail() {
   const { id } = useParams<{ id: string }>();
@@ -415,6 +420,8 @@ export default function ContactDetail() {
         return <ContactGroupSelector profileId={contact.id} />;
       case 'enrich':
         return <ContactEnrichment profileId={contact.id} profileName={contactName} linkedinUrl={contact.linkedin_url} />;
+      case 'team-notes':
+        return <ContactCommentsPanel profileId={contact.id} profileName={contactName} />;
       default:
         return null;
     }
@@ -516,6 +523,7 @@ export default function ContactDetail() {
               <Button variant="ghost" size="icon" onClick={() => toggleFavoriteMutation.mutate()}>
                 <Star className={`h-5 w-5 ${contact.is_favorite ? 'fill-yellow-400 text-yellow-400' : ''}`} />
               </Button>
+              <ShareContactDialog profileId={contact.id} profileName={contactName} />
               <Button variant={showAIPanel ? "default" : "outline"} size="icon" onClick={() => setShowAIPanel(!showAIPanel)} title="AI Insights">
                 <Brain className="h-4 w-4" />
               </Button>
