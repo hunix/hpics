@@ -221,9 +221,12 @@ export type Database = {
           id: string
           input_tokens: number | null
           model_name: string
+          outcome_success: boolean | null
           output_tokens: number | null
           profile_id: string | null
+          prompt_key: string | null
           prompt_summary: string | null
+          prompt_version: number | null
           provider: string
           recording_id: string | null
           request_metadata: Json | null
@@ -242,9 +245,12 @@ export type Database = {
           id?: string
           input_tokens?: number | null
           model_name: string
+          outcome_success?: boolean | null
           output_tokens?: number | null
           profile_id?: string | null
+          prompt_key?: string | null
           prompt_summary?: string | null
+          prompt_version?: number | null
           provider: string
           recording_id?: string | null
           request_metadata?: Json | null
@@ -263,9 +269,12 @@ export type Database = {
           id?: string
           input_tokens?: number | null
           model_name?: string
+          outcome_success?: boolean | null
           output_tokens?: number | null
           profile_id?: string | null
+          prompt_key?: string | null
           prompt_summary?: string | null
+          prompt_version?: number | null
           provider?: string
           recording_id?: string | null
           request_metadata?: Json | null
@@ -1411,6 +1420,88 @@ export type Database = {
           },
           {
             foreignKeyName: "certifications_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      churn_predictions: {
+        Row: {
+          accuracy_score: number | null
+          actual_outcome: string | null
+          contributing_factors: Json | null
+          created_at: string | null
+          id: string
+          intervention_recommended: string | null
+          model_used: string | null
+          outcome_date: string | null
+          outcome_verified: boolean | null
+          predicted_churn_probability: number | null
+          predicted_days_to_churn: number | null
+          prediction_date: string | null
+          profile_id: string
+          risk_level: string | null
+          risk_score: number | null
+          user_id: string
+          verification_notes: string | null
+        }
+        Insert: {
+          accuracy_score?: number | null
+          actual_outcome?: string | null
+          contributing_factors?: Json | null
+          created_at?: string | null
+          id?: string
+          intervention_recommended?: string | null
+          model_used?: string | null
+          outcome_date?: string | null
+          outcome_verified?: boolean | null
+          predicted_churn_probability?: number | null
+          predicted_days_to_churn?: number | null
+          prediction_date?: string | null
+          profile_id: string
+          risk_level?: string | null
+          risk_score?: number | null
+          user_id: string
+          verification_notes?: string | null
+        }
+        Update: {
+          accuracy_score?: number | null
+          actual_outcome?: string | null
+          contributing_factors?: Json | null
+          created_at?: string | null
+          id?: string
+          intervention_recommended?: string | null
+          model_used?: string | null
+          outcome_date?: string | null
+          outcome_verified?: boolean | null
+          predicted_churn_probability?: number | null
+          predicted_days_to_churn?: number | null
+          prediction_date?: string | null
+          profile_id?: string
+          risk_level?: string | null
+          risk_score?: number | null
+          user_id?: string
+          verification_notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "churn_predictions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "churn_predictions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "churn_predictions_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -8588,6 +8679,22 @@ export type Database = {
           profile_id: string | null
           total_bytes: number | null
           user_id: string | null
+        }
+        Relationships: []
+      }
+      prediction_accuracy_stats: {
+        Row: {
+          accuracy_percentage: number | null
+          avg_accuracy: number | null
+          false_negatives: number | null
+          false_positives: number | null
+          model_used: string | null
+          risk_level: string | null
+          total_predictions: number | null
+          true_negatives: number | null
+          true_positives: number | null
+          user_id: string | null
+          verified_predictions: number | null
         }
         Relationships: []
       }
