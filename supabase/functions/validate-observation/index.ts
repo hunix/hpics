@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,15 +13,34 @@ serve(async (req) => {
   }
 
   try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { observationId, profileId, category, observation, contactName } = await req.json();
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
 
-    if (!lovableApiKey) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    // Validate JWT
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Session expired" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
+    const userId = claimsData.claims.sub as string;
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -87,63 +107,28 @@ ${JSON.stringify(interestsRes.data?.map(i => i.name) || [], null, 2)}
 
 Validate this observation against the available data. Be thorough but concise.`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${lovableApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-      }),
+    // Use unified AI client
+    const aiResponse = await callAI({
+      model: selectModel("balanced"),
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      userId,
+      functionName: "validate-observation",
+      profileId,
+      temperature: 0.3,
+      metadata: { category, observationLength: observation?.length || 0 },
     });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error("AI gateway error:", aiResponse.status, errorText);
-      
-      if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      
-      throw new Error("AI gateway error");
-    }
-
-    const aiData = await aiResponse.json();
-    const content = aiData.choices?.[0]?.message?.content || "";
-
-    // Parse JSON from response
-    let validationResult;
-    try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        validationResult = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error("No JSON found");
-      }
-    } catch {
-      validationResult = {
-        validation_status: "inconclusive",
-        confidence_score: 0.5,
-        summary: "Unable to parse AI response. Please try again.",
-        supporting_evidence: [],
-        challenging_evidence: [],
-        recommendation: "Try providing more specific observations.",
-      };
-    }
+    const validationResult = parseAIJson(aiResponse.content, {
+      validation_status: "inconclusive",
+      confidence_score: 0.5,
+      summary: "Unable to parse AI response. Please try again.",
+      supporting_evidence: [],
+      challenging_evidence: [],
+      recommendation: "Try providing more specific observations.",
+    }) as any;
 
     // Update the observation with validation results
     const { error: updateError } = await supabase
