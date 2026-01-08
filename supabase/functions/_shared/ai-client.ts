@@ -35,14 +35,17 @@ interface ModelPricing {
   outputPer1M: number;
 }
 
-// Model pricing (in USD per 1M tokens)
+// Model pricing (in USD per 1M tokens) - Updated Jan 2026
 const MODEL_PRICING: Record<string, ModelPricing> = {
+  // Gemini 2.5 family
   'google/gemini-2.5-flash': { inputPer1M: 0.075, outputPer1M: 0.30 },
   'google/gemini-2.5-pro': { inputPer1M: 1.25, outputPer1M: 10.00 },
   'google/gemini-2.5-flash-lite': { inputPer1M: 0.01875, outputPer1M: 0.075 },
-  'google/gemini-3-pro-preview': { inputPer1M: 1.50, outputPer1M: 12.00 },
   'google/gemini-2.5-flash-image': { inputPer1M: 0.10, outputPer1M: 0.40 },
+  // Gemini 3 family (next-gen)
+  'google/gemini-3-pro-preview': { inputPer1M: 1.50, outputPer1M: 12.00 },
   'google/gemini-3-pro-image-preview': { inputPer1M: 2.00, outputPer1M: 15.00 },
+  // OpenAI GPT-5 family
   'openai/gpt-5': { inputPer1M: 5.00, outputPer1M: 15.00 },
   'openai/gpt-5-mini': { inputPer1M: 0.40, outputPer1M: 1.60 },
   'openai/gpt-5-nano': { inputPer1M: 0.10, outputPer1M: 0.40 },
@@ -185,16 +188,24 @@ export function parseAIJson<T>(content: string, fallback: T): T {
   }
 }
 
-// Model tier selector
+// Model tier selector with provider options
 export type ModelTier = 'speed' | 'balanced' | 'quality' | 'nextgen';
+export type ModelProvider = 'google' | 'openai';
 
-const TIER_MODELS: Record<ModelTier, string> = {
-  speed: 'google/gemini-2.5-flash-lite',
-  balanced: 'google/gemini-2.5-flash',
-  quality: 'google/gemini-2.5-pro',
-  nextgen: 'google/gemini-3-pro-preview',
+const TIER_MODELS: Record<ModelTier, Record<ModelProvider, string>> = {
+  speed: { google: 'google/gemini-2.5-flash-lite', openai: 'openai/gpt-5-nano' },
+  balanced: { google: 'google/gemini-2.5-flash', openai: 'openai/gpt-5-mini' },
+  quality: { google: 'google/gemini-2.5-pro', openai: 'openai/gpt-5' },
+  nextgen: { google: 'google/gemini-3-pro-preview', openai: 'openai/gpt-5' },
 };
 
-export function selectModel(tier: ModelTier = 'balanced'): string {
-  return TIER_MODELS[tier];
+export function selectModel(tier: ModelTier = 'balanced', provider: ModelProvider = 'google'): string {
+  return TIER_MODELS[tier][provider];
+}
+
+// Image generation model selector
+export function selectImageModel(quality: 'fast' | 'quality' = 'fast'): string {
+  return quality === 'fast' 
+    ? 'google/gemini-2.5-flash-image' 
+    : 'google/gemini-3-pro-image-preview';
 }
