@@ -42,6 +42,8 @@ import { CostProjectionWidget } from '@/components/ai/CostProjectionWidget';
 import { CostOptimizationPanel } from '@/components/ai/CostOptimizationPanel';
 import { ContactCostAnalysis } from '@/components/ai/ContactCostAnalysis';
 import { PromptABTestPanel } from '@/components/ai/PromptABTestPanel';
+import { CrossModalSynthesisPanel } from '@/components/ai/CrossModalSynthesisPanel';
+import { EnrichmentQueueStatus } from '@/components/ai/EnrichmentQueueStatus';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -323,6 +325,10 @@ export default function Settings() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <CostOptimizationPanel />
             <ContactCostAnalysis />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <EnrichmentQueueStatus />
+            <CrossModalSynthesisPanel />
           </div>
           <BackfillJobsManager />
           <EnrichmentQueueMonitor />
