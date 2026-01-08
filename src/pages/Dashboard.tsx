@@ -39,6 +39,9 @@ import { IntroductionMatcherPanel } from '@/components/intelligence/Introduction
 import { DailyBriefingWidget } from '@/components/intelligence/DailyBriefingWidget';
 import { GiftSuggestionsWidget } from '@/components/intelligence/GiftSuggestionsWidget';
 import { OutreachSchedulerWidget } from '@/components/intelligence/OutreachSchedulerWidget';
+import { RelationshipAutopilotWidget } from '@/components/intelligence/RelationshipAutopilotWidget';
+import { GiftCalendarWidget } from '@/components/intelligence/GiftCalendarWidget';
+import { AIChatAssistant } from '@/components/ai/AIChatAssistant';
 import type { DashletType } from '@/lib/dashletDefinitions';
 
 export default function Dashboard() {
@@ -344,6 +347,12 @@ export default function Dashboard() {
         return null; // Gift suggestions require a specific profileId - show in contact detail
       case 'outreach-scheduler':
         return <OutreachSchedulerWidget />;
+      case 'relationship-autopilot':
+        return <RelationshipAutopilotWidget />;
+      case 'gift-calendar':
+        return <GiftCalendarWidget />;
+      case 'ai-chat-assistant':
+        return <AIChatAssistant className="h-[500px]" />;
       default:
         return null;
     }

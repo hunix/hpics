@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { 
   Network, AlertTriangle, TrendingUp, Users, 
-  Calendar, Zap, Brain, Shield, Target, Clock, BarChart3
+  Calendar, Zap, Brain, Shield, Target, Clock, BarChart3, Route, Layers
 } from 'lucide-react';
 import { NetworkGraph } from '@/components/network/NetworkGraph';
 import { RelationshipForecastWidget } from '@/components/intelligence/RelationshipForecastWidget';
@@ -17,6 +17,8 @@ import { RelationshipOverviewWidget } from '@/components/intelligence/Relationsh
 import { PredictionAccuracyPanel } from '@/components/intelligence/PredictionAccuracyPanel';
 import { StructuralHolesPanel } from '@/components/intelligence/StructuralHolesPanel';
 import { MeetingPrepWidget } from '@/components/calendar/MeetingPrepWidget';
+import { InfluencePathFinder } from '@/components/intelligence/InfluencePathFinder';
+import { CrossContactPatternsWidget } from '@/components/intelligence/CrossContactPatternsWidget';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 
@@ -195,7 +197,7 @@ export default function NetworkIntelligence() {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-9">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <Network className="h-4 w-4" />
               Overview
@@ -215,6 +217,14 @@ export default function NetworkIntelligence() {
             <TabsTrigger value="bridges" className="flex items-center gap-2">
               <Zap className="h-4 w-4" />
               Bridges
+            </TabsTrigger>
+            <TabsTrigger value="patterns" className="flex items-center gap-2">
+              <Layers className="h-4 w-4" />
+              Patterns
+            </TabsTrigger>
+            <TabsTrigger value="pathfinder" className="flex items-center gap-2">
+              <Route className="h-4 w-4" />
+              Path Finder
             </TabsTrigger>
             <TabsTrigger value="accuracy" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
@@ -348,6 +358,14 @@ export default function NetworkIntelligence() {
             <StructuralHolesPanel />
           </TabsContent>
 
+          <TabsContent value="patterns" className="space-y-6">
+            <CrossContactPatternsWidget />
+          </TabsContent>
+
+          <TabsContent value="pathfinder" className="space-y-6">
+            <InfluencePathFinder />
+          </TabsContent>
+
           <TabsContent value="accuracy" className="space-y-6">
             <PredictionAccuracyPanel />
           </TabsContent>
@@ -355,10 +373,6 @@ export default function NetworkIntelligence() {
           <TabsContent value="briefing" className="space-y-6">
             <DailyBriefingWidget />
             <MeetingPrepWidget />
-          </TabsContent>
-
-          <TabsContent value="accuracy" className="space-y-6">
-            <PredictionAccuracyPanel />
           </TabsContent>
         </Tabs>
       </div>

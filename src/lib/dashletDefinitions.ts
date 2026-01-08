@@ -40,7 +40,10 @@ export type DashletType =
   | 'introduction-matcher'
   | 'daily-briefing'
   | 'gift-suggestions'
-  | 'outreach-scheduler';
+  | 'outreach-scheduler'
+  | 'relationship-autopilot'
+  | 'gift-calendar'
+  | 'ai-chat-assistant';
 
 export interface DashletDefinition {
   type: DashletType;
@@ -290,6 +293,30 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     description: 'Optimal timing recommendations for contacting',
     icon: Send,
     defaultVisible: false,
+    category: 'ai',
+  },
+  {
+    type: 'relationship-autopilot',
+    title: 'Relationship Autopilot',
+    description: 'AI-powered churn prevention with auto-drafted outreach',
+    icon: Zap,
+    defaultVisible: true,
+    category: 'ai',
+  },
+  {
+    type: 'gift-calendar',
+    title: 'Gift Calendar',
+    description: 'Upcoming occasions with AI gift suggestions',
+    icon: Gift,
+    defaultVisible: true,
+    category: 'ai',
+  },
+  {
+    type: 'ai-chat-assistant',
+    title: 'AI Chat Assistant',
+    description: 'Natural language queries about your contacts',
+    icon: Brain,
+    defaultVisible: true,
     category: 'ai',
   },
 ];
