@@ -385,7 +385,7 @@ export default function MediaPage() {
   };
 
   return (
-    <AppLayout title="Media & Recordings">
+    <AppLayout title="Media & Recordings" showQuickCapture>
       <Tabs defaultValue="media" className="space-y-6">
         <TabsList>
           <TabsTrigger value="media" className="flex items-center gap-2">

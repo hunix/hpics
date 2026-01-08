@@ -1,5 +1,5 @@
 import { ReactNode, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
@@ -8,14 +8,18 @@ import { Loader2 } from 'lucide-react';
 import { GlobalSearch } from '@/components/search/GlobalSearch';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { OfflineIndicator } from '@/components/OfflineIndicator';
+import { QuickCaptureButton } from '@/components/mobile/QuickCaptureButton';
+import { PushNotificationBanner } from '@/components/mobile/PushNotificationBanner';
+import { InstallPromptBanner } from '@/components/mobile/InstallPromptBanner';
 import { useOfflineData } from '@/hooks/useOfflineData';
 
 interface AppLayoutProps {
   children: ReactNode;
   title?: string;
+  showQuickCapture?: boolean;
 }
 
-export function AppLayout({ children, title }: AppLayoutProps) {
+export function AppLayout({ children, title, showQuickCapture = false }: AppLayoutProps) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { pendingCount, syncPendingChanges, cacheContacts } = useOfflineData();
@@ -63,7 +67,12 @@ export function AppLayout({ children, title }: AppLayoutProps) {
             {children}
           </main>
         </SidebarInset>
+        
+        {/* Mobile-only components */}
         <MobileBottomNav />
+        {showQuickCapture && <QuickCaptureButton />}
+        <PushNotificationBanner />
+        <InstallPromptBanner />
       </div>
     </SidebarProvider>
   );

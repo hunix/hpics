@@ -310,7 +310,7 @@ export default function Contacts() {
   };
 
   return (
-    <AppLayout title="Contacts">
+    <AppLayout title="Contacts" showQuickCapture>
       <div className="flex gap-4">
         {/* Main content */}
         <div className="flex-1 space-y-6">
