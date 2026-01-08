@@ -1,8 +1,9 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, parseAIJson } from "../_shared/ai-client.ts";
 
-const FUNCTION_VERSION = "2026-01-05-paginated-v3";
+const FUNCTION_VERSION = "2026-01-08-unified-ai-v1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -172,67 +173,42 @@ ${formattedMessages}`;
 
     console.log(`Calling Lovable AI (${selectedModel}) for summary...`);
 
-    // Build request body with model-specific parameters
-    const { maxTokensKey, includeTemperature } = getModelParams(selectedModel);
-    const requestBody: any = {
-      model: selectedModel,
-      messages: [
-        { role: 'system', content: 'You are an expert at summarizing conversations and extracting key information. Always respond with valid JSON only, no markdown or extra text.' },
-        { role: 'user', content: aiPrompt }
-      ],
-      [maxTokensKey]: 4000,
-    };
-    if (includeTemperature) {
-      requestBody.temperature = 0.3;
-    }
-    
-    console.log(`AI request params: ${maxTokensKey}=4000, temperature=${includeTemperature ? '0.3' : 'N/A'}`);
-
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI API error:', errorText);
-      if (aiResponse.status === 429) {
+    let aiSummary;
+    try {
+      const aiResponse = await callAI({
+        model: selectedModel,
+        messages: [
+          { role: 'system', content: 'You are an expert at summarizing conversations and extracting key information. Always respond with valid JSON only, no markdown or extra text.' },
+          { role: 'user', content: aiPrompt }
+        ],
+        userId,
+        functionName: 'summarize-conversation',
+        temperature: 0.3,
+        maxTokens: 4000,
+      });
+      console.log('AI response received, parsing...');
+      aiSummary = parseAIJson(aiResponse.content, {
+        summary: 'Summary could not be generated. Please try again.',
+        key_topics: [],
+        action_items: [],
+        important_dates: []
+      });
+    } catch (e) {
+      console.error('AI API error:', e);
+      const errorMsg = e instanceof Error ? e.message : 'Unknown error';
+      if (errorMsg.includes('429')) {
         return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
           status: 429,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      if (aiResponse.status === 402) {
+      if (errorMsg.includes('402')) {
         return new Response(JSON.stringify({ error: 'AI credits exhausted. Please add credits to continue.' }), {
           status: 402,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      throw new Error(`AI API error: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
-    const aiContent = aiData.choices[0].message.content;
-    
-    console.log('AI response received, parsing...');
-
-    // Parse AI response
-    let aiSummary;
-    try {
-      const cleanedContent = aiContent.replace(/```json\n?|\n?```/g, '').trim();
-      aiSummary = JSON.parse(cleanedContent);
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', aiContent);
-      aiSummary = {
-        summary: 'Summary could not be generated. Please try again.',
-        key_topics: [],
-        action_items: [],
-        important_dates: []
-      };
+      throw e;
     }
 
     // Save summary to database

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, parseAIJson } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -166,7 +167,6 @@ serve(async (req) => {
     }
 
     // Use AI to extract structured information
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     const hasContent = enrichmentData.linkedinContent || (enrichmentData.searchResults?.length > 0);
     
     if (!hasContent) {
@@ -178,17 +178,6 @@ serve(async (req) => {
         enrichmentData,
       }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'AI API is not configured',
-        enrichmentData,
-      }), {
-        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -210,74 +199,40 @@ serve(async (req) => {
 
     console.log('Analyzing content, total length:', contentToAnalyze.length);
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    let extractedData;
+    try {
+      const aiResponse = await callAI({
         model: 'google/gemini-2.5-flash',
         messages: [
           {
             role: 'system',
-            content: `You are a data extraction expert. Extract professional information about a person named "${personName}" from web content. Only extract information that clearly relates to this specific person. Be careful not to confuse them with other people who might appear in search results.`,
+            content: `You are a data extraction expert. Extract professional information about a person named "${personName}" from web content. Only extract information that clearly relates to this specific person. Be careful not to confuse them with other people who might appear in search results. Return JSON with structure: { "education": [{ "institution_name": "...", "degree_type": "...", "field_of_study": "...", "start_year": "...", "end_year": "..." }], "skills": ["..."], "certifications": [{ "name": "...", "issuing_organization": "...", "issue_year": "..." }], "bio": "...", "job_title": "...", "organization": "..." }`,
           },
           {
             role: 'user',
             content: `Extract education, work experience, skills, and certifications from this content. Only include information you're confident belongs to ${personName}:\n\n${contentToAnalyze.substring(0, 15000)}`,
           },
         ],
-        tools: [{
-          type: 'function',
-          function: {
-            name: 'extract_profile_data',
-            description: 'Extract structured profile data from web content',
-            parameters: {
-              type: 'object',
-              properties: {
-                education: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      institution_name: { type: 'string' },
-                      degree_type: { type: 'string' },
-                      field_of_study: { type: 'string' },
-                      start_year: { type: 'string' },
-                      end_year: { type: 'string' },
-                    },
-                  },
-                },
-                skills: {
-                  type: 'array',
-                  items: { type: 'string' },
-                },
-                certifications: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      name: { type: 'string' },
-                      issuing_organization: { type: 'string' },
-                      issue_year: { type: 'string' },
-                    },
-                  },
-                },
-                bio: { type: 'string' },
-                job_title: { type: 'string' },
-                organization: { type: 'string' },
-              },
-            },
-          },
-        }],
-        tool_choice: { type: 'function', function: { name: 'extract_profile_data' } },
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI API error:', errorText);
+        userId: user.id,
+        functionName: 'enrich-contact',
+        profileId,
+        temperature: 0.3,
+      });
+      
+      extractedData = parseAIJson(aiResponse.content, null);
+      if (!extractedData) {
+        console.error('Could not parse AI response');
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'AI could not extract any information from the content',
+          enrichmentData,
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } catch (e) {
+      console.error('AI API error:', e);
       return new Response(JSON.stringify({
         success: false,
         error: 'AI analysis failed',
@@ -288,24 +243,9 @@ serve(async (req) => {
       });
     }
 
-    const aiResult = await response.json();
-    const toolCall = aiResult.choices?.[0]?.message?.tool_calls?.[0];
-    
-    if (!toolCall?.function?.arguments) {
-      console.error('No tool call in AI response');
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'AI could not extract any information from the content',
-        enrichmentData,
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const extractedData = JSON.parse(toolCall.function.arguments);
     enrichmentData.extracted = extractedData;
-    console.log('Extracted data:', JSON.stringify(extractedData, null, 2));
+    const data = extractedData as any;
+    console.log('Extracted data:', JSON.stringify(data, null, 2));
 
     let savedCount = {
       education: 0,
@@ -315,8 +255,8 @@ serve(async (req) => {
     };
 
     // Save education data
-    if (extractedData.education?.length > 0) {
-      for (const edu of extractedData.education) {
+    if (data.education?.length > 0) {
+      for (const edu of data.education) {
         if (!edu.institution_name) continue;
         
         const { error } = await supabaseClient.from('education').insert({
@@ -338,8 +278,8 @@ serve(async (req) => {
     }
 
     // Save skills
-    if (extractedData.skills?.length > 0) {
-      for (const skill of extractedData.skills) {
+    if (data.skills?.length > 0) {
+      for (const skill of data.skills) {
         if (!skill || typeof skill !== 'string') continue;
         
         const { error } = await supabaseClient.from('contact_skills').insert({
@@ -357,8 +297,8 @@ serve(async (req) => {
     }
 
     // Save certifications
-    if (extractedData.certifications?.length > 0) {
-      for (const cert of extractedData.certifications) {
+    if (data.certifications?.length > 0) {
+      for (const cert of data.certifications) {
         if (!cert.name) continue;
         
         const { error } = await supabaseClient.from('certifications').insert({
@@ -379,16 +319,16 @@ serve(async (req) => {
 
     // Update profile with extracted info
     const profileUpdates: any = {};
-    if (extractedData.bio && !profile.bio) {
-      profileUpdates.bio = extractedData.bio;
+    if (data.bio && !profile.bio) {
+      profileUpdates.bio = data.bio;
       savedCount.profileFields++;
     }
-    if (extractedData.job_title && !profile.job_title) {
-      profileUpdates.job_title = extractedData.job_title;
+    if (data.job_title && !profile.job_title) {
+      profileUpdates.job_title = data.job_title;
       savedCount.profileFields++;
     }
-    if (extractedData.organization && !profile.organization) {
-      profileUpdates.organization = extractedData.organization;
+    if (data.organization && !profile.organization) {
+      profileUpdates.organization = data.organization;
       savedCount.profileFields++;
     }
     if (linkedinUrl && !profile.linkedin_url) {
