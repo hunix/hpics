@@ -66,20 +66,20 @@ export function DailyBriefingWidget() {
         .select(`
           id,
           action_type,
-          description,
-          scheduled_date,
+          action_description,
+          scheduled_for,
           priority,
           profiles:profile_id (id, first_name, last_name)
         `)
         .eq('user_id', user?.id)
         .in('status', ['pending', 'reminded'])
-        .lte('scheduled_date', nextWeek.toISOString())
-        .order('scheduled_date', { ascending: true })
+        .lte('scheduled_for', nextWeek.toISOString())
+        .order('scheduled_for', { ascending: true })
         .limit(10);
 
       for (const action of (actions || []) as any[]) {
         const profile = action.profiles;
-        const dueDate = action.scheduled_date ? new Date(action.scheduled_date) : null;
+        const dueDate = action.scheduled_for ? new Date(action.scheduled_for) : null;
         const isOverdue = dueDate && dueDate < today;
         const isDueToday = dueDate && isToday(dueDate);
         
@@ -87,11 +87,11 @@ export function DailyBriefingWidget() {
           id: action.id,
           type: 'action',
           priority: isOverdue ? 'urgent' : isDueToday ? 'high' : action.priority === 'high' ? 'high' : 'medium',
-          title: action.description || `${action.action_type} with ${profile?.first_name}`,
+          title: action.action_description || `${action.action_type} with ${profile?.first_name}`,
           description: isOverdue ? 'Overdue!' : isDueToday ? 'Due today' : dueDate ? `Due ${format(dueDate, 'MMM d')}` : '',
           profileId: profile?.id,
           profileName: profile ? `${profile.first_name} ${profile.last_name || ''}`.trim() : undefined,
-          dueDate: action.scheduled_date,
+          dueDate: action.scheduled_for,
         });
       }
 
