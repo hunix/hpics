@@ -43,7 +43,10 @@ export type DashletType =
   | 'outreach-scheduler'
   | 'relationship-autopilot'
   | 'gift-calendar'
-  | 'ai-chat-assistant';
+  | 'ai-chat-assistant'
+  | 'unified-intelligence'
+  | 'communication-velocity'
+  | 'behavioral-anomalies';
 
 export interface DashletDefinition {
   type: DashletType;
@@ -317,6 +320,30 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     description: 'Natural language queries about your contacts',
     icon: Brain,
     defaultVisible: true,
+    category: 'ai',
+  },
+  {
+    type: 'unified-intelligence',
+    title: 'Intelligence Hub',
+    description: 'Unified proactive insights, anomalies, and action items',
+    icon: Sparkles,
+    defaultVisible: true,
+    category: 'ai',
+  },
+  {
+    type: 'communication-velocity',
+    title: 'Communication Velocity',
+    description: 'Track communication rate changes across contacts',
+    icon: Activity,
+    defaultVisible: false,
+    category: 'ai',
+  },
+  {
+    type: 'behavioral-anomalies',
+    title: 'Behavioral Anomalies',
+    description: 'Detected behavioral pattern deviations',
+    icon: AlertTriangle,
+    defaultVisible: false,
     category: 'ai',
   },
 ];

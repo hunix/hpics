@@ -1,5 +1,5 @@
 import { ReactNode, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
@@ -11,6 +11,7 @@ import { OfflineIndicator } from '@/components/OfflineIndicator';
 import { QuickCaptureButton } from '@/components/mobile/QuickCaptureButton';
 import { PushNotificationBanner } from '@/components/mobile/PushNotificationBanner';
 import { InstallPromptBanner } from '@/components/mobile/InstallPromptBanner';
+import { ProactiveAlertBanner } from '@/components/intelligence/ProactiveAlertBanner';
 import { useOfflineData } from '@/hooks/useOfflineData';
 
 interface AppLayoutProps {
@@ -22,7 +23,9 @@ interface AppLayoutProps {
 export function AppLayout({ children, title, showQuickCapture = false }: AppLayoutProps) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { pendingCount, syncPendingChanges, cacheContacts } = useOfflineData();
+  const showAlerts = location.pathname === '/dashboard' || location.pathname === '/';
 
   // Cache contacts on mount for offline access
   useEffect(() => {
@@ -63,6 +66,7 @@ export function AppLayout({ children, title, showQuickCapture = false }: AppLayo
             </div>
           </header>
           <OfflineIndicator pendingChanges={pendingCount} onSync={syncPendingChanges} />
+          {showAlerts && <div className="px-6 pt-4"><ProactiveAlertBanner /></div>}
           <main className="flex-1 overflow-auto p-6 pb-20 md:pb-6">
             {children}
           </main>
