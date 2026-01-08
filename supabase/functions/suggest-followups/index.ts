@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
+import { callAI, parseAIJson, selectModel, getUserPreferredModel, FUNCTION_TO_ANALYSIS_TYPE } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -90,9 +90,13 @@ serve(async (req) => {
       };
     });
 
+    // Get user's preferred model for followup suggestions
+    const analysisType = FUNCTION_TO_ANALYSIS_TYPE['suggest-followups'] || 'followup_suggestions';
+    const preferredModel = await getUserPreferredModel(userId, analysisType, selectModel(modelTier as any));
+
     // Use unified AI client for intelligent suggestions
     const aiResponse = await callAI({
-      model: selectModel(modelTier as any),
+      model: preferredModel,
       messages: [
         { 
           role: 'system', 
@@ -117,6 +121,7 @@ Suggest up to 5 contacts I should follow up with.`
       userId: userId,
       functionName: 'suggest-followups',
       temperature: 0.7,
+      promptKey: 'FOLLOWUP_SUGGESTIONS',
       metadata: { contactCount: contactsWithActivity.length },
     });
 
