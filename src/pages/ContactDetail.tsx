@@ -75,6 +75,10 @@ import { InfluenceDashboard } from '@/components/intelligence/InfluenceDashboard
 import { UnifiedIntelligencePanel } from '@/components/intelligence/UnifiedIntelligencePanel';
 import { SharedExperiencesPanel } from '@/components/intelligence/SharedExperiencesPanel';
 import { CrossModalSynthesisPanel } from '@/components/intelligence/CrossModalSynthesisPanel';
+import { OSINTPanel } from '@/components/intelligence/OSINTPanel';
+import { ThreatAssessmentTab } from '@/components/intelligence/ThreatAssessmentTab';
+import { InferredConnectionsPanel } from '@/components/intelligence/InferredConnectionsPanel';
+import { BehavioralPredictionsPanel } from '@/components/intelligence/BehavioralPredictionsPanel';
 import { cn } from '@/lib/utils';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
 import { ProfileCompletenessWidget } from '@/components/contacts/ProfileCompletenessWidget';
@@ -89,6 +93,10 @@ type SectionId =
   | 'education' | 'messages' | 'timeline' | 'groups' | 'enrich'
   | 'behavioral' | 'facial' | 'body-language' | 'vocal' | 'comparison' | 'biometrics' | 'cross-modal'
   | 'financial' | 'observations'
+  | 'milestones' | 'comm-prefs' | 'interaction-notes' | 'playbook' | 'influence'
+  | 'activity' | 'trust-assessment' | 'threat-assessment' | 'osint' | 'inferred-connections' | 'predictions'
+  | 'dossier' | 'network-intel' | 'locations'
+  | 'temporal' | 'trajectory' | 'triangulation' | 'consistency' | 'unified-profile' | 'shared-experiences';
   | 'milestones' | 'comm-prefs' | 'interaction-notes' | 'playbook' | 'influence'
   | 'activity' | 'trust-assessment' | 'dossier' | 'network-intel' | 'locations'
   | 'temporal' | 'trajectory' | 'triangulation' | 'consistency' | 'unified-profile' | 'shared-experiences';
@@ -123,6 +131,10 @@ const sections: NavSection[] = [
   { id: 'briefing', label: 'Meeting Briefing', icon: Calendar, group: 'AI Insights' },
   { id: 'observations', label: 'My Observations', icon: Eye, group: 'AI Insights' },
   { id: 'trust-assessment', label: 'Trust Assessment', icon: Shield, group: 'AI Insights' },
+  { id: 'threat-assessment', label: 'Threat Analysis', icon: Shield, group: 'AI Insights' },
+  { id: 'osint', label: 'OSINT Intel', icon: Globe, group: 'AI Insights' },
+  { id: 'inferred-connections', label: 'Inferred Links', icon: Network, group: 'AI Insights' },
+  { id: 'predictions', label: 'Predictions', icon: TrendingUp, group: 'AI Insights' },
   { id: 'dossier', label: 'Intel Dossier', icon: FileText, group: 'AI Insights' },
   { id: 'network-intel', label: 'Network Intel', icon: Network, group: 'AI Insights' },
   { id: 'locations', label: 'Geographic Intel', icon: Globe, group: 'AI Insights' },
@@ -340,6 +352,14 @@ export default function ContactDetail() {
         return <ObservationsManager profileId={contact.id} contactName={contactName} />;
       case 'trust-assessment':
         return <TrustAssessmentPanel profileId={contact.id} />;
+      case 'threat-assessment':
+        return <ThreatAssessmentTab profileId={contact.id} contactName={contactName} />;
+      case 'osint':
+        return <OSINTPanel profileId={contact.id} contactName={contactName} />;
+      case 'inferred-connections':
+        return <InferredConnectionsPanel profileId={contact.id} contactName={contactName} />;
+      case 'predictions':
+        return <BehavioralPredictionsPanel profileId={contact.id} contactName={contactName} />;
       case 'dossier':
         return <DossierGenerator profileId={contact.id} profileName={contactName} />;
       case 'network-intel':
