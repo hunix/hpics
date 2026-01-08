@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callAI, parseAIJson } from "../_shared/ai-client.ts";
+import { callAI, parseAIJson, getUserPreferredModel, FUNCTION_TO_ANALYSIS_TYPE } from "../_shared/ai-client.ts";
+import { getRAGContext } from "../_shared/rag-helper.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -105,16 +106,34 @@ Return as JSON with these exact keys: executiveSummary, keyFacts (array), recent
       userId = user?.id || 'anonymous';
     }
 
+    // Get RAG context from documents and observations
+    const ragContext = await getRAGContext(
+      userId,
+      profileId,
+      `${profile.first_name} ${profile.last_name || ''} personality interests history background`,
+      { maxResults: 10, sourceTypes: ['document', 'observation', 'analysis', 'communication'] }
+    );
+
+    // Enrich prompt with RAG context
+    const enrichedPrompt = ragContext.sourceCount > 0 
+      ? `${prompt}\n\nADDITIONAL CONTEXT FROM DOCUMENTS AND RECORDS:\n${ragContext.context}\n\nWhen using information from these sources, cite them as [Source N].`
+      : prompt;
+
+    // Get user's preferred model for briefings
+    const analysisType = FUNCTION_TO_ANALYSIS_TYPE['generate-briefing'] || 'briefing';
+    const preferredModel = await getUserPreferredModel(userId, analysisType, 'google/gemini-2.5-flash');
+
     const aiResponse = await callAI({
-      model: 'google/gemini-2.5-flash',
+      model: preferredModel,
       messages: [
-        { role: 'system', content: 'You are a professional relationship intelligence assistant. Always respond with valid JSON.' },
-        { role: 'user', content: prompt }
+        { role: 'system', content: 'You are a professional relationship intelligence assistant. Always respond with valid JSON. When citing sources, use [Source N] format.' },
+        { role: 'user', content: enrichedPrompt }
       ],
       userId,
       functionName: 'generate-briefing',
       profileId: profileId,
-      maxTokens: 2000,
+      maxTokens: 2500,
+      promptKey: 'BRIEFING_GENERATION',
     });
 
     let briefing;
@@ -135,12 +154,15 @@ Return as JSON with these exact keys: executiveSummary, keyFacts (array), recent
     return new Response(JSON.stringify({ 
       success: true, 
       briefing,
+      citations: ragContext.citations.length > 0 ? ragContext.citations : undefined,
       profile: {
         name: `${profile.first_name} ${profile.last_name || ''}`.trim(),
         title: profile.job_title,
         organization: profile.organization,
         avatarUrl: profile.avatar_url
       },
+      tokensUsed: aiResponse.totalTokens,
+      costCents: aiResponse.costCents,
       generatedAt: new Date().toISOString()
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

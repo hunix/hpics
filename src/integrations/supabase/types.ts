@@ -63,6 +63,45 @@ export type Database = {
           },
         ]
       }
+      ai_budget_settings: {
+        Row: {
+          alert_threshold_percent: number | null
+          created_at: string
+          daily_limit_cents: number | null
+          enforce_limits: boolean | null
+          id: string
+          monthly_limit_cents: number | null
+          notifications_enabled: boolean | null
+          updated_at: string
+          user_id: string
+          weekly_limit_cents: number | null
+        }
+        Insert: {
+          alert_threshold_percent?: number | null
+          created_at?: string
+          daily_limit_cents?: number | null
+          enforce_limits?: boolean | null
+          id?: string
+          monthly_limit_cents?: number | null
+          notifications_enabled?: boolean | null
+          updated_at?: string
+          user_id: string
+          weekly_limit_cents?: number | null
+        }
+        Update: {
+          alert_threshold_percent?: number | null
+          created_at?: string
+          daily_limit_cents?: number | null
+          enforce_limits?: boolean | null
+          id?: string
+          monthly_limit_cents?: number | null
+          notifications_enabled?: boolean | null
+          updated_at?: string
+          user_id?: string
+          weekly_limit_cents?: number | null
+        }
+        Relationships: []
+      }
       ai_group_suggestions: {
         Row: {
           confidence_score: number | null

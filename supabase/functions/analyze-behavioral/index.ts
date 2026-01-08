@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
+import { callAI, parseAIJson, selectModel, getUserPreferredModel, FUNCTION_TO_ANALYSIS_TYPE } from "../_shared/ai-client.ts";
+import { getRAGContext } from "../_shared/rag-helper.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -46,6 +47,14 @@ Focus on:
 Provide actionable insights for relationship building and professional interactions.
 Respond with valid JSON only.`;
 
+    // Get RAG context from documents and observations
+    const ragContext = await getRAGContext(
+      userId,
+      profileId,
+      `${profile?.first_name} ${profile?.last_name || ''} behavior personality communication patterns`,
+      { maxResults: 12, sourceTypes: ['document', 'observation', 'analysis', 'communication'] }
+    );
+
     const userPrompt = `Analyze the following person and their communication patterns:
 
 Person: ${profile?.first_name} ${profile?.last_name || ''}
@@ -56,6 +65,8 @@ Analysis Type: ${analysisType || 'screening'}
 
 Transcriptions from meetings/conversations:
 ${transcriptions || 'No transcriptions available - provide general guidance based on profile.'}
+
+${ragContext.sourceCount > 0 ? `ADDITIONAL CONTEXT FROM DOCUMENTS AND RECORDS:\n${ragContext.context}\n` : ''}
 
 Provide a comprehensive behavioral analysis in JSON format:
 {
@@ -81,9 +92,13 @@ Provide a comprehensive behavioral analysis in JSON format:
   "summary": "..."
 }`;
 
+    // Get user's preferred model for behavioral analysis
+    const funcAnalysisType = FUNCTION_TO_ANALYSIS_TYPE['analyze-behavioral'] || 'behavioral_analysis';
+    const preferredModel = await getUserPreferredModel(userId, funcAnalysisType, selectModel(modelTier as any));
+
     // Use unified AI client
     const aiResponse = await callAI({
-      model: selectModel(modelTier as any),
+      model: preferredModel,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
@@ -92,7 +107,8 @@ Provide a comprehensive behavioral analysis in JSON format:
       functionName: 'analyze-behavioral',
       profileId: profileId,
       temperature: 0.7,
-      metadata: { analysisType, hasTranscriptions: !!transcriptions },
+      promptKey: 'BEHAVIORAL_ANALYSIS',
+      metadata: { analysisType, hasTranscriptions: !!transcriptions, ragSourceCount: ragContext.sourceCount },
     });
 
     const parsedAnalysis = parseAIJson(aiResponse.content, { 
