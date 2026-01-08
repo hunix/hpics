@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, parseAIJson } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -139,55 +140,26 @@ Look for mentions of:
 - Location changes (moving, new house, relocation)
 - Education (graduation, new degree, starting school)
 - Health events (surgery, recovery, diagnosis)
-- Achievements (awards, publications, launches)`;
+- Achievements (awards, publications, launches)
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+Return JSON with this structure:
+{ "milestones": [{ "profileId": "...", "type": "career|relationship|family|location|education|health|achievement|other", "title": "...", "description": "...", "approximateDate": "...", "sentiment": "positive|negative|neutral", "confidence": 0.0-1.0 }] }`;
+
+    let detected: { milestones: any[] } = { milestones: [] };
+    try {
+      const aiResponse = await callAI({
         model: 'google/gemini-2.5-flash',
         messages: [
-          { role: 'system', content: 'You are a life milestone detection AI. Identify significant life events from conversations.' },
+          { role: 'system', content: 'You are a life milestone detection AI. Identify significant life events from conversations. Return valid JSON only.' },
           { role: 'user', content: prompt }
         ],
-        tools: [{
-          type: 'function',
-          function: {
-            name: 'detect_milestones',
-            description: 'Detect life milestones from conversation analysis',
-            parameters: {
-              type: 'object',
-              properties: {
-                milestones: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      profileId: { type: 'string' },
-                      type: { type: 'string', enum: ['career', 'relationship', 'family', 'location', 'education', 'health', 'achievement', 'other'] },
-                      title: { type: 'string' },
-                      description: { type: 'string' },
-                      approximateDate: { type: 'string' },
-                      sentiment: { type: 'string', enum: ['positive', 'negative', 'neutral'] },
-                      confidence: { type: 'number' }
-                    },
-                    required: ['profileId', 'type', 'title', 'description', 'sentiment', 'confidence']
-                  }
-                }
-              },
-              required: ['milestones']
-            }
-          }
-        }],
-        tool_choice: { type: 'function', function: { name: 'detect_milestones' } }
-      }),
-    });
-
-    if (!response.ok) {
-      console.error('AI Gateway error:', response.status);
+        userId,
+        functionName: 'detect-life-milestones',
+        temperature: 0.3,
+      });
+      detected = parseAIJson(aiResponse.content, { milestones: [] });
+    } catch (e) {
+      console.error('AI analysis error:', e);
       return new Response(JSON.stringify({ 
         success: false, 
         error: 'AI analysis failed'
@@ -195,13 +167,6 @@ Look for mentions of:
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
-    }
-
-    const aiData = await response.json();
-    let detected: { milestones: any[] } = { milestones: [] };
-    
-    if (aiData.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments) {
-      detected = JSON.parse(aiData.choices[0].message.tool_calls[0].function.arguments);
     }
 
     // Save high-confidence milestones

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -239,45 +240,34 @@ serve(async (req) => {
     // Use AI for deeper assessment if we have enough data
     let aiAssessment = null;
     if (dataSources.length >= 3) {
-      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-      if (LOVABLE_API_KEY) {
-        try {
-          const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-              'Content-Type': 'application/json',
+      try {
+        const aiResponse = await callAI({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a counter-intelligence analyst assessing the trustworthiness and authenticity of a contact profile. Analyze the data for inconsistencies, deception indicators, and provide a brief assessment. Be objective and evidence-based.`
             },
-            body: JSON.stringify({
-              model: 'google/gemini-2.5-flash',
-              messages: [
-                {
-                  role: 'system',
-                  content: `You are a counter-intelligence analyst assessing the trustworthiness and authenticity of a contact profile. Analyze the data for inconsistencies, deception indicators, and provide a brief assessment. Be objective and evidence-based.`
-                },
-                {
-                  role: 'user',
-                  content: JSON.stringify({
-                    profile: { name: `${profile.first_name} ${profile.last_name}`, organization: profile.organization },
-                    inconsistencies_found: inconsistencies,
-                    deception_indicators: deceptionIndicators,
-                    data_sources: dataSources,
-                    recent_communications_count: communications?.length || 0,
-                    observations_summary: observations?.slice(0, 5).map(o => ({ category: o.category, content: o.observation_text?.substring(0, 100) })),
-                  })
-                }
-              ],
-              max_tokens: 500,
-            }),
-          });
-
-          if (response.ok) {
-            const aiData = await response.json();
-            aiAssessment = aiData.choices?.[0]?.message?.content;
-          }
-        } catch (e) {
-          console.error('AI assessment error:', e);
-        }
+            {
+              role: 'user',
+              content: JSON.stringify({
+                profile: { name: `${profile.first_name} ${profile.last_name}`, organization: profile.organization },
+                inconsistencies_found: inconsistencies,
+                deception_indicators: deceptionIndicators,
+                data_sources: dataSources,
+                recent_communications_count: communications?.length || 0,
+                observations_summary: observations?.slice(0, 5).map(o => ({ category: o.category, content: o.observation_text?.substring(0, 100) })),
+              })
+            }
+          ],
+          userId,
+          functionName: 'assess-trust',
+          profileId: profile_id,
+          maxTokens: 500,
+        });
+        aiAssessment = aiResponse.content;
+      } catch (e) {
+        console.error('AI assessment error:', e);
       }
     }
 

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, parseAIJson } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -138,54 +139,26 @@ Identify any shared experiences mentioned across conversations. Look for:
 - Events they attended together (conferences, parties, meetings)
 - Places they visited together (restaurants, trips, venues)
 - Activities they did together (sports, hobbies, projects)
-- Mutual references to the same events/places`;
+- Mutual references to the same events/places
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+Return JSON with this structure:
+{ "experiences": [{ "title": "...", "type": "event|trip|activity|meeting|project|other", "profileIds": ["..."], "description": "...", "approximateDate": "...", "confidence": 0.0-1.0 }] }`;
+
+    let detected: { experiences: any[] } = { experiences: [] };
+    try {
+      const aiResponse = await callAI({
         model: 'google/gemini-2.5-flash',
         messages: [
-          { role: 'system', content: 'You are an experience detection AI. Identify shared experiences from conversations.' },
+          { role: 'system', content: 'You are an experience detection AI. Identify shared experiences from conversations. Return valid JSON only.' },
           { role: 'user', content: prompt }
         ],
-        tools: [{
-          type: 'function',
-          function: {
-            name: 'detect_shared_experiences',
-            description: 'Detect shared experiences from conversation analysis',
-            parameters: {
-              type: 'object',
-              properties: {
-                experiences: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      title: { type: 'string', description: 'Name/title of the shared experience' },
-                      type: { type: 'string', enum: ['event', 'trip', 'activity', 'meeting', 'project', 'other'] },
-                      profileIds: { type: 'array', items: { type: 'string' }, description: 'Profile IDs involved' },
-                      description: { type: 'string' },
-                      approximateDate: { type: 'string', description: 'Approximate date if mentioned' },
-                      confidence: { type: 'number', description: 'Confidence score 0-1' }
-                    },
-                    required: ['title', 'type', 'profileIds', 'description', 'confidence']
-                  }
-                }
-              },
-              required: ['experiences']
-            }
-          }
-        }],
-        tool_choice: { type: 'function', function: { name: 'detect_shared_experiences' } }
-      }),
-    });
-
-    if (!response.ok) {
-      console.error('AI Gateway error:', response.status);
+        userId,
+        functionName: 'detect-shared-experiences',
+        temperature: 0.3,
+      });
+      detected = parseAIJson(aiResponse.content, { experiences: [] });
+    } catch (e) {
+      console.error('AI analysis error:', e);
       return new Response(JSON.stringify({ 
         success: false, 
         error: 'AI analysis failed'
@@ -193,13 +166,6 @@ Identify any shared experiences mentioned across conversations. Look for:
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
-    }
-
-    const aiData = await response.json();
-    let detected: { experiences: any[] } = { experiences: [] };
-    
-    if (aiData.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments) {
-      detected = JSON.parse(aiData.choices[0].message.tool_calls[0].function.arguments);
     }
 
     // Save high-confidence experiences

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, parseAIJson } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -97,11 +98,6 @@ serve(async (req) => {
       existingGroups: (c.groups || []).map((g: any) => g.group?.name).filter(Boolean),
     }));
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY not configured");
-    }
-
     const prompt = `Analyze these contacts and suggest 3-5 smart groups based on commonalities:
 
 CONTACTS:
@@ -134,40 +130,24 @@ Rules:
 - Confidence score from 0.0 to 1.0 based on how strong the connection is
 - Don't suggest groups that are too similar to existing ones`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    let suggestions: any[] = [];
+    try {
+      const aiResponse = await callAI({
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: "You are an expert at analyzing relationships and finding patterns in contact networks. Return only valid JSON." },
           { role: "user", content: prompt },
         ],
-      }),
-    });
+        userId,
+        functionName: "suggest-contact-groups",
+        temperature: 0.7,
+      });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error("AI Gateway error:", aiResponse.status, errorText);
-      throw new Error(`AI Gateway error: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
-    const content = aiData.choices?.[0]?.message?.content || "[]";
-    
-    // Parse the JSON from the response
-    let suggestions = [];
-    try {
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        suggestions = JSON.parse(jsonMatch[0]);
-      }
-    } catch (parseError) {
-      console.error("Failed to parse AI response:", content);
-      suggestions = [];
+      const parsed = parseAIJson(aiResponse.content, []) as any;
+      suggestions = Array.isArray(parsed) ? parsed : parsed?.suggestions || [];
+    } catch (e) {
+      console.error("AI Gateway error:", e);
+      throw new Error(`AI Gateway error`);
     }
 
     // Store suggestions in database
