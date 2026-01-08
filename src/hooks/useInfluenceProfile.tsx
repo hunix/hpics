@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { handleAIError } from '@/lib/aiErrorHandler';
 import type { 
   GoalType
 } from '@/lib/influenceTypes';
@@ -89,8 +90,10 @@ export function useAnalyzeInfluenceProfile() {
       queryClient.invalidateQueries({ queryKey: ['influence-profile', variables.profileId] });
       toast.success('Influence profile generated successfully');
     },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Failed to analyze influence profile');
+    onError: (error: any) => {
+      if (!handleAIError(error).handled) {
+        toast.error(error.message || 'Failed to analyze influence profile');
+      }
     }
   });
 }
@@ -152,8 +155,10 @@ export function useGenerateStrategy() {
       queryClient.invalidateQueries({ queryKey: ['influence-strategies', variables.profileId] });
       toast.success('Strategy generated successfully');
     },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Failed to generate strategy');
+    onError: (error: any) => {
+      if (!handleAIError(error).handled) {
+        toast.error(error.message || 'Failed to generate strategy');
+      }
     }
   });
 }

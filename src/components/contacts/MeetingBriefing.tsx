@@ -20,6 +20,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAIConfirmationContext } from '@/contexts/AIConfirmationContext';
 import { useAIModelPreference } from '@/hooks/useAIModelPreference';
 import { calculateCostCents } from '@/lib/aiPricing';
+import { handleAIError } from '@/lib/aiErrorHandler';
 import { toast } from 'sonner';
 
 interface BriefingData {
@@ -88,6 +89,11 @@ export function MeetingBriefing({ profileId, contactName }: MeetingBriefingProps
           errorMessage: error.message,
           responseTimeMs: responseTime,
         });
+        // Handle AI-specific errors (rate limits, budget)
+        if (handleAIError(error).handled) {
+          setIsLoading(false);
+          return;
+        }
         throw error;
       }
       

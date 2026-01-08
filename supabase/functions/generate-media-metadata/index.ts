@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, RateLimitError, CreditsExhaustedError, BudgetExceededError, getUserPreferredModel, selectModel } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,7 +25,7 @@ const MODEL_PRICING: Record<string, { input: number; output: number }> = {
 // ============ ENHANCED TOOL SCHEMAS ============
 
 const ENHANCED_IMAGE_TOOL = {
-  type: "function",
+  type: "function" as const,
   function: {
     name: "extract_image_metadata",
     description: "Extract comprehensive structured metadata from an image for intelligence analysis",
@@ -219,7 +220,7 @@ const ENHANCED_IMAGE_TOOL = {
 };
 
 const ENHANCED_AUDIO_TOOL = {
-  type: "function",
+  type: "function" as const,
   function: {
     name: "extract_audio_metadata",
     description: "Extract comprehensive structured metadata from audio for intelligence analysis",
@@ -391,7 +392,7 @@ const ENHANCED_AUDIO_TOOL = {
 };
 
 const ENHANCED_VIDEO_TOOL = {
-  type: "function",
+  type: "function" as const,
   function: {
     name: "extract_video_metadata",
     description: "Extract comprehensive structured metadata from video for intelligence analysis",
@@ -549,7 +550,7 @@ const ENHANCED_VIDEO_TOOL = {
 };
 
 const ENHANCED_DOCUMENT_TOOL = {
-  type: "function",
+  type: "function" as const,
   function: {
     name: "extract_document_metadata",
     description: "Extract comprehensive structured metadata from a document for intelligence analysis",
@@ -1070,38 +1071,62 @@ Use this precise transcription to analyze the audio content. Focus on extracting
           });
         }
 
-        const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${lovableApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+        // Use callAI wrapper for centralized error handling and cost tracking
+        let aiResponse;
+        try {
+          aiResponse = await callAI({
             model,
-            messages,
+            messages: messages as any,
+            userId,
+            functionName: 'generate-media-metadata',
+            profileId: media.profile_id,
+            enforceBudget: true,
             tools: [tool],
-            tool_choice: { type: "function", function: { name: tool.function.name } },
-          }),
-        });
-
-        if (!aiResponse.ok) {
-          const errorText = await aiResponse.text();
-          console.error('AI API error:', aiResponse.status, errorText);
+            toolChoice: { type: "function", function: { name: tool.function.name } },
+          });
+        } catch (aiError) {
+          console.error('AI API error:', aiError);
+          
+          let errorMessage = 'AI API error';
+          let statusCode = 500;
+          
+          if (aiError instanceof RateLimitError) {
+            errorMessage = 'Rate limit exceeded. Please try again later.';
+            statusCode = 429;
+          } else if (aiError instanceof CreditsExhaustedError) {
+            errorMessage = 'AI credits exhausted. Please add credits.';
+            statusCode = 402;
+          } else if (aiError instanceof BudgetExceededError) {
+            errorMessage = 'AI budget limit exceeded. Adjust in Settings.';
+            statusCode = 402;
+          } else if (aiError instanceof Error) {
+            errorMessage = aiError.message;
+          }
           
           await supabase
             .from('media')
             .update({ 
               ai_generation_status: 'failed', 
-              ai_generation_error: `AI API error: ${aiResponse.status}` 
+              ai_generation_error: errorMessage 
             })
             .eq('id', mediaId);
           
-          results.push({ id: mediaId, type: 'media', success: false, error: `AI API error: ${aiResponse.status}` });
+          // For rate limit/budget errors, return early with appropriate status
+          if (statusCode === 429 || statusCode === 402) {
+            return new Response(JSON.stringify({ 
+              error: errorMessage,
+              results: results.concat([{ id: mediaId, type: 'media', success: false, error: errorMessage }])
+            }), {
+              status: statusCode,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+          
+          results.push({ id: mediaId, type: 'media', success: false, error: errorMessage });
           continue;
         }
 
-        const aiData = await aiResponse.json();
-        const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+        const toolCall = aiResponse.toolCalls?.[0];
         
         if (!toolCall?.function?.arguments) {
           await supabase
@@ -1124,15 +1149,11 @@ Use this precise transcription to analyze the audio content. Focus on extracting
           };
         }
         
-        const inputTokens = aiData.usage?.prompt_tokens || 0;
-        const outputTokens = aiData.usage?.completion_tokens || 0;
+        // Use token counts from callAI response (already logged by callAI)
+        const inputTokens = aiResponse.inputTokens || 0;
+        const outputTokens = aiResponse.outputTokens || 0;
         totalInputTokens += inputTokens;
         totalOutputTokens += outputTokens;
-
-        const pricing = MODEL_PRICING[model] || MODEL_PRICING['google/gemini-2.5-flash'];
-        const costCents = Math.ceil(
-          ((inputTokens / 1_000_000) * pricing.input + (outputTokens / 1_000_000) * pricing.output) * 100
-        );
 
         await supabase
           .from('media')
@@ -1145,20 +1166,7 @@ Use this precise transcription to analyze the audio content. Focus on extracting
           })
           .eq('id', mediaId);
 
-        await supabase.from('ai_usage_logs').insert({
-          user_id: userId,
-          profile_id: media.profile_id,
-          function_name: 'generate-media-metadata',
-          provider: model.split('/')[0],
-          model_name: model,
-          estimated_cost_cents: costCents,
-          actual_cost_cents: costCents,
-          input_tokens: inputTokens,
-          output_tokens: outputTokens,
-          total_tokens: inputTokens + outputTokens,
-          status: 'completed',
-          request_metadata: { mediaId, mimeType: media.mime_type },
-        });
+        // Note: callAI already logs to ai_usage_logs, no need to duplicate
 
         // Trigger biometric matching for images with detected faces
         if (isImage && metadata.people?.count > 0 && metadata.people?.faces?.length > 0) {
@@ -1189,7 +1197,7 @@ Use this precise transcription to analyze the audio content. Focus on extracting
         }
 
         results.push({ id: mediaId, type: 'media', success: true });
-        console.log(`Processed media ${mediaId}: ${inputTokens + outputTokens} tokens, $${(costCents / 100).toFixed(4)}`);
+        console.log(`Processed media ${mediaId}: ${inputTokens + outputTokens} tokens, $${(aiResponse.costCents / 100).toFixed(4)}`);
 
       } catch (itemError) {
         console.error(`Error processing media ${mediaId}:`, itemError);
@@ -1247,34 +1255,62 @@ Use this precise transcription to analyze the audio content. Focus on extracting
           continue;
         }
 
-        const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${lovableApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+        // Use callAI wrapper for centralized error handling and cost tracking
+        let docAiResponse;
+        try {
+          docAiResponse = await callAI({
             model,
             messages: [
               { role: "system", content: DOCUMENT_SYSTEM_PROMPT },
               { role: "user", content: `${DOCUMENT_USER_PROMPT}\n\nDocument URL: ${signedUrlData.signedUrl}\nDocument title: ${doc.title}\nDocument type: ${doc.document_type}` }
             ],
+            userId,
+            functionName: 'generate-media-metadata',
+            profileId: doc.profile_id,
+            enforceBudget: true,
             tools: [ENHANCED_DOCUMENT_TOOL],
-            tool_choice: { type: "function", function: { name: "extract_document_metadata" } },
-          }),
-        });
-
-        if (!aiResponse.ok) {
+            toolChoice: { type: "function", function: { name: "extract_document_metadata" } },
+          });
+        } catch (aiError) {
+          console.error('AI API error for document:', aiError);
+          
+          let errorMessage = 'AI API error';
+          let statusCode = 500;
+          
+          if (aiError instanceof RateLimitError) {
+            errorMessage = 'Rate limit exceeded. Please try again later.';
+            statusCode = 429;
+          } else if (aiError instanceof CreditsExhaustedError) {
+            errorMessage = 'AI credits exhausted. Please add credits.';
+            statusCode = 402;
+          } else if (aiError instanceof BudgetExceededError) {
+            errorMessage = 'AI budget limit exceeded. Adjust in Settings.';
+            statusCode = 402;
+          } else if (aiError instanceof Error) {
+            errorMessage = aiError.message;
+          }
+          
           await supabase
             .from('documents')
-            .update({ ai_generation_status: 'failed', ai_generation_error: `AI API error: ${aiResponse.status}` })
+            .update({ ai_generation_status: 'failed', ai_generation_error: errorMessage })
             .eq('id', documentId);
-          results.push({ id: documentId, type: 'document', success: false, error: `AI API error: ${aiResponse.status}` });
+          
+          // For rate limit/budget errors, return early with appropriate status
+          if (statusCode === 429 || statusCode === 402) {
+            return new Response(JSON.stringify({ 
+              error: errorMessage,
+              results: results.concat([{ id: documentId, type: 'document', success: false, error: errorMessage }])
+            }), {
+              status: statusCode,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+          
+          results.push({ id: documentId, type: 'document', success: false, error: errorMessage });
           continue;
         }
 
-        const aiData = await aiResponse.json();
-        const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+        const toolCall = docAiResponse.toolCalls?.[0];
 
         if (!toolCall?.function?.arguments) {
           await supabase
@@ -1286,15 +1322,10 @@ Use this precise transcription to analyze the audio content. Focus on extracting
         }
 
         const metadata = JSON.parse(toolCall.function.arguments);
-        const inputTokens = aiData.usage?.prompt_tokens || 0;
-        const outputTokens = aiData.usage?.completion_tokens || 0;
+        const inputTokens = docAiResponse.inputTokens || 0;
+        const outputTokens = docAiResponse.outputTokens || 0;
         totalInputTokens += inputTokens;
         totalOutputTokens += outputTokens;
-
-        const pricing = MODEL_PRICING[model] || MODEL_PRICING['google/gemini-2.5-flash'];
-        const costCents = Math.ceil(
-          ((inputTokens / 1_000_000) * pricing.input + (outputTokens / 1_000_000) * pricing.output) * 100
-        );
 
         await supabase
           .from('documents')
@@ -1307,23 +1338,10 @@ Use this precise transcription to analyze the audio content. Focus on extracting
           })
           .eq('id', documentId);
 
-        await supabase.from('ai_usage_logs').insert({
-          user_id: userId,
-          profile_id: doc.profile_id,
-          function_name: 'generate-media-metadata',
-          provider: model.split('/')[0],
-          model_name: model,
-          estimated_cost_cents: costCents,
-          actual_cost_cents: costCents,
-          input_tokens: inputTokens,
-          output_tokens: outputTokens,
-          total_tokens: inputTokens + outputTokens,
-          status: 'completed',
-          request_metadata: { documentId, documentType: doc.document_type },
-        });
+        // Note: callAI already logs to ai_usage_logs, no need to duplicate
 
         results.push({ id: documentId, type: 'document', success: true });
-        console.log(`Processed document ${documentId}: ${inputTokens + outputTokens} tokens, $${(costCents / 100).toFixed(4)}`);
+        console.log(`Processed document ${documentId}: ${inputTokens + outputTokens} tokens, $${(docAiResponse.costCents / 100).toFixed(4)}`);
 
       } catch (itemError) {
         console.error(`Error processing document ${documentId}:`, itemError);
