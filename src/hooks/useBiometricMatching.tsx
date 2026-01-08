@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { handleAIError } from '@/lib/aiErrorHandler';
 import { toast } from 'sonner';
 
 interface BiometricProfile {
@@ -158,8 +159,10 @@ export function useExtractFacialBiometrics() {
       queryClient.invalidateQueries({ queryKey: ['biometric-samples', variables.profileId] });
       toast.success('Facial biometrics extracted successfully');
     },
-    onError: (error: Error) => {
-      toast.error(`Failed to extract facial biometrics: ${error.message}`);
+    onError: (error: any) => {
+      if (!handleAIError(error).handled) {
+        toast.error(`Failed to extract facial biometrics: ${error.message}`);
+      }
     }
   });
 }
@@ -197,8 +200,10 @@ export function useExtractVoiceBiometrics() {
       queryClient.invalidateQueries({ queryKey: ['biometric-samples', variables.profileId] });
       toast.success('Voice biometrics extracted successfully');
     },
-    onError: (error: Error) => {
-      toast.error(`Failed to extract voice biometrics: ${error.message}`);
+    onError: (error: any) => {
+      if (!handleAIError(error).handled) {
+        toast.error(`Failed to extract voice biometrics: ${error.message}`);
+      }
     }
   });
 }
