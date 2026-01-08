@@ -2,6 +2,7 @@
 // Provides consistent logging, error handling, and cost tracking
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { checkRateLimit, createRateLimitResponse, type RateLimitResult } from './rate-limiter.ts';
 
 interface AIMessage {
   role: 'system' | 'user' | 'assistant';
@@ -181,6 +182,12 @@ export async function callAI(options: AIRequestOptions): Promise<AIResponse> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  // Server-side rate limiting check
+  const rateLimitResult = checkRateLimit(options.userId, options.functionName);
+  if (!rateLimitResult.allowed) {
+    throw new RateLimitError((rateLimitResult.retryAfter || 60) * 1000);
+  }
 
   // Budget enforcement check
   if (options.enforceBudget && options.userId) {
