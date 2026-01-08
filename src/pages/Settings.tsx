@@ -36,6 +36,7 @@ import { BiometricAnalyticsDashboard } from '@/components/settings/BiometricAnal
 import { PromptVersionManager } from '@/components/settings/PromptVersionManager';
 import { OSINTIntegrations } from '@/components/settings/OSINTIntegrations';
 import { EnrichmentQueueMonitor } from '@/components/ai/EnrichmentQueueMonitor';
+import { BackfillJobsManager } from '@/components/ai/BackfillJobsManager';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -312,6 +313,7 @@ export default function Settings() {
 
         <TabsContent value="ai-costs" className="space-y-6 mt-6">
           <AICostDashboard />
+          <BackfillJobsManager />
           <EnrichmentQueueMonitor />
         </TabsContent>
 

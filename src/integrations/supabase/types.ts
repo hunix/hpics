@@ -499,6 +499,57 @@ export type Database = {
         }
         Relationships: []
       }
+      batch_jobs: {
+        Row: {
+          actual_cost_cents: number | null
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          estimated_cost_cents: number | null
+          failed_items: number | null
+          id: string
+          job_type: string
+          processed_items: number | null
+          started_at: string | null
+          status: string | null
+          total_items: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          actual_cost_cents?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          estimated_cost_cents?: number | null
+          failed_items?: number | null
+          id?: string
+          job_type: string
+          processed_items?: number | null
+          started_at?: string | null
+          status?: string | null
+          total_items?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          actual_cost_cents?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          estimated_cost_cents?: number | null
+          failed_items?: number | null
+          id?: string
+          job_type?: string
+          processed_items?: number | null
+          started_at?: string | null
+          status?: string | null
+          total_items?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       behavioral_analyses: {
         Row: {
           ai_model_used: string | null
@@ -4497,6 +4548,7 @@ export type Database = {
       }
       document_embeddings: {
         Row: {
+          backfill_error: string | null
           backfill_status: string | null
           content: string
           content_summary: string | null
@@ -4512,6 +4564,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          backfill_error?: string | null
           backfill_status?: string | null
           content: string
           content_summary?: string | null
@@ -4527,6 +4580,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          backfill_error?: string | null
           backfill_status?: string | null
           content?: string
           content_summary?: string | null
@@ -7083,6 +7137,7 @@ export type Database = {
           first_name: string
           hierarchy_level: string | null
           id: string
+          initial_intel_completed: boolean | null
           is_favorite: boolean | null
           is_self_profile: boolean | null
           job_title: string | null
@@ -7110,6 +7165,7 @@ export type Database = {
           first_name: string
           hierarchy_level?: string | null
           id?: string
+          initial_intel_completed?: boolean | null
           is_favorite?: boolean | null
           is_self_profile?: boolean | null
           job_title?: string | null
@@ -7137,6 +7193,7 @@ export type Database = {
           first_name?: string
           hierarchy_level?: string | null
           id?: string
+          initial_intel_completed?: boolean | null
           is_favorite?: boolean | null
           is_self_profile?: boolean | null
           job_title?: string | null
