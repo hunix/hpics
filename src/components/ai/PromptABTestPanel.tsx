@@ -11,7 +11,7 @@ import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { FlaskConical, Play, Pause, Trophy, Plus, BarChart2 } from 'lucide-react';
+import { FlaskConical, Play, Pause, Trophy, Plus, BarChart2, TrendingUp, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 const PROMPT_CATEGORIES = [
@@ -20,7 +20,22 @@ const PROMPT_CATEGORIES = [
   { key: 'executive_summary', label: 'Executive Summary' },
   { key: 'dossier_generation', label: 'Dossier Generation' },
   { key: 'communication_analysis', label: 'Communication Analysis' },
+  { key: 'churn_prediction', label: 'Churn Prediction' },
+  { key: 'network_growth', label: 'Network Growth' },
+  { key: 'rag_query', label: 'RAG Query' },
 ];
+
+interface PromptVersion {
+  id: string;
+  prompt_key: string;
+  version: number;
+  prompt_text: string;
+  model_tier: string;
+  success_rate: number | null;
+  avg_cost_cents: number | null;
+  usage_count: number;
+  is_active: boolean;
+}
 
 interface ABTest {
   id: string;
@@ -28,6 +43,8 @@ interface ABTest {
   prompt_key: string;
   test_status: string;
   traffic_split: { control: number; variant: number };
+  control_version_id: string | null;
+  variant_version_id: string | null;
   start_date: string | null;
   end_date: string | null;
   statistical_significance: number | null;
@@ -43,8 +60,11 @@ export function PromptABTestPanel() {
     name: '',
     prompt_key: '',
     trafficSplit: 50,
+    control_version_id: '',
+    variant_version_id: '',
   });
 
+  // Fetch A/B tests
   const { data: tests, isLoading } = useQuery({
     queryKey: ['ab-tests', user?.id],
     queryFn: async () => {
@@ -62,6 +82,56 @@ export function PromptABTestPanel() {
     enabled: !!user,
   });
 
+  // Fetch prompt versions for selected category
+  const { data: promptVersions } = useQuery({
+    queryKey: ['prompt-versions', newTest.prompt_key],
+    queryFn: async () => {
+      if (!newTest.prompt_key) return [];
+      const { data, error } = await supabase
+        .from('prompt_versions')
+        .select('*')
+        .eq('prompt_key', newTest.prompt_key)
+        .order('version', { ascending: false });
+
+      if (error) throw error;
+      return (data || []) as PromptVersion[];
+    },
+    enabled: !!newTest.prompt_key,
+  });
+
+  // Calculate test metrics
+  const { data: testMetrics } = useQuery({
+    queryKey: ['ab-test-metrics', tests?.map(t => t.id)],
+    queryFn: async () => {
+      if (!tests?.length) return {};
+      
+      const metrics: Record<string, { controlSuccess: number; variantSuccess: number; controlCount: number; variantCount: number }> = {};
+      
+      for (const test of tests.filter(t => t.test_status === 'running')) {
+        const { data: assignments } = await supabase
+          .from('ab_test_assignments')
+          .select('assigned_variant, converted')
+          .eq('test_id', test.id);
+
+        if (assignments) {
+          const controlAssignments = assignments.filter(a => a.assigned_variant === 'control');
+          const variantAssignments = assignments.filter(a => a.assigned_variant === 'variant');
+          
+          metrics[test.id] = {
+            controlSuccess: controlAssignments.filter(a => a.converted).length,
+            variantSuccess: variantAssignments.filter(a => a.converted).length,
+            controlCount: controlAssignments.length,
+            variantCount: variantAssignments.length,
+          };
+        }
+      }
+      
+      return metrics;
+    },
+    enabled: !!tests?.length,
+    staleTime: 30000,
+  });
+
   const createTestMutation = useMutation({
     mutationFn: async (test: typeof newTest) => {
       const { data, error } = await supabase
@@ -71,6 +141,8 @@ export function PromptABTestPanel() {
           name: test.name,
           prompt_key: test.prompt_key,
           traffic_split: { control: test.trafficSplit, variant: 100 - test.trafficSplit },
+          control_version_id: test.control_version_id || null,
+          variant_version_id: test.variant_version_id || null,
           test_status: 'draft',
         })
         .select()
@@ -82,7 +154,7 @@ export function PromptABTestPanel() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ab-tests'] });
       setIsCreateOpen(false);
-      setNewTest({ name: '', prompt_key: '', trafficSplit: 50 });
+      setNewTest({ name: '', prompt_key: '', trafficSplit: 50, control_version_id: '', variant_version_id: '' });
       toast.success('A/B test created');
     },
     onError: (error) => {
@@ -143,7 +215,7 @@ export function PromptABTestPanel() {
                 New Test
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-lg">
               <DialogHeader>
                 <DialogTitle>Create A/B Test</DialogTitle>
               </DialogHeader>
@@ -160,7 +232,12 @@ export function PromptABTestPanel() {
                   <Label>Prompt Category</Label>
                   <Select
                     value={newTest.prompt_key}
-                    onValueChange={(v) => setNewTest(prev => ({ ...prev, prompt_key: v }))}
+                    onValueChange={(v) => setNewTest(prev => ({ 
+                      ...prev, 
+                      prompt_key: v,
+                      control_version_id: '',
+                      variant_version_id: '',
+                    }))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select prompt" />
@@ -174,6 +251,51 @@ export function PromptABTestPanel() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {promptVersions && promptVersions.length > 0 && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Control Version</Label>
+                      <Select
+                        value={newTest.control_version_id}
+                        onValueChange={(v) => setNewTest(prev => ({ ...prev, control_version_id: v }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select control version" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {promptVersions.map(v => (
+                            <SelectItem key={v.id} value={v.id}>
+                              v{v.version} {v.is_active && '(active)'} 
+                              {v.success_rate !== null && ` - ${(v.success_rate * 100).toFixed(0)}% success`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Variant Version</Label>
+                      <Select
+                        value={newTest.variant_version_id}
+                        onValueChange={(v) => setNewTest(prev => ({ ...prev, variant_version_id: v }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select variant version" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {promptVersions.filter(v => v.id !== newTest.control_version_id).map(v => (
+                            <SelectItem key={v.id} value={v.id}>
+                              v{v.version} {v.is_active && '(active)'} 
+                              {v.success_rate !== null && ` - ${(v.success_rate * 100).toFixed(0)}% success`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
+
                 <div className="space-y-2">
                   <Label>Traffic Split (Control: {newTest.trafficSplit}% / Variant: {100 - newTest.trafficSplit}%)</Label>
                   <Slider
@@ -207,68 +329,101 @@ export function PromptABTestPanel() {
           </div>
         ) : tests && tests.length > 0 ? (
           <div className="space-y-3">
-            {tests.map(test => (
-              <div key={test.id} className="p-3 rounded-lg border">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium">{test.name}</span>
-                      <Badge className={getStatusColor(test.test_status)}>
-                        {test.test_status}
-                      </Badge>
-                      {test.winner_version_id && (
-                        <Badge variant="outline" className="text-amber-600">
-                          <Trophy className="h-3 w-3 mr-1" />
-                          Winner found
+            {tests.map(test => {
+              const metrics = testMetrics?.[test.id];
+              const controlRate = metrics?.controlCount ? (metrics.controlSuccess / metrics.controlCount) : null;
+              const variantRate = metrics?.variantCount ? (metrics.variantSuccess / metrics.variantCount) : null;
+              
+              return (
+                <div key={test.id} className="p-3 rounded-lg border">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium">{test.name}</span>
+                        <Badge className={getStatusColor(test.test_status)}>
+                          {test.test_status}
                         </Badge>
+                        {test.winner_version_id && (
+                          <Badge variant="outline" className="text-amber-600">
+                            <Trophy className="h-3 w-3 mr-1" />
+                            Winner found
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {PROMPT_CATEGORIES.find(c => c.key === test.prompt_key)?.label || test.prompt_key}
+                        {' • '}
+                        {test.traffic_split?.control || 50}% / {100 - (test.traffic_split?.control || 50)}%
+                      </div>
+
+                      {/* Live metrics for running tests */}
+                      {test.test_status === 'running' && metrics && (
+                        <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                          <div className="p-2 rounded bg-muted">
+                            <div className="flex items-center gap-1 mb-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              <span className="font-medium">Control</span>
+                            </div>
+                            <div>
+                              {metrics.controlSuccess}/{metrics.controlCount} 
+                              {controlRate !== null && ` (${(controlRate * 100).toFixed(1)}%)`}
+                            </div>
+                          </div>
+                          <div className="p-2 rounded bg-muted">
+                            <div className="flex items-center gap-1 mb-1">
+                              <TrendingUp className="h-3 w-3" />
+                              <span className="font-medium">Variant</span>
+                            </div>
+                            <div>
+                              {metrics.variantSuccess}/{metrics.variantCount}
+                              {variantRate !== null && ` (${(variantRate * 100).toFixed(1)}%)`}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {test.statistical_significance && (
+                        <div className="text-sm mt-1">
+                          <BarChart2 className="h-3 w-3 inline mr-1" />
+                          Significance: {(test.statistical_significance * 100).toFixed(1)}%
+                        </div>
                       )}
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {PROMPT_CATEGORIES.find(c => c.key === test.prompt_key)?.label || test.prompt_key}
-                      {' • '}
-                      {(test.traffic_split as { control: number })?.control || 50}% / {100 - ((test.traffic_split as { control: number })?.control || 50)}%
+                    <div className="flex gap-2">
+                      {test.test_status === 'draft' && (
+                        <Button
+                          size="sm"
+                          onClick={() => updateTestStatus.mutate({ id: test.id, status: 'running' })}
+                        >
+                          <Play className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {test.test_status === 'running' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => updateTestStatus.mutate({ id: test.id, status: 'paused' })}
+                        >
+                          <Pause className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {test.test_status === 'paused' && (
+                        <Button
+                          size="sm"
+                          onClick={() => updateTestStatus.mutate({ id: test.id, status: 'running' })}
+                        >
+                          <Play className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
-                    {test.statistical_significance && (
-                      <div className="text-sm mt-1">
-                        <BarChart2 className="h-3 w-3 inline mr-1" />
-                        Significance: {(test.statistical_significance * 100).toFixed(1)}%
-                      </div>
-                    )}
                   </div>
-                  <div className="flex gap-2">
-                    {test.test_status === 'draft' && (
-                      <Button
-                        size="sm"
-                        onClick={() => updateTestStatus.mutate({ id: test.id, status: 'running' })}
-                      >
-                        <Play className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {test.test_status === 'running' && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => updateTestStatus.mutate({ id: test.id, status: 'paused' })}
-                      >
-                        <Pause className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {test.test_status === 'paused' && (
-                      <Button
-                        size="sm"
-                        onClick={() => updateTestStatus.mutate({ id: test.id, status: 'running' })}
-                      >
-                        <Play className="h-4 w-4" />
-                      </Button>
-                    )}
+                  <div className="text-xs text-muted-foreground mt-2">
+                    Created {format(new Date(test.created_at), 'MMM d, yyyy')}
+                    {test.start_date && ` • Started ${format(new Date(test.start_date), 'MMM d')}`}
                   </div>
                 </div>
-                <div className="text-xs text-muted-foreground mt-2">
-                  Created {format(new Date(test.created_at), 'MMM d, yyyy')}
-                  {test.start_date && ` • Started ${format(new Date(test.start_date), 'MMM d')}`}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-8 text-muted-foreground">
