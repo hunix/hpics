@@ -37,6 +37,7 @@ import { PromptVersionManager } from '@/components/settings/PromptVersionManager
 import { OSINTIntegrations } from '@/components/settings/OSINTIntegrations';
 import { EnrichmentQueueMonitor } from '@/components/ai/EnrichmentQueueMonitor';
 import { BackfillJobsManager } from '@/components/ai/BackfillJobsManager';
+import { OfflineSyncPanel } from '@/components/mobile/OfflineSyncPanel';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -360,6 +361,8 @@ export default function Settings() {
               </div>
             </CardContent>
           </Card>
+
+          <OfflineSyncPanel />
 
           <PushNotifications vapidPublicKey={vapidPublicKey} />
         </TabsContent>

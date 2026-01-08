@@ -421,7 +421,7 @@ export default function ContactDetail() {
   };
 
   return (
-    <AppLayout title={contactName}>
+    <AppLayout title={contactName} showQuickCapture>
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
         <Link to="/contacts" className="hover:text-foreground transition-colors">Contacts</Link>
