@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Users, 
   Activity, 
@@ -17,11 +18,14 @@ import {
   Clock,
   UserPlus,
   Plus,
-  Loader2
+  Loader2,
+  Share2
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { SharedContactsBrowser } from '@/components/collaboration/SharedContactsBrowser';
+import { TeamActivityFeed } from '@/components/collaboration/TeamActivityFeed';
 
 export default function TeamDashboard() {
   const { user } = useAuth();
@@ -131,7 +135,14 @@ export default function TeamDashboard() {
 
   return (
     <AppLayout title="Team Dashboard">
-      <div className="space-y-6">
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="shared">Shared Contacts</TabsTrigger>
+          <TabsTrigger value="activity">Activity Feed</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
         {/* Stats */}
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
@@ -331,7 +342,16 @@ export default function TeamDashboard() {
             )}
           </CardContent>
         </Card>
-      </div>
+        </TabsContent>
+
+        <TabsContent value="shared">
+          <SharedContactsBrowser />
+        </TabsContent>
+
+        <TabsContent value="activity">
+          <TeamActivityFeed />
+        </TabsContent>
+      </Tabs>
     </AppLayout>
   );
 }

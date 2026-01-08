@@ -2106,6 +2106,58 @@ export type Database = {
           },
         ]
       }
+      contact_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_private: boolean | null
+          profile_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_private?: boolean | null
+          profile_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_private?: boolean | null
+          profile_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_comments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_comments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_comments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_communication_preferences: {
         Row: {
           ai_analysis: Json | null
@@ -8100,6 +8152,65 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_contacts: {
+        Row: {
+          id: string
+          notes: string | null
+          permission_level: string
+          profile_id: string
+          shared_at: string
+          shared_by: string
+          workspace_id: string
+        }
+        Insert: {
+          id?: string
+          notes?: string | null
+          permission_level?: string
+          profile_id: string
+          shared_at?: string
+          shared_by: string
+          workspace_id: string
+        }
+        Update: {
+          id?: string
+          notes?: string | null
+          permission_level?: string
+          profile_id?: string
+          shared_at?: string
+          shared_by?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_contacts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "shared_contacts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "shared_contacts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_contacts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shared_experiences: {
         Row: {
           created_at: string
@@ -8281,6 +8392,65 @@ export type Database = {
             columns: ["matched_profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_presence: {
+        Row: {
+          current_view: string | null
+          id: string
+          last_seen: string
+          status: string
+          user_id: string
+          viewing_profile_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          current_view?: string | null
+          id?: string
+          last_seen?: string
+          status?: string
+          user_id: string
+          viewing_profile_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          current_view?: string | null
+          id?: string
+          last_seen?: string
+          status?: string
+          user_id?: string
+          viewing_profile_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_presence_viewing_profile_id_fkey"
+            columns: ["viewing_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "team_presence_viewing_profile_id_fkey"
+            columns: ["viewing_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "team_presence_viewing_profile_id_fkey"
+            columns: ["viewing_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_presence_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
