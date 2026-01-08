@@ -38,6 +38,10 @@ import { OSINTIntegrations } from '@/components/settings/OSINTIntegrations';
 import { EnrichmentQueueMonitor } from '@/components/ai/EnrichmentQueueMonitor';
 import { BackfillJobsManager } from '@/components/ai/BackfillJobsManager';
 import { OfflineSyncPanel } from '@/components/mobile/OfflineSyncPanel';
+import { CostProjectionWidget } from '@/components/ai/CostProjectionWidget';
+import { CostOptimizationPanel } from '@/components/ai/CostOptimizationPanel';
+import { ContactCostAnalysis } from '@/components/ai/ContactCostAnalysis';
+import { PromptABTestPanel } from '@/components/ai/PromptABTestPanel';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -310,10 +314,16 @@ export default function Settings() {
           <AIModelPreferences />
           <AIBudgetSettings />
           <PromptVersionManager />
+          <PromptABTestPanel />
         </TabsContent>
 
         <TabsContent value="ai-costs" className="space-y-6 mt-6">
           <AICostDashboard />
+          <CostProjectionWidget />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CostOptimizationPanel />
+            <ContactCostAnalysis />
+          </div>
           <BackfillJobsManager />
           <EnrichmentQueueMonitor />
         </TabsContent>
