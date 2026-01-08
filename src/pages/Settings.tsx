@@ -35,6 +35,7 @@ import { BiometricBatchScan } from '@/components/settings/BiometricBatchScan';
 import { BiometricAnalyticsDashboard } from '@/components/settings/BiometricAnalyticsDashboard';
 import { PromptVersionManager } from '@/components/settings/PromptVersionManager';
 import { OSINTIntegrations } from '@/components/settings/OSINTIntegrations';
+import { EnrichmentQueueMonitor } from '@/components/ai/EnrichmentQueueMonitor';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -311,6 +312,7 @@ export default function Settings() {
 
         <TabsContent value="ai-costs" className="space-y-6 mt-6">
           <AICostDashboard />
+          <EnrichmentQueueMonitor />
         </TabsContent>
 
         <TabsContent value="local-ai" className="space-y-6 mt-6">

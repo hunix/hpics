@@ -4497,6 +4497,7 @@ export type Database = {
       }
       document_embeddings: {
         Row: {
+          backfill_status: string | null
           content: string
           content_summary: string | null
           created_at: string | null
@@ -4511,6 +4512,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          backfill_status?: string | null
           content: string
           content_summary?: string | null
           created_at?: string | null
@@ -4525,6 +4527,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          backfill_status?: string | null
           content?: string
           content_summary?: string | null
           created_at?: string | null
@@ -7085,10 +7088,12 @@ export type Database = {
           job_title: string | null
           last_contact_date: string | null
           last_name: string | null
+          last_osint_scan: string | null
           linkedin_url: string | null
           nickname: string | null
           notes: string | null
           organization: string | null
+          osint_scan_priority: number | null
           relationship_subtype: string | null
           relationship_type:
             | Database["public"]["Enums"]["relationship_type"]
@@ -7110,10 +7115,12 @@ export type Database = {
           job_title?: string | null
           last_contact_date?: string | null
           last_name?: string | null
+          last_osint_scan?: string | null
           linkedin_url?: string | null
           nickname?: string | null
           notes?: string | null
           organization?: string | null
+          osint_scan_priority?: number | null
           relationship_subtype?: string | null
           relationship_type?:
             | Database["public"]["Enums"]["relationship_type"]
@@ -7135,10 +7142,12 @@ export type Database = {
           job_title?: string | null
           last_contact_date?: string | null
           last_name?: string | null
+          last_osint_scan?: string | null
           linkedin_url?: string | null
           nickname?: string | null
           notes?: string | null
           organization?: string | null
+          osint_scan_priority?: number | null
           relationship_subtype?: string | null
           relationship_type?:
             | Database["public"]["Enums"]["relationship_type"]
