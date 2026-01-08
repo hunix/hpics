@@ -42,6 +42,9 @@ import { OutreachSchedulerWidget } from '@/components/intelligence/OutreachSched
 import { RelationshipAutopilotWidget } from '@/components/intelligence/RelationshipAutopilotWidget';
 import { GiftCalendarWidget } from '@/components/intelligence/GiftCalendarWidget';
 import { AIChatAssistant } from '@/components/ai/AIChatAssistant';
+import { UnifiedIntelligenceDashboard } from '@/components/intelligence/UnifiedIntelligenceDashboard';
+import { CommunicationVelocityWidget } from '@/components/dashboard/CommunicationVelocityWidget';
+import { BehavioralAnomalyDashboard } from '@/components/intelligence/BehavioralAnomalyDashboard';
 import type { DashletType } from '@/lib/dashletDefinitions';
 
 export default function Dashboard() {
@@ -353,6 +356,12 @@ export default function Dashboard() {
         return <GiftCalendarWidget />;
       case 'ai-chat-assistant':
         return <AIChatAssistant className="h-[500px]" />;
+      case 'unified-intelligence':
+        return <UnifiedIntelligenceDashboard />;
+      case 'communication-velocity':
+        return <CommunicationVelocityWidget />;
+      case 'behavioral-anomalies':
+        return <BehavioralAnomalyDashboard />;
       default:
         return null;
     }

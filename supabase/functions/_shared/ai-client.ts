@@ -4,7 +4,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { checkRateLimit, createRateLimitResponse, type RateLimitResult } from './rate-limiter.ts';
 
-interface AIMessage {
+export interface AIMessage {
   role: 'system' | 'user' | 'assistant';
   content: string | any[]; // Allow multimodal content
 }
@@ -201,18 +201,32 @@ export async function callAI(options: AIRequestOptions): Promise<AIResponse> {
   let errorMessage: string | null = null;
 
   try {
+    // Build request body with optional tool calling
+    const requestBody: Record<string, unknown> = {
+      model,
+      messages: options.messages,
+      temperature: options.temperature ?? 0.7,
+    };
+
+    if (options.maxTokens) {
+      requestBody.max_completion_tokens = options.maxTokens;
+    }
+
+    // Add tool calling if specified
+    if (options.tools && options.tools.length > 0) {
+      requestBody.tools = options.tools;
+      if (options.toolChoice) {
+        requestBody.tool_choice = options.toolChoice;
+      }
+    }
+
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model,
-        messages: options.messages,
-        temperature: options.temperature ?? 0.7,
-        ...(options.maxTokens && { max_completion_tokens: options.maxTokens }),
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
@@ -244,14 +258,34 @@ export async function callAI(options: AIRequestOptions): Promise<AIResponse> {
     // Calculate cost
     const costCents = calculateCostCents(model, inputTokens, outputTokens);
     
+    // Extract content - handle both regular and tool call responses
+    let content = '';
+    let toolCalls: any[] | undefined;
+    
+    const choice = data.choices?.[0];
+    if (choice?.message) {
+      content = choice.message.content || '';
+      
+      // Extract tool calls if present
+      if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
+        toolCalls = choice.message.tool_calls;
+        // For tool calls, extract the structured data from the function arguments
+        const firstToolCall = choice.message.tool_calls[0];
+        if (firstToolCall?.function?.arguments) {
+          content = firstToolCall.function.arguments;
+        }
+      }
+    }
+    
     aiResponse = {
-      content: data.choices?.[0]?.message?.content || '',
+      content,
       inputTokens,
       outputTokens,
       totalTokens,
       costCents,
       responseTimeMs,
       model,
+      toolCalls,
     };
 
   } catch (error) {
