@@ -20,6 +20,7 @@ import {
   Image,
   Search,
   Clock,
+  Sparkles,
   Building2,
   Briefcase,
   Filter,
@@ -301,6 +302,13 @@ export function GlobalSearch() {
           <kbd className="hidden sm:inline-flex h-5 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
             <span className="text-xs">⌘</span>K
           </kbd>
+        </button>
+        <button
+          onClick={() => navigate('/semantic-search')}
+          className="flex items-center gap-1 px-2 py-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
+          title="AI-Powered Search"
+        >
+          <Sparkles className="h-4 w-4" />
         </button>
         <AdvancedContactSearch />
       </div>
