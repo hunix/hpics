@@ -97,9 +97,6 @@ type SectionId =
   | 'activity' | 'trust-assessment' | 'threat-assessment' | 'osint' | 'inferred-connections' | 'predictions'
   | 'dossier' | 'network-intel' | 'locations'
   | 'temporal' | 'trajectory' | 'triangulation' | 'consistency' | 'unified-profile' | 'shared-experiences';
-  | 'milestones' | 'comm-prefs' | 'interaction-notes' | 'playbook' | 'influence'
-  | 'activity' | 'trust-assessment' | 'dossier' | 'network-intel' | 'locations'
-  | 'temporal' | 'trajectory' | 'triangulation' | 'consistency' | 'unified-profile' | 'shared-experiences';
 
 interface NavSection {
   id: SectionId;
