@@ -123,15 +123,24 @@ export function BiometricSignatureStatus({
     queryFn: async () => {
       if (!user) return { detectedIn: 0, conversations: 0 };
       
+      // Count cross-contact detections
       const { count: detectedIn } = await supabase
         .from('cross_contact_detections')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
         .eq('detected_profile_id', profileId);
 
+      // Count conversations where this contact's voice/face was detected
+      const { count: conversationCount } = await supabase
+        .from('biometric_matches')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('matched_profile_id', profileId)
+        .in('match_type', ['voice', 'face']);
+
       return {
         detectedIn: detectedIn || 0,
-        conversations: 0 // TODO: implement conversation detection
+        conversations: conversationCount || 0
       };
     },
     enabled: !!user && !!profileId

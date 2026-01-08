@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
+import { CHURN_PROMPTS, fillTemplate } from "../_shared/prompts.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -189,39 +190,51 @@ serve(async (req) => {
       };
     }));
 
+    // Store predictions in churn_predictions table for accuracy tracking
+    const predictionsToStore = churnPredictions.filter(p => p.risk_score >= 30).slice(0, 20);
+    if (predictionsToStore.length > 0) {
+      const predictionRecords = predictionsToStore.map(p => ({
+        user_id: user.id,
+        profile_id: p.profile_id,
+        prediction_date: new Date().toISOString(),
+        predicted_churn_probability: p.risk_score / 100,
+        predicted_days_to_churn: p.days_to_critical > 0 ? p.days_to_critical : null,
+        risk_level: p.risk_level,
+        risk_score: p.risk_score,
+        contributing_factors: p.features,
+        model_used: selectModel('balanced'),
+        intervention_recommended: p.risk_level === 'critical' ? 'immediate_outreach' :
+                                  p.risk_level === 'high' ? 'scheduled_follow_up' : 'monitor',
+      }));
+
+      await supabase.from('churn_predictions').insert(predictionRecords);
+    }
+
     // For high-risk contacts, get AI intervention recommendations
     const highRiskContacts = churnPredictions.filter(p => p.risk_score >= 50).slice(0, 5);
     
     let aiRecommendations: any[] = [];
     if (highRiskContacts.length > 0) {
       try {
+        const systemPrompt = CHURN_PROMPTS.intervention.system;
+        const userPrompt = fillTemplate(CHURN_PROMPTS.intervention.userTemplate, {
+          contacts: JSON.stringify(highRiskContacts.map(c => ({
+            name: c.name,
+            relationship: c.relationship_type,
+            risk_score: c.risk_score,
+            features: c.features,
+          })), null, 2),
+        });
+
         const aiResponse = await callAI({
           model: selectModel('balanced'),
           messages: [
-            {
-              role: 'system',
-              content: 'You are a relationship intelligence expert. Provide specific, actionable recommendations to prevent relationship churn.',
-            },
-            {
-              role: 'user',
-              content: `Analyze these at-risk relationships and provide intervention recommendations:
-
-${JSON.stringify(highRiskContacts.map(c => ({
-  name: c.name,
-  relationship: c.relationship_type,
-  risk_score: c.risk_score,
-  features: c.features,
-})), null, 2)}
-
-For each contact, provide:
-1. Specific recommended action (what to do)
-2. Urgency level (immediate, this_week, this_month)
-3. Success probability if action is taken
-4. Alternative approach if first action fails`,
-            },
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
           ],
           userId: user.id,
           functionName: 'predict-churn',
+          promptKey: 'churn.intervention',
           temperature: 0.5,
           maxTokens: 1500,
           metadata: { high_risk_count: highRiskContacts.length },

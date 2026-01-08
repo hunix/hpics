@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { 
   Network, AlertTriangle, TrendingUp, Users, 
-  Calendar, Zap, Brain, Shield, Target, Clock
+  Calendar, Zap, Brain, Shield, Target, Clock, BarChart3
 } from 'lucide-react';
 import { NetworkGraph } from '@/components/network/NetworkGraph';
 import { RelationshipForecastWidget } from '@/components/intelligence/RelationshipForecastWidget';
@@ -14,6 +14,8 @@ import { NetworkRiskPanel } from '@/components/intelligence/NetworkRiskPanel';
 import { DailyBriefingWidget } from '@/components/intelligence/DailyBriefingWidget';
 import { IntroductionMatcherPanel } from '@/components/intelligence/IntroductionMatcherPanel';
 import { RelationshipOverviewWidget } from '@/components/intelligence/RelationshipOverviewWidget';
+import { PredictionAccuracyPanel } from '@/components/intelligence/PredictionAccuracyPanel';
+import { StructuralHolesPanel } from '@/components/intelligence/StructuralHolesPanel';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 
@@ -192,7 +194,7 @@ export default function NetworkIntelligence() {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <Network className="h-4 w-4" />
               Overview
@@ -208,6 +210,14 @@ export default function NetworkIntelligence() {
             <TabsTrigger value="opportunities" className="flex items-center gap-2">
               <Target className="h-4 w-4" />
               Opportunities
+            </TabsTrigger>
+            <TabsTrigger value="bridges" className="flex items-center gap-2">
+              <Zap className="h-4 w-4" />
+              Bridges
+            </TabsTrigger>
+            <TabsTrigger value="accuracy" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Accuracy
             </TabsTrigger>
             <TabsTrigger value="briefing" className="flex items-center gap-2">
               <Clock className="h-4 w-4" />
@@ -331,6 +341,14 @@ export default function NetworkIntelligence() {
 
           <TabsContent value="briefing" className="space-y-6">
             <DailyBriefingWidget />
+          </TabsContent>
+
+          <TabsContent value="bridges" className="space-y-6">
+            <StructuralHolesPanel />
+          </TabsContent>
+
+          <TabsContent value="accuracy" className="space-y-6">
+            <PredictionAccuracyPanel />
           </TabsContent>
         </Tabs>
       </div>

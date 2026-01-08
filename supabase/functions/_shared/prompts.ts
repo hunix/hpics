@@ -552,6 +552,22 @@ For each contact, provide:
 4. Alternative approach if first action fails
 5. Personalized outreach message suggestion`,
   },
+  intervention: {
+    system: `You are a relationship intelligence expert. Provide specific, actionable recommendations to prevent relationship churn.
+Focus on practical steps that can be taken immediately. Consider the relationship type and risk factors.
+Return JSON with a "recommendations" array.`,
+    userTemplate: `Analyze these at-risk relationships and provide intervention recommendations:
+
+{contacts}
+
+For each contact, return a JSON object with:
+- name: contact name
+- action: specific recommended action
+- urgency: "immediate" | "this_week" | "this_month"
+- success_probability: 0-100
+- alternative_approach: fallback if first action fails
+- outreach_message: personalized message suggestion`,
+  },
 };
 
 // ==================================
@@ -745,7 +761,7 @@ export function listPrompts(): Record<string, string[]> {
     enrichment: ['contact', 'interests'],
     trust: ['assessment'],
     synthesis: ['crossModal'],
-    churn: ['prediction'],
+    churn: ['prediction', 'intervention'],
     timing: ['outreach'],
     grouping: ['suggest'],
     playbook: ['generate'],

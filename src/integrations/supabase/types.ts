@@ -8990,6 +8990,7 @@ export type Database = {
           sent_at: string
         }[]
       }
+      verify_churn_prediction_outcomes: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "supervisor" | "analyst" | "viewer"
