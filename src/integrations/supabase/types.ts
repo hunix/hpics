@@ -5939,6 +5939,42 @@ export type Database = {
           },
         ]
       }
+      integration_configs: {
+        Row: {
+          config: Json | null
+          created_at: string
+          id: string
+          integration_type: string
+          is_enabled: boolean | null
+          last_used_at: string | null
+          updated_at: string
+          usage_count: number | null
+          user_id: string
+        }
+        Insert: {
+          config?: Json | null
+          created_at?: string
+          id?: string
+          integration_type: string
+          is_enabled?: boolean | null
+          last_used_at?: string | null
+          updated_at?: string
+          usage_count?: number | null
+          user_id: string
+        }
+        Update: {
+          config?: Json | null
+          created_at?: string
+          id?: string
+          integration_type?: string
+          is_enabled?: boolean | null
+          last_used_at?: string | null
+          updated_at?: string
+          usage_count?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       intelligence_alert_rules: {
         Row: {
           conditions: Json
@@ -6908,6 +6944,91 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      osint_findings: {
+        Row: {
+          created_at: string
+          finding_type: string
+          full_content: string | null
+          id: string
+          is_dismissed: boolean | null
+          is_important: boolean | null
+          is_verified: boolean | null
+          metadata: Json | null
+          profile_id: string
+          published_at: string | null
+          relevance_score: number | null
+          sentiment_score: number | null
+          snippet: string | null
+          source: string
+          source_url: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          finding_type: string
+          full_content?: string | null
+          id?: string
+          is_dismissed?: boolean | null
+          is_important?: boolean | null
+          is_verified?: boolean | null
+          metadata?: Json | null
+          profile_id: string
+          published_at?: string | null
+          relevance_score?: number | null
+          sentiment_score?: number | null
+          snippet?: string | null
+          source: string
+          source_url?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          finding_type?: string
+          full_content?: string | null
+          id?: string
+          is_dismissed?: boolean | null
+          is_important?: boolean | null
+          is_verified?: boolean | null
+          metadata?: Json | null
+          profile_id?: string
+          published_at?: string | null
+          relevance_score?: number | null
+          sentiment_score?: number | null
+          snippet?: string | null
+          source?: string
+          source_url?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "osint_findings_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "osint_findings_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "osint_findings_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       outlook_config: {
         Row: {
@@ -8092,6 +8213,85 @@ export type Database = {
           {
             foreignKeyName: "synced_calendar_events_matched_profile_id_fkey"
             columns: ["matched_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      threat_assessments: {
+        Row: {
+          assessment_type: string
+          contradictions: Json | null
+          created_at: string
+          evidence: Json | null
+          id: string
+          identity_confidence: number | null
+          indicators: Json | null
+          is_resolved: boolean | null
+          profile_id: string
+          recommendations: Json | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          threat_level: string
+          threat_score: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assessment_type: string
+          contradictions?: Json | null
+          created_at?: string
+          evidence?: Json | null
+          id?: string
+          identity_confidence?: number | null
+          indicators?: Json | null
+          is_resolved?: boolean | null
+          profile_id: string
+          recommendations?: Json | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          threat_level: string
+          threat_score?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assessment_type?: string
+          contradictions?: Json | null
+          created_at?: string
+          evidence?: Json | null
+          id?: string
+          identity_confidence?: number | null
+          indicators?: Json | null
+          is_resolved?: boolean | null
+          profile_id?: string
+          recommendations?: Json | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          threat_level?: string
+          threat_score?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "threat_assessments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "threat_assessments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "threat_assessments_profile_id_fkey"
+            columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
