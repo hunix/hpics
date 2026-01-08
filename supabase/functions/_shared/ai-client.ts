@@ -218,3 +218,50 @@ export function selectImageModel(quality: 'fast' | 'quality' = 'fast'): string {
     ? 'google/gemini-2.5-flash-image' 
     : 'google/gemini-3-pro-image-preview';
 }
+
+// Get user's preferred model for a specific analysis type
+export async function getUserPreferredModel(
+  userId: string,
+  analysisType: string,
+  defaultModel: string
+): Promise<string> {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const { data } = await supabase
+      .from('ai_model_preferences')
+      .select('model_key')
+      .eq('user_id', userId)
+      .eq('analysis_type', analysisType)
+      .maybeSingle();
+
+    return data?.model_key || defaultModel;
+  } catch (error) {
+    console.warn('Failed to fetch user model preference:', error);
+    return defaultModel;
+  }
+}
+
+// Map function names to analysis types for model preferences
+export const FUNCTION_TO_ANALYSIS_TYPE: Record<string, string> = {
+  'analyze-profile': 'profile_analysis',
+  'analyze-behavioral': 'behavioral_analysis',
+  'analyze-conversation': 'conversation_analysis',
+  'deep-psychological-analysis': 'psychological_analysis',
+  'generate-briefing': 'briefing',
+  'generate-dossier': 'dossier',
+  'generate-playbook': 'playbook',
+  'suggest-followups': 'followup_suggestions',
+  'suggest-gifts': 'gift_suggestions',
+  'suggest-introductions': 'introduction_suggestions',
+  'predict-risks': 'risk_prediction',
+  'extract-body-biometrics': 'biometric_analysis',
+  'extract-handwriting-biometrics': 'biometric_analysis',
+  'extract-facial-multiview': 'facial_analysis',
+  'aggregate-bulk-results': 'bulk_analysis',
+  'generate-weekly-summary': 'weekly_summary',
+  'generate-media-metadata': 'media_analysis',
+  'rag-query': 'rag_query',
+};
