@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -89,15 +90,6 @@ serve(async (req) => {
       });
     }
 
-    // Use AI to find relevant documents and generate an answer
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: 'AI API not configured' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
     // Prepare context from all embeddings
     const documentsContext = embeddings.map((e, i) => 
       `[Document ${i + 1}] Source: ${e.source_type}, Summary: ${e.content_summary}\nContent: ${e.content?.substring(0, 1000) || 'No content'}`
@@ -110,7 +102,14 @@ Your job is to:
 2. Provide a helpful, concise answer based on the documents
 3. Return which document indices are most relevant (1-indexed)
 
-Be specific and accurate. If you cannot find relevant information, say so clearly.`;
+Be specific and accurate. If you cannot find relevant information, say so clearly.
+
+Return your response as JSON with the following structure:
+{
+  "relevant_indices": [1, 2, 3],
+  "answer": "Your helpful answer based on the documents",
+  "confidence": 0.85
+}`;
 
     const userPrompt = `User's question: "${query}"
 
@@ -119,79 +118,27 @@ ${documentsContext}
 
 Find the relevant documents and answer the question. If the user is looking for a specific document, tell them which one matches and provide key details like document numbers, expiry dates, etc.`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        tools: [{
-          type: 'function',
-          function: {
-            name: 'search_results',
-            description: 'Return search results with relevant document indices and an answer',
-            parameters: {
-              type: 'object',
-              properties: {
-                relevant_indices: {
-                  type: 'array',
-                  items: { type: 'integer' },
-                  description: '1-indexed list of relevant document numbers',
-                },
-                answer: {
-                  type: 'string',
-                  description: 'A helpful answer to the user query based on the documents',
-                },
-                confidence: {
-                  type: 'number',
-                  description: '0-1 confidence score',
-                },
-              },
-              required: ['relevant_indices', 'answer'],
-            },
-          },
-        }],
-        tool_choice: { type: 'function', function: { name: 'search_results' } },
-      }),
+    // Use unified AI client
+    const aiResponse = await callAI({
+      model: selectModel('balanced'),
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      userId: user.id,
+      functionName: 'search-documents',
+      temperature: 0.3,
+      maxTokens: 1500,
+      metadata: { query, documentCount: embeddings.length },
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI API error:', response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      
-      return new Response(JSON.stringify({ error: 'Search failed' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    // Parse AI response
+    const searchResult = parseAIJson(aiResponse.content, {
+      relevant_indices: [],
+      answer: 'Could not process the search query.',
+      confidence: 0,
+    });
 
-    const aiResult = await response.json();
-    const toolCall = aiResult.choices?.[0]?.message?.tool_calls?.[0];
-
-    if (!toolCall?.function?.arguments) {
-      return new Response(JSON.stringify({
-        success: true,
-        results: [],
-        answer: 'Could not process the search query.',
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const searchResult = JSON.parse(toolCall.function.arguments);
     console.log('AI search result:', searchResult);
 
     // Get the relevant embeddings
@@ -244,12 +191,40 @@ Find the relevant documents and answer the question. If the user is looking for 
       results: enrichedResults,
       answer: searchResult.answer,
       confidence: searchResult.confidence,
+      aiCost: {
+        tokens: aiResponse.totalTokens,
+        costCents: aiResponse.costCents,
+        model: aiResponse.model,
+      },
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
     console.error('Error in search-documents:', error);
+    
+    // Handle specific AI errors
+    if (error instanceof Error) {
+      if (error.name === 'RateLimitError') {
+        return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (error.name === 'CreditsExhaustedError') {
+        return new Response(JSON.stringify({ error: 'AI credits exhausted' }), {
+          status: 402,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (error.name === 'BudgetExceededError') {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 402,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+    
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

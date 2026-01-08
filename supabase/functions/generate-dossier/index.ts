@@ -324,6 +324,7 @@ Reference sources using [Source N] when citing evidence. Be objective, evidence-
         functionName: 'generate-dossier',
         profileId: profile_id,
         maxTokens: 2000,
+        enforceBudget: true,
       });
 
       const parsed = parseAIJson(aiResponse.content, { key_findings: [], risk_assessment: null, recommendations: [] });

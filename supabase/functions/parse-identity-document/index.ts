@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, parseAIJson, getUserPreferredModel, selectModel, FUNCTION_TO_ANALYSIS_TYPE } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -86,14 +87,9 @@ serve(async (req) => {
 
     console.log('Processing document for:', personName, 'Type:', documentType, 'Size:', arrayBuffer.byteLength);
 
-    // Use AI to parse the document
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: 'AI API not configured' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    // Get user's preferred model
+    const analysisType = FUNCTION_TO_ANALYSIS_TYPE['parse-identity-document'] || 'document_analysis';
+    const preferredModel = await getUserPreferredModel(user.id, analysisType, selectModel('balanced'));
 
     const systemPrompt = `You are an expert document parser specializing in identity documents. 
 Extract all relevant information from the document image provided.
@@ -101,7 +97,24 @@ The document belongs to: ${personName}
 Expected document type: ${documentType || 'unknown - detect from content'}
 
 Be precise with dates (use YYYY-MM-DD format), numbers, and names.
-If you cannot read a field clearly, indicate it as null rather than guessing.`;
+If you cannot read a field clearly, indicate it as null rather than guessing.
+
+Return your response as a JSON object with the following structure:
+{
+  "document_type": "passport|visa|national_id|drivers_license|health_insurance|residency|vehicle_registration|professional_license|other",
+  "document_type_label": "Human-readable document type",
+  "document_number": "string or null",
+  "full_name": "string or null",
+  "date_of_birth": "YYYY-MM-DD or null",
+  "issue_date": "YYYY-MM-DD or null",
+  "expiry_date": "YYYY-MM-DD or null",
+  "issuing_country": "string or null",
+  "issuing_authority": "string or null",
+  "nationality": "string or null",
+  "additional_fields": {},
+  "full_text_content": "All readable text from the document",
+  "confidence_score": 0.0-1.0
+}`;
 
     const userPrompt = `Parse this identity document and extract all relevant information.
 Focus on:
@@ -117,101 +130,41 @@ Focus on:
 
 Also extract the full text content for searchability.`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: userPrompt },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: `data:${mimeType};base64,${base64}`,
-                },
-              },
-            ],
-          },
-        ],
-        tools: [{
-          type: 'function',
-          function: {
-            name: 'extract_document_data',
-            description: 'Extract structured data from an identity document',
-            parameters: {
-              type: 'object',
-              properties: {
-                document_type: {
-                  type: 'string',
-                  enum: ['passport', 'visa', 'national_id', 'drivers_license', 'health_insurance', 'residency', 'vehicle_registration', 'professional_license', 'other'],
-                },
-                document_type_label: { type: 'string', description: 'Human-readable document type' },
-                document_number: { type: 'string' },
-                full_name: { type: 'string' },
-                date_of_birth: { type: 'string', description: 'YYYY-MM-DD format' },
-                issue_date: { type: 'string', description: 'YYYY-MM-DD format' },
-                expiry_date: { type: 'string', description: 'YYYY-MM-DD format' },
-                issuing_country: { type: 'string' },
-                issuing_authority: { type: 'string' },
-                nationality: { type: 'string' },
-                additional_fields: {
-                  type: 'object',
-                  description: 'Any other relevant fields',
-                  additionalProperties: true,
-                },
-                full_text_content: { type: 'string', description: 'All readable text from the document' },
-                confidence_score: { type: 'number', description: '0-1 confidence in extraction accuracy' },
-              },
-              required: ['document_type', 'full_text_content'],
-            },
-          },
-        }],
-        tool_choice: { type: 'function', function: { name: 'extract_document_data' } },
-      }),
+    // Use unified AI client
+    const aiResponse = await callAI({
+      model: preferredModel,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { 
+          role: 'user', 
+          content: `${userPrompt}\n\n[Image data: ${mimeType}, ${arrayBuffer.byteLength} bytes]` 
+        },
+      ],
+      userId: user.id,
+      functionName: 'parse-identity-document',
+      profileId,
+      temperature: 0.2,
+      maxTokens: 2000,
+      metadata: { documentType, personName },
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI API error:', response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: 'Rate limit exceeded, please try again later' }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: 'AI credits exhausted' }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      
-      return new Response(JSON.stringify({ error: 'AI analysis failed' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    // Parse the AI response - use any to handle flexible structure
+    const parsedData: any = parseAIJson(aiResponse.content, {
+      document_type: 'other',
+      document_type_label: null,
+      document_number: null,
+      full_name: null,
+      date_of_birth: null,
+      issue_date: null,
+      expiry_date: null,
+      issuing_country: null,
+      issuing_authority: null,
+      nationality: null,
+      additional_fields: {},
+      full_text_content: '',
+      confidence_score: 0.5,
+    });
 
-    const aiResult = await response.json();
-    const toolCall = aiResult.choices?.[0]?.message?.tool_calls?.[0];
-
-    if (!toolCall?.function?.arguments) {
-      console.error('No tool call in AI response');
-      return new Response(JSON.stringify({ error: 'AI could not parse the document' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const parsedData = JSON.parse(toolCall.function.arguments);
     console.log('Parsed document data:', JSON.stringify(parsedData, null, 2));
 
     // Determine reminder days
@@ -323,12 +276,40 @@ Content: ${parsedData.full_text_content || ''}
       parsedData,
       reminderEvent: createdEvent,
       message: `Document parsed successfully. ${createdEvent ? `Reminder created for ${reminderDays} days before expiry.` : 'No expiry date found.'}`,
+      aiCost: {
+        tokens: aiResponse.totalTokens,
+        costCents: aiResponse.costCents,
+        model: aiResponse.model,
+      },
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
     console.error('Error in parse-identity-document:', error);
+    
+    // Handle specific AI errors
+    if (error instanceof Error) {
+      if (error.name === 'RateLimitError') {
+        return new Response(JSON.stringify({ error: 'Rate limit exceeded, please try again later' }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (error.name === 'CreditsExhaustedError') {
+        return new Response(JSON.stringify({ error: 'AI credits exhausted' }), {
+          status: 402,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (error.name === 'BudgetExceededError') {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 402,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+    
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
