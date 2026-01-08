@@ -49,10 +49,10 @@ export function IntelligenceInsightsWidget() {
           .gte('occurred_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
         supabase
           .from('relationship_scores')
-          .select('profile_id, score, profiles(first_name, last_name)')
+          .select('profile_id, overall_score, profiles(first_name, last_name)')
           .eq('user_id', user!.id)
-          .lt('score', 50)
-          .order('score', { ascending: true })
+          .lt('overall_score', 50)
+          .order('overall_score', { ascending: true })
           .limit(5),
       ]);
 

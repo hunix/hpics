@@ -19,7 +19,7 @@ export function CalendarSyncStatus() {
       // Fetch Google Calendar config
       const { data: googleConfig } = await supabase
         .from('google_calendar_config' as any)
-        .select('updated_at, auto_sync_enabled, sync_interval_minutes, calendar_count')
+        .select('updated_at, auto_sync_enabled, sync_interval_minutes, calendar_ids')
         .eq('user_id', user!.id)
         .maybeSingle() as any;
 
@@ -39,7 +39,7 @@ export function CalendarSyncStatus() {
           lastSync: googleConfig.updated_at,
           autoSync: googleConfig.auto_sync_enabled ?? true,
           interval: googleConfig.sync_interval_minutes || 60,
-          calendarCount: googleConfig.calendar_count || 1,
+          calendarCount: googleConfig.calendar_ids?.length || 1,
         });
       }
 
