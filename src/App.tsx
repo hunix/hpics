@@ -33,6 +33,7 @@ import Install from "./pages/Install";
 import Security from "./pages/Security";
 import NetworkIntelligence from "./pages/NetworkIntelligence";
 import SemanticSearchPage from "./pages/SemanticSearchPage";
+import CounterIntelligence from "./pages/CounterIntelligence";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -74,6 +75,7 @@ const App = () => (
                     <Route path="/security" element={<Security />} />
                     <Route path="/network-intelligence" element={<NetworkIntelligence />} />
                     <Route path="/semantic-search" element={<SemanticSearchPage />} />
+                    <Route path="/counter-intelligence" element={<CounterIntelligence />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </BrowserRouter>
