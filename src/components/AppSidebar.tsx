@@ -1,4 +1,4 @@
-import { Users, MessageSquare, FileText, Image, Calendar, Brain, LayoutDashboard, LogOut, Upload, Settings, Network, CalendarDays, Video, Scan, BarChart3, FileBarChart, UsersRound, Download, Shield, Waypoints } from 'lucide-react';
+import { Users, MessageSquare, FileText, Image, Calendar, Brain, LayoutDashboard, LogOut, Upload, Settings, Network, CalendarDays, Video, Scan, BarChart3, FileBarChart, UsersRound, Download, Shield, Waypoints, Sparkles, ShieldAlert } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -30,7 +30,9 @@ const mainNavItems = [
 
 const toolsNavItems = [
   { title: 'AI Insights', url: '/insights', icon: Brain },
+  { title: 'AI Search', url: '/semantic-search', icon: Sparkles },
   { title: 'Network Intelligence', url: '/network-intelligence', icon: Waypoints },
+  { title: 'Counter-Intelligence', url: '/counter-intelligence', icon: ShieldAlert },
   { title: 'Media Analysis', url: '/analysis', icon: Scan },
   { title: 'Analysis Dashboard', url: '/analysis/dashboard', icon: BarChart3 },
   { title: 'Video Analysis', url: '/video-analysis', icon: Video },

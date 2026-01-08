@@ -16,6 +16,7 @@ import { IntroductionMatcherPanel } from '@/components/intelligence/Introduction
 import { RelationshipOverviewWidget } from '@/components/intelligence/RelationshipOverviewWidget';
 import { PredictionAccuracyPanel } from '@/components/intelligence/PredictionAccuracyPanel';
 import { StructuralHolesPanel } from '@/components/intelligence/StructuralHolesPanel';
+import { MeetingPrepWidget } from '@/components/calendar/MeetingPrepWidget';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 
@@ -345,6 +346,15 @@ export default function NetworkIntelligence() {
 
           <TabsContent value="bridges" className="space-y-6">
             <StructuralHolesPanel />
+          </TabsContent>
+
+          <TabsContent value="accuracy" className="space-y-6">
+            <PredictionAccuracyPanel />
+          </TabsContent>
+
+          <TabsContent value="briefing" className="space-y-6">
+            <DailyBriefingWidget />
+            <MeetingPrepWidget />
           </TabsContent>
 
           <TabsContent value="accuracy" className="space-y-6">
