@@ -36,7 +36,7 @@ export function NetworkGrowthOptimizer() {
       // Get all profiles
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('id, current_company, current_location');
+        .select('id, organization, job_title, relationship_type');
 
       if (error) throw error;
 
@@ -46,16 +46,16 @@ export function NetworkGrowthOptimizer() {
       const relationshipTypes: Record<string, number> = {};
 
       profiles?.forEach(p => {
-        // Industry (using company as proxy)
-        const industry = p.current_company || 'Unknown';
+        // Industry (using organization as proxy)
+        const industry = p.organization || 'Unknown';
         industryDistribution[industry] = (industryDistribution[industry] || 0) + 1;
 
-        // Geographic
-        const location = p.current_location?.split(',')[0]?.trim() || 'Unknown';
-        geographicDistribution[location] = (geographicDistribution[location] || 0) + 1;
+        // Job title distribution as proxy for geographic diversity
+        const role = p.job_title?.split(' ')[0] || 'Unknown';
+        geographicDistribution[role] = (geographicDistribution[role] || 0) + 1;
 
-        // Relationship type - default distribution
-        const relType = 'professional';
+        // Relationship type
+        const relType = p.relationship_type || 'other';
         relationshipTypes[relType] = (relationshipTypes[relType] || 0) + 1;
       });
 
