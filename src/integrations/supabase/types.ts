@@ -158,6 +158,75 @@ export type Database = {
           },
         ]
       }
+      ai_budget_history: {
+        Row: {
+          budget_type: string
+          change_reason: string | null
+          changed_at: string
+          id: string
+          new_value_cents: number | null
+          old_value_cents: number | null
+          user_id: string
+        }
+        Insert: {
+          budget_type: string
+          change_reason?: string | null
+          changed_at?: string
+          id?: string
+          new_value_cents?: number | null
+          old_value_cents?: number | null
+          user_id: string
+        }
+        Update: {
+          budget_type?: string
+          change_reason?: string | null
+          changed_at?: string
+          id?: string
+          new_value_cents?: number | null
+          old_value_cents?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_cost_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          id: string
+          is_enabled: boolean
+          last_triggered_at: string | null
+          notification_channels: string[] | null
+          threshold_percent: number
+          trigger_count: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          last_triggered_at?: string | null
+          notification_channels?: string[] | null
+          threshold_percent?: number
+          trigger_count?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          last_triggered_at?: string | null
+          notification_channels?: string[] | null
+          threshold_percent?: number
+          trigger_count?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_group_suggestions: {
         Row: {
           confidence_score: number | null
@@ -1958,6 +2027,70 @@ export type Database = {
           },
           {
             foreignKeyName: "contact_activity_feed_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_ai_spend: {
+        Row: {
+          breakdown_by_function: Json | null
+          breakdown_by_model: Json | null
+          created_at: string
+          id: string
+          period_end: string
+          period_start: string
+          profile_id: string
+          total_calls: number
+          total_cost_cents: number
+          total_tokens: number
+          user_id: string
+        }
+        Insert: {
+          breakdown_by_function?: Json | null
+          breakdown_by_model?: Json | null
+          created_at?: string
+          id?: string
+          period_end: string
+          period_start: string
+          profile_id: string
+          total_calls?: number
+          total_cost_cents?: number
+          total_tokens?: number
+          user_id: string
+        }
+        Update: {
+          breakdown_by_function?: Json | null
+          breakdown_by_model?: Json | null
+          created_at?: string
+          id?: string
+          period_end?: string
+          period_start?: string
+          profile_id?: string
+          total_calls?: number
+          total_cost_cents?: number
+          total_tokens?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_ai_spend_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_ai_spend_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_ai_spend_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
