@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { RealtimeProvider } from "@/components/providers/RealtimeProvider";
 import { AIConfirmationProvider } from "@/contexts/AIConfirmationContext";
+import { AIBudgetWarning } from "@/components/ai/AIBudgetWarning";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -45,6 +46,7 @@ const App = () => (
               <AIConfirmationProvider>
                 <Toaster />
                 <Sonner />
+                <AIBudgetWarning />
                 <BrowserRouter>
                   <Routes>
                     <Route path="/" element={<Index />} />

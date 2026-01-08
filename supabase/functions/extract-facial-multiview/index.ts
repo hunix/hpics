@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, parseAIJson, getUserPreferredModel, FUNCTION_TO_ANALYSIS_TYPE } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,20 +16,18 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) throw new Error('No authorization header');
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) throw new Error('Invalid token');
 
-    const { profileId, imageUrls, model = 'google/gemini-2.5-flash' } = await req.json();
+    const { profileId, imageUrls, model: requestedModel } = await req.json();
     if (!profileId || !imageUrls?.length) throw new Error('Missing required parameters');
 
-    const startTime = Date.now();
-    const apiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!apiKey) throw new Error('API key not configured');
+    // Get user's preferred model or use default
+    const analysisType = FUNCTION_TO_ANALYSIS_TYPE['extract-facial-multiview'] || 'facial_analysis';
+    const model = requestedModel || await getUserPreferredModel(user.id, analysisType, 'google/gemini-2.5-flash');
 
     // Build prompt for multi-view facial analysis
     const prompt = `Analyze these ${imageUrls.length} facial images for biometric enrollment. For each image, determine:
@@ -54,31 +53,22 @@ Respond in JSON format:
   }
 }`;
 
-    const content = [
+    // Build message content with images
+    const content: any[] = [
       { type: "text", text: prompt },
       ...imageUrls.map((url: string) => ({ type: "image_url", image_url: { url } }))
     ];
 
-    const response = await fetch('https://api.lovable.dev/api/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: 'user', content }],
-        max_tokens: 2000
-      })
+    const aiResponse = await callAI({
+      model,
+      messages: [{ role: 'user', content: JSON.stringify(content) }],
+      userId: user.id,
+      functionName: 'extract-facial-multiview',
+      profileId,
+      maxTokens: 2000,
     });
 
-    if (!response.ok) throw new Error(`API error: ${response.status}`);
-    const result = await response.json();
-    const responseTime = Date.now() - startTime;
-
-    let analysis;
-    try {
-      const text = result.choices[0].message.content;
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-    } catch { analysis = null; }
+    const analysis: any = parseAIJson(aiResponse.content, null);
 
     if (!analysis?.combined) {
       return new Response(JSON.stringify({ success: false, error: 'No face detected' }), {
@@ -112,21 +102,12 @@ Respond in JSON format:
       await supabase.from('contact_biometrics').insert({ user_id: user.id, profile_id: profileId, ...biometricData });
     }
 
-    // Log usage
-    await supabase.from('ai_usage_logs').insert({
-      user_id: user.id,
-      profile_id: profileId,
-      function_name: 'extract-facial-multiview',
-      model_name: model,
-      provider: 'lovable',
-      estimated_cost_cents: Math.ceil(imageUrls.length * 3),
-      input_tokens: result.usage?.prompt_tokens || 0,
-      output_tokens: result.usage?.completion_tokens || 0,
-      response_time_ms: responseTime,
-      status: 'success'
-    });
-
-    return new Response(JSON.stringify({ success: true, analysis: analysis.combined }), {
+    return new Response(JSON.stringify({ 
+      success: true, 
+      analysis: analysis.combined,
+      tokensUsed: aiResponse.totalTokens,
+      costCents: aiResponse.costCents,
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 

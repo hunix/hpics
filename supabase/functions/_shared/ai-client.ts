@@ -21,6 +21,8 @@ interface AIRequestOptions {
   // Prompt tracking for A/B testing
   promptKey?: string;
   promptVersion?: number;
+  // Budget enforcement
+  enforceBudget?: boolean;
 }
 
 interface AIResponse {
@@ -67,6 +69,67 @@ function getProvider(model: string): string {
   return 'unknown';
 }
 
+// Budget check helper
+async function checkUserBudget(
+  supabase: any,
+  userId: string
+): Promise<{ exceeded: boolean; period: string | null }> {
+  try {
+    // Get user preferences with budget settings
+    const { data: prefs } = await supabase
+      .from('user_preferences')
+      .select('ai_budget_daily_cents, ai_budget_weekly_cents, ai_budget_monthly_cents')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (!prefs) return { exceeded: false, period: null };
+
+    const now = new Date();
+    const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay());
+    const weekStartISO = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate()).toISOString();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+    // Get current spending
+    const { data: usage } = await supabase
+      .from('ai_usage_logs')
+      .select('actual_cost_cents, created_at')
+      .eq('user_id', userId)
+      .eq('status', 'completed')
+      .gte('created_at', monthStart);
+
+    if (!usage) return { exceeded: false, period: null };
+
+    const dailySpend = usage
+      .filter((u: any) => u.created_at >= dayStart)
+      .reduce((sum: number, u: any) => sum + (u.actual_cost_cents || 0), 0);
+
+    const weeklySpend = usage
+      .filter((u: any) => u.created_at >= weekStartISO)
+      .reduce((sum: number, u: any) => sum + (u.actual_cost_cents || 0), 0);
+
+    const monthlySpend = usage
+      .reduce((sum: number, u: any) => sum + (u.actual_cost_cents || 0), 0);
+
+    // Check limits
+    if (prefs.ai_budget_daily_cents && dailySpend >= prefs.ai_budget_daily_cents) {
+      return { exceeded: true, period: 'daily' };
+    }
+    if (prefs.ai_budget_weekly_cents && weeklySpend >= prefs.ai_budget_weekly_cents) {
+      return { exceeded: true, period: 'weekly' };
+    }
+    if (prefs.ai_budget_monthly_cents && monthlySpend >= prefs.ai_budget_monthly_cents) {
+      return { exceeded: true, period: 'monthly' };
+    }
+
+    return { exceeded: false, period: null };
+  } catch (error) {
+    console.warn('Budget check failed:', error);
+    return { exceeded: false, period: null }; // Fail open
+  }
+}
+
 export async function callAI(options: AIRequestOptions): Promise<AIResponse> {
   const startTime = Date.now();
   const model = options.model || 'google/gemini-2.5-flash';
@@ -79,6 +142,14 @@ export async function callAI(options: AIRequestOptions): Promise<AIResponse> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  // Budget enforcement check
+  if (options.enforceBudget && options.userId) {
+    const budgetCheck = await checkUserBudget(supabase, options.userId);
+    if (budgetCheck.exceeded) {
+      throw new Error(`AI budget limit exceeded for ${budgetCheck.period}. Please wait until the limit resets or increase your budget.`);
+    }
+  }
 
   let aiResponse: AIResponse;
   let errorMessage: string | null = null;
