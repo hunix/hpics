@@ -4425,6 +4425,7 @@ export type Database = {
           content_summary: string | null
           created_at: string | null
           embedding: string | null
+          embedding_vector: string | null
           id: string
           metadata: Json | null
           profile_id: string | null
@@ -4438,6 +4439,7 @@ export type Database = {
           content_summary?: string | null
           created_at?: string | null
           embedding?: string | null
+          embedding_vector?: string | null
           id?: string
           metadata?: Json | null
           profile_id?: string | null
@@ -4451,6 +4453,7 @@ export type Database = {
           content_summary?: string | null
           created_at?: string | null
           embedding?: string | null
+          embedding_vector?: string | null
           id?: string
           metadata?: Json | null
           profile_id?: string | null
@@ -4982,6 +4985,88 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      enrichment_queue: {
+        Row: {
+          attempts: number | null
+          completed_at: string | null
+          created_at: string | null
+          enrichment_type: string
+          error_message: string | null
+          id: string
+          max_attempts: number | null
+          metadata: Json | null
+          priority: number | null
+          profile_id: string | null
+          scheduled_for: string | null
+          source_id: string | null
+          source_type: string
+          started_at: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          attempts?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          enrichment_type: string
+          error_message?: string | null
+          id?: string
+          max_attempts?: number | null
+          metadata?: Json | null
+          priority?: number | null
+          profile_id?: string | null
+          scheduled_for?: string | null
+          source_id?: string | null
+          source_type: string
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          attempts?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          enrichment_type?: string
+          error_message?: string | null
+          id?: string
+          max_attempts?: number | null
+          metadata?: Json | null
+          priority?: number | null
+          profile_id?: string | null
+          scheduled_for?: string | null
+          source_id?: string | null
+          source_type?: string
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enrichment_queue_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "enrichment_queue_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "enrichment_queue_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       entity_links: {
         Row: {
@@ -8892,6 +8977,26 @@ export type Database = {
           p_session_id: string
         }
         Returns: undefined
+      }
+      match_documents: {
+        Args: {
+          p_match_count?: number
+          p_match_threshold?: number
+          p_profile_id?: string
+          p_query_embedding: string
+          p_source_types?: string[]
+          p_user_id: string
+        }
+        Returns: {
+          content: string
+          content_summary: string
+          id: string
+          metadata: Json
+          profile_id: string
+          similarity: number
+          source_id: string
+          source_type: string
+        }[]
       }
       merge_duplicate_profiles: {
         Args: {
