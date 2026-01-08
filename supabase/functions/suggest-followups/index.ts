@@ -41,7 +41,16 @@ serve(async (req) => {
     const userId = claimsData.claims.sub as string;
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const { modelTier = 'speed' } = await req.json();
+    let modelTier = 'speed';
+    try {
+      const body = await req.text();
+      if (body) {
+        const parsed = JSON.parse(body);
+        modelTier = parsed.modelTier || 'speed';
+      }
+    } catch {
+      // No body or invalid JSON - use defaults
+    }
 
     // Fetch contacts with their last communication
     const { data: profiles, error: profilesError } = await supabase

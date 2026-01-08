@@ -42,7 +42,16 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { modelTier = 'balanced' } = await req.json();
+    let modelTier = 'balanced';
+    try {
+      const body = await req.text();
+      if (body) {
+        const parsed = JSON.parse(body);
+        modelTier = parsed.modelTier || 'balanced';
+      }
+    } catch {
+      // No body or invalid JSON - use defaults
+    }
 
     // Fetch all profiles with their communication data
     const { data: profiles, error: profilesError } = await supabase

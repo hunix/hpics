@@ -91,7 +91,7 @@ export function RelationshipForecastWidget() {
   const growing = predictions.filter(p => p.trajectory === 'growing');
 
   const summary = {
-    atRisk: atRisk.length,
+    at_risk: atRisk.length,
     declining: declining.length,
     stable: predictions.filter(p => p.trajectory === 'stable').length,
     growing: growing.length,
