@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { callAI, parseAIJson, selectModel, ModelTier } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -267,7 +268,8 @@ serve(async (req) => {
       analysis_modes, 
       analysis_context, 
       analysis_depth = 'standard',
-      model_override
+      model_override,
+      modelTier,
     } = await req.json();
 
     console.log(`Starting ${media_type} analysis for ${analysis_modes.length} modes`);
@@ -291,9 +293,8 @@ serve(async (req) => {
     }
 
     // Determine model based on media type and depth
-    const model = model_override || (
-      analysis_depth === 'deep' ? 'google/gemini-2.5-pro' : 'google/gemini-2.5-flash'
-    );
+    const tier: ModelTier = analysis_depth === 'deep' ? 'quality' : 'balanced';
+    const model = model_override || selectModel((modelTier as ModelTier) || tier);
 
     // Build comprehensive prompt
     const systemPrompt = `You are an expert analyst specialized in extracting maximum intelligence from ${media_type} content.
@@ -331,7 +332,6 @@ Be thorough and extract maximum intelligence.`;
     let messages: any[];
     
     if (media_type === 'document') {
-      // For documents, we may need to fetch content first
       messages = [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: `${userPrompt}\n\nDocument URL: ${media_url}` }
@@ -348,7 +348,6 @@ Be thorough and extract maximum intelligence.`;
         }
       ];
     } else if (media_type === 'video' || media_type === 'audio') {
-      // For video/audio, include URL for models that support it
       messages = [
         { role: 'system', content: systemPrompt },
         { 
@@ -365,134 +364,77 @@ Be thorough and extract maximum intelligence.`;
       ];
     }
 
-    // Call AI
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
+    // Call AI using unified wrapper
+    const maxTokens = analysis_depth === 'deep' ? 8000 : analysis_depth === 'quick' ? 2000 : 4000;
+    
+    const aiResponse = await callAI({
+      model,
+      messages,
+      userId,
+      functionName: 'analyze-media-deep',
+      profileId: profile_id,
+      temperature: 0.3,
+      maxTokens,
+      metadata: {
+        media_type,
+        analysis_modes,
+        analysis_depth,
+        media_id,
+        document_id,
       },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature: 0.3,
-        max_tokens: analysis_depth === 'deep' ? 8000 : analysis_depth === 'quick' ? 2000 : 4000,
-      }),
     });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI API error:', errorText);
-      throw new Error(`AI API error: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
-    const content = aiData.choices[0]?.message?.content;
-
-    if (!content) {
-      throw new Error('No response from AI');
-    }
-
     // Parse JSON response
-    let analysisResult: any;
-    try {
-      // Try to extract JSON from the response
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        analysisResult = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('No JSON found in response');
-      }
-    } catch (parseError) {
-      console.error('JSON parse error:', parseError);
-      // Create structured result from raw content
-      analysisResult = {
-        raw_analysis: content,
-        key_insights: ['Analysis completed but structured extraction failed'],
-        parse_error: true,
-      };
+    const analysisResult = parseAIJson(aiResponse.content, {
+      error: 'Failed to parse analysis',
+      key_insights: [],
+      overall_confidence: 0,
+    });
+
+    // Store the analysis result
+    if (media_id) {
+      await supabase
+        .from('media_analyses')
+        .upsert({
+          media_id,
+          user_id: userId,
+          analysis_type: 'deep_multi_mode',
+          analysis_modes,
+          analysis_depth,
+          result: analysisResult,
+          ai_model_used: model,
+          cost_cents: aiResponse.costCents,
+          created_at: new Date().toISOString(),
+        }, {
+          onConflict: 'media_id,analysis_type',
+        });
     }
 
-    const processingTime = Date.now() - startTime;
-    const tokenUsage = aiData.usage || {};
-
-    // Calculate estimated cost (rough estimate)
-    const inputCost = (tokenUsage.prompt_tokens || 0) * 0.0001;
-    const outputCost = (tokenUsage.completion_tokens || 0) * 0.0003;
-    const estimatedCostCents = Math.round((inputCost + outputCost) * 100);
-
-    // Map analysis results to database columns
-    const dbRecord: any = {
-      media_id: media_id || null,
-      document_id: document_id || null,
-      profile_id: profile_id || null,
-      user_id: userId,
-      media_type,
-      analysis_context,
-      analysis_modes,
-      analysis_depth,
-      model_used: model,
-      key_insights: analysisResult.key_insights || [],
-      red_flags: analysisResult.red_flags || [],
-      yellow_flags: analysisResult.yellow_flags || [],
-      action_items: analysisResult.action_items || [],
-      personality_cues: analysisResult.personality_cues || null,
-      certainties: analysisResult.certainties || [],
-      confidence_score: analysisResult.overall_confidence || null,
-      processing_time_ms: processingTime,
-      token_usage: tokenUsage,
-      estimated_cost_cents: estimatedCostCents,
-    };
-
-    // Map specific analysis results
-    if (analysisResult.face_intelligence) dbRecord.face_intelligence = analysisResult.face_intelligence;
-    if (analysisResult.scene_intelligence) dbRecord.scene_intelligence = analysisResult.scene_intelligence;
-    if (analysisResult.vocal_psychology) dbRecord.vocal_psychology = analysisResult.vocal_psychology;
-    if (analysisResult.content_intelligence) dbRecord.content_intelligence = analysisResult.content_intelligence;
-    if (analysisResult.behavioral_full) dbRecord.behavioral_analysis = analysisResult.behavioral_full;
-    if (analysisResult.entity_extraction) dbRecord.entity_extraction = analysisResult.entity_extraction;
-    if (analysisResult.relationship_mapping || analysisResult.relationship_intelligence) {
-      dbRecord.relationship_mapping = analysisResult.relationship_mapping || analysisResult.relationship_intelligence;
-    }
-    if (analysisResult.sentiment_timeline || analysisResult.sentiment_tone) {
-      dbRecord.sentiment_analysis = analysisResult.sentiment_timeline || analysisResult.sentiment_tone;
-    }
-    if (analysisResult.lifestyle_profiling) dbRecord.lifestyle_profiling = analysisResult.lifestyle_profiling;
-    if (analysisResult.document_extraction) dbRecord.document_extraction = analysisResult.document_extraction;
-    if (analysisResult.temporal_emotions || analysisResult.engagement_metrics) {
-      dbRecord.temporal_analysis = analysisResult.temporal_emotions || analysisResult.engagement_metrics;
-    }
-
-    // Save to database
-    const { data: savedAnalysis, error: saveError } = await supabase
-      .from('media_analyses')
-      .insert(dbRecord)
-      .select()
-      .single();
-
-    if (saveError) {
-      console.error('Error saving analysis:', saveError);
-      throw new Error(`Failed to save analysis: ${saveError.message}`);
-    }
-
-    console.log(`Analysis complete in ${processingTime}ms, saved as ${savedAnalysis.id}`);
+    const processingTimeMs = Date.now() - startTime;
+    console.log(`Deep media analysis complete. Modes: ${analysis_modes.length}, Cost: ${aiResponse.costCents}¢, Time: ${processingTimeMs}ms`);
 
     return new Response(JSON.stringify({
       success: true,
-      analysis_id: savedAnalysis.id,
-      results: analysisResult,
-      processing_time_ms: processingTime,
-      estimated_cost_cents: estimatedCostCents,
-      model_used: model,
+      analysis: analysisResult,
+      metadata: {
+        media_type,
+        modes_analyzed: analysis_modes,
+        depth: analysis_depth,
+        model_used: model,
+        processing_time_ms: processingTimeMs,
+        ai_response_time_ms: aiResponse.responseTimeMs,
+        tokens_used: aiResponse.totalTokens,
+        cost_cents: aiResponse.costCents,
+      },
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error: any) {
-    console.error('Error in analyze-media-deep:', error);
+  } catch (error) {
+    console.error('Deep media analysis error:', error);
     return new Response(JSON.stringify({
       success: false,
-      error: error?.message || 'Unknown error',
+      error: error instanceof Error ? error.message : 'Unknown error',
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

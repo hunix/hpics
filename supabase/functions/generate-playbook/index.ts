@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,7 +16,6 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -138,43 +138,32 @@ Output a JSON object with these exact fields:
 
 Be specific and actionable. Base recommendations on the actual data provided.`;
 
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
+    const aiResponse = await callAI({
+      model: selectModel('balanced'),
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Generate an interaction playbook for ${contactName} based on this data:\n\n${JSON.stringify(context, null, 2)}` },
+      ],
+      userId,
+      functionName: 'generate-playbook',
+      profileId: profile_id,
+      temperature: 0.6,
+      maxTokens: 2500,
+      metadata: {
+        has_personal_info: !!personalInfo,
+        interests_count: interests?.length || 0,
+        observations_count: observations?.length || 0,
+        communications_count: communications?.length || 0,
       },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Generate an interaction playbook for ${contactName} based on this data:\n\n${JSON.stringify(context, null, 2)}` },
-        ],
-      }),
     });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI API error:', aiResponse.status, errorText);
-      throw new Error(`AI API error: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
-    const content = aiData.choices?.[0]?.message?.content || '';
-    
     // Parse JSON from response
-    let playbook;
-    try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        playbook = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('No JSON found in response');
-      }
-    } catch (parseError) {
-      console.error('Parse error:', parseError);
-      throw new Error('Failed to parse AI response');
-    }
+    const playbook = parseAIJson(aiResponse.content, {
+      personality_summary: 'Unable to generate personality summary',
+      dos: [],
+      donts: [],
+      ideal_contact_frequency: 'monthly',
+    });
 
     // Save to database
     const { data: existing } = await supabase
@@ -190,7 +179,7 @@ Be specific and actionable. Base recommendations on the actual data provided.`;
         .update({
           ...playbook,
           ai_generated: true,
-          ai_model_used: 'google/gemini-2.5-flash',
+          ai_model_used: aiResponse.model,
           ai_generated_at: new Date().toISOString(),
         })
         .eq('id', existing.id);
@@ -202,12 +191,19 @@ Be specific and actionable. Base recommendations on the actual data provided.`;
           profile_id: profile_id,
           ...playbook,
           ai_generated: true,
-          ai_model_used: 'google/gemini-2.5-flash',
+          ai_model_used: aiResponse.model,
           ai_generated_at: new Date().toISOString(),
         });
     }
 
-    return new Response(JSON.stringify({ success: true, playbook }), {
+    console.log(`Playbook generated for ${contactName}. Cost: ${aiResponse.costCents}¢`);
+
+    return new Response(JSON.stringify({ 
+      success: true, 
+      playbook,
+      cost_cents: aiResponse.costCents,
+      response_time_ms: aiResponse.responseTimeMs,
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 

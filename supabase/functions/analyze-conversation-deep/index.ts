@@ -1,21 +1,14 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, parseAIJson, selectModel, ModelTier } from "../_shared/ai-client.ts";
 
-const FUNCTION_VERSION = "2026-01-07-deep-analysis-v1";
+const FUNCTION_VERSION = "2026-01-08-unified-ai-v1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-// Get model-specific API parameters
-function getModelParams(model: string): { maxTokensKey: string, includeTemperature: boolean } {
-  if (model.startsWith('openai/gpt-5') || model.startsWith('openai/o3') || model.startsWith('openai/o4')) {
-    return { maxTokensKey: 'max_completion_tokens', includeTemperature: false };
-  }
-  return { maxTokensKey: 'max_tokens', includeTemperature: true };
-}
 
 // Paginated fetch to get ALL messages
 async function fetchAllMessages(supabase: any, conversationId: string) {
@@ -82,7 +75,6 @@ function extractMediaIntelligence(analyzedMedia: any[]): any {
     const metadata = media.ai_metadata;
     if (!metadata) return;
     
-    // Extract people
     if (metadata.people_detected) {
       metadata.people_detected.forEach((p: string) => {
         if (!people.includes(p)) people.push(p);
@@ -94,17 +86,14 @@ function extractMediaIntelligence(analyzedMedia: any[]): any {
       });
     }
     
-    // Extract locations
     if (metadata.location) locations.push(metadata.location);
     if (metadata.detected_location) locations.push(metadata.detected_location);
     if (metadata.setting) locations.push(metadata.setting);
     
-    // Extract activities
     if (metadata.activity) activities.push(metadata.activity);
     if (metadata.scene_description) activities.push(metadata.scene_description);
     if (metadata.action) activities.push(metadata.action);
     
-    // Count emotions
     if (metadata.mood) {
       const mood = metadata.mood.toLowerCase();
       emotions[mood] = (emotions[mood] || 0) + 1;
@@ -114,7 +103,6 @@ function extractMediaIntelligence(analyzedMedia: any[]): any {
       emotions[emotion] = (emotions[emotion] || 0) + 1;
     }
     
-    // Extract transcriptions
     if (metadata.transcription) {
       transcriptions.push(metadata.transcription);
     }
@@ -122,7 +110,6 @@ function extractMediaIntelligence(analyzedMedia: any[]): any {
       transcriptions.push(metadata.speech_content);
     }
     
-    // Extract objects
     if (metadata.objects_detected) {
       metadata.objects_detected.forEach((o: string) => {
         if (!objects.includes(o)) objects.push(o);
@@ -135,10 +122,7 @@ function extractMediaIntelligence(analyzedMedia: any[]): any {
     }
   });
   
-  // Get unique locations
   const uniqueLocations = [...new Set(locations)].filter(l => l && l.trim());
-  
-  // Get top emotions
   const sortedEmotions = Object.entries(emotions)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
@@ -198,7 +182,7 @@ serve(async (req) => {
   }
 
   try {
-    const { conversationId, profileId, includeMediaIntelligence = true, anonymize = true, userId, model } = await req.json();
+    const { conversationId, profileId, includeMediaIntelligence = true, anonymize = true, userId, model, modelTier } = await req.json();
     
     console.log(`Request: conversationId=${conversationId}, profileId=${profileId}, includeMedia=${includeMediaIntelligence}, model=${model}`);
     
@@ -206,13 +190,11 @@ serve(async (req) => {
       throw new Error('conversationId and userId are required');
     }
 
-    const selectedModel = model || 'google/gemini-2.5-flash';
+    const selectedModel = model || selectModel((modelTier as ModelTier) || 'balanced');
     console.log(`Selected model: ${selectedModel}`);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
-    
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Fetch conversation details
@@ -248,7 +230,6 @@ serve(async (req) => {
       const analyzedMedia = await fetchAnalyzedMedia(supabase, contactProfileId, userId);
       analyzedMediaCount = analyzedMedia.length;
       
-      // Get total media count
       const { count } = await supabase
         .from('media')
         .select('id', { count: 'exact', head: true })
@@ -389,10 +370,9 @@ Be specific, insightful, and actionable. This is a deep psychological and relati
 CONVERSATION:
 ${formattedMessages}`;
 
-    console.log(`Calling Lovable AI (${selectedModel}) for deep analysis...`);
+    console.log(`Calling AI (${selectedModel}) for deep analysis...`);
 
-    const { maxTokensKey, includeTemperature } = getModelParams(selectedModel);
-    const requestBody: any = {
+    const aiResponse = await callAI({
       model: selectedModel,
       messages: [
         { 
@@ -401,56 +381,27 @@ ${formattedMessages}`;
         },
         { role: 'user', content: aiPrompt }
       ],
-      [maxTokensKey]: 8000,
-    };
-    if (includeTemperature) {
-      requestBody.temperature = 0.4;
-    }
-
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
+      userId,
+      functionName: 'analyze-conversation-deep',
+      profileId: contactProfileId,
+      temperature: 0.4,
+      maxTokens: 8000,
+      metadata: {
+        total_messages: messages.length,
+        sampled_messages: messagesToAnalyze.length,
+        sampling_strategy: samplingStrategy,
+        media_included: includeMediaIntelligence,
+        analyzed_media_count: analyzedMediaCount,
       },
-      body: JSON.stringify(requestBody),
     });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI API error:', errorText);
-      if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: 'AI credits exhausted. Please add credits.' }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      throw new Error(`AI API error: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
-    const aiContent = aiData.choices[0].message.content;
-    
     console.log('AI response received, parsing...');
 
-    let aiAnalysis;
-    try {
-      const cleanedContent = aiContent.replace(/```json\n?|\n?```/g, '').trim();
-      aiAnalysis = JSON.parse(cleanedContent);
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', aiContent);
-      aiAnalysis = {
-        executive_summary: 'Deep analysis completed but detailed parsing failed.',
-        relationship_profile: { health_score: 50 },
-        deep_insights: ['Analysis data could not be fully extracted.']
-      };
-    }
+    const aiAnalysis = parseAIJson(aiResponse.content, {
+      executive_summary: 'Deep analysis completed but detailed parsing failed.',
+      relationship_profile: { health_score: 50 },
+      deep_insights: ['Analysis data could not be fully extracted.']
+    }) as any;
 
     // Compile full analysis
     const fullAnalysis = {
@@ -475,62 +426,46 @@ ${formattedMessages}`;
       opportunities: aiAnalysis.opportunities,
       deep_insights: aiAnalysis.deep_insights,
       conversation_highlights: aiAnalysis.conversation_highlights,
-      media_intelligence_summary: mediaIntelligence,
-      model_used: selectedModel,
-      created_at: new Date().toISOString(),
-      date_range_start: messages[0].sent_at,
-      date_range_end: messages[messages.length - 1].sent_at,
+      generated_at: new Date().toISOString(),
+      ai_tokens_used: aiResponse.totalTokens,
+      ai_cost_cents: aiResponse.costCents,
+      ai_response_time_ms: aiResponse.responseTimeMs,
     };
 
-    // Save to conversation_analyses with extended data
-    const { data: savedAnalysis, error: saveError } = await supabase
-      .from('conversation_analyses')
-      .insert({
-        conversation_id: conversationId,
+    // Save analysis
+    const { error: saveError } = await supabase
+      .from('ai_analyses')
+      .upsert({
         user_id: userId,
-        analysis_type: 'deep_with_media',
-        total_messages_analyzed: messages.length,
-        sampling_strategy: samplingStrategy,
-        relationship_health_score: aiAnalysis.relationship_profile?.health_score || 50,
-        insights: aiAnalysis.deep_insights || [],
-        sentiment_analysis: aiAnalysis.emotional_intelligence || {},
-        communication_dynamics: {
-          ...aiAnalysis.communication_dynamics,
-          recommended_actions: aiAnalysis.actionable_intelligence || [],
-        },
-        topic_clusters: aiAnalysis.shared_history?.shared_interests?.map((i: string) => ({ topic: i, frequency: 1 })) || [],
-        anomalies: aiAnalysis.relationship_risks?.map((r: any) => ({
-          type: 'risk',
-          description: r.risk,
-          severity: r.severity,
-          potential_cause: r.mitigation,
-        })) || [],
-        model_used: selectedModel,
-        ai_model_used: selectedModel,
-        confidence_score: messages.length >= 500 ? 90 : messages.length >= 100 ? 80 : 70,
-        message_count_analyzed: messages.length,
-      })
-      .select()
-      .single();
+        profile_id: contactProfileId,
+        analysis_type: 'conversation_deep',
+        result: fullAnalysis,
+        generated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id,profile_id,analysis_type',
+      });
 
     if (saveError) {
-      console.error('Failed to save analysis:', saveError);
+      console.error('Save error:', saveError);
     }
 
-    console.log('Deep analysis complete');
+    console.log(`Deep analysis complete. Cost: ${aiResponse.costCents}¢, Time: ${aiResponse.responseTimeMs}ms`);
 
-    return new Response(JSON.stringify({ 
-      success: true, 
+    return new Response(JSON.stringify({
+      success: true,
       analysis: fullAnalysis,
-      savedId: savedAnalysis?.id 
+      tokens: aiResponse.totalTokens,
+      cost_cents: aiResponse.costCents,
+      response_time_ms: aiResponse.responseTimeMs,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in analyze-conversation-deep:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    console.error('Deep conversation analysis error:', error);
+    return new Response(JSON.stringify({
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

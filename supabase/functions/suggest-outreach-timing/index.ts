@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI, selectModel } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -167,11 +168,9 @@ serve(async (req) => {
       .sort((a, b) => b.score - a.score)
       .slice(0, 3);
 
-    // Generate AI recommendations
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    
+    // Generate AI recommendations using unified wrapper
     let aiRecommendation = '';
-    if (LOVABLE_API_KEY && communications && communications.length >= 5) {
+    if (communications && communications.length >= 5) {
       const prompt = `Based on communication patterns with ${profile.first_name} ${profile.last_name || ''} (${profile.relationship_type || 'contact'}):
 
 Best days: ${bestDays.map(d => `${d.day} (${d.count} interactions, ${Math.round(d.avgSentiment * 100)}% positive sentiment)`).join(', ')}
@@ -181,25 +180,25 @@ Preferred channels: ${bestChannels.map(c => `${c.channel} (${c.count} uses)`).jo
 Provide a brief, actionable recommendation (2-3 sentences) for the optimal time and method to reach out to this person for maximum engagement.`;
 
       try {
-        const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-            'Content-Type': 'application/json',
+        const aiResponse = await callAI({
+          model: selectModel('speed'),
+          messages: [
+            { role: 'system', content: 'You are a relationship management assistant. Give brief, practical advice.' },
+            { role: 'user', content: prompt }
+          ],
+          userId: user.id,
+          functionName: 'suggest-outreach-timing',
+          profileId,
+          temperature: 0.7,
+          maxTokens: 300,
+          metadata: {
+            total_interactions: communications.length,
+            best_day: bestDays[0]?.day,
+            best_hour: bestHours[0]?.hourFormatted,
           },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            messages: [
-              { role: 'system', content: 'You are a relationship management assistant. Give brief, practical advice.' },
-              { role: 'user', content: prompt }
-            ],
-          }),
         });
 
-        if (aiResponse.ok) {
-          const aiData = await aiResponse.json();
-          aiRecommendation = aiData.choices?.[0]?.message?.content || '';
-        }
+        aiRecommendation = aiResponse.content;
       } catch (aiError) {
         console.error('AI recommendation error:', aiError);
       }
