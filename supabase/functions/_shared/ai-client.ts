@@ -18,6 +18,9 @@ interface AIRequestOptions {
   temperature?: number;
   maxTokens?: number;
   metadata?: Record<string, unknown>;
+  // Prompt tracking for A/B testing
+  promptKey?: string;
+  promptVersion?: number;
 }
 
 interface AIResponse {
@@ -133,6 +136,8 @@ export async function callAI(options: AIRequestOptions): Promise<AIResponse> {
       model_name: model,
       provider: getProvider(model),
       prompt_summary: options.messages[options.messages.length - 1]?.content?.substring(0, 500) || '',
+      prompt_key: options.promptKey || null,
+      prompt_version: options.promptVersion || null,
       estimated_cost_cents: 0,
       actual_cost_cents: 0,
       input_tokens: 0,
@@ -144,6 +149,7 @@ export async function callAI(options: AIRequestOptions): Promise<AIResponse> {
       status: 'failed',
       error_message: errorMessage,
       request_metadata: options.metadata || {},
+      outcome_success: false,
     });
 
     throw error;
@@ -156,6 +162,8 @@ export async function callAI(options: AIRequestOptions): Promise<AIResponse> {
     model_name: model,
     provider: getProvider(model),
     prompt_summary: options.messages[options.messages.length - 1]?.content?.substring(0, 500) || '',
+    prompt_key: options.promptKey || null,
+    prompt_version: options.promptVersion || null,
     estimated_cost_cents: aiResponse.costCents,
     actual_cost_cents: aiResponse.costCents,
     input_tokens: aiResponse.inputTokens,
@@ -170,6 +178,7 @@ export async function callAI(options: AIRequestOptions): Promise<AIResponse> {
       model: aiResponse.model,
       tokens: aiResponse.totalTokens,
     },
+    outcome_success: null, // Will be updated later via recordPromptOutcome
   });
 
   return aiResponse;
