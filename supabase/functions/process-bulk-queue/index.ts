@@ -16,11 +16,133 @@ interface BulkAnalysisItem {
   media_url: string | null;
   storage_path: string | null;
   file_name: string | null;
+  file_size: number | null;
   status: string;
   queue_position: number;
   priority_score: number;
+  priority_boost: number | null;
   retry_count: number;
   max_retries: number;
+  created_at: string;
+}
+
+// Rate limiting configuration
+const RATE_LIMITS = {
+  perMinute: 30,
+  perHour: 500,
+  concurrentLimit: 5,
+  cooldownAfterErrorMs: 5000,
+};
+
+// In-memory rate tracking (resets on function cold start)
+const rateTracker = {
+  minuteCount: 0,
+  hourCount: 0,
+  lastMinuteReset: Date.now(),
+  lastHourReset: Date.now(),
+  concurrent: 0,
+};
+
+// Priority scoring function
+function calculateItemPriority(item: BulkAnalysisItem, isFavorite: boolean = false): number {
+  let score = item.priority_score || 0;
+  
+  // Apply priority boost if set
+  score += item.priority_boost || 0;
+  
+  // Boost favorites (+20)
+  if (isFavorite) score += 20;
+  
+  // Boost by media type (images are faster to process)
+  if (item.media_type === 'image') score += 10;
+  else if (item.media_type === 'audio') score += 5;
+  else if (item.media_type === 'document') score += 3;
+  // video gets no boost as it's slowest
+  
+  // Penalize retries (-5 per retry)
+  score -= (item.retry_count || 0) * 5;
+  
+  // Time-based boost for older items (max 10 points)
+  if (item.created_at) {
+    const ageHours = (Date.now() - new Date(item.created_at).getTime()) / (1000 * 60 * 60);
+    score += Math.min(Math.floor(ageHours), 10);
+  }
+  
+  // Smaller files get slight boost
+  if (item.file_size) {
+    if (item.file_size < 1024 * 1024) score += 5; // < 1MB
+    else if (item.file_size < 5 * 1024 * 1024) score += 2; // < 5MB
+  }
+  
+  return score;
+}
+
+// Check if we can process more items
+function checkRateLimits(): { allowed: boolean; reason?: string } {
+  const now = Date.now();
+  
+  // Reset minute counter
+  if (now - rateTracker.lastMinuteReset > 60000) {
+    rateTracker.minuteCount = 0;
+    rateTracker.lastMinuteReset = now;
+  }
+  
+  // Reset hour counter
+  if (now - rateTracker.lastHourReset > 3600000) {
+    rateTracker.hourCount = 0;
+    rateTracker.lastHourReset = now;
+  }
+  
+  if (rateTracker.concurrent >= RATE_LIMITS.concurrentLimit) {
+    return { allowed: false, reason: 'concurrent_limit' };
+  }
+  if (rateTracker.minuteCount >= RATE_LIMITS.perMinute) {
+    return { allowed: false, reason: 'minute_limit' };
+  }
+  if (rateTracker.hourCount >= RATE_LIMITS.perHour) {
+    return { allowed: false, reason: 'hour_limit' };
+  }
+  
+  return { allowed: true };
+}
+
+// Get adaptive batch size based on current conditions
+function getAdaptiveBatchSize(
+  currentCostCents: number,
+  maxCostCents: number | null,
+  hourlyUsage: number
+): number {
+  // Start with default batch size
+  let batchSize = 5;
+  
+  // Reduce batch size as we approach hourly limit
+  if (hourlyUsage > RATE_LIMITS.perHour * 0.8) {
+    batchSize = 1;
+  } else if (hourlyUsage > RATE_LIMITS.perHour * 0.5) {
+    batchSize = 2;
+  }
+  
+  // Reduce batch size as we approach budget limit
+  if (maxCostCents) {
+    const remainingBudget = maxCostCents - currentCostCents;
+    if (remainingBudget < 50) batchSize = Math.min(batchSize, 1);
+    else if (remainingBudget < 200) batchSize = Math.min(batchSize, 2);
+    else if (remainingBudget < 500) batchSize = Math.min(batchSize, 3);
+  }
+  
+  return batchSize;
+}
+
+// Estimate remaining processing time
+function estimateRemainingTime(
+  remainingItems: number,
+  avgProcessingTimeMs: number,
+  batchSize: number
+): { estimatedMs: number; estimatedCompletion: string } {
+  const batches = Math.ceil(remainingItems / batchSize);
+  const estimatedMs = batches * avgProcessingTimeMs * batchSize;
+  const estimatedCompletion = new Date(Date.now() + estimatedMs).toISOString();
+  return { estimatedMs, estimatedCompletion };
 }
 
 interface ProcessingResult {
@@ -76,6 +198,20 @@ serve(async (req) => {
     const { sessionId, action, itemId, modes, context, depth } = await req.json();
 
     if (action === "start" || action === "resume") {
+      // Check rate limits first
+      const rateLimitCheck = checkRateLimits();
+      if (!rateLimitCheck.allowed) {
+        return new Response(
+          JSON.stringify({ 
+            rateLimited: true, 
+            reason: rateLimitCheck.reason,
+            retryAfterMs: rateLimitCheck.reason === 'minute_limit' ? 60000 : 
+                          rateLimitCheck.reason === 'hour_limit' ? 3600000 : 1000 
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       // Update session status
       await supabase
         .from("bulk_analysis_sessions")
@@ -87,28 +223,44 @@ serve(async (req) => {
         .eq("id", sessionId)
         .eq("user_id", userId);
 
-      // Get next pending item
-      const { data: nextItem, error: itemError } = await supabase
+      // Get session info for batch sizing
+      const { data: sessionInfo } = await supabase
+        .from("bulk_analysis_sessions")
+        .select("current_cost_cents, max_cost_cents, total_items, completed_items, failed_items, skipped_items")
+        .eq("id", sessionId)
+        .single();
+
+      const batchSize = getAdaptiveBatchSize(
+        sessionInfo?.current_cost_cents || 0,
+        sessionInfo?.max_cost_cents || null,
+        rateTracker.hourCount
+      );
+
+      // Get next pending items (batch)
+      const { data: pendingItems, error: itemError } = await supabase
         .from("bulk_analysis_items")
         .select("*")
         .eq("session_id", sessionId)
         .eq("status", "pending")
         .order("priority_score", { ascending: false })
         .order("queue_position", { ascending: true })
-        .limit(1)
-        .single();
+        .limit(batchSize);
 
-      if (itemError || !nextItem) {
+      // Re-score items with enhanced priority
+      const scoredItems = pendingItems?.map(item => ({
+        ...item,
+        calculatedPriority: calculateItemPriority(item as BulkAnalysisItem, false)
+      })).sort((a, b) => b.calculatedPriority - a.calculatedPriority) || [];
+
+      const nextItem = scoredItems[0] || null;
+
+      if (!nextItem) {
         // No more items, check if session is complete
-        const { data: session } = await supabase
-          .from("bulk_analysis_sessions")
-          .select("total_items, completed_items, failed_items, skipped_items")
-          .eq("id", sessionId)
-          .single();
-
-        if (session) {
-          const processed = session.completed_items + session.failed_items + session.skipped_items;
-          if (processed >= session.total_items) {
+        if (sessionInfo) {
+          const processed = (sessionInfo.completed_items || 0) + 
+                           (sessionInfo.failed_items || 0) + 
+                           (sessionInfo.skipped_items || 0);
+          if (processed >= (sessionInfo.total_items || 0)) {
             await supabase
               .from("bulk_analysis_sessions")
               .update({ status: "completed", completed_at: new Date().toISOString() })
@@ -122,13 +274,55 @@ serve(async (req) => {
         );
       }
 
+      // Calculate estimated completion time
+      const remainingItems = (sessionInfo?.total_items || 0) - 
+                            ((sessionInfo?.completed_items || 0) + 
+                             (sessionInfo?.failed_items || 0) + 
+                             (sessionInfo?.skipped_items || 0));
+      const avgProcessingTime = 5000; // Default 5s per item estimate
+      const estimate = estimateRemainingTime(remainingItems, avgProcessingTime, batchSize);
+
+      // Update session with estimate
+      await supabase
+        .from("bulk_analysis_sessions")
+        .update({ estimated_completion: estimate.estimatedCompletion })
+        .eq("id", sessionId);
+
       return new Response(
-        JSON.stringify({ nextItem, done: false }),
+        JSON.stringify({ 
+          nextItem, 
+          done: false,
+          batchSize,
+          remainingItems,
+          estimatedCompletionMs: estimate.estimatedMs,
+          rateLimits: {
+            minuteRemaining: RATE_LIMITS.perMinute - rateTracker.minuteCount,
+            hourRemaining: RATE_LIMITS.perHour - rateTracker.hourCount,
+          }
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     if (action === "process-item") {
+      // Check rate limits
+      const rateLimitCheck = checkRateLimits();
+      if (!rateLimitCheck.allowed) {
+        return new Response(
+          JSON.stringify({ 
+            rateLimited: true, 
+            reason: rateLimitCheck.reason,
+            retryAfterMs: RATE_LIMITS.cooldownAfterErrorMs 
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Increment counters
+      rateTracker.minuteCount++;
+      rateTracker.hourCount++;
+      rateTracker.concurrent++;
+
       const startTime = Date.now();
 
       // Mark item as running
@@ -145,6 +339,7 @@ serve(async (req) => {
         .single();
 
       if (!item) {
+        rateTracker.concurrent--;
         throw new Error("Item not found");
       }
 
@@ -158,6 +353,7 @@ serve(async (req) => {
       // Check budget
       if (session?.max_cost_cents && session.stop_on_budget_exceeded) {
         if (session.current_cost_cents >= session.max_cost_cents) {
+          rateTracker.concurrent--;
           await supabase
             .from("bulk_analysis_sessions")
             .update({ status: "paused", paused_at: new Date().toISOString(), last_error: "Budget exceeded" })
@@ -234,6 +430,8 @@ serve(async (req) => {
           p_is_failed: false,
         });
 
+        rateTracker.concurrent--;
+
         return new Response(
           JSON.stringify({
             success: true,
@@ -245,6 +443,7 @@ serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       } catch (processError) {
+        rateTracker.concurrent--;
         const errorMessage = processError instanceof Error ? processError.message : "Unknown error";
         const processingTimeMs = Date.now() - startTime;
 
