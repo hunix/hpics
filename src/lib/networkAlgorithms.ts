@@ -1,4 +1,4 @@
-// Network Analysis Algorithms: PageRank, Closeness Centrality, and Cluster Detection
+// Network Analysis Algorithms: PageRank, Closeness Centrality, Cluster Detection, and Advanced ML
 
 interface NetworkNode {
   id: string;
@@ -37,11 +37,6 @@ function buildAdjacencyList(nodes: NetworkNode[], links: NetworkLink[]): Map<str
 /**
  * PageRank Algorithm
  * Calculates the importance/influence of each node based on incoming connections
- * @param nodes - Array of network nodes
- * @param links - Array of network links
- * @param dampingFactor - Probability of following a link (default 0.85)
- * @param iterations - Number of iterations for convergence (default 100)
- * @returns Map of node IDs to PageRank scores (0-1)
  */
 export function calculatePageRank(
   nodes: NetworkNode[],
@@ -71,7 +66,6 @@ export function calculatePageRank(
     nodes.forEach(node => {
       let rankSum = 0;
       
-      // Sum contributions from all nodes linking to this node
       adj.forEach((neighbors, neighborId) => {
         if (neighbors.has(node.id)) {
           const neighborOutDegree = outDegree.get(neighborId) || 1;
@@ -80,12 +74,10 @@ export function calculatePageRank(
         }
       });
       
-      // Apply damping factor
       const newRank = (1 - dampingFactor) / n + dampingFactor * rankSum;
       newRanks.set(node.id, newRank);
     });
     
-    // Update ranks
     newRanks.forEach((rank, id) => ranks.set(id, rank));
   }
   
@@ -101,10 +93,6 @@ export function calculatePageRank(
 /**
  * Closeness Centrality Algorithm
  * Measures how close a node is to all other nodes in the network
- * Higher values indicate nodes that can reach others more quickly
- * @param nodes - Array of network nodes
- * @param links - Array of network links
- * @returns Map of node IDs to closeness centrality scores (0-1)
  */
 export function calculateClosenessCentrality(
   nodes: NetworkNode[],
@@ -117,7 +105,6 @@ export function calculateClosenessCentrality(
   const closeness = new Map<string, number>();
   
   nodes.forEach(node => {
-    // BFS to find shortest paths to all other nodes
     const distances = new Map<string, number>();
     const visited = new Set<string>();
     const queue: { id: string; distance: number }[] = [{ id: node.id, distance: 0 }];
@@ -139,19 +126,16 @@ export function calculateClosenessCentrality(
       }
     }
     
-    // Calculate closeness as inverse of average distance
     const totalDistance = Array.from(distances.values()).reduce((a, b) => a + b, 0);
-    const reachableNodes = distances.size - 1; // Exclude self
+    const reachableNodes = distances.size - 1;
     
     if (reachableNodes > 0 && totalDistance > 0) {
-      // Normalized closeness: (n-1) / sum of distances to all reachable nodes
       closeness.set(node.id, reachableNodes / totalDistance);
     } else {
       closeness.set(node.id, 0);
     }
   });
   
-  // Normalize to 0-1 range
   const maxCloseness = Math.max(...closeness.values());
   if (maxCloseness > 0) {
     closeness.forEach((value, id) => closeness.set(id, value / maxCloseness));
@@ -163,10 +147,6 @@ export function calculateClosenessCentrality(
 /**
  * Betweenness Centrality Algorithm
  * Measures how often a node lies on shortest paths between other nodes
- * Identifies "bridge" nodes that connect different parts of the network
- * @param nodes - Array of network nodes
- * @param links - Array of network links
- * @returns Map of node IDs to betweenness centrality scores (0-1)
  */
 export function calculateBetweennessCentrality(
   nodes: NetworkNode[],
@@ -179,7 +159,6 @@ export function calculateBetweennessCentrality(
   const betweenness = new Map<string, number>();
   nodes.forEach(node => betweenness.set(node.id, 0));
   
-  // For each node as source, compute shortest paths
   nodes.forEach(source => {
     const stack: string[] = [];
     const predecessors = new Map<string, string[]>();
@@ -195,7 +174,6 @@ export function calculateBetweennessCentrality(
     
     const queue: string[] = [source.id];
     
-    // BFS
     while (queue.length > 0) {
       const v = queue.shift()!;
       stack.push(v);
@@ -216,7 +194,6 @@ export function calculateBetweennessCentrality(
       }
     }
     
-    // Accumulation
     const delta = new Map<string, number>();
     nodes.forEach(node => delta.set(node.id, 0));
     
@@ -233,7 +210,6 @@ export function calculateBetweennessCentrality(
     }
   });
   
-  // Normalize
   const maxBetweenness = Math.max(...betweenness.values());
   if (maxBetweenness > 0) {
     betweenness.forEach((value, id) => betweenness.set(id, value / maxBetweenness));
@@ -244,10 +220,6 @@ export function calculateBetweennessCentrality(
 
 /**
  * Community Detection using Louvain-like Modularity Optimization
- * Groups nodes into clusters based on dense connections
- * @param nodes - Array of network nodes
- * @param links - Array of network links
- * @returns Map of node IDs to cluster IDs (0-indexed)
  */
 export function detectClusters(
   nodes: NetworkNode[],
@@ -259,21 +231,17 @@ export function detectClusters(
   const adj = buildAdjacencyList(nodes, links);
   const clusters = new Map<string, number>();
   
-  // Initialize each node in its own cluster
   nodes.forEach((node, i) => clusters.set(node.id, i));
   
-  // Calculate total edge weight
   let totalWeight = 0;
   links.forEach(link => {
-    totalWeight += (link.weight || 1) * 2; // Count both directions
+    totalWeight += (link.weight || 1) * 2;
   });
   
   if (totalWeight === 0) {
-    // No links - each node is its own cluster
     return clusters;
   }
   
-  // Calculate node weights (sum of edge weights)
   const nodeWeights = new Map<string, number>();
   nodes.forEach(node => {
     const neighbors = adj.get(node.id);
@@ -284,7 +252,6 @@ export function detectClusters(
     nodeWeights.set(node.id, weight);
   });
   
-  // Iteratively optimize modularity
   let improved = true;
   let iterations = 0;
   const maxIterations = 50;
@@ -293,7 +260,6 @@ export function detectClusters(
     improved = false;
     iterations++;
     
-    // Try moving each node to a neighbor's cluster
     for (const node of nodes) {
       const nodeId = node.id;
       const currentCluster = clusters.get(nodeId)!;
@@ -301,7 +267,6 @@ export function detectClusters(
       
       if (!neighbors || neighbors.size === 0) continue;
       
-      // Find best cluster among neighbors
       const neighborClusters = new Set<number>();
       neighbors.forEach((_, neighborId) => {
         neighborClusters.add(clusters.get(neighborId)!);
@@ -313,7 +278,6 @@ export function detectClusters(
       neighborClusters.forEach(targetCluster => {
         if (targetCluster === currentCluster) return;
         
-        // Calculate modularity gain for moving to target cluster
         let gain = 0;
         neighbors.forEach((weight, neighborId) => {
           if (clusters.get(neighborId) === targetCluster) {
@@ -352,30 +316,269 @@ export function detectClusters(
   return clusters;
 }
 
-// Cluster colors - distinct, visually appealing colors
+// Cluster colors
 export const CLUSTER_COLORS = [
-  '#3b82f6', // Blue
-  '#ef4444', // Red
-  '#22c55e', // Green
-  '#f59e0b', // Amber
-  '#8b5cf6', // Violet
-  '#ec4899', // Pink
-  '#14b8a6', // Teal
-  '#f97316', // Orange
-  '#06b6d4', // Cyan
-  '#84cc16', // Lime
-  '#6366f1', // Indigo
-  '#a855f7', // Purple
-  '#0ea5e9', // Sky
-  '#10b981', // Emerald
-  '#eab308', // Yellow
+  '#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6',
+  '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16',
+  '#6366f1', '#a855f7', '#0ea5e9', '#10b981', '#eab308',
 ];
 
-/**
- * Get a color for a cluster ID
- */
 export function getClusterColor(clusterId: number): string {
   return CLUSTER_COLORS[clusterId % CLUSTER_COLORS.length];
+}
+
+// ==================================
+// ADVANCED ML ALGORITHMS
+// ==================================
+
+/**
+ * Influence Propagation Algorithm
+ * Simulates how influence spreads through the network from seed nodes
+ * Useful for identifying cascade effects and reach
+ */
+export function calculateInfluencePropagation(
+  nodes: NetworkNode[],
+  links: NetworkLink[],
+  seedNodes: string[],
+  decayFactor: number = 0.5,
+  iterations: number = 10
+): Map<string, number> {
+  const n = nodes.length;
+  if (n === 0) return new Map();
+  
+  const adj = buildAdjacencyList(nodes, links);
+  const influence = new Map<string, number>();
+  
+  // Initialize all nodes to 0, seed nodes to 1
+  nodes.forEach(node => {
+    influence.set(node.id, seedNodes.includes(node.id) ? 1 : 0);
+  });
+  
+  // Propagate influence iteratively
+  for (let iter = 0; iter < iterations; iter++) {
+    const newInfluence = new Map<string, number>();
+    
+    nodes.forEach(node => {
+      const nodeId = node.id;
+      let receivedInfluence = 0;
+      
+      // Sum influence from all neighbors
+      const neighbors = adj.get(nodeId);
+      if (neighbors) {
+        neighbors.forEach((weight, neighborId) => {
+          const neighborInfluence = influence.get(neighborId) || 0;
+          receivedInfluence += neighborInfluence * weight * decayFactor;
+        });
+      }
+      
+      // Current influence = max of current value or received influence
+      const current = influence.get(nodeId) || 0;
+      newInfluence.set(nodeId, Math.max(current, Math.min(1, current + receivedInfluence)));
+    });
+    
+    newInfluence.forEach((val, id) => influence.set(id, val));
+  }
+  
+  return influence;
+}
+
+/**
+ * Hierarchical Cluster Detection
+ * Builds nested community structure for drill-down analysis
+ * Returns Map of node ID -> array of cluster IDs at each level
+ */
+export interface HierarchicalCluster {
+  level: number;
+  clusters: Map<string, number>;
+  clusterCount: number;
+}
+
+export function detectHierarchicalClusters(
+  nodes: NetworkNode[],
+  links: NetworkLink[],
+  levels: number = 3
+): HierarchicalCluster[] {
+  const results: HierarchicalCluster[] = [];
+  let currentNodes = [...nodes];
+  let currentLinks = [...links];
+  
+  for (let level = 0; level < levels; level++) {
+    const clusters = detectClusters(currentNodes, currentLinks);
+    const clusterCount = new Set(clusters.values()).size;
+    
+    results.push({
+      level,
+      clusters: new Map(clusters),
+      clusterCount,
+    });
+    
+    // If we're at max granularity (each node is own cluster), stop
+    if (clusterCount >= currentNodes.length * 0.9) break;
+    
+    // Create super-nodes for next level (aggregate clusters)
+    const clusterNodes: Map<number, NetworkNode> = new Map();
+    const clusterWeights: Map<string, number> = new Map(); // "clusterId1-clusterId2" -> weight
+    
+    clusters.forEach((clusterId, nodeId) => {
+      if (!clusterNodes.has(clusterId)) {
+        clusterNodes.set(clusterId, { id: `cluster_${level}_${clusterId}` });
+      }
+    });
+    
+    // Aggregate links between clusters
+    currentLinks.forEach(link => {
+      const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+      const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+      const sourceCluster = clusters.get(sourceId);
+      const targetCluster = clusters.get(targetId);
+      
+      if (sourceCluster !== undefined && targetCluster !== undefined && sourceCluster !== targetCluster) {
+        const key = sourceCluster < targetCluster 
+          ? `${sourceCluster}-${targetCluster}` 
+          : `${targetCluster}-${sourceCluster}`;
+        const currentWeight = clusterWeights.get(key) || 0;
+        clusterWeights.set(key, currentWeight + (link.weight || 1));
+      }
+    });
+    
+    // Build new nodes and links for next level
+    currentNodes = Array.from(clusterNodes.values());
+    currentLinks = [];
+    clusterWeights.forEach((weight, key) => {
+      const [c1, c2] = key.split('-').map(Number);
+      currentLinks.push({
+        source: `cluster_${level}_${c1}`,
+        target: `cluster_${level}_${c2}`,
+        weight,
+      });
+    });
+    
+    if (currentNodes.length <= 2) break;
+  }
+  
+  return results;
+}
+
+/**
+ * Structural Hole Detection
+ * Identifies gaps between communities that represent networking opportunities
+ */
+export interface StructuralHole {
+  bridgeNode: string;
+  communities: number[];
+  bridgeScore: number;
+  potentialValue: string;
+}
+
+export function detectStructuralHoles(
+  nodes: NetworkNode[],
+  links: NetworkLink[],
+  clusters: Map<string, number>
+): StructuralHole[] {
+  const adj = buildAdjacencyList(nodes, links);
+  const holes: StructuralHole[] = [];
+  
+  // Find nodes that connect multiple clusters
+  nodes.forEach(node => {
+    const nodeId = node.id;
+    const nodeCluster = clusters.get(nodeId);
+    const neighbors = adj.get(nodeId);
+    
+    if (!neighbors || neighbors.size < 2) return;
+    
+    // Count connections to each cluster
+    const clusterConnections: Map<number, number> = new Map();
+    neighbors.forEach((weight, neighborId) => {
+      const neighborCluster = clusters.get(neighborId);
+      if (neighborCluster !== undefined) {
+        const current = clusterConnections.get(neighborCluster) || 0;
+        clusterConnections.set(neighborCluster, current + weight);
+      }
+    });
+    
+    // If connected to multiple clusters, this is a bridge
+    const connectedClusters = Array.from(clusterConnections.keys());
+    if (connectedClusters.length >= 2) {
+      // Calculate bridge score based on how balanced the connections are
+      const weights = Array.from(clusterConnections.values());
+      const totalWeight = weights.reduce((a, b) => a + b, 0);
+      const entropy = weights.reduce((acc, w) => {
+        const p = w / totalWeight;
+        return acc - (p > 0 ? p * Math.log2(p) : 0);
+      }, 0);
+      const maxEntropy = Math.log2(connectedClusters.length);
+      const bridgeScore = maxEntropy > 0 ? entropy / maxEntropy : 0;
+      
+      // Determine potential value description
+      let potentialValue = 'Low';
+      if (bridgeScore > 0.8 && connectedClusters.length >= 3) {
+        potentialValue = 'Very High - Key connector between multiple communities';
+      } else if (bridgeScore > 0.6) {
+        potentialValue = 'High - Strong bridge between communities';
+      } else if (bridgeScore > 0.4) {
+        potentialValue = 'Medium - Moderate bridging potential';
+      }
+      
+      holes.push({
+        bridgeNode: nodeId,
+        communities: connectedClusters,
+        bridgeScore: Math.round(bridgeScore * 100) / 100,
+        potentialValue,
+      });
+    }
+  });
+  
+  // Sort by bridge score descending
+  holes.sort((a, b) => b.bridgeScore - a.bridgeScore);
+  
+  return holes;
+}
+
+/**
+ * Network Density Calculation
+ * Measures how connected the network is (0-1)
+ */
+export function calculateNetworkDensity(nodes: NetworkNode[], links: NetworkLink[]): number {
+  const n = nodes.length;
+  if (n <= 1) return 0;
+  
+  const maxPossibleEdges = (n * (n - 1)) / 2;
+  return links.length / maxPossibleEdges;
+}
+
+/**
+ * Average Clustering Coefficient
+ * Measures the tendency of nodes to cluster together
+ */
+export function calculateClusteringCoefficient(nodes: NetworkNode[], links: NetworkLink[]): Map<string, number> {
+  const adj = buildAdjacencyList(nodes, links);
+  const coefficients = new Map<string, number>();
+  
+  nodes.forEach(node => {
+    const neighbors = adj.get(node.id);
+    if (!neighbors || neighbors.size < 2) {
+      coefficients.set(node.id, 0);
+      return;
+    }
+    
+    const neighborIds = Array.from(neighbors.keys());
+    let triangles = 0;
+    
+    // Count edges between neighbors
+    for (let i = 0; i < neighborIds.length; i++) {
+      for (let j = i + 1; j < neighborIds.length; j++) {
+        const nAdj = adj.get(neighborIds[i]);
+        if (nAdj && nAdj.has(neighborIds[j])) {
+          triangles++;
+        }
+      }
+    }
+    
+    const possibleTriangles = (neighborIds.length * (neighborIds.length - 1)) / 2;
+    coefficients.set(node.id, possibleTriangles > 0 ? triangles / possibleTriangles : 0);
+  });
+  
+  return coefficients;
 }
 
 /**
@@ -387,11 +590,15 @@ export interface NetworkMetrics {
   betweennessCentrality: Map<string, number>;
   clusters: Map<string, number>;
   clusterCount: number;
+  density?: number;
+  clusteringCoefficients?: Map<string, number>;
+  structuralHoles?: StructuralHole[];
 }
 
 export function calculateNetworkMetrics(
   nodes: NetworkNode[],
-  links: NetworkLink[]
+  links: NetworkLink[],
+  includeAdvanced: boolean = false
 ): NetworkMetrics {
   const pageRank = calculatePageRank(nodes, links);
   const closenessCentrality = calculateClosenessCentrality(nodes, links);
@@ -399,11 +606,19 @@ export function calculateNetworkMetrics(
   const clusters = detectClusters(nodes, links);
   const clusterCount = new Set(clusters.values()).size;
   
-  return {
+  const metrics: NetworkMetrics = {
     pageRank,
     closenessCentrality,
     betweennessCentrality,
     clusters,
     clusterCount,
   };
+  
+  if (includeAdvanced) {
+    metrics.density = calculateNetworkDensity(nodes, links);
+    metrics.clusteringCoefficients = calculateClusteringCoefficient(nodes, links);
+    metrics.structuralHoles = detectStructuralHoles(nodes, links, clusters);
+  }
+  
+  return metrics;
 }
