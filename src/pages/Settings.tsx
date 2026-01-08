@@ -34,6 +34,7 @@ import { BiometricSettings } from '@/components/settings/BiometricSettings';
 import { BiometricBatchScan } from '@/components/settings/BiometricBatchScan';
 import { BiometricAnalyticsDashboard } from '@/components/settings/BiometricAnalyticsDashboard';
 import { PromptVersionManager } from '@/components/settings/PromptVersionManager';
+import { OSINTIntegrations } from '@/components/settings/OSINTIntegrations';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -285,6 +286,7 @@ export default function Settings() {
         </TabsContent>
 
         <TabsContent value="integrations" className="space-y-6 mt-6">
+          <OSINTIntegrations />
           <CalendarSyncSettings />
           <OutlookIntegration />
           <ResendIntegration 
