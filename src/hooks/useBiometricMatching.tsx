@@ -339,3 +339,184 @@ export function useBiometricStats() {
     enabled: !!user
   });
 }
+
+/**
+ * Hook to generate facial embeddings for a profile
+ * This enables local vector matching without AI for high-confidence cases
+ */
+export function useGenerateFacialEmbedding() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      profileId, 
+      imageUrls,
+      regenerate = false 
+    }: { 
+      profileId: string; 
+      imageUrls?: string[];
+      regenerate?: boolean;
+    }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase.functions.invoke('generate-facial-embedding', {
+        body: { profileId, imageUrls, regenerate }
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error || 'Embedding generation failed');
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['biometric-profiles'] });
+      queryClient.invalidateQueries({ queryKey: ['contact-biometrics', variables.profileId] });
+      toast.success('Facial embedding generated');
+    },
+    onError: (error: any) => {
+      if (!handleAIError(error).handled) {
+        toast.error(`Failed to generate embedding: ${error.message}`);
+      }
+    }
+  });
+}
+
+/**
+ * Hook for LOCAL biometric matching (minimal AI cost)
+ * 
+ * Uses vector similarity for matching when embeddings exist.
+ * Falls back to cheapest AI model only when needed.
+ * 
+ * Confidence levels:
+ * - HIGH (≥0.85): Auto-tags if enabled
+ * - MEDIUM (0.60-0.84): Returns for user confirmation
+ * - LOW (<0.60): Manual review recommended
+ */
+export function useLocalBiometricMatch() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      imageUrl,
+      sourceType = 'media',
+      sourceId,
+      autoTagHighConfidence = true,
+      highConfidenceThreshold = 0.85,
+      mediumConfidenceThreshold = 0.60
+    }: { 
+      imageUrl: string;
+      sourceType?: string;
+      sourceId?: string;
+      autoTagHighConfidence?: boolean;
+      highConfidenceThreshold?: number;
+      mediumConfidenceThreshold?: number;
+    }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase.functions.invoke('local-biometric-match', {
+        body: { 
+          imageUrl, 
+          sourceType, 
+          sourceId,
+          autoTagHighConfidence,
+          highConfidenceThreshold,
+          mediumConfidenceThreshold
+        }
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error || 'Matching failed');
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['pending-biometric-matches'] });
+      queryClient.invalidateQueries({ queryKey: ['media-contact-tags'] });
+      
+      if (data.autoTagged) {
+        toast.success(`Auto-tagged: ${data.bestMatch?.profileName} (${Math.round(data.bestMatch?.confidence * 100)}% confidence)`);
+      } else if (data.requiresConfirmation && data.bestMatch) {
+        toast.info(`Possible match: ${data.bestMatch?.profileName} - please confirm`);
+      }
+    },
+    onError: (error: any) => {
+      if (!handleAIError(error).handled) {
+        toast.error(`Matching failed: ${error.message}`);
+      }
+    }
+  });
+}
+
+/**
+ * Hook to batch scan media for faces and match against enrolled profiles
+ */
+export function useBatchBiometricScan() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      mediaIds,
+      autoTagHighConfidence = true 
+    }: { 
+      mediaIds: string[];
+      autoTagHighConfidence?: boolean;
+    }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      // Get signed URLs for all media
+      const { data: mediaItems, error: mediaError } = await supabase
+        .from('media')
+        .select('id, storage_path')
+        .in('id', mediaIds);
+
+      if (mediaError) throw mediaError;
+
+      const results = [];
+      for (const media of mediaItems || []) {
+        try {
+          // Get signed URL
+          const { data: signedData } = await supabase.storage
+            .from('contact-media')
+            .createSignedUrl(media.storage_path, 300);
+
+          if (!signedData?.signedUrl) continue;
+
+          // Call local matching
+          const { data, error } = await supabase.functions.invoke('local-biometric-match', {
+            body: { 
+              imageUrl: signedData.signedUrl, 
+              sourceType: 'media', 
+              sourceId: media.id,
+              autoTagHighConfidence
+            }
+          });
+
+          if (!error && data?.success) {
+            results.push({
+              mediaId: media.id,
+              ...data
+            });
+          }
+        } catch (e) {
+          console.error(`Failed to scan media ${media.id}:`, e);
+        }
+      }
+
+      return { 
+        scanned: mediaIds.length, 
+        results,
+        autoTagged: results.filter(r => r.autoTagged).length,
+        requiresReview: results.filter(r => r.requiresConfirmation).length
+      };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['pending-biometric-matches'] });
+      queryClient.invalidateQueries({ queryKey: ['media-contact-tags'] });
+      toast.success(`Scanned ${data.scanned} items: ${data.autoTagged} auto-tagged, ${data.requiresReview} need review`);
+    },
+    onError: (error: any) => {
+      toast.error(`Batch scan failed: ${error.message}`);
+    }
+  });
+}
