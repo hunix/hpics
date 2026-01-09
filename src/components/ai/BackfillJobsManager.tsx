@@ -49,6 +49,8 @@ interface DataStats {
   relationshipScores: number;
   osintFindings: number;
   threatAssessments: number;
+  biometricSamples: number;
+  churnPredictions: number;
 }
 
 const JOB_TYPES = [
@@ -100,6 +102,22 @@ const JOB_TYPES = [
     color: 'text-cyan-500',
     costPerItem: 0.03,
   },
+  {
+    id: 'biometric_extraction',
+    label: 'Extract Biometrics',
+    description: 'Extract facial & voice biometrics from all media',
+    icon: Database,
+    color: 'text-pink-500',
+    costPerItem: 0.04,
+  },
+  {
+    id: 'churn_prediction',
+    label: 'Predict Churn Risk',
+    description: 'Analyze relationship health and predict churn for all contacts',
+    icon: TrendingUp,
+    color: 'text-amber-500',
+    costPerItem: 0.03,
+  },
 ];
 
 export function BackfillJobsManager() {
@@ -119,6 +137,8 @@ export function BackfillJobsManager() {
         scoresRes,
         osintRes,
         threatRes,
+        biometricRes,
+        churnRes,
       ] = await Promise.all([
         supabase.from('messages').select('id', { count: 'exact', head: true }),
         supabase.from('media').select('id', { count: 'exact', head: true }),
@@ -128,6 +148,8 @@ export function BackfillJobsManager() {
         supabase.from('relationship_scores').select('id', { count: 'exact', head: true }),
         supabase.from('osint_findings').select('id', { count: 'exact', head: true }),
         supabase.from('threat_assessments').select('id', { count: 'exact', head: true }),
+        supabase.from('biometric_samples').select('id', { count: 'exact', head: true }),
+        supabase.from('churn_predictions').select('id', { count: 'exact', head: true }),
       ]);
 
       return {
@@ -139,6 +161,8 @@ export function BackfillJobsManager() {
         relationshipScores: scoresRes.count ?? 0,
         osintFindings: osintRes.count ?? 0,
         threatAssessments: threatRes.count ?? 0,
+        biometricSamples: biometricRes.count ?? 0,
+        churnPredictions: churnRes.count ?? 0,
       };
     },
     refetchInterval: 10000,
@@ -236,10 +260,14 @@ export function BackfillJobsManager() {
       case 'behavioral_predictions':
       case 'osint_scan':
       case 'threat_assessment':
+      case 'churn_prediction':
         itemCount = stats.totalProfiles;
         break;
       case 'relationship_inference':
         itemCount = Math.floor(stats.totalProfiles * 1.5); // Estimate pairs
+        break;
+      case 'biometric_extraction':
+        itemCount = stats.totalMedia - stats.biometricSamples;
         break;
     }
 
@@ -277,36 +305,52 @@ export function BackfillJobsManager() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className="p-4 rounded-lg bg-muted/50">
               <div className="text-2xl font-bold">{stats?.embeddingsWithVectors.toLocaleString() ?? 0}</div>
-              <div className="text-sm text-muted-foreground">/ {((stats?.totalMessages ?? 0) + (stats?.totalMedia ?? 0)).toLocaleString()} Embeddings</div>
+              <div className="text-sm text-muted-foreground">Embeddings</div>
               <Progress 
-                value={stats ? (stats.embeddingsWithVectors / (stats.totalMessages + stats.totalMedia)) * 100 : 0} 
+                value={stats ? (stats.embeddingsWithVectors / Math.max(1, stats.totalMessages + stats.totalMedia)) * 100 : 0} 
+                className="mt-2 h-1.5"
+              />
+            </div>
+            <div className="p-4 rounded-lg bg-muted/50">
+              <div className="text-2xl font-bold">{stats?.relationshipScores.toLocaleString() ?? 0}</div>
+              <div className="text-sm text-muted-foreground">Rel. Scores</div>
+              <Progress 
+                value={stats ? (stats.relationshipScores / Math.max(1, stats.totalProfiles)) * 100 : 0} 
                 className="mt-2 h-1.5"
               />
             </div>
             <div className="p-4 rounded-lg bg-muted/50">
               <div className="text-2xl font-bold">{stats?.behavioralPredictions.toLocaleString() ?? 0}</div>
-              <div className="text-sm text-muted-foreground">/ {stats?.totalProfiles.toLocaleString() ?? 0} Predictions</div>
+              <div className="text-sm text-muted-foreground">Predictions</div>
               <Progress 
-                value={stats ? (stats.behavioralPredictions / stats.totalProfiles) * 100 : 0} 
+                value={stats ? (stats.behavioralPredictions / Math.max(1, stats.totalProfiles)) * 100 : 0} 
                 className="mt-2 h-1.5"
               />
             </div>
             <div className="p-4 rounded-lg bg-muted/50">
-              <div className="text-2xl font-bold">{stats?.osintFindings.toLocaleString() ?? 0}</div>
-              <div className="text-sm text-muted-foreground">OSINT Findings</div>
+              <div className="text-2xl font-bold">{stats?.biometricSamples.toLocaleString() ?? 0}</div>
+              <div className="text-sm text-muted-foreground">Biometrics</div>
               <Progress 
-                value={stats ? Math.min(100, (stats.osintFindings / stats.totalProfiles) * 20) : 0} 
+                value={stats ? (stats.biometricSamples / Math.max(1, stats.totalMedia)) * 100 : 0} 
+                className="mt-2 h-1.5"
+              />
+            </div>
+            <div className="p-4 rounded-lg bg-muted/50">
+              <div className="text-2xl font-bold">{stats?.churnPredictions.toLocaleString() ?? 0}</div>
+              <div className="text-sm text-muted-foreground">Churn Preds</div>
+              <Progress 
+                value={stats ? (stats.churnPredictions / Math.max(1, stats.totalProfiles)) * 100 : 0} 
                 className="mt-2 h-1.5"
               />
             </div>
             <div className="p-4 rounded-lg bg-muted/50">
               <div className="text-2xl font-bold">{stats?.threatAssessments.toLocaleString() ?? 0}</div>
-              <div className="text-sm text-muted-foreground">/ {stats?.totalProfiles.toLocaleString() ?? 0} Threat Scans</div>
+              <div className="text-sm text-muted-foreground">Threat Scans</div>
               <Progress 
-                value={stats ? (stats.threatAssessments / stats.totalProfiles) * 100 : 0} 
+                value={stats ? (stats.threatAssessments / Math.max(1, stats.totalProfiles)) * 100 : 0} 
                 className="mt-2 h-1.5"
               />
             </div>
