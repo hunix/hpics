@@ -34,6 +34,10 @@ import Security from "./pages/Security";
 import NetworkIntelligence from "./pages/NetworkIntelligence";
 import SemanticSearchPage from "./pages/SemanticSearchPage";
 import CounterIntelligence from "./pages/CounterIntelligence";
+import SystemHealthPage from "./pages/SystemHealthPage";
+import CrossModalIntelligencePage from "./pages/CrossModalIntelligencePage";
+import AdvancedNetworkPage from "./pages/AdvancedNetworkPage";
+import AICostCenterPage from "./pages/AICostCenterPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -76,6 +80,10 @@ const App = () => (
                     <Route path="/network-intelligence" element={<NetworkIntelligence />} />
                     <Route path="/semantic-search" element={<SemanticSearchPage />} />
                     <Route path="/counter-intelligence" element={<CounterIntelligence />} />
+                    <Route path="/system-health" element={<SystemHealthPage />} />
+                    <Route path="/cross-modal-intelligence" element={<CrossModalIntelligencePage />} />
+                    <Route path="/network-advanced" element={<AdvancedNetworkPage />} />
+                    <Route path="/ai-costs" element={<AICostCenterPage />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </BrowserRouter>
