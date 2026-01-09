@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, lazy, Suspense } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
@@ -12,7 +12,13 @@ import { QuickCaptureButton } from '@/components/mobile/QuickCaptureButton';
 import { PushNotificationBanner } from '@/components/mobile/PushNotificationBanner';
 import { InstallPromptBanner } from '@/components/mobile/InstallPromptBanner';
 import { ProactiveAlertBanner } from '@/components/intelligence/ProactiveAlertBanner';
+import { NotificationCenter } from '@/components/navigation/NotificationCenter';
 import { useOfflineData } from '@/hooks/useOfflineData';
+
+// Lazy load heavy components
+const FloatingAIAssistant = lazy(() => 
+  import('@/components/ai/FloatingAIAssistant').then(m => ({ default: m.FloatingAIAssistant }))
+);
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -61,8 +67,9 @@ export function AppLayout({ children, title, showQuickCapture = false }: AppLayo
             <SidebarTrigger className="-ml-1 hidden md:flex" />
             <Separator orientation="vertical" className="mr-2 h-4 hidden md:block" />
             {title && <h1 className="text-lg font-semibold">{title}</h1>}
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-2">
               <GlobalSearch />
+              <NotificationCenter />
             </div>
           </header>
           <OfflineIndicator pendingChanges={pendingCount} onSync={syncPendingChanges} />
@@ -77,6 +84,11 @@ export function AppLayout({ children, title, showQuickCapture = false }: AppLayo
         {showQuickCapture && <QuickCaptureButton />}
         <PushNotificationBanner />
         <InstallPromptBanner />
+        
+        {/* Floating AI Assistant */}
+        <Suspense fallback={null}>
+          <FloatingAIAssistant />
+        </Suspense>
       </div>
     </SidebarProvider>
   );
