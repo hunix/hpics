@@ -133,10 +133,6 @@ export function DataValidationDashboard() {
       const { count: behavioralCount } = await supabase.from('behavioral_analyses').select('*', { count: 'exact', head: true });
       const { data: latestBehavioral } = await supabase.from('behavioral_analyses').select('created_at').order('created_at', { ascending: false }).limit(1);
       dataFreshness.push({ table: 'behavioral_analyses', lastUpdate: latestBehavioral?.[0]?.created_at || 'Never', recordCount: behavioralCount || 0 });
-          lastUpdate: latest?.[0]?.created_at || 'Never',
-          recordCount: count || 0,
-        });
-      }
 
       // Calculate overall score
       const passCount = checks.filter(c => c.status === 'pass').length;
