@@ -13,6 +13,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useDashboardLayout } from '@/hooks/useDashboardLayout';
 import { SortableDashlet } from '@/components/dashboard/SortableDashlet';
 import { DashboardCustomizer } from '@/components/dashboard/DashboardCustomizer';
+import { DashboardPresets } from '@/components/dashboard/DashboardPresets';
 import { DecayAlertWidget } from '@/components/dashboard/DecayAlertWidget';
 import { FollowUpSuggestions } from '@/components/dashboard/FollowUpSuggestions';
 import { RelationshipHealthWidget } from '@/components/dashboard/RelationshipHealthWidget';
@@ -395,9 +396,11 @@ export default function Dashboard() {
               {isEditing ? 'Done Editing' : 'Edit Layout'}
             </Button>
           </div>
-          <DashboardCustomizer />
+          <div className="flex items-center gap-2">
+            <DashboardPresets />
+            <DashboardCustomizer />
+          </div>
         </div>
-
         {isEditing && (
           <div className="p-3 bg-primary/10 rounded-lg text-sm text-primary">
             <Edit3 className="inline h-4 w-4 mr-2" />
