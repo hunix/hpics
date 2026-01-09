@@ -1,18 +1,28 @@
 import { useState, useEffect } from 'react';
-import { Cloud, CloudOff, RefreshCw, Check, AlertCircle, Database } from 'lucide-react';
+import { Cloud, CloudOff, RefreshCw, Check, AlertCircle, Database, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useOfflineData } from '@/hooks/useOfflineData';
 import { getLastSyncTime } from '@/lib/offlineStore';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 export function OfflineSyncPanel() {
-  const { isOnline, pendingCount, syncPendingChanges, isSyncing, cacheContacts } = useOfflineData();
+  const { 
+    isOnline, 
+    pendingCount, 
+    syncPendingChanges, 
+    isSyncing, 
+    cacheAllData,
+    syncConflicts,
+    resolveConflict,
+  } = useOfflineData();
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [isCaching, setIsCaching] = useState(false);
+  const [conflictsOpen, setConflictsOpen] = useState(false);
 
   useEffect(() => {
     const loadLastSync = async () => {
@@ -24,10 +34,10 @@ export function OfflineSyncPanel() {
     loadLastSync();
   }, [isSyncing]);
 
-  const handleCacheContacts = async () => {
+  const handleCacheData = async () => {
     setIsCaching(true);
     try {
-      await cacheContacts();
+      await cacheAllData();
       const time = await getLastSyncTime();
       if (time) {
         setLastSync(new Date(time));
@@ -99,6 +109,44 @@ export function OfflineSyncPanel() {
           </div>
         )}
 
+        {/* Conflict Resolution */}
+        {syncConflicts.length > 0 && (
+          <Collapsible open={conflictsOpen} onOpenChange={setConflictsOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="w-full justify-between p-3 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span>{syncConflicts.length} sync conflict{syncConflicts.length !== 1 ? 's' : ''}</span>
+                </div>
+                {conflictsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-2 mt-2">
+              {syncConflicts.map((conflict) => (
+                <div key={conflict.id} className="p-3 rounded-lg border bg-card space-y-2">
+                  <div className="text-sm font-medium">{conflict.table}</div>
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => resolveConflict(conflict.id, 'local')}
+                    >
+                      Keep Local
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => resolveConflict(conflict.id, 'server')}
+                    >
+                      Keep Server
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+
         {/* Status Messages */}
         {!isOnline && pendingCount > 0 && (
           <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
@@ -112,7 +160,7 @@ export function OfflineSyncPanel() {
           </div>
         )}
 
-        {isOnline && pendingCount === 0 && (
+        {isOnline && pendingCount === 0 && syncConflicts.length === 0 && (
           <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400">
             <Check className="h-4 w-4" />
             <span className="text-sm">All changes synced</span>
@@ -125,11 +173,11 @@ export function OfflineSyncPanel() {
             variant="outline"
             size="sm"
             className="flex-1"
-            onClick={handleCacheContacts}
+            onClick={handleCacheData}
             disabled={isCaching || !isOnline}
           >
             <Database className={cn("h-4 w-4 mr-2", isCaching && "animate-pulse")} />
-            {isCaching ? 'Caching...' : 'Cache Data'}
+            {isCaching ? 'Caching...' : 'Cache All Data'}
           </Button>
           
           <Button
@@ -148,7 +196,7 @@ export function OfflineSyncPanel() {
         {!isOnline && (
           <div className="pt-2 border-t">
             <p className="text-xs text-muted-foreground">
-              <strong>Tip:</strong> You can still browse cached contacts and make changes while offline. 
+              <strong>Tip:</strong> You can still browse cached contacts, conversations, and tasks while offline. 
               Everything will automatically sync when you reconnect.
             </p>
           </div>
