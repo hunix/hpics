@@ -33,7 +33,7 @@ export function useAIBudget(): AIBudgetData {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('user_preferences')
-        .select('ai_budget_daily_cents, ai_budget_weekly_cents, ai_budget_monthly_cents')
+        .select('ai_budget_daily_limit_cents, ai_budget_weekly_limit_cents, ai_budget_monthly_limit_cents')
         .eq('user_id', user!.id)
         .maybeSingle();
 
@@ -100,9 +100,9 @@ export function useAIBudget(): AIBudgetData {
     };
   };
 
-  const daily = createStatus(usage?.dailySpent || 0, preferences?.ai_budget_daily_cents);
-  const weekly = createStatus(usage?.weeklySpent || 0, preferences?.ai_budget_weekly_cents);
-  const monthly = createStatus(usage?.monthlySpent || 0, preferences?.ai_budget_monthly_cents);
+  const daily = createStatus(usage?.dailySpent || 0, (preferences as any)?.ai_budget_daily_limit_cents);
+  const weekly = createStatus(usage?.weeklySpent || 0, (preferences as any)?.ai_budget_weekly_limit_cents);
+  const monthly = createStatus(usage?.monthlySpent || 0, (preferences as any)?.ai_budget_monthly_limit_cents);
 
   const wouldExceedBudget = (additionalCostCents: number): BudgetWarning => {
     if (daily.budget !== null && daily.spent + additionalCostCents > daily.budget) {

@@ -19,7 +19,7 @@ export function useAIBudget(): BudgetStatus & { isLoading: boolean } {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('user_preferences')
-        .select('ai_budget_daily_cents, ai_budget_weekly_cents, ai_budget_monthly_cents, ai_budget_alerts_enabled')
+        .select('ai_budget_daily_limit_cents, ai_budget_weekly_limit_cents, ai_budget_monthly_limit_cents, ai_budget_alerts_enabled')
         .eq('user_id', user!.id)
         .maybeSingle();
       if (error) throw error;
@@ -77,9 +77,9 @@ export function useAIBudget(): BudgetStatus & { isLoading: boolean } {
     refetchInterval: 60000,
   });
 
-  const dailyBudget = (preferences as any)?.ai_budget_daily_cents ?? null;
-  const weeklyBudget = (preferences as any)?.ai_budget_weekly_cents ?? null;
-  const monthlyBudget = (preferences as any)?.ai_budget_monthly_cents ?? null;
+  const dailyBudget = (preferences as any)?.ai_budget_daily_limit_cents ?? null;
+  const weeklyBudget = (preferences as any)?.ai_budget_weekly_limit_cents ?? null;
+  const monthlyBudget = (preferences as any)?.ai_budget_monthly_limit_cents ?? null;
   const alertsEnabled = (preferences as any)?.ai_budget_alerts_enabled ?? true;
 
   const dailySpent = spending?.daily || 0;

@@ -91,9 +91,9 @@ export function AIBudgetSettings() {
   // Initialize form with saved values
   useEffect(() => {
     if (preferences) {
-      setDailyBudget((preferences as any).ai_budget_daily_cents ? String((preferences as any).ai_budget_daily_cents / 100) : '');
-      setWeeklyBudget((preferences as any).ai_budget_weekly_cents ? String((preferences as any).ai_budget_weekly_cents / 100) : '');
-      setMonthlyBudget((preferences as any).ai_budget_monthly_cents ? String((preferences as any).ai_budget_monthly_cents / 100) : '');
+      setDailyBudget((preferences as any).ai_budget_daily_limit_cents ? String((preferences as any).ai_budget_daily_limit_cents / 100) : '');
+      setWeeklyBudget((preferences as any).ai_budget_weekly_limit_cents ? String((preferences as any).ai_budget_weekly_limit_cents / 100) : '');
+      setMonthlyBudget((preferences as any).ai_budget_monthly_limit_cents ? String((preferences as any).ai_budget_monthly_limit_cents / 100) : '');
       setAlertsEnabled((preferences as any).ai_budget_alerts_enabled ?? true);
       setHasChanges(false);
     }
@@ -103,9 +103,9 @@ export function AIBudgetSettings() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       const budgetData = {
-        ai_budget_daily_cents: dailyBudget ? Math.round(parseFloat(dailyBudget) * 100) : null,
-        ai_budget_weekly_cents: weeklyBudget ? Math.round(parseFloat(weeklyBudget) * 100) : null,
-        ai_budget_monthly_cents: monthlyBudget ? Math.round(parseFloat(monthlyBudget) * 100) : null,
+        ai_budget_daily_limit_cents: dailyBudget ? Math.round(parseFloat(dailyBudget) * 100) : null,
+        ai_budget_weekly_limit_cents: weeklyBudget ? Math.round(parseFloat(weeklyBudget) * 100) : null,
+        ai_budget_monthly_limit_cents: monthlyBudget ? Math.round(parseFloat(monthlyBudget) * 100) : null,
         ai_budget_alerts_enabled: alertsEnabled,
       };
 
