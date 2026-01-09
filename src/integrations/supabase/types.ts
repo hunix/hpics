@@ -7299,6 +7299,78 @@ export type Database = {
           },
         ]
       }
+      navigation_preferences: {
+        Row: {
+          collapsed_groups: string[] | null
+          color_overrides: Json | null
+          created_at: string | null
+          group_order: Json | null
+          hidden_items: string[] | null
+          id: string
+          layout_mode: string | null
+          pinned_items: string[] | null
+          show_badges: boolean | null
+          show_descriptions: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          collapsed_groups?: string[] | null
+          color_overrides?: Json | null
+          created_at?: string | null
+          group_order?: Json | null
+          hidden_items?: string[] | null
+          id?: string
+          layout_mode?: string | null
+          pinned_items?: string[] | null
+          show_badges?: boolean | null
+          show_descriptions?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          collapsed_groups?: string[] | null
+          color_overrides?: Json | null
+          created_at?: string | null
+          group_order?: Json | null
+          hidden_items?: string[] | null
+          id?: string
+          layout_mode?: string | null
+          pinned_items?: string[] | null
+          show_badges?: boolean | null
+          show_descriptions?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      navigation_quick_access: {
+        Row: {
+          access_count: number | null
+          created_at: string | null
+          id: string
+          last_accessed: string | null
+          route: string
+          user_id: string
+        }
+        Insert: {
+          access_count?: number | null
+          created_at?: string | null
+          id?: string
+          last_accessed?: string | null
+          route: string
+          user_id: string
+        }
+        Update: {
+          access_count?: number | null
+          created_at?: string | null
+          id?: string
+          last_accessed?: string | null
+          route?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       network_predictions: {
         Row: {
           accuracy_score: number | null
@@ -10326,6 +10398,7 @@ export type Database = {
           sent_at: string
         }[]
       }
+      track_navigation_access: { Args: { p_route: string }; Returns: undefined }
       verify_churn_prediction_outcomes: { Args: never; Returns: undefined }
     }
     Enums: {
