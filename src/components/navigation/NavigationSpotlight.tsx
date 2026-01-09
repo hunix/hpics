@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Command, Search, Clock, Star, ArrowRight } from 'lucide-react';
+import { Command, Search, Clock, Star, ArrowRight, Plus, Upload, Users, FileText, Sparkles } from 'lucide-react';
 import {
   CommandDialog,
   CommandEmpty,
@@ -20,6 +20,13 @@ interface NavigationSpotlightProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+// Quick actions for power users
+const quickActions = [
+  { id: 'new-contact', label: 'Create new contact', icon: Plus, url: '/contacts?action=create', keywords: ['new', 'add', 'contact', 'create'] },
+  { id: 'import-data', label: 'Import data', icon: Upload, url: '/import', keywords: ['import', 'upload', 'csv', 'excel'] },
+  { id: 'ai-search', label: 'AI semantic search', icon: Sparkles, url: '/semantic-search', keywords: ['ai', 'search', 'smart', 'find'] },
+];
 
 export function NavigationSpotlight({ open, onOpenChange }: NavigationSpotlightProps) {
   const [search, setSearch] = useState('');
@@ -148,6 +155,35 @@ export function NavigationSpotlight({ open, onOpenChange }: NavigationSpotlightP
         {/* Show categories when not searching */}
         {!search.trim() && (
           <>
+            {/* Quick Actions */}
+            <CommandGroup heading={
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="h-3 w-3 text-violet-500" />
+                <span>Quick Actions</span>
+              </div>
+            }>
+              {quickActions.map((action) => {
+                const Icon = action.icon;
+                return (
+                  <CommandItem
+                    key={action.id}
+                    value={`${action.label} ${action.keywords.join(' ')}`}
+                    onSelect={() => {
+                      navigate(action.url);
+                      onOpenChange(false);
+                    }}
+                    className="flex items-center gap-3 py-2 cursor-pointer"
+                  >
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 shadow-sm">
+                      <Icon className="h-4 w-4 text-white" />
+                    </div>
+                    <span className="font-medium">{action.label}</span>
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+            <CommandSeparator />
+            
             {/* Pinned */}
             {pinnedItems.length > 0 && (
               <>
