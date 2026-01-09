@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { 
   Play, 
@@ -21,9 +22,12 @@ import {
   AlertCircle,
   CheckCircle2,
   Clock,
-  Loader2
+  Loader2,
+  ScanFace,
+  Grid3X3
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { MosaicBatchScanner } from '@/components/biometrics/MosaicBatchScanner';
 
 interface BatchJob {
   id: string;
@@ -358,161 +362,199 @@ export function BackfillJobsManager() {
         </CardContent>
       </Card>
 
-      {/* Job Types */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Play className="h-5 w-5" />
-            Start Backfill Job
-          </CardTitle>
-          <CardDescription>
-            Initialize AI processing for your data. Each job processes items in batches with rate limiting.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {JOB_TYPES.map((job) => {
-              const Icon = job.icon;
-              const estimatedCost = calculateEstimatedCost(job.id);
-              const isRunning = activeJob?.job_type === job.id;
-
-              return (
-                <div
-                  key={job.id}
-                  className={`p-4 rounded-lg border transition-colors ${
-                    selectedJobType === job.id ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <Icon className={`h-5 w-5 mt-0.5 ${job.color}`} />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium">{job.label}</div>
-                      <div className="text-sm text-muted-foreground mt-1">
-                        {job.description}
-                      </div>
-                      <div className="text-sm text-muted-foreground mt-2">
-                        Est. cost: <span className="font-medium">${estimatedCost.toFixed(2)}</span>
-                      </div>
-                      <Button
-                        size="sm"
-                        className="mt-3 w-full"
-                        disabled={!!activeJob || startJobMutation.isPending}
-                        onClick={() => startJobMutation.mutate(job.id)}
-                      >
-                        {isRunning ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Running...
-                          </>
-                        ) : startJobMutation.isPending ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Starting...
-                          </>
-                        ) : (
-                          <>
-                            <Play className="h-4 w-4 mr-2" />
-                            Start
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Active & Recent Jobs */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <RefreshCw className="h-5 w-5" />
+      {/* Tabbed Interface for Job Types */}
+      <Tabs defaultValue="standard" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="standard" className="flex items-center gap-2">
+            <Play className="h-4 w-4" />
+            Standard Jobs
+          </TabsTrigger>
+          <TabsTrigger value="mosaic" className="flex items-center gap-2">
+            <Grid3X3 className="h-4 w-4" />
+            Mosaic Biometric Scan
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <RefreshCw className="h-4 w-4" />
             Job History
-          </CardTitle>
-          <CardDescription>
-            Monitor running and completed backfill operations
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {jobs && jobs.length > 0 ? (
-            <div className="space-y-3">
-              {jobs.map((job) => {
-                const progress = job.total_items 
-                  ? Math.round((job.processed_items / job.total_items) * 100) 
-                  : 0;
+          </TabsTrigger>
+        </TabsList>
 
-                return (
-                  <div
-                    key={job.id}
-                    className="p-4 rounded-lg border bg-card"
-                  >
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        {getStatusIcon(job.status)}
-                        <div>
-                          <div className="font-medium capitalize">
-                            {job.job_type.replace(/_/g, ' ')}
+        <TabsContent value="standard">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Play className="h-5 w-5" />
+                Start Backfill Job
+              </CardTitle>
+              <CardDescription>
+                Initialize AI processing for your data. Each job processes items in batches with rate limiting.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {JOB_TYPES.map((job) => {
+                  const Icon = job.icon;
+                  const estimatedCost = calculateEstimatedCost(job.id);
+                  const isRunning = activeJob?.job_type === job.id;
+
+                  return (
+                    <div
+                      key={job.id}
+                      className={`p-4 rounded-lg border transition-colors ${
+                        selectedJobType === job.id ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <Icon className={`h-5 w-5 mt-0.5 ${job.color}`} />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium">{job.label}</div>
+                          <div className="text-sm text-muted-foreground mt-1">
+                            {job.description}
                           </div>
-                          <div className="text-sm text-muted-foreground">
-                            {job.started_at 
-                              ? `Started ${formatDistanceToNow(new Date(job.started_at))} ago`
-                              : `Created ${formatDistanceToNow(new Date(job.created_at))} ago`
-                            }
+                          <div className="text-sm text-muted-foreground mt-2">
+                            Est. cost: <span className="font-medium">${estimatedCost.toFixed(2)}</span>
                           </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        {getStatusBadge(job.status)}
-                        {job.status === 'running' && (
                           <Button
                             size="sm"
-                            variant="outline"
-                            onClick={() => cancelJobMutation.mutate(job.id)}
-                            disabled={cancelJobMutation.isPending}
+                            className="mt-3 w-full"
+                            disabled={!!activeJob || startJobMutation.isPending}
+                            onClick={() => startJobMutation.mutate(job.id)}
                           >
-                            <Square className="h-4 w-4" />
+                            {isRunning ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Running...
+                              </>
+                            ) : startJobMutation.isPending ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Starting...
+                              </>
+                            ) : (
+                              <>
+                                <Play className="h-4 w-4 mr-2" />
+                                Start
+                              </>
+                            )}
                           </Button>
-                        )}
+                        </div>
                       </div>
                     </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-                    {job.status === 'running' && job.total_items && (
-                      <div className="mt-3">
-                        <div className="flex justify-between text-sm mb-1">
-                          <span>{job.processed_items.toLocaleString()} / {job.total_items.toLocaleString()}</span>
-                          <span>{progress}%</span>
+        <TabsContent value="mosaic">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ScanFace className="h-5 w-5" />
+                Mosaic Batch Biometric Scan
+              </CardTitle>
+              <CardDescription>
+                Process multiple images in a single AI call using mosaic technology. Up to 96% more cost-efficient than individual scans.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <MosaicBatchScanner />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="history">
+          {/* Active & Recent Jobs */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <RefreshCw className="h-5 w-5" />
+                Job History
+              </CardTitle>
+              <CardDescription>
+                Monitor running and completed backfill operations
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {jobs && jobs.length > 0 ? (
+                <div className="space-y-3">
+                  {jobs.map((job) => {
+                    const progress = job.total_items 
+                      ? Math.round((job.processed_items / job.total_items) * 100) 
+                      : 0;
+
+                    return (
+                      <div
+                        key={job.id}
+                        className="p-4 rounded-lg border bg-card"
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3">
+                            {getStatusIcon(job.status)}
+                            <div>
+                              <div className="font-medium capitalize">
+                                {job.job_type.replace(/_/g, ' ')}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {job.started_at 
+                                  ? `Started ${formatDistanceToNow(new Date(job.started_at))} ago`
+                                  : `Created ${formatDistanceToNow(new Date(job.created_at))} ago`
+                                }
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {getStatusBadge(job.status)}
+                            {job.status === 'running' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => cancelJobMutation.mutate(job.id)}
+                                disabled={cancelJobMutation.isPending}
+                              >
+                                <Square className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                        <Progress value={progress} className="h-2" />
-                      </div>
-                    )}
 
-                    {job.status === 'completed' && (
-                      <div className="mt-2 text-sm text-muted-foreground">
-                        Processed {job.processed_items.toLocaleString()} items
-                        {job.failed_items > 0 && ` (${job.failed_items} failed)`}
-                        {job.actual_cost_cents > 0 && ` • Cost: $${(job.actual_cost_cents / 100).toFixed(2)}`}
-                      </div>
-                    )}
+                        {job.status === 'running' && job.total_items && (
+                          <div className="mt-3">
+                            <div className="flex justify-between text-sm mb-1">
+                              <span>{job.processed_items.toLocaleString()} / {job.total_items.toLocaleString()}</span>
+                              <span>{progress}%</span>
+                            </div>
+                            <Progress value={progress} className="h-2" />
+                          </div>
+                        )}
 
-                    {job.error_message && (
-                      <div className="mt-2 text-sm text-destructive">
-                        {job.error_message}
+                        {job.status === 'completed' && (
+                          <div className="mt-2 text-sm text-muted-foreground">
+                            Processed {job.processed_items.toLocaleString()} items
+                            {job.failed_items > 0 && ` (${job.failed_items} failed)`}
+                            {job.actual_cost_cents > 0 && ` • Cost: $${(job.actual_cost_cents / 100).toFixed(2)}`}
+                          </div>
+                        )}
+
+                        {job.error_message && (
+                          <div className="mt-2 text-sm text-destructive">
+                            {job.error_message}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              No jobs yet. Start a backfill job above to populate your intelligence data.
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  No jobs yet. Start a backfill job above to populate your intelligence data.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
