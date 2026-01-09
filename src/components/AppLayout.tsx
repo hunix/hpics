@@ -24,9 +24,10 @@ interface AppLayoutProps {
   children: ReactNode;
   title?: string;
   showQuickCapture?: boolean;
+  captureProfileId?: string;
 }
 
-export function AppLayout({ children, title, showQuickCapture = false }: AppLayoutProps) {
+export function AppLayout({ children, title, showQuickCapture = false, captureProfileId }: AppLayoutProps) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -81,7 +82,7 @@ export function AppLayout({ children, title, showQuickCapture = false }: AppLayo
         
         {/* Mobile-only components */}
         <MobileBottomNav />
-        {showQuickCapture && <QuickCaptureButton />}
+        {showQuickCapture && <QuickCaptureButton profileId={captureProfileId} />}
         <PushNotificationBanner />
         <InstallPromptBanner />
         
