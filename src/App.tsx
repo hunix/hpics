@@ -66,11 +66,11 @@ const App = () => (
           <TooltipProvider>
             <RealtimeProvider>
               <AIConfirmationProvider>
-                <GlobalShortcutsProvider>
-                  <Toaster />
-                  <Sonner />
-                  <AIBudgetWarning />
-                  <BrowserRouter>
+                <Toaster />
+                <Sonner />
+                <AIBudgetWarning />
+                <BrowserRouter>
+                  <GlobalShortcutsProvider>
                     <Suspense fallback={<FullPageLoader />}>
                       <Routes>
                         <Route path="/" element={<Index />} />
@@ -105,8 +105,8 @@ const App = () => (
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                     </Suspense>
-                  </BrowserRouter>
-                </GlobalShortcutsProvider>
+                  </GlobalShortcutsProvider>
+                </BrowserRouter>
               </AIConfirmationProvider>
             </RealtimeProvider>
           </TooltipProvider>
