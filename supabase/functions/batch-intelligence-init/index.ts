@@ -95,13 +95,16 @@ serve(async (req) => {
         }
         case 'relationship_scores':
         case 'behavioral_predictions':
-        case 'threat_assessment': {
+        case 'threat_assessment':
+        case 'churn_prediction': {
           const { count } = await supabase
             .from('profiles')
             .select('id', { count: 'exact', head: true })
             .eq('user_id', user.id);
           totalItems = count ?? 0;
-          const costPerItem = jobType === 'behavioral_predictions' ? 5 : jobType === 'threat_assessment' ? 8 : 2;
+          const costPerItem = jobType === 'behavioral_predictions' ? 5 : 
+                             jobType === 'threat_assessment' ? 8 : 
+                             jobType === 'churn_prediction' ? 3 : 2;
           estimatedCostCents = Math.ceil(totalItems * costPerItem);
           break;
         }
@@ -121,6 +124,15 @@ serve(async (req) => {
             .eq('user_id', user.id);
           totalItems = Math.ceil((count ?? 0) * 1.5);
           estimatedCostCents = Math.ceil(totalItems * 3);
+          break;
+        }
+        case 'biometric_extraction': {
+          const { count } = await supabase
+            .from('media')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', user.id);
+          totalItems = count ?? 0;
+          estimatedCostCents = Math.ceil(totalItems * 4);
           break;
         }
       }
@@ -182,49 +194,63 @@ async function processJobBatch(
   let actualCostCents = 0;
 
   try {
-    switch (jobType) {
-      case 'embeddings':
-        await processEmbeddings(supabase, userId, jobId, (progress, cost) => {
-          processedItems = progress;
-          actualCostCents = cost;
-        });
-        break;
-      case 'behavioral_predictions':
-        await processBehavioralPredictions(supabase, userId, jobId, (progress, failed, cost) => {
-          processedItems = progress;
-          failedItems = failed;
-          actualCostCents = cost;
-        });
-        break;
-      case 'relationship_scores':
-        await processRelationshipScores(supabase, userId, jobId, (progress, failed, cost) => {
-          processedItems = progress;
-          failedItems = failed;
-          actualCostCents = cost;
-        });
-        break;
-      case 'osint_scan':
-        await processOsintScans(supabase, userId, jobId, (progress, failed, cost) => {
-          processedItems = progress;
-          failedItems = failed;
-          actualCostCents = cost;
-        });
-        break;
-      case 'threat_assessment':
-        await processThreatAssessments(supabase, userId, jobId, (progress, failed, cost) => {
-          processedItems = progress;
-          failedItems = failed;
-          actualCostCents = cost;
-        });
-        break;
-      case 'relationship_inference':
-        await processRelationshipInference(supabase, userId, jobId, (progress, failed, cost) => {
-          processedItems = progress;
-          failedItems = failed;
-          actualCostCents = cost;
-        });
-        break;
-    }
+      switch (jobType) {
+        case 'embeddings':
+          await processEmbeddings(supabase, userId, jobId, (progress, cost) => {
+            processedItems = progress;
+            actualCostCents = cost;
+          });
+          break;
+        case 'behavioral_predictions':
+          await processBehavioralPredictions(supabase, userId, jobId, (progress, failed, cost) => {
+            processedItems = progress;
+            failedItems = failed;
+            actualCostCents = cost;
+          });
+          break;
+        case 'relationship_scores':
+          await processRelationshipScores(supabase, userId, jobId, (progress, failed, cost) => {
+            processedItems = progress;
+            failedItems = failed;
+            actualCostCents = cost;
+          });
+          break;
+        case 'osint_scan':
+          await processOsintScans(supabase, userId, jobId, (progress, failed, cost) => {
+            processedItems = progress;
+            failedItems = failed;
+            actualCostCents = cost;
+          });
+          break;
+        case 'threat_assessment':
+          await processThreatAssessments(supabase, userId, jobId, (progress, failed, cost) => {
+            processedItems = progress;
+            failedItems = failed;
+            actualCostCents = cost;
+          });
+          break;
+        case 'relationship_inference':
+          await processRelationshipInference(supabase, userId, jobId, (progress, failed, cost) => {
+            processedItems = progress;
+            failedItems = failed;
+            actualCostCents = cost;
+          });
+          break;
+        case 'biometric_extraction':
+          await processBiometricExtraction(supabase, userId, jobId, (progress, failed, cost) => {
+            processedItems = progress;
+            failedItems = failed;
+            actualCostCents = cost;
+          });
+          break;
+        case 'churn_prediction':
+          await processChurnPredictions(supabase, userId, jobId, (progress, failed, cost) => {
+            processedItems = progress;
+            failedItems = failed;
+            actualCostCents = cost;
+          });
+          break;
+      }
 
     // Mark job as completed
     await supabase
@@ -528,4 +554,107 @@ async function processRelationshipInference(
     .eq('id', jobId);
 
   onProgress(processed, failed, cost);
+}
+
+async function processBiometricExtraction(
+  supabase: any,
+  userId: string,
+  jobId: string,
+  onProgress: ProgressWithFailedCallback
+): Promise<void> {
+  let processed = 0;
+  let failed = 0;
+  let cost = 0;
+
+  const { data: media } = await supabase
+    .from('media')
+    .select('id, mime_type, profile_id')
+    .eq('user_id', userId);
+
+  if (media) {
+    for (const item of media) {
+      const { data: job } = await supabase
+        .from('batch_jobs')
+        .select('status')
+        .eq('id', jobId)
+        .single();
+      
+      if (job?.status === 'cancelled') return;
+
+      try {
+        const isImage = item.mime_type?.startsWith('image/');
+        const isAudio = item.mime_type?.startsWith('audio/');
+        
+        if (isImage) {
+          await supabase.functions.invoke('extract-facial-biometrics', {
+            body: { mediaId: item.id, profileId: item.profile_id }
+          });
+        } else if (isAudio) {
+          await supabase.functions.invoke('extract-voice-biometrics', {
+            body: { mediaId: item.id, profileId: item.profile_id }
+          });
+        }
+        processed++;
+        cost += 4;
+      } catch (e) {
+        console.error(`Biometric extraction failed for ${item.id}:`, e);
+        failed++;
+      }
+
+      await supabase
+        .from('batch_jobs')
+        .update({ processed_items: processed, failed_items: failed, actual_cost_cents: cost })
+        .eq('id', jobId);
+
+      onProgress(processed, failed, cost);
+      await new Promise(r => setTimeout(r, RATE_LIMIT_DELAY_MS));
+    }
+  }
+}
+
+async function processChurnPredictions(
+  supabase: any,
+  userId: string,
+  jobId: string,
+  onProgress: ProgressWithFailedCallback
+): Promise<void> {
+  let processed = 0;
+  let failed = 0;
+  let cost = 0;
+
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('user_id', userId);
+
+  if (profiles) {
+    for (const profile of profiles) {
+      const { data: job } = await supabase
+        .from('batch_jobs')
+        .select('status')
+        .eq('id', jobId)
+        .single();
+      
+      if (job?.status === 'cancelled') return;
+
+      try {
+        await supabase.functions.invoke('predict-churn', {
+          body: { profileId: profile.id }
+        });
+        processed++;
+        cost += 3;
+      } catch (e) {
+        console.error(`Churn prediction failed for ${profile.id}:`, e);
+        failed++;
+      }
+
+      await supabase
+        .from('batch_jobs')
+        .update({ processed_items: processed, failed_items: failed, actual_cost_cents: cost })
+        .eq('id', jobId);
+
+      onProgress(processed, failed, cost);
+      await new Promise(r => setTimeout(r, RATE_LIMIT_DELAY_MS / 2));
+    }
+  }
 }

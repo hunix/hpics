@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
-import { Camera, X, Upload, User, FileText, Image, Mic, Video, Sparkles, StopCircle, Square } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Camera, X, Upload, User, FileText, Image, Mic, Video, Sparkles, StopCircle, Square, Grid3X3, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { takePhoto, hapticFeedback, isNativePlatform } from '@/lib/nativeFeatures';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -18,10 +19,17 @@ interface QuickCaptureButtonProps {
 }
 
 type CaptureType = 'profile_photo' | 'document' | 'media' | 'voice_memo' | 'video';
-type CaptureMode = 'photo' | 'video' | 'voice';
+type CaptureMode = 'photo' | 'video' | 'voice' | 'batch';
+
+interface BatchPhoto {
+  id: string;
+  dataUrl: string;
+  blob?: Blob;
+}
 
 const MAX_VIDEO_DURATION = 30; // seconds
 const MAX_VOICE_DURATION = 120; // seconds
+const MAX_BATCH_PHOTOS = 10;
 
 export function QuickCaptureButton({ profileId, onCapture, className }: QuickCaptureButtonProps) {
   const { user } = useAuth();
@@ -35,6 +43,10 @@ export function QuickCaptureButton({ profileId, onCapture, className }: QuickCap
   const [captureType, setCaptureType] = useState<CaptureType>('media');
   const [captureMode, setCaptureMode] = useState<CaptureMode>('photo');
   const [autoAnalyze, setAutoAnalyze] = useState(true);
+  
+  // Batch capture state
+  const [batchPhotos, setBatchPhotos] = useState<BatchPhoto[]>([]);
+  const [isBatchMode, setIsBatchMode] = useState(false);
   
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -63,6 +75,8 @@ export function QuickCaptureButton({ profileId, onCapture, className }: QuickCap
       await handleVideoCapture();
     } else if (mode === 'voice') {
       await handleVoiceCapture();
+    } else if (mode === 'batch') {
+      await handleBatchCapture();
     }
   };
 
@@ -94,6 +108,49 @@ export function QuickCaptureButton({ profileId, onCapture, className }: QuickCap
     } finally {
       setIsCapturing(false);
     }
+  };
+
+  const handleBatchCapture = async () => {
+    setIsBatchMode(true);
+    setBatchPhotos([]);
+    setCaptureType('media');
+    setIsOpen(true);
+    setIsModeSelect(false);
+    await addPhotoBatch();
+  };
+
+  const addPhotoBatch = async () => {
+    if (batchPhotos.length >= MAX_BATCH_PHOTOS) {
+      toast.error(`Maximum ${MAX_BATCH_PHOTOS} photos per batch`);
+      return;
+    }
+    
+    setIsCapturing(true);
+    try {
+      const imageData = await takePhoto();
+      if (imageData) {
+        const response = await fetch(imageData);
+        const blob = await response.blob();
+        
+        setBatchPhotos(prev => [...prev, {
+          id: `batch-${Date.now()}`,
+          dataUrl: imageData,
+          blob,
+        }]);
+        
+        await hapticFeedback('light');
+      }
+    } catch (error) {
+      console.error('Batch capture error:', error);
+      toast.error('Failed to capture image');
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
+  const removeFromBatch = (id: string) => {
+    setBatchPhotos(prev => prev.filter(p => p.id !== id));
+    hapticFeedback('light');
   };
 
   const handleVideoCapture = async () => {
@@ -446,6 +503,91 @@ export function QuickCaptureButton({ profileId, onCapture, className }: QuickCap
     setCaptureType('media');
     setIsModeSelect(false);
     setRecordingDuration(0);
+    setIsBatchMode(false);
+    setBatchPhotos([]);
+  };
+
+  const handleSaveBatch = async () => {
+    if (!user || batchPhotos.length === 0) return;
+    
+    await hapticFeedback('light');
+    setIsSaving(true);
+    
+    try {
+      const savedMediaIds: string[] = [];
+      
+      for (let i = 0; i < batchPhotos.length; i++) {
+        const photo = batchPhotos[i];
+        const blob = photo.blob || await fetch(photo.dataUrl).then(r => r.blob());
+        const fileName = `batch-${Date.now()}-${i}.jpg`;
+        const storagePath = `${user.id}/${profileId || 'general'}/media/${fileName}`;
+        
+        const { data, error } = await supabase.storage
+          .from('media')
+          .upload(storagePath, blob, {
+            contentType: 'image/jpeg',
+            upsert: false
+          });
+        
+        if (error) {
+          console.error(`Failed to upload photo ${i}:`, error);
+          continue;
+        }
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('media')
+          .getPublicUrl(data.path);
+        
+        if (profileId) {
+          const { data: mediaRecord, error: mediaError } = await supabase
+            .from('media')
+            .insert([{
+              user_id: user.id,
+              profile_id: profileId,
+              file_url: publicUrl,
+              mime_type: 'image/jpeg',
+              storage_path: data.path,
+              caption: `Batch capture ${i + 1}/${batchPhotos.length}`
+            }])
+            .select()
+            .single();
+          
+          if (!mediaError && mediaRecord) {
+            savedMediaIds.push(mediaRecord.id);
+            
+            // Queue for facial analysis if auto-analyze is on
+            if (autoAnalyze) {
+              await supabase.from('enrichment_queue').insert({
+                user_id: user.id,
+                profile_id: profileId,
+                enrichment_type: 'facial_biometrics',
+                source_type: 'media',
+                source_id: mediaRecord.id,
+                priority: 8,
+                status: 'pending',
+                scheduled_for: new Date().toISOString(),
+              });
+            }
+          }
+        }
+      }
+      
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: ['contact-media', profileId] });
+      queryClient.invalidateQueries({ queryKey: ['contact-media-count', profileId] });
+      queryClient.invalidateQueries({ queryKey: ['profiles'] });
+      
+      toast.success(`Saved ${savedMediaIds.length} photos`, {
+        description: autoAnalyze ? 'Facial analysis queued for all photos' : undefined
+      });
+      
+      handleClose();
+    } catch (error) {
+      console.error('Batch save error:', error);
+      toast.error('Failed to save batch');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const maxDuration = captureType === 'video' ? MAX_VIDEO_DURATION : MAX_VOICE_DURATION;
@@ -472,15 +614,15 @@ export function QuickCaptureButton({ profileId, onCapture, className }: QuickCap
       </Button>
 
       <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {isModeSelect ? 'Capture Mode' : isRecording ? 'Recording...' : 'Quick Capture'}
+              {isModeSelect ? 'Capture Mode' : isBatchMode ? `Batch Capture (${batchPhotos.length}/${MAX_BATCH_PHOTOS})` : isRecording ? 'Recording...' : 'Quick Capture'}
             </DialogTitle>
           </DialogHeader>
           
           {isModeSelect ? (
-            <div className="grid grid-cols-3 gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4 py-4">
               <Button
                 variant="outline"
                 className="flex flex-col items-center gap-2 h-auto py-6"
@@ -505,6 +647,91 @@ export function QuickCaptureButton({ profileId, onCapture, className }: QuickCap
                 <Mic className="h-8 w-8" />
                 <span>Voice</span>
               </Button>
+              <Button
+                variant="outline"
+                className="flex flex-col items-center gap-2 h-auto py-6"
+                onClick={() => handleModeSelect('batch')}
+              >
+                <Grid3X3 className="h-8 w-8" />
+                <span>Batch</span>
+              </Button>
+            </div>
+          ) : isBatchMode ? (
+            <div className="space-y-4">
+              {/* Batch photo grid */}
+              {batchPhotos.length > 0 ? (
+                <ScrollArea className="h-64">
+                  <div className="grid grid-cols-3 gap-2">
+                    {batchPhotos.map((photo, index) => (
+                      <div key={photo.id} className="relative aspect-square rounded-lg overflow-hidden group">
+                        <img 
+                          src={photo.dataUrl} 
+                          alt={`Batch ${index + 1}`} 
+                          className="w-full h-full object-cover"
+                        />
+                        <Button
+                          size="icon"
+                          variant="destructive"
+                          className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => removeFromBatch(photo.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                        <Badge className="absolute bottom-1 left-1 text-xs">
+                          {index + 1}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <Grid3X3 className="h-12 w-12 mb-2 opacity-50" />
+                  <p>No photos captured yet</p>
+                </div>
+              )}
+              
+              {/* Add more button */}
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={addPhotoBatch}
+                disabled={isCapturing || batchPhotos.length >= MAX_BATCH_PHOTOS}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                {isCapturing ? 'Capturing...' : `Add Photo (${batchPhotos.length}/${MAX_BATCH_PHOTOS})`}
+              </Button>
+              
+              {/* Auto-analyze toggle */}
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="text-sm">Auto-analyze with AI</span>
+                </div>
+                <Button
+                  variant={autoAnalyze ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setAutoAnalyze(!autoAnalyze)}
+                >
+                  {autoAnalyze ? 'On' : 'Off'}
+                </Button>
+              </div>
+              
+              {/* Save/Cancel buttons */}
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={handleClose} disabled={isSaving}>
+                  <X className="h-4 w-4 mr-2" />
+                  Discard
+                </Button>
+                <Button 
+                  className="flex-1" 
+                  onClick={handleSaveBatch} 
+                  disabled={isSaving || batchPhotos.length === 0}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  {isSaving ? 'Saving...' : `Save ${batchPhotos.length} Photos`}
+                </Button>
+              </div>
             </div>
           ) : isRecording ? (
             <div className="space-y-4 py-4">
