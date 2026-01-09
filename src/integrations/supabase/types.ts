@@ -9246,12 +9246,9 @@ export type Database = {
         Row: {
           ai_budget_alert_threshold: number | null
           ai_budget_alerts_enabled: boolean | null
-          ai_budget_daily_cents: number | null
           ai_budget_daily_limit_cents: number | null
           ai_budget_enforce_limits: boolean | null
-          ai_budget_monthly_cents: number | null
           ai_budget_monthly_limit_cents: number | null
-          ai_budget_weekly_cents: number | null
           ai_budget_weekly_limit_cents: number | null
           created_at: string
           documents_items_per_page: number | null
@@ -9272,12 +9269,9 @@ export type Database = {
         Insert: {
           ai_budget_alert_threshold?: number | null
           ai_budget_alerts_enabled?: boolean | null
-          ai_budget_daily_cents?: number | null
           ai_budget_daily_limit_cents?: number | null
           ai_budget_enforce_limits?: boolean | null
-          ai_budget_monthly_cents?: number | null
           ai_budget_monthly_limit_cents?: number | null
-          ai_budget_weekly_cents?: number | null
           ai_budget_weekly_limit_cents?: number | null
           created_at?: string
           documents_items_per_page?: number | null
@@ -9298,12 +9292,9 @@ export type Database = {
         Update: {
           ai_budget_alert_threshold?: number | null
           ai_budget_alerts_enabled?: boolean | null
-          ai_budget_daily_cents?: number | null
           ai_budget_daily_limit_cents?: number | null
           ai_budget_enforce_limits?: boolean | null
-          ai_budget_monthly_cents?: number | null
           ai_budget_monthly_limit_cents?: number | null
-          ai_budget_weekly_cents?: number | null
           ai_budget_weekly_limit_cents?: number | null
           created_at?: string
           documents_items_per_page?: number | null
@@ -10049,6 +10040,10 @@ export type Database = {
         }[]
       }
       bootstrap_first_admin: { Args: never; Returns: boolean }
+      check_workspace_membership: {
+        Args: { uid: string; ws_id: string }
+        Returns: boolean
+      }
       clean_expired_cache: { Args: never; Returns: number }
       create_storage_snapshot: {
         Args: { p_user_id: string }
@@ -10323,6 +10318,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      owns_profile: {
+        Args: { profile_uuid: string; uid: string }
+        Returns: boolean
       }
       refresh_contact_storage_stats: { Args: never; Returns: undefined }
       search_contacts_v2: {

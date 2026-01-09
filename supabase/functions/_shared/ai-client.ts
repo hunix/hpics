@@ -118,7 +118,7 @@ async function checkUserBudget(
     // Get user preferences with budget settings
     const { data: prefs } = await supabase
       .from('user_preferences')
-      .select('ai_budget_daily_cents, ai_budget_weekly_cents, ai_budget_monthly_cents')
+      .select('ai_budget_daily_limit_cents, ai_budget_weekly_limit_cents, ai_budget_monthly_limit_cents')
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -153,13 +153,13 @@ async function checkUserBudget(
       .reduce((sum: number, u: any) => sum + (u.actual_cost_cents || 0), 0);
 
     // Check limits
-    if (prefs.ai_budget_daily_cents && dailySpend >= prefs.ai_budget_daily_cents) {
+    if (prefs.ai_budget_daily_limit_cents && dailySpend >= prefs.ai_budget_daily_limit_cents) {
       return { exceeded: true, period: 'daily' };
     }
-    if (prefs.ai_budget_weekly_cents && weeklySpend >= prefs.ai_budget_weekly_cents) {
+    if (prefs.ai_budget_weekly_limit_cents && weeklySpend >= prefs.ai_budget_weekly_limit_cents) {
       return { exceeded: true, period: 'weekly' };
     }
-    if (prefs.ai_budget_monthly_cents && monthlySpend >= prefs.ai_budget_monthly_cents) {
+    if (prefs.ai_budget_monthly_limit_cents && monthlySpend >= prefs.ai_budget_monthly_limit_cents) {
       return { exceeded: true, period: 'monthly' };
     }
 
