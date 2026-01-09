@@ -6918,6 +6918,7 @@ export type Database = {
         Row: {
           confidence: number | null
           created_at: string
+          detection_method: string | null
           face_position: Json | null
           id: string
           media_id: string
@@ -6928,6 +6929,7 @@ export type Database = {
         Insert: {
           confidence?: number | null
           created_at?: string
+          detection_method?: string | null
           face_position?: Json | null
           id?: string
           media_id: string
@@ -6938,6 +6940,7 @@ export type Database = {
         Update: {
           confidence?: number | null
           created_at?: string
+          detection_method?: string | null
           face_position?: Json | null
           id?: string
           media_id?: string
@@ -10309,6 +10312,22 @@ export type Database = {
           similarity: number
           source_id: string
           source_type: string
+        }[]
+      }
+      match_facial_embeddings: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          p_user_id?: string
+          query_embedding: string
+        }
+        Returns: {
+          avatar_url: string
+          facial_confidence: number
+          first_name: string
+          last_name: string
+          profile_id: string
+          similarity: number
         }[]
       }
       merge_duplicate_profiles: {

@@ -254,3 +254,15 @@ verify_jwt = false
 
 [functions.detect-life-milestones]
 verify_jwt = false
+
+[functions.generate-facial-embedding]
+verify_jwt = false
+
+[functions.local-biometric-match]
+verify_jwt = false
+
+[functions.batch-intelligence-init]
+verify_jwt = false
+
+[functions.predict-churn]
+verify_jwt = false
