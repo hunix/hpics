@@ -76,16 +76,19 @@ export function SidebarFooterEnhanced({
             onClick={onOpenSpotlight}
             className={cn(
               'w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg',
-              'bg-muted/50 hover:bg-muted transition-colors',
+              'bg-gradient-to-r from-violet-500/10 to-indigo-500/10 hover:from-violet-500/20 hover:to-indigo-500/20 transition-all',
               'text-xs text-muted-foreground hover:text-foreground',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              'border border-violet-500/20'
             )}
           >
             <span className="flex items-center gap-2">
-              <Keyboard className="h-3.5 w-3.5" />
-              Quick search...
+              <Keyboard className="h-3.5 w-3.5 text-violet-500" />
+              <span className="bg-gradient-to-r from-violet-500 to-indigo-500 bg-clip-text text-transparent font-medium">
+                Quick search...
+              </span>
             </span>
-            <kbd className="px-1.5 py-0.5 rounded bg-background text-[10px] font-mono">
+            <kbd className="px-1.5 py-0.5 rounded bg-background text-[10px] font-mono border border-border">
               ⌘K
             </kbd>
           </button>

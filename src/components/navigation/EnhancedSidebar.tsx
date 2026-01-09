@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Users, Search } from 'lucide-react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { Users, Search, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useClearance } from '@/hooks/useClearance';
 import { useNavigationPreferences } from '@/hooks/useNavigationPreferences';
@@ -9,6 +9,8 @@ import { NavItemEnhanced } from './NavItemEnhanced';
 import { QuickAccessBar } from './QuickAccessBar';
 import { SidebarFooterEnhanced } from './SidebarFooterEnhanced';
 import { NavigationSpotlight } from './NavigationSpotlight';
+import { SystemHealthIndicator } from './SystemHealthIndicator';
+import { HiddenItemsManager } from './HiddenItemsManager';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -73,6 +75,11 @@ export function EnhancedSidebar() {
     });
   }, [navGroups, preferences.group_order]);
   
+  // Restore all hidden items
+  const restoreAllHidden = useCallback(() => {
+    preferences.hidden_items.forEach(id => toggleHideItem(id));
+  }, [preferences.hidden_items, toggleHideItem]);
+  
   return (
     <>
       <Sidebar className="border-r border-border/50">
@@ -115,6 +122,15 @@ export function EnhancedSidebar() {
         </div>
         
         <SidebarContent className="flex flex-col h-full">
+          {/* System health + Quick access */}
+          <div className="px-3 py-2 border-b border-border/30 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-3.5 w-3.5 text-violet-500" />
+              <span className="text-xs font-medium text-muted-foreground">Intelligence Ready</span>
+            </div>
+            <SystemHealthIndicator compact />
+          </div>
+          
           {/* Quick access bar */}
           <QuickAccessBar
             pinnedItems={preferences.pinned_items}
@@ -166,6 +182,17 @@ export function EnhancedSidebar() {
                   </div>
                 );
               })}
+              
+              {/* Hidden items manager */}
+              {preferences.hidden_items.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-border/30">
+                  <HiddenItemsManager
+                    hiddenItems={preferences.hidden_items}
+                    onRestoreItem={toggleHideItem}
+                    onRestoreAll={restoreAllHidden}
+                  />
+                </div>
+              )}
             </div>
           </ScrollArea>
           
