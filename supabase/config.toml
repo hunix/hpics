@@ -266,3 +266,6 @@ verify_jwt = false
 
 [functions.predict-churn]
 verify_jwt = false
+
+[functions.mosaic-biometric-match]
+verify_jwt = false
