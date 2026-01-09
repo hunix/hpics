@@ -38,21 +38,39 @@ All colors MUST be HSL.
 
     --radius: 0.5rem;
 
+    /* Semantic color tokens */
+    --emerald: 160 84% 39%;
+    --violet: 263 70% 50%;
+    --blue: 217 91% 60%;
+    --amber: 38 92% 50%;
+    --rose: 350 89% 60%;
+    --red: 0 72% 51%;
+    --cyan: 188 94% 43%;
+    --indigo: 239 84% 67%;
+    --teal: 168 80% 35%;
+    --orange: 24 95% 53%;
+    --pink: 330 81% 60%;
+    
+    /* Success/Warning/Info states */
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 100%;
+
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    /* Notification indicator */
+    --notification: 0 84% 60%;
+    --notification-foreground: 0 0% 100%;
   }
 
   .dark {
