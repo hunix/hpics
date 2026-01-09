@@ -63,7 +63,7 @@ export function useAnalysisSession({
   const [currentCostEstimate, setCurrentCostEstimate] = useState(0);
   
   const isPausedRef = useRef(false);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionIdRef = useRef<string | null>(null);
 
   // Timer effect
