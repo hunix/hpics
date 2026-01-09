@@ -47,6 +47,9 @@ import { EnrichmentQueueStatus } from '@/components/ai/EnrichmentQueueStatus';
 import { DataValidationDashboard } from '@/components/testing/DataValidationDashboard';
 import { AIBudgetAlerts } from '@/components/ai/AIBudgetAlerts';
 import { CostOptimizationAdvisor } from '@/components/ai/CostOptimizationAdvisor';
+import { BudgetAlertPanel } from '@/components/ai/BudgetAlertPanel';
+import { PerContactSpendAnalysis } from '@/components/ai/PerContactSpendAnalysis';
+import { ModelEfficiencyComparison } from '@/components/ai/ModelEfficiencyComparison';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -327,12 +330,15 @@ export default function Settings() {
         </TabsContent>
 
         <TabsContent value="ai-costs" className="space-y-6 mt-6">
+          <BudgetAlertPanel />
           <AICostDashboard />
           <CostProjectionWidget />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <CostOptimizationPanel />
             <ContactCostAnalysis />
           </div>
+          <PerContactSpendAnalysis />
+          <ModelEfficiencyComparison />
           <AIBudgetAlerts />
           <CostOptimizationAdvisor />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

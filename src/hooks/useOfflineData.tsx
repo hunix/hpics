@@ -8,7 +8,22 @@ import {
   clearPendingMutation,
   addPendingMutation,
   getPendingMutationCount,
+  saveConversationsOffline,
+  saveAlertsOffline,
+  getSyncConflicts,
+  resolveSyncConflict as resolveConflictInStore,
+  registerBackgroundSync,
 } from '@/lib/offlineStore';
+
+interface SyncConflict {
+  id: string;
+  table: string;
+  record_id: string;
+  local_data: Record<string, unknown>;
+  server_data: Record<string, unknown>;
+  detected_at: string;
+  resolved: boolean;
+}
 
 interface UseOfflineDataReturn {
   isOnline: boolean;
@@ -16,8 +31,13 @@ interface UseOfflineDataReturn {
   syncPendingChanges: () => Promise<void>;
   isSyncing: boolean;
   cacheContacts: () => Promise<void>;
+  cacheConversations: () => Promise<void>;
+  cacheAlerts: () => Promise<void>;
+  cacheAllData: () => Promise<void>;
   getOfflineCachedContacts: () => Promise<any[]>;
   queueMutation: (type: 'create' | 'update' | 'delete', table: string, data: Record<string, unknown>) => Promise<void>;
+  syncConflicts: SyncConflict[];
+  resolveConflict: (conflictId: string, resolution: 'local' | 'server') => Promise<void>;
 }
 
 export function useOfflineData(): UseOfflineDataReturn {
@@ -25,6 +45,7 @@ export function useOfflineData(): UseOfflineDataReturn {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingCount, setPendingCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncConflicts, setSyncConflicts] = useState<SyncConflict[]>([]);
 
   // Listen for online/offline status
   useEffect(() => {
@@ -40,16 +61,24 @@ export function useOfflineData(): UseOfflineDataReturn {
     };
   }, []);
 
-  // Update pending count
+  // Update pending count and conflicts
   useEffect(() => {
-    const updatePendingCount = async () => {
+    const updateStatus = async () => {
       const count = await getPendingMutationCount();
       setPendingCount(count);
+      
+      const conflicts = await getSyncConflicts();
+      setSyncConflicts(conflicts);
     };
 
-    updatePendingCount();
-    const interval = setInterval(updatePendingCount, 5000);
+    updateStatus();
+    const interval = setInterval(updateStatus, 5000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Register for background sync
+  useEffect(() => {
+    registerBackgroundSync().catch(console.error);
   }, []);
 
   // Auto-sync when coming back online
@@ -70,17 +99,89 @@ export function useOfflineData(): UseOfflineDataReturn {
         .order('first_name');
 
       if (contacts) {
-        // Map organization to company for offline storage
         const mappedContacts = contacts.map(c => ({
-          ...c,
+          id: c.id,
+          first_name: c.first_name,
+          last_name: c.last_name,
+          avatar_url: c.avatar_url,
           company: c.organization,
+          job_title: c.job_title,
+          relationship_type: c.relationship_type,
+          is_favorite: c.is_favorite || false,
+          updated_at: c.updated_at,
         }));
-        await saveContactsOffline(mappedContacts as any);
+        await saveContactsOffline(mappedContacts);
       }
     } catch (error) {
       console.error('Failed to cache contacts:', error);
     }
   }, [user]);
+
+  const cacheConversations = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const { data: communications } = await supabase
+        .from('communications')
+        .select('id, profile_id, channel, subject, content, occurred_at')
+        .eq('user_id', user.id)
+        .order('occurred_at', { ascending: false })
+        .limit(100);
+
+      if (communications) {
+        // Map communications to offline conversation format
+        const conversations = communications.map(c => ({
+          id: c.id,
+          profile_id: c.profile_id,
+          title: c.subject || c.channel,
+          last_message: c.content?.slice(0, 100) || null,
+          last_message_at: c.occurred_at,
+          unread_count: 0,
+          updated_at: c.occurred_at,
+        }));
+        await saveConversationsOffline(conversations);
+      }
+    } catch (error) {
+      console.error('Failed to cache conversations:', error);
+    }
+  }, [user]);
+
+  const cacheAlerts = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const { data: alerts } = await supabase
+        .from('intelligence_alerts')
+        .select('id, alert_type, title, severity, profile_id, is_acknowledged, created_at')
+        .eq('user_id', user.id)
+        .eq('is_dismissed', false)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (alerts) {
+        const mappedAlerts = alerts.map(a => ({
+          id: a.id,
+          profile_id: a.profile_id,
+          alert_type: a.alert_type,
+          severity: a.severity || 'medium',
+          message: a.title,
+          created_at: a.created_at,
+          is_read: a.is_acknowledged || false,
+        }));
+        await saveAlertsOffline(mappedAlerts);
+      }
+    } catch (error) {
+      console.error('Failed to cache alerts:', error);
+    }
+  }, [user]);
+
+  const cacheAllData = useCallback(async () => {
+    await Promise.all([
+      cacheContacts(),
+      cacheConversations(),
+      cacheAlerts(),
+    ]);
+  }, [cacheContacts, cacheConversations, cacheAlerts]);
 
   const getOfflineCachedContacts = useCallback(async () => {
     return getOfflineContacts();
@@ -94,6 +195,12 @@ export function useOfflineData(): UseOfflineDataReturn {
     await addPendingMutation({ type, table, data });
     const count = await getPendingMutationCount();
     setPendingCount(count);
+  }, []);
+
+  const resolveConflict = useCallback(async (conflictId: string, resolution: 'local' | 'server') => {
+    await resolveConflictInStore(conflictId, resolution);
+    const conflicts = await getSyncConflicts();
+    setSyncConflicts(conflicts);
   }, []);
 
   const syncPendingChanges = useCallback(async () => {
@@ -128,14 +235,14 @@ export function useOfflineData(): UseOfflineDataReturn {
       }
 
       // Refresh cache after sync
-      await cacheContacts();
+      await cacheAllData();
       
       const count = await getPendingMutationCount();
       setPendingCount(count);
     } finally {
       setIsSyncing(false);
     }
-  }, [isOnline, isSyncing, cacheContacts]);
+  }, [isOnline, isSyncing, cacheAllData]);
 
   return {
     isOnline,
@@ -143,7 +250,12 @@ export function useOfflineData(): UseOfflineDataReturn {
     syncPendingChanges,
     isSyncing,
     cacheContacts,
+    cacheConversations,
+    cacheAlerts,
+    cacheAllData,
     getOfflineCachedContacts,
     queueMutation,
+    syncConflicts,
+    resolveConflict,
   };
 }

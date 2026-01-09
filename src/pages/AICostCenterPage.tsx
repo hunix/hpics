@@ -1,18 +1,21 @@
 import { AppLayout } from '@/components/AppLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DollarSign, TrendingUp, Lightbulb, Users, Bell } from 'lucide-react';
+import { DollarSign, TrendingUp, Lightbulb, Users, Bell, BarChart3 } from 'lucide-react';
 import { AICostDashboard } from '@/components/ai/AICostDashboard';
 import { CostProjectionWidget } from '@/components/ai/CostProjectionWidget';
 import { CostOptimizationAdvisor } from '@/components/ai/CostOptimizationAdvisor';
 import { ContactCostAnalysis } from '@/components/ai/ContactCostAnalysis';
 import { AIBudgetAlerts } from '@/components/ai/AIBudgetAlerts';
 import { AIBudgetSettings } from '@/components/settings/AIBudgetSettings';
+import { BudgetAlertPanel } from '@/components/ai/BudgetAlertPanel';
+import { PerContactSpendAnalysis } from '@/components/ai/PerContactSpendAnalysis';
+import { ModelEfficiencyComparison } from '@/components/ai/ModelEfficiencyComparison';
 
 export default function AICostCenterPage() {
   return (
     <AppLayout title="AI Cost Center">
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <DollarSign className="h-4 w-4" />
             Overview
@@ -28,6 +31,10 @@ export default function AICostCenterPage() {
           <TabsTrigger value="per-contact" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             Per-Contact
+          </TabsTrigger>
+          <TabsTrigger value="efficiency" className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Model Efficiency
           </TabsTrigger>
           <TabsTrigger value="alerts" className="flex items-center gap-2">
             <Bell className="h-4 w-4" />
@@ -47,11 +54,17 @@ export default function AICostCenterPage() {
           <CostOptimizationAdvisor />
         </TabsContent>
 
-        <TabsContent value="per-contact">
+        <TabsContent value="per-contact" className="space-y-6">
+          <PerContactSpendAnalysis />
           <ContactCostAnalysis />
         </TabsContent>
 
+        <TabsContent value="efficiency">
+          <ModelEfficiencyComparison />
+        </TabsContent>
+
         <TabsContent value="alerts" className="space-y-6">
+          <BudgetAlertPanel />
           <AIBudgetAlerts />
           <AIBudgetSettings />
         </TabsContent>
