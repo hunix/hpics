@@ -9244,10 +9244,15 @@ export type Database = {
       }
       user_preferences: {
         Row: {
+          ai_budget_alert_threshold: number | null
           ai_budget_alerts_enabled: boolean | null
           ai_budget_daily_cents: number | null
+          ai_budget_daily_limit_cents: number | null
+          ai_budget_enforce_limits: boolean | null
           ai_budget_monthly_cents: number | null
+          ai_budget_monthly_limit_cents: number | null
           ai_budget_weekly_cents: number | null
+          ai_budget_weekly_limit_cents: number | null
           created_at: string
           documents_items_per_page: number | null
           documents_view_mode: string | null
@@ -9265,10 +9270,15 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai_budget_alert_threshold?: number | null
           ai_budget_alerts_enabled?: boolean | null
           ai_budget_daily_cents?: number | null
+          ai_budget_daily_limit_cents?: number | null
+          ai_budget_enforce_limits?: boolean | null
           ai_budget_monthly_cents?: number | null
+          ai_budget_monthly_limit_cents?: number | null
           ai_budget_weekly_cents?: number | null
+          ai_budget_weekly_limit_cents?: number | null
           created_at?: string
           documents_items_per_page?: number | null
           documents_view_mode?: string | null
@@ -9286,10 +9296,15 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ai_budget_alert_threshold?: number | null
           ai_budget_alerts_enabled?: boolean | null
           ai_budget_daily_cents?: number | null
+          ai_budget_daily_limit_cents?: number | null
+          ai_budget_enforce_limits?: boolean | null
           ai_budget_monthly_cents?: number | null
+          ai_budget_monthly_limit_cents?: number | null
           ai_budget_weekly_cents?: number | null
+          ai_budget_weekly_limit_cents?: number | null
           created_at?: string
           documents_items_per_page?: number | null
           documents_view_mode?: string | null
