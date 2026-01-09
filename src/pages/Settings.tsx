@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Sun, Bell, Mail, Loader2, Smartphone, Link2, Bot, Cpu, MessageCircle, HardDrive, Trash2, Users, Fingerprint, DollarSign } from 'lucide-react';
+import { Moon, Sun, Bell, Mail, Loader2, Smartphone, Link2, Bot, Cpu, MessageCircle, HardDrive, Trash2, Users, Fingerprint, DollarSign, Activity } from 'lucide-react';
 import { AnalyticsExport } from '@/components/analytics/AnalyticsExport';
 import { EmailIntegration } from '@/components/settings/EmailIntegration';
 import { OutlookIntegration } from '@/components/settings/OutlookIntegration';
@@ -44,6 +44,9 @@ import { ContactCostAnalysis } from '@/components/ai/ContactCostAnalysis';
 import { PromptABTestPanel } from '@/components/ai/PromptABTestPanel';
 import { CrossModalSynthesisPanel } from '@/components/ai/CrossModalSynthesisPanel';
 import { EnrichmentQueueStatus } from '@/components/ai/EnrichmentQueueStatus';
+import { DataValidationDashboard } from '@/components/testing/DataValidationDashboard';
+import { AIBudgetAlerts } from '@/components/ai/AIBudgetAlerts';
+import { CostOptimizationAdvisor } from '@/components/ai/CostOptimizationAdvisor';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -136,7 +139,7 @@ export default function Settings() {
   return (
     <AppLayout title="Settings">
       <Tabs defaultValue="general" className="max-w-5xl">
-        <TabsList className="grid w-full grid-cols-11">
+        <TabsList className="grid w-full grid-cols-12">
           <TabsTrigger value="general">
             <Sun className="h-4 w-4 mr-2" />
             General
@@ -180,6 +183,10 @@ export default function Settings() {
           <TabsTrigger value="mobile">
             <Smartphone className="h-4 w-4 mr-2" />
             Mobile
+          </TabsTrigger>
+          <TabsTrigger value="system">
+            <Activity className="h-4 w-4 mr-2" />
+            System
           </TabsTrigger>
         </TabsList>
 
@@ -326,6 +333,8 @@ export default function Settings() {
             <CostOptimizationPanel />
             <ContactCostAnalysis />
           </div>
+          <AIBudgetAlerts />
+          <CostOptimizationAdvisor />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <EnrichmentQueueStatus />
             <CrossModalSynthesisPanel />
@@ -381,6 +390,10 @@ export default function Settings() {
           <OfflineSyncPanel />
 
           <PushNotifications vapidPublicKey={vapidPublicKey} />
+        </TabsContent>
+
+        <TabsContent value="system" className="space-y-6 mt-6">
+          <DataValidationDashboard />
         </TabsContent>
       </Tabs>
     </AppLayout>

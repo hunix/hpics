@@ -4,7 +4,7 @@ import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Brain, Sparkles, TrendingUp, Users, Zap, ArrowRight, DollarSign, Shield, Network, FileText, AlertTriangle, Triangle, Eye, Clock, Search, Share2, Scale, Activity } from 'lucide-react';
+import { Brain, Sparkles, TrendingUp, Users, Zap, ArrowRight, DollarSign, Shield, Network, FileText, AlertTriangle, Triangle, Eye, Clock, Search, Share2, Scale, Activity, Layers, Grid3x3 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
@@ -22,6 +22,10 @@ import { InformationFlowPanel } from '@/components/intelligence/InformationFlowP
 import { DeceptionAnalysisPanel } from '@/components/intelligence/DeceptionAnalysisPanel';
 import { AuditCompliancePanel } from '@/components/intelligence/AuditCompliancePanel';
 import { RelationshipTrajectoryPanel } from '@/components/intelligence/RelationshipTrajectoryPanel';
+import { CrossModalIntelligenceHub } from '@/components/ai/CrossModalIntelligenceHub';
+import { ModalityCorrelationMatrix } from '@/components/ai/ModalityCorrelationMatrix';
+import { useState } from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function Insights() {
   const { user } = useAuth();
@@ -65,6 +69,20 @@ export default function Insights() {
     playbook: 'bg-purple-100 text-purple-800',
     relationship_score: 'bg-orange-100 text-orange-800',
   };
+
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
+
+  const { data: profilesForMatrix } = useQuery({
+    queryKey: ['profiles-for-matrix', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .order('first_name');
+      return data ?? [];
+    },
+    enabled: !!user,
+  });
 
   return (
     <AppLayout title="AI Insights">
@@ -125,6 +143,14 @@ export default function Insights() {
           <TabsTrigger value="usage" className="flex items-center gap-2">
             <DollarSign className="h-4 w-4" />
             Usage
+          </TabsTrigger>
+          <TabsTrigger value="cross-modal" className="flex items-center gap-2">
+            <Layers className="h-4 w-4" />
+            Cross-Modal
+          </TabsTrigger>
+          <TabsTrigger value="correlations" className="flex items-center gap-2">
+            <Grid3x3 className="h-4 w-4" />
+            Correlations
           </TabsTrigger>
         </TabsList>
 
@@ -356,6 +382,41 @@ export default function Insights() {
 
         <TabsContent value="usage">
           <AIUsageLogs />
+        </TabsContent>
+
+        <TabsContent value="cross-modal">
+          <CrossModalIntelligenceHub />
+        </TabsContent>
+
+        <TabsContent value="correlations" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Grid3x3 className="h-5 w-5" />
+                Modality Correlation Matrix
+              </CardTitle>
+              <CardDescription>
+                Select a profile to view correlations between different modalities
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="max-w-sm">
+                <Select value={selectedProfileId || ''} onValueChange={setSelectedProfileId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a profile..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {profilesForMatrix?.map((profile) => (
+                      <SelectItem key={profile.id} value={profile.id}>
+                        {profile.first_name} {profile.last_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+          {selectedProfileId && <ModalityCorrelationMatrix profileId={selectedProfileId} />}
         </TabsContent>
       </Tabs>
     </AppLayout>

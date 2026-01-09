@@ -1,4 +1,4 @@
-import { Users, MessageSquare, FileText, Image, Calendar, Brain, LayoutDashboard, LogOut, Upload, Settings, Network, CalendarDays, Video, Scan, BarChart3, FileBarChart, UsersRound, Download, Shield, Waypoints, Sparkles, ShieldAlert } from 'lucide-react';
+import { Users, MessageSquare, FileText, Image, Calendar, Brain, LayoutDashboard, LogOut, Upload, Settings, Network, CalendarDays, Video, Scan, BarChart3, FileBarChart, UsersRound, Download, Shield, Waypoints, Sparkles, ShieldAlert, Activity, Layers, Cpu, DollarSign } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -31,7 +31,9 @@ const mainNavItems = [
 const toolsNavItems = [
   { title: 'AI Insights', url: '/insights', icon: Brain },
   { title: 'AI Search', url: '/semantic-search', icon: Sparkles },
+  { title: 'Cross-Modal AI', url: '/cross-modal-intelligence', icon: Layers },
   { title: 'Network Intelligence', url: '/network-intelligence', icon: Waypoints },
+  { title: 'Network ML', url: '/network-advanced', icon: Cpu },
   { title: 'Counter-Intelligence', url: '/counter-intelligence', icon: ShieldAlert },
   { title: 'Media Analysis', url: '/analysis', icon: Scan },
   { title: 'Analysis Dashboard', url: '/analysis/dashboard', icon: BarChart3 },
@@ -40,6 +42,8 @@ const toolsNavItems = [
   { title: 'Reports', url: '/reports', icon: FileBarChart },
   { title: 'Team', url: '/team', icon: UsersRound },
   { title: 'Security Center', url: '/security', icon: Shield },
+  { title: 'System Health', url: '/system-health', icon: Activity },
+  { title: 'AI Cost Center', url: '/ai-costs', icon: DollarSign },
   { title: 'Import Data', url: '/import', icon: Upload },
   { title: 'Install App', url: '/install', icon: Download },
   { title: 'Settings', url: '/settings', icon: Settings },
