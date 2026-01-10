@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Intel CRM Extension</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup">
+    <header class="header">
+      <div class="logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 6v6l4 2"/>
+        </svg>
+        <span>Intel CRM</span>
+      </div>
+      <div id="connection-status" class="status disconnected">
+        <span class="status-dot"></span>
+        <span class="status-text">Disconnected</span>
+      </div>
+    </header>
+
+    <main class="content">
+      <!-- Configuration Section -->
+      <section class="section" id="config-section">
+        <h3>Configuration</h3>
+        <div class="form-group">
+          <label for="api-endpoint">API Endpoint</label>
+          <input type="url" id="api-endpoint" placeholder="https://your-project.supabase.co/functions/v1/chrome-extension-bridge">
+        </div>
+        <div class="form-group">
+          <label for="auth-token">Auth Token</label>
+          <input type="password" id="auth-token" placeholder="Your authentication token">
+        </div>
+        <button id="save-config" class="btn btn-primary">Save & Connect</button>
+      </section>
+
+      <!-- Settings Section -->
+      <section class="section" id="settings-section">
+        <h3>Capture Settings</h3>
+        <div class="toggle-group">
+          <label class="toggle">
+            <input type="checkbox" id="auto-capture">
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">Auto-capture on profile visit</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="capture-comments" checked>
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">Capture comments</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="capture-likes">
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">Capture likes</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="deep-scrape">
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">Deep scrape (all posts)</span>
+          </label>
+        </div>
+      </section>
+
+      <!-- History Section -->
+      <section class="section" id="history-section">
+        <div class="section-header">
+          <h3>Recent Captures</h3>
+          <button id="sync-all" class="btn btn-small">Sync All</button>
+        </div>
+        <div id="capture-list" class="capture-list">
+          <p class="empty-state">No captures yet</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>Supported: Instagram, LinkedIn, Threads, X</span>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
