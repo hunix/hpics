@@ -156,8 +156,11 @@ Return a JSON object with:
       summary: string;
     }>(aiResponse.content, { anomalies: [], network_health_score: 75, summary: 'Analysis complete' });
 
+    // Ensure anomalies is an array before iterating
+    const anomalies = Array.isArray(analysis.anomalies) ? analysis.anomalies : [];
+    
     // Store detected anomalies
-    for (const anomaly of analysis.anomalies) {
+    for (const anomaly of anomalies) {
       if (anomaly.severity === 'high' || anomaly.severity === 'medium') {
         // Find profile IDs for affected contacts
         const affectedProfiles = Object.entries(contactPatterns)
@@ -181,9 +184,9 @@ Return a JSON object with:
 
     return new Response(JSON.stringify({
       success: true,
-      anomalies: analysis.anomalies,
-      networkHealthScore: analysis.network_health_score,
-      summary: analysis.summary,
+      anomalies: anomalies,
+      networkHealthScore: analysis.network_health_score ?? 75,
+      summary: analysis.summary ?? 'Analysis complete',
       analyzedContacts: Object.keys(contactPatterns).length,
       timeframeDays,
     }), {
