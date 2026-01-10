@@ -4850,6 +4850,48 @@ export type Database = {
           },
         ]
       }
+      cross_contact_insights: {
+        Row: {
+          confidence_score: number | null
+          created_at: string | null
+          description: string | null
+          entity_or_pattern: string | null
+          evidence: Json | null
+          id: string
+          insight_type: string
+          is_dismissed: boolean | null
+          profile_ids: string[]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string | null
+          description?: string | null
+          entity_or_pattern?: string | null
+          evidence?: Json | null
+          id?: string
+          insight_type: string
+          is_dismissed?: boolean | null
+          profile_ids: string[]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string | null
+          description?: string | null
+          entity_or_pattern?: string | null
+          evidence?: Json | null
+          id?: string
+          insight_type?: string
+          is_dismissed?: boolean | null
+          profile_ids?: string[]
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       cross_references: {
         Row: {
           confidence: number | null
@@ -5173,6 +5215,73 @@ export type Database = {
           {
             foreignKeyName: "device_captures_profile_id_fkey"
             columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      device_health_data: {
+        Row: {
+          created_at: string | null
+          device_id: string | null
+          device_type: string
+          id: string
+          interaction_context_id: string | null
+          interaction_profile_id: string | null
+          metadata: Json | null
+          metric_type: string
+          metric_unit: string | null
+          metric_value: number
+          recorded_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_id?: string | null
+          device_type: string
+          id?: string
+          interaction_context_id?: string | null
+          interaction_profile_id?: string | null
+          metadata?: Json | null
+          metric_type: string
+          metric_unit?: string | null
+          metric_value: number
+          recorded_at: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          device_id?: string | null
+          device_type?: string
+          id?: string
+          interaction_context_id?: string | null
+          interaction_profile_id?: string | null
+          metadata?: Json | null
+          metric_type?: string
+          metric_unit?: string | null
+          metric_value?: number
+          recorded_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_health_data_interaction_profile_id_fkey"
+            columns: ["interaction_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "device_health_data_interaction_profile_id_fkey"
+            columns: ["interaction_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "device_health_data_interaction_profile_id_fkey"
+            columns: ["interaction_profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -6225,6 +6334,76 @@ export type Database = {
         }
         Relationships: []
       }
+      entity_mentions: {
+        Row: {
+          confidence: number | null
+          context: string | null
+          created_at: string | null
+          entity_name: string
+          entity_type: string
+          id: string
+          mentioned_in_profile_id: string | null
+          metadata: Json | null
+          normalized_name: string | null
+          sentiment: number | null
+          source_id: string
+          source_type: string
+          user_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          context?: string | null
+          created_at?: string | null
+          entity_name: string
+          entity_type: string
+          id?: string
+          mentioned_in_profile_id?: string | null
+          metadata?: Json | null
+          normalized_name?: string | null
+          sentiment?: number | null
+          source_id: string
+          source_type: string
+          user_id: string
+        }
+        Update: {
+          confidence?: number | null
+          context?: string | null
+          created_at?: string | null
+          entity_name?: string
+          entity_type?: string
+          id?: string
+          mentioned_in_profile_id?: string | null
+          metadata?: Json | null
+          normalized_name?: string | null
+          sentiment?: number | null
+          source_id?: string
+          source_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_mentions_mentioned_in_profile_id_fkey"
+            columns: ["mentioned_in_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "entity_mentions_mentioned_in_profile_id_fkey"
+            columns: ["mentioned_in_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "entity_mentions_mentioned_in_profile_id_fkey"
+            columns: ["mentioned_in_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           created_at: string
@@ -6292,6 +6471,88 @@ export type Database = {
           {
             foreignKeyName: "events_profile_id_fkey"
             columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      extension_scrape_sessions: {
+        Row: {
+          comments_captured: number | null
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          followers_count: number | null
+          following_count: number | null
+          id: string
+          pages_captured: number | null
+          platform: string
+          posts_captured: number | null
+          processed_data: Json | null
+          profile_url: string | null
+          profile_username: string | null
+          raw_data: Json | null
+          status: string | null
+          target_profile_id: string | null
+          user_id: string
+        }
+        Insert: {
+          comments_captured?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          followers_count?: number | null
+          following_count?: number | null
+          id?: string
+          pages_captured?: number | null
+          platform: string
+          posts_captured?: number | null
+          processed_data?: Json | null
+          profile_url?: string | null
+          profile_username?: string | null
+          raw_data?: Json | null
+          status?: string | null
+          target_profile_id?: string | null
+          user_id: string
+        }
+        Update: {
+          comments_captured?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          followers_count?: number | null
+          following_count?: number | null
+          id?: string
+          pages_captured?: number | null
+          platform?: string
+          posts_captured?: number | null
+          processed_data?: Json | null
+          profile_url?: string | null
+          profile_username?: string | null
+          raw_data?: Json | null
+          status?: string | null
+          target_profile_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extension_scrape_sessions_target_profile_id_fkey"
+            columns: ["target_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "extension_scrape_sessions_target_profile_id_fkey"
+            columns: ["target_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "extension_scrape_sessions_target_profile_id_fkey"
+            columns: ["target_profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -7393,49 +7654,70 @@ export type Database = {
       intelligence_alerts: {
         Row: {
           acknowledged_at: string | null
+          action_suggestions: Json | null
           action_taken: string | null
           alert_type: string
           created_at: string
           description: string | null
           evidence: Json | null
+          expires_at: string | null
           id: string
           is_acknowledged: boolean | null
+          is_actioned: boolean | null
           is_dismissed: boolean | null
+          is_read: boolean | null
+          priority: string | null
           profile_id: string | null
+          related_entity_ids: string[] | null
           rule_id: string | null
           severity: string
+          source_analysis_id: string | null
           title: string
           user_id: string
         }
         Insert: {
           acknowledged_at?: string | null
+          action_suggestions?: Json | null
           action_taken?: string | null
           alert_type: string
           created_at?: string
           description?: string | null
           evidence?: Json | null
+          expires_at?: string | null
           id?: string
           is_acknowledged?: boolean | null
+          is_actioned?: boolean | null
           is_dismissed?: boolean | null
+          is_read?: boolean | null
+          priority?: string | null
           profile_id?: string | null
+          related_entity_ids?: string[] | null
           rule_id?: string | null
           severity: string
+          source_analysis_id?: string | null
           title: string
           user_id: string
         }
         Update: {
           acknowledged_at?: string | null
+          action_suggestions?: Json | null
           action_taken?: string | null
           alert_type?: string
           created_at?: string
           description?: string | null
           evidence?: Json | null
+          expires_at?: string | null
           id?: string
           is_acknowledged?: boolean | null
+          is_actioned?: boolean | null
           is_dismissed?: boolean | null
+          is_read?: boolean | null
+          priority?: string | null
           profile_id?: string | null
+          related_entity_ids?: string[] | null
           rule_id?: string | null
           severity?: string
+          source_analysis_id?: string | null
           title?: string
           user_id?: string
         }
@@ -11487,6 +11769,67 @@ export type Database = {
           },
         ]
       }
+      voice_signatures: {
+        Row: {
+          audio_characteristics: Json | null
+          created_at: string | null
+          embedding_vector: string | null
+          id: string
+          profile_id: string | null
+          quality_score: number | null
+          sample_count: number | null
+          sample_duration_seconds: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          audio_characteristics?: Json | null
+          created_at?: string | null
+          embedding_vector?: string | null
+          id?: string
+          profile_id?: string | null
+          quality_score?: number | null
+          sample_count?: number | null
+          sample_duration_seconds?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          audio_characteristics?: Json | null
+          created_at?: string | null
+          embedding_vector?: string | null
+          id?: string
+          profile_id?: string | null
+          quality_score?: number | null
+          sample_count?: number | null
+          sample_duration_seconds?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_signatures_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "voice_signatures_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "voice_signatures_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       webhook_logs: {
         Row: {
           created_at: string
@@ -12041,6 +12384,21 @@ export type Database = {
           total_files: number
         }[]
       }
+      get_entity_mentions_cross_contact: {
+        Args: {
+          p_entity_name: string
+          p_entity_type?: string
+          p_user_id: string
+        }
+        Returns: {
+          avg_sentiment: number
+          contexts: string[]
+          first_name: string
+          last_name: string
+          mention_count: number
+          profile_id: string
+        }[]
+      }
       get_media_folders: {
         Args: { p_user_id: string }
         Returns: {
@@ -12105,6 +12463,7 @@ export type Database = {
           total_messages: number
         }[]
       }
+      get_unread_alerts_count: { Args: { p_user_id: string }; Returns: number }
       get_user_clearance: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["clearance_level"]
