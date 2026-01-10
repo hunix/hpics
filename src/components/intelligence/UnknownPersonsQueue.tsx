@@ -31,13 +31,13 @@ export function UnknownPersonsQueue({ profileId }: UnknownPersonsQueueProps) {
   const [selectedPerson, setSelectedPerson] = useState<any>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  // Fetch unknown persons
+  // Fetch unknown persons with assigned profile info
   const { data: persons, isLoading } = useQuery({
     queryKey: ['unknown-persons', profileId, selectedStatus, searchQuery],
     queryFn: async () => {
       let query = supabase
         .from('unknown_persons')
-        .select(`*`)
+        .select(`*, profiles:assigned_profile_id(id, first_name, last_name, avatar_url)`)
         .eq('user_id', user!.id)
         .order('created_at', { ascending: false })
         .limit(100);
@@ -48,7 +48,15 @@ export function UnknownPersonsQueue({ profileId }: UnknownPersonsQueueProps) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      
+      // Transform to include full_name on assigned profile
+      return (data || []).map(person => ({
+        ...person,
+        assigned_profile: person.profiles ? {
+          ...person.profiles,
+          full_name: `${(person.profiles as any)?.first_name || ''} ${(person.profiles as any)?.last_name || ''}`.trim()
+        } : null
+      }));
     },
     enabled: !!user,
   });
@@ -105,6 +113,7 @@ export function UnknownPersonsQueue({ profileId }: UnknownPersonsQueueProps) {
       const { data: newProfile, error: profileError } = await supabase
         .from('profiles')
         .insert({
+          user_id: user!.id,
           first_name: nameParts[0] || name,
           last_name: nameParts.slice(1).join(' ') || undefined,
           relationship_type: 'other',
@@ -142,9 +151,10 @@ export function UnknownPersonsQueue({ profileId }: UnknownPersonsQueueProps) {
     onSuccess: (profile) => {
       queryClient.invalidateQueries({ queryKey: ['unknown-persons'] });
       queryClient.invalidateQueries({ queryKey: ['profiles'] });
+      const fullName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
       toast({ 
         title: 'Contact created', 
-        description: `${profile.full_name} has been added to your contacts.` 
+        description: `${fullName || 'New contact'} has been added to your contacts.` 
       });
       setShowCreateDialog(false);
       setNewContactName('');
@@ -321,9 +331,9 @@ export function UnknownPersonsQueue({ profileId }: UnknownPersonsQueueProps) {
                                 <p className="text-sm">
                                   {person.estimated_age_range} • {person.estimated_gender}
                                 </p>
-                                {person.facial_features?.distinctive_features?.length > 0 && (
+                                {(person.facial_features as any)?.distinctive_features?.length > 0 && (
                                   <p className="text-xs text-muted-foreground">
-                                    {person.facial_features.distinctive_features.join(', ')}
+                                    {((person.facial_features as any).distinctive_features as string[]).join(', ')}
                                   </p>
                                 )}
                               </div>
