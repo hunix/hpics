@@ -4880,6 +4880,114 @@ export type Database = {
         }
         Relationships: []
       }
+      detected_items: {
+        Row: {
+          ai_model_used: string | null
+          bounding_box: Json | null
+          brand: string | null
+          category: string
+          confidence: number | null
+          created_at: string
+          cropped_image_url: string | null
+          description: string | null
+          id: string
+          item_type: string
+          linked_at: string | null
+          linked_by: string | null
+          linked_status: string
+          media_id: string | null
+          model: string | null
+          name: string | null
+          profile_id: string | null
+          source_mosaic_id: string | null
+          specifications: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_model_used?: string | null
+          bounding_box?: Json | null
+          brand?: string | null
+          category: string
+          confidence?: number | null
+          created_at?: string
+          cropped_image_url?: string | null
+          description?: string | null
+          id?: string
+          item_type: string
+          linked_at?: string | null
+          linked_by?: string | null
+          linked_status?: string
+          media_id?: string | null
+          model?: string | null
+          name?: string | null
+          profile_id?: string | null
+          source_mosaic_id?: string | null
+          specifications?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_model_used?: string | null
+          bounding_box?: Json | null
+          brand?: string | null
+          category?: string
+          confidence?: number | null
+          created_at?: string
+          cropped_image_url?: string | null
+          description?: string | null
+          id?: string
+          item_type?: string
+          linked_at?: string | null
+          linked_by?: string | null
+          linked_status?: string
+          media_id?: string | null
+          model?: string | null
+          name?: string | null
+          profile_id?: string | null
+          source_mosaic_id?: string | null
+          specifications?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "detected_items_category_fkey"
+            columns: ["category"]
+            isOneToOne: false
+            referencedRelation: "item_category_templates"
+            referencedColumns: ["category"]
+          },
+          {
+            foreignKeyName: "detected_items_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "detected_items_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "detected_items_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "detected_items_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_embeddings: {
         Row: {
           backfill_error: string | null
@@ -5706,6 +5814,122 @@ export type Database = {
           {
             foreignKeyName: "events_profile_id_fkey"
             columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      extracted_documents: {
+        Row: {
+          ai_model_used: string | null
+          bounding_box: Json | null
+          created_at: string
+          cropped_image_url: string | null
+          document_subtype: string | null
+          document_type: string
+          extracted_contact_info: Json | null
+          id: string
+          linked_at: string | null
+          linked_status: string
+          match_confidence: number | null
+          media_id: string | null
+          profile_id: string | null
+          raw_text: string | null
+          source_mosaic_id: string | null
+          structured_data: Json | null
+          suggested_profile_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_model_used?: string | null
+          bounding_box?: Json | null
+          created_at?: string
+          cropped_image_url?: string | null
+          document_subtype?: string | null
+          document_type: string
+          extracted_contact_info?: Json | null
+          id?: string
+          linked_at?: string | null
+          linked_status?: string
+          match_confidence?: number | null
+          media_id?: string | null
+          profile_id?: string | null
+          raw_text?: string | null
+          source_mosaic_id?: string | null
+          structured_data?: Json | null
+          suggested_profile_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_model_used?: string | null
+          bounding_box?: Json | null
+          created_at?: string
+          cropped_image_url?: string | null
+          document_subtype?: string | null
+          document_type?: string
+          extracted_contact_info?: Json | null
+          id?: string
+          linked_at?: string | null
+          linked_status?: string
+          match_confidence?: number | null
+          media_id?: string | null
+          profile_id?: string | null
+          raw_text?: string | null
+          source_mosaic_id?: string | null
+          structured_data?: Json | null
+          suggested_profile_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extracted_documents_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extracted_documents_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "extracted_documents_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "extracted_documents_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extracted_documents_suggested_profile_id_fkey"
+            columns: ["suggested_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "extracted_documents_suggested_profile_id_fkey"
+            columns: ["suggested_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "extracted_documents_suggested_profile_id_fkey"
+            columns: ["suggested_profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -6828,6 +7052,36 @@ export type Database = {
         }
         Relationships: []
       }
+      item_category_templates: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          display_name: string
+          icon: string | null
+          id: string
+          specification_schema: Json
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          display_name: string
+          icon?: string | null
+          id?: string
+          specification_schema?: Json
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          display_name?: string
+          icon?: string | null
+          id?: string
+          specification_schema?: Json
+        }
+        Relationships: []
+      }
       key_rotation_schedule: {
         Row: {
           auto_rotate: boolean | null
@@ -7513,6 +7767,100 @@ export type Database = {
             columns: ["strategy_id"]
             isOneToOne: false
             referencedRelation: "influence_strategies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mosaic_metadata_sessions: {
+        Row: {
+          actual_cost_cents: number | null
+          auto_linked_count: number | null
+          completed_at: string | null
+          created_at: string
+          documents_detected: number | null
+          error_message: string | null
+          estimated_cost_cents: number | null
+          faces_detected: number | null
+          failed_media_ids: string[] | null
+          id: string
+          items_detected: number | null
+          pending_review_count: number | null
+          processed_images: number
+          processed_mosaics: number
+          profile_id: string | null
+          started_at: string | null
+          status: string
+          total_images: number
+          total_mosaics: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          actual_cost_cents?: number | null
+          auto_linked_count?: number | null
+          completed_at?: string | null
+          created_at?: string
+          documents_detected?: number | null
+          error_message?: string | null
+          estimated_cost_cents?: number | null
+          faces_detected?: number | null
+          failed_media_ids?: string[] | null
+          id?: string
+          items_detected?: number | null
+          pending_review_count?: number | null
+          processed_images?: number
+          processed_mosaics?: number
+          profile_id?: string | null
+          started_at?: string | null
+          status?: string
+          total_images?: number
+          total_mosaics?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          actual_cost_cents?: number | null
+          auto_linked_count?: number | null
+          completed_at?: string | null
+          created_at?: string
+          documents_detected?: number | null
+          error_message?: string | null
+          estimated_cost_cents?: number | null
+          faces_detected?: number | null
+          failed_media_ids?: string[] | null
+          id?: string
+          items_detected?: number | null
+          pending_review_count?: number | null
+          processed_images?: number
+          processed_mosaics?: number
+          profile_id?: string | null
+          started_at?: string | null
+          status?: string
+          total_images?: number
+          total_mosaics?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mosaic_metadata_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "mosaic_metadata_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "mosaic_metadata_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -9456,6 +9804,95 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unknown_persons: {
+        Row: {
+          ai_model_used: string | null
+          assigned_at: string | null
+          assigned_profile_id: string | null
+          best_match_confidence: number | null
+          created_at: string
+          cropped_image_url: string | null
+          estimated_age_range: string | null
+          estimated_gender: string | null
+          face_region: Json | null
+          facial_features: Json | null
+          id: string
+          media_id: string | null
+          source_mosaic_id: string | null
+          status: string
+          suggested_profiles: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_model_used?: string | null
+          assigned_at?: string | null
+          assigned_profile_id?: string | null
+          best_match_confidence?: number | null
+          created_at?: string
+          cropped_image_url?: string | null
+          estimated_age_range?: string | null
+          estimated_gender?: string | null
+          face_region?: Json | null
+          facial_features?: Json | null
+          id?: string
+          media_id?: string | null
+          source_mosaic_id?: string | null
+          status?: string
+          suggested_profiles?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_model_used?: string | null
+          assigned_at?: string | null
+          assigned_profile_id?: string | null
+          best_match_confidence?: number | null
+          created_at?: string
+          cropped_image_url?: string | null
+          estimated_age_range?: string | null
+          estimated_gender?: string | null
+          face_region?: Json | null
+          facial_features?: Json | null
+          id?: string
+          media_id?: string | null
+          source_mosaic_id?: string | null
+          status?: string
+          suggested_profiles?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unknown_persons_assigned_profile_id_fkey"
+            columns: ["assigned_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "unknown_persons_assigned_profile_id_fkey"
+            columns: ["assigned_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "unknown_persons_assigned_profile_id_fkey"
+            columns: ["assigned_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unknown_persons_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
             referencedColumns: ["id"]
           },
         ]
