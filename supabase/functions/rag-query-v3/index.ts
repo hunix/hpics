@@ -7,6 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const LOVABLE_AI_URL = 'https://ai.gateway.lovable.dev/v1/embeddings';
+
 interface RAGQueryOptions {
   query: string;
   profileId?: string;
@@ -30,11 +32,17 @@ interface RAGResult {
 }
 
 async function generateQueryEmbedding(query: string): Promise<number[] | null> {
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  if (!LOVABLE_API_KEY) {
+    console.error('LOVABLE_API_KEY is not configured');
+    return null;
+  }
+
   try {
-    const response = await fetch('https://api.openai.com/v1/embeddings', {
+    const response = await fetch(LOVABLE_AI_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -44,6 +52,12 @@ async function generateQueryEmbedding(query: string): Promise<number[] | null> {
     });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        throw new Error('RATE_LIMIT: Too many requests');
+      }
+      if (response.status === 402) {
+        throw new Error('BUDGET_EXCEEDED: AI budget exceeded');
+      }
       console.error('Embedding API error:', await response.text());
       return null;
     }
@@ -52,32 +66,51 @@ async function generateQueryEmbedding(query: string): Promise<number[] | null> {
     return data.data[0].embedding;
   } catch (error) {
     console.error('Error generating query embedding:', error);
-    return null;
+    throw error;
   }
 }
 
-// Expand query with synonyms and related terms
-async function expandQuery(query: string): Promise<string[]> {
-  // Simple query expansion - in production could use LLM
-  const expansions = [query];
-  
-  // Add common variations
-  const lowerQuery = query.toLowerCase();
-  
-  if (lowerQuery.includes('work')) {
-    expansions.push(query.replace(/work/gi, 'job'));
-    expansions.push(query.replace(/work/gi, 'career'));
+// Expand query with synonyms and related terms using AI
+async function expandQueryWithAI(query: string): Promise<string[]> {
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  if (!LOVABLE_API_KEY) {
+    return [query];
   }
-  if (lowerQuery.includes('like')) {
-    expansions.push(query.replace(/like/gi, 'enjoy'));
-    expansions.push(query.replace(/like/gi, 'prefer'));
+
+  try {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash-lite',
+        messages: [
+          {
+            role: 'system',
+            content: 'Generate 2-3 alternative phrasings or related search terms for the given query. Return only the terms, one per line, no numbering or bullets.'
+          },
+          { role: 'user', content: query }
+        ],
+        max_tokens: 100,
+      }),
+    });
+
+    if (!response.ok) {
+      return [query];
+    }
+
+    const data = await response.json();
+    const expansions = data.choices[0].message.content
+      .split('\n')
+      .map((s: string) => s.trim())
+      .filter((s: string) => s.length > 0);
+
+    return [query, ...expansions].slice(0, 4);
+  } catch {
+    return [query];
   }
-  if (lowerQuery.includes('think')) {
-    expansions.push(query.replace(/think/gi, 'believe'));
-    expansions.push(query.replace(/think/gi, 'feel'));
-  }
-  
-  return expansions;
 }
 
 // Reciprocal Rank Fusion for combining search results
@@ -291,6 +324,20 @@ serve(async (req) => {
 
   } catch (error: any) {
     console.error('RAG query error:', error);
+    
+    if (error?.message?.includes('RATE_LIMIT')) {
+      return new Response(JSON.stringify({ error: 'Rate limits exceeded. Please try again later.' }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (error?.message?.includes('BUDGET_EXCEEDED')) {
+      return new Response(JSON.stringify({ error: 'AI budget exceeded. Please add credits.' }), {
+        status: 402,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
     return new Response(JSON.stringify({ error: error?.message || 'Unknown error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -7,6 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const LOVABLE_AI_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+
 interface AgentTool {
   name: string;
   description: string;
@@ -26,37 +28,20 @@ const AGENT_TOOLS: AgentTool[] = [
     name: 'search_all_data',
     description: 'Search across all embedded data using semantic similarity. Use for finding relevant information about any topic.',
     execute: async (params: { query: string; sourceTypes?: string[] }, context) => {
+      // Call the RAG query function
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-      
-      // Generate embedding for the search query
-      const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'text-embedding-3-small',
-          input: params.query
-        }),
-      });
-
-      if (!embeddingResponse.ok) return { error: 'Failed to generate embedding' };
-      
-      const embeddingData = await embeddingResponse.json();
-      const embedding = embeddingData.data[0].embedding;
-
-      const { data, error } = await context.supabase.rpc('match_documents', {
-        p_user_id: context.userId,
-        p_query_embedding: embedding,
-        p_match_threshold: 0.5,
-        p_match_count: 10,
-        p_profile_id: context.profileId || null,
-        p_source_types: params.sourceTypes || null
+      const { data, error } = await context.supabase.functions.invoke('rag-query-v3', {
+        body: {
+          query: params.query,
+          profileId: context.profileId,
+          sourceTypes: params.sourceTypes,
+          crossContact: !context.profileId,
+          topK: 10
+        }
       });
 
       if (error) return { error: error.message };
-      return { results: data };
+      return { results: data?.results || [] };
     }
   },
   {
@@ -89,10 +74,18 @@ const AGENT_TOOLS: AgentTool[] = [
     execute: async (params: { limit?: number }, context) => {
       if (!context.profileId) return { error: 'No profile context' };
 
+      const { data: conversations } = await context.supabase
+        .from('conversations')
+        .select('id')
+        .eq('profile_id', context.profileId)
+        .eq('user_id', context.userId);
+
+      const conversationIds = (conversations || []).map((c: any) => c.id);
+
       const { data: messages } = await context.supabase
         .from('messages')
         .select('content, sent_at, is_from_contact, conversation_id')
-        .eq('conversations.profile_id', context.profileId)
+        .in('conversation_id', conversationIds)
         .order('sent_at', { ascending: false })
         .limit(params.limit || 20);
 
@@ -211,11 +204,12 @@ const AGENT_TOOLS: AgentTool[] = [
     name: 'find_entity_mentions',
     description: 'Find mentions of a specific entity (person, company, location) across all contacts.',
     execute: async (params: { entityName: string; entityType?: string }, context) => {
-      const { data, error } = await context.supabase.rpc('get_entity_mentions_cross_contact', {
-        p_user_id: context.userId,
-        p_entity_name: params.entityName,
-        p_entity_type: params.entityType || null
-      });
+      const { data, error } = await context.supabase
+        .from('entity_mentions')
+        .select('*')
+        .eq('user_id', context.userId)
+        .ilike('normalized_name', `%${params.entityName.toLowerCase()}%`)
+        .limit(50);
 
       if (error) return { error: error.message };
       return { mentions: data };
@@ -245,32 +239,48 @@ const AGENT_TOOLS: AgentTool[] = [
 
 async function callAI(
   messages: { role: string; content: string }[],
-  tools?: any[]
+  tools?: any[],
+  stream?: boolean
 ): Promise<{ content?: string; toolCalls?: any[] }> {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  if (!LOVABLE_API_KEY) {
+    throw new Error('LOVABLE_API_KEY is not configured');
+  }
+
+  const body: any = {
+    model: 'google/gemini-3-flash-preview',
+    messages,
+    max_tokens: 4096,
+  };
+
+  if (tools?.length) {
+    body.tools = tools.map(t => ({
+      type: 'function',
+      function: {
+        name: t.name,
+        description: t.description,
+        parameters: t.parameters || { type: 'object', properties: {} }
+      }
+    }));
+    body.tool_choice = 'auto';
+  }
+
+  const response = await fetch(LOVABLE_AI_URL, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      messages,
-      tools: tools?.length ? tools.map(t => ({
-        type: 'function',
-        function: {
-          name: t.name,
-          description: t.description,
-          parameters: t.parameters || { type: 'object', properties: {} }
-        }
-      })) : undefined,
-      tool_choice: tools?.length ? 'auto' : undefined,
-      max_tokens: 4096,
-      temperature: 0.7
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
+    if (response.status === 429) {
+      throw new Error('RATE_LIMIT: Too many requests. Please try again later.');
+    }
+    if (response.status === 402) {
+      throw new Error('BUDGET_EXCEEDED: AI budget exceeded. Please add credits.');
+    }
     const error = await response.text();
     throw new Error(`AI API error: ${error}`);
   }
@@ -388,6 +398,8 @@ Answer the user's question using all available intelligence.`;
         } : t.name === 'compare_contacts' ? {
           profileIds: { type: 'array', items: { type: 'string' }, description: 'IDs of contacts to compare' },
           dimensions: { type: 'array', items: { type: 'string' }, description: 'Dimensions to compare on' }
+        } : t.name === 'get_recent_communications' ? {
+          limit: { type: 'number', description: 'Number of recent items to fetch' }
         } : {}
       }
     }));
@@ -405,6 +417,7 @@ Answer the user's question using all available intelligence.`;
     // Process tool calls if any (agent loop)
     let iterations = 0;
     const maxIterations = 5;
+    const toolsUsedDetails: string[] = [];
     
     while (aiResponse.toolCalls && iterations < maxIterations) {
       iterations++;
@@ -416,6 +429,7 @@ Answer the user's question using all available intelligence.`;
         if (tool) {
           try {
             const params = JSON.parse(toolCall.function.arguments || '{}');
+            toolsUsedDetails.push(tool.name);
             const result = await tool.execute(params, context);
             toolResults.push({
               role: 'tool',
@@ -454,9 +468,9 @@ Answer the user's question using all available intelligence.`;
       user_id: user.id,
       profile_id: profileId || null,
       function_name: 'contact-ai-agent-v2',
-      model_name: 'gpt-4o',
-      provider: 'openai',
-      estimated_cost_cents: 5, // Approximate
+      model_name: 'google/gemini-3-flash-preview',
+      provider: 'lovable',
+      estimated_cost_cents: 2,
       status: 'completed',
       prompt_summary: message.substring(0, 200)
     });
@@ -465,6 +479,7 @@ Answer the user's question using all available intelligence.`;
       success: true,
       response: finalContent,
       toolsUsed: iterations,
+      toolsUsedDetails,
       mode
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -472,6 +487,21 @@ Answer the user's question using all available intelligence.`;
 
   } catch (error: any) {
     console.error('Contact AI Agent V2 error:', error);
+    
+    // Handle rate limit and budget errors specifically
+    if (error?.message?.includes('RATE_LIMIT')) {
+      return new Response(JSON.stringify({ error: 'Rate limits exceeded. Please try again later.' }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (error?.message?.includes('BUDGET_EXCEEDED')) {
+      return new Response(JSON.stringify({ error: 'AI budget exceeded. Please add credits to continue.' }), {
+        status: 402,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
     return new Response(JSON.stringify({ error: error?.message || 'Unknown error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

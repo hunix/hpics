@@ -7,6 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const LOVABLE_AI_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+
 interface ExtractedEntity {
   type: 'person' | 'company' | 'location' | 'product' | 'event' | 'date' | 'money';
   name: string;
@@ -17,14 +19,19 @@ interface ExtractedEntity {
 }
 
 async function extractEntities(text: string): Promise<ExtractedEntity[]> {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  if (!LOVABLE_API_KEY) {
+    throw new Error('LOVABLE_API_KEY is not configured');
+  }
+
+  const response = await fetch(LOVABLE_AI_URL, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'google/gemini-2.5-flash-lite',
       messages: [
         {
           role: 'system',
@@ -52,21 +59,31 @@ Focus on business-relevant entities. Skip common words and generic references.`
           content: text.substring(0, 4000)
         }
       ],
-      response_format: { type: 'json_object' },
       max_tokens: 2000,
-      temperature: 0.1
     }),
   });
 
   if (!response.ok) {
+    if (response.status === 429) {
+      throw new Error('RATE_LIMIT: Too many requests');
+    }
+    if (response.status === 402) {
+      throw new Error('BUDGET_EXCEEDED: AI budget exceeded');
+    }
     console.error('Entity extraction API error:', await response.text());
     return [];
   }
 
   const data = await response.json();
   try {
-    const result = JSON.parse(data.choices[0].message.content);
-    return result.entities || [];
+    const content = data.choices[0].message.content;
+    // Try to parse JSON from the response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const result = JSON.parse(jsonMatch[0]);
+      return result.entities || [];
+    }
+    return [];
   } catch {
     return [];
   }
@@ -139,18 +156,30 @@ serve(async (req) => {
     } else if (processExisting) {
       // Process existing documents that don't have entities yet
       const sources = [
-        { table: 'messages', contentField: 'content', type: 'message' },
-        { table: 'contact_observations', contentField: 'observation_text', type: 'observation' },
-        { table: 'voice_insights', contentField: 'transcription', type: 'voice' }
+        { table: 'messages', contentField: 'content', type: 'message', hasProfileId: false },
+        { table: 'contact_observations', contentField: 'observation_text', type: 'observation', hasProfileId: true },
+        { table: 'voice_insights', contentField: 'transcription', type: 'voice', hasProfileId: true }
       ];
 
       for (const source of sources) {
-        // Get records without entity extractions
-        const { data: records } = await supabase
-          .from(source.table)
-          .select('*')
-          .eq('user_id', user.id)
-          .limit(limit);
+        let query;
+        
+        if (source.table === 'messages') {
+          // Messages need to join with conversations to get profile_id
+          query = supabase
+            .from('messages')
+            .select('id, content, conversations!inner(profile_id)')
+            .eq('conversations.user_id', user.id)
+            .limit(limit);
+        } else {
+          query = supabase
+            .from(source.table)
+            .select('*')
+            .eq('user_id', user.id)
+            .limit(limit);
+        }
+
+        const { data: records } = await query;
 
         for (const record of (records || []) as any[]) {
           const content = record[source.contentField];
@@ -167,7 +196,9 @@ serve(async (req) => {
           if (existing && existing.length > 0) continue;
 
           const entities = await extractEntities(content);
-          const recordProfileId = record.profile_id;
+          const recordProfileId = source.table === 'messages' 
+            ? record.conversations?.profile_id 
+            : record.profile_id;
 
           for (const entity of entities) {
             const { error: insertErr } = await supabase.from('entity_mentions').insert({
@@ -199,6 +230,20 @@ serve(async (req) => {
 
   } catch (error: any) {
     console.error('Entity extraction error:', error);
+    
+    if (error?.message?.includes('RATE_LIMIT')) {
+      return new Response(JSON.stringify({ error: 'Rate limits exceeded. Please try again later.' }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (error?.message?.includes('BUDGET_EXCEEDED')) {
+      return new Response(JSON.stringify({ error: 'AI budget exceeded. Please add credits.' }), {
+        status: 402,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
     return new Response(JSON.stringify({ error: error?.message || 'Unknown error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
