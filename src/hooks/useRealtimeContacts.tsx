@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -41,8 +41,8 @@ export function useRealtimeContacts() {
   }, [queryClient]);
 
   // Debounced toast to prevent toast spam
-  const debouncedToast = useCallback(
-    debounce((message: string) => {
+  const debouncedToast = useMemo(
+    () => debounce((message: string) => {
       toast.info(message);
     }, 1000),
     []
