@@ -3491,29 +3491,41 @@ export type Database = {
         Row: {
           contact_type: Database["public"]["Enums"]["contact_type"]
           created_at: string
+          encryption_classification: string | null
           id: string
+          is_encrypted: boolean | null
           is_primary: boolean | null
           label: string | null
+          last_accessed_at: string | null
           profile_id: string
           value: string
+          value_encrypted: string | null
         }
         Insert: {
           contact_type: Database["public"]["Enums"]["contact_type"]
           created_at?: string
+          encryption_classification?: string | null
           id?: string
+          is_encrypted?: boolean | null
           is_primary?: boolean | null
           label?: string | null
+          last_accessed_at?: string | null
           profile_id: string
           value: string
+          value_encrypted?: string | null
         }
         Update: {
           contact_type?: Database["public"]["Enums"]["contact_type"]
           created_at?: string
+          encryption_classification?: string | null
           id?: string
+          is_encrypted?: boolean | null
           is_primary?: boolean | null
           label?: string | null
+          last_accessed_at?: string | null
           profile_id?: string
           value?: string
+          value_encrypted?: string | null
         }
         Relationships: [
           {
@@ -3535,6 +3547,56 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_methods_access_logs: {
+        Row: {
+          access_context: string | null
+          access_type: string
+          accessed_at: string
+          contact_method_id: string
+          current_hash: string | null
+          id: string
+          ip_address: unknown
+          previous_hash: string | null
+          user_agent: string | null
+          user_id: string
+          was_decrypted: boolean | null
+        }
+        Insert: {
+          access_context?: string | null
+          access_type: string
+          accessed_at?: string
+          contact_method_id: string
+          current_hash?: string | null
+          id?: string
+          ip_address?: unknown
+          previous_hash?: string | null
+          user_agent?: string | null
+          user_id: string
+          was_decrypted?: boolean | null
+        }
+        Update: {
+          access_context?: string | null
+          access_type?: string
+          accessed_at?: string
+          contact_method_id?: string
+          current_hash?: string | null
+          id?: string
+          ip_address?: unknown
+          previous_hash?: string | null
+          user_agent?: string | null
+          user_id?: string
+          was_decrypted?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_methods_access_logs_contact_method_id_fkey"
+            columns: ["contact_method_id"]
+            isOneToOne: false
+            referencedRelation: "contact_methods"
             referencedColumns: ["id"]
           },
         ]
@@ -12927,6 +12989,16 @@ export type Database = {
           source_id: string
           source_type: string
         }[]
+      }
+      log_contact_method_access: {
+        Args: {
+          p_access_context?: string
+          p_access_type: string
+          p_contact_method_id: string
+          p_ip_address?: unknown
+          p_was_decrypted?: boolean
+        }
+        Returns: string
       }
       log_email_access: {
         Args: {
