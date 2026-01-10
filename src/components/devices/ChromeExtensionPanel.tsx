@@ -54,7 +54,7 @@ export function ChromeExtensionPanel({ className }: ChromeExtensionPanelProps) {
   });
   const { toast } = useToast();
 
-  // Check extension connection status via backend pings
+  // Check extension connection status via device_presence table
   const checkExtensionStatus = useCallback(async () => {
     setIsChecking(true);
     try {
@@ -65,15 +65,12 @@ export function ChromeExtensionPanel({ className }: ChromeExtensionPanelProps) {
         return;
       }
 
-      // Query device_sync_log for the most recent ping from chrome_extension
+      // Query device_presence for the most recent chrome_extension presence
       const { data, error } = await supabase
-        .from('device_sync_log')
-        .select('created_at')
+        .from('device_presence')
+        .select('last_seen_at')
         .eq('user_id', user.id)
         .eq('device_type', 'chrome_extension')
-        .eq('sync_type', 'ping')
-        .order('created_at', { ascending: false })
-        .limit(1)
         .maybeSingle();
 
       if (error) {
@@ -83,8 +80,8 @@ export function ChromeExtensionPanel({ className }: ChromeExtensionPanelProps) {
         return;
       }
 
-      if (data?.created_at) {
-        const lastPingTime = new Date(data.created_at);
+      if (data?.last_seen_at) {
+        const lastPingTime = new Date(data.last_seen_at);
         const now = new Date();
         const isActive = (now.getTime() - lastPingTime.getTime()) < CONNECTION_THRESHOLD_MS;
         

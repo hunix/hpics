@@ -85,8 +85,20 @@ Deno.serve(async (req) => {
     const payload: ExtensionPayload = await req.json();
     console.log('Chrome Extension Bridge - Action:', payload.action, 'Platform:', payload.platform);
 
-    // Handle ping action for connection check (no logging needed)
+    // Handle ping action for connection check - update device presence
     if (payload.action === 'ping') {
+      // Upsert device presence to track last seen time
+      const extensionId = req.headers.get('x-extension-id') || 'chrome-extension';
+      await supabase.from('device_presence').upsert({
+        user_id: user.id,
+        device_type: 'chrome_extension',
+        device_id: extensionId,
+        last_seen_at: new Date().toISOString(),
+        metadata: payload.metadata || null,
+      }, {
+        onConflict: 'user_id,device_type',
+      });
+
       return new Response(
         JSON.stringify({ success: true, message: 'pong', userId: user.id }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -1,6 +1,6 @@
 // Intel CRM Chrome Extension - Popup Script
 // Version marker - update this when making changes to verify new code is loaded
-const POPUP_UI_VERSION = '2026-01-10-v2';
+const POPUP_UI_VERSION = '2026-01-10-v3';
 
 // Prevent duplicate initialization
 if (window.__intelPopupInitialized) {
@@ -18,10 +18,15 @@ if (window.__intelPopupInitialized) {
   async function init() {
     console.log('[Intel CRM] Popup init, version:', POPUP_UI_VERSION);
     
-    // Display version in footer
-    const footer = document.querySelector('.footer span');
-    if (footer) {
-      footer.textContent = `v${POPUP_UI_VERSION} • Instagram, LinkedIn, Threads, X`;
+    // Display version in header and footer
+    const headerVersion = document.getElementById('header-version');
+    if (headerVersion) {
+      headerVersion.textContent = `v${POPUP_UI_VERSION}`;
+    }
+    
+    const footerVersion = document.getElementById('footer-version');
+    if (footerVersion) {
+      footerVersion.textContent = `UI: ${POPUP_UI_VERSION} • Instagram, LinkedIn, Threads, X`;
     }
     
     await loadConfig();
@@ -43,67 +48,115 @@ if (window.__intelPopupInitialized) {
 /**
  * Single unified renderer for connection state
  * This is the ONLY function that should update connection-related UI
+ * @param {object} state - Connection state object
+ * @param {string} errorMessage - Error message if any
+ * @param {object} options - UI options like busy state
  */
-function renderConnectionState(state, errorMessage = null) {
+function renderConnectionState(state, errorMessage = null, options = {}) {
+  const { uiBusy = false, uiAction = null } = options;
+  
   const statusEl = document.getElementById('connection-status');
   const btn = document.getElementById('save-config');
   const infoSection = document.getElementById('connection-info-section');
+  const debugLine = document.getElementById('debug-line');
+  
+  // Update debug line if present
+  if (debugLine) {
+    const isConn = state?.isConnected ? 'true' : 'false';
+    debugLine.textContent = `connected=${isConn}, busy=${uiBusy}, action=${uiAction || 'none'}, err=${errorMessage || 'none'}`;
+  }
+  
+  // Handle busy state first - disable button but don't change connection status
+  if (uiBusy) {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = uiAction === 'connecting' ? 'Connecting...' : 
+                       uiAction === 'disconnecting' ? 'Disconnecting...' : 'Please wait...';
+    }
+    return; // Don't update other UI elements while busy
+  }
+  
+  // Re-enable button
+  if (btn) {
+    btn.disabled = false;
+  }
   
   if (state?.isConnected) {
     // Connected state
-    statusEl.className = 'status connected';
-    statusEl.querySelector('.status-text').textContent = 'Connected';
+    if (statusEl) {
+      statusEl.className = 'status connected';
+      statusEl.querySelector('.status-text').textContent = 'Connected';
+    }
     
-    btn.textContent = 'Disconnect';
-    btn.className = 'btn btn-danger';
-    btn.dataset.connected = 'true';
+    if (btn) {
+      btn.textContent = 'Disconnect';
+      btn.className = 'btn btn-danger';
+      btn.dataset.connected = 'true';
+    }
     
-    infoSection.style.display = 'block';
+    if (infoSection) {
+      infoSection.style.display = 'block';
+    }
     
     // Update timestamps
-    document.getElementById('connected-since').textContent = 
-      state.connectedAt ? formatTime(state.connectedAt) : '-';
-    document.getElementById('last-heartbeat').textContent = 
-      state.lastHeartbeat ? formatTime(state.lastHeartbeat) : '-';
+    const connectedSince = document.getElementById('connected-since');
+    if (connectedSince) {
+      connectedSince.textContent = state.connectedAt ? formatTime(state.connectedAt) : '-';
+    }
+    
+    const lastHeartbeat = document.getElementById('last-heartbeat');
+    if (lastHeartbeat) {
+      lastHeartbeat.textContent = state.lastHeartbeat ? formatTime(state.lastHeartbeat) : '-';
+    }
     
     const lastSyncEl = document.getElementById('last-sync');
-    lastSyncEl.textContent = state.lastSync ? formatTime(state.lastSync) : 'Never';
+    if (lastSyncEl) {
+      lastSyncEl.textContent = state.lastSync ? formatTime(state.lastSync) : 'Never';
+    }
     
     const syncStatusEl = document.getElementById('sync-status-text');
-    if (state.lastSyncStatus === 'success') {
-      syncStatusEl.textContent = 'Success';
-      syncStatusEl.className = 'info-value success';
-    } else if (state.lastSyncStatus === 'failed') {
-      syncStatusEl.textContent = 'Failed';
-      syncStatusEl.className = 'info-value error';
-    } else {
-      syncStatusEl.textContent = '-';
-      syncStatusEl.className = 'info-value';
+    if (syncStatusEl) {
+      if (state.lastSyncStatus === 'success') {
+        syncStatusEl.textContent = 'Success';
+        syncStatusEl.className = 'info-value success';
+      } else if (state.lastSyncStatus === 'failed') {
+        syncStatusEl.textContent = 'Failed';
+        syncStatusEl.className = 'info-value error';
+      } else {
+        syncStatusEl.textContent = '-';
+        syncStatusEl.className = 'info-value';
+      }
     }
   } else {
     // Disconnected state
-    statusEl.className = 'status disconnected';
-    
-    // Determine status text based on error
-    let statusText = 'Disconnected';
-    if (errorMessage) {
-      if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
-        statusText = 'Token Expired';
-      } else if (errorMessage.includes('Invalid token')) {
-        statusText = 'Invalid Token';
-      } else if (errorMessage.includes('Not configured')) {
-        statusText = 'Not Configured';
-      } else if (errorMessage.includes('Failed to fetch') || errorMessage.includes('network')) {
-        statusText = 'Network Error';
+    if (statusEl) {
+      statusEl.className = 'status disconnected';
+      
+      // Determine status text based on error
+      let statusText = 'Disconnected';
+      if (errorMessage) {
+        if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+          statusText = 'Token Expired';
+        } else if (errorMessage.includes('Invalid token')) {
+          statusText = 'Invalid Token';
+        } else if (errorMessage.includes('Not configured')) {
+          statusText = 'Not Configured';
+        } else if (errorMessage.includes('Failed to fetch') || errorMessage.includes('network')) {
+          statusText = 'Network Error';
+        }
       }
+      statusEl.querySelector('.status-text').textContent = statusText;
     }
-    statusEl.querySelector('.status-text').textContent = statusText;
     
-    btn.textContent = 'Save & Connect';
-    btn.className = 'btn btn-primary';
-    btn.dataset.connected = 'false';
+    if (btn) {
+      btn.textContent = 'Save & Connect';
+      btn.className = 'btn btn-primary';
+      btn.dataset.connected = 'false';
+    }
     
-    infoSection.style.display = 'none';
+    if (infoSection) {
+      infoSection.style.display = 'none';
+    }
   }
 }
 
@@ -226,24 +279,21 @@ async function loadCaptureHistory() {
 }
 
 function setupEventListeners() {
-  // Save/Disconnect button
+  // Save/Disconnect button - use renderConnectionState for ALL UI updates
   document.getElementById('save-config').addEventListener('click', async () => {
     const btn = document.getElementById('save-config');
     const isConnected = btn.dataset.connected === 'true';
     
     if (isConnected) {
-      // Disconnect
-      btn.textContent = 'Disconnecting...';
-      btn.disabled = true;
+      // Disconnect - show busy state via renderer
+      renderConnectionState({ isConnected: true }, null, { uiBusy: true, uiAction: 'disconnecting' });
       
       await chrome.runtime.sendMessage({ type: 'DISCONNECT' });
       document.getElementById('auth-token').value = '';
       
-      // Single call to refresh UI
+      // Single call to refresh UI from authoritative state
       await refreshConnectionUI();
       await loadActivityLog();
-      
-      btn.disabled = false;
     } else {
       // Connect
       const config = {
@@ -252,20 +302,18 @@ function setupEventListeners() {
       };
       
       if (!config.apiEndpoint || !config.authToken) {
-        alert('Please enter both API Endpoint and Auth Token');
+        renderConnectionState(null, 'Enter endpoint & token');
         return;
       }
       
-      btn.textContent = 'Connecting...';
-      btn.disabled = true;
+      // Show busy state via renderer
+      renderConnectionState(null, null, { uiBusy: true, uiAction: 'connecting' });
 
       await chrome.runtime.sendMessage({ type: 'SET_CONFIG', payload: config });
       
-      // Single call to refresh UI
+      // Single call to refresh UI from authoritative state
       await refreshConnectionUI();
       await loadActivityLog();
-      
-      btn.disabled = false;
     }
   });
 
