@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import type { Json } from '@/integrations/supabase/types';
 
 export interface FaceRegion {
   id: string;
@@ -21,7 +21,7 @@ export interface FaceRegion {
   verified: boolean;
   embedding: string | null;
   descriptor: string | null;
-  features: Record<string, unknown> | null;
+  features: Json | null;
   status: 'pending' | 'cropped' | 'analyzed' | 'matched' | 'failed';
   error_message: string | null;
   job_id: string | null;
@@ -29,7 +29,8 @@ export interface FaceRegion {
   updated_at: string;
   profile?: {
     id: string;
-    full_name: string | null;
+    first_name: string | null;
+    last_name: string | null;
     avatar_url: string | null;
   } | null;
 }
@@ -45,38 +46,44 @@ export interface CreateFaceRegionInput {
   detection_method?: 'manual' | 'local_ai' | 'cloud_ai' | 'mosaic';
   confidence?: number;
   descriptor?: string;
-  features?: Record<string, unknown>;
+  features?: Json;
+}
+
+async function getUser() {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user;
 }
 
 export function useFaceRegions(mediaId?: string) {
-  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   // Fetch face regions for a specific media item
   const { data: regions, isLoading, error, refetch } = useQuery({
     queryKey: ['face-regions', mediaId],
     queryFn: async () => {
+      const user = await getUser();
       if (!mediaId || !user) return [];
 
       const { data, error } = await supabase
         .from('face_regions')
         .select(`
           *,
-          profile:profiles(id, full_name, avatar_url)
+          profile:profiles(id, first_name, last_name, avatar_url)
         `)
         .eq('media_id', mediaId)
         .eq('user_id', user.id)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      return (data || []) as FaceRegion[];
+      return (data || []) as unknown as FaceRegion[];
     },
-    enabled: !!mediaId && !!user,
+    enabled: !!mediaId,
   });
 
   // Create a new face region
   const createRegion = useMutation({
     mutationFn: async (input: CreateFaceRegionInput) => {
+      const user = await getUser();
       if (!user) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
@@ -99,12 +106,12 @@ export function useFaceRegions(mediaId?: string) {
         })
         .select(`
           *,
-          profile:profiles(id, full_name, avatar_url)
+          profile:profiles(id, first_name, last_name, avatar_url)
         `)
         .single();
 
       if (error) throw error;
-      return data as FaceRegion;
+      return data as unknown as FaceRegion;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['face-regions', data.media_id] });
@@ -119,6 +126,7 @@ export function useFaceRegions(mediaId?: string) {
   // Create multiple face regions (batch)
   const createRegions = useMutation({
     mutationFn: async (inputs: CreateFaceRegionInput[]) => {
+      const user = await getUser();
       if (!user) throw new Error('Not authenticated');
 
       const regionsToInsert = inputs.map(input => ({
@@ -143,11 +151,11 @@ export function useFaceRegions(mediaId?: string) {
         .insert(regionsToInsert)
         .select(`
           *,
-          profile:profiles(id, full_name, avatar_url)
+          profile:profiles(id, first_name, last_name, avatar_url)
         `);
 
       if (error) throw error;
-      return (data || []) as FaceRegion[];
+      return (data || []) as unknown as FaceRegion[];
     },
     onSuccess: (data) => {
       if (data.length > 0) {
@@ -164,21 +172,25 @@ export function useFaceRegions(mediaId?: string) {
   // Update a face region
   const updateRegion = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<FaceRegion> & { id: string }) => {
+      const user = await getUser();
       if (!user) throw new Error('Not authenticated');
+
+      // Extract only the fields that can be updated (exclude profile relation)
+      const { profile, ...updateData } = updates;
 
       const { data, error } = await supabase
         .from('face_regions')
-        .update(updates)
+        .update(updateData as any)
         .eq('id', id)
         .eq('user_id', user.id)
         .select(`
           *,
-          profile:profiles(id, full_name, avatar_url)
+          profile:profiles(id, first_name, last_name, avatar_url)
         `)
         .single();
 
       if (error) throw error;
-      return data as FaceRegion;
+      return data as unknown as FaceRegion;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['face-regions', data.media_id] });
@@ -192,6 +204,7 @@ export function useFaceRegions(mediaId?: string) {
   // Delete a face region
   const deleteRegion = useMutation({
     mutationFn: async (regionId: string) => {
+      const user = await getUser();
       if (!user) throw new Error('Not authenticated');
 
       const { error } = await supabase
@@ -216,6 +229,7 @@ export function useFaceRegions(mediaId?: string) {
   // Assign a profile to a face region
   const assignProfile = useMutation({
     mutationFn: async ({ regionId, profileId }: { regionId: string; profileId: string | null }) => {
+      const user = await getUser();
       if (!user) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
@@ -228,12 +242,12 @@ export function useFaceRegions(mediaId?: string) {
         .eq('user_id', user.id)
         .select(`
           *,
-          profile:profiles(id, full_name, avatar_url)
+          profile:profiles(id, first_name, last_name, avatar_url)
         `)
         .single();
 
       if (error) throw error;
-      return data as FaceRegion;
+      return data as unknown as FaceRegion;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['face-regions', data.media_id] });
@@ -248,6 +262,7 @@ export function useFaceRegions(mediaId?: string) {
   // Verify a face region (confirm auto-detection is correct)
   const verifyRegion = useMutation({
     mutationFn: async (regionId: string) => {
+      const user = await getUser();
       if (!user) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
@@ -259,7 +274,7 @@ export function useFaceRegions(mediaId?: string) {
         .single();
 
       if (error) throw error;
-      return data as FaceRegion;
+      return data as unknown as FaceRegion;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['face-regions', mediaId] });
@@ -287,18 +302,17 @@ export function useAllFaceRegions(options?: {
   profileId?: string;
   limit?: number;
 }) {
-  const { user } = useAuth();
-
   return useQuery({
     queryKey: ['all-face-regions', options],
     queryFn: async () => {
+      const user = await getUser();
       if (!user) return [];
 
       let query = supabase
         .from('face_regions')
         .select(`
           *,
-          profile:profiles(id, full_name, avatar_url),
+          profile:profiles(id, first_name, last_name, avatar_url),
           media:media(id, storage_path, thumbnail_url)
         `)
         .eq('user_id', user.id)
@@ -321,17 +335,15 @@ export function useAllFaceRegions(options?: {
       if (error) throw error;
       return data || [];
     },
-    enabled: !!user,
   });
 }
 
 // Hook for face regions statistics
 export function useFaceRegionStats() {
-  const { user } = useAuth();
-
   return useQuery({
     queryKey: ['face-region-stats'],
     queryFn: async () => {
+      const user = await getUser();
       if (!user) return null;
 
       const { data, error } = await supabase
@@ -352,8 +364,8 @@ export function useFaceRegionStats() {
       };
 
       data?.forEach(region => {
-        stats.byStatus[region.status] = (stats.byStatus[region.status] || 0) + 1;
-        stats.byMethod[region.detection_method] = (stats.byMethod[region.detection_method] || 0) + 1;
+        stats.byStatus[region.status || 'unknown'] = (stats.byStatus[region.status || 'unknown'] || 0) + 1;
+        stats.byMethod[region.detection_method || 'unknown'] = (stats.byMethod[region.detection_method || 'unknown'] || 0) + 1;
         if (region.verified) stats.verified++;
         else stats.unverified++;
         if (region.profile_id) stats.matched++;
@@ -362,6 +374,5 @@ export function useFaceRegionStats() {
 
       return stats;
     },
-    enabled: !!user,
   });
 }
