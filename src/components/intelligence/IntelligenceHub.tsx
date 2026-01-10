@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Brain, Smartphone, Chrome, Tag, Watch, Sparkles, ArrowRight, Zap } from 'lucide-react';
+import { Brain, Smartphone, Chrome, Tag, Watch, Sparkles, ArrowRight, Zap, Database, Globe, TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -7,7 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { DeviceIntelCapture } from '@/components/capture/DeviceIntelCapture';
 import { ChromeExtensionBridge } from '@/components/capture/ChromeExtensionBridge';
 import { ApplyToContactDialog } from '@/components/capture/ApplyToContactDialog';
-import { ContactAIAgent } from '@/components/intelligence/ContactAIAgent';
+import { RAGPoweredAgent } from '@/components/intelligence/RAGPoweredAgent';
+import { IntelligenceStatsPanel } from '@/components/intelligence/IntelligenceStatsPanel';
+import { EntityMentionsPanel } from '@/components/intelligence/EntityMentionsPanel';
 import { NFCTagManager } from '@/components/devices/NFCTagManager';
 import { WearableSyncSettings } from '@/components/devices/WearableSyncSettings';
 import { cn } from '@/lib/utils';
@@ -67,23 +69,15 @@ export function IntelligenceHub({ profileId, contactName = 'Contact', className 
           )}
 
           {activeSection === 'ai-agent' && profileId && (
-            <ContactAIAgent
+            <RAGPoweredAgent
               profileId={profileId}
               contactName={contactName}
-              defaultExpanded
+              mode="contact"
             />
           )}
 
           {activeSection === 'ai-agent' && !profileId && (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <Brain className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                <h3 className="font-semibold">Select a Contact</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Choose a contact to start asking the AI Agent questions
-                </p>
-              </CardContent>
-            </Card>
+            <RAGPoweredAgent mode="global" />
           )}
 
           {activeSection === 'devices' && (
@@ -148,35 +142,11 @@ export function IntelligenceHub({ profileId, contactName = 'Contact', className 
 
         {/* Right Panel - Secondary Info */}
         <div className="space-y-4">
-          {/* Quick Stats */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Zap className="h-4 w-4 text-primary" />
-                Intelligence Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-3 bg-muted/50 rounded-lg">
-                  <div className="text-2xl font-bold text-primary">0</div>
-                  <div className="text-xs text-muted-foreground">Pending Captures</div>
-                </div>
-                <div className="text-center p-3 bg-muted/50 rounded-lg">
-                  <div className="text-2xl font-bold text-primary">0</div>
-                  <div className="text-xs text-muted-foreground">AI Insights Today</div>
-                </div>
-                <div className="text-center p-3 bg-muted/50 rounded-lg">
-                  <div className="text-2xl font-bold text-primary">0</div>
-                  <div className="text-xs text-muted-foreground">Connected Devices</div>
-                </div>
-                <div className="text-center p-3 bg-muted/50 rounded-lg">
-                  <div className="text-2xl font-bold text-primary">0</div>
-                  <div className="text-xs text-muted-foreground">Active NFC Tags</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* RAG Stats Panel */}
+          <IntelligenceStatsPanel />
+
+          {/* Entity Mentions */}
+          <EntityMentionsPanel profileId={profileId} />
 
           {/* Quick Tips */}
           <Card>
