@@ -31,13 +31,17 @@ export function useAIBudget(): AIBudgetData {
   const { data: preferences, isLoading: prefsLoading } = useQuery({
     queryKey: ['ai-budget-preferences', user?.id],
     queryFn: async () => {
+      if (!user) return null;
       const { data, error } = await supabase
         .from('user_preferences')
         .select('ai_budget_daily_limit_cents, ai_budget_weekly_limit_cents, ai_budget_monthly_limit_cents')
-        .eq('user_id', user!.id)
+        .eq('user_id', user.id)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Failed to fetch AI budget preferences:', error);
+        return null;
+      }
       return data;
     },
     enabled: !!user,
@@ -47,6 +51,8 @@ export function useAIBudget(): AIBudgetData {
   const { data: usage, isLoading: usageLoading, refetch } = useQuery({
     queryKey: ['ai-budget-usage', user?.id],
     queryFn: async () => {
+      if (!user) return { dailySpent: 0, weeklySpent: 0, monthlySpent: 0 };
+      
       const now = new Date();
       const dayStart = startOfDay(now).toISOString();
       const weekStart = startOfWeek(now, { weekStartsOn: 1 }).toISOString();
@@ -55,10 +61,13 @@ export function useAIBudget(): AIBudgetData {
       const { data, error } = await supabase
         .from('ai_usage_logs')
         .select('actual_cost_cents, created_at')
-        .eq('user_id', user!.id)
+        .eq('user_id', user.id)
         .gte('created_at', monthStart);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Failed to fetch AI usage logs:', error);
+        return { dailySpent: 0, weeklySpent: 0, monthlySpent: 0 };
+      }
 
       const logs = data || [];
       
@@ -121,7 +130,7 @@ export function useAIBudget(): AIBudgetData {
     daily,
     weekly,
     monthly,
-    isLoading: prefsLoading || usageLoading,
+    isLoading: !user ? false : (prefsLoading || usageLoading),
     refetch,
     wouldExceedBudget,
   };

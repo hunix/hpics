@@ -4,29 +4,41 @@ import { AlertTriangle, XCircle, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAIBudget } from "@/hooks/useAIBudget";
+import { useAuth } from "@/hooks/useAuth";
 
 export function AIBudgetWarning() {
+  const { user, loading: authLoading } = useAuth();
   const [dismissed, setDismissed] = useState(false);
   const budget = useAIBudget();
 
-  // Calculate warning level
+  // Don't render anything if not logged in or still loading
+  if (!user || authLoading || budget.isLoading) {
+    return null;
+  }
+
+  // Calculate warning level with safe access
   const getWarningLevel = () => {
-    if (budget.daily.isOver || budget.weekly.isOver || budget.monthly.isOver) {
-      return 'exceeded';
+    try {
+      if (budget.daily?.isOver || budget.weekly?.isOver || budget.monthly?.isOver) {
+        return 'exceeded';
+      }
+      
+      const dailyPercent = budget.daily?.budget ? (budget.daily.spent / budget.daily.budget) * 100 : 0;
+      const weeklyPercent = budget.weekly?.budget ? (budget.weekly.spent / budget.weekly.budget) * 100 : 0;
+      const monthlyPercent = budget.monthly?.budget ? (budget.monthly.spent / budget.monthly.budget) * 100 : 0;
+      const maxPercent = Math.max(dailyPercent, weeklyPercent, monthlyPercent);
+      
+      if (maxPercent >= 90) return 'critical';
+      if (maxPercent >= 75) return 'approaching';
+      return 'none';
+    } catch {
+      return 'none';
     }
-    
-    const dailyPercent = budget.daily.budget ? (budget.daily.spent / budget.daily.budget) * 100 : 0;
-    const weeklyPercent = budget.weekly.budget ? (budget.weekly.spent / budget.weekly.budget) * 100 : 0;
-    const monthlyPercent = budget.monthly.budget ? (budget.monthly.spent / budget.monthly.budget) * 100 : 0;
-    const maxPercent = Math.max(dailyPercent, weeklyPercent, monthlyPercent);
-    
-    if (maxPercent >= 90) return 'critical';
-    if (maxPercent >= 75) return 'approaching';
-    return 'none';
   };
 
   const warningLevel = getWarningLevel();
 
+  // Show toasts only when budget thresholds are hit
   useEffect(() => {
     if (warningLevel === 'exceeded') {
       toast.error("AI budget limit exceeded", {
@@ -41,13 +53,13 @@ export function AIBudgetWarning() {
     }
   }, [warningLevel]);
 
-  if (warningLevel === 'none' || dismissed || budget.isLoading) {
+  if (warningLevel === 'none' || dismissed) {
     return null;
   }
 
-  const dailyPercent = budget.daily.budget ? (budget.daily.spent / budget.daily.budget) * 100 : 0;
-  const weeklyPercent = budget.weekly.budget ? (budget.weekly.spent / budget.weekly.budget) * 100 : 0;
-  const monthlyPercent = budget.monthly.budget ? (budget.monthly.spent / budget.monthly.budget) * 100 : 0;
+  const dailyPercent = budget.daily?.budget ? (budget.daily.spent / budget.daily.budget) * 100 : 0;
+  const weeklyPercent = budget.weekly?.budget ? (budget.weekly.spent / budget.weekly.budget) * 100 : 0;
+  const monthlyPercent = budget.monthly?.budget ? (budget.monthly.spent / budget.monthly.budget) * 100 : 0;
   const maxPercent = Math.max(dailyPercent, weeklyPercent, monthlyPercent);
 
   const getMessage = () => {
