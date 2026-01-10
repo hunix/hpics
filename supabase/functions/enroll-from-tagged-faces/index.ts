@@ -190,7 +190,16 @@ Respond in JSON format:
       facial_sample_count: newSampleCount,
       facial_confidence: analysis.combined.coverage_score,
       facial_last_updated: new Date().toISOString(),
-      signature_strength: Math.min((analysis.combined.coverage_score || 0) * 50 + (newSampleCount * 5), 100)
+      signature_strength: Math.min((analysis.combined.coverage_score || 0) * 50 + (newSampleCount * 5), 100),
+      // Also populate facial_features for matching compatibility
+      facial_features: {
+        multi_view_signature: analysis.combined.multi_view_signature,
+        angles_captured: analysis.combined.angles_captured,
+        unique_identifiers: analysis.combined.unique_identifiers,
+        age_range: analysis.combined.age_estimation?.range,
+        coverage_score: analysis.combined.coverage_score,
+        source: 'tagged_faces_enrollment'
+      }
     };
 
     if (existing) {

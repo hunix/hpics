@@ -16,8 +16,10 @@ import {
   AlertCircle,
   Eye,
   Volume2,
-  RefreshCw
+  RefreshCw,
+  Info
 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -183,7 +185,46 @@ export function BiometricIdentityPanel({
                   </div>
                 )}
 
-                {biometrics?.facial_features && (
+                {/* Show multi-angle data if available */}
+                {(biometrics?.facial_multi_angle_data as any) && (
+                  <div className="text-sm space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">Angles captured:</span>
+                      <div className="flex gap-1 flex-wrap">
+                        {((biometrics.facial_multi_angle_data as any)?.angles_captured || []).map((angle: string) => (
+                          <Badge key={angle} variant="outline" className="text-xs">
+                            {angle}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                    {(biometrics.facial_multi_angle_data as any)?.age_estimation && (
+                      <p className="text-muted-foreground">
+                        Estimated age: {(biometrics.facial_multi_angle_data as any).age_estimation.range}
+                        {(biometrics.facial_multi_angle_data as any).age_estimation.confidence && 
+                          ` (${Math.round((biometrics.facial_multi_angle_data as any).age_estimation.confidence * 100)}% confident)`
+                        }
+                      </p>
+                    )}
+                    {(biometrics.facial_multi_angle_data as any)?.multi_view_signature && (
+                      <p className="text-muted-foreground italic text-xs border-l-2 border-primary/30 pl-2">
+                        "{(biometrics.facial_multi_angle_data as any).multi_view_signature}"
+                      </p>
+                    )}
+                    {(biometrics.facial_multi_angle_data as any)?.unique_identifiers?.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {((biometrics.facial_multi_angle_data as any).unique_identifiers as any[]).slice(0, 4).map((id: any, i: number) => (
+                          <Badge key={i} variant="secondary" className="text-xs">
+                            {id.type}: {id.location}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Legacy facial_features display */}
+                {biometrics?.facial_features && !(biometrics?.facial_multi_angle_data as any) && (
                   <div className="text-sm space-y-1">
                     <p className="text-muted-foreground">Detected features:</p>
                     <div className="flex flex-wrap gap-1">
@@ -194,6 +235,19 @@ export function BiometricIdentityPanel({
                       ))}
                     </div>
                   </div>
+                )}
+
+                {/* Low coverage guidance */}
+                {biometrics?.facial_confidence != null && 
+                 biometrics.facial_confidence < 0.5 && 
+                 (biometrics?.facial_sample_count || 0) > 0 && (
+                  <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
+                    <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    <AlertDescription className="text-amber-800 dark:text-amber-200 text-sm">
+                      <strong>Low coverage:</strong> {biometrics.facial_sample_count} samples captured, but mostly similar angles. 
+                      Add side profiles (left/right) to improve matching accuracy.
+                    </AlertDescription>
+                  </Alert>
                 )}
 
                 {biometrics?.facial_last_updated && (
