@@ -13,7 +13,9 @@ import {
   X,
   User,
   MousePointer,
-  Info
+  Info,
+  CheckCircle2,
+  Check
 } from 'lucide-react';
 import { useFaceRegions, FaceRegion, CreateFaceRegionInput } from '@/hooks/useFaceRegions';
 import { faceDetectionService } from '@/lib/faceDetection';
@@ -119,9 +121,10 @@ export function FaceRegionDrawer({
 
       const isSelected = selectedRegionId === region.id;
       const isHovered = hoveredRegionId === region.id;
+      const isAssigned = !!region.profile_id;
       
       // Base color based on state
-      let strokeColor = region.profile_id ? '#22c55e' : '#3b82f6'; // green if assigned, blue if not
+      let strokeColor = isAssigned ? '#22c55e' : '#3b82f6'; // green if assigned, blue if not
       if (isSelected) strokeColor = '#f59e0b'; // amber when selected
       if (isHovered && !isSelected) strokeColor = '#8b5cf6'; // purple when hovered
 
@@ -153,11 +156,36 @@ export function FaceRegionDrawer({
       const profileName = region.profile ? [region.profile.first_name, region.profile.last_name].filter(Boolean).join(' ') : null;
       ctx.fillStyle = profileName ? 'rgba(34, 197, 94, 0.9)' : 'rgba(59, 130, 246, 0.9)';
       const labelText = profileName || 'Click to assign';
-      const labelWidth = ctx.measureText(labelText).width + 16;
+      const labelWidth = ctx.measureText(labelText).width + (isAssigned ? 28 : 16);
       ctx.fillRect(x, y - 24, labelWidth, 22);
       ctx.fillStyle = '#fff';
       ctx.font = '12px sans-serif';
-      ctx.fillText(labelText, x + 8, y - 8);
+      
+      // Draw checkmark icon for assigned regions
+      if (isAssigned) {
+        ctx.fillText('✓', x + 6, y - 8);
+        ctx.fillText(labelText, x + 20, y - 8);
+      } else {
+        ctx.fillText(labelText, x + 8, y - 8);
+      }
+
+      // Draw green checkmark badge on corner for assigned regions
+      if (isAssigned) {
+        ctx.fillStyle = '#22c55e';
+        ctx.beginPath();
+        ctx.arc(x + w - 10, y + 10, 12, 0, Math.PI * 2);
+        ctx.fill();
+        // Draw checkmark
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(x + w - 15, y + 10);
+        ctx.lineTo(x + w - 11, y + 14);
+        ctx.lineTo(x + w - 5, y + 6);
+        ctx.stroke();
+      }
     });
 
     // Draw pending regions
@@ -377,14 +405,24 @@ export function FaceRegionDrawer({
   };
 
   // Assign profile to selected region
-  const handleAssignProfile = async (profileId: string | null) => {
+  const handleAssignProfile = async (profileId: string | null, profileName?: string) => {
     if (!selectedRegionId) return;
     await assignProfile.mutateAsync({ regionId: selectedRegionId, profileId: profileId || null });
+    
+    // Show informative toast with contact name
+    if (profileId && profileName) {
+      toast.success(`Assigned to ${profileName}`, {
+        description: 'Your work is automatically saved'
+      });
+    }
+    
     onRegionsChanged?.();
   };
 
   const selectedRegion = regions.find(r => r.id === selectedRegionId);
   const unassignedCount = regions.filter(r => !r.profile_id).length;
+  const assignedCount = regions.filter(r => r.profile_id).length;
+  const allAssigned = regions.length > 0 && unassignedCount === 0;
 
   return (
     <Card className="w-full">
@@ -399,17 +437,26 @@ export function FaceRegionDrawer({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Completion Success Banner */}
+        {allAssigned && (
+          <Alert className="bg-green-50 dark:bg-green-950/30 border-green-300 dark:border-green-700">
+            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <AlertDescription className="text-green-800 dark:text-green-200">
+              <strong>All {regions.length} face{regions.length !== 1 ? 's' : ''} tagged!</strong> Your work is saved. 
+              You can safely close this window.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Instructions Alert */}
         {regions.length > 0 && unassignedCount > 0 && !selectedRegionId && (
           <Alert>
             <MousePointer className="h-4 w-4" />
             <AlertDescription>
               <strong>Click on any face box</strong> to select it, then assign a contact using the search below.
-              {unassignedCount > 0 && (
-                <span className="text-muted-foreground ml-1">
-                  ({unassignedCount} unassigned)
-                </span>
-              )}
+              <span className="text-muted-foreground ml-1">
+                ({unassignedCount} of {regions.length} remaining)
+              </span>
             </AlertDescription>
           </Alert>
         )}
@@ -544,7 +591,10 @@ export function FaceRegionDrawer({
               <div className="flex items-center gap-2">
                 <ScalableContactSearch
                   selectedId={selectedRegion.profile_id}
-                  onSelect={(id) => handleAssignProfile(id)}
+                  onSelect={(id, contact) => {
+                    const name = contact ? [contact.first_name, contact.last_name].filter(Boolean).join(' ') : undefined;
+                    handleAssignProfile(id, name);
+                  }}
                   placeholder="Search contacts to assign..."
                   allowNone
                   noneLabel="Remove assignment"
@@ -580,20 +630,31 @@ export function FaceRegionDrawer({
         {/* Stats */}
         <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
           <Badge variant="outline">
-            {regions.length} saved region{regions.length !== 1 ? 's' : ''}
+            {regions.length} face{regions.length !== 1 ? 's' : ''} detected
           </Badge>
-          {unassignedCount > 0 && (
-            <Badge variant="secondary" className="text-amber-600 dark:text-amber-400">
-              {unassignedCount} unassigned
+          {regions.length > 0 && (
+            <Badge 
+              variant={allAssigned ? 'default' : 'secondary'} 
+              className={cn(
+                allAssigned 
+                  ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' 
+                  : 'text-amber-600 dark:text-amber-400'
+              )}
+            >
+              {allAssigned ? (
+                <><Check className="h-3 w-3 mr-1" />{assignedCount}/{regions.length} assigned</>
+              ) : (
+                <>{assignedCount}/{regions.length} assigned</>
+              )}
             </Badge>
           )}
           {pendingRegions.length > 0 && (
             <Badge variant="secondary" className="text-orange-600 dark:text-orange-400">
-              {pendingRegions.length} pending
+              {pendingRegions.length} pending save
             </Badge>
           )}
           <Badge variant={modelsReady ? 'default' : 'secondary'}>
-            {modelsReady ? 'Local AI ready' : 'Loading AI models...'}
+            {modelsReady ? '✓ Local AI ready' : 'Loading AI models...'}
           </Badge>
         </div>
 

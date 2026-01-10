@@ -251,7 +251,10 @@ export function useFaceRegions(mediaId?: string) {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['face-regions', data.media_id] });
-      toast.success(data.profile_id ? 'Profile assigned' : 'Profile unassigned');
+      // Only show toast if no profile assigned (removal case) - assignment toast is handled in component with contact name
+      if (!data.profile_id) {
+        toast.success('Profile removed');
+      }
     },
     onError: (error) => {
       console.error('Failed to assign profile:', error);
