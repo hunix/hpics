@@ -9626,6 +9626,50 @@ export type Database = {
         }
         Relationships: []
       }
+      psychological_profile_access_logs: {
+        Row: {
+          accessed_at: string
+          accessed_fields: string[] | null
+          action: string
+          id: string
+          ip_address: string | null
+          profile_id: string
+          target_profile_id: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          accessed_at?: string
+          accessed_fields?: string[] | null
+          action: string
+          id?: string
+          ip_address?: string | null
+          profile_id: string
+          target_profile_id: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          accessed_at?: string
+          accessed_fields?: string[] | null
+          action?: string
+          id?: string
+          ip_address?: string | null
+          profile_id?: string
+          target_profile_id?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "psychological_profile_access_logs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "psychological_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       psychological_profile_history: {
         Row: {
           changes_detected: Json | null
@@ -9674,15 +9718,20 @@ export type Database = {
           analysis_version: string | null
           attachment_style: Json | null
           behavioral_predictions: Json | null
+          behavioral_predictions_encrypted: string | null
           cognitive_profile: Json | null
           communication_dna: Json | null
           confidence_score: number | null
           created_at: string
           dark_triad: Json | null
+          dark_triad_encrypted: string | null
+          data_classification: string | null
           data_completeness: number | null
           data_sources_used: Json | null
           deception_analysis: Json | null
+          deception_analysis_encrypted: string | null
           emotional_intelligence: Json | null
+          encryption_key_id: string | null
           flags: Json | null
           hexaco_honesty_humility: Json | null
           id: string
@@ -9690,6 +9739,7 @@ export type Database = {
           personality_ocean: Json | null
           profile_id: string
           psychiatric_indicators: Json | null
+          psychiatric_indicators_encrypted: string | null
           relationship_dynamics: Json | null
           updated_at: string
           user_id: string
@@ -9701,15 +9751,20 @@ export type Database = {
           analysis_version?: string | null
           attachment_style?: Json | null
           behavioral_predictions?: Json | null
+          behavioral_predictions_encrypted?: string | null
           cognitive_profile?: Json | null
           communication_dna?: Json | null
           confidence_score?: number | null
           created_at?: string
           dark_triad?: Json | null
+          dark_triad_encrypted?: string | null
+          data_classification?: string | null
           data_completeness?: number | null
           data_sources_used?: Json | null
           deception_analysis?: Json | null
+          deception_analysis_encrypted?: string | null
           emotional_intelligence?: Json | null
+          encryption_key_id?: string | null
           flags?: Json | null
           hexaco_honesty_humility?: Json | null
           id?: string
@@ -9717,6 +9772,7 @@ export type Database = {
           personality_ocean?: Json | null
           profile_id: string
           psychiatric_indicators?: Json | null
+          psychiatric_indicators_encrypted?: string | null
           relationship_dynamics?: Json | null
           updated_at?: string
           user_id: string
@@ -9728,15 +9784,20 @@ export type Database = {
           analysis_version?: string | null
           attachment_style?: Json | null
           behavioral_predictions?: Json | null
+          behavioral_predictions_encrypted?: string | null
           cognitive_profile?: Json | null
           communication_dna?: Json | null
           confidence_score?: number | null
           created_at?: string
           dark_triad?: Json | null
+          dark_triad_encrypted?: string | null
+          data_classification?: string | null
           data_completeness?: number | null
           data_sources_used?: Json | null
           deception_analysis?: Json | null
+          deception_analysis_encrypted?: string | null
           emotional_intelligence?: Json | null
+          encryption_key_id?: string | null
           flags?: Json | null
           hexaco_honesty_humility?: Json | null
           id?: string
@@ -9744,6 +9805,7 @@ export type Database = {
           personality_ocean?: Json | null
           profile_id?: string
           psychiatric_indicators?: Json | null
+          psychiatric_indicators_encrypted?: string | null
           relationship_dynamics?: Json | null
           updated_at?: string
           user_id?: string
