@@ -51,23 +51,46 @@ export function ChromeExtensionBridge({ profileId, onDataReceived, className }: 
   const loadRecentCaptures = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('device_captures')
-        .select('id, capture_type, device_source, extracted_data, created_at, status')
-        .eq('device_type', 'chrome_extension')
-        .order('created_at', { ascending: false })
-        .limit(10);
+      const { data, error } = await supabase.rpc('get_device_captures_by_type', { 
+        p_device_type: 'chrome_extension' 
+      }).limit(10);
 
-      if (error) throw error;
-      setRecentCaptures((data || []) as ExtensionCapture[]);
-      
-      if (data && data.length > 0) {
-        setIsConnected(true);
+      // Fallback: direct query with type assertion
+      if (error) {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/device_captures?device_type=eq.chrome_extension&order=created_at.desc&limit=10`,
+          {
+            headers: {
+              'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            },
+          }
+        );
+        const records = await response.json();
+        const captures: ExtensionCapture[] = (records || []).map((d: any) => ({
+          id: d.id,
+          capture_type: d.capture_type,
+          device_source: d.device_source,
+          extracted_data: d.extracted_data,
+          created_at: d.created_at,
+          status: d.status,
+        }));
+        setRecentCaptures(captures);
+        if (captures.length > 0) setIsConnected(true);
+        return;
       }
-    } catch (error) {
-      console.error('Failed to load captures:', error);
-    } finally {
-      setIsLoading(false);
+
+      const captures: ExtensionCapture[] = ((data as any[]) || []).map((d: any) => ({
+        id: d.id,
+        capture_type: d.capture_type,
+        device_source: d.device_source,
+        extracted_data: d.extracted_data,
+        created_at: d.created_at,
+        status: d.status,
+      }));
+      
+      setRecentCaptures(captures);
+      if (captures.length > 0) setIsConnected(true);
     }
   };
 
@@ -245,7 +268,7 @@ export function ChromeExtensionBridge({ profileId, onDataReceived, className }: 
                           {formatCaptureType(capture.capture_type)}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {capture.source_type} · {new Date(capture.created_at).toLocaleDateString()}
+                          {capture.device_source || 'chrome'} · {new Date(capture.created_at).toLocaleDateString()}
                         </p>
                       </div>
                     </div>

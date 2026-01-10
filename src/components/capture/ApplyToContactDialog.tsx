@@ -110,11 +110,11 @@ export function ApplyToContactDialog({
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, company')
+        .select('id, first_name, last_name')
         .order('first_name');
 
       if (error) throw error;
-      setContacts((data || []) as Contact[]);
+      setContacts((data || []).map(c => ({ ...c, company: undefined })) as Contact[]);
     } catch (error) {
       console.error('Failed to load contacts:', error);
     } finally {
