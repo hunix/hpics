@@ -46,6 +46,7 @@ const SystemHealthPage = lazy(() => import("./pages/SystemHealthPage"));
 const CrossModalIntelligencePage = lazy(() => import("./pages/CrossModalIntelligencePage"));
 const AdvancedNetworkPage = lazy(() => import("./pages/AdvancedNetworkPage"));
 const AICostCenterPage = lazy(() => import("./pages/AICostCenterPage"));
+const IntelligenceCenter = lazy(() => import("./pages/IntelligenceCenter"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -102,6 +103,7 @@ const App = () => (
                         <Route path="/cross-modal-intelligence" element={<CrossModalIntelligencePage />} />
                         <Route path="/network-advanced" element={<AdvancedNetworkPage />} />
                         <Route path="/ai-costs" element={<AICostCenterPage />} />
+                        <Route path="/intelligence" element={<IntelligenceCenter />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                     </Suspense>
