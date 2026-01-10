@@ -5079,6 +5079,145 @@ export type Database = {
           },
         ]
       }
+      device_captures: {
+        Row: {
+          ai_analysis: Json | null
+          applied_at: string | null
+          capture_type: string
+          confidence_score: number | null
+          created_at: string
+          device_source: string | null
+          error_message: string | null
+          extracted_data: Json | null
+          file_urls: string[] | null
+          id: string
+          location_lat: number | null
+          location_lng: number | null
+          location_name: string | null
+          metadata: Json | null
+          processing_completed_at: string | null
+          processing_started_at: string | null
+          profile_id: string | null
+          raw_content: string | null
+          source_app: string | null
+          status: string | null
+          storage_paths: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          applied_at?: string | null
+          capture_type: string
+          confidence_score?: number | null
+          created_at?: string
+          device_source?: string | null
+          error_message?: string | null
+          extracted_data?: Json | null
+          file_urls?: string[] | null
+          id?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          location_name?: string | null
+          metadata?: Json | null
+          processing_completed_at?: string | null
+          processing_started_at?: string | null
+          profile_id?: string | null
+          raw_content?: string | null
+          source_app?: string | null
+          status?: string | null
+          storage_paths?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_analysis?: Json | null
+          applied_at?: string | null
+          capture_type?: string
+          confidence_score?: number | null
+          created_at?: string
+          device_source?: string | null
+          error_message?: string | null
+          extracted_data?: Json | null
+          file_urls?: string[] | null
+          id?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          location_name?: string | null
+          metadata?: Json | null
+          processing_completed_at?: string | null
+          processing_started_at?: string | null
+          profile_id?: string | null
+          raw_content?: string | null
+          source_app?: string | null
+          status?: string | null
+          storage_paths?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_captures_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "device_captures_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "device_captures_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      device_sync_log: {
+        Row: {
+          created_at: string
+          data_count: number | null
+          device_id: string
+          device_name: string | null
+          device_type: string
+          id: string
+          metadata: Json | null
+          sync_type: string
+          synced_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_count?: number | null
+          device_id: string
+          device_name?: string | null
+          device_type: string
+          id?: string
+          metadata?: Json | null
+          sync_type: string
+          synced_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data_count?: number | null
+          device_id?: string
+          device_name?: string | null
+          device_type?: string
+          id?: string
+          metadata?: Json | null
+          sync_type?: string
+          synced_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       document_analysis_jobs: {
         Row: {
           actual_cost_cents: number | null
@@ -7391,6 +7530,100 @@ export type Database = {
         }
         Relationships: []
       }
+      interaction_biometrics: {
+        Row: {
+          avg_heart_rate: number | null
+          calories_burned: number | null
+          created_at: string
+          device_source: string | null
+          duration_minutes: number | null
+          energy_level: number | null
+          heart_rate_variability: number | null
+          id: string
+          interaction_date: string
+          location_lat: number | null
+          location_lng: number | null
+          location_name: string | null
+          max_heart_rate: number | null
+          min_heart_rate: number | null
+          notes: string | null
+          profile_id: string | null
+          raw_data: Json | null
+          steps_during: number | null
+          stress_level: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avg_heart_rate?: number | null
+          calories_burned?: number | null
+          created_at?: string
+          device_source?: string | null
+          duration_minutes?: number | null
+          energy_level?: number | null
+          heart_rate_variability?: number | null
+          id?: string
+          interaction_date?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          location_name?: string | null
+          max_heart_rate?: number | null
+          min_heart_rate?: number | null
+          notes?: string | null
+          profile_id?: string | null
+          raw_data?: Json | null
+          steps_during?: number | null
+          stress_level?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avg_heart_rate?: number | null
+          calories_burned?: number | null
+          created_at?: string
+          device_source?: string | null
+          duration_minutes?: number | null
+          energy_level?: number | null
+          heart_rate_variability?: number | null
+          id?: string
+          interaction_date?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          location_name?: string | null
+          max_heart_rate?: number | null
+          min_heart_rate?: number | null
+          notes?: string | null
+          profile_id?: string | null
+          raw_data?: Json | null
+          steps_during?: number | null
+          stress_level?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interaction_biometrics_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "interaction_biometrics_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "interaction_biometrics_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       item_category_templates: {
         Row: {
           category: string
@@ -8469,6 +8702,73 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      nfc_tags: {
+        Row: {
+          action_config: Json | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          last_tapped_at: string | null
+          profile_id: string | null
+          tag_id: string
+          tag_label: string | null
+          tag_type: string | null
+          tap_count: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_config?: Json | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          last_tapped_at?: string | null
+          profile_id?: string | null
+          tag_id: string
+          tag_label?: string | null
+          tag_type?: string | null
+          tap_count?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_config?: Json | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          last_tapped_at?: string | null
+          profile_id?: string | null
+          tag_id?: string
+          tag_label?: string | null
+          tag_type?: string | null
+          tap_count?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfc_tags_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "nfc_tags_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "nfc_tags_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_preferences: {
         Row: {
@@ -9609,6 +9909,88 @@ export type Database = {
           status?: string | null
         }
         Relationships: []
+      }
+      screenshot_imports: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          device_source: string | null
+          error_message: string | null
+          extracted_data: Json | null
+          id: string
+          image_urls: string[]
+          processing_completed_at: string | null
+          processing_started_at: string | null
+          profile_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_type: string
+          status: string | null
+          storage_paths: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          device_source?: string | null
+          error_message?: string | null
+          extracted_data?: Json | null
+          id?: string
+          image_urls: string[]
+          processing_completed_at?: string | null
+          processing_started_at?: string | null
+          profile_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_type: string
+          status?: string | null
+          storage_paths?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          device_source?: string | null
+          error_message?: string | null
+          extracted_data?: Json | null
+          id?: string
+          image_urls?: string[]
+          processing_completed_at?: string | null
+          processing_started_at?: string | null
+          profile_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_type?: string
+          status?: string | null
+          storage_paths?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "screenshot_imports_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "screenshot_imports_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "screenshot_imports_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       secure_deletion_records: {
         Row: {
@@ -10977,6 +11359,127 @@ export type Database = {
           },
           {
             foreignKeyName: "voice_notes_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voice_recording_sessions: {
+        Row: {
+          audio_format: string | null
+          channels: number | null
+          created_at: string
+          detected_speakers: string[] | null
+          device_source: string | null
+          duration_seconds: number | null
+          ended_at: string | null
+          file_size_bytes: number | null
+          file_url: string | null
+          id: string
+          keywords_detected: string[] | null
+          location_lat: number | null
+          location_lng: number | null
+          location_name: string | null
+          metadata: Json | null
+          participants: string[] | null
+          profile_id: string | null
+          recording_type: string
+          sample_rate: number | null
+          sentiment_analysis: Json | null
+          speaker_diarization: Json | null
+          started_at: string
+          status: string | null
+          storage_path: string | null
+          title: string | null
+          transcription: string | null
+          transcription_status: string | null
+          updated_at: string
+          user_id: string
+          voice_signatures_extracted: string[] | null
+        }
+        Insert: {
+          audio_format?: string | null
+          channels?: number | null
+          created_at?: string
+          detected_speakers?: string[] | null
+          device_source?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          file_size_bytes?: number | null
+          file_url?: string | null
+          id?: string
+          keywords_detected?: string[] | null
+          location_lat?: number | null
+          location_lng?: number | null
+          location_name?: string | null
+          metadata?: Json | null
+          participants?: string[] | null
+          profile_id?: string | null
+          recording_type: string
+          sample_rate?: number | null
+          sentiment_analysis?: Json | null
+          speaker_diarization?: Json | null
+          started_at?: string
+          status?: string | null
+          storage_path?: string | null
+          title?: string | null
+          transcription?: string | null
+          transcription_status?: string | null
+          updated_at?: string
+          user_id: string
+          voice_signatures_extracted?: string[] | null
+        }
+        Update: {
+          audio_format?: string | null
+          channels?: number | null
+          created_at?: string
+          detected_speakers?: string[] | null
+          device_source?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          file_size_bytes?: number | null
+          file_url?: string | null
+          id?: string
+          keywords_detected?: string[] | null
+          location_lat?: number | null
+          location_lng?: number | null
+          location_name?: string | null
+          metadata?: Json | null
+          participants?: string[] | null
+          profile_id?: string | null
+          recording_type?: string
+          sample_rate?: number | null
+          sentiment_analysis?: Json | null
+          speaker_diarization?: Json | null
+          started_at?: string
+          status?: string | null
+          storage_path?: string | null
+          title?: string | null
+          transcription?: string | null
+          transcription_status?: string | null
+          updated_at?: string
+          user_id?: string
+          voice_signatures_extracted?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_recording_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "voice_recording_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "voice_recording_sessions_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
