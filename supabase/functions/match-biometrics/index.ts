@@ -77,6 +77,7 @@ serve(async (req) => {
         id,
         profile_id,
         facial_features,
+        facial_multi_angle_data,
         facial_landmarks,
         facial_confidence,
         voice_characteristics,
@@ -105,16 +106,24 @@ serve(async (req) => {
       );
     }
 
-    // Build comparison context
+    // Build comparison context - check both facial_features and facial_multi_angle_data
     const profileDescriptions = existingBiometrics.map(bio => {
       const profile = bio.profiles as any;
-      if (matchType === 'face' && bio.facial_features) {
-        return {
-          profileId: bio.profile_id,
-          name: profile?.name || 'Unknown',
-          features: bio.facial_features,
-          confidence: bio.facial_confidence
-        };
+      const bioAny = bio as any;
+      
+      if (matchType === 'face') {
+        // Check both facial_features and facial_multi_angle_data for matching
+        const features = bio.facial_features || bioAny.facial_multi_angle_data;
+        if (features) {
+          return {
+            profileId: bio.profile_id,
+            name: profile?.name || 'Unknown',
+            features: features,
+            multiViewSignature: bioAny.facial_multi_angle_data?.multi_view_signature,
+            anglesAvailable: bioAny.facial_multi_angle_data?.angles_captured,
+            confidence: bio.facial_confidence
+          };
+        }
       } else if (matchType === 'voice' && bio.voice_characteristics) {
         return {
           profileId: bio.profile_id,
