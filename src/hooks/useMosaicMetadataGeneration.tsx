@@ -92,9 +92,23 @@ export function useMosaicMetadataGeneration() {
         query = query.or('ai_generation_status.is.null,ai_generation_status.neq.completed');
       }
 
-      // Filter by media types
-      const mimeFilters = mediaTypes.map(t => `mime_type.ilike.${t}/%`).join(',');
-      query = query.or(mimeFilters);
+      // Filter by media types - only add filter if there are types to filter
+      if (mediaTypes.length > 0) {
+        const mimeFilters = mediaTypes.map(t => `mime_type.ilike.${t}/%`).join(',');
+        query = query.or(mimeFilters);
+      } else {
+        // No media types selected, return early with empty result
+        return {
+          success: true,
+          totalProcessed: 0,
+          totalMosaics: 0,
+          itemsDetected: 0,
+          facesDetected: 0,
+          documentsDetected: 0,
+          totalCostCents: 0,
+          errors: [],
+        };
+      }
 
       const { data: mediaItems, error: mediaError } = await query.limit(1000);
 
