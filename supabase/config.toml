@@ -269,3 +269,15 @@ verify_jwt = false
 
 [functions.mosaic-biometric-match]
 verify_jwt = false
+
+[functions.generate-proactive-insights]
+verify_jwt = false
+
+[functions.process-device-capture]
+verify_jwt = false
+
+[functions.auto-embed-content]
+verify_jwt = false
+
+[functions.detect-cross-patterns]
+verify_jwt = false
