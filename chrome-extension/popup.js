@@ -197,26 +197,49 @@ function setupEventListeners() {
 async function checkConnection() {
   const statusEl = document.getElementById('connection-status');
   const btn = document.getElementById('save-config');
-  const response = await chrome.runtime.sendMessage({ type: 'CHECK_CONNECTION' });
   
-  if (response.success) {
-    statusEl.className = 'status connected';
-    statusEl.querySelector('.status-text').textContent = 'Connected';
+  try {
+    const response = await chrome.runtime.sendMessage({ type: 'CHECK_CONNECTION' });
     
-    btn.textContent = 'Disconnect';
-    btn.className = 'btn btn-danger';
-    btn.dataset.connected = 'true';
-    
-    document.getElementById('connection-info-section').style.display = 'block';
-  } else {
+    if (response && response.success) {
+      statusEl.className = 'status connected';
+      statusEl.querySelector('.status-text').textContent = 'Connected';
+      
+      btn.textContent = 'Disconnect';
+      btn.className = 'btn btn-danger';
+      btn.dataset.connected = 'true';
+      
+      document.getElementById('connection-info-section').style.display = 'block';
+    } else {
+      statusEl.className = 'status disconnected';
+      
+      // Show specific error message
+      const errorText = response?.error || '';
+      let statusText = 'Disconnected';
+      if (errorText.includes('401') || errorText.includes('Unauthorized')) {
+        statusText = 'Token Expired';
+      } else if (errorText.includes('Invalid token')) {
+        statusText = 'Invalid Token';
+      } else if (errorText.includes('Not configured')) {
+        statusText = 'Not Configured';
+      } else if (errorText.includes('Failed to fetch') || errorText.includes('network')) {
+        statusText = 'Network Error';
+      }
+      statusEl.querySelector('.status-text').textContent = statusText;
+      
+      btn.textContent = 'Save & Connect';
+      btn.className = 'btn btn-primary';
+      btn.dataset.connected = 'false';
+      
+      document.getElementById('connection-info-section').style.display = 'none';
+    }
+  } catch (error) {
+    console.error('Connection check error:', error);
     statusEl.className = 'status disconnected';
-    statusEl.querySelector('.status-text').textContent = 'Disconnected';
-    
+    statusEl.querySelector('.status-text').textContent = 'Error';
     btn.textContent = 'Save & Connect';
     btn.className = 'btn btn-primary';
     btn.dataset.connected = 'false';
-    
-    document.getElementById('connection-info-section').style.display = 'none';
   }
   
   await loadConnectionState();
