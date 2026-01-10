@@ -4892,6 +4892,54 @@ export type Database = {
         }
         Relationships: []
       }
+      cross_contact_patterns: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          description: string | null
+          detected_at: string
+          evidence: Json | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          pattern_type: string
+          profiles_involved: string[] | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          description?: string | null
+          detected_at?: string
+          evidence?: Json | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          pattern_type: string
+          profiles_involved?: string[] | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          description?: string | null
+          detected_at?: string
+          evidence?: Json | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          pattern_type?: string
+          profiles_involved?: string[] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cross_references: {
         Row: {
           confidence: number | null
@@ -7812,6 +7860,60 @@ export type Database = {
         }
         Relationships: []
       }
+      intelligence_queue: {
+        Row: {
+          attempts: number | null
+          completed_at: string | null
+          created_at: string
+          error_details: Json | null
+          error_message: string | null
+          id: string
+          job_type: string
+          max_attempts: number | null
+          payload: Json
+          priority: number | null
+          scheduled_for: string | null
+          started_at: string | null
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number | null
+          completed_at?: string | null
+          created_at?: string
+          error_details?: Json | null
+          error_message?: string | null
+          id?: string
+          job_type: string
+          max_attempts?: number | null
+          payload?: Json
+          priority?: number | null
+          scheduled_for?: string | null
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number | null
+          completed_at?: string | null
+          created_at?: string
+          error_details?: Json | null
+          error_message?: string | null
+          id?: string
+          job_type?: string
+          max_attempts?: number | null
+          payload?: Json
+          priority?: number | null
+          scheduled_for?: string | null
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       interaction_biometrics: {
         Row: {
           avg_heart_rate: number | null
@@ -9268,6 +9370,85 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      proactive_insights: {
+        Row: {
+          action_data: Json | null
+          action_type: string | null
+          category: string | null
+          created_at: string
+          description: string | null
+          expires_at: string | null
+          generated_at: string
+          id: string
+          insight_type: string
+          priority: string | null
+          profile_id: string | null
+          snoozed_until: string | null
+          status: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_data?: Json | null
+          action_type?: string | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          generated_at?: string
+          id?: string
+          insight_type: string
+          priority?: string | null
+          profile_id?: string | null
+          snoozed_until?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_data?: Json | null
+          action_type?: string | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          generated_at?: string
+          id?: string
+          insight_type?: string
+          priority?: string | null
+          profile_id?: string | null
+          snoozed_until?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proactive_insights_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "proactive_insights_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "proactive_insights_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
