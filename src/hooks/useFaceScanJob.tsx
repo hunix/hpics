@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 export interface FaceScanJob {
@@ -52,14 +51,19 @@ export interface CreateJobInput {
   estimated_cost_cents?: number;
 }
 
+async function getUser() {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user;
+}
+
 export function useFaceScanJob(jobId?: string) {
-  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   // Fetch a specific job
   const { data: job, isLoading, error, refetch } = useQuery({
     queryKey: ['face-scan-job', jobId],
     queryFn: async () => {
+      const user = await getUser();
       if (!jobId || !user) return null;
 
       const { data, error } = await supabase
@@ -70,9 +74,9 @@ export function useFaceScanJob(jobId?: string) {
         .single();
 
       if (error) throw error;
-      return data as FaceScanJob;
+      return data as unknown as FaceScanJob;
     },
-    enabled: !!jobId && !!user,
+    enabled: !!jobId,
     refetchInterval: (query) => {
       // Auto-refetch while job is running
       const job = query.state.data;
@@ -85,7 +89,7 @@ export function useFaceScanJob(jobId?: string) {
 
   // Subscribe to realtime updates
   useEffect(() => {
-    if (!jobId || !user) return;
+    if (!jobId) return;
 
     const channel = supabase
       .channel(`face-scan-job-${jobId}`)
@@ -106,11 +110,12 @@ export function useFaceScanJob(jobId?: string) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [jobId, user, queryClient]);
+  }, [jobId, queryClient]);
 
   // Create a new job
   const createJob = useMutation({
     mutationFn: async (input: CreateJobInput) => {
+      const user = await getUser();
       if (!user) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
@@ -131,7 +136,7 @@ export function useFaceScanJob(jobId?: string) {
         .single();
 
       if (error) throw error;
-      return data as FaceScanJob;
+      return data as unknown as FaceScanJob;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['face-scan-jobs'] });
@@ -147,6 +152,7 @@ export function useFaceScanJob(jobId?: string) {
   // Start a job
   const startJob = useMutation({
     mutationFn: async (jobIdToStart: string) => {
+      const user = await getUser();
       if (!user) throw new Error('Not authenticated');
 
       // Update status to running
@@ -177,7 +183,7 @@ export function useFaceScanJob(jobId?: string) {
         throw fnError;
       }
 
-      return data as FaceScanJob;
+      return data as unknown as FaceScanJob;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['face-scan-job', jobId] });
@@ -192,6 +198,7 @@ export function useFaceScanJob(jobId?: string) {
   // Pause a job
   const pauseJob = useMutation({
     mutationFn: async (jobIdToPause: string) => {
+      const user = await getUser();
       if (!user) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
@@ -206,7 +213,7 @@ export function useFaceScanJob(jobId?: string) {
         .single();
 
       if (error) throw error;
-      return data as FaceScanJob;
+      return data as unknown as FaceScanJob;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['face-scan-job', jobId] });
@@ -221,6 +228,7 @@ export function useFaceScanJob(jobId?: string) {
   // Resume a job
   const resumeJob = useMutation({
     mutationFn: async (jobIdToResume: string) => {
+      const user = await getUser();
       if (!user) throw new Error('Not authenticated');
 
       // Update status to running
@@ -250,7 +258,7 @@ export function useFaceScanJob(jobId?: string) {
         throw fnError;
       }
 
-      return data as FaceScanJob;
+      return data as unknown as FaceScanJob;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['face-scan-job', jobId] });
@@ -265,6 +273,7 @@ export function useFaceScanJob(jobId?: string) {
   // Retry failed items
   const retryFailed = useMutation({
     mutationFn: async (jobIdToRetry: string) => {
+      const user = await getUser();
       if (!user) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
@@ -287,7 +296,7 @@ export function useFaceScanJob(jobId?: string) {
 
       if (fnError) throw fnError;
 
-      return data as FaceScanJob;
+      return data as unknown as FaceScanJob;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['face-scan-job', jobId] });
@@ -302,6 +311,7 @@ export function useFaceScanJob(jobId?: string) {
   // Cancel a job
   const cancelJob = useMutation({
     mutationFn: async (jobIdToCancel: string) => {
+      const user = await getUser();
       if (!user) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
@@ -316,7 +326,7 @@ export function useFaceScanJob(jobId?: string) {
         .single();
 
       if (error) throw error;
-      return data as FaceScanJob;
+      return data as unknown as FaceScanJob;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['face-scan-job', jobId] });
@@ -332,6 +342,7 @@ export function useFaceScanJob(jobId?: string) {
   // Delete a job
   const deleteJob = useMutation({
     mutationFn: async ({ jobIdToDelete, deleteData = false }: { jobIdToDelete: string; deleteData?: boolean }) => {
+      const user = await getUser();
       if (!user) throw new Error('Not authenticated');
 
       if (deleteData) {
@@ -379,11 +390,10 @@ export function useFaceScanJob(jobId?: string) {
 
 // Hook for fetching all jobs
 export function useFaceScanJobs(options?: { status?: string; limit?: number }) {
-  const { user } = useAuth();
-
   return useQuery({
     queryKey: ['face-scan-jobs', options],
     queryFn: async () => {
+      const user = await getUser();
       if (!user) return [];
 
       let query = supabase
@@ -403,8 +413,7 @@ export function useFaceScanJobs(options?: { status?: string; limit?: number }) {
       const { data, error } = await query;
 
       if (error) throw error;
-      return (data || []) as FaceScanJob[];
+      return (data || []) as unknown as FaceScanJob[];
     },
-    enabled: !!user,
   });
 }

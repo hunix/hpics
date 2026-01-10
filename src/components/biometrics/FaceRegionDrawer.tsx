@@ -33,7 +33,7 @@ interface DrawingRegion {
 interface FaceRegionDrawerProps {
   mediaId: string;
   imageUrl: string;
-  profiles?: Array<{ id: string; full_name: string | null; avatar_url: string | null }>;
+  profiles?: Array<{ id: string; first_name: string | null; last_name: string | null; avatar_url: string | null }>;
   onClose?: () => void;
   onRegionsChanged?: () => void;
 }
@@ -141,12 +141,13 @@ export function FaceRegionDrawer({
       }
 
       // Draw label
-      if (region.profile?.full_name) {
+      const profileName = region.profile ? [region.profile.first_name, region.profile.last_name].filter(Boolean).join(' ') : null;
+      if (profileName) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(x, y - 20, ctx.measureText(region.profile.full_name).width + 8, 18);
+        ctx.fillRect(x, y - 20, ctx.measureText(profileName).width + 8, 18);
         ctx.fillStyle = '#fff';
         ctx.font = '12px sans-serif';
-        ctx.fillText(region.profile.full_name, x + 4, y - 6);
+        ctx.fillText(profileName, x + 4, y - 6);
       }
     });
 
@@ -472,7 +473,7 @@ export function FaceRegionDrawer({
                 <SelectItem value="">Unassigned</SelectItem>
                 {profiles.map(profile => (
                   <SelectItem key={profile.id} value={profile.id}>
-                    {profile.full_name || 'Unknown'}
+                    {[profile.first_name, profile.last_name].filter(Boolean).join(' ') || 'Unknown'}
                   </SelectItem>
                 ))}
               </SelectContent>

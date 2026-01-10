@@ -77,7 +77,7 @@ export function FaceRegionOverlay({
                 {hasProfile ? (
                   <>
                     <User className="h-3 w-3" />
-                    {region.profile?.full_name || 'Unknown'}
+                    {region.profile ? [region.profile.first_name, region.profile.last_name].filter(Boolean).join(' ') || 'Unknown' : 'Unknown'}
                     {isVerified && <Check className="h-3 w-3 text-green-400" />}
                   </>
                 ) : (
