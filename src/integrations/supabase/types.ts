@@ -5975,6 +5975,69 @@ export type Database = {
           },
         ]
       }
+      email_access_logs: {
+        Row: {
+          access_type: string
+          accessed_at: string
+          accessed_fields: string[] | null
+          clearance_used: string | null
+          current_hash: string | null
+          email_message_id: string | null
+          email_thread_id: string | null
+          id: string
+          ip_address: unknown
+          previous_hash: string | null
+          user_agent: string | null
+          user_id: string
+          was_decrypted: boolean | null
+        }
+        Insert: {
+          access_type: string
+          accessed_at?: string
+          accessed_fields?: string[] | null
+          clearance_used?: string | null
+          current_hash?: string | null
+          email_message_id?: string | null
+          email_thread_id?: string | null
+          id?: string
+          ip_address?: unknown
+          previous_hash?: string | null
+          user_agent?: string | null
+          user_id: string
+          was_decrypted?: boolean | null
+        }
+        Update: {
+          access_type?: string
+          accessed_at?: string
+          accessed_fields?: string[] | null
+          clearance_used?: string | null
+          current_hash?: string | null
+          email_message_id?: string | null
+          email_thread_id?: string | null
+          id?: string
+          ip_address?: unknown
+          previous_hash?: string | null
+          user_agent?: string | null
+          user_id?: string
+          was_decrypted?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_access_logs_email_message_id_fkey"
+            columns: ["email_message_id"]
+            isOneToOne: false
+            referencedRelation: "email_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_access_logs_email_thread_id_fkey"
+            columns: ["email_thread_id"]
+            isOneToOne: false
+            referencedRelation: "email_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_accounts: {
         Row: {
           created_at: string
@@ -6016,14 +6079,17 @@ export type Database = {
       }
       email_messages: {
         Row: {
+          body_encrypted: string | null
           body_html: string | null
           body_preview: string | null
           cc_recipients: string[] | null
           created_at: string | null
+          encryption_classification: string | null
           external_id: string
           has_attachments: boolean | null
           id: string
           importance: string | null
+          is_encrypted: boolean | null
           is_from_contact: boolean | null
           received_at: string | null
           recipients: string[] | null
@@ -6031,18 +6097,22 @@ export type Database = {
           sender_name: string | null
           sent_at: string
           subject: string | null
+          subject_encrypted: string | null
           thread_id: string | null
           user_id: string
         }
         Insert: {
+          body_encrypted?: string | null
           body_html?: string | null
           body_preview?: string | null
           cc_recipients?: string[] | null
           created_at?: string | null
+          encryption_classification?: string | null
           external_id: string
           has_attachments?: boolean | null
           id?: string
           importance?: string | null
+          is_encrypted?: boolean | null
           is_from_contact?: boolean | null
           received_at?: string | null
           recipients?: string[] | null
@@ -6050,18 +6120,22 @@ export type Database = {
           sender_name?: string | null
           sent_at: string
           subject?: string | null
+          subject_encrypted?: string | null
           thread_id?: string | null
           user_id: string
         }
         Update: {
+          body_encrypted?: string | null
           body_html?: string | null
           body_preview?: string | null
           cc_recipients?: string[] | null
           created_at?: string | null
+          encryption_classification?: string | null
           external_id?: string
           has_attachments?: boolean | null
           id?: string
           importance?: string | null
+          is_encrypted?: boolean | null
           is_from_contact?: boolean | null
           received_at?: string | null
           recipients?: string[] | null
@@ -6069,6 +6143,7 @@ export type Database = {
           sender_name?: string | null
           sent_at?: string
           subject?: string | null
+          subject_encrypted?: string | null
           thread_id?: string | null
           user_id?: string
         }
@@ -6086,39 +6161,48 @@ export type Database = {
         Row: {
           conversation_id: string | null
           created_at: string | null
+          encryption_classification: string | null
           folder: string | null
           id: string
+          is_encrypted: boolean | null
           is_read: boolean | null
           last_message_at: string | null
           message_count: number | null
           profile_id: string | null
           subject: string | null
+          subject_encrypted: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
           conversation_id?: string | null
           created_at?: string | null
+          encryption_classification?: string | null
           folder?: string | null
           id?: string
+          is_encrypted?: boolean | null
           is_read?: boolean | null
           last_message_at?: string | null
           message_count?: number | null
           profile_id?: string | null
           subject?: string | null
+          subject_encrypted?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
           conversation_id?: string | null
           created_at?: string | null
+          encryption_classification?: string | null
           folder?: string | null
           id?: string
+          is_encrypted?: boolean | null
           is_read?: boolean | null
           last_message_at?: string | null
           message_count?: number | null
           profile_id?: string | null
           subject?: string | null
+          subject_encrypted?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -8284,6 +8368,60 @@ export type Database = {
           last_health_check?: string | null
           model_type?: string
           name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mbox_import_sessions: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          failed_emails: number | null
+          file_name: string | null
+          file_size: number | null
+          id: string
+          matched_emails: number | null
+          processed_emails: number | null
+          started_at: string | null
+          status: string | null
+          storage_path: string | null
+          total_emails: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          failed_emails?: number | null
+          file_name?: string | null
+          file_size?: number | null
+          id?: string
+          matched_emails?: number | null
+          processed_emails?: number | null
+          started_at?: string | null
+          status?: string | null
+          storage_path?: string | null
+          total_emails?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          failed_emails?: number | null
+          file_name?: string | null
+          file_size?: number | null
+          id?: string
+          matched_emails?: number | null
+          processed_emails?: number | null
+          started_at?: string | null
+          status?: string | null
+          storage_path?: string | null
+          total_emails?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -12789,6 +12927,17 @@ export type Database = {
           source_id: string
           source_type: string
         }[]
+      }
+      log_email_access: {
+        Args: {
+          p_access_type?: string
+          p_accessed_fields?: string[]
+          p_clearance_used?: string
+          p_email_message_id?: string
+          p_email_thread_id?: string
+          p_was_decrypted?: boolean
+        }
+        Returns: string
       }
       match_documents: {
         Args: {
