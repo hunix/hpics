@@ -57,8 +57,8 @@ export function MobileBottomNav() {
   }, {} as Record<string, typeof accessibleItems>);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t md:hidden safe-area-pb">
-      <div className="flex items-center justify-around h-16 px-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t md:hidden safe-area-pb">
+      <div className="flex items-center justify-around h-16 px-1">
         {mainNavItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.path);
@@ -68,13 +68,19 @@ export function MobileBottomNav() {
               key={item.path}
               onClick={() => handleNavigation(item.path)}
               className={cn(
-                "flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors",
+                "flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all touch-target-lg",
+                "active:scale-95",
                 active 
                   ? "text-primary" 
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Icon className={cn("h-5 w-5", active && "fill-primary/20")} />
+              <div className={cn(
+                "relative flex items-center justify-center w-10 h-7 rounded-full transition-colors",
+                active && "bg-primary/10"
+              )}>
+                <Icon className={cn("h-5 w-5", active && "text-primary")} />
+              </div>
               <span className="text-[10px] font-medium">{item.label}</span>
             </button>
           );
@@ -84,21 +90,34 @@ export function MobileBottomNav() {
           <SheetTrigger asChild>
             <button
               className={cn(
-                "flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors",
+                "flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all touch-target-lg",
+                "active:scale-95",
                 isMoreActive 
                   ? "text-primary" 
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <MoreHorizontal className={cn("h-5 w-5", isMoreActive && "fill-primary/20")} />
+              <div className={cn(
+                "relative flex items-center justify-center w-10 h-7 rounded-full transition-colors",
+                isMoreActive && "bg-primary/10"
+              )}>
+                <MoreHorizontal className={cn("h-5 w-5", isMoreActive && "text-primary")} />
+              </div>
               <span className="text-[10px] font-medium">More</span>
             </button>
           </SheetTrigger>
-          <SheetContent side="bottom" className="h-[70vh] rounded-t-xl">
+          <SheetContent 
+            side="bottom" 
+            className="h-[75vh] sm:h-[60vh] rounded-t-2xl px-4 pb-8 safe-area-pb"
+          >
+            {/* Drag handle indicator */}
+            <div className="flex justify-center pt-2 pb-4">
+              <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+            </div>
             <SheetHeader className="text-left pb-4">
               <SheetTitle>Navigation</SheetTitle>
             </SheetHeader>
-            <ScrollArea className="h-[calc(100%-60px)]">
+            <ScrollArea className="h-[calc(100%-80px)]">
               <div className="space-y-6 pb-8">
                 {Object.entries(groupedItems).map(([category, items]) => {
                   const config = categoryConfig[category as keyof typeof categoryConfig];
@@ -112,7 +131,8 @@ export function MobileBottomNav() {
                           {config.title}
                         </h3>
                       </div>
-                      <div className="grid grid-cols-3 gap-2">
+                      {/* Responsive grid: 3 cols on small, 4 on medium+ */}
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                         {items.map((item) => {
                           const Icon = item.icon;
                           const active = isActive(item.url);
@@ -122,8 +142,9 @@ export function MobileBottomNav() {
                               key={item.id}
                               onClick={() => handleNavigation(item.url)}
                               className={cn(
-                                'flex flex-col items-center gap-2 p-3 rounded-xl transition-all',
-                                'hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                                'flex flex-col items-center gap-2 p-3 rounded-xl transition-all touch-target',
+                                'hover:bg-accent active:scale-95',
+                                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                                 active && [
                                   'bg-accent',
                                   config.borderClass,
@@ -132,7 +153,7 @@ export function MobileBottomNav() {
                               )}
                             >
                               <div className={cn(
-                                'flex items-center justify-center w-10 h-10 rounded-lg',
+                                'flex items-center justify-center w-11 h-11 rounded-xl',
                                 active ? [
                                   `bg-gradient-to-br ${config.gradient}`,
                                   'shadow-md',

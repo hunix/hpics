@@ -2,7 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <!-- Viewport with safe area support for notched devices -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
     
     <title>PICS - Personal Information Connection System</title>
     <meta name="description" content="Manage your personal and professional relationships with AI-powered insights, follow-up reminders, and communication tracking." />
@@ -10,7 +11,8 @@
     <meta name="keywords" content="CRM, relationship management, contacts, personal CRM, networking" />
 
     <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#6366f1" />
+    <meta name="theme-color" content="#6366f1" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="PICS" />
@@ -19,12 +21,22 @@
     <meta name="msapplication-TileColor" content="#6366f1" />
     <meta name="msapplication-tap-highlight" content="no" />
     
+    <!-- Samsung specific -->
+    <meta name="samsung-mobile-web-app-capable" content="yes" />
+    <meta name="format-detection" content="telephone=no" />
+    
+    <!-- Prevent iOS from styling inputs -->
+    <meta name="format-detection" content="telephone=no, date=no, email=no, address=no" />
+    
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
     
     <!-- Icons -->
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico" />
     <link rel="apple-touch-icon" sizes="192x192" href="/pwa-192x192.png" />
+    
+    <!-- Splash screens for iOS -->
+    <link rel="apple-touch-startup-image" href="/pwa-512x512.png" />
     
     <!-- Open Graph -->
     <meta property="og:title" content="PICS - Personal Information Connection System" />
@@ -36,6 +48,18 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@PICS" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    
+    <style>
+      /* Prevent FOUC and handle safe areas */
+      html {
+        background-color: #0a0a0a;
+      }
+      @media (prefers-color-scheme: light) {
+        html {
+          background-color: #ffffff;
+        }
+      }
+    </style>
   </head>
 
   <body>

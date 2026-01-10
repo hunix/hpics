@@ -64,18 +64,25 @@ export function AppLayout({ children, title, showQuickCapture = false, capturePr
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <SidebarInset className="flex flex-col flex-1">
-          <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
-            <SidebarTrigger className="-ml-1 hidden md:flex" />
-            <Separator orientation="vertical" className="mr-2 h-4 hidden md:block" />
-            {title && <h1 className="text-lg font-semibold">{title}</h1>}
-            <div className="ml-auto flex items-center gap-2">
+          {/* Header with mobile-first design */}
+          <header className="flex h-14 shrink-0 items-center gap-2 border-b px-3 sm:px-4 safe-area-pt">
+            {/* Show sidebar trigger on all screens */}
+            <SidebarTrigger className="-ml-1 touch-target flex items-center justify-center" />
+            <Separator orientation="vertical" className="mr-2 h-4 hidden sm:block" />
+            {title && (
+              <h1 className="text-base sm:text-lg font-semibold truncate max-w-[180px] sm:max-w-none">
+                {title}
+              </h1>
+            )}
+            <div className="ml-auto flex items-center gap-1 sm:gap-2">
               <GlobalSearch />
               <NotificationCenter />
             </div>
           </header>
           <OfflineIndicator pendingChanges={pendingCount} onSync={syncPendingChanges} />
-          {showAlerts && <div className="px-6 pt-4"><ProactiveAlertBanner /></div>}
-          <main className="flex-1 overflow-auto p-6 pb-20 md:pb-6">
+          {showAlerts && <div className="px-4 sm:px-6 pt-4"><ProactiveAlertBanner /></div>}
+          {/* Main content with proper padding for bottom nav */}
+          <main className="flex-1 overflow-auto scroll-smooth-touch p-4 sm:p-6 pb-24 md:pb-6 safe-area-pb">
             {children}
           </main>
         </SidebarInset>
