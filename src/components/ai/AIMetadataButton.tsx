@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -11,7 +10,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, isValid } from 'date-fns';
+
+// Helper to safely format date distance
+function safeFormatDistanceToNow(dateString: string | null | undefined): string | null {
+  if (!dateString) return null;
+  const date = new Date(dateString);
+  if (!isValid(date)) return null;
+  return formatDistanceToNow(date, { addSuffix: true });
+}
 
 interface AIMetadataButtonProps {
   itemId: string;
@@ -123,7 +130,7 @@ export function AIMetadataButton({
             {isProcessing
               ? 'Generating...'
               : hasMetadata
-              ? `Regenerate AI metadata (generated ${formatDistanceToNow(new Date(generatedAt!), { addSuffix: true })})`
+              ? `Regenerate AI metadata${safeFormatDistanceToNow(generatedAt) ? ` (generated ${safeFormatDistanceToNow(generatedAt)})` : ''}`
               : 'Generate AI metadata'}
           </TooltipContent>
         </Tooltip>
@@ -211,10 +218,11 @@ export function AIMetadataStatus({
   }
 
   if (status === 'completed' && generatedAt) {
+    const formattedDate = safeFormatDistanceToNow(generatedAt);
     return (
       <Badge variant="secondary" className="gap-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
         <Check className="h-3 w-3" />
-        AI: {formatDistanceToNow(new Date(generatedAt), { addSuffix: true })}
+        AI: {formattedDate || 'recently'}
       </Badge>
     );
   }
