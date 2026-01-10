@@ -12,6 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Sparkles, Play, Pause, RotateCcw, Loader2, Check, X, Image, Music, Video, FileText, Zap, Grid3X3 } from 'lucide-react';
 import { useMosaicMetadataGeneration } from '@/hooks/useMosaicMetadataGeneration';
+import { VoiceAnalysisOptions, defaultVoiceAnalysisConfig, type VoiceAnalysisConfig } from './VoiceAnalysisOptions';
+import { DocumentAnalysisOptions, defaultDocumentAnalysisConfig, type DocumentAnalysisConfig } from './DocumentAnalysisOptions';
 
 interface BulkMetadataGeneratorProps {
   profileId?: string;
@@ -61,6 +63,23 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
   const [isPaused, setIsPaused] = useState(false);
   const [progress, setProgress] = useState({ completed: 0, failed: 0, total: 0, current: '' });
   const [totalCost, setTotalCost] = useState(0);
+
+  // Voice and Document analysis configurations
+  const [voiceConfig, setVoiceConfig] = useState<VoiceAnalysisConfig>(defaultVoiceAnalysisConfig);
+  const [documentConfig, setDocumentConfig] = useState<DocumentAnalysisConfig>(defaultDocumentAnalysisConfig);
+
+  // Determine if mosaic mode is applicable (only for images/videos)
+  const mosaicApplicable = includeImages || includeVideos;
+  const hasVisualContent = includeImages || includeVideos;
+  const hasAudioContent = includeAudio;
+  const hasDocumentContent = includeDocuments;
+
+  // Auto-disable mosaic mode when no visual content is selected
+  useEffect(() => {
+    if (!mosaicApplicable && useMosaicMode) {
+      setUseMosaicMode(false);
+    }
+  }, [mosaicApplicable, useMosaicMode]);
 
   // Update model when tier changes
   const handleTierChange = (tier: string) => {
@@ -363,34 +382,36 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Mosaic Mode Toggle */}
-        <div className="flex items-center justify-between p-4 rounded-lg border bg-gradient-to-r from-primary/5 to-primary/10">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Grid3X3 className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-medium">Mosaic Processing</span>
-                <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600 border-green-500/20">
-                  <Zap className="h-3 w-3 mr-1" />
-                  96% faster
-                </Badge>
+        {/* Mosaic Mode Toggle - Only show when visual content is selected */}
+        {mosaicApplicable && (
+          <div className="flex items-center justify-between p-4 rounded-lg border bg-gradient-to-r from-primary/5 to-primary/10">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Grid3X3 className="h-5 w-5 text-primary" />
               </div>
-              <p className="text-xs text-muted-foreground">
-                Pack multiple images into mosaics for efficient batch analysis
-              </p>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Mosaic Processing</span>
+                  <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600 border-green-500/20">
+                    <Zap className="h-3 w-3 mr-1" />
+                    96% faster
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Pack multiple images into mosaics for efficient batch analysis
+                </p>
+              </div>
             </div>
+            <Switch
+              checked={useMosaicMode}
+              onCheckedChange={setUseMosaicMode}
+              disabled={isProcessing || isMosaicGenerating}
+            />
           </div>
-          <Switch
-            checked={useMosaicMode}
-            onCheckedChange={setUseMosaicMode}
-            disabled={isProcessing || isMosaicGenerating}
-          />
-        </div>
+        )}
 
-        {/* Mosaic savings preview */}
-        {useMosaicMode && mosaicSavings && (
+        {/* Mosaic savings preview - Only show when mosaic mode is on and applicable */}
+        {mosaicApplicable && useMosaicMode && mosaicSavings && (
           <div className="p-3 rounded-lg border border-green-500/20 bg-green-500/5 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Mosaic efficiency:</span>
@@ -405,6 +426,26 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
               </span>
             </div>
           </div>
+        )}
+
+        {/* Voice Analysis Options - Show when audio is selected */}
+        {hasAudioContent && (mediaCounts?.counts.audio || 0) > 0 && (
+          <VoiceAnalysisOptions
+            config={voiceConfig}
+            onChange={setVoiceConfig}
+            disabled={isProcessing || isMosaicGenerating}
+            audioCount={mediaCounts?.counts.audio || 0}
+          />
+        )}
+
+        {/* Document Analysis Options - Show when documents are selected */}
+        {hasDocumentContent && (documentCounts?.count || 0) > 0 && (
+          <DocumentAnalysisOptions
+            config={documentConfig}
+            onChange={setDocumentConfig}
+            disabled={isProcessing || isMosaicGenerating}
+            documentCount={documentCounts?.count || 0}
+          />
         )}
 
         {/* File type selection */}
@@ -617,8 +658,8 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
 
         {/* Controls */}
         <div className="flex gap-2">
-          {useMosaicMode ? (
-            // Mosaic mode controls
+          {mosaicApplicable && useMosaicMode ? (
+            // Mosaic mode controls for images/videos
             <Button 
               onClick={() => {
                 const mediaTypes: ('image' | 'video')[] = [];
@@ -632,7 +673,7 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
                   mediaTypes,
                 });
               }}
-              disabled={isMosaicGenerating || (mediaCounts?.counts.image || 0) === 0}
+              disabled={isMosaicGenerating || (!includeImages && !includeVideos) || ((mediaCounts?.counts.image || 0) + (mediaCounts?.counts.video || 0)) === 0}
               className="flex-1"
             >
               {isMosaicGenerating ? (
@@ -647,6 +688,34 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
                 </>
               )}
             </Button>
+          ) : !isProcessing ? (
+            // Standard mode controls for audio/documents OR when mosaic is off
+            <Button onClick={startProcessing} disabled={totalItems === 0} className="flex-1">
+              <Play className="h-4 w-4 mr-2" />
+              Start Generation
+            </Button>
+          ) : (
+            <>
+              <Button onClick={togglePause} variant="outline" className="flex-1">
+                {isPaused ? (
+                  <>
+                    <Play className="h-4 w-4 mr-2" />
+                    Resume
+                  </>
+                ) : (
+                  <>
+                    <Pause className="h-4 w-4 mr-2" />
+                    Pause
+                  </>
+                )}
+              </Button>
+              <Button onClick={stopProcessing} variant="destructive">
+                <X className="h-4 w-4 mr-2" />
+                Stop
+              </Button>
+            </>
+          )}
+        </div>
           ) : (
             // Standard mode controls
             !isProcessing ? (
