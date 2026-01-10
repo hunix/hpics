@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface ExtensionPayload {
-  action: 'scrape_profile' | 'scrape_posts' | 'scrape_comments' | 'scrape_likes' | 'bulk_scrape';
+  action: 'ping' | 'scrape_profile' | 'scrape_posts' | 'scrape_comments' | 'scrape_likes' | 'bulk_scrape';
   platform: 'instagram' | 'threads' | 'twitter' | 'linkedin' | 'facebook' | 'tiktok';
   profileUrl?: string;
   username?: string;
@@ -85,7 +85,15 @@ Deno.serve(async (req) => {
     const payload: ExtensionPayload = await req.json();
     console.log('Chrome Extension Bridge - Action:', payload.action, 'Platform:', payload.platform);
 
-    // Log the extension sync
+    // Handle ping action for connection check (no logging needed)
+    if (payload.action === 'ping') {
+      return new Response(
+        JSON.stringify({ success: true, message: 'pong', userId: user.id }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Log the extension sync (only for actual scrape actions)
     await supabase.from('device_sync_log').insert({
       user_id: user.id,
       device_id: req.headers.get('x-extension-id') || 'chrome-extension',
