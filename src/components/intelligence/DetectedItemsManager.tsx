@@ -57,13 +57,13 @@ export function DetectedItemsManager({ profileId, showLinkingControls = true }: 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedItem, setSelectedItem] = useState<any>(null);
 
-  // Fetch detected items
+  // Fetch detected items with linked profile info
   const { data: items, isLoading } = useQuery({
     queryKey: ['detected-items', profileId, selectedCategory, selectedStatus, searchQuery],
     queryFn: async () => {
       let query = supabase
         .from('detected_items')
-        .select(`*`)
+        .select(`*, profiles:profile_id(id, first_name, last_name, avatar_url)`)
         .eq('user_id', user!.id)
         .order('created_at', { ascending: false })
         .limit(100);
@@ -86,7 +86,15 @@ export function DetectedItemsManager({ profileId, showLinkingControls = true }: 
 
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      
+      // Transform to include full_name on profiles
+      return (data || []).map(item => ({
+        ...item,
+        linked_profile: item.profiles ? {
+          ...item.profiles,
+          full_name: `${(item.profiles as any)?.first_name || ''} ${(item.profiles as any)?.last_name || ''}`.trim()
+        } : null
+      }));
     },
     enabled: !!user,
   });
@@ -306,9 +314,9 @@ export function DetectedItemsManager({ profileId, showLinkingControls = true }: 
                             {Math.round(item.confidence * 100)}% confidence
                           </span>
                         )}
-                        {item.profile?.full_name && (
+                        {item.linked_profile?.full_name && (
                           <span className="text-xs text-muted-foreground">
-                            → {item.profile.full_name}
+                            → {item.linked_profile.full_name}
                           </span>
                         )}
                       </div>

@@ -60,6 +60,15 @@ export function DocumentIntelligencePanel({ profileId }: DocumentIntelligencePan
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDoc, setSelectedDoc] = useState<any>(null);
 
+  // Type for extracted contact info
+  interface ExtractedContactInfo {
+    names?: string[];
+    phone_numbers?: string[];
+    emails?: string[];
+    urls?: string[];
+    addresses?: string[];
+  }
+
   // Fetch extracted documents
   const { data: documents, isLoading } = useQuery({
     queryKey: ['extracted-documents', profileId, selectedType, selectedStatus, searchQuery],
@@ -89,7 +98,38 @@ export function DocumentIntelligencePanel({ profileId }: DocumentIntelligencePan
 
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      
+      // Fetch linked profiles separately
+      const profileIds = [...new Set(data?.map(d => d.profile_id).filter(Boolean) || [])];
+      const suggestedProfileIds = [...new Set(data?.map(d => d.suggested_profile_id).filter(Boolean) || [])];
+      const allProfileIds = [...new Set([...profileIds, ...suggestedProfileIds])];
+      
+      let profilesMap: Record<string, { id: string; first_name: string; last_name: string; avatar_url: string; full_name: string }> = {};
+      
+      if (allProfileIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, avatar_url')
+          .in('id', allProfileIds);
+        
+        profilesData?.forEach(p => {
+          profilesMap[p.id] = {
+            ...p,
+            full_name: `${p.first_name || ''} ${p.last_name || ''}`.trim()
+          };
+        });
+      }
+      
+      // Transform to include full_name on profiles
+      return (data || []).map(doc => ({
+        ...doc,
+        extracted_contact: doc.extracted_contact_info as ExtractedContactInfo | null,
+        linked_profile_data: doc.profile_id ? profilesMap[doc.profile_id] || null : null,
+        suggested_profile: doc.suggested_profile_id ? profilesMap[doc.suggested_profile_id] ? {
+          id: profilesMap[doc.suggested_profile_id].id,
+          full_name: profilesMap[doc.suggested_profile_id].full_name
+        } : null : null
+      }));
     },
     enabled: !!user,
   });
@@ -270,10 +310,11 @@ export function DocumentIntelligencePanel({ profileId }: DocumentIntelligencePan
             <div className="space-y-3">
               {documents?.map((doc) => {
                 const Icon = DOCUMENT_ICONS[doc.document_type] || FileText;
-                const hasContactInfo = doc.extracted_contact_info && 
-                  (doc.extracted_contact_info.phone_numbers?.length > 0 ||
-                   doc.extracted_contact_info.emails?.length > 0 ||
-                   doc.extracted_contact_info.urls?.length > 0);
+                const contactInfo = doc.extracted_contact;
+                const hasContactInfo = contactInfo && 
+                  ((contactInfo.phone_numbers?.length ?? 0) > 0 ||
+                   (contactInfo.emails?.length ?? 0) > 0 ||
+                   (contactInfo.urls?.length ?? 0) > 0);
 
                 return (
                   <div
@@ -310,15 +351,15 @@ export function DocumentIntelligencePanel({ profileId }: DocumentIntelligencePan
                         )}
 
                         {/* Contact info extracted */}
-                        {hasContactInfo && (
+                        {hasContactInfo && contactInfo && (
                           <div className="flex flex-wrap gap-2 mt-2">
-                            {doc.extracted_contact_info.phone_numbers?.map((phone: string, i: number) => (
+                            {contactInfo.phone_numbers?.map((phone: string, i: number) => (
                               <Badge key={i} variant="secondary" className="text-xs">
                                 <Phone className="h-3 w-3 mr-1" />
                                 {phone}
                               </Badge>
                             ))}
-                            {doc.extracted_contact_info.emails?.map((email: string, i: number) => (
+                            {contactInfo.emails?.map((email: string, i: number) => (
                               <Badge key={i} variant="secondary" className="text-xs">
                                 <Mail className="h-3 w-3 mr-1" />
                                 {email}
@@ -349,9 +390,9 @@ export function DocumentIntelligencePanel({ profileId }: DocumentIntelligencePan
                           </div>
                         )}
 
-                        {doc.profile?.full_name && (
+                        {doc.linked_profile_data?.full_name && (
                           <p className="text-xs text-muted-foreground mt-1">
-                            Linked to: <span className="font-medium">{doc.profile.full_name}</span>
+                            Linked to: <span className="font-medium">{doc.linked_profile_data.full_name}</span>
                           </p>
                         )}
                       </div>
@@ -469,7 +510,7 @@ export function DocumentIntelligencePanel({ profileId }: DocumentIntelligencePan
                                 )}
                                 <div>
                                   <label className="text-xs text-muted-foreground">Confidence</label>
-                                  <p className="font-medium">{Math.round((doc.confidence || 0) * 100)}%</p>
+                                  <p className="font-medium">{Math.round((doc.match_confidence || 0) * 100)}%</p>
                                 </div>
                                 <div>
                                   <label className="text-xs text-muted-foreground">Status</label>
@@ -504,28 +545,26 @@ export function DocumentIntelligencePanel({ profileId }: DocumentIntelligencePan
                                 </div>
                               )}
 
-                              {doc.extracted_contact_info && Object.keys(doc.extracted_contact_info).some(k => 
-                                doc.extracted_contact_info[k]?.length > 0
-                              ) && (
+                              {doc.extracted_contact && (
                                 <div>
                                   <label className="text-xs text-muted-foreground">Contact Information</label>
                                   <div className="mt-1 space-y-2">
-                                    {doc.extracted_contact_info.phone_numbers?.length > 0 && (
+                                    {(doc.extracted_contact.phone_numbers?.length ?? 0) > 0 && (
                                       <div className="flex items-center gap-2">
                                         <Phone className="h-4 w-4 text-muted-foreground" />
-                                        <span>{doc.extracted_contact_info.phone_numbers.join(', ')}</span>
+                                        <span>{doc.extracted_contact.phone_numbers?.join(', ')}</span>
                                       </div>
                                     )}
-                                    {doc.extracted_contact_info.emails?.length > 0 && (
+                                    {(doc.extracted_contact.emails?.length ?? 0) > 0 && (
                                       <div className="flex items-center gap-2">
                                         <Mail className="h-4 w-4 text-muted-foreground" />
-                                        <span>{doc.extracted_contact_info.emails.join(', ')}</span>
+                                        <span>{doc.extracted_contact.emails?.join(', ')}</span>
                                       </div>
                                     )}
-                                    {doc.extracted_contact_info.urls?.length > 0 && (
+                                    {(doc.extracted_contact.urls?.length ?? 0) > 0 && (
                                       <div className="flex items-center gap-2">
                                         <Globe className="h-4 w-4 text-muted-foreground" />
-                                        <span>{doc.extracted_contact_info.urls.join(', ')}</span>
+                                        <span>{doc.extracted_contact.urls?.join(', ')}</span>
                                       </div>
                                     )}
                                   </div>
