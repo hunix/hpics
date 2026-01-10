@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Image, Trash2, Plus, X, Play, Music, Sparkles, Users } from 'lucide-react';
+import { Image, Trash2, Plus, X, Play, Music, Sparkles, Users, ScanFace } from 'lucide-react';
 import { MediaUpload } from '@/components/uploads/MediaUpload';
 import { getSignedUrls } from '@/hooks/useSignedUrl';
 import { FileManagerToolbar, type FilterOption } from './FileManagerToolbar';
@@ -19,6 +19,7 @@ import { AIMetadataButton, AIMetadataStatus } from '@/components/ai/AIMetadataBu
 import { AIMetadataDisplay } from '@/components/ai/AIMetadataDisplay';
 import { BulkMetadataGenerator } from '@/components/ai/BulkMetadataGenerator';
 import { MediaContactTagger } from './MediaContactTagger';
+import { FaceRegionDrawer } from '@/components/biometrics/FaceRegionDrawer';
 
 interface ContactMediaManagerProps {
   profileId: string;
@@ -61,6 +62,7 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
   const [sortOption, setSortOption] = useState('date-desc');
   const [currentPage, setCurrentPage] = useState(0);
+  const [isFaceTaggingMode, setIsFaceTaggingMode] = useState(false);
 
   const viewMode = preferences.media_view_mode as ViewMode;
   const itemsPerPage = preferences.media_items_per_page;
@@ -121,8 +123,8 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
           p_profile_id: profileId,
           p_search_query: searchQuery.trim() || null,
           p_media_type: typeFilter,
-          p_sort_field: sortField,
-          p_sort_direction: sortDirection,
+          p_sort_by: sortField,
+          p_sort_order: sortDirection,
           p_limit: batchSize,
           p_offset: offset
         });
@@ -233,7 +235,21 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
 
   const handleOpenLightbox = (id: string, url: string, mimeType: string | null, metadata?: any) => {
     setLightboxItem({ id, url, mimeType, metadata });
+    setIsFaceTaggingMode(false); // Reset to view mode when opening new item
   };
+
+  // Fetch profiles for face assignment
+  const { data: profilesList } = useQuery({
+    queryKey: ['all-profiles-for-tagging'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, avatar_url')
+        .eq('user_id', user!.id);
+      return data || [];
+    },
+    enabled: !!user,
+  });
 
   // Count items with AI metadata
   const aiMetadataCount = allMedia?.filter(m => m.ai_generation_status === 'completed').length || 0;
@@ -428,51 +444,79 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
       />
 
       {/* Lightbox */}
-      <Dialog open={!!lightboxItem} onOpenChange={() => setLightboxItem(null)}>
-        <DialogContent className="max-w-4xl p-0 overflow-hidden">
+      <Dialog open={!!lightboxItem} onOpenChange={() => { setLightboxItem(null); setIsFaceTaggingMode(false); }}>
+        <DialogContent className={`p-0 overflow-hidden ${isFaceTaggingMode ? 'max-w-6xl' : 'max-w-4xl'}`}>
           <Button
             variant="ghost"
             size="icon"
             className="absolute top-2 right-2 z-10 bg-black/50 hover:bg-black/70 text-white"
-            onClick={() => setLightboxItem(null)}
+            onClick={() => { setLightboxItem(null); setIsFaceTaggingMode(false); }}
           >
             <X className="h-4 w-4" />
           </Button>
           {lightboxItem && (
             <div className="flex flex-col">
-              {lightboxItem.mimeType?.startsWith('video/') ? (
-                <video src={lightboxItem.url} controls autoPlay className="w-full h-auto max-h-[50vh]" />
-              ) : lightboxItem.mimeType?.startsWith('audio/') ? (
-                <div className="bg-muted p-12 flex flex-col items-center gap-6">
-                  <Music className="h-20 w-20 text-muted-foreground" />
-                  <audio src={lightboxItem.url} controls autoPlay className="w-full max-w-md" />
+              {/* Face tagging toggle for images */}
+              {lightboxItem.mimeType?.startsWith('image/') && (
+                <div className="flex gap-2 p-3 border-b bg-muted/50">
+                  <Button 
+                    variant={isFaceTaggingMode ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setIsFaceTaggingMode(!isFaceTaggingMode)}
+                  >
+                    <ScanFace className="mr-2 h-4 w-4" />
+                    {isFaceTaggingMode ? 'Exit Face Tagging' : 'Tag Faces'}
+                  </Button>
                 </div>
-              ) : (
-                <img src={lightboxItem.url} alt="Full size" className="w-full h-auto max-h-[50vh] object-contain" />
               )}
               
-              {/* Contact tagging section */}
-              <div className="p-4 border-t bg-card">
-                <div className="flex items-center gap-2 mb-2">
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">People in this photo</span>
-                </div>
-                <MediaContactTagger 
-                  mediaId={lightboxItem.id} 
-                  currentProfileId={profileId}
-                  onTagsChange={() => queryClient.invalidateQueries({ queryKey: ['contact-media', profileId] })}
-                />
-              </div>
-              
-              {/* AI Metadata in lightbox */}
-              {lightboxItem.metadata && (
-                <div className="p-4 border-t bg-card max-h-[20vh] overflow-y-auto">
-                  <AIMetadataDisplay 
-                    metadata={lightboxItem.metadata} 
-                    mimeType={lightboxItem.mimeType} 
-                    variant="full" 
+              {isFaceTaggingMode && lightboxItem.mimeType?.startsWith('image/') ? (
+                <div className="p-4">
+                  <FaceRegionDrawer
+                    mediaId={lightboxItem.id}
+                    imageUrl={lightboxItem.url}
+                    profiles={profilesList || []}
+                    onClose={() => setIsFaceTaggingMode(false)}
+                    onRegionsChanged={() => queryClient.invalidateQueries({ queryKey: ['contact-media', profileId] })}
                   />
                 </div>
+              ) : (
+                <>
+                  {lightboxItem.mimeType?.startsWith('video/') ? (
+                    <video src={lightboxItem.url} controls autoPlay className="w-full h-auto max-h-[50vh]" />
+                  ) : lightboxItem.mimeType?.startsWith('audio/') ? (
+                    <div className="bg-muted p-12 flex flex-col items-center gap-6">
+                      <Music className="h-20 w-20 text-muted-foreground" />
+                      <audio src={lightboxItem.url} controls autoPlay className="w-full max-w-md" />
+                    </div>
+                  ) : (
+                    <img src={lightboxItem.url} alt="Full size" className="w-full h-auto max-h-[50vh] object-contain" />
+                  )}
+                  
+                  {/* Contact tagging section */}
+                  <div className="p-4 border-t bg-card">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">People in this photo</span>
+                    </div>
+                    <MediaContactTagger 
+                      mediaId={lightboxItem.id} 
+                      currentProfileId={profileId}
+                      onTagsChange={() => queryClient.invalidateQueries({ queryKey: ['contact-media', profileId] })}
+                    />
+                  </div>
+                  
+                  {/* AI Metadata in lightbox */}
+                  {lightboxItem.metadata && (
+                    <div className="p-4 border-t bg-card max-h-[20vh] overflow-y-auto">
+                      <AIMetadataDisplay 
+                        metadata={lightboxItem.metadata} 
+                        mimeType={lightboxItem.mimeType} 
+                        variant="full" 
+                      />
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
