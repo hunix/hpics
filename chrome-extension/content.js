@@ -170,10 +170,18 @@
       if (bioEl) data.bio = bioEl.textContent.trim();
     }
 
-    // Extract avatar
+    // Extract avatar with highest resolution
     if (selectors.avatar) {
       const avatarEl = document.querySelector(selectors.avatar);
-      if (avatarEl) data.avatarUrl = avatarEl.src;
+      if (avatarEl) {
+        // Try to get the highest resolution version
+        let avatarUrl = avatarEl.src;
+        // For Instagram, try to get higher resolution
+        if (currentPlatform.name === 'instagram' && avatarUrl) {
+          avatarUrl = avatarUrl.replace(/s150x150/g, 's320x320').replace(/s110x110/g, 's320x320');
+        }
+        data.avatarUrl = avatarUrl;
+      }
     }
 
     // Platform-specific extraction
@@ -181,21 +189,41 @@
       case 'instagram':
         data.posts = extractInstagramPosts();
         data.stats = extractInstagramStats();
+        // Try to extract recent post captions
+        data.recentPosts = extractInstagramPostDetails();
         break;
       case 'linkedin':
         data.experience = extractLinkedInExperience();
         data.about = extractLinkedInAbout();
+        data.education = extractLinkedInEducation();
+        data.skills = extractLinkedInSkills();
         break;
       case 'twitter':
         data.stats = extractTwitterStats();
+        data.recentTweets = extractTwitterTweets();
+        break;
+      case 'threads':
+        data.stats = extractThreadsStats();
         break;
     }
 
-    // Get page HTML for AI processing
-    data.pageHtml = document.body.innerHTML.substring(0, 50000); // Limit size
+    // Get page HTML for AI processing (more targeted extraction)
+    data.pageHtml = extractCleanedHtml();
 
     console.log('[Intel CRM] Extracted data:', data);
     return data;
+  }
+
+  // Extract cleaner HTML for AI processing
+  function extractCleanedHtml() {
+    const mainContent = document.querySelector('main, article, [role="main"], body');
+    if (!mainContent) return document.body.innerHTML.substring(0, 50000);
+    
+    // Clone and remove scripts, styles, and hidden elements
+    const clone = mainContent.cloneNode(true);
+    clone.querySelectorAll('script, style, noscript, svg, [hidden]').forEach(el => el.remove());
+    
+    return clone.innerHTML.substring(0, 50000);
   }
 
   function extractInstagramPosts() {
@@ -259,11 +287,100 @@
   function extractTwitterStats() {
     const stats = {};
     
-    const followersEl = document.querySelector('[href$="/followers"] span');
-    const followingEl = document.querySelector('[href$="/following"] span');
+    const followersEl = document.querySelector('[href$="/verified_followers"] span span, [href$="/followers"] span span');
+    const followingEl = document.querySelector('[href$="/following"] span span');
     
     if (followersEl) stats.followers = followersEl.textContent.trim();
     if (followingEl) stats.following = followingEl.textContent.trim();
+
+    return stats;
+  }
+
+  // Additional extraction helpers for richer data
+  function extractInstagramPostDetails() {
+    const posts = [];
+    const postLinks = document.querySelectorAll('article a[href*="/p/"]');
+    
+    postLinks.forEach((link, index) => {
+      if (index >= 6) return; // Get top 6 posts
+      
+      const img = link.querySelector('img');
+      const videoIndicator = link.querySelector('[aria-label*="video"], svg[aria-label*="Reel"]');
+      
+      posts.push({
+        url: link.href,
+        imageUrl: img?.src,
+        alt: img?.alt, // Often contains caption preview
+        hasVideo: !!videoIndicator,
+      });
+    });
+
+    return posts;
+  }
+
+  function extractLinkedInEducation() {
+    const education = [];
+    const eduItems = document.querySelectorAll('#education ~ div .pvs-entity');
+    
+    eduItems.forEach((item, index) => {
+      if (index >= 3) return;
+      
+      const school = item.querySelector('.t-bold span')?.textContent?.trim();
+      const degree = item.querySelector('.t-normal span')?.textContent?.trim();
+      
+      if (school) {
+        education.push({ school, degree });
+      }
+    });
+
+    return education;
+  }
+
+  function extractLinkedInSkills() {
+    const skills = [];
+    const skillItems = document.querySelectorAll('#skills ~ div .pvs-entity');
+    
+    skillItems.forEach((item, index) => {
+      if (index >= 10) return;
+      
+      const skill = item.querySelector('.t-bold span')?.textContent?.trim();
+      if (skill) skills.push(skill);
+    });
+
+    return skills;
+  }
+
+  function extractTwitterTweets() {
+    const tweets = [];
+    const tweetArticles = document.querySelectorAll('article[data-testid="tweet"]');
+    
+    tweetArticles.forEach((article, index) => {
+      if (index >= 5) return;
+      
+      const tweetText = article.querySelector('[data-testid="tweetText"]')?.textContent?.trim();
+      const time = article.querySelector('time')?.getAttribute('datetime');
+      
+      if (tweetText) {
+        tweets.push({
+          content: tweetText.substring(0, 280),
+          timestamp: time,
+        });
+      }
+    });
+
+    return tweets;
+  }
+
+  function extractThreadsStats() {
+    const stats = {};
+    
+    // Threads uses similar patterns to Instagram
+    const statsText = document.body.innerText;
+    const followersMatch = statsText.match(/(\d+(?:,\d+)*(?:\.\d+)?[KMB]?)\s*followers?/i);
+    const followingMatch = statsText.match(/(\d+(?:,\d+)*(?:\.\d+)?[KMB]?)\s*following/i);
+    
+    if (followersMatch) stats.followers = followersMatch[1];
+    if (followingMatch) stats.following = followingMatch[1];
 
     return stats;
   }
