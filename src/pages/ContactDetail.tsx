@@ -1,24 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ComposeEmailDialog } from '@/components/communications/ComposeEmailDialog';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { 
   ArrowLeft, Edit, Trash2, Star, Brain, 
-  User, MessageSquare, Briefcase, GraduationCap,
-  FileText, Image, Target, Gift, Heart, Clock,
-  Calendar, Sparkles, Users, ChevronRight, Building,
-  Mic, Eye, Activity, Volume2, UserCircle, GitCompare, Wallet, Link2, Mail, UserCheck,
-  Milestone, Settings2, StickyNote, BookOpen, Shield, Network, Globe, TrendingUp, Triangle, Search, Fingerprint, Share2, Package, UserX, ScanText
+  User, ChevronRight, Mail, UserCheck
 } from 'lucide-react';
 import { ContactDialog } from '@/components/contacts/ContactDialog';
 import { ContactMethodsManager } from '@/components/contacts/ContactMethodsManager';
@@ -81,7 +76,6 @@ import { InferredConnectionsPanel } from '@/components/intelligence/InferredConn
 import { BehavioralPredictionsPanel } from '@/components/intelligence/BehavioralPredictionsPanel';
 import { ShareContactDialog } from '@/components/collaboration/ShareContactDialog';
 import { ContactCommentsPanel } from '@/components/collaboration/ContactCommentsPanel';
-import { TeamPresenceIndicator } from '@/components/collaboration/TeamPresenceIndicator';
 import { DetectedItemsManager } from '@/components/intelligence/DetectedItemsManager';
 import { UnknownPersonsQueue } from '@/components/intelligence/UnknownPersonsQueue';
 import { DocumentIntelligencePanel } from '@/components/intelligence/DocumentIntelligencePanel';
@@ -92,108 +86,57 @@ import { VoiceInsightsPanel } from '@/components/ai/VoiceInsightsPanel';
 import { DocumentInsightsPanel } from '@/components/ai/DocumentInsightsPanel';
 import { ContentRelationshipsGraph } from '@/components/ai/ContentRelationshipsGraph';
 import { KeywordWatchlistManager } from '@/components/ai/KeywordWatchlistManager';
+import { ContactDetailSidebar } from '@/components/contacts/ContactDetailSidebar';
+import { ContactDetailMobileNav } from '@/components/contacts/ContactDetailMobileNav';
+import { ContactSectionSearch } from '@/components/contacts/ContactSectionSearch';
+import { type SectionId, getCategoryForSection } from '@/lib/contactDetailCategories';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Profile = Tables<'profiles'> & { relationship_subtype?: string; hierarchy_level?: string };
 
-type SectionId = 
-  | 'overview' | 'personal-info' | 'contact' | 'documents' | 'media' | 'recordings' | 'voice-notes'
-  | 'outreach' | 'templates' | 'briefing' | 'whatsapp' | 'emails'
-  | 'interests' | 'gifts' | 'goals' | 'experiences' | 'relationships' | 'kids-schools'
-  | 'education' | 'messages' | 'timeline' | 'groups' | 'enrich'
-  | 'behavioral' | 'facial' | 'body-language' | 'vocal' | 'comparison' | 'biometrics' | 'cross-modal'
-  | 'financial' | 'observations'
-  | 'milestones' | 'comm-prefs' | 'interaction-notes' | 'playbook' | 'influence'
-  | 'activity' | 'trust-assessment' | 'threat-assessment' | 'osint' | 'inferred-connections' | 'predictions'
-  | 'dossier' | 'network-intel' | 'locations'
-  | 'temporal' | 'trajectory' | 'triangulation' | 'consistency' | 'unified-profile' | 'shared-experiences'
-  | 'team-notes'
-  | 'detected-items' | 'unknown-persons' | 'doc-intelligence'
-  | 'voice-insights' | 'document-insights' | 'content-relationships' | 'keyword-watchlist';
-
-interface NavSection {
-  id: SectionId;
-  label: string;
-  icon: React.ElementType;
-  group: string;
-}
-
-const sections: NavSection[] = [
-  { id: 'overview', label: 'Overview', icon: User, group: 'General' },
-  { id: 'personal-info', label: 'Extended Info', icon: UserCircle, group: 'General' },
-  { id: 'contact', label: 'Contact Methods', icon: MessageSquare, group: 'General' },
-  { id: 'documents', label: 'Documents', icon: FileText, group: 'Files' },
-  { id: 'media', label: 'Media', icon: Image, group: 'Files' },
-  { id: 'recordings', label: 'Recordings', icon: Mic, group: 'Files' },
-  { id: 'voice-notes', label: 'Voice Notes', icon: Volume2, group: 'Files' },
-  // New Intelligence section
-  { id: 'unified-profile', label: 'Unified Intelligence', icon: Brain, group: 'Intelligence' },
-  { id: 'milestones', label: 'Life Milestones', icon: Milestone, group: 'Intelligence' },
-  { id: 'comm-prefs', label: 'How to Interact', icon: Settings2, group: 'Intelligence' },
-  { id: 'interaction-notes', label: 'Interaction Notes', icon: StickyNote, group: 'Intelligence' },
-  { id: 'playbook', label: 'Interaction Playbook', icon: BookOpen, group: 'Intelligence' },
-  { id: 'influence', label: 'Influence & Strategy', icon: Target, group: 'Intelligence' },
-  { id: 'outreach', label: 'Outreach Timing', icon: Clock, group: 'Communication' },
-  { id: 'templates', label: 'Message Templates', icon: Sparkles, group: 'Communication' },
-  { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, group: 'Communication' },
-  { id: 'emails', label: 'Emails', icon: Mail, group: 'Communication' },
-  { id: 'messages', label: 'Conversations', icon: MessageSquare, group: 'Communication' },
-  { id: 'briefing', label: 'Meeting Briefing', icon: Calendar, group: 'AI Insights' },
-  { id: 'observations', label: 'My Observations', icon: Eye, group: 'AI Insights' },
-  { id: 'trust-assessment', label: 'Trust Assessment', icon: Shield, group: 'AI Insights' },
-  { id: 'threat-assessment', label: 'Threat Analysis', icon: Shield, group: 'AI Insights' },
-  { id: 'osint', label: 'OSINT Intel', icon: Globe, group: 'AI Insights' },
-  { id: 'inferred-connections', label: 'Inferred Links', icon: Network, group: 'AI Insights' },
-  { id: 'predictions', label: 'Predictions', icon: TrendingUp, group: 'AI Insights' },
-  { id: 'dossier', label: 'Intel Dossier', icon: FileText, group: 'AI Insights' },
-  { id: 'network-intel', label: 'Network Intel', icon: Network, group: 'AI Insights' },
-  { id: 'locations', label: 'Geographic Intel', icon: Globe, group: 'AI Insights' },
-  { id: 'temporal', label: 'Temporal Patterns', icon: Clock, group: 'AI Insights' },
-  { id: 'trajectory', label: 'Trajectory', icon: TrendingUp, group: 'AI Insights' },
-  { id: 'triangulation', label: 'Triangulation', icon: Triangle, group: 'AI Insights' },
-  { id: 'consistency', label: 'Consistency', icon: Search, group: 'AI Insights' },
-  { id: 'behavioral', label: 'Behavioral', icon: Brain, group: 'Analysis' },
-  { id: 'facial', label: 'Facial/Micro-Expressions', icon: Eye, group: 'Analysis' },
-  { id: 'body-language', label: 'Body Language', icon: Activity, group: 'Analysis' },
-  { id: 'vocal', label: 'Vocal Analysis', icon: Volume2, group: 'Analysis' },
-  { id: 'comparison', label: 'Compare Over Time', icon: GitCompare, group: 'Analysis' },
-  { id: 'biometrics', label: 'Biometric Identity', icon: Fingerprint, group: 'Analysis' },
-  { id: 'cross-modal', label: 'Cross-Modal Synthesis', icon: Brain, group: 'Analysis' },
-  { id: 'detected-items', label: 'Detected Items', icon: Package, group: 'Intelligence' },
-  { id: 'unknown-persons', label: 'Unknown Persons', icon: UserX, group: 'Intelligence' },
-  { id: 'doc-intelligence', label: 'Document OCR', icon: ScanText, group: 'Intelligence' },
-  { id: 'voice-insights', label: 'Voice Insights', icon: Volume2, group: 'Intelligence' },
-  { id: 'document-insights', label: 'Document Intel', icon: FileText, group: 'Intelligence' },
-  { id: 'content-relationships', label: 'Content Links', icon: Share2, group: 'Intelligence' },
-  { id: 'keyword-watchlist', label: 'Keyword Alerts', icon: Search, group: 'Intelligence' },
-  { id: 'interests', label: 'Interests', icon: Heart, group: 'Relationship' },
-  { id: 'gifts', label: 'Gifts', icon: Gift, group: 'Relationship' },
-  { id: 'goals', label: 'Goals', icon: Target, group: 'Relationship' },
-  { id: 'experiences', label: 'Experiences', icon: Heart, group: 'Relationship' },
-  { id: 'shared-experiences', label: 'Shared Experiences', icon: Users, group: 'Relationship' },
-  { id: 'relationships', label: 'Family & Connections', icon: Link2, group: 'Family' },
-  { id: 'kids-schools', label: 'Kids Schools', icon: GraduationCap, group: 'Family' },
-  { id: 'education', label: 'Education & Skills', icon: GraduationCap, group: 'Professional' },
-  { id: 'financial', label: 'Financial', icon: Wallet, group: 'Financial' },
-  { id: 'timeline', label: 'Timeline', icon: Clock, group: 'History' },
-  { id: 'activity', label: 'Activity & Usage', icon: Activity, group: 'History' },
-  { id: 'groups', label: 'Groups', icon: Users, group: 'Tools' },
-  { id: 'enrich', label: 'Enrichment', icon: Sparkles, group: 'Tools' },
-  { id: 'team-notes', label: 'Team Notes', icon: MessageSquare, group: 'Collaboration' },
-];
-
-const groupOrder = ['General', 'Files', 'Intelligence', 'Communication', 'AI Insights', 'Analysis', 'Relationship', 'Family', 'Professional', 'Financial', 'History', 'Tools', 'Collaboration'];
-
 export default function ContactDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [activeSection, setActiveSection] = useState<SectionId>('overview');
+  
+  // Initialize section from URL or default to 'overview'
+  const [activeSection, setActiveSection] = useState<SectionId>(() => {
+    const urlSection = searchParams.get('section') as SectionId | null;
+    return urlSection || 'overview';
+  });
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [showAIPanel, setShowAIPanel] = useState(false);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Handle section change with URL persistence
+  const handleSectionChange = useCallback((sectionId: SectionId) => {
+    setActiveSection(sectionId);
+    setSearchParams({ section: sectionId }, { replace: true });
+  }, [setSearchParams]);
+
+  // Keyboard shortcut for search (Cmd+K / Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Sync URL section on mount
+  useEffect(() => {
+    const urlSection = searchParams.get('section') as SectionId | null;
+    if (urlSection && urlSection !== activeSection) {
+      setActiveSection(urlSection);
+    }
+  }, [searchParams, activeSection]);
 
   const { data: contact, isLoading } = useQuery({
     queryKey: ['contact', id],
@@ -263,12 +206,13 @@ export default function ContactDetail() {
   };
 
   const contactName = contact ? `${contact.first_name} ${contact.last_name || ''}`.trim() : '';
+  const activeCategory = getCategoryForSection(activeSection);
 
   if (isLoading) {
     return (
       <AppLayout title="Contact">
         <div className="flex gap-6">
-          <div className="w-64 space-y-4">
+          <div className="w-64 space-y-4 hidden lg:block">
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-8 w-full" />
             <Skeleton className="h-8 w-full" />
@@ -302,12 +246,6 @@ export default function ContactDetail() {
     );
   }
 
-  // Group sections by group
-  const groupedSections = groupOrder.map(group => ({
-    group,
-    items: sections.filter(s => s.group === group)
-  }));
-
   const renderContent = () => {
     switch (activeSection) {
       case 'overview':
@@ -329,7 +267,6 @@ export default function ContactDetail() {
         return <RecordingsManager profileId={contact.id} profileName={contactName} />;
       case 'voice-notes':
         return <VoiceNotesManager profileId={contact.id} />;
-      // New Intelligence sections
       case 'unified-profile':
         return <UnifiedIntelligencePanel profileId={contact.id} contactName={contactName} />;
       case 'milestones':
@@ -459,31 +396,39 @@ export default function ContactDetail() {
 
   return (
     <AppLayout title={contactName} showQuickCapture captureProfileId={contact.id}>
-      {/* Breadcrumb */}
+      {/* Breadcrumb with category indicator */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
         <Link to="/contacts" className="hover:text-foreground transition-colors">Contacts</Link>
         <ChevronRight className="h-4 w-4" />
         <span className="text-foreground">{contactName}</span>
+        {activeCategory && (
+          <>
+            <ChevronRight className="h-4 w-4" />
+            <Badge variant="outline" className={cn("text-xs", activeCategory.color)}>
+              {activeCategory.label}
+            </Badge>
+          </>
+        )}
       </div>
 
       {/* Header */}
       <Card className="mb-6">
         <CardContent className="py-4">
-          <div className="flex items-start justify-between">
+          <div className="flex items-start justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-xl shrink-0">
+              <div className="flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-lg sm:text-xl shrink-0">
                 {contact.avatar_url ? (
-                  <img src={contact.avatar_url} alt="" className="h-16 w-16 rounded-full object-cover" />
+                  <img src={contact.avatar_url} alt="" className="h-14 w-14 sm:h-16 sm:w-16 rounded-full object-cover" />
                 ) : (
                   <>{contact.first_name?.[0]}{contact.last_name?.[0]}</>
                 )}
               </div>
-              <div>
-                <h1 className="text-xl font-bold flex items-center gap-2">
-                  {contact.first_name} {contact.last_name}
-                  {contact.nickname && <span className="text-muted-foreground font-normal">({contact.nickname})</span>}
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-xl font-bold flex items-center gap-2 flex-wrap">
+                  <span className="truncate">{contact.first_name} {contact.last_name}</span>
+                  {contact.nickname && <span className="text-muted-foreground font-normal text-sm">({contact.nickname})</span>}
                 </h1>
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
                   {contact.relationship_type && (() => {
                     const display = formatRelationshipDisplay(
                       contact.relationship_type,
@@ -496,7 +441,7 @@ export default function ContactDetail() {
                           {display.primary}
                         </Badge>
                         {display.secondary && (
-                          <Badge variant="outline">
+                          <Badge variant="outline" className="hidden sm:inline-flex">
                             {display.secondary}
                           </Badge>
                         )}
@@ -505,17 +450,17 @@ export default function ContactDetail() {
                   })()}
                   <ContactStorageBadge profileId={contact.id} />
                   {contact.organization && (
-                    <span className="text-sm text-muted-foreground">{contact.organization}</span>
+                    <span className="text-sm text-muted-foreground hidden md:inline">{contact.organization}</span>
                   )}
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
               <Button 
                 variant={(contact as any).is_self_profile ? "default" : "outline"} 
                 size="sm"
+                className="hidden sm:flex"
                 onClick={async () => {
-                  // Clear any existing self profile first
                   if (!(contact as any).is_self_profile) {
                     await supabase
                       .from('profiles')
@@ -523,7 +468,6 @@ export default function ContactDetail() {
                       .eq('user_id', user!.id)
                       .eq('is_self_profile', true);
                   }
-                  // Toggle this profile
                   await supabase
                     .from('profiles')
                     .update({ is_self_profile: !(contact as any).is_self_profile })
@@ -554,7 +498,7 @@ export default function ContactDetail() {
                 <Star className={`h-5 w-5 ${contact.is_favorite ? 'fill-yellow-400 text-yellow-400' : ''}`} />
               </Button>
               <ShareContactDialog profileId={contact.id} profileName={contactName} />
-              <Button variant={showAIPanel ? "default" : "outline"} size="icon" onClick={() => setShowAIPanel(!showAIPanel)} title="AI Insights">
+              <Button variant={showAIPanel ? "default" : "outline"} size="icon" onClick={() => setShowAIPanel(!showAIPanel)} title="AI Insights" className="hidden lg:flex">
                 <Brain className="h-4 w-4" />
               </Button>
               <Button variant="outline" size="icon" onClick={() => setIsEditDialogOpen(true)}>
@@ -576,64 +520,29 @@ export default function ContactDetail() {
         </CardContent>
       </Card>
 
-      {/* Main Layout */}
-      <div className={cn("grid gap-6", showAIPanel ? "lg:grid-cols-[240px_1fr_400px] xl:grid-cols-[240px_1fr_450px]" : "lg:grid-cols-[240px_1fr]")}>
-        {/* Sidebar */}
-        <div className="hidden lg:block">
-          <Card className="sticky top-4">
-            <ScrollArea className="h-[calc(100vh-280px)]">
-              <div className="p-4 space-y-4">
-                {groupedSections.map(({ group, items }) => (
-                  items.length > 0 && (
-                    <div key={group}>
-                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">
-                        {group}
-                      </h3>
-                      <div className="space-y-1">
-                        {items.map((section) => (
-                          <button
-                            key={section.id}
-                            onClick={() => setActiveSection(section.id)}
-                            className={cn(
-                              "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors",
-                              activeSection === section.id
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
-                            <section.icon className="h-4 w-4" />
-                            {section.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                ))}
-              </div>
-            </ScrollArea>
-          </Card>
-        </div>
+      {/* Mobile Navigation */}
+      <ContactDetailMobileNav 
+        activeSection={activeSection}
+        onSectionChange={handleSectionChange}
+      />
 
-        {/* Mobile Section Selector */}
-        <div className="lg:hidden mb-4 -mx-4 px-4 overflow-x-auto">
-          <div className="flex gap-2 pb-2">
-            {sections.map((section) => (
-              <Button
-                key={section.id}
-                variant={activeSection === section.id ? "default" : "outline"}
-                size="sm"
-                onClick={() => setActiveSection(section.id)}
-                className="whitespace-nowrap"
-              >
-                <section.icon className="h-4 w-4 mr-1" />
-                {section.label}
-              </Button>
-            ))}
-          </div>
+      {/* Main Layout */}
+      <div className={cn(
+        "grid gap-6 mt-4 lg:mt-0",
+        showAIPanel 
+          ? "lg:grid-cols-[220px_1fr_380px] xl:grid-cols-[240px_1fr_420px]" 
+          : "lg:grid-cols-[220px_1fr] xl:grid-cols-[240px_1fr]"
+      )}>
+        {/* Desktop Sidebar */}
+        <div className="hidden lg:block">
+          <ContactDetailSidebar
+            activeSection={activeSection}
+            onSectionChange={handleSectionChange}
+          />
         </div>
 
         {/* Main Content */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 min-w-0">
           {renderContent()}
         </div>
 
@@ -646,6 +555,15 @@ export default function ContactDetail() {
           </div>
         )}
       </div>
+
+      {/* Section Search Dialog */}
+      <ContactSectionSearch
+        open={isSearchOpen}
+        onOpenChange={setIsSearchOpen}
+        activeSection={activeSection}
+        onSectionChange={handleSectionChange}
+        contactId={id}
+      />
 
       <ContactDialog
         open={isEditDialogOpen}
