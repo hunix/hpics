@@ -15,7 +15,10 @@ import {
   MousePointer,
   Info,
   CheckCircle2,
-  Check
+  Check,
+  ZoomIn,
+  ZoomOut,
+  Maximize2
 } from 'lucide-react';
 import { useFaceRegions, FaceRegion, CreateFaceRegionInput } from '@/hooks/useFaceRegions';
 import { faceDetectionService } from '@/lib/faceDetection';
@@ -64,6 +67,7 @@ export function FaceRegionDrawer({
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const [modelsReady, setModelsReady] = useState(false);
   const [hoveredRegionId, setHoveredRegionId] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1);
 
   const { regions, createRegion, createRegions, deleteRegion, assignProfile } = useFaceRegions(mediaId);
 
@@ -461,8 +465,8 @@ export function FaceRegionDrawer({
           </Alert>
         )}
 
-        {/* Toolbar */}
-        <div className="flex flex-wrap gap-2">
+        {/* Sticky Toolbar */}
+        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur py-2 flex flex-wrap gap-2 border-b pb-3 -mx-6 px-6">
           <div className="flex items-center gap-1 border rounded-md p-1">
             <Button
               variant={currentShape === 'rectangle' ? 'secondary' : 'ghost'}
@@ -487,6 +491,39 @@ export function FaceRegionDrawer({
               title="Circle"
             >
               <Circle className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Zoom Controls */}
+          <div className="flex items-center gap-1 border rounded-md p-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setZoom(z => Math.max(0.25, z - 0.25))}
+              title="Zoom out"
+              disabled={zoom <= 0.25}
+            >
+              <ZoomOut className="h-4 w-4" />
+            </Button>
+            <span className="text-xs px-2 min-w-[3rem] text-center font-medium">
+              {Math.round(zoom * 100)}%
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setZoom(z => Math.min(3, z + 0.25))}
+              title="Zoom in"
+              disabled={zoom >= 3}
+            >
+              <ZoomIn className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setZoom(1)}
+              title="Fit to screen"
+            >
+              <Maximize2 className="h-4 w-4" />
             </Button>
           </div>
 
@@ -533,33 +570,44 @@ export function FaceRegionDrawer({
           )}
         </div>
 
-        {/* Canvas */}
-        <div ref={containerRef} className="relative w-full">
+        {/* Canvas Container - Scrollable with max height */}
+        <div 
+          ref={containerRef} 
+          className="relative w-full max-h-[55vh] overflow-auto border rounded-lg bg-muted/30"
+        >
           {!imageLoaded ? (
             <div className="flex items-center justify-center h-64 bg-muted rounded-lg">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <canvas
-              ref={canvasRef}
-              className={cn(
-                "w-full rounded-lg transition-all",
-                isDrawing ? "cursor-crosshair" : hoveredRegionId ? "cursor-pointer" : "cursor-crosshair"
-              )}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseLeave}
-            />
+            <div 
+              style={{ 
+                width: `${100 * zoom}%`,
+                minWidth: '100%',
+                transformOrigin: 'top left'
+              }}
+            >
+              <canvas
+                ref={canvasRef}
+                className={cn(
+                  "w-full rounded-lg transition-all",
+                  isDrawing ? "cursor-crosshair" : hoveredRegionId ? "cursor-pointer" : "cursor-crosshair"
+                )}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseLeave}
+              />
+            </div>
           )}
         </div>
 
-        {/* Selected region actions - Now prominently displayed */}
+        {/* Sticky Assignment Panel */}
         <div className={cn(
-          "p-4 rounded-lg border-2 transition-all",
+          "sticky bottom-0 z-10 p-4 rounded-lg border-2 transition-all bg-background/95 backdrop-blur -mx-6 px-6 mt-4",
           selectedRegion 
-            ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-700" 
-            : "bg-muted/50 border-dashed border-muted-foreground/30"
+            ? "bg-amber-50/95 dark:bg-amber-950/80 border-amber-300 dark:border-amber-700" 
+            : "bg-muted/80 border-dashed border-muted-foreground/30"
         )}>
           {selectedRegion ? (
             <div className="space-y-3">
