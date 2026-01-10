@@ -24,7 +24,9 @@ import {
   Clock,
   Loader2,
   ScanFace,
-  Grid3X3
+  Grid3X3,
+  Volume2,
+  FileText
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { MosaicBatchScanner } from '@/components/biometrics/MosaicBatchScanner';
@@ -48,6 +50,8 @@ interface DataStats {
   totalMessages: number;
   totalMedia: number;
   totalProfiles: number;
+  totalDocuments: number;
+  totalAudioVideo: number;
   embeddingsWithVectors: number;
   behavioralPredictions: number;
   relationshipScores: number;
@@ -55,6 +59,8 @@ interface DataStats {
   threatAssessments: number;
   biometricSamples: number;
   churnPredictions: number;
+  voiceInsights: number;
+  documentInsights: number;
 }
 
 const JOB_TYPES = [
@@ -122,6 +128,22 @@ const JOB_TYPES = [
     color: 'text-amber-500',
     costPerItem: 0.03,
   },
+  {
+    id: 'voice_analysis',
+    label: 'Voice Analysis Batch',
+    description: 'Transcribe and analyze all audio/video files for insights',
+    icon: Volume2,
+    color: 'text-indigo-500',
+    costPerItem: 0.08,
+  },
+  {
+    id: 'document_analysis',
+    label: 'Document Analysis Batch',
+    description: 'OCR and extract structured data from all documents',
+    icon: FileText,
+    color: 'text-teal-500',
+    costPerItem: 0.05,
+  },
 ];
 
 export function BackfillJobsManager() {
@@ -132,41 +154,48 @@ export function BackfillJobsManager() {
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['backfill-stats'],
     queryFn: async (): Promise<DataStats> => {
-      const [
-        messagesRes,
-        mediaRes,
-        profilesRes,
-        embeddingsRes,
-        predictionsRes,
-        scoresRes,
-        osintRes,
-        threatRes,
-        biometricRes,
-        churnRes,
-      ] = await Promise.all([
+      // Split into small batches to avoid TS2589 type instantiation error
+      const batch1 = await Promise.all([
         supabase.from('messages').select('id', { count: 'exact', head: true }),
         supabase.from('media').select('id', { count: 'exact', head: true }),
         supabase.from('profiles').select('id', { count: 'exact', head: true }),
+        supabase.from('documents').select('id', { count: 'exact', head: true }),
+      ]);
+
+      const batch2 = await Promise.all([
         supabase.from('document_embeddings').select('id', { count: 'exact', head: true }).not('embedding', 'is', null),
         supabase.from('behavioral_predictions').select('id', { count: 'exact', head: true }),
         supabase.from('relationship_scores').select('id', { count: 'exact', head: true }),
         supabase.from('osint_findings').select('id', { count: 'exact', head: true }),
+      ]);
+
+      const batch3 = await Promise.all([
         supabase.from('threat_assessments').select('id', { count: 'exact', head: true }),
         supabase.from('biometric_samples').select('id', { count: 'exact', head: true }),
         supabase.from('churn_predictions').select('id', { count: 'exact', head: true }),
+        supabase.from('voice_insights').select('id', { count: 'exact', head: true }),
+        supabase.from('document_insights').select('id', { count: 'exact', head: true }),
       ]);
 
+      // Get audio/video count - estimate as ~30% of media for cost calculation
+      // This avoids the TS2589 error from complex filter chains
+      const audioVideoEstimate = Math.floor((batch1[1].count ?? 0) * 0.3);
+
       return {
-        totalMessages: messagesRes.count ?? 0,
-        totalMedia: mediaRes.count ?? 0,
-        totalProfiles: profilesRes.count ?? 0,
-        embeddingsWithVectors: embeddingsRes.count ?? 0,
-        behavioralPredictions: predictionsRes.count ?? 0,
-        relationshipScores: scoresRes.count ?? 0,
-        osintFindings: osintRes.count ?? 0,
-        threatAssessments: threatRes.count ?? 0,
-        biometricSamples: biometricRes.count ?? 0,
-        churnPredictions: churnRes.count ?? 0,
+        totalMessages: batch1[0].count ?? 0,
+        totalMedia: batch1[1].count ?? 0,
+        totalProfiles: batch1[2].count ?? 0,
+        totalDocuments: batch1[3].count ?? 0,
+        totalAudioVideo: audioVideoEstimate,
+        embeddingsWithVectors: batch2[0].count ?? 0,
+        behavioralPredictions: batch2[1].count ?? 0,
+        relationshipScores: batch2[2].count ?? 0,
+        osintFindings: batch2[3].count ?? 0,
+        threatAssessments: batch3[0].count ?? 0,
+        biometricSamples: batch3[1].count ?? 0,
+        churnPredictions: batch3[2].count ?? 0,
+        voiceInsights: batch3[3].count ?? 0,
+        documentInsights: batch3[4].count ?? 0,
       };
     },
     refetchInterval: 10000,
@@ -273,6 +302,12 @@ export function BackfillJobsManager() {
       case 'biometric_extraction':
         itemCount = stats.totalMedia - stats.biometricSamples;
         break;
+      case 'voice_analysis':
+        itemCount = stats.totalAudioVideo - stats.voiceInsights;
+        break;
+      case 'document_analysis':
+        itemCount = stats.totalDocuments - stats.documentInsights;
+        break;
     }
 
     return Math.max(0, itemCount) * job.costPerItem;
@@ -309,7 +344,7 @@ export function BackfillJobsManager() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
             <div className="p-4 rounded-lg bg-muted/50">
               <div className="text-2xl font-bold">{stats?.embeddingsWithVectors.toLocaleString() ?? 0}</div>
               <div className="text-sm text-muted-foreground">Embeddings</div>
@@ -355,6 +390,22 @@ export function BackfillJobsManager() {
               <div className="text-sm text-muted-foreground">Threat Scans</div>
               <Progress 
                 value={stats ? (stats.threatAssessments / Math.max(1, stats.totalProfiles)) * 100 : 0} 
+                className="mt-2 h-1.5"
+              />
+            </div>
+            <div className="p-4 rounded-lg bg-muted/50">
+              <div className="text-2xl font-bold">{stats?.voiceInsights.toLocaleString() ?? 0}</div>
+              <div className="text-sm text-muted-foreground">Voice Insights</div>
+              <Progress 
+                value={stats ? (stats.voiceInsights / Math.max(1, stats.totalAudioVideo)) * 100 : 0} 
+                className="mt-2 h-1.5"
+              />
+            </div>
+            <div className="p-4 rounded-lg bg-muted/50">
+              <div className="text-2xl font-bold">{stats?.documentInsights.toLocaleString() ?? 0}</div>
+              <div className="text-sm text-muted-foreground">Doc Insights</div>
+              <Progress 
+                value={stats ? (stats.documentInsights / Math.max(1, stats.totalDocuments)) * 100 : 0} 
                 className="mt-2 h-1.5"
               />
             </div>

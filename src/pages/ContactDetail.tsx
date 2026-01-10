@@ -88,6 +88,10 @@ import { DocumentIntelligencePanel } from '@/components/intelligence/DocumentInt
 import { cn } from '@/lib/utils';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
 import { ProfileCompletenessWidget } from '@/components/contacts/ProfileCompletenessWidget';
+import { VoiceInsightsPanel } from '@/components/ai/VoiceInsightsPanel';
+import { DocumentInsightsPanel } from '@/components/ai/DocumentInsightsPanel';
+import { ContentRelationshipsGraph } from '@/components/ai/ContentRelationshipsGraph';
+import { KeywordWatchlistManager } from '@/components/ai/KeywordWatchlistManager';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Profile = Tables<'profiles'> & { relationship_subtype?: string; hierarchy_level?: string };
@@ -104,7 +108,8 @@ type SectionId =
   | 'dossier' | 'network-intel' | 'locations'
   | 'temporal' | 'trajectory' | 'triangulation' | 'consistency' | 'unified-profile' | 'shared-experiences'
   | 'team-notes'
-  | 'detected-items' | 'unknown-persons' | 'doc-intelligence';
+  | 'detected-items' | 'unknown-persons' | 'doc-intelligence'
+  | 'voice-insights' | 'document-insights' | 'content-relationships' | 'keyword-watchlist';
 
 interface NavSection {
   id: SectionId;
@@ -157,6 +162,10 @@ const sections: NavSection[] = [
   { id: 'detected-items', label: 'Detected Items', icon: Package, group: 'Intelligence' },
   { id: 'unknown-persons', label: 'Unknown Persons', icon: UserX, group: 'Intelligence' },
   { id: 'doc-intelligence', label: 'Document OCR', icon: ScanText, group: 'Intelligence' },
+  { id: 'voice-insights', label: 'Voice Insights', icon: Volume2, group: 'Intelligence' },
+  { id: 'document-insights', label: 'Document Intel', icon: FileText, group: 'Intelligence' },
+  { id: 'content-relationships', label: 'Content Links', icon: Share2, group: 'Intelligence' },
+  { id: 'keyword-watchlist', label: 'Keyword Alerts', icon: Search, group: 'Intelligence' },
   { id: 'interests', label: 'Interests', icon: Heart, group: 'Relationship' },
   { id: 'gifts', label: 'Gifts', icon: Gift, group: 'Relationship' },
   { id: 'goals', label: 'Goals', icon: Target, group: 'Relationship' },
@@ -351,6 +360,14 @@ export default function ContactDetail() {
         return <UnknownPersonsQueue profileId={contact.id} />;
       case 'doc-intelligence':
         return <DocumentIntelligencePanel profileId={contact.id} />;
+      case 'voice-insights':
+        return <VoiceInsightsPanel profileId={contact.id} />;
+      case 'document-insights':
+        return <DocumentInsightsPanel profileId={contact.id} />;
+      case 'content-relationships':
+        return <ContentRelationshipsGraph profileId={contact.id} />;
+      case 'keyword-watchlist':
+        return <KeywordWatchlistManager />;
       case 'biometrics':
         return <BiometricSignatureBuilder profileId={contact.id} profileName={contactName} avatarUrl={contact.avatar_url} />;
       case 'outreach':
