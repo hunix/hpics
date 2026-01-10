@@ -51,21 +51,19 @@ export function ChromeExtensionBridge({ profileId, onDataReceived, className }: 
   const loadRecentCaptures = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.rpc('get_device_captures_by_type', { 
-        p_device_type: 'chrome_extension' 
-      }).limit(10);
-
-      // Fallback: direct query with type assertion
-      if (error) {
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/device_captures?device_type=eq.chrome_extension&order=created_at.desc&limit=10`,
-          {
-            headers: {
-              'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-            },
-          }
-        );
+      // Try direct REST API call for device_captures
+      const session = await supabase.auth.getSession();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/device_captures?device_type=eq.chrome_extension&order=created_at.desc&limit=10`,
+        {
+          headers: {
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            'Authorization': `Bearer ${session.data.session?.access_token || ''}`,
+          },
+        }
+      );
+      
+      if (response.ok) {
         const records = await response.json();
         const captures: ExtensionCapture[] = (records || []).map((d: any) => ({
           id: d.id,
@@ -77,20 +75,11 @@ export function ChromeExtensionBridge({ profileId, onDataReceived, className }: 
         }));
         setRecentCaptures(captures);
         if (captures.length > 0) setIsConnected(true);
-        return;
       }
-
-      const captures: ExtensionCapture[] = ((data as any[]) || []).map((d: any) => ({
-        id: d.id,
-        capture_type: d.capture_type,
-        device_source: d.device_source,
-        extracted_data: d.extracted_data,
-        created_at: d.created_at,
-        status: d.status,
-      }));
-      
-      setRecentCaptures(captures);
-      if (captures.length > 0) setIsConnected(true);
+    } catch (error) {
+      console.error('Failed to load captures:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
