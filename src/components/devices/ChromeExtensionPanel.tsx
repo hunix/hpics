@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Chrome, Download, CheckCircle2, XCircle, RefreshCw, 
   ExternalLink, Settings, Shield, Zap, Instagram, Linkedin,
-  Twitter, MessageCircle, Globe, AlertCircle
+  Twitter, MessageCircle, Globe, AlertCircle, Key
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import { ExtensionTokenDialog } from './ExtensionTokenDialog';
 
 interface ExtensionSession {
   id: string;
@@ -149,6 +150,14 @@ export function ChromeExtensionPanel({ className }: ChromeExtensionPanelProps) {
       </CardHeader>
 
       <CardContent className="space-y-4">
+        {/* Configure Extension Button */}
+        <ExtensionTokenDialog>
+          <Button variant="outline" size="sm" className="w-full">
+            <Key className="h-4 w-4 mr-2" />
+            Configure Extension
+          </Button>
+        </ExtensionTokenDialog>
+
         {/* Install/Connect Section */}
         {!isConnected && !isChecking && (
           <div className="p-4 bg-muted/50 rounded-lg text-center space-y-3">
