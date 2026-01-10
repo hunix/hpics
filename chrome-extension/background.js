@@ -202,8 +202,25 @@ async function syncToServer(payload) {
       return { success: false, error: 'API not configured' };
     }
 
-    const itemCount = payload.captures?.length || 0;
+    const itemCount = payload.captures?.length || 1;
     addLog('info', `Starting sync: ${itemCount} item${itemCount !== 1 ? 's' : ''}`);
+
+    // Prepare request body based on payload type
+    const requestBody = {
+      action: payload.action || 'scrape_profile',
+      platform: payload.platform || payload.captures?.[0]?.platform || 'unknown',
+      username: payload.username || payload.captures?.[0]?.username,
+      profileUrl: payload.url || payload.captures?.[0]?.url,
+      data: {
+        profileHtml: payload.pageHtml || payload.captures?.[0]?.pageHtml,
+        posts: payload.posts || payload.captures?.[0]?.posts,
+      },
+      metadata: {
+        scrapedAt: new Date().toISOString(),
+        extensionVersion: chrome.runtime.getManifest().version,
+        browserInfo: navigator.userAgent,
+      },
+    };
 
     const response = await fetch(config.apiEndpoint, {
       method: 'POST',
@@ -211,10 +228,7 @@ async function syncToServer(payload) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${config.authToken}`,
       },
-      body: JSON.stringify({
-        action: 'bulk_scrape',
-        ...payload,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
