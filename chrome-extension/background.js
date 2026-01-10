@@ -9,14 +9,54 @@ const DEFAULT_CONFIG = {
   deepScrape: false,
 };
 
+// Connection state tracking
+let connectionState = {
+  isConnected: false,
+  connectedAt: null,
+  lastHeartbeat: null,
+  lastSync: null,
+  lastSyncStatus: null,
+  lastError: null,
+};
+
+// Activity log (in-memory, persisted to storage)
+let activityLog = [];
+
+// Heartbeat interval reference
+let heartbeatInterval = null;
+
 // Initialize storage with defaults
 chrome.runtime.onInstalled.addListener(async () => {
   const stored = await chrome.storage.local.get('config');
   if (!stored.config) {
     await chrome.storage.local.set({ config: DEFAULT_CONFIG });
   }
+  await chrome.storage.local.set({ connectionState, activityLog: [] });
+  addLog('info', 'Intel CRM Extension installed');
   console.log('Intel CRM Extension installed');
 });
+
+// Start heartbeat on startup
+chrome.runtime.onStartup.addListener(() => {
+  loadStoredState();
+  startHeartbeat();
+});
+
+// Load stored state on service worker activation
+async function loadStoredState() {
+  try {
+    const { connectionState: storedState, activityLog: storedLog } = 
+      await chrome.storage.local.get(['connectionState', 'activityLog']);
+    
+    if (storedState) connectionState = storedState;
+    if (storedLog) activityLog = storedLog;
+  } catch (error) {
+    console.error('Failed to load stored state:', error);
+  }
+}
+
+// Initialize on load
+loadStoredState();
 
 // Listen for messages from content scripts and popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -46,9 +86,42 @@ async function handleMessage(message, sender) {
     case 'CHECK_CONNECTION':
       return checkServerConnection();
 
+    case 'GET_CONNECTION_STATE':
+      return getConnectionState();
+
+    case 'GET_ACTIVITY_LOG':
+      return getActivityLog();
+
+    case 'CLEAR_ACTIVITY_LOG':
+      return clearActivityLog();
+
+    case 'DISCONNECT':
+      return disconnect();
+
     default:
       return { success: false, error: 'Unknown message type' };
   }
+}
+
+// Add log entry
+function addLog(type, message, details = null) {
+  const entry = {
+    id: crypto.randomUUID(),
+    timestamp: new Date().toISOString(),
+    type, // 'info', 'success', 'error', 'warning'
+    message,
+    details,
+  };
+  
+  activityLog.unshift(entry);
+  if (activityLog.length > 100) activityLog.length = 100;
+  
+  // Persist to storage
+  chrome.storage.local.set({ activityLog }).catch(console.error);
+  
+  console.log(`[Intel CRM] [${type.toUpperCase()}] ${message}`, details || '');
+  
+  return entry;
 }
 
 async function getConfig() {
@@ -65,8 +138,10 @@ async function setConfig(newConfig) {
     const { config } = await chrome.storage.local.get('config');
     const updated = { ...config, ...newConfig };
     await chrome.storage.local.set({ config: updated });
+    addLog('info', 'Configuration updated');
     return { success: true, data: updated };
   } catch (error) {
+    addLog('error', 'Failed to update configuration', { error: error.message });
     return { success: false, error: error.message };
   }
 }
@@ -91,6 +166,10 @@ async function captureProfile(profileData, tab) {
       captureHistory.length = 100;
     }
     await chrome.storage.local.set({ captureHistory });
+    
+    addLog('success', `Captured profile: ${profileData.username || 'Unknown'}`, {
+      platform: profileData.platform,
+    });
 
     // Auto-sync if configured
     if (config.apiEndpoint && config.authToken) {
@@ -109,6 +188,7 @@ async function captureProfile(profileData, tab) {
     return { success: true, data: capture };
   } catch (error) {
     console.error('Capture failed:', error);
+    addLog('error', 'Capture failed', { error: error.message });
     return { success: false, error: error.message };
   }
 }
@@ -118,8 +198,12 @@ async function syncToServer(payload) {
     const { config } = await chrome.storage.local.get('config');
     
     if (!config.apiEndpoint || !config.authToken) {
+      addLog('warning', 'Sync skipped: API not configured');
       return { success: false, error: 'API not configured' };
     }
+
+    const itemCount = payload.captures?.length || 0;
+    addLog('info', `Starting sync: ${itemCount} item${itemCount !== 1 ? 's' : ''}`);
 
     const response = await fetch(config.apiEndpoint, {
       method: 'POST',
@@ -134,10 +218,16 @@ async function syncToServer(payload) {
     });
 
     if (!response.ok) {
-      throw new Error(`Server returned ${response.status}`);
+      const errorText = await response.text().catch(() => 'Unknown error');
+      throw new Error(`Server returned ${response.status}: ${errorText}`);
     }
 
     const result = await response.json();
+    
+    // Update sync state
+    connectionState.lastSync = new Date().toISOString();
+    connectionState.lastSyncStatus = 'success';
+    await chrome.storage.local.set({ connectionState });
     
     // Mark captures as synced
     if (payload.captures) {
@@ -149,9 +239,25 @@ async function syncToServer(payload) {
       await chrome.storage.local.set({ captureHistory });
     }
 
+    addLog('success', `Sync completed: ${itemCount} item${itemCount !== 1 ? 's' : ''} synced`, {
+      captureId: result.captureId,
+      postsProcessed: result.postsProcessed,
+    });
+
     return { success: true, data: result };
   } catch (error) {
     console.error('Sync failed:', error);
+    
+    // Update sync state with failure
+    connectionState.lastSync = new Date().toISOString();
+    connectionState.lastSyncStatus = 'failed';
+    connectionState.lastError = {
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    };
+    await chrome.storage.local.set({ connectionState });
+    
+    addLog('error', 'Sync failed', { error: error.message });
     return { success: false, error: error.message };
   }
 }
@@ -170,6 +276,8 @@ async function checkServerConnection() {
     const { config } = await chrome.storage.local.get('config');
     
     if (!config.apiEndpoint || !config.authToken) {
+      connectionState.isConnected = false;
+      await chrome.storage.local.set({ connectionState });
       return { success: false, error: 'Not configured' };
     }
 
@@ -182,8 +290,127 @@ async function checkServerConnection() {
       body: JSON.stringify({ action: 'ping' }),
     });
 
-    return { success: response.ok };
+    if (response.ok) {
+      const data = await response.json();
+      const wasConnected = connectionState.isConnected;
+      
+      connectionState.isConnected = true;
+      connectionState.lastHeartbeat = new Date().toISOString();
+      
+      if (!wasConnected) {
+        connectionState.connectedAt = new Date().toISOString();
+        addLog('success', 'Connected to Intel CRM', { userId: data.userId });
+        startHeartbeat();
+      }
+      
+      await chrome.storage.local.set({ connectionState });
+      
+      return { 
+        success: true, 
+        connectedAt: connectionState.connectedAt,
+        lastHeartbeat: connectionState.lastHeartbeat,
+      };
+    } else {
+      const errorText = await response.text().catch(() => `HTTP ${response.status}`);
+      throw new Error(errorText);
+    }
+  } catch (error) {
+    connectionState.isConnected = false;
+    connectionState.lastError = {
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    };
+    
+    addLog('error', 'Connection failed', { error: error.message });
+    await chrome.storage.local.set({ connectionState });
+    
+    stopHeartbeat();
+    return { success: false, error: error.message };
+  }
+}
+
+async function getConnectionState() {
+  try {
+    const { connectionState: stored } = await chrome.storage.local.get('connectionState');
+    return { success: true, data: stored || connectionState };
   } catch (error) {
     return { success: false, error: error.message };
+  }
+}
+
+async function getActivityLog() {
+  try {
+    const { activityLog: stored } = await chrome.storage.local.get('activityLog');
+    return { success: true, data: stored || activityLog };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+async function clearActivityLog() {
+  try {
+    activityLog = [];
+    await chrome.storage.local.set({ activityLog: [] });
+    addLog('info', 'Activity log cleared');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+async function disconnect() {
+  try {
+    stopHeartbeat();
+    
+    connectionState = {
+      isConnected: false,
+      connectedAt: null,
+      lastHeartbeat: null,
+      lastSync: connectionState.lastSync,
+      lastSyncStatus: connectionState.lastSyncStatus,
+      lastError: null,
+    };
+    
+    // Clear auth token but keep endpoint
+    const { config } = await chrome.storage.local.get('config');
+    await chrome.storage.local.set({ 
+      config: { ...config, authToken: '' },
+      connectionState,
+    });
+    
+    addLog('info', 'Disconnected from Intel CRM');
+    return { success: true };
+  } catch (error) {
+    addLog('error', 'Disconnect failed', { error: error.message });
+    return { success: false, error: error.message };
+  }
+}
+
+// Heartbeat management
+function startHeartbeat() {
+  if (heartbeatInterval) return;
+  
+  heartbeatInterval = setInterval(async () => {
+    const { connectionState: state } = await chrome.storage.local.get('connectionState');
+    if (state?.isConnected) {
+      const result = await checkServerConnection();
+      if (result.success) {
+        // Update heartbeat timestamp silently (don't log every heartbeat)
+        connectionState.lastHeartbeat = new Date().toISOString();
+        await chrome.storage.local.set({ connectionState });
+      }
+    } else {
+      stopHeartbeat();
+    }
+  }, 30000); // Every 30 seconds
+  
+  console.log('[Intel CRM] Heartbeat started');
+}
+
+function stopHeartbeat() {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+    console.log('[Intel CRM] Heartbeat stopped');
   }
 }

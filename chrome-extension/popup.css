@@ -16,7 +16,7 @@ body {
 .popup {
   display: flex;
   flex-direction: column;
-  min-height: 480px;
+  min-height: 520px;
 }
 
 /* Header */
@@ -145,6 +145,26 @@ body {
   opacity: 0.9;
 }
 
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-danger {
+  width: 100%;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+}
+
+.btn-danger:hover {
+  opacity: 0.9;
+}
+
+.btn-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .btn-small {
   padding: 6px 12px;
   font-size: 11px;
@@ -209,9 +229,45 @@ body {
   color: #e2e8f0;
 }
 
+/* Connection info grid */
+.info-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #1e293b;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.info-label {
+  color: #94a3b8;
+}
+
+.info-value {
+  color: #e2e8f0;
+  font-weight: 500;
+}
+
+.info-value.success {
+  color: #22c55e;
+}
+
+.info-value.error {
+  color: #ef4444;
+}
+
+.info-value.warning {
+  color: #f59e0b;
+}
+
 /* Capture List */
 .capture-list {
-  max-height: 200px;
+  max-height: 150px;
   overflow-y: auto;
 }
 
@@ -271,6 +327,61 @@ body {
 
 .capture-item .sync-status.synced { color: #22c55e; }
 .capture-item .sync-status.pending { color: #f59e0b; }
+
+/* Console log area */
+.console-log {
+  height: 120px;
+  overflow-y: auto;
+  background: #0a0f1a;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  padding: 8px;
+  font-family: 'Monaco', 'Consolas', monospace;
+  font-size: 11px;
+}
+
+.log-entry {
+  padding: 4px 0;
+  border-bottom: 1px solid #1e293b;
+  display: flex;
+  gap: 8px;
+}
+
+.log-entry:last-child {
+  border-bottom: none;
+}
+
+.log-time {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.log-type {
+  flex-shrink: 0;
+  width: 60px;
+  font-weight: 600;
+}
+
+.log-type.info {
+  color: #3b82f6;
+}
+
+.log-type.success {
+  color: #22c55e;
+}
+
+.log-type.error {
+  color: #ef4444;
+}
+
+.log-type.warning {
+  color: #f59e0b;
+}
+
+.log-message {
+  color: #e2e8f0;
+  word-break: break-word;
+}
 
 /* Footer */
 .footer {
