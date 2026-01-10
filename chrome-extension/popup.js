@@ -4,11 +4,11 @@ document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
   await loadConfig();
-  await loadConnectionState();
+  // Check connection first - this sets both status AND button state
+  await checkConnection();
   await loadCaptureHistory();
   await loadActivityLog();
   setupEventListeners();
-  await checkConnection();
 }
 
 async function loadConfig() {
@@ -27,6 +27,8 @@ async function loadConfig() {
 
 async function loadConnectionState() {
   const response = await chrome.runtime.sendMessage({ type: 'GET_CONNECTION_STATE' });
+  const btn = document.getElementById('save-config');
+  const statusEl = document.getElementById('connection-status');
   
   if (response.success && response.data) {
     const state = response.data;
@@ -34,6 +36,13 @@ async function loadConnectionState() {
     
     if (state.isConnected) {
       infoSection.style.display = 'block';
+      
+      // Sync button state with stored connection state
+      statusEl.className = 'status connected';
+      statusEl.querySelector('.status-text').textContent = 'Connected';
+      btn.textContent = 'Disconnect';
+      btn.className = 'btn btn-danger';
+      btn.dataset.connected = 'true';
       
       document.getElementById('connected-since').textContent = 
         state.connectedAt ? formatTime(state.connectedAt) : '-';
@@ -56,6 +65,9 @@ async function loadConnectionState() {
       }
     } else {
       infoSection.style.display = 'none';
+      btn.textContent = 'Save & Connect';
+      btn.className = 'btn btn-primary';
+      btn.dataset.connected = 'false';
     }
   }
 }
@@ -198,10 +210,14 @@ async function checkConnection() {
   const statusEl = document.getElementById('connection-status');
   const btn = document.getElementById('save-config');
   
+  console.log('[Intel CRM] Starting connection check...');
+  
   try {
     const response = await chrome.runtime.sendMessage({ type: 'CHECK_CONNECTION' });
+    console.log('[Intel CRM] Connection response:', response);
     
     if (response && response.success) {
+      console.log('[Intel CRM] Connection successful');
       statusEl.className = 'status connected';
       statusEl.querySelector('.status-text').textContent = 'Connected';
       
@@ -210,39 +226,58 @@ async function checkConnection() {
       btn.dataset.connected = 'true';
       
       document.getElementById('connection-info-section').style.display = 'block';
+      
+      // Load connection state details after successful check
+      await loadConnectionState();
     } else {
-      statusEl.className = 'status disconnected';
+      console.log('[Intel CRM] Connection failed:', response?.error);
       
-      // Show specific error message
-      const errorText = response?.error || '';
-      let statusText = 'Disconnected';
-      if (errorText.includes('401') || errorText.includes('Unauthorized')) {
-        statusText = 'Token Expired';
-      } else if (errorText.includes('Invalid token')) {
-        statusText = 'Invalid Token';
-      } else if (errorText.includes('Not configured')) {
-        statusText = 'Not Configured';
-      } else if (errorText.includes('Failed to fetch') || errorText.includes('network')) {
-        statusText = 'Network Error';
+      // Check if we have stored connection state that says we're connected
+      // This handles the case where the live check fails but we have valid stored state
+      const stateResponse = await chrome.runtime.sendMessage({ type: 'GET_CONNECTION_STATE' });
+      
+      if (stateResponse.success && stateResponse.data?.isConnected) {
+        // Trust stored state - we were connected and might just have a temporary issue
+        console.log('[Intel CRM] Using stored connection state');
+        statusEl.className = 'status connected';
+        statusEl.querySelector('.status-text').textContent = 'Connected';
+        btn.textContent = 'Disconnect';
+        btn.className = 'btn btn-danger';
+        btn.dataset.connected = 'true';
+        document.getElementById('connection-info-section').style.display = 'block';
+        await loadConnectionState();
+      } else {
+        // Not connected
+        statusEl.className = 'status disconnected';
+        
+        const errorText = response?.error || '';
+        let statusText = 'Disconnected';
+        if (errorText.includes('401') || errorText.includes('Unauthorized')) {
+          statusText = 'Token Expired';
+        } else if (errorText.includes('Invalid token')) {
+          statusText = 'Invalid Token';
+        } else if (errorText.includes('Not configured')) {
+          statusText = 'Not Configured';
+        } else if (errorText.includes('Failed to fetch') || errorText.includes('network')) {
+          statusText = 'Network Error';
+        }
+        statusEl.querySelector('.status-text').textContent = statusText;
+        
+        btn.textContent = 'Save & Connect';
+        btn.className = 'btn btn-primary';
+        btn.dataset.connected = 'false';
+        
+        document.getElementById('connection-info-section').style.display = 'none';
       }
-      statusEl.querySelector('.status-text').textContent = statusText;
-      
-      btn.textContent = 'Save & Connect';
-      btn.className = 'btn btn-primary';
-      btn.dataset.connected = 'false';
-      
-      document.getElementById('connection-info-section').style.display = 'none';
     }
   } catch (error) {
-    console.error('Connection check error:', error);
+    console.error('[Intel CRM] Connection check error:', error);
     statusEl.className = 'status disconnected';
     statusEl.querySelector('.status-text').textContent = 'Error';
     btn.textContent = 'Save & Connect';
     btn.className = 'btn btn-primary';
     btn.dataset.connected = 'false';
   }
-  
-  await loadConnectionState();
 }
 
 function formatTime(isoString) {
