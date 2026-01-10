@@ -445,7 +445,7 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
 
       {/* Lightbox */}
       <Dialog open={!!lightboxItem} onOpenChange={() => { setLightboxItem(null); setIsFaceTaggingMode(false); }}>
-        <DialogContent className={`p-0 overflow-hidden ${isFaceTaggingMode ? 'max-w-6xl' : 'max-w-4xl'}`}>
+        <DialogContent className={`p-0 ${isFaceTaggingMode ? 'max-w-6xl max-h-[95vh] overflow-y-auto' : 'max-w-4xl overflow-hidden'}`}>
           <Button
             variant="ghost"
             size="icon"
