@@ -1,18 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Calendar, 
   CheckCircle2, 
   Loader2, 
-  Settings,
   RefreshCw,
   Trash2,
   AlertCircle
@@ -20,9 +16,6 @@ import {
 import { toast } from 'sonner';
 
 export function CalendarSyncSettings() {
-  const [showGoogleConfig, setShowGoogleConfig] = useState(false);
-  const [googleClientId, setGoogleClientId] = useState('');
-  const [googleClientSecret, setGoogleClientSecret] = useState('');
   const queryClient = useQueryClient();
 
   const redirectUri = `${window.location.origin}/settings?source=google-calendar`;
@@ -76,20 +69,11 @@ export function CalendarSyncSettings() {
 
   const handleGoogleCallback = async (code: string) => {
     try {
-      const storedClientId = localStorage.getItem('google_calendar_client_id');
-      const storedClientSecret = localStorage.getItem('google_calendar_client_secret');
-      
-      if (!storedClientId || !storedClientSecret) {
-        toast.error('Missing OAuth credentials. Please reconfigure.');
-        return;
-      }
-
+      // Exchange code for tokens using server-side secrets
       const response = await supabase.functions.invoke('google-calendar-oauth', {
         body: {
           action: 'exchange',
           code,
-          clientId: storedClientId,
-          clientSecret: storedClientSecret,
           redirectUri,
         },
       });
@@ -105,17 +89,10 @@ export function CalendarSyncSettings() {
 
   const connectGoogleMutation = useMutation({
     mutationFn: async () => {
-      if (!googleClientId || !googleClientSecret) {
-        throw new Error('Please enter your Google OAuth credentials');
-      }
-
-      localStorage.setItem('google_calendar_client_id', googleClientId);
-      localStorage.setItem('google_calendar_client_secret', googleClientSecret);
-
+      // Get auth URL using server-side credentials
       const response = await supabase.functions.invoke('google-calendar-oauth', {
         body: {
           action: 'get_auth_url',
-          clientId: googleClientId,
           redirectUri,
         },
       });
@@ -169,8 +146,6 @@ export function CalendarSyncSettings() {
     },
     onSuccess: () => {
       toast.success('Disconnected from Google Calendar');
-      localStorage.removeItem('google_calendar_client_id');
-      localStorage.removeItem('google_calendar_client_secret');
       queryClient.invalidateQueries({ queryKey: ['google-calendar-config'] });
     },
     onError: (error: Error) => {
@@ -252,61 +227,30 @@ export function CalendarSyncSettings() {
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Set up Google OAuth credentials in the 
-                  <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-primary underline ml-1">
-                    Google Cloud Console
-                  </a>
+                  Google Calendar integration uses server-side OAuth credentials.
+                  Click below to connect your account securely.
                 </AlertDescription>
               </Alert>
 
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start"
-                onClick={() => setShowGoogleConfig(!showGoogleConfig)}
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                {showGoogleConfig ? 'Hide' : 'Configure'} OAuth Credentials
-              </Button>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">Redirect URI for Google Console:</p>
+                <code className="block p-2 bg-muted rounded text-sm break-all">
+                  {redirectUri}
+                </code>
+              </div>
 
-              {showGoogleConfig && (
-                <div className="space-y-4 p-4 border rounded-lg">
-                  <div className="space-y-2">
-                    <Label>Client ID</Label>
-                    <Input
-                      placeholder="your-client-id.apps.googleusercontent.com"
-                      value={googleClientId}
-                      onChange={(e) => setGoogleClientId(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Client Secret</Label>
-                    <Input
-                      type="password"
-                      placeholder="Your client secret"
-                      value={googleClientSecret}
-                      onChange={(e) => setGoogleClientSecret(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Redirect URI</Label>
-                    <code className="block p-2 bg-muted rounded text-sm break-all">
-                      {redirectUri}
-                    </code>
-                  </div>
-                  <Button 
-                    onClick={() => connectGoogleMutation.mutate()}
-                    disabled={connectGoogleMutation.isPending || !googleClientId || !googleClientSecret}
-                    className="w-full"
-                  >
-                    {connectGoogleMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Calendar className="h-4 w-4 mr-2" />
-                    )}
-                    Connect Google Calendar
-                  </Button>
-                </div>
-              )}
+              <Button 
+                onClick={() => connectGoogleMutation.mutate()}
+                disabled={connectGoogleMutation.isPending}
+                className="w-full"
+              >
+                {connectGoogleMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Calendar className="h-4 w-4 mr-2" />
+                )}
+                Connect Google Calendar
+              </Button>
             </>
           )}
         </CardContent>

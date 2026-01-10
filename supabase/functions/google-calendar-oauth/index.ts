@@ -10,8 +10,6 @@ interface TokenRequest {
   action: 'exchange' | 'refresh' | 'revoke' | 'get_auth_url';
   code?: string;
   refreshToken?: string;
-  clientId?: string;
-  clientSecret?: string;
   redirectUri?: string;
 }
 
@@ -24,6 +22,19 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Server-side OAuth credentials from secrets
+    const clientId = Deno.env.get("GOOGLE_CALENDAR_CLIENT_ID");
+    const clientSecret = Deno.env.get("GOOGLE_CALENDAR_CLIENT_SECRET");
+
+    if (!clientId || !clientSecret) {
+      return new Response(JSON.stringify({ 
+        error: "Google Calendar OAuth not configured. Please add GOOGLE_CALENDAR_CLIENT_ID and GOOGLE_CALENDAR_CLIENT_SECRET to server secrets." 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -50,11 +61,11 @@ serve(async (req) => {
     const userId = claimsData.claims.sub;
 
     const body: TokenRequest = await req.json();
-    const { action, code, refreshToken, clientId, clientSecret, redirectUri } = body;
+    const { action, code, redirectUri } = body;
 
     if (action === 'get_auth_url') {
-      if (!clientId || !redirectUri) {
-        return new Response(JSON.stringify({ error: "Missing clientId or redirectUri" }), {
+      if (!redirectUri) {
+        return new Response(JSON.stringify({ error: "Missing redirectUri" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -80,13 +91,14 @@ serve(async (req) => {
     }
 
     if (action === 'exchange') {
-      if (!code || !clientId || !clientSecret || !redirectUri) {
+      if (!code || !redirectUri) {
         return new Response(JSON.stringify({ error: "Missing required parameters" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
+      // Exchange code for tokens using server-side secrets
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
