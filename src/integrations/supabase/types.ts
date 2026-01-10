@@ -5712,6 +5712,221 @@ export type Database = {
           },
         ]
       }
+      face_regions: {
+        Row: {
+          confidence: number | null
+          created_at: string | null
+          cropped_storage_path: string | null
+          cropped_thumbnail_url: string | null
+          descriptor: string | null
+          detection_method: string
+          embedding: string | null
+          error_message: string | null
+          features: Json | null
+          height: number
+          id: string
+          job_id: string | null
+          media_id: string
+          profile_id: string | null
+          shape: string
+          status: string | null
+          updated_at: string | null
+          user_id: string
+          verified: boolean | null
+          width: number
+          x: number
+          y: number
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string | null
+          cropped_storage_path?: string | null
+          cropped_thumbnail_url?: string | null
+          descriptor?: string | null
+          detection_method?: string
+          embedding?: string | null
+          error_message?: string | null
+          features?: Json | null
+          height: number
+          id?: string
+          job_id?: string | null
+          media_id: string
+          profile_id?: string | null
+          shape?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+          verified?: boolean | null
+          width: number
+          x: number
+          y: number
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string | null
+          cropped_storage_path?: string | null
+          cropped_thumbnail_url?: string | null
+          descriptor?: string | null
+          detection_method?: string
+          embedding?: string | null
+          error_message?: string | null
+          features?: Json | null
+          height?: number
+          id?: string
+          job_id?: string | null
+          media_id?: string
+          profile_id?: string | null
+          shape?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+          verified?: boolean | null
+          width?: number
+          x?: number
+          y?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "face_regions_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "face_regions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "face_regions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "face_regions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      face_scan_jobs: {
+        Row: {
+          actual_cost_cents: number | null
+          auto_tag_threshold: number | null
+          completed_at: string | null
+          confirm_threshold: number | null
+          created_at: string | null
+          current_batch_index: number | null
+          estimated_cost_cents: number | null
+          faces_auto_tagged: number | null
+          faces_detected: number | null
+          faces_matched: number | null
+          faces_pending_review: number | null
+          failed_items: number | null
+          failed_media_ids: Json | null
+          id: string
+          job_type: string
+          last_error: string | null
+          last_progress_at: string | null
+          max_retries: number | null
+          media_ids: string[] | null
+          model_key: string | null
+          paused_at: string | null
+          processed_items: number | null
+          processed_media_ids: string[] | null
+          profile_ids: string[] | null
+          retry_count: number | null
+          scan_mode: string | null
+          skipped_items: number | null
+          started_at: string | null
+          status: string | null
+          successful_items: number | null
+          tokens_used: number | null
+          total_items: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          actual_cost_cents?: number | null
+          auto_tag_threshold?: number | null
+          completed_at?: string | null
+          confirm_threshold?: number | null
+          created_at?: string | null
+          current_batch_index?: number | null
+          estimated_cost_cents?: number | null
+          faces_auto_tagged?: number | null
+          faces_detected?: number | null
+          faces_matched?: number | null
+          faces_pending_review?: number | null
+          failed_items?: number | null
+          failed_media_ids?: Json | null
+          id?: string
+          job_type: string
+          last_error?: string | null
+          last_progress_at?: string | null
+          max_retries?: number | null
+          media_ids?: string[] | null
+          model_key?: string | null
+          paused_at?: string | null
+          processed_items?: number | null
+          processed_media_ids?: string[] | null
+          profile_ids?: string[] | null
+          retry_count?: number | null
+          scan_mode?: string | null
+          skipped_items?: number | null
+          started_at?: string | null
+          status?: string | null
+          successful_items?: number | null
+          tokens_used?: number | null
+          total_items?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          actual_cost_cents?: number | null
+          auto_tag_threshold?: number | null
+          completed_at?: string | null
+          confirm_threshold?: number | null
+          created_at?: string | null
+          current_batch_index?: number | null
+          estimated_cost_cents?: number | null
+          faces_auto_tagged?: number | null
+          faces_detected?: number | null
+          faces_matched?: number | null
+          faces_pending_review?: number | null
+          failed_items?: number | null
+          failed_media_ids?: Json | null
+          id?: string
+          job_type?: string
+          last_error?: string | null
+          last_progress_at?: string | null
+          max_retries?: number | null
+          media_ids?: string[] | null
+          model_key?: string | null
+          paused_at?: string | null
+          processed_items?: number | null
+          processed_media_ids?: string[] | null
+          profile_ids?: string[] | null
+          retry_count?: number | null
+          scan_mode?: string | null
+          skipped_items?: number | null
+          started_at?: string | null
+          status?: string | null
+          successful_items?: number | null
+          tokens_used?: number | null
+          total_items?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       facial_analyses: {
         Row: {
           ai_model_used: string | null
