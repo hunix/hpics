@@ -716,36 +716,6 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
             </>
           )}
         </div>
-          ) : (
-            // Standard mode controls
-            !isProcessing ? (
-              <Button onClick={startProcessing} disabled={totalItems === 0} className="flex-1">
-                <Play className="h-4 w-4 mr-2" />
-                Start Generation
-              </Button>
-            ) : (
-              <>
-                <Button onClick={togglePause} variant="outline" className="flex-1">
-                  {isPaused ? (
-                    <>
-                      <Play className="h-4 w-4 mr-2" />
-                      Resume
-                    </>
-                  ) : (
-                    <>
-                      <Pause className="h-4 w-4 mr-2" />
-                      Pause
-                    </>
-                  )}
-                </Button>
-                <Button onClick={stopProcessing} variant="destructive">
-                  <X className="h-4 w-4 mr-2" />
-                  Stop
-                </Button>
-              </>
-            )
-          )}
-        </div>
       </CardContent>
     </Card>
   );
