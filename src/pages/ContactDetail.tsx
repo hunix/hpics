@@ -18,7 +18,7 @@ import {
   FileText, Image, Target, Gift, Heart, Clock,
   Calendar, Sparkles, Users, ChevronRight, Building,
   Mic, Eye, Activity, Volume2, UserCircle, GitCompare, Wallet, Link2, Mail, UserCheck,
-  Milestone, Settings2, StickyNote, BookOpen, Shield, Network, Globe, TrendingUp, Triangle, Search, Fingerprint, Share2
+  Milestone, Settings2, StickyNote, BookOpen, Shield, Network, Globe, TrendingUp, Triangle, Search, Fingerprint, Share2, Package, UserX, ScanText
 } from 'lucide-react';
 import { ContactDialog } from '@/components/contacts/ContactDialog';
 import { ContactMethodsManager } from '@/components/contacts/ContactMethodsManager';
@@ -82,6 +82,9 @@ import { BehavioralPredictionsPanel } from '@/components/intelligence/Behavioral
 import { ShareContactDialog } from '@/components/collaboration/ShareContactDialog';
 import { ContactCommentsPanel } from '@/components/collaboration/ContactCommentsPanel';
 import { TeamPresenceIndicator } from '@/components/collaboration/TeamPresenceIndicator';
+import { DetectedItemsManager } from '@/components/intelligence/DetectedItemsManager';
+import { UnknownPersonsQueue } from '@/components/intelligence/UnknownPersonsQueue';
+import { DocumentIntelligencePanel } from '@/components/intelligence/DocumentIntelligencePanel';
 import { cn } from '@/lib/utils';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
 import { ProfileCompletenessWidget } from '@/components/contacts/ProfileCompletenessWidget';
@@ -100,7 +103,8 @@ type SectionId =
   | 'activity' | 'trust-assessment' | 'threat-assessment' | 'osint' | 'inferred-connections' | 'predictions'
   | 'dossier' | 'network-intel' | 'locations'
   | 'temporal' | 'trajectory' | 'triangulation' | 'consistency' | 'unified-profile' | 'shared-experiences'
-  | 'team-notes';
+  | 'team-notes'
+  | 'detected-items' | 'unknown-persons' | 'doc-intelligence';
 
 interface NavSection {
   id: SectionId;
@@ -150,6 +154,9 @@ const sections: NavSection[] = [
   { id: 'comparison', label: 'Compare Over Time', icon: GitCompare, group: 'Analysis' },
   { id: 'biometrics', label: 'Biometric Identity', icon: Fingerprint, group: 'Analysis' },
   { id: 'cross-modal', label: 'Cross-Modal Synthesis', icon: Brain, group: 'Analysis' },
+  { id: 'detected-items', label: 'Detected Items', icon: Package, group: 'Intelligence' },
+  { id: 'unknown-persons', label: 'Unknown Persons', icon: UserX, group: 'Intelligence' },
+  { id: 'doc-intelligence', label: 'Document OCR', icon: ScanText, group: 'Intelligence' },
   { id: 'interests', label: 'Interests', icon: Heart, group: 'Relationship' },
   { id: 'gifts', label: 'Gifts', icon: Gift, group: 'Relationship' },
   { id: 'goals', label: 'Goals', icon: Target, group: 'Relationship' },
@@ -338,6 +345,12 @@ export default function ContactDetail() {
         return <AnalysisComparison profileId={contact.id} profileName={contactName} />;
       case 'cross-modal':
         return <CrossModalSynthesisPanel profileId={contact.id} />;
+      case 'detected-items':
+        return <DetectedItemsManager profileId={contact.id} />;
+      case 'unknown-persons':
+        return <UnknownPersonsQueue profileId={contact.id} />;
+      case 'doc-intelligence':
+        return <DocumentIntelligencePanel profileId={contact.id} />;
       case 'biometrics':
         return <BiometricSignatureBuilder profileId={contact.id} profileName={contactName} avatarUrl={contact.avatar_url} />;
       case 'outreach':

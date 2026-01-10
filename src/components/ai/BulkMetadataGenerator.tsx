@@ -9,7 +9,9 @@ import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Play, Pause, RotateCcw, Loader2, Check, X, Image, Music, Video, FileText } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Sparkles, Play, Pause, RotateCcw, Loader2, Check, X, Image, Music, Video, FileText, Zap, Grid3X3 } from 'lucide-react';
+import { useMosaicMetadataGeneration } from '@/hooks/useMosaicMetadataGeneration';
 
 interface BulkMetadataGeneratorProps {
   profileId?: string;
@@ -42,7 +44,11 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Mosaic mode hook
+  const { generate: generateMosaic, isGenerating: isMosaicGenerating, progress: mosaicProgress, getCostPreview, reset: resetMosaic } = useMosaicMetadataGeneration();
 
+  const [useMosaicMode, setUseMosaicMode] = useState(true); // Default to mosaic for efficiency
   const [selectedTier, setSelectedTier] = useState('standard');
   const [selectedModel, setSelectedModel] = useState('google/gemini-2.5-flash');
   const [includeImages, setIncludeImages] = useState(true);
@@ -112,6 +118,25 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
   const estimatedCost = (() => {
     if (!mediaCounts || !documentCounts) return 0;
 
+    // For mosaic mode, use the mosaic cost calculation
+    if (useMosaicMode && includeImages) {
+      const imageCount = mediaCounts.counts.image;
+      const preview = getCostPreview(imageCount, selectedModel);
+      // Mosaic cost from savings calculation
+      const mosaicCost = preview.estimatedCostMosaic;
+      
+      // Add regular cost for other types
+      let otherCost = 0;
+      const model = MODEL_OPTIONS.find(m => m.value === selectedModel);
+      const tier = ANALYSIS_TIERS.find(t => t.value === selectedTier);
+      if (model && tier) {
+        if (includeAudio) otherCost += (mediaCounts.counts.audio * TOKEN_ESTIMATES.audio / 1_000_000) * model.costPer1K * tier.costMultiplier;
+        if (includeVideos) otherCost += (mediaCounts.counts.video * TOKEN_ESTIMATES.video / 1_000_000) * model.costPer1K * tier.costMultiplier;
+        if (includeDocuments) otherCost += (documentCounts.count * TOKEN_ESTIMATES.document / 1_000_000) * model.costPer1K * tier.costMultiplier;
+      }
+      return mosaicCost + otherCost;
+    }
+
     const model = MODEL_OPTIONS.find(m => m.value === selectedModel);
     const tier = ANALYSIS_TIERS.find(t => t.value === selectedTier);
     if (!model || !tier) return 0;
@@ -124,6 +149,22 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
 
     // Apply tier cost multiplier
     return (totalTokens / 1_000_000) * model.costPer1K * tier.costMultiplier;
+  })();
+
+  // Calculate mosaic savings
+  const mosaicSavings = (() => {
+    if (!mediaCounts || !useMosaicMode || !includeImages) return null;
+    const imageCount = mediaCounts.counts.image;
+    if (imageCount === 0) return null;
+    const preview = getCostPreview(imageCount, selectedModel);
+    return {
+      regularCost: preview.estimatedCostIndividual,
+      mosaicCost: preview.estimatedCostMosaic,
+      savings: preview.estimatedCostIndividual - preview.estimatedCostMosaic,
+      savingsPercent: preview.savingsPercent,
+      mosaicsNeeded: preview.mosaicsRequired,
+      imagesPerMosaic: preview.gridCols * preview.gridRows,
+    };
   })();
 
   const totalItems = (() => {
@@ -322,6 +363,50 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Mosaic Mode Toggle */}
+        <div className="flex items-center justify-between p-4 rounded-lg border bg-gradient-to-r from-primary/5 to-primary/10">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Grid3X3 className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-medium">Mosaic Processing</span>
+                <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600 border-green-500/20">
+                  <Zap className="h-3 w-3 mr-1" />
+                  96% faster
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Pack multiple images into mosaics for efficient batch analysis
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={useMosaicMode}
+            onCheckedChange={setUseMosaicMode}
+            disabled={isProcessing || isMosaicGenerating}
+          />
+        </div>
+
+        {/* Mosaic savings preview */}
+        {useMosaicMode && mosaicSavings && (
+          <div className="p-3 rounded-lg border border-green-500/20 bg-green-500/5 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Mosaic efficiency:</span>
+              <span className="font-medium text-green-600">
+                {mosaicSavings.mosaicsNeeded} mosaics × {mosaicSavings.imagesPerMosaic} images
+              </span>
+            </div>
+            <div className="flex items-center justify-between mt-1">
+              <span className="text-muted-foreground">Est. savings:</span>
+              <span className="font-medium text-green-600">
+                ${mosaicSavings.savings.toFixed(4)} ({mosaicSavings.savingsPercent}% less)
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* File type selection */}
         <div className="space-y-3">
           <label className="text-sm font-medium">File Types to Process</label>
@@ -330,17 +415,18 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
               <Checkbox
                 checked={includeImages}
                 onCheckedChange={(c) => setIncludeImages(!!c)}
-                disabled={isProcessing}
+                disabled={isProcessing || isMosaicGenerating}
               />
               <Image className="h-4 w-4" />
               <span>Images</span>
               <Badge variant="secondary">{mediaCounts?.counts.image || 0}</Badge>
+              {useMosaicMode && includeImages && <Badge variant="outline" className="text-xs">Mosaic</Badge>}
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <Checkbox
                 checked={includeAudio}
                 onCheckedChange={(c) => setIncludeAudio(!!c)}
-                disabled={isProcessing}
+                disabled={isProcessing || isMosaicGenerating}
               />
               <Music className="h-4 w-4" />
               <span>Audio</span>
@@ -350,7 +436,7 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
               <Checkbox
                 checked={includeVideos}
                 onCheckedChange={(c) => setIncludeVideos(!!c)}
-                disabled={isProcessing}
+                disabled={isProcessing || isMosaicGenerating}
               />
               <Video className="h-4 w-4" />
               <span>Videos</span>
@@ -360,7 +446,7 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
               <Checkbox
                 checked={includeDocuments}
                 onCheckedChange={(c) => setIncludeDocuments(!!c)}
-                disabled={isProcessing}
+                disabled={isProcessing || isMosaicGenerating}
               />
               <FileText className="h-4 w-4" />
               <span>Documents</span>
@@ -445,8 +531,8 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
           </div>
         </div>
 
-        {/* Progress */}
-        {(isProcessing || progress.completed > 0 || progress.failed > 0) && (
+        {/* Standard Progress */}
+        {!useMosaicMode && (isProcessing || progress.completed > 0 || progress.failed > 0) && (
           <div className="space-y-3">
             <div className="flex items-center justify-between text-sm">
               <span>{progress.current || 'Ready'}</span>
@@ -477,33 +563,118 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
           </div>
         )}
 
+        {/* Mosaic Progress */}
+        {useMosaicMode && mosaicProgress && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="flex items-center gap-2">
+                {mosaicProgress.phase === 'complete' ? (
+                  <Check className="h-4 w-4 text-green-600" />
+                ) : mosaicProgress.phase === 'error' ? (
+                  <X className="h-4 w-4 text-destructive" />
+                ) : (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                )}
+                {mosaicProgress.message}
+              </span>
+              <span>
+                Mosaic {mosaicProgress.currentMosaic} / {mosaicProgress.totalMosaics}
+              </span>
+            </div>
+            <Progress 
+              value={mosaicProgress.totalImages > 0 
+                ? (mosaicProgress.imagesProcessed / mosaicProgress.totalImages) * 100 
+                : 0} 
+            />
+            <div className="flex flex-wrap gap-4 text-sm">
+              <span className="flex items-center gap-1">
+                <Image className="h-4 w-4" />
+                {mosaicProgress.imagesProcessed} images
+              </span>
+              {mosaicProgress.itemsDetected > 0 && (
+                <span className="text-blue-600">
+                  {mosaicProgress.itemsDetected} items detected
+                </span>
+              )}
+              {mosaicProgress.facesDetected > 0 && (
+                <span className="text-purple-600">
+                  {mosaicProgress.facesDetected} faces
+                </span>
+              )}
+              {mosaicProgress.documentsDetected > 0 && (
+                <span className="text-amber-600">
+                  {mosaicProgress.documentsDetected} documents
+                </span>
+              )}
+              {mosaicProgress.costCents > 0 && (
+                <span className="text-muted-foreground">
+                  Cost: ${(mosaicProgress.costCents / 100).toFixed(4)}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Controls */}
         <div className="flex gap-2">
-          {!isProcessing ? (
-            <Button onClick={startProcessing} disabled={totalItems === 0} className="flex-1">
-              <Play className="h-4 w-4 mr-2" />
-              Start Generation
+          {useMosaicMode ? (
+            // Mosaic mode controls
+            <Button 
+              onClick={() => {
+                const mediaTypes: ('image' | 'video')[] = [];
+                if (includeImages) mediaTypes.push('image');
+                if (includeVideos) mediaTypes.push('video');
+                
+                generateMosaic({
+                  profileId,
+                  model: selectedModel,
+                  skipProcessed,
+                  mediaTypes,
+                });
+              }}
+              disabled={isMosaicGenerating || (mediaCounts?.counts.image || 0) === 0}
+              className="flex-1"
+            >
+              {isMosaicGenerating ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Grid3X3 className="h-4 w-4 mr-2" />
+                  Start Mosaic Generation
+                </>
+              )}
             </Button>
           ) : (
-            <>
-              <Button onClick={togglePause} variant="outline" className="flex-1">
-                {isPaused ? (
-                  <>
-                    <Play className="h-4 w-4 mr-2" />
-                    Resume
-                  </>
-                ) : (
-                  <>
-                    <Pause className="h-4 w-4 mr-2" />
-                    Pause
-                  </>
-                )}
+            // Standard mode controls
+            !isProcessing ? (
+              <Button onClick={startProcessing} disabled={totalItems === 0} className="flex-1">
+                <Play className="h-4 w-4 mr-2" />
+                Start Generation
               </Button>
-              <Button onClick={stopProcessing} variant="destructive">
-                <X className="h-4 w-4 mr-2" />
-                Stop
-              </Button>
-            </>
+            ) : (
+              <>
+                <Button onClick={togglePause} variant="outline" className="flex-1">
+                  {isPaused ? (
+                    <>
+                      <Play className="h-4 w-4 mr-2" />
+                      Resume
+                    </>
+                  ) : (
+                    <>
+                      <Pause className="h-4 w-4 mr-2" />
+                      Pause
+                    </>
+                  )}
+                </Button>
+                <Button onClick={stopProcessing} variant="destructive">
+                  <X className="h-4 w-4 mr-2" />
+                  Stop
+                </Button>
+              </>
+            )
           )}
         </div>
       </CardContent>
