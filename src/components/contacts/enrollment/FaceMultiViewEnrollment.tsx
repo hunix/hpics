@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Camera, Upload, CheckCircle2, AlertCircle, Loader2,
-  RotateCcw, ImageIcon, Sparkles
+  ImageIcon, Sparkles, Tag, Users
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -77,6 +78,53 @@ function MediaSelectCard({
   );
 }
 
+function TaggedFaceCard({ 
+  region, 
+  isProcessing 
+}: { 
+  region: any; 
+  isProcessing: boolean;
+}) {
+  // Use cropped thumbnail if available, otherwise fall back to media thumbnail
+  const mediaData = Array.isArray(region.media) ? region.media[0] : region.media;
+  const { signedUrl: mediaUrl } = useSignedUrl({
+    bucket: 'media', 
+    path: region.cropped_thumbnail_url || mediaData?.thumbnail_url || mediaData?.storage_path 
+  });
+
+  const displayUrl = mediaUrl;
+
+  return (
+    <Card className={`transition-all ${isProcessing ? 'opacity-50' : ''}`}>
+      <CardContent className="p-0 aspect-square relative overflow-hidden rounded-lg">
+        {displayUrl ? (
+          <img 
+            src={displayUrl}
+            alt="Tagged face"
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-muted">
+            <Users className="h-8 w-8 text-muted-foreground" />
+          </div>
+        )}
+        {region.cropped_storage_path && (
+          <div className="absolute top-1 left-1">
+            <Badge variant="secondary" className="text-[10px] px-1 py-0">
+              Cropped
+            </Badge>
+          </div>
+        )}
+        {isProcessing && (
+          <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function FaceMultiViewEnrollment({ 
   profileId, 
   profileName,
@@ -89,8 +137,31 @@ export function FaceMultiViewEnrollment({
   const [uploadUrl, setUploadUrl] = useState('');
   const [processing, setProcessing] = useState(false);
   const [model, setModel] = useState<'standard' | 'premium'>('standard');
+  const [activeTab, setActiveTab] = useState<'tagged' | 'photos'>('tagged');
 
-  const { data: existingMedia = [], isLoading } = useQuery({
+  // Fetch tagged face regions for this profile
+  const { data: taggedFaces = [], isLoading: loadingTagged } = useQuery({
+    queryKey: ['tagged-faces-for-profile', profileId, user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('face_regions')
+        .select(`
+          id, media_id, x, y, width, height, shape,
+          status, cropped_storage_path, cropped_thumbnail_url,
+          media:media(id, storage_path, thumbnail_url)
+        `)
+        .eq('user_id', user.id)
+        .eq('profile_id', profileId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user && !!profileId
+  });
+
+  const { data: existingMedia = [], isLoading: loadingMedia } = useQuery({
     queryKey: ['contact-images-for-face', profileId, user?.id],
     queryFn: async () => {
       if (!user) return [];
@@ -107,6 +178,35 @@ export function FaceMultiViewEnrollment({
       return data || [];
     },
     enabled: !!user && !!profileId
+  });
+
+  // Mutation for enrolling from tagged faces
+  const enrollFromTagsMutation = useMutation({
+    mutationFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase.functions.invoke('enroll-from-tagged-faces', {
+        body: { 
+          profileId,
+          model: model === 'premium' ? 'google/gemini-3-pro-preview' : 'google/gemini-2.5-flash',
+          limit: 20
+        }
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error || 'Enrollment failed');
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['contact-biometrics-extended', profileId] });
+      queryClient.invalidateQueries({ queryKey: ['biometric-samples', profileId] });
+      queryClient.invalidateQueries({ queryKey: ['tagged-faces-for-profile', profileId] });
+      toast.success(`Signature built from ${data.regionsProcessed} tagged faces`);
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed: ${error.message}`);
+    }
   });
 
   const extractMutation = useMutation({
@@ -136,6 +236,19 @@ export function FaceMultiViewEnrollment({
       toast.error(`Failed: ${error.message}`);
     }
   });
+
+  const handleEnrollFromTags = async () => {
+    if (taggedFaces.length === 0) {
+      toast.error('No tagged faces to process');
+      return;
+    }
+    setProcessing(true);
+    try {
+      await enrollFromTagsMutation.mutateAsync();
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   const handleEnrollSelected = async () => {
     if (selectedMedia.length === 0) {
@@ -252,78 +365,170 @@ export function FaceMultiViewEnrollment({
         </Button>
       </div>
 
-      {/* Existing Photos */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h4 className="font-medium">Select Photos ({selectedMedia.length} selected)</h4>
-          {selectedMedia.length > 0 && (
-            <Button 
-              onClick={handleEnrollSelected}
-              disabled={processing}
-              size="sm"
-            >
-              {processing ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  <Camera className="h-4 w-4 mr-2" />
-                  Analyze Selected ({selectedMedia.length})
-                </>
-              )}
-            </Button>
+      {/* Source Selection Tabs */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'tagged' | 'photos')}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="tagged" className="gap-2">
+            <Tag className="h-4 w-4" />
+            Tagged Faces ({taggedFaces.length})
+          </TabsTrigger>
+          <TabsTrigger value="photos" className="gap-2">
+            <ImageIcon className="h-4 w-4" />
+            Select Photos
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="tagged" className="mt-4 space-y-4">
+          {/* Tagged Faces Banner */}
+          {taggedFaces.length > 0 ? (
+            <Card className="border-primary/50 bg-primary/5">
+              <CardContent className="pt-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-full bg-primary/10">
+                    <Tag className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium">
+                      {taggedFaces.length} Tagged Face{taggedFaces.length !== 1 ? 's' : ''} Available
+                    </h4>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      You've tagged {taggedFaces.length} face{taggedFaces.length !== 1 ? 's' : ''} of {profileName} in your photos. 
+                      Use these verified faces to build a high-confidence biometric signature.
+                    </p>
+                    <Button 
+                      onClick={handleEnrollFromTags}
+                      disabled={processing}
+                      className="mt-3"
+                    >
+                      {processing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Building Signature...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Build from {taggedFaces.length} Tagged Faces
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <Tag className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
+                <h4 className="font-medium mb-1">No Tagged Faces Found</h4>
+                <p className="text-sm text-muted-foreground">
+                  Go to the Media tab to tag faces of {profileName} in your photos, 
+                  then return here to build the biometric signature.
+                </p>
+              </CardContent>
+            </Card>
           )}
-        </div>
 
-        {isLoading ? (
-          <div className="flex items-center justify-center h-32">
-            <Loader2 className="h-6 w-6 animate-spin" />
-          </div>
-        ) : existingMedia.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <ImageIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
-            <p>No photos found for this contact</p>
-            <p className="text-sm">Upload photos in the Media tab first</p>
-          </div>
-        ) : (
-          <ScrollArea className="h-[300px]">
-            <div className="grid grid-cols-4 md:grid-cols-6 gap-2 p-1">
-              {existingMedia.map(media => (
-                <MediaSelectCard
-                  key={media.id}
-                  media={media}
-                  isSelected={selectedMedia.includes(media.id)}
-                  isProcessing={processing && selectedMedia.includes(media.id)}
-                  onSelect={() => toggleMediaSelection(media.id)}
-                />
-              ))}
+          {/* Tagged Faces Preview */}
+          {taggedFaces.length > 0 && (
+            <div>
+              <h4 className="font-medium mb-3">Tagged Faces Preview</h4>
+              {loadingTagged ? (
+                <div className="flex items-center justify-center h-32">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : (
+                <ScrollArea className="h-[200px]">
+                  <div className="grid grid-cols-4 md:grid-cols-6 gap-2 p-1">
+                    {taggedFaces.map((region: any) => (
+                      <TaggedFaceCard
+                        key={region.id}
+                        region={region}
+                        isProcessing={processing}
+                      />
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
             </div>
-          </ScrollArea>
-        )}
-      </div>
+          )}
+        </TabsContent>
 
-      {/* URL Upload */}
-      <Card>
-        <CardContent className="pt-4 space-y-3">
-          <Label>Or add from URL</Label>
-          <div className="flex gap-2">
-            <Input
-              placeholder="https://example.com/photo.jpg"
-              value={uploadUrl}
-              onChange={(e) => setUploadUrl(e.target.value)}
-            />
-            <Button 
-              onClick={handleEnrollFromUrl}
-              disabled={!uploadUrl.trim() || processing}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Add
-            </Button>
+        <TabsContent value="photos" className="mt-4 space-y-4">
+          {/* Existing Photos */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium">Select Photos ({selectedMedia.length} selected)</h4>
+              {selectedMedia.length > 0 && (
+                <Button 
+                  onClick={handleEnrollSelected}
+                  disabled={processing}
+                  size="sm"
+                >
+                  {processing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="h-4 w-4 mr-2" />
+                      Analyze Selected ({selectedMedia.length})
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+
+            {loadingMedia ? (
+              <div className="flex items-center justify-center h-32">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            ) : existingMedia.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <ImageIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p>No photos found for this contact</p>
+                <p className="text-sm">Upload photos in the Media tab first</p>
+              </div>
+            ) : (
+              <ScrollArea className="h-[300px]">
+                <div className="grid grid-cols-4 md:grid-cols-6 gap-2 p-1">
+                  {existingMedia.map(media => (
+                    <MediaSelectCard
+                      key={media.id}
+                      media={media}
+                      isSelected={selectedMedia.includes(media.id)}
+                      isProcessing={processing && selectedMedia.includes(media.id)}
+                      onSelect={() => toggleMediaSelection(media.id)}
+                    />
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
           </div>
-        </CardContent>
-      </Card>
+
+          {/* URL Upload */}
+          <Card>
+            <CardContent className="pt-4 space-y-3">
+              <Label>Or add from URL</Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="https://example.com/photo.jpg"
+                  value={uploadUrl}
+                  onChange={(e) => setUploadUrl(e.target.value)}
+                />
+                <Button 
+                  onClick={handleEnrollFromUrl}
+                  disabled={!uploadUrl.trim() || processing}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Add
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
