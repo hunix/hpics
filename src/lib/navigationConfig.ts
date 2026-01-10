@@ -128,6 +128,16 @@ export const navigationItems: NavItem[] = [
   
   // Intelligence
   {
+    id: 'intelligence-hub',
+    title: 'Intelligence Hub',
+    url: '/intelligence',
+    icon: Brain,
+    description: 'RAG-powered cross-contact AI agent',
+    badge: 'new',
+    category: 'intelligence',
+    keywords: ['rag', 'agent', 'hub', 'intelligence', 'ai'],
+  },
+  {
     id: 'ai-insights',
     title: 'AI Insights',
     url: '/insights',

@@ -7,6 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const LOVABLE_AI_URL = 'https://ai.gateway.lovable.dev/v1/embeddings';
+
 // Data sources to embed with their configurations
 const DATA_SOURCES = [
   { 
@@ -137,11 +139,17 @@ const CHUNK_CONFIG = {
 };
 
 async function generateEmbedding(text: string): Promise<number[] | null> {
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  if (!LOVABLE_API_KEY) {
+    console.error('LOVABLE_API_KEY is not configured');
+    return null;
+  }
+
   try {
-    const response = await fetch('https://api.openai.com/v1/embeddings', {
+    const response = await fetch(LOVABLE_AI_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -151,6 +159,14 @@ async function generateEmbedding(text: string): Promise<number[] | null> {
     });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        console.error('Rate limit exceeded for embeddings');
+        return null;
+      }
+      if (response.status === 402) {
+        console.error('Budget exceeded for embeddings');
+        return null;
+      }
       console.error('Embedding API error:', await response.text());
       return null;
     }
@@ -214,9 +230,10 @@ async function processSource(
   userId: string,
   source: typeof DATA_SOURCES[0],
   options: { profileId?: string; forceRefresh?: boolean; limit?: number }
-): Promise<{ processed: number; errors: number }> {
+): Promise<{ processed: number; errors: number; skipped: number }> {
   let processed = 0;
   let errors = 0;
+  let skipped = 0;
 
   try {
     // Build query based on source configuration
@@ -232,9 +249,17 @@ async function processSource(
         query = query.eq('conversations.profile_id', options.profileId);
       }
     } else {
+      const selectFields = [`id`, source.contentField, 'created_at'];
+      if (source.profileIdPath === 'profile_id') {
+        selectFields.push('profile_id');
+      }
+      if (source.additionalFields) {
+        selectFields.push(...source.additionalFields);
+      }
+      
       query = supabase
         .from(source.table)
-        .select(`id, ${source.contentField}, created_at, ${source.profileIdPath === 'profile_id' ? 'profile_id' : ''}${source.additionalFields ? ', ' + source.additionalFields.join(', ') : ''}`)
+        .select(selectFields.join(', '))
         .eq('user_id', userId);
 
       if (options.profileId && source.profileIdPath === 'profile_id') {
@@ -248,11 +273,11 @@ async function processSource(
 
     if (error) {
       console.error(`Error fetching from ${source.table}:`, error);
-      return { processed: 0, errors: 1 };
+      return { processed: 0, errors: 1, skipped: 0 };
     }
 
     if (!records || records.length === 0) {
-      return { processed: 0, errors: 0 };
+      return { processed: 0, errors: 0, skipped: 0 };
     }
 
     for (const record of records) {
@@ -260,7 +285,10 @@ async function processSource(
         // Extract content
         let content = record[source.contentField];
         
-        if (!content) continue;
+        if (!content) {
+          skipped++;
+          continue;
+        }
 
         if (source.isJson) {
           content = extractTextFromJson(content);
@@ -279,7 +307,10 @@ async function processSource(
         }
 
         // Skip if too short
-        if (content.length < (source.minLength || 10)) continue;
+        if (content.length < (source.minLength || 10)) {
+          skipped++;
+          continue;
+        }
 
         // Check if already embedded (unless force refresh)
         if (!options.forceRefresh) {
@@ -290,7 +321,10 @@ async function processSource(
             .eq('source_id', record.id)
             .single();
 
-          if (existing) continue;
+          if (existing) {
+            skipped++;
+            continue;
+          }
         }
 
         // Chunk the content
@@ -354,7 +388,7 @@ async function processSource(
     errors++;
   }
 
-  return { processed, errors };
+  return { processed, errors, skipped };
 }
 
 serve(async (req) => {
@@ -398,9 +432,10 @@ serve(async (req) => {
       ? DATA_SOURCES.filter(s => sourceTypes.includes(s.sourceType))
       : DATA_SOURCES;
 
-    const results: Record<string, { processed: number; errors: number }> = {};
+    const results: Record<string, { processed: number; errors: number; skipped: number }> = {};
     let totalProcessed = 0;
     let totalErrors = 0;
+    let totalSkipped = 0;
 
     for (const source of sourcesToProcess) {
       console.log(`Processing source: ${source.table}`);
@@ -414,12 +449,14 @@ serve(async (req) => {
       results[source.sourceType] = result;
       totalProcessed += result.processed;
       totalErrors += result.errors;
+      totalSkipped += result.skipped;
     }
 
     return new Response(JSON.stringify({
       success: true,
       totalProcessed,
       totalErrors,
+      totalSkipped,
       breakdown: results
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -427,6 +464,14 @@ serve(async (req) => {
 
   } catch (error: any) {
     console.error('Universal embedding processor error:', error);
+    
+    if (error?.message?.includes('Rate limit')) {
+      return new Response(JSON.stringify({ error: 'Rate limits exceeded. Please try again later.' }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
     return new Response(JSON.stringify({ error: error?.message || 'Unknown error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
