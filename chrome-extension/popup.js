@@ -4,7 +4,9 @@ document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
   await loadConfig();
+  await loadConnectionState();
   await loadCaptureHistory();
+  await loadActivityLog();
   setupEventListeners();
   await checkConnection();
 }
@@ -21,6 +23,59 @@ async function loadConfig() {
     document.getElementById('capture-likes').checked = config.captureLikes || false;
     document.getElementById('deep-scrape').checked = config.deepScrape || false;
   }
+}
+
+async function loadConnectionState() {
+  const response = await chrome.runtime.sendMessage({ type: 'GET_CONNECTION_STATE' });
+  
+  if (response.success && response.data) {
+    const state = response.data;
+    const infoSection = document.getElementById('connection-info-section');
+    
+    if (state.isConnected) {
+      infoSection.style.display = 'block';
+      
+      document.getElementById('connected-since').textContent = 
+        state.connectedAt ? formatTime(state.connectedAt) : '-';
+      document.getElementById('last-heartbeat').textContent = 
+        state.lastHeartbeat ? formatTime(state.lastHeartbeat) : '-';
+      
+      const lastSyncEl = document.getElementById('last-sync');
+      lastSyncEl.textContent = state.lastSync ? formatTime(state.lastSync) : 'Never';
+      
+      const syncStatusEl = document.getElementById('sync-status-text');
+      if (state.lastSyncStatus === 'success') {
+        syncStatusEl.textContent = 'Success';
+        syncStatusEl.className = 'info-value success';
+      } else if (state.lastSyncStatus === 'failed') {
+        syncStatusEl.textContent = 'Failed';
+        syncStatusEl.className = 'info-value error';
+      } else {
+        syncStatusEl.textContent = '-';
+        syncStatusEl.className = 'info-value';
+      }
+    } else {
+      infoSection.style.display = 'none';
+    }
+  }
+}
+
+async function loadActivityLog() {
+  const response = await chrome.runtime.sendMessage({ type: 'GET_ACTIVITY_LOG' });
+  const logEl = document.getElementById('console-log');
+  
+  if (!response.success || !response.data?.length) {
+    logEl.innerHTML = '<p class="empty-state">No activity yet</p>';
+    return;
+  }
+
+  logEl.innerHTML = response.data.slice(0, 50).map(entry => `
+    <div class="log-entry">
+      <span class="log-time">${formatLogTime(entry.timestamp)}</span>
+      <span class="log-type ${entry.type}">[${entry.type.toUpperCase()}]</span>
+      <span class="log-message">${escapeHtml(entry.message)}</span>
+    </div>
+  `).join('');
 }
 
 async function loadCaptureHistory() {
@@ -43,8 +98,8 @@ async function loadCaptureHistory() {
     <div class="capture-item">
       <div class="platform-icon ${capture.platform}">${platformIcons[capture.platform] || '🌐'}</div>
       <div class="capture-info">
-        <div class="capture-name">${capture.name || capture.username || 'Unknown'}</div>
-        <div class="capture-meta">@${capture.username} • ${formatTime(capture.capturedAt)}</div>
+        <div class="capture-name">${escapeHtml(capture.name || capture.username || 'Unknown')}</div>
+        <div class="capture-meta">@${escapeHtml(capture.username || '')} • ${formatTime(capture.capturedAt)}</div>
       </div>
       <span class="sync-status ${capture.synced ? 'synced' : 'pending'}">${capture.synced ? '✓' : '○'}</span>
     </div>
@@ -52,22 +107,49 @@ async function loadCaptureHistory() {
 }
 
 function setupEventListeners() {
-  // Save config
+  // Save/Disconnect button
   document.getElementById('save-config').addEventListener('click', async () => {
-    const config = {
-      apiEndpoint: document.getElementById('api-endpoint').value.trim(),
-      authToken: document.getElementById('auth-token').value.trim(),
-    };
-    
     const btn = document.getElementById('save-config');
-    btn.textContent = 'Saving...';
-    btn.disabled = true;
-
-    await chrome.runtime.sendMessage({ type: 'SET_CONFIG', payload: config });
-    await checkConnection();
+    const isConnected = btn.dataset.connected === 'true';
     
-    btn.textContent = 'Save & Connect';
-    btn.disabled = false;
+    if (isConnected) {
+      // Disconnect
+      btn.textContent = 'Disconnecting...';
+      btn.disabled = true;
+      
+      await chrome.runtime.sendMessage({ type: 'DISCONNECT' });
+      
+      document.getElementById('auth-token').value = '';
+      await checkConnection();
+      await loadConnectionState();
+      await loadActivityLog();
+      
+      btn.textContent = 'Save & Connect';
+      btn.className = 'btn btn-primary';
+      btn.dataset.connected = 'false';
+      btn.disabled = false;
+    } else {
+      // Connect
+      const config = {
+        apiEndpoint: document.getElementById('api-endpoint').value.trim(),
+        authToken: document.getElementById('auth-token').value.trim(),
+      };
+      
+      if (!config.apiEndpoint || !config.authToken) {
+        alert('Please enter both API Endpoint and Auth Token');
+        return;
+      }
+      
+      btn.textContent = 'Connecting...';
+      btn.disabled = true;
+
+      await chrome.runtime.sendMessage({ type: 'SET_CONFIG', payload: config });
+      await checkConnection();
+      await loadConnectionState();
+      await loadActivityLog();
+      
+      btn.disabled = false;
+    }
   });
 
   // Toggle settings
@@ -97,27 +179,51 @@ function setupEventListeners() {
         payload: { captures: unsyncedCaptures }
       });
       await loadCaptureHistory();
+      await loadConnectionState();
+      await loadActivityLog();
     }
 
     btn.textContent = 'Sync All';
     btn.disabled = false;
   });
+
+  // Clear logs
+  document.getElementById('clear-logs').addEventListener('click', async () => {
+    await chrome.runtime.sendMessage({ type: 'CLEAR_ACTIVITY_LOG' });
+    await loadActivityLog();
+  });
 }
 
 async function checkConnection() {
   const statusEl = document.getElementById('connection-status');
+  const btn = document.getElementById('save-config');
   const response = await chrome.runtime.sendMessage({ type: 'CHECK_CONNECTION' });
   
   if (response.success) {
     statusEl.className = 'status connected';
     statusEl.querySelector('.status-text').textContent = 'Connected';
+    
+    btn.textContent = 'Disconnect';
+    btn.className = 'btn btn-danger';
+    btn.dataset.connected = 'true';
+    
+    document.getElementById('connection-info-section').style.display = 'block';
   } else {
     statusEl.className = 'status disconnected';
     statusEl.querySelector('.status-text').textContent = 'Disconnected';
+    
+    btn.textContent = 'Save & Connect';
+    btn.className = 'btn btn-primary';
+    btn.dataset.connected = 'false';
+    
+    document.getElementById('connection-info-section').style.display = 'none';
   }
+  
+  await loadConnectionState();
 }
 
 function formatTime(isoString) {
+  if (!isoString) return '-';
   const date = new Date(isoString);
   const now = new Date();
   const diffMs = now - date;
@@ -130,4 +236,21 @@ function formatTime(isoString) {
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
   return date.toLocaleDateString();
+}
+
+function formatLogTime(isoString) {
+  const date = new Date(isoString);
+  return date.toLocaleTimeString('en-US', { 
+    hour: '2-digit', 
+    minute: '2-digit', 
+    second: '2-digit',
+    hour12: false
+  });
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
 }
