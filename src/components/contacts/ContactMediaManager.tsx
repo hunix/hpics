@@ -211,6 +211,19 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
     },
   });
 
+  // Fetch profiles for face assignment - MUST be before early return
+  const { data: profilesList } = useQuery({
+    queryKey: ['all-profiles-for-tagging'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, avatar_url')
+        .eq('user_id', user!.id);
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
   const handleDelete = (id: string) => {
     deleteMutation.mutate(id);
   };
@@ -237,19 +250,6 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
     setLightboxItem({ id, url, mimeType, metadata });
     setIsFaceTaggingMode(false); // Reset to view mode when opening new item
   };
-
-  // Fetch profiles for face assignment
-  const { data: profilesList } = useQuery({
-    queryKey: ['all-profiles-for-tagging'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, avatar_url')
-        .eq('user_id', user!.id);
-      return data || [];
-    },
-    enabled: !!user,
-  });
 
   // Count items with AI metadata
   const aiMetadataCount = allMedia?.filter(m => m.ai_generation_status === 'completed').length || 0;
