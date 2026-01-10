@@ -2,8 +2,6 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
 import { 
   Square, 
   Circle, 
@@ -12,13 +10,17 @@ import {
   Trash2, 
   Save, 
   Loader2,
-  Check,
   X,
-  User
+  User,
+  MousePointer,
+  Info
 } from 'lucide-react';
 import { useFaceRegions, FaceRegion, CreateFaceRegionInput } from '@/hooks/useFaceRegions';
-import { faceDetectionService, DetectedFace } from '@/lib/faceDetection';
+import { faceDetectionService } from '@/lib/faceDetection';
 import { toast } from 'sonner';
+import { ScalableContactSearch } from '@/components/contacts/ScalableContactSearch';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { cn } from '@/lib/utils';
 
 type Shape = 'rectangle' | 'circle' | 'square';
 
@@ -59,6 +61,7 @@ export function FaceRegionDrawer({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const [modelsReady, setModelsReady] = useState(false);
+  const [hoveredRegionId, setHoveredRegionId] = useState<string | null>(null);
 
   const { regions, createRegion, createRegions, deleteRegion, assignProfile } = useFaceRegions(mediaId);
 
@@ -114,8 +117,16 @@ export function FaceRegionDrawer({
       const w = region.width * containerWidth;
       const h = region.height * displayHeight;
 
-      ctx.strokeStyle = region.verified ? '#22c55e' : '#3b82f6';
-      ctx.lineWidth = 2;
+      const isSelected = selectedRegionId === region.id;
+      const isHovered = hoveredRegionId === region.id;
+      
+      // Base color based on state
+      let strokeColor = region.profile_id ? '#22c55e' : '#3b82f6'; // green if assigned, blue if not
+      if (isSelected) strokeColor = '#f59e0b'; // amber when selected
+      if (isHovered && !isSelected) strokeColor = '#8b5cf6'; // purple when hovered
+
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = isSelected ? 3 : isHovered ? 2.5 : 2;
       ctx.setLineDash(region.detection_method === 'manual' ? [] : [5, 5]);
 
       if (region.shape === 'circle') {
@@ -126,29 +137,27 @@ export function FaceRegionDrawer({
         ctx.strokeRect(x, y, w, h);
       }
 
-      // Highlight selected
-      if (selectedRegionId === region.id) {
-        ctx.strokeStyle = '#f59e0b';
-        ctx.lineWidth = 3;
-        ctx.setLineDash([]);
+      // Draw selection/hover highlight
+      if (isSelected || isHovered) {
+        ctx.fillStyle = isSelected ? 'rgba(245, 158, 11, 0.1)' : 'rgba(139, 92, 246, 0.1)';
         if (region.shape === 'circle') {
           ctx.beginPath();
-          ctx.ellipse(x + w / 2, y + h / 2, w / 2 + 2, h / 2 + 2, 0, 0, Math.PI * 2);
-          ctx.stroke();
+          ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
+          ctx.fill();
         } else {
-          ctx.strokeRect(x - 2, y - 2, w + 4, h + 4);
+          ctx.fillRect(x, y, w, h);
         }
       }
 
       // Draw label
       const profileName = region.profile ? [region.profile.first_name, region.profile.last_name].filter(Boolean).join(' ') : null;
-      if (profileName) {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(x, y - 20, ctx.measureText(profileName).width + 8, 18);
-        ctx.fillStyle = '#fff';
-        ctx.font = '12px sans-serif';
-        ctx.fillText(profileName, x + 4, y - 6);
-      }
+      ctx.fillStyle = profileName ? 'rgba(34, 197, 94, 0.9)' : 'rgba(59, 130, 246, 0.9)';
+      const labelText = profileName || 'Click to assign';
+      const labelWidth = ctx.measureText(labelText).width + 16;
+      ctx.fillRect(x, y - 24, labelWidth, 22);
+      ctx.fillStyle = '#fff';
+      ctx.font = '12px sans-serif';
+      ctx.fillText(labelText, x + 8, y - 8);
     });
 
     // Draw pending regions
@@ -170,10 +179,16 @@ export function FaceRegionDrawer({
         ctx.strokeRect(x, y, w, h);
       }
 
-      // Draw index
+      // Draw index badge
       ctx.fillStyle = '#f97316';
-      ctx.font = 'bold 14px sans-serif';
-      ctx.fillText(`#${index + 1}`, x + 4, y + 16);
+      ctx.beginPath();
+      ctx.arc(x + 12, y + 12, 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${index + 1}`, x + 12, y + 16);
+      ctx.textAlign = 'start';
     });
 
     // Draw current drawing region
@@ -186,18 +201,21 @@ export function FaceRegionDrawer({
       ctx.strokeStyle = '#ef4444';
       ctx.lineWidth = 2;
       ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.2)';
 
       if (drawingRegion.shape === 'circle') {
         ctx.beginPath();
         ctx.ellipse(x + w / 2, y + h / 2, Math.abs(w / 2), Math.abs(h / 2), 0, 0, Math.PI * 2);
         ctx.stroke();
+        ctx.fill();
       } else {
         ctx.strokeRect(x, y, w, h);
+        ctx.fillRect(x, y, w, h);
       }
     }
 
     ctx.setLineDash([]);
-  }, [regions, pendingRegions, drawingRegion, selectedRegionId, imageLoaded]);
+  }, [regions, pendingRegions, drawingRegion, selectedRegionId, hoveredRegionId, imageLoaded]);
 
   useEffect(() => {
     drawCanvas();
@@ -222,26 +240,27 @@ export function FaceRegionDrawer({
     };
   };
 
+  const findRegionAtPoint = (coords: { x: number; y: number }) => {
+    return regions.find(region => {
+      return (
+        coords.x >= region.x &&
+        coords.x <= region.x + region.width &&
+        coords.y >= region.y &&
+        coords.y <= region.y + region.height
+      );
+    });
+  };
+
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const coords = getCanvasCoords(e);
     if (!coords) return;
 
     // Check if clicking on existing region
-    const canvas = canvasRef.current;
-    if (canvas) {
-      const clickedRegion = regions.find(region => {
-        return (
-          coords.x >= region.x &&
-          coords.x <= region.x + region.width &&
-          coords.y >= region.y &&
-          coords.y <= region.y + region.height
-        );
-      });
+    const clickedRegion = findRegionAtPoint(coords);
 
-      if (clickedRegion) {
-        setSelectedRegionId(clickedRegion.id);
-        return;
-      }
+    if (clickedRegion) {
+      setSelectedRegionId(clickedRegion.id);
+      return;
     }
 
     setSelectedRegionId(null);
@@ -250,10 +269,16 @@ export function FaceRegionDrawer({
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || !startPos) return;
-
     const coords = getCanvasCoords(e);
     if (!coords) return;
+
+    // Update hover state
+    if (!isDrawing) {
+      const hovered = findRegionAtPoint(coords);
+      setHoveredRegionId(hovered?.id || null);
+    }
+
+    if (!isDrawing || !startPos) return;
 
     let width = coords.x - startPos.x;
     let height = coords.y - startPos.y;
@@ -281,6 +306,11 @@ export function FaceRegionDrawer({
     setIsDrawing(false);
     setStartPos(null);
     setDrawingRegion(null);
+  };
+
+  const handleMouseLeave = () => {
+    handleMouseUp();
+    setHoveredRegionId(null);
   };
 
   // Auto-detect faces using local AI
@@ -347,13 +377,14 @@ export function FaceRegionDrawer({
   };
 
   // Assign profile to selected region
-  const handleAssignProfile = async (profileId: string) => {
+  const handleAssignProfile = async (profileId: string | null) => {
     if (!selectedRegionId) return;
     await assignProfile.mutateAsync({ regionId: selectedRegionId, profileId: profileId || null });
     onRegionsChanged?.();
   };
 
   const selectedRegion = regions.find(r => r.id === selectedRegionId);
+  const unassignedCount = regions.filter(r => !r.profile_id).length;
 
   return (
     <Card className="w-full">
@@ -368,6 +399,21 @@ export function FaceRegionDrawer({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Instructions Alert */}
+        {regions.length > 0 && unassignedCount > 0 && !selectedRegionId && (
+          <Alert>
+            <MousePointer className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Click on any face box</strong> to select it, then assign a contact using the search below.
+              {unassignedCount > 0 && (
+                <span className="text-muted-foreground ml-1">
+                  ({unassignedCount} unassigned)
+                </span>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Toolbar */}
         <div className="flex flex-wrap gap-2">
           <div className="flex items-center gap-1 border rounded-md p-1">
@@ -449,57 +495,100 @@ export function FaceRegionDrawer({
           ) : (
             <canvas
               ref={canvasRef}
-              className="w-full cursor-crosshair rounded-lg"
+              className={cn(
+                "w-full rounded-lg transition-all",
+                isDrawing ? "cursor-crosshair" : hoveredRegionId ? "cursor-pointer" : "cursor-crosshair"
+              )}
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseUp}
+              onMouseLeave={handleMouseLeave}
             />
           )}
         </div>
 
-        {/* Selected region actions */}
-        {selectedRegion && (
-          <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-            <User className="h-4 w-4 text-muted-foreground" />
-            <Select
-              value={selectedRegion.profile_id || ''}
-              onValueChange={handleAssignProfile}
-            >
-              <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Assign to profile..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Unassigned</SelectItem>
-                {profiles.map(profile => (
-                  <SelectItem key={profile.id} value={profile.id}>
-                    {[profile.first_name, profile.last_name].filter(Boolean).join(' ') || 'Unknown'}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              variant="destructive"
-              size="icon"
-              onClick={handleDeleteSelected}
-              disabled={deleteRegion.isPending}
-            >
-              {deleteRegion.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Trash2 className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-        )}
+        {/* Selected region actions - Now prominently displayed */}
+        <div className={cn(
+          "p-4 rounded-lg border-2 transition-all",
+          selectedRegion 
+            ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-700" 
+            : "bg-muted/50 border-dashed border-muted-foreground/30"
+        )}>
+          {selectedRegion ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-full bg-amber-100 dark:bg-amber-900 flex items-center justify-center">
+                    <User className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Face Region Selected</p>
+                    <p className="text-xs text-muted-foreground">
+                      {selectedRegion.profile 
+                        ? `Assigned to ${[selectedRegion.profile.first_name, selectedRegion.profile.last_name].filter(Boolean).join(' ')}`
+                        : 'Not assigned to any contact'
+                      }
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSelectedRegionId(null)}
+                  className="h-8 w-8"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <ScalableContactSearch
+                  selectedId={selectedRegion.profile_id}
+                  onSelect={(id) => handleAssignProfile(id)}
+                  placeholder="Search contacts to assign..."
+                  allowNone
+                  noneLabel="Remove assignment"
+                  className="flex-1"
+                />
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  onClick={handleDeleteSelected}
+                  disabled={deleteRegion.isPending}
+                  title="Delete this face region"
+                >
+                  {deleteRegion.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-2">
+              <p className="text-sm text-muted-foreground">
+                {regions.length > 0 
+                  ? 'Click on a face region above to select and assign a contact'
+                  : 'Draw a region around a face or use Auto-detect to get started'
+                }
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* Stats */}
         <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
           <Badge variant="outline">
             {regions.length} saved region{regions.length !== 1 ? 's' : ''}
           </Badge>
+          {unassignedCount > 0 && (
+            <Badge variant="secondary" className="text-amber-600 dark:text-amber-400">
+              {unassignedCount} unassigned
+            </Badge>
+          )}
           {pendingRegions.length > 0 && (
-            <Badge variant="secondary">
+            <Badge variant="secondary" className="text-orange-600 dark:text-orange-400">
               {pendingRegions.length} pending
             </Badge>
           )}
@@ -508,11 +597,17 @@ export function FaceRegionDrawer({
           </Badge>
         </div>
 
-        {/* Instructions */}
-        <p className="text-xs text-muted-foreground">
-          Click and drag to draw a region around a face. Use Auto-detect for free local face detection.
-          Click a saved region to select it, then assign a profile or delete it.
-        </p>
+        {/* Help text */}
+        <div className="text-xs text-muted-foreground space-y-1">
+          <p className="flex items-center gap-1">
+            <Info className="h-3 w-3" />
+            <strong>Draw:</strong> Click and drag to outline a face • <strong>Auto-detect:</strong> Free local AI detection
+          </p>
+          <p className="flex items-center gap-1">
+            <MousePointer className="h-3 w-3" />
+            <strong>Assign:</strong> Click a saved region → Search for a contact → Select to link
+          </p>
+        </div>
       </CardContent>
     </Card>
   );
