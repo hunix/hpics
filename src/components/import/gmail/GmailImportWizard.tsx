@@ -3,17 +3,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { 
   Mail, 
   CheckCircle2, 
-  XCircle, 
   Loader2, 
-  Settings,
   Download,
   Trash2,
   AlertCircle
@@ -22,8 +17,6 @@ import { toast } from 'sonner';
 
 export function GmailImportWizard() {
   const [step, setStep] = useState<'setup' | 'connect' | 'import' | 'complete'>('setup');
-  const [clientId, setClientId] = useState('');
-  const [clientSecret, setClientSecret] = useState('');
   const [showConfig, setShowConfig] = useState(false);
   const queryClient = useQueryClient();
 
@@ -62,27 +55,17 @@ export function GmailImportWizard() {
 
   const handleOAuthCallback = async (code: string) => {
     try {
-      // Get stored credentials
-      const storedClientId = localStorage.getItem('gmail_client_id');
-      const storedClientSecret = localStorage.getItem('gmail_client_secret');
-      
-      if (!storedClientId || !storedClientSecret) {
-        toast.error('Missing OAuth credentials. Please reconfigure.');
-        return;
-      }
-
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         toast.error('Not authenticated');
         return;
       }
 
+      // Exchange code for tokens using server-side secrets
       const response = await supabase.functions.invoke('gmail-oauth', {
         body: {
           action: 'exchange',
           code,
-          clientId: storedClientId,
-          clientSecret: storedClientSecret,
           redirectUri,
         },
       });
@@ -101,21 +84,13 @@ export function GmailImportWizard() {
 
   const connectMutation = useMutation({
     mutationFn: async () => {
-      if (!clientId || !clientSecret) {
-        throw new Error('Please enter your Google OAuth credentials');
-      }
-
-      // Store credentials temporarily
-      localStorage.setItem('gmail_client_id', clientId);
-      localStorage.setItem('gmail_client_secret', clientSecret);
-
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
+      // Get auth URL using server-side credentials
       const response = await supabase.functions.invoke('gmail-oauth', {
         body: {
           action: 'get_auth_url',
-          clientId,
           redirectUri,
         },
       });
@@ -171,8 +146,6 @@ export function GmailImportWizard() {
     },
     onSuccess: () => {
       toast.success('Disconnected from Gmail');
-      localStorage.removeItem('gmail_client_id');
-      localStorage.removeItem('gmail_client_secret');
       queryClient.invalidateQueries({ queryKey: ['gmail-config'] });
       setStep('setup');
     },
@@ -288,71 +261,35 @@ export function GmailImportWizard() {
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            To import Gmail contacts, you need to set up Google OAuth credentials in the 
-            <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-primary underline ml-1">
-              Google Cloud Console
-            </a>
+            Gmail integration uses server-side OAuth credentials configured by your administrator.
+            Click below to connect your Gmail account securely.
           </AlertDescription>
         </Alert>
 
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">Redirect URI for Google Console:</p>
+          <code className="block p-2 bg-muted rounded text-sm break-all">
+            {redirectUri}
+          </code>
+        </div>
+
         <Button 
-          variant="ghost" 
-          className="w-full justify-start"
-          onClick={() => setShowConfig(!showConfig)}
+          onClick={() => connectMutation.mutate()}
+          disabled={connectMutation.isPending}
+          className="w-full"
         >
-          <Settings className="h-4 w-4 mr-2" />
-          {showConfig ? 'Hide' : 'Configure'} OAuth Credentials
+          {connectMutation.isPending ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Connecting...
+            </>
+          ) : (
+            <>
+              <Mail className="h-4 w-4 mr-2" />
+              Connect Gmail
+            </>
+          )}
         </Button>
-
-        {showConfig && (
-          <div className="space-y-4 p-4 border rounded-lg">
-            <div className="space-y-2">
-              <Label htmlFor="clientId">Client ID</Label>
-              <Input
-                id="clientId"
-                placeholder="your-client-id.apps.googleusercontent.com"
-                value={clientId}
-                onChange={(e) => setClientId(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="clientSecret">Client Secret</Label>
-              <Input
-                id="clientSecret"
-                type="password"
-                placeholder="Your client secret"
-                value={clientSecret}
-                onChange={(e) => setClientSecret(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Redirect URI (add this to Google Console)</Label>
-              <code className="block p-2 bg-muted rounded text-sm break-all">
-                {redirectUri}
-              </code>
-            </div>
-
-            <Button 
-              onClick={() => connectMutation.mutate()}
-              disabled={connectMutation.isPending || !clientId || !clientSecret}
-              className="w-full"
-            >
-              {connectMutation.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Connecting...
-                </>
-              ) : (
-                <>
-                  <Mail className="h-4 w-4 mr-2" />
-                  Connect Gmail
-                </>
-              )}
-            </Button>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

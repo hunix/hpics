@@ -10,8 +10,6 @@ interface TokenRequest {
   action: 'exchange' | 'refresh' | 'revoke' | 'get_auth_url';
   code?: string;
   refreshToken?: string;
-  clientId?: string;
-  clientSecret?: string;
   redirectUri?: string;
 }
 
@@ -32,6 +30,19 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    // Server-side OAuth credentials from secrets
+    const clientId = Deno.env.get("GOOGLE_GMAIL_CLIENT_ID");
+    const clientSecret = Deno.env.get("GOOGLE_GMAIL_CLIENT_SECRET");
+
+    if (!clientId || !clientSecret) {
+      return new Response(JSON.stringify({ 
+        error: "Gmail OAuth not configured. Please add GOOGLE_GMAIL_CLIENT_ID and GOOGLE_GMAIL_CLIENT_SECRET to server secrets." 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Create client with user's auth header for getClaims
     const authClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -55,11 +66,11 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body: TokenRequest = await req.json();
-    const { action, code, refreshToken, clientId, clientSecret, redirectUri } = body;
+    const { action, code, refreshToken, redirectUri } = body;
 
     if (action === 'get_auth_url') {
-      if (!clientId || !redirectUri) {
-        return new Response(JSON.stringify({ error: "Missing clientId or redirectUri" }), {
+      if (!redirectUri) {
+        return new Response(JSON.stringify({ error: "Missing redirectUri" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -85,14 +96,14 @@ serve(async (req) => {
     }
 
     if (action === 'exchange') {
-      if (!code || !clientId || !clientSecret || !redirectUri) {
+      if (!code || !redirectUri) {
         return new Response(JSON.stringify({ error: "Missing required parameters" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      // Exchange code for tokens
+      // Exchange code for tokens using server-side secrets
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -151,13 +162,14 @@ serve(async (req) => {
     }
 
     if (action === 'refresh') {
-      if (!refreshToken || !clientId || !clientSecret) {
-        return new Response(JSON.stringify({ error: "Missing required parameters" }), {
+      if (!refreshToken) {
+        return new Response(JSON.stringify({ error: "Missing refresh token" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
+      // Refresh token using server-side secrets
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
