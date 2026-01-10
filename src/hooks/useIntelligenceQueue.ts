@@ -111,18 +111,20 @@ export function useIntelligenceQueue() {
     }
 
     try {
+      const jobPayload = JSON.parse(JSON.stringify(payload));
+      
       const { data, error } = await supabase
         .from('intelligence_queue')
-        .insert({
+        .insert([{
           user_id: user.id,
           job_type: jobType,
-          payload,
+          payload: jobPayload,
           priority: options.priority || 5,
           scheduled_for: options.scheduledFor?.toISOString() || new Date().toISOString(),
-          status: 'pending',
+          status: 'pending' as const,
           attempts: 0,
           max_attempts: 3,
-        })
+        }])
         .select('id')
         .single();
 
