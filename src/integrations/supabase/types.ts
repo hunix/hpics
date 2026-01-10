@@ -9687,20 +9687,26 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          bio_encrypted: string | null
           created_at: string
+          encryption_classification: string | null
           first_name: string
           hierarchy_level: string | null
           id: string
           initial_intel_completed: boolean | null
+          is_encrypted: boolean | null
           is_favorite: boolean | null
           is_self_profile: boolean | null
           job_title: string | null
+          last_accessed_at: string | null
           last_contact_date: string | null
           last_name: string | null
           last_osint_scan: string | null
           linkedin_url: string | null
+          linkedin_url_encrypted: string | null
           nickname: string | null
           notes: string | null
+          notes_encrypted: string | null
           organization: string | null
           osint_scan_priority: number | null
           relationship_subtype: string | null
@@ -9715,20 +9721,26 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          bio_encrypted?: string | null
           created_at?: string
+          encryption_classification?: string | null
           first_name: string
           hierarchy_level?: string | null
           id?: string
           initial_intel_completed?: boolean | null
+          is_encrypted?: boolean | null
           is_favorite?: boolean | null
           is_self_profile?: boolean | null
           job_title?: string | null
+          last_accessed_at?: string | null
           last_contact_date?: string | null
           last_name?: string | null
           last_osint_scan?: string | null
           linkedin_url?: string | null
+          linkedin_url_encrypted?: string | null
           nickname?: string | null
           notes?: string | null
+          notes_encrypted?: string | null
           organization?: string | null
           osint_scan_priority?: number | null
           relationship_subtype?: string | null
@@ -9743,20 +9755,26 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          bio_encrypted?: string | null
           created_at?: string
+          encryption_classification?: string | null
           first_name?: string
           hierarchy_level?: string | null
           id?: string
           initial_intel_completed?: boolean | null
+          is_encrypted?: boolean | null
           is_favorite?: boolean | null
           is_self_profile?: boolean | null
           job_title?: string | null
+          last_accessed_at?: string | null
           last_contact_date?: string | null
           last_name?: string | null
           last_osint_scan?: string | null
           linkedin_url?: string | null
+          linkedin_url_encrypted?: string | null
           nickname?: string | null
           notes?: string | null
+          notes_encrypted?: string | null
           organization?: string | null
           osint_scan_priority?: number | null
           relationship_subtype?: string | null
@@ -9774,6 +9792,73 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles_access_logs: {
+        Row: {
+          access_context: string | null
+          access_type: string
+          accessed_at: string
+          current_hash: string | null
+          fields_accessed: string[] | null
+          id: string
+          ip_address: unknown
+          previous_hash: string | null
+          profile_id: string
+          user_agent: string | null
+          user_id: string
+          was_decrypted: boolean | null
+        }
+        Insert: {
+          access_context?: string | null
+          access_type: string
+          accessed_at?: string
+          current_hash?: string | null
+          fields_accessed?: string[] | null
+          id?: string
+          ip_address?: unknown
+          previous_hash?: string | null
+          profile_id: string
+          user_agent?: string | null
+          user_id: string
+          was_decrypted?: boolean | null
+        }
+        Update: {
+          access_context?: string | null
+          access_type?: string
+          accessed_at?: string
+          current_hash?: string | null
+          fields_accessed?: string[] | null
+          id?: string
+          ip_address?: unknown
+          previous_hash?: string | null
+          profile_id?: string
+          user_agent?: string | null
+          user_id?: string
+          was_decrypted?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_access_logs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "profiles_access_logs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "profiles_access_logs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -10034,6 +10119,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      psychological_profiles_access_logs: {
+        Row: {
+          access_denied: boolean | null
+          access_type: string
+          accessed_at: string
+          clearance_used: string | null
+          current_hash: string | null
+          denial_reason: string | null
+          fields_accessed: string[] | null
+          id: string
+          ip_address: unknown
+          previous_hash: string | null
+          profile_id: string
+          user_id: string
+          was_decrypted: boolean | null
+        }
+        Insert: {
+          access_denied?: boolean | null
+          access_type: string
+          accessed_at?: string
+          clearance_used?: string | null
+          current_hash?: string | null
+          denial_reason?: string | null
+          fields_accessed?: string[] | null
+          id?: string
+          ip_address?: unknown
+          previous_hash?: string | null
+          profile_id: string
+          user_id: string
+          was_decrypted?: boolean | null
+        }
+        Update: {
+          access_denied?: boolean | null
+          access_type?: string
+          accessed_at?: string
+          clearance_used?: string | null
+          current_hash?: string | null
+          denial_reason?: string | null
+          fields_accessed?: string[] | null
+          id?: string
+          ip_address?: unknown
+          previous_hash?: string | null
+          profile_id?: string
+          user_id?: string
+          was_decrypted?: boolean | null
+        }
+        Relationships: []
       }
       push_subscriptions: {
         Row: {
@@ -13007,6 +13140,16 @@ export type Database = {
           p_clearance_used?: string
           p_email_message_id?: string
           p_email_thread_id?: string
+          p_was_decrypted?: boolean
+        }
+        Returns: string
+      }
+      log_profile_access: {
+        Args: {
+          p_access_context?: string
+          p_access_type: string
+          p_fields_accessed?: string[]
+          p_profile_id: string
           p_was_decrypted?: boolean
         }
         Returns: string
