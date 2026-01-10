@@ -1,12 +1,52 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
+// Debounce helper
+function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  return ((...args: unknown[]) => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), ms);
+  }) as T;
+}
+
 export function useRealtimeContacts() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  
+  // Track last processed time for throttling
+  const lastProcessedRef = useRef<Record<string, number>>({});
+  const THROTTLE_MS = 2000; // 2 second throttle
+
+  // Throttled invalidation to prevent cascading updates
+  const throttledInvalidate = useCallback((keys: string[], table: string) => {
+    const now = Date.now();
+    const lastProcessed = lastProcessedRef.current[table] || 0;
+    
+    if (now - lastProcessed < THROTTLE_MS) {
+      return; // Skip if within throttle window
+    }
+    
+    lastProcessedRef.current[table] = now;
+    
+    // Batch invalidations with a small delay to allow grouping
+    setTimeout(() => {
+      keys.forEach(key => {
+        queryClient.invalidateQueries({ queryKey: [key] });
+      });
+    }, 100);
+  }, [queryClient]);
+
+  // Debounced toast to prevent toast spam
+  const debouncedToast = useCallback(
+    debounce((message: string) => {
+      toast.info(message);
+    }, 1000),
+    []
+  );
 
   useEffect(() => {
     if (!user) return;
@@ -23,23 +63,20 @@ export function useRealtimeContacts() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('Profile change detected:', payload);
+          console.log('Profile change detected:', payload.eventType);
           
           if (payload.eventType === 'INSERT') {
-            toast.info('New contact added');
+            debouncedToast('New contact added');
           } else if (payload.eventType === 'UPDATE') {
-            // Invalidate specific contact query
+            // Invalidate specific contact query only
             if (payload.new && 'id' in payload.new) {
               queryClient.invalidateQueries({ queryKey: ['contact', payload.new.id] });
             }
           } else if (payload.eventType === 'DELETE') {
-            toast.info('Contact removed');
+            debouncedToast('Contact removed');
           }
           
-          // Invalidate contacts list
-          queryClient.invalidateQueries({ queryKey: ['contacts'] });
-          queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-          queryClient.invalidateQueries({ queryKey: ['recent-contacts'] });
+          throttledInvalidate(['contacts', 'dashboard-stats', 'recent-contacts'], 'profiles');
         }
       )
       .subscribe();
@@ -56,12 +93,8 @@ export function useRealtimeContacts() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('Communication change detected:', payload);
-          queryClient.invalidateQueries({ queryKey: ['communications'] });
-          queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-          
-          // Also invalidate relationship scores as they depend on communications
-          queryClient.invalidateQueries({ queryKey: ['relationship-scores'] });
+          console.log('Communication change detected:', payload.eventType);
+          throttledInvalidate(['communications', 'dashboard-stats', 'relationship-scores'], 'communications');
         }
       )
       .subscribe();
@@ -78,9 +111,8 @@ export function useRealtimeContacts() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('Event change detected:', payload);
-          queryClient.invalidateQueries({ queryKey: ['events'] });
-          queryClient.invalidateQueries({ queryKey: ['upcoming-events'] });
+          console.log('Event change detected:', payload.eventType);
+          throttledInvalidate(['events', 'upcoming-events'], 'events');
         }
       )
       .subscribe();
@@ -97,8 +129,8 @@ export function useRealtimeContacts() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('Score change detected:', payload);
-          queryClient.invalidateQueries({ queryKey: ['relationship-scores'] });
+          console.log('Score change detected:', payload.eventType);
+          throttledInvalidate(['relationship-scores'], 'scores');
         }
       )
       .subscribe();
@@ -109,5 +141,5 @@ export function useRealtimeContacts() {
       supabase.removeChannel(eventsChannel);
       supabase.removeChannel(scoresChannel);
     };
-  }, [user, queryClient]);
+  }, [user, queryClient, throttledInvalidate, debouncedToast]);
 }
