@@ -1,15 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Chrome, Download, CheckCircle2, XCircle, RefreshCw, 
-  ExternalLink, Settings, Shield, Zap, Instagram, Linkedin,
-  Twitter, MessageCircle, Globe, AlertCircle, Key
+  Settings, Shield, Instagram, Linkedin,
+  Twitter, MessageCircle, Globe, Key, Clock
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -32,6 +31,9 @@ interface ChromeExtensionPanelProps {
   className?: string;
 }
 
+// Connection is considered active if last ping was within this threshold
+const CONNECTION_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutes
+
 const SUPPORTED_PLATFORMS = [
   { id: 'instagram', name: 'Instagram', icon: Instagram, color: 'text-pink-500' },
   { id: 'linkedin', name: 'LinkedIn', icon: Linkedin, color: 'text-blue-600' },
@@ -42,6 +44,7 @@ const SUPPORTED_PLATFORMS = [
 export function ChromeExtensionPanel({ className }: ChromeExtensionPanelProps) {
   const [isConnected, setIsConnected] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
+  const [lastSeen, setLastSeen] = useState<Date | null>(null);
   const [sessions, setSessions] = useState<ExtensionSession[]>([]);
   const [settings, setSettings] = useState({
     autoCapture: true,
@@ -51,36 +54,63 @@ export function ChromeExtensionPanel({ className }: ChromeExtensionPanelProps) {
   });
   const { toast } = useToast();
 
-  useEffect(() => {
-    checkExtensionStatus();
-    loadSessions();
-  }, []);
-
-  const checkExtensionStatus = async () => {
+  // Check extension connection status via backend pings
+  const checkExtensionStatus = useCallback(async () => {
     setIsChecking(true);
     try {
-      // Check if extension is installed by looking for its message listener
-      const isInstalled = await new Promise<boolean>((resolve) => {
-        const timeout = setTimeout(() => resolve(false), 1000);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setIsConnected(false);
+        setLastSeen(null);
+        return;
+      }
+
+      // Query device_sync_log for the most recent ping from chrome_extension
+      const { data, error } = await supabase
+        .from('device_sync_log')
+        .select('created_at')
+        .eq('user_id', user.id)
+        .eq('device_type', 'chrome_extension')
+        .eq('sync_type', 'ping')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Failed to check extension status:', error);
+        setIsConnected(false);
+        setLastSeen(null);
+        return;
+      }
+
+      if (data?.created_at) {
+        const lastPingTime = new Date(data.created_at);
+        const now = new Date();
+        const isActive = (now.getTime() - lastPingTime.getTime()) < CONNECTION_THRESHOLD_MS;
         
-        window.addEventListener('message', function handler(event) {
-          if (event.data?.type === 'INTEL_CRM_EXTENSION_PONG') {
-            clearTimeout(timeout);
-            window.removeEventListener('message', handler);
-            resolve(true);
-          }
-        });
-
-        window.postMessage({ type: 'INTEL_CRM_EXTENSION_PING' }, '*');
-      });
-
-      setIsConnected(isInstalled);
-    } catch {
+        setIsConnected(isActive);
+        setLastSeen(lastPingTime);
+      } else {
+        setIsConnected(false);
+        setLastSeen(null);
+      }
+    } catch (error) {
+      console.error('Extension status check failed:', error);
       setIsConnected(false);
+      setLastSeen(null);
     } finally {
       setIsChecking(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    checkExtensionStatus();
+    loadSessions();
+
+    // Poll for status updates every 30 seconds
+    const interval = setInterval(checkExtensionStatus, 30000);
+    return () => clearInterval(interval);
+  }, [checkExtensionStatus]);
 
   const loadSessions = async () => {
     try {
@@ -130,22 +160,42 @@ export function ChromeExtensionPanel({ className }: ChromeExtensionPanelProps) {
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Chrome className="h-4 w-4 text-primary" />
           Chrome Extension
-          {isChecking ? (
-            <RefreshCw className="h-3 w-3 ml-auto animate-spin text-muted-foreground" />
-          ) : isConnected ? (
-            <Badge variant="default" className="text-xs ml-auto bg-green-500">
-              <CheckCircle2 className="h-3 w-3 mr-1" />
-              Connected
-            </Badge>
-          ) : (
-            <Badge variant="secondary" className="text-xs ml-auto">
-              <XCircle className="h-3 w-3 mr-1" />
-              Not Installed
-            </Badge>
-          )}
+          <div className="ml-auto flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-6 w-6" 
+              onClick={checkExtensionStatus}
+              disabled={isChecking}
+            >
+              <RefreshCw className={cn("h-3 w-3", isChecking && "animate-spin")} />
+            </Button>
+            {isChecking ? (
+              <Badge variant="secondary" className="text-xs">
+                Checking...
+              </Badge>
+            ) : isConnected ? (
+              <Badge variant="default" className="text-xs bg-green-500">
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                Connected
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="text-xs">
+                <XCircle className="h-3 w-3 mr-1" />
+                Disconnected
+              </Badge>
+            )}
+          </div>
         </CardTitle>
-        <CardDescription className="text-xs">
-          Capture private social profiles directly from your browser
+        <CardDescription className="text-xs flex items-center gap-1">
+          {lastSeen ? (
+            <>
+              <Clock className="h-3 w-3" />
+              Last seen {formatDistanceToNow(lastSeen, { addSuffix: true })}
+            </>
+          ) : (
+            'Capture private social profiles directly from your browser'
+          )}
         </CardDescription>
       </CardHeader>
 

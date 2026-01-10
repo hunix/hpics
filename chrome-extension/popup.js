@@ -1,18 +1,44 @@
 // Intel CRM Chrome Extension - Popup Script
+// Version marker - update this when making changes to verify new code is loaded
+const POPUP_UI_VERSION = '2026-01-10-v2';
 
-// Sequence guard to prevent race conditions
-let renderSequence = 0;
+// Prevent duplicate initialization
+if (window.__intelPopupInitialized) {
+  console.log('[Intel CRM] Popup already initialized, skipping');
+} else {
+  window.__intelPopupInitialized = true;
 
-document.addEventListener('DOMContentLoaded', init);
+  // Sequence guard to prevent race conditions
+  let renderSequence = 0;
+  // Mutex to prevent concurrent refreshes
+  let refreshInFlight = null;
 
-async function init() {
-  await loadConfig();
-  // Single source of truth: fetch state and render once
-  await refreshConnectionUI();
-  await loadCaptureHistory();
-  await loadActivityLog();
-  setupEventListeners();
-}
+  document.addEventListener('DOMContentLoaded', init);
+
+  async function init() {
+    console.log('[Intel CRM] Popup init, version:', POPUP_UI_VERSION);
+    
+    // Display version in footer
+    const footer = document.querySelector('.footer span');
+    if (footer) {
+      footer.textContent = `v${POPUP_UI_VERSION} • Instagram, LinkedIn, Threads, X`;
+    }
+    
+    await loadConfig();
+    // Single source of truth: fetch state and render once
+    await refreshConnectionUI();
+    await loadCaptureHistory();
+    await loadActivityLog();
+    setupEventListeners();
+    
+    // Listen for storage changes to react to background state updates
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === 'local' && changes.connectionState) {
+        console.log('[Intel CRM] Connection state changed in storage');
+        refreshConnectionUI();
+      }
+    });
+  }
 
 /**
  * Single unified renderer for connection state
@@ -84,45 +110,59 @@ function renderConnectionState(state, errorMessage = null) {
 /**
  * Refresh connection UI by checking connection and rendering from stored state
  * This is the main entry point for updating connection UI
+ * Uses mutex to prevent concurrent refreshes
  */
 async function refreshConnectionUI() {
+  // If a refresh is already in flight, wait for it
+  if (refreshInFlight) {
+    console.log('[Intel CRM] Refresh already in flight, waiting...');
+    return await refreshInFlight;
+  }
+  
   const currentSeq = ++renderSequence;
   
-  console.log('[Intel CRM] Refreshing connection UI, seq:', currentSeq);
+  console.log('[Intel CRM] Refreshing connection UI, seq:', currentSeq, 'version:', POPUP_UI_VERSION);
   
-  try {
-    // First, trigger a connection check which updates stored state
-    const checkResponse = await chrome.runtime.sendMessage({ type: 'CHECK_CONNECTION' });
-    console.log('[Intel CRM] Check response:', checkResponse);
-    
-    // Guard against stale renders
-    if (currentSeq !== renderSequence) {
-      console.log('[Intel CRM] Skipping stale render, seq:', currentSeq, 'current:', renderSequence);
-      return;
+  // Create the promise and store it
+  refreshInFlight = (async () => {
+    try {
+      // First, trigger a connection check which updates stored state
+      const checkResponse = await chrome.runtime.sendMessage({ type: 'CHECK_CONNECTION' });
+      console.log('[Intel CRM] Check response:', checkResponse);
+      
+      // Guard against stale renders
+      if (currentSeq !== renderSequence) {
+        console.log('[Intel CRM] Skipping stale render, seq:', currentSeq, 'current:', renderSequence);
+        return;
+      }
+      
+      // Now get the authoritative stored state
+      const stateResponse = await chrome.runtime.sendMessage({ type: 'GET_CONNECTION_STATE' });
+      console.log('[Intel CRM] State response:', stateResponse);
+      
+      // Guard again after async call
+      if (currentSeq !== renderSequence) {
+        console.log('[Intel CRM] Skipping stale render after state fetch');
+        return;
+      }
+      
+      if (stateResponse.success && stateResponse.data) {
+        renderConnectionState(stateResponse.data, checkResponse?.error);
+      } else {
+        renderConnectionState(null, 'Failed to get state');
+      }
+    } catch (error) {
+      console.error('[Intel CRM] Connection refresh error:', error);
+      
+      if (currentSeq !== renderSequence) return;
+      
+      renderConnectionState(null, error.message);
+    } finally {
+      refreshInFlight = null;
     }
-    
-    // Now get the authoritative stored state
-    const stateResponse = await chrome.runtime.sendMessage({ type: 'GET_CONNECTION_STATE' });
-    console.log('[Intel CRM] State response:', stateResponse);
-    
-    // Guard again after async call
-    if (currentSeq !== renderSequence) {
-      console.log('[Intel CRM] Skipping stale render after state fetch');
-      return;
-    }
-    
-    if (stateResponse.success && stateResponse.data) {
-      renderConnectionState(stateResponse.data, checkResponse?.error);
-    } else {
-      renderConnectionState(null, 'Failed to get state');
-    }
-  } catch (error) {
-    console.error('[Intel CRM] Connection refresh error:', error);
-    
-    if (currentSeq !== renderSequence) return;
-    
-    renderConnectionState(null, error.message);
-  }
+  })();
+  
+  return await refreshInFlight;
 }
 
 async function loadConfig() {
@@ -303,3 +343,5 @@ function escapeHtml(str) {
   div.textContent = str;
   return div.innerHTML;
 }
+
+} // End of initialization guard
