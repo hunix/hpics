@@ -15,6 +15,7 @@
           <path d="M12 6v6l4 2"/>
         </svg>
         <span>Intel CRM</span>
+        <span id="header-version" class="header-version">v---</span>
       </div>
       <div id="connection-status" class="status disconnected">
         <span class="status-dot"></span>
@@ -35,6 +36,7 @@
           <input type="password" id="auth-token" placeholder="Your authentication token">
         </div>
         <button id="save-config" class="btn btn-primary" data-connected="false">Save & Connect</button>
+        <div id="debug-line" class="debug-line">connected=unknown</div>
       </section>
 
       <!-- Connection Info Section (shown when connected) -->
