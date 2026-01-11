@@ -272,7 +272,7 @@ async function failJob(supabase: AnySupabase, userId: string, jobId: string, err
     if (error) return { success: false, error: error.message };
     return { success: true, job_id: jobId, status: 'queued', message: `Retry ${newRetryCount} scheduled` };
   } else {
-    await sendToDeadLetter(supabase, jobId, userId, job, errorMessage);
+    await sendToDeadLetter(supabase as any, jobId, userId, job, errorMessage);
     const updateData = { status: 'dead_letter', status_history: statusHistory, error_message: errorMessage, updated_at: new Date().toISOString() };
     await supabase.from('orchestrator_jobs').update(updateData).eq('id', jobId);
     return { success: true, job_id: jobId, status: 'dead_letter', message: 'Moved to dead letter queue' };
