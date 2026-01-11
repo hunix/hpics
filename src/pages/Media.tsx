@@ -10,12 +10,13 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Plus, Image as ImageIcon, Images, Trash2, Mic, Play, Pause, FileAudio, FolderOpen, Clock, User, Search, Grid3X3, List, FileText, Music, Video, X, LayoutGrid } from 'lucide-react';
+import { Plus, Image as ImageIcon, Images, Trash2, Mic, Play, Pause, FileAudio, FolderOpen, Clock, User, Search, Grid3X3, List, FileText, Music, Video, X, LayoutGrid, Upload } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { MediaUpload } from '@/components/uploads/MediaUpload';
 import { RecordingUpload } from '@/components/recordings/RecordingUpload';
+import { BulkUploadDialog } from '@/components/uploads/BulkUploadDialog';
 import { getSignedUrls, getSignedUrl } from '@/hooks/useSignedUrl';
 import { useMediaFolders } from '@/hooks/useMediaFolders';
 import { useFileViewPreferences, type MainViewMode, type ViewMode } from '@/hooks/useFileViewPreferences';
@@ -38,6 +39,7 @@ export default function MediaPage() {
   const queryClient = useQueryClient();
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isRecordingUploadOpen, setIsRecordingUploadOpen] = useState(false);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState<string>('all');
   const [signedUrls, setSignedUrls] = useState<Map<string, string>>(new Map());
   
@@ -418,10 +420,16 @@ export default function MediaPage() {
                     {folders?.length || 0} contacts with media
                   </p>
                 </div>
-                <Button onClick={() => setIsUploadOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Upload Media
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" onClick={() => setIsBulkUploadOpen(true)}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Bulk Upload
+                  </Button>
+                  <Button onClick={() => setIsUploadOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Upload Media
+                  </Button>
+                </div>
               </div>
 
               {/* Folders Grid */}
@@ -745,6 +753,15 @@ export default function MediaPage() {
 
       <MediaUpload open={isUploadOpen} onOpenChange={setIsUploadOpen} />
       <RecordingUpload open={isRecordingUploadOpen} onOpenChange={setIsRecordingUploadOpen} />
+      <BulkUploadDialog 
+        open={isBulkUploadOpen} 
+        onOpenChange={setIsBulkUploadOpen}
+        onComplete={() => {
+          queryClient.invalidateQueries({ queryKey: ['media-paginated'] });
+          queryClient.invalidateQueries({ queryKey: ['media-folders'] });
+          queryClient.invalidateQueries({ queryKey: ['recordings'] });
+        }}
+      />
     </AppLayout>
   );
 }
