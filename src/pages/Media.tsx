@@ -622,10 +622,16 @@ export default function MediaPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={() => setIsRecordingUploadOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Upload Recording
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => setIsBulkUploadOpen(true)}>
+                <Upload className="mr-2 h-4 w-4" />
+                Bulk Upload
+              </Button>
+              <Button onClick={() => setIsRecordingUploadOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Upload Recording
+              </Button>
+            </div>
           </div>
 
           {recordingsLoading ? (
