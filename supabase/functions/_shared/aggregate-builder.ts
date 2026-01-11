@@ -198,12 +198,14 @@ export async function buildComprehensiveProfile(
   let totalConfidence = 0;
   let confidenceCount = 0;
 
-  for (const aggregate of aggregates) {
+  for (const agg of aggregates) {
+    const aggregate = agg as Record<string, unknown>;
     const state = aggregate.current_state as Record<string, unknown>;
-    comprehensive = deepMerge(comprehensive, state) as AggregateState;
+    comprehensive = deepMerge(comprehensive as Record<string, unknown>, state) as AggregateState;
     
-    if (aggregate.average_confidence) {
-      totalConfidence += aggregate.average_confidence;
+    const avgConf = aggregate.average_confidence as number | null;
+    if (avgConf) {
+      totalConfidence += avgConf;
       confidenceCount++;
     }
   }
@@ -243,12 +245,14 @@ export async function markForRebuild(
   profileId: string,
   aggregateType: AnalysisType
 ): Promise<boolean> {
+  const updateData: Record<string, unknown> = { 
+    needs_rebuild: true, 
+    updated_at: new Date().toISOString() 
+  };
+  
   const { error } = await supabase
     .from('analysis_aggregates')
-    .update({ 
-      needs_rebuild: true, 
-      updated_at: new Date().toISOString() 
-    })
+    .update(updateData as never)
     .eq('user_id', userId)
     .eq('profile_id', profileId)
     .eq('aggregate_type', aggregateType);
