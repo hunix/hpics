@@ -34,8 +34,9 @@ import { useToast } from '@/hooks/use-toast';
 
 interface MediaItem {
   id: string;
-  storage_path: string;
-  media_type: string;
+  file_url: string;
+  storage_path: string | null;
+  mime_type: string | null;
   ai_metadata?: {
     faces_detected?: number;
     objects?: string[];
@@ -43,6 +44,14 @@ interface MediaItem {
   } | null;
   profile_id?: string | null;
   created_at: string;
+}
+
+interface FaceRegion {
+  id: string;
+  media_id: string;
+  profile_id: string | null;
+  cropped_thumbnail_url: string | null;
+  status: string | null;
 }
 
 interface FaceCluster {
@@ -72,13 +81,17 @@ export function MediaIntelligenceGallery() {
     queryFn: async () => {
       const { data } = await supabase
         .from('media')
-        .select('id, storage_path, media_type, ai_metadata, profile_id, created_at')
+        .select('id, file_url, storage_path, mime_type, ai_metadata, profile_id, created_at')
         .eq('user_id', user?.id)
-        .in('media_type', ['photo', 'image'])
         .order('created_at', { ascending: false })
         .limit(200);
       
-      return (data || []) as MediaItem[];
+      // Filter for images by mime_type
+      const filtered = (data || []).filter(m => 
+        m.mime_type?.startsWith('image/') || !m.mime_type
+      );
+      
+      return filtered as MediaItem[];
     },
     enabled: !!user,
   });
@@ -89,11 +102,11 @@ export function MediaIntelligenceGallery() {
     queryFn: async () => {
       const { data } = await supabase
         .from('face_regions')
-        .select('id, media_id, profile_id, crop_url, status')
+        .select('id, media_id, profile_id, cropped_thumbnail_url, status')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
       
-      return data || [];
+      return (data || []) as FaceRegion[];
     },
     enabled: !!user,
   });
@@ -118,7 +131,7 @@ export function MediaIntelligenceGallery() {
     if (!faceRegions) return [];
     
     const taggedClusters = new Map<string, FaceCluster>();
-    const untaggedFaces: typeof faceRegions = [];
+    const untaggedFaces: FaceRegion[] = [];
     
     faceRegions.forEach(face => {
       if (face.profile_id) {
@@ -130,7 +143,7 @@ export function MediaIntelligenceGallery() {
           const contact = contacts?.find(c => c.id === face.profile_id);
           taggedClusters.set(face.profile_id, {
             id: face.profile_id,
-            representativeFaceUrl: face.crop_url ?? undefined,
+            representativeFaceUrl: face.cropped_thumbnail_url ?? undefined,
             mediaIds: [face.media_id],
             count: 1,
             matchedProfileId: face.profile_id,
@@ -147,7 +160,7 @@ export function MediaIntelligenceGallery() {
     if (untaggedFaces.length > 0) {
       clusters.push({
         id: 'unknown',
-        representativeFaceUrl: untaggedFaces[0]?.crop_url ?? undefined,
+        representativeFaceUrl: untaggedFaces[0]?.cropped_thumbnail_url ?? undefined,
         mediaIds: untaggedFaces.map(f => f.media_id),
         count: untaggedFaces.length,
       });
@@ -214,6 +227,10 @@ export function MediaIntelligenceGallery() {
       newSelection.add(id);
     }
     setSelectedMedia(newSelection);
+  };
+
+  const getMediaUrl = (item: MediaItem) => {
+    return item.file_url || item.storage_path || '';
   };
 
   if (mediaLoading) {
@@ -287,7 +304,7 @@ export function MediaIntelligenceGallery() {
             <ScrollArea className="h-[600px]">
               <div className={cn(view === 'grid' ? "grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3" : "flex flex-col gap-2")}>
                 {filteredMedia.map(item => (
-                  <MediaCard key={item.id} item={item} view={view} selected={selectedMedia.has(item.id)} onSelect={() => toggleMediaSelection(item.id)} onPreview={() => setSelectedMediaForPreview(item)} />
+                  <MediaCard key={item.id} item={item} view={view} selected={selectedMedia.has(item.id)} onSelect={() => toggleMediaSelection(item.id)} onPreview={() => setSelectedMediaForPreview(item)} getMediaUrl={getMediaUrl} />
                 ))}
               </div>
               {filteredMedia.length === 0 && (
@@ -348,7 +365,7 @@ export function MediaIntelligenceGallery() {
           <DialogContent className="max-w-2xl">
             <DialogHeader><DialogTitle>Media Preview</DialogTitle></DialogHeader>
             <div className="aspect-video bg-black rounded-lg overflow-hidden">
-              <img src={selectedMediaForPreview.storage_path} alt="" className="w-full h-full object-contain" />
+              <img src={getMediaUrl(selectedMediaForPreview)} alt="" className="w-full h-full object-contain" />
             </div>
           </DialogContent>
         </Dialog>
@@ -357,11 +374,20 @@ export function MediaIntelligenceGallery() {
   );
 }
 
-function MediaCard({ item, view, selected, onSelect, onPreview }: { item: MediaItem; view: 'grid' | 'list'; selected: boolean; onSelect: () => void; onPreview: () => void }) {
+function MediaCard({ item, view, selected, onSelect, onPreview, getMediaUrl }: { 
+  item: MediaItem; 
+  view: 'grid' | 'list'; 
+  selected: boolean; 
+  onSelect: () => void; 
+  onPreview: () => void;
+  getMediaUrl: (item: MediaItem) => string;
+}) {
+  const mediaUrl = getMediaUrl(item);
+  
   if (view === 'grid') {
     return (
       <div className={cn("relative group aspect-square rounded-lg overflow-hidden cursor-pointer ring-2 ring-transparent transition-all", selected && "ring-primary")}>
-        <img src={item.storage_path} alt="" className="w-full h-full object-cover" />
+        <img src={mediaUrl} alt="" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all">
           <div className={cn("absolute top-2 left-2 transition-opacity", selected ? "opacity-100" : "opacity-0 group-hover:opacity-100")} onClick={e => { e.stopPropagation(); onSelect(); }}>
             <div className={cn("h-6 w-6 rounded border-2 flex items-center justify-center", selected ? "bg-primary border-primary" : "bg-white/80 border-white")}>
@@ -379,7 +405,7 @@ function MediaCard({ item, view, selected, onSelect, onPreview }: { item: MediaI
   return (
     <div className={cn("flex items-center gap-4 p-3 rounded-lg border transition-all", selected && "bg-primary/5 border-primary")}>
       <Checkbox checked={selected} onCheckedChange={onSelect} />
-      <div className="h-16 w-16 rounded overflow-hidden flex-shrink-0"><img src={item.storage_path} alt="" className="w-full h-full object-cover" /></div>
+      <div className="h-16 w-16 rounded overflow-hidden flex-shrink-0"><img src={mediaUrl} alt="" className="w-full h-full object-cover" /></div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{new Date(item.created_at).toLocaleDateString()}</p>
         <p className="text-xs text-muted-foreground">{item.ai_metadata?.scene || 'Unanalyzed'}</p>
