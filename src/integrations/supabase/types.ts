@@ -2007,6 +2007,220 @@ export type Database = {
         }
         Relationships: []
       }
+      bulk_upload_items: {
+        Row: {
+          analysis_job_id: string | null
+          completed_at: string | null
+          content_hash: string | null
+          created_at: string
+          document_id: string | null
+          error_message: string | null
+          file_size: number
+          file_type: string | null
+          filename: string
+          id: string
+          is_duplicate_of: string | null
+          max_retries: number
+          media_id: string | null
+          mime_type: string | null
+          original_path: string | null
+          progress: number
+          queued_for_analysis: boolean
+          recording_id: string | null
+          retry_count: number
+          session_id: string
+          sort_order: number
+          started_at: string | null
+          status: string
+          storage_bucket: string | null
+          storage_path: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis_job_id?: string | null
+          completed_at?: string | null
+          content_hash?: string | null
+          created_at?: string
+          document_id?: string | null
+          error_message?: string | null
+          file_size?: number
+          file_type?: string | null
+          filename: string
+          id?: string
+          is_duplicate_of?: string | null
+          max_retries?: number
+          media_id?: string | null
+          mime_type?: string | null
+          original_path?: string | null
+          progress?: number
+          queued_for_analysis?: boolean
+          recording_id?: string | null
+          retry_count?: number
+          session_id: string
+          sort_order?: number
+          started_at?: string | null
+          status?: string
+          storage_bucket?: string | null
+          storage_path?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis_job_id?: string | null
+          completed_at?: string | null
+          content_hash?: string | null
+          created_at?: string
+          document_id?: string | null
+          error_message?: string | null
+          file_size?: number
+          file_type?: string | null
+          filename?: string
+          id?: string
+          is_duplicate_of?: string | null
+          max_retries?: number
+          media_id?: string | null
+          mime_type?: string | null
+          original_path?: string | null
+          progress?: number
+          queued_for_analysis?: boolean
+          recording_id?: string | null
+          retry_count?: number
+          session_id?: string
+          sort_order?: number
+          started_at?: string | null
+          status?: string
+          storage_bucket?: string | null
+          storage_path?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bulk_upload_items_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bulk_upload_items_is_duplicate_of_fkey"
+            columns: ["is_duplicate_of"]
+            isOneToOne: false
+            referencedRelation: "bulk_upload_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bulk_upload_items_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bulk_upload_items_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_recordings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bulk_upload_items_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "bulk_upload_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bulk_upload_sessions: {
+        Row: {
+          analysis_priority: number | null
+          auto_analyze: boolean
+          completed_at: string | null
+          completed_files: number
+          created_at: string
+          failed_files: number
+          id: string
+          name: string | null
+          paused_at: string | null
+          profile_id: string | null
+          skipped_files: number
+          source_type: string
+          started_at: string | null
+          status: string
+          total_bytes: number
+          total_files: number
+          updated_at: string
+          uploaded_bytes: number
+          user_id: string
+        }
+        Insert: {
+          analysis_priority?: number | null
+          auto_analyze?: boolean
+          completed_at?: string | null
+          completed_files?: number
+          created_at?: string
+          failed_files?: number
+          id?: string
+          name?: string | null
+          paused_at?: string | null
+          profile_id?: string | null
+          skipped_files?: number
+          source_type?: string
+          started_at?: string | null
+          status?: string
+          total_bytes?: number
+          total_files?: number
+          updated_at?: string
+          uploaded_bytes?: number
+          user_id: string
+        }
+        Update: {
+          analysis_priority?: number | null
+          auto_analyze?: boolean
+          completed_at?: string | null
+          completed_files?: number
+          created_at?: string
+          failed_files?: number
+          id?: string
+          name?: string | null
+          paused_at?: string | null
+          profile_id?: string | null
+          skipped_files?: number
+          source_type?: string
+          started_at?: string | null
+          status?: string
+          total_bytes?: number
+          total_files?: number
+          updated_at?: string
+          uploaded_bytes?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bulk_upload_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "bulk_upload_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "bulk_upload_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       certifications: {
         Row: {
           created_at: string
