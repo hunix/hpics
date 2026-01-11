@@ -213,13 +213,13 @@ export function useBiometricStream() {
     }
 
     if (data) {
-      // Process historical data
-      let totalSteps = 0;
+      // Process historical data - use available fields from interaction_biometrics
+      let totalCalories = 0;
       const heartRates: number[] = [];
 
       for (const record of data) {
         if (record.avg_heart_rate) heartRates.push(record.avg_heart_rate);
-        if (record.steps_count) totalSteps += record.steps_count;
+        if (record.calories_burned) totalCalories += record.calories_burned;
       }
 
       setSummary(prev => ({
@@ -230,9 +230,9 @@ export function useBiometricStream() {
           max: Math.max(...heartRates),
           avg: Math.round(heartRates.reduce((a, b) => a + b, 0) / heartRates.length),
         } : prev.heartRate,
-        steps: {
-          ...prev.steps,
-          today: totalSteps,
+        activity: {
+          ...prev.activity,
+          calories: totalCalories,
         },
       }));
 
