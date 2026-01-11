@@ -527,6 +527,182 @@ export type Database = {
           },
         ]
       }
+      analysis_aggregates: {
+        Row: {
+          active_events: number | null
+          aggregate_type: string
+          average_confidence: number | null
+          confidence_trend: Json | null
+          created_at: string
+          current_state: Json
+          first_analysis_at: string | null
+          id: string
+          last_analysis_at: string | null
+          last_event_id: string | null
+          last_event_sequence: number | null
+          last_rebuild_at: string | null
+          last_rebuild_duration_ms: number | null
+          needs_rebuild: boolean | null
+          profile_id: string
+          rebuild_count: number | null
+          total_events: number | null
+          updated_at: string
+          user_id: string
+          version: number | null
+        }
+        Insert: {
+          active_events?: number | null
+          aggregate_type: string
+          average_confidence?: number | null
+          confidence_trend?: Json | null
+          created_at?: string
+          current_state?: Json
+          first_analysis_at?: string | null
+          id?: string
+          last_analysis_at?: string | null
+          last_event_id?: string | null
+          last_event_sequence?: number | null
+          last_rebuild_at?: string | null
+          last_rebuild_duration_ms?: number | null
+          needs_rebuild?: boolean | null
+          profile_id: string
+          rebuild_count?: number | null
+          total_events?: number | null
+          updated_at?: string
+          user_id: string
+          version?: number | null
+        }
+        Update: {
+          active_events?: number | null
+          aggregate_type?: string
+          average_confidence?: number | null
+          confidence_trend?: Json | null
+          created_at?: string
+          current_state?: Json
+          first_analysis_at?: string | null
+          id?: string
+          last_analysis_at?: string | null
+          last_event_id?: string | null
+          last_event_sequence?: number | null
+          last_rebuild_at?: string | null
+          last_rebuild_duration_ms?: number | null
+          needs_rebuild?: boolean | null
+          profile_id?: string
+          rebuild_count?: number | null
+          total_events?: number | null
+          updated_at?: string
+          user_id?: string
+          version?: number | null
+        }
+        Relationships: []
+      }
+      analysis_events: {
+        Row: {
+          analysis_model: string | null
+          analysis_subtype: string | null
+          analysis_type: string
+          analysis_version: string | null
+          confidence_score: number | null
+          cost_cents: number | null
+          created_at: string
+          deleted_at: string | null
+          deletion_request_id: string | null
+          entities_mentioned: Json | null
+          event_hash: string
+          event_type: string
+          event_version: number | null
+          id: string
+          is_deleted: boolean | null
+          key_insights: string[] | null
+          previous_event_id: string | null
+          previous_hash: string | null
+          processing_duration_ms: number | null
+          profile_id: string | null
+          raw_result: Json
+          sequence_number: number
+          source_hash: string | null
+          source_id: string | null
+          source_metadata: Json | null
+          source_registry_id: string | null
+          source_type: string | null
+          tags: string[] | null
+          tokens_used: number | null
+          user_id: string
+        }
+        Insert: {
+          analysis_model?: string | null
+          analysis_subtype?: string | null
+          analysis_type: string
+          analysis_version?: string | null
+          confidence_score?: number | null
+          cost_cents?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          deletion_request_id?: string | null
+          entities_mentioned?: Json | null
+          event_hash: string
+          event_type: string
+          event_version?: number | null
+          id?: string
+          is_deleted?: boolean | null
+          key_insights?: string[] | null
+          previous_event_id?: string | null
+          previous_hash?: string | null
+          processing_duration_ms?: number | null
+          profile_id?: string | null
+          raw_result: Json
+          sequence_number?: number
+          source_hash?: string | null
+          source_id?: string | null
+          source_metadata?: Json | null
+          source_registry_id?: string | null
+          source_type?: string | null
+          tags?: string[] | null
+          tokens_used?: number | null
+          user_id: string
+        }
+        Update: {
+          analysis_model?: string | null
+          analysis_subtype?: string | null
+          analysis_type?: string
+          analysis_version?: string | null
+          confidence_score?: number | null
+          cost_cents?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          deletion_request_id?: string | null
+          entities_mentioned?: Json | null
+          event_hash?: string
+          event_type?: string
+          event_version?: number | null
+          id?: string
+          is_deleted?: boolean | null
+          key_insights?: string[] | null
+          previous_event_id?: string | null
+          previous_hash?: string | null
+          processing_duration_ms?: number | null
+          profile_id?: string | null
+          raw_result?: Json
+          sequence_number?: number
+          source_hash?: string | null
+          source_id?: string | null
+          source_metadata?: Json | null
+          source_registry_id?: string | null
+          source_type?: string | null
+          tags?: string[] | null
+          tokens_used?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_events_source_registry_id_fkey"
+            columns: ["source_registry_id"]
+            isOneToOne: false
+            referencedRelation: "source_asset_registry"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analysis_jobs: {
         Row: {
           actual_cost_cents: number | null
@@ -677,6 +853,59 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analysis_snapshots: {
+        Row: {
+          aggregate_id: string | null
+          aggregate_type: string
+          created_at: string
+          event_count_at_snapshot: number | null
+          events_since_last_snapshot: number | null
+          id: string
+          profile_id: string
+          rebuild_duration_ms: number | null
+          snapshot_data: Json
+          snapshot_sequence: number
+          snapshot_type: string | null
+          user_id: string
+        }
+        Insert: {
+          aggregate_id?: string | null
+          aggregate_type: string
+          created_at?: string
+          event_count_at_snapshot?: number | null
+          events_since_last_snapshot?: number | null
+          id?: string
+          profile_id: string
+          rebuild_duration_ms?: number | null
+          snapshot_data: Json
+          snapshot_sequence: number
+          snapshot_type?: string | null
+          user_id: string
+        }
+        Update: {
+          aggregate_id?: string | null
+          aggregate_type?: string
+          created_at?: string
+          event_count_at_snapshot?: number | null
+          events_since_last_snapshot?: number | null
+          id?: string
+          profile_id?: string
+          rebuild_duration_ms?: number | null
+          snapshot_data?: Json
+          snapshot_sequence?: number
+          snapshot_type?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_snapshots_aggregate_id_fkey"
+            columns: ["aggregate_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_aggregates"
             referencedColumns: ["id"]
           },
         ]
@@ -5185,6 +5414,54 @@ export type Database = {
         }
         Relationships: []
       }
+      cross_modal_correlations: {
+        Row: {
+          confidence_score: number | null
+          correlation_data: Json
+          correlation_strength: number | null
+          correlation_type: string
+          created_at: string
+          id: string
+          insights: string[] | null
+          profile_id: string
+          source_analysis_types: string[]
+          source_event_ids: string[]
+          user_id: string
+          validated_by_user: boolean | null
+          validation_feedback: string | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          correlation_data: Json
+          correlation_strength?: number | null
+          correlation_type: string
+          created_at?: string
+          id?: string
+          insights?: string[] | null
+          profile_id: string
+          source_analysis_types: string[]
+          source_event_ids: string[]
+          user_id: string
+          validated_by_user?: boolean | null
+          validation_feedback?: string | null
+        }
+        Update: {
+          confidence_score?: number | null
+          correlation_data?: Json
+          correlation_strength?: number | null
+          correlation_type?: string
+          created_at?: string
+          id?: string
+          insights?: string[] | null
+          profile_id?: string
+          source_analysis_types?: string[]
+          source_event_ids?: string[]
+          user_id?: string
+          validated_by_user?: boolean | null
+          validation_feedback?: string | null
+        }
+        Relationships: []
+      }
       cross_references: {
         Row: {
           confidence: number | null
@@ -5302,6 +5579,72 @@ export type Database = {
           last_accessed_at?: string | null
           table_name?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      deletion_requests: {
+        Row: {
+          aggregates_affected: number | null
+          confirmation_code: string | null
+          confirmed_at: string | null
+          created_at: string
+          deletion_scope: string
+          error_message: string | null
+          events_affected: number | null
+          events_deleted: number | null
+          executed_at: string | null
+          execution_log: Json | null
+          id: string
+          impact_preview: Json | null
+          profiles_affected: string[] | null
+          requested_at: string
+          scope_parameters: Json
+          status: string | null
+          updated_at: string
+          user_confirmation_method: string | null
+          user_id: string
+        }
+        Insert: {
+          aggregates_affected?: number | null
+          confirmation_code?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+          deletion_scope: string
+          error_message?: string | null
+          events_affected?: number | null
+          events_deleted?: number | null
+          executed_at?: string | null
+          execution_log?: Json | null
+          id?: string
+          impact_preview?: Json | null
+          profiles_affected?: string[] | null
+          requested_at?: string
+          scope_parameters: Json
+          status?: string | null
+          updated_at?: string
+          user_confirmation_method?: string | null
+          user_id: string
+        }
+        Update: {
+          aggregates_affected?: number | null
+          confirmation_code?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+          deletion_scope?: string
+          error_message?: string | null
+          events_affected?: number | null
+          events_deleted?: number | null
+          executed_at?: string | null
+          execution_log?: Json | null
+          id?: string
+          impact_preview?: Json | null
+          profiles_affected?: string[] | null
+          requested_at?: string
+          scope_parameters?: Json
+          status?: string | null
+          updated_at?: string
+          user_confirmation_method?: string | null
           user_id?: string
         }
         Relationships: []
@@ -10304,6 +10647,191 @@ export type Database = {
         }
         Relationships: []
       }
+      orchestrator_dead_letter: {
+        Row: {
+          created_at: string
+          failure_count: number | null
+          failure_reason: string
+          first_failure_at: string | null
+          id: string
+          job_snapshot: Json
+          last_failure_at: string | null
+          original_job_id: string | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          failure_count?: number | null
+          failure_reason: string
+          first_failure_at?: string | null
+          id?: string
+          job_snapshot: Json
+          last_failure_at?: string | null
+          original_job_id?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          failure_count?: number | null
+          failure_reason?: string
+          first_failure_at?: string | null
+          id?: string
+          job_snapshot?: Json
+          last_failure_at?: string | null
+          original_job_id?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orchestrator_dead_letter_original_job_id_fkey"
+            columns: ["original_job_id"]
+            isOneToOne: false
+            referencedRelation: "orchestrator_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orchestrator_jobs: {
+        Row: {
+          actual_cost_cents: number | null
+          actual_duration_ms: number | null
+          blocks_jobs: string[] | null
+          completed_at: string | null
+          created_at: string
+          deadline_at: string | null
+          depends_on_jobs: string[] | null
+          error_details: Json | null
+          error_message: string | null
+          estimated_cost_cents: number | null
+          estimated_duration_ms: number | null
+          heartbeat_at: string | null
+          id: string
+          idempotency_key: string | null
+          job_subtype: string | null
+          job_type: string
+          last_retry_at: string | null
+          max_retries: number | null
+          parent_job_id: string | null
+          priority: number | null
+          profile_id: string | null
+          result_event_ids: string[] | null
+          result_summary: Json | null
+          retry_count: number | null
+          scheduled_for: string | null
+          source_id: string | null
+          source_registry_id: string | null
+          source_type: string | null
+          started_at: string | null
+          status: string | null
+          status_history: Json | null
+          tokens_used: number | null
+          updated_at: string
+          user_id: string
+          worker_id: string | null
+        }
+        Insert: {
+          actual_cost_cents?: number | null
+          actual_duration_ms?: number | null
+          blocks_jobs?: string[] | null
+          completed_at?: string | null
+          created_at?: string
+          deadline_at?: string | null
+          depends_on_jobs?: string[] | null
+          error_details?: Json | null
+          error_message?: string | null
+          estimated_cost_cents?: number | null
+          estimated_duration_ms?: number | null
+          heartbeat_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          job_subtype?: string | null
+          job_type: string
+          last_retry_at?: string | null
+          max_retries?: number | null
+          parent_job_id?: string | null
+          priority?: number | null
+          profile_id?: string | null
+          result_event_ids?: string[] | null
+          result_summary?: Json | null
+          retry_count?: number | null
+          scheduled_for?: string | null
+          source_id?: string | null
+          source_registry_id?: string | null
+          source_type?: string | null
+          started_at?: string | null
+          status?: string | null
+          status_history?: Json | null
+          tokens_used?: number | null
+          updated_at?: string
+          user_id: string
+          worker_id?: string | null
+        }
+        Update: {
+          actual_cost_cents?: number | null
+          actual_duration_ms?: number | null
+          blocks_jobs?: string[] | null
+          completed_at?: string | null
+          created_at?: string
+          deadline_at?: string | null
+          depends_on_jobs?: string[] | null
+          error_details?: Json | null
+          error_message?: string | null
+          estimated_cost_cents?: number | null
+          estimated_duration_ms?: number | null
+          heartbeat_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          job_subtype?: string | null
+          job_type?: string
+          last_retry_at?: string | null
+          max_retries?: number | null
+          parent_job_id?: string | null
+          priority?: number | null
+          profile_id?: string | null
+          result_event_ids?: string[] | null
+          result_summary?: Json | null
+          retry_count?: number | null
+          scheduled_for?: string | null
+          source_id?: string | null
+          source_registry_id?: string | null
+          source_type?: string | null
+          started_at?: string | null
+          status?: string | null
+          status_history?: Json | null
+          tokens_used?: number | null
+          updated_at?: string
+          user_id?: string
+          worker_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orchestrator_jobs_parent_job_id_fkey"
+            columns: ["parent_job_id"]
+            isOneToOne: false
+            referencedRelation: "orchestrator_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orchestrator_jobs_source_registry_id_fkey"
+            columns: ["source_registry_id"]
+            isOneToOne: false
+            referencedRelation: "source_asset_registry"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       osint_findings: {
         Row: {
           created_at: string
@@ -12125,6 +12653,66 @@ export type Database = {
           },
         ]
       }
+      source_asset_registry: {
+        Row: {
+          analysis_count: number | null
+          asset_id: string
+          asset_type: string
+          content_hash: string | null
+          created_at: string
+          deleted_at: string | null
+          deletion_reason: string | null
+          file_size_bytes: number | null
+          first_seen_at: string
+          has_active_analyses: boolean | null
+          id: string
+          last_analyzed_at: string | null
+          metadata: Json | null
+          original_filename: string | null
+          original_mime_type: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis_count?: number | null
+          asset_id: string
+          asset_type: string
+          content_hash?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          deletion_reason?: string | null
+          file_size_bytes?: number | null
+          first_seen_at?: string
+          has_active_analyses?: boolean | null
+          id?: string
+          last_analyzed_at?: string | null
+          metadata?: Json | null
+          original_filename?: string | null
+          original_mime_type?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis_count?: number | null
+          asset_id?: string
+          asset_type?: string
+          content_hash?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          deletion_reason?: string | null
+          file_size_bytes?: number | null
+          first_seen_at?: string
+          has_active_analyses?: boolean | null
+          id?: string
+          last_analyzed_at?: string | null
+          metadata?: Json | null
+          original_filename?: string | null
+          original_mime_type?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       storage_snapshots: {
         Row: {
           created_at: string | null
@@ -12400,6 +12988,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      system_health: {
+        Row: {
+          active_alerts: Json | null
+          alert_history: Json | null
+          avg_latency_ms: number | null
+          circuit_failure_count: number | null
+          circuit_opened_at: string | null
+          circuit_state: string | null
+          component: string
+          consecutive_failures: number | null
+          errors_last_hour: number | null
+          id: string
+          last_heartbeat: string | null
+          p95_latency_ms: number | null
+          requests_last_hour: number | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          active_alerts?: Json | null
+          alert_history?: Json | null
+          avg_latency_ms?: number | null
+          circuit_failure_count?: number | null
+          circuit_opened_at?: string | null
+          circuit_state?: string | null
+          component: string
+          consecutive_failures?: number | null
+          errors_last_hour?: number | null
+          id?: string
+          last_heartbeat?: string | null
+          p95_latency_ms?: number | null
+          requests_last_hour?: number | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active_alerts?: Json | null
+          alert_history?: Json | null
+          avg_latency_ms?: number | null
+          circuit_failure_count?: number | null
+          circuit_opened_at?: string | null
+          circuit_state?: string | null
+          component?: string
+          consecutive_failures?: number | null
+          errors_last_hour?: number | null
+          id?: string
+          last_heartbeat?: string | null
+          p95_latency_ms?: number | null
+          requests_last_hour?: number | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       team_presence: {
         Row: {
@@ -14115,6 +14757,17 @@ export type Database = {
         Returns: boolean
       }
       clean_expired_cache: { Args: never; Returns: number }
+      compute_event_hash: {
+        Args: {
+          p_analysis_type: string
+          p_created_at: string
+          p_event_id: string
+          p_event_type: string
+          p_previous_hash: string
+          p_raw_result: Json
+        }
+        Returns: string
+      }
       create_storage_snapshot: {
         Args: { p_user_id: string }
         Returns: undefined
@@ -14271,6 +14924,13 @@ export type Database = {
       get_or_set_cache: {
         Args: { p_cache_key: string; p_ttl_seconds?: number; p_user_id: string }
         Returns: Json
+      }
+      get_previous_event_for_chain: {
+        Args: { p_profile_id: string; p_user_id: string }
+        Returns: {
+          event_hash: string
+          event_id: string
+        }[]
       }
       get_shared_organizations: {
         Args: { p_profile_ids: string[]; p_user_id: string }
@@ -14455,6 +15115,14 @@ export type Database = {
       owns_profile: {
         Args: { profile_uuid: string; uid: string }
         Returns: boolean
+      }
+      rebuild_analysis_aggregate: {
+        Args: {
+          p_aggregate_type: string
+          p_profile_id: string
+          p_user_id: string
+        }
+        Returns: Json
       }
       refresh_contact_storage_stats: { Args: never; Returns: undefined }
       search_contacts_v2: {
