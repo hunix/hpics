@@ -77,7 +77,7 @@ export function CaptureCard({
   const isVerified = data?.isVerified;
   const isPrivate = data?.isPrivate;
 
-  const capturedAt = formatDistanceToNow(new Date(capture.captured_at), { addSuffix: true });
+  const capturedAt = formatDistanceToNow(new Date(capture.created_at), { addSuffix: true });
   const isLinked = !!capture.profile_id;
   const isAnalyzed = capture.status === 'processed';
 

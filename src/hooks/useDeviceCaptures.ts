@@ -16,7 +16,6 @@ export interface DeviceCapture {
   profile_id?: string;
   confidence_score: number;
   status: string;
-  captured_at: string;
   created_at: string;
 }
 
@@ -36,7 +35,7 @@ export function useDeviceCaptures(profileId?: string) {
         .from('device_captures')
         .select('*')
         .eq('user_id', user.id)
-        .order('captured_at', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(limit);
 
       if (profileId) {
