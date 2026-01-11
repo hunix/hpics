@@ -396,6 +396,347 @@
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  /**
+   * Deep Instagram profile extraction with enhanced selectors
+   */
+  function extractInstagramProfileDeep() {
+    const profile = {
+      displayName: null,
+      username: null,
+      bio: null,
+      pronouns: null,
+      category: null,
+      isVerified: false,
+      isPrivate: false,
+      isBusiness: false,
+      profilePicUrl: null,
+      externalUrl: null,
+      followersCount: null,
+      followingCount: null,
+      postsCount: null,
+      linkedAccounts: [],
+    };
+
+    // Header section extraction
+    const header = document.querySelector('header');
+    if (header) {
+      // Profile picture - get highest res
+      const avatar = header.querySelector('img[alt*="profile picture"], img[alt*="\'s profile picture"]');
+      if (avatar) {
+        profile.profilePicUrl = avatar.src
+          .replace(/s150x150/g, 's640x640')
+          .replace(/s110x110/g, 's640x640')
+          .replace(/s320x320/g, 's640x640');
+      }
+
+      // Display name and verification
+      const nameEl = header.querySelector('h2, section h1');
+      if (nameEl) {
+        profile.displayName = nameEl.textContent?.trim();
+        profile.isVerified = !!header.querySelector('[aria-label*="Verified"], [title*="Verified"]');
+      }
+
+      // Bio section
+      const bioSection = header.querySelector('section > div:last-of-type');
+      if (bioSection) {
+        const spans = bioSection.querySelectorAll('span');
+        spans.forEach(span => {
+          const text = span.textContent?.trim();
+          if (text && text.length > 10 && !text.includes('followers') && !text.includes('following')) {
+            if (!profile.bio || text.length > profile.bio.length) {
+              profile.bio = text;
+            }
+          }
+        });
+      }
+
+      // Pronouns
+      const pronounEl = header.querySelector('[class*="pronoun"], span:contains("he/him"), span:contains("she/her"), span:contains("they/them")');
+      if (pronounEl) {
+        profile.pronouns = pronounEl.textContent?.trim();
+      }
+
+      // External link
+      const linkEl = header.querySelector('a[href*="l.instagram.com"], a[href*="linktr.ee"], a[rel="me nofollow noopener"]');
+      if (linkEl) {
+        profile.externalUrl = linkEl.href;
+      }
+
+      // Stats
+      const statsList = header.querySelector('ul');
+      if (statsList) {
+        const items = statsList.querySelectorAll('li');
+        items.forEach(item => {
+          const text = item.textContent?.toLowerCase() || '';
+          const numMatch = text.match(/[\d,\.]+[km]?/i);
+          if (numMatch) {
+            const numStr = numMatch[0].replace(/,/g, '');
+            let value = parseFloat(numStr);
+            if (numStr.toLowerCase().includes('k')) value *= 1000;
+            if (numStr.toLowerCase().includes('m')) value *= 1000000;
+
+            if (text.includes('post')) profile.postsCount = Math.round(value);
+            else if (text.includes('follower')) profile.followersCount = Math.round(value);
+            else if (text.includes('following')) profile.followingCount = Math.round(value);
+          }
+        });
+      }
+    }
+
+    // Check for private account
+    profile.isPrivate = !!document.querySelector('[aria-label*="This account is private"]') ||
+                        document.body.innerText.includes('This account is private');
+
+    // Check for business/creator account
+    const categoryEl = document.querySelector('[class*="category"], section header + div');
+    if (categoryEl && categoryEl.textContent?.length < 50) {
+      profile.category = categoryEl.textContent?.trim();
+      profile.isBusiness = true;
+    }
+
+    return profile;
+  }
+
+  /**
+   * Extract Instagram highlights from profile
+   */
+  function extractInstagramHighlights() {
+    const highlights = [];
+    const highlightContainer = document.querySelector('ul[class*="highlight"], div[class*="highlight"]');
+    
+    if (highlightContainer) {
+      const items = highlightContainer.querySelectorAll('li, button, [role="button"]');
+      items.forEach((item, idx) => {
+        if (idx >= 20) return;
+        const img = item.querySelector('img');
+        const nameEl = item.querySelector('span') || item.querySelector('div[dir="auto"]');
+        
+        if (img || nameEl) {
+          highlights.push({
+            name: nameEl?.textContent?.trim() || `Highlight ${idx + 1}`,
+            coverUrl: img?.src,
+          });
+        }
+      });
+    }
+
+    return highlights;
+  }
+
+  /**
+   * Extract Instagram posts with deep detail
+   */
+  function extractInstagramPostsDeep() {
+    const posts = [];
+    const postLinks = document.querySelectorAll('a[href*="/p/"], a[href*="/reel/"]');
+    
+    postLinks.forEach((link, index) => {
+      if (index >= 100) return;
+      
+      const img = link.querySelector('img');
+      const videoIcon = link.querySelector('[aria-label*="Video"], [aria-label*="Reel"], svg');
+      const carouselIcon = link.querySelector('[aria-label*="Carousel"]');
+      
+      // Get engagement hints from aria-labels
+      const container = link.closest('article') || link.closest('div');
+      const likesHint = container?.querySelector('[aria-label*="likes"]')?.getAttribute('aria-label');
+      const commentsHint = container?.querySelector('[aria-label*="comments"]')?.getAttribute('aria-label');
+      
+      const post = {
+        postUrl: link.href,
+        thumbnailUrl: img?.src,
+        alt: img?.alt || '',
+        isVideo: !!videoIcon && link.href.includes('/reel/'),
+        isReel: link.href.includes('/reel/'),
+        isCarousel: !!carouselIcon,
+        caption: img?.alt?.replace(/^Photo by .+ on .+\. /, '').substring(0, 500),
+        likesHint: likesHint ? parseInt(likesHint.replace(/\D/g, '')) : null,
+        commentsHint: commentsHint ? parseInt(commentsHint.replace(/\D/g, '')) : null,
+      };
+
+      // Extract hashtags from alt text
+      const hashtagMatches = post.alt?.match(/#\w+/g);
+      if (hashtagMatches) {
+        post.hashtags = [...new Set(hashtagMatches)];
+      }
+
+      // Extract mentions from alt text
+      const mentionMatches = post.alt?.match(/@\w+/g);
+      if (mentionMatches) {
+        post.mentions = [...new Set(mentionMatches)];
+      }
+
+      posts.push(post);
+    });
+
+    return posts;
+  }
+
+  /**
+   * Deep Threads profile extraction
+   */
+  function extractThreadsProfileDeep() {
+    const profile = {
+      handle: null,
+      displayName: null,
+      bio: null,
+      followersCount: null,
+      followingCount: null,
+      isVerified: false,
+      instagramConnected: false,
+      profilePicUrl: null,
+    };
+
+    // Handle and name
+    const handleEl = document.querySelector('h2, [data-testid="profile-handle"]');
+    if (handleEl) {
+      profile.handle = handleEl.textContent?.trim()?.replace('@', '');
+    }
+
+    const nameEl = document.querySelector('h1, [data-testid="profile-name"]');
+    if (nameEl) {
+      profile.displayName = nameEl.textContent?.trim();
+      profile.isVerified = !!nameEl.parentElement?.querySelector('[aria-label*="Verified"]');
+    }
+
+    // Bio
+    const bioEl = document.querySelector('[data-testid="bio-text"], header + div > span, main div[dir="auto"]');
+    if (bioEl && bioEl.textContent?.length > 5 && bioEl.textContent?.length < 500) {
+      profile.bio = bioEl.textContent?.trim();
+    }
+
+    // Profile picture
+    const avatar = document.querySelector('img[alt*="profile"], header img');
+    if (avatar) {
+      profile.profilePicUrl = avatar.src;
+    }
+
+    // Stats from page text
+    const pageText = document.body.innerText;
+    const followersMatch = pageText.match(/(\d+(?:,\d+)*(?:\.\d+)?[KMB]?)\s*followers?/i);
+    const followingMatch = pageText.match(/(\d+(?:,\d+)*(?:\.\d+)?[KMB]?)\s*following/i);
+    
+    if (followersMatch) {
+      const num = followersMatch[1].replace(/,/g, '');
+      let value = parseFloat(num);
+      if (num.toLowerCase().includes('k')) value *= 1000;
+      if (num.toLowerCase().includes('m')) value *= 1000000;
+      profile.followersCount = Math.round(value);
+    }
+    if (followingMatch) {
+      const num = followingMatch[1].replace(/,/g, '');
+      let value = parseFloat(num);
+      if (num.toLowerCase().includes('k')) value *= 1000;
+      if (num.toLowerCase().includes('m')) value *= 1000000;
+      profile.followingCount = Math.round(value);
+    }
+
+    // Check Instagram connection
+    profile.instagramConnected = !!document.querySelector('a[href*="instagram.com"]') ||
+                                  pageText.includes('instagram.com');
+
+    return profile;
+  }
+
+  /**
+   * Extract Threads posts with engagement data
+   */
+  function extractThreadsPostsDeep() {
+    const threads = [];
+    const articles = document.querySelectorAll('article, [data-testid="thread-post"], div[data-pressable-container="true"]');
+    
+    articles.forEach((article, index) => {
+      if (index >= 100) return;
+
+      const contentEl = article.querySelector('[data-testid="post-text-container"], div[dir="auto"], span');
+      const timeEl = article.querySelector('time[datetime], time');
+      
+      const thread = {
+        content: contentEl?.textContent?.trim()?.substring(0, 1000) || '',
+        timestamp: timeEl?.getAttribute('datetime') || timeEl?.textContent,
+        likes: 0,
+        replies: 0,
+        reposts: 0,
+        hasMedia: !!article.querySelector('img:not([alt*="profile"]), video'),
+      };
+
+      // Extract engagement numbers
+      const engagementText = article.textContent || '';
+      
+      const likesMatch = engagementText.match(/(\d+(?:,\d+)*)\s*(?:likes?|❤)/i);
+      if (likesMatch) thread.likes = parseInt(likesMatch[1].replace(/,/g, ''));
+
+      const repliesMatch = engagementText.match(/(\d+(?:,\d+)*)\s*(?:replies?|comments?)/i);
+      if (repliesMatch) thread.replies = parseInt(repliesMatch[1].replace(/,/g, ''));
+
+      const repostsMatch = engagementText.match(/(\d+(?:,\d+)*)\s*(?:reposts?)/i);
+      if (repostsMatch) thread.reposts = parseInt(repostsMatch[1].replace(/,/g, ''));
+
+      // Extract mentions and hashtags
+      const mentionMatches = thread.content.match(/@\w+/g);
+      if (mentionMatches) thread.mentions = [...new Set(mentionMatches)];
+
+      const hashtagMatches = thread.content.match(/#\w+/g);
+      if (hashtagMatches) thread.hashtags = [...new Set(hashtagMatches)];
+
+      // Only add if we have meaningful content
+      if (thread.content.length > 0 || thread.hasMedia) {
+        threads.push(thread);
+      }
+    });
+
+    return threads;
+  }
+
+  /**
+   * Analyze content patterns from Threads
+   */
+  function analyzeThreadsContent(threads) {
+    const analysis = {
+      totalThreads: threads.length,
+      avgLikes: 0,
+      avgReplies: 0,
+      totalEngagement: 0,
+      topHashtags: {},
+      topMentions: {},
+      postsWithMedia: 0,
+      estimatedPostFrequency: null,
+    };
+
+    threads.forEach(thread => {
+      analysis.avgLikes += thread.likes || 0;
+      analysis.avgReplies += thread.replies || 0;
+      analysis.totalEngagement += (thread.likes || 0) + (thread.replies || 0) + (thread.reposts || 0);
+      if (thread.hasMedia) analysis.postsWithMedia++;
+
+      thread.hashtags?.forEach(tag => {
+        analysis.topHashtags[tag] = (analysis.topHashtags[tag] || 0) + 1;
+      });
+
+      thread.mentions?.forEach(mention => {
+        analysis.topMentions[mention] = (analysis.topMentions[mention] || 0) + 1;
+      });
+    });
+
+    if (threads.length > 0) {
+      analysis.avgLikes = Math.round(analysis.avgLikes / threads.length);
+      analysis.avgReplies = Math.round(analysis.avgReplies / threads.length);
+    }
+
+    // Sort and limit top items
+    analysis.topHashtags = Object.entries(analysis.topHashtags)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .reduce((obj, [k, v]) => ({ ...obj, [k]: v }), {});
+
+    analysis.topMentions = Object.entries(analysis.topMentions)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .reduce((obj, [k, v]) => ({ ...obj, [k]: v }), {});
+
+    return analysis;
+  }
+
   async function extractProfileData() {
     const url = window.location.href;
     const match = url.match(currentPlatform.profilePattern);

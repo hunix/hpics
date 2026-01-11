@@ -17,7 +17,10 @@ type ScrapeAction =
   | 'ping' | 'scrape_profile' | 'scrape_posts' | 'scrape_comments' 
   | 'scrape_likes' | 'bulk_scrape' | 'scrape_connections' 
   | 'scrape_media' | 'scrape_stories' | 'scrape_reels'
-  | 'incremental_update';
+  | 'incremental_update'
+  // Deep scraping actions
+  | 'deep_profile_scrape' | 'scrape_all_posts' | 'scrape_tagged'
+  | 'scrape_engagement' | 'scrape_connections_deep';
 
 interface EnhancedPost {
   id: string;

@@ -502,7 +502,7 @@ Return JSON with: profile (handle, displayName, bio, followersCount, followingCo
 }
 
 async function extractRepliesWithAI(markdown: string, userId: string): Promise<any[]> {
-  const model = selectModel('economy', 'google');
+  const model = selectModel('speed', 'google');
   
   const response = await callAI({
     model,

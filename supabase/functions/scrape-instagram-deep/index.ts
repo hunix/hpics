@@ -520,7 +520,7 @@ Return JSON with: profile (username, displayName, bio, followersCount, following
 }
 
 async function extractReelsWithAI(markdown: string, userId: string): Promise<any> {
-  const model = selectModel('economy', 'google');
+      const model = selectModel('speed', 'google');
   
   const response = await callAI({
     model,
@@ -540,7 +540,7 @@ Return: { "reels": [{ "views": number, "likes": number, "caption": string, "audi
 }
 
 async function extractTaggedWithAI(markdown: string, userId: string): Promise<any[]> {
-  const model = selectModel('economy', 'google');
+  const model = selectModel('speed', 'google');
   
   const response = await callAI({
     model,
