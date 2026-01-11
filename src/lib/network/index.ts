@@ -17,7 +17,16 @@ export { detectClusters, detectCommunitiesLabelPropagation, detectHierarchicalCl
 export { calculateInfluencePropagation, simulateInfluencePropagation, traceInfluenceFlow } from './influence';
 
 // Re-export resilience and prediction algorithms
-export { analyzeNetworkResilience, detectWeakTies, predictLinks, classifyCommunityRoles, identifyGrowthOpportunities } from './resilience';
+export { 
+  analyzeNetworkResilience, 
+  detectWeakTies, 
+  predictLinks, 
+  classifyCommunityRoles, 
+  identifyGrowthOpportunities,
+  recommendStrategicConnections,
+  calculateNetworkDensity,
+  calculateNetworkMetrics
+} from './resilience';
 
 // Re-export temporal algorithms
 export { analyzeTemporalNetwork, analyzeCommunityEvolution } from './temporal';

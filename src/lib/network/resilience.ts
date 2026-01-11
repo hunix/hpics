@@ -2,9 +2,11 @@
 
 import type {
   NetworkNode, NetworkLink, ResilienceMetrics, WeakTie, PredictedLink,
-  ClusterMap, GrowthOpportunity, NodeRole, CommunityRole
+  ClusterMap, GrowthOpportunity, NodeRole, CommunityRole, StrategicConnection, NetworkMetrics
 } from './types';
 import { buildAdjacencyList, jaccardSimilarity, getConnectedComponents } from './utils';
+import { calculatePageRank, calculateClosenessCentrality, calculateBetweennessCentrality, calculateEigenvectorCentrality } from './centrality';
+import { detectClusters } from './clustering';
 
 /**
  * Network Resilience Analysis
@@ -242,4 +244,121 @@ export function identifyGrowthOpportunities(
   }
 
   return opportunities.slice(0, 10);
+}
+
+/**
+ * Recommend Strategic Connections
+ * Identifies high-value connection opportunities based on network position
+ */
+export function recommendStrategicConnections(
+  nodes: NetworkNode[],
+  links: NetworkLink[],
+  focusNodeId: string,
+  topK = 5
+): StrategicConnection[] {
+  const adj = buildAdjacencyList(nodes, links);
+  const clusters = detectClusters(nodes, links);
+  const pageRank = calculatePageRank(nodes, links);
+  
+  const focusCluster = clusters.get(focusNodeId);
+  const focusNeighbors = new Set(adj.get(focusNodeId)?.keys() || []);
+  
+  const recommendations: StrategicConnection[] = [];
+  
+  nodes.forEach(node => {
+    if (node.id === focusNodeId || focusNeighbors.has(node.id)) return;
+    
+    const nodeCluster = clusters.get(node.id);
+    const nodeRank = pageRank.get(node.id) || 0;
+    const isNewCluster = nodeCluster !== focusCluster;
+    
+    // Calculate expected impact based on PageRank and cluster bridging
+    let expectedImpact = nodeRank * 10;
+    if (isNewCluster) expectedImpact += 0.3;
+    
+    // Find required introductions (mutual connections)
+    const nodeNeighbors = new Set(adj.get(node.id)?.keys() || []);
+    const mutualConnections = [...focusNeighbors].filter(x => nodeNeighbors.has(x));
+    
+    let difficulty: 'easy' | 'medium' | 'hard' = 'hard';
+    if (mutualConnections.length >= 2) difficulty = 'easy';
+    else if (mutualConnections.length === 1) difficulty = 'medium';
+    
+    let reason = '';
+    if (isNewCluster && nodeRank > 0.05) {
+      reason = 'High-influence bridge to new community';
+    } else if (nodeRank > 0.1) {
+      reason = 'Key influencer in network';
+    } else if (isNewCluster) {
+      reason = 'Expands reach to new community';
+    } else {
+      reason = 'Potential collaboration partner';
+    }
+    
+    if (expectedImpact > 0.1) {
+      recommendations.push({
+        targetNodeId: node.id,
+        targetId: node.id, // Backward compatibility alias
+        reason,
+        expectedImpact: Math.min(1, expectedImpact),
+        requiredIntroductions: mutualConnections.slice(0, 3),
+        difficulty,
+        bridgesCommunities: isNewCluster,
+        fillsStructuralHole: isNewCluster && nodeRank > 0.05,
+        networkROI: expectedImpact * 10,
+        score: expectedImpact,
+      });
+    }
+  });
+  
+  return recommendations.sort((a, b) => b.expectedImpact - a.expectedImpact).slice(0, topK);
+}
+
+/**
+ * Calculate Network Density
+ */
+export function calculateNetworkDensity(
+  nodes: NetworkNode[],
+  links: NetworkLink[]
+): number {
+  const n = nodes.length;
+  if (n < 2) return 0;
+  const maxPossibleLinks = (n * (n - 1)) / 2;
+  return links.length / maxPossibleLinks;
+}
+
+/**
+ * Calculate comprehensive network metrics
+ */
+export function calculateNetworkMetrics(
+  nodes: NetworkNode[],
+  links: NetworkLink[]
+): NetworkMetrics {
+  const pageRank = calculatePageRank(nodes, links);
+  const closenessCentrality = calculateClosenessCentrality(nodes, links);
+  const betweennessCentrality = calculateBetweennessCentrality(nodes, links);
+  const eigenvectorCentrality = calculateEigenvectorCentrality(nodes, links);
+  const clusters = detectClusters(nodes, links);
+  
+  // Get top influencers by PageRank
+  const sortedByPageRank = [...pageRank.entries()].sort((a, b) => b[1] - a[1]);
+  const topInfluencers = sortedByPageRank.slice(0, 10).map(([id]) => id);
+  
+  // Get bridge connectors by betweenness
+  const sortedByBetweenness = [...betweennessCentrality.entries()].sort((a, b) => b[1] - a[1]);
+  const bridgeConnectors = sortedByBetweenness.slice(0, 10).map(([id]) => id);
+  
+  // Count unique clusters
+  const clusterCount = new Set(clusters.values()).size;
+  
+  return {
+    pageRank,
+    closenessCentrality,
+    betweennessCentrality,
+    eigenvectorCentrality,
+    clusters,
+    topInfluencers,
+    bridgeConnectors,
+    clusterCount,
+  };
 }

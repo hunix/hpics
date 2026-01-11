@@ -9,6 +9,7 @@ export {
   type CentralityMap,
   type HierarchicalCluster,
   type StructuralHole,
+  type NetworkMetrics,
   
   // Functions
   calculatePageRank,
@@ -18,6 +19,8 @@ export {
   detectHierarchicalClusters,
   detectStructuralHoles,
   calculateInfluencePropagation,
+  calculateNetworkDensity,
+  calculateNetworkMetrics,
   
   // Constants
   CLUSTER_COLORS,
