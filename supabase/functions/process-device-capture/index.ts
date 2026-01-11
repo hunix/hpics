@@ -107,12 +107,12 @@ serve(async (req) => {
       );
     }
 
-    if (capture.is_processed) {
+    if (capture.status === 'processed' || capture.status === 'applied') {
       return new Response(
         JSON.stringify({ 
           success: true, 
           message: "Already processed",
-          data: capture.processed_data 
+          data: capture.extracted_data 
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -161,7 +161,7 @@ Return a JSON object with these fields (use null for unknown):
               },
               {
                 role: "user",
-                content: `Extract contact info from:\n${JSON.stringify(capture.raw_data)}\n\nSource URL: ${capture.source_url || 'unknown'}`
+                content: `Extract contact info from:\n${capture.raw_content || JSON.stringify(capture.extracted_data || capture.metadata)}\n\nSource: ${capture.source_app || 'unknown'}`
               }
             ],
             temperature: 0.3,
@@ -216,11 +216,11 @@ Return a JSON object with these fields (use null for unknown):
 
       case 'health_data': {
         // Parse health data without AI
-        const rawData = capture.raw_data as Record<string, unknown>;
+        const rawData = (capture.metadata || {}) as Record<string, unknown>;
         processedData = {
           data_type: 'health',
           metrics: rawData.metrics || {},
-          timestamp: rawData.timestamp || capture.captured_at,
+          timestamp: rawData.timestamp || capture.created_at,
           device_info: rawData.device || {},
         };
         confidenceScore = 0.9; // Health data is usually reliable
@@ -234,7 +234,7 @@ Return a JSON object with these fields (use null for unknown):
           .insert({
             user_id: user.id,
             job_type: 'process_voice',
-            payload: { captureId, rawData: capture.raw_data },
+            payload: { captureId, rawContent: capture.raw_content },
             priority: 7,
           });
 
@@ -267,7 +267,7 @@ Return a JSON object with these fields (use null for unknown):
             payload: { 
               sourceType: 'device_capture',
               sourceId: captureId,
-              content: JSON.stringify(capture.raw_data),
+              content: capture.raw_content || JSON.stringify(capture.extracted_data),
             },
             priority: 5,
           });
@@ -294,12 +294,12 @@ Return a JSON object with these fields (use null for unknown):
     const { error: updateError } = await supabase
       .from('device_captures')
       .update({
-        is_processed: true,
-        processed_data: processedData,
+        status: 'processed',
+        ai_analysis: processedData,
         confidence_score: confidenceScore,
         profile_id: matchedProfileId || capture.profile_id,
-        processed_at: new Date().toISOString(),
-        processing_error: null,
+        processing_completed_at: new Date().toISOString(),
+        error_message: null,
       })
       .eq('id', captureId);
 
