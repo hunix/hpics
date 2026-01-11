@@ -13,9 +13,12 @@ export {
   type CommunitySnapshot,
   type CommunityTransition,
   type CommunityHealthMetrics,
+  type StrategicConnection,
+  type ConnectionRecommendation,
   
   // Functions
   simulateInfluencePropagation,
   analyzeTemporalNetwork,
   analyzeCommunityEvolution,
+  recommendStrategicConnections,
 } from './network';

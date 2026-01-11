@@ -166,10 +166,30 @@ export interface GrowthOpportunity {
 // Strategic connection types
 export interface StrategicConnection {
   targetNodeId: string;
+  targetId?: string; // Alias for targetNodeId for backward compatibility
   reason: string;
   expectedImpact: number;
   requiredIntroductions: string[];
   difficulty: 'easy' | 'medium' | 'hard';
+  bridgesCommunities?: boolean;
+  fillsStructuralHole?: boolean;
+  networkROI?: number;
+  score?: number;
+}
+
+// Connection recommendation type (alias for StrategicConnection)
+export type ConnectionRecommendation = StrategicConnection;
+
+// Network metrics aggregate type
+export interface NetworkMetrics {
+  pageRank: Map<string, number>;
+  closenessCentrality: Map<string, number>;
+  betweennessCentrality: Map<string, number>;
+  eigenvectorCentrality: Map<string, number>;
+  clusters: Map<string, number>;
+  topInfluencers: string[];
+  bridgeConnectors: string[];
+  clusterCount?: number;
 }
 
 // Cluster colors constant
