@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/AppLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, MessageSquare, Calendar, TrendingUp, Star, Clock, Edit3 } from 'lucide-react';
+import { Users, MessageSquare, Calendar, Star, Edit3 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { formatDistanceToNow, parseISO, setYear, getYear, isBefore, addYears } from 'date-fns';
 import { DndContext, closestCenter, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -14,39 +14,7 @@ import { useDashboardLayout } from '@/hooks/useDashboardLayout';
 import { SortableDashlet } from '@/components/dashboard/SortableDashlet';
 import { DashboardCustomizer } from '@/components/dashboard/DashboardCustomizer';
 import { DashboardPresets } from '@/components/dashboard/DashboardPresets';
-import { DecayAlertWidget } from '@/components/dashboard/DecayAlertWidget';
-import { FollowUpSuggestions } from '@/components/dashboard/FollowUpSuggestions';
-import { RelationshipHealthWidget } from '@/components/dashboard/RelationshipHealthWidget';
-import { WeeklySummaryWidget } from '@/components/dashboard/WeeklySummaryWidget';
-import { IntroductionSuggestions } from '@/components/dashboard/IntroductionSuggestions';
-import { AutoScheduleFollowups } from '@/components/dashboard/AutoScheduleFollowups';
-import { NetworkGraph } from '@/components/network/NetworkGraph';
-import { ContactGroupsWidget } from '@/components/dashboard/ContactGroupsWidget';
-import { RelationshipScoreCard } from '@/components/dashboard/RelationshipScoreCard';
-import { SecurityAlertsWidget } from '@/components/security/SecurityAlertsWidget';
-import { IntelligenceInsightsWidget } from '@/components/intelligence/IntelligenceInsightsWidget';
-import { DataQualityMonitor } from '@/components/intelligence/DataQualityMonitor';
-import { ProactiveActionsWidget } from '@/components/intelligence/ProactiveActionsWidget';
-import { LiveActivityFeed } from '@/components/intelligence/LiveActivityFeed';
-import { AnomalyDetectionWidget } from '@/components/intelligence/AnomalyDetectionWidget';
-import { RelationshipAnalytics } from '@/components/dashboard/RelationshipAnalytics';
-import { AIContactGrouping } from '@/components/contacts/AIContactGrouping';
-import { CalendarSyncStatus } from '@/components/dashboard/CalendarSyncStatus';
-import { BiometricStatusWidget } from '@/components/dashboard/BiometricStatusWidget';
-import { RelationshipOverviewWidget } from '@/components/intelligence/RelationshipOverviewWidget';
-import { RelationshipForecastWidget } from '@/components/intelligence/RelationshipForecastWidget';
-import { NetworkRiskPanel } from '@/components/intelligence/NetworkRiskPanel';
-import { IntroductionMatcherPanel } from '@/components/intelligence/IntroductionMatcherPanel';
-import { DailyBriefingWidget } from '@/components/intelligence/DailyBriefingWidget';
-import { GiftSuggestionsWidget } from '@/components/intelligence/GiftSuggestionsWidget';
-import { OutreachSchedulerWidget } from '@/components/intelligence/OutreachSchedulerWidget';
-import { RelationshipAutopilotWidget } from '@/components/intelligence/RelationshipAutopilotWidget';
-import { GiftCalendarWidget } from '@/components/intelligence/GiftCalendarWidget';
-import { AIChatAssistant } from '@/components/ai/AIChatAssistant';
-import { UnifiedIntelligenceDashboard } from '@/components/intelligence/UnifiedIntelligenceDashboard';
-import { CommunicationVelocityWidget } from '@/components/dashboard/CommunicationVelocityWidget';
-import { BehavioralAnomalyDashboard } from '@/components/intelligence/BehavioralAnomalyDashboard';
-import type { DashletType } from '@/lib/dashletDefinitions';
+import { renderDashlet, type DashletContext } from '@/lib/dashletRegistry';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -164,207 +132,23 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
-  const statCards = [
-    { title: 'Total Contacts', value: stats?.totalContacts ?? 0, icon: Users, color: 'text-primary' },
-    { title: 'Favorites', value: stats?.favoriteContacts ?? 0, icon: Star, color: 'text-yellow-500' },
-    { title: 'Communications', value: stats?.totalCommunications ?? 0, icon: MessageSquare, color: 'text-blue-500' },
-    { title: 'Upcoming Events', value: stats?.upcomingEvents ?? 0, icon: Calendar, color: 'text-green-500' },
-  ];
+  // Build context for dashlet rendering
+  const dashletContext: DashletContext = {
+    statCards: [
+      { title: 'Total Contacts', value: stats?.totalContacts ?? 0, icon: Users, color: 'text-primary' },
+      { title: 'Favorites', value: stats?.favoriteContacts ?? 0, icon: Star, color: 'text-yellow-500' },
+      { title: 'Communications', value: stats?.totalCommunications ?? 0, icon: MessageSquare, color: 'text-blue-500' },
+      { title: 'Upcoming Events', value: stats?.upcomingEvents ?? 0, icon: Calendar, color: 'text-green-500' },
+    ],
+    recentContacts,
+    upcomingEvents,
+    formatDistanceToNow,
+  };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
       reorderDashlets(active.id as string, over.id as string);
-    }
-  };
-
-  const renderDashlet = (type: DashletType, id: string) => {
-    switch (type) {
-      case 'stats':
-        return (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {statCards.map((stat) => (
-              <Card key={stat.title}>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {stat.title}
-                  </CardTitle>
-                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stat.value}</div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        );
-      case 'recent-contacts':
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5" />
-                Recent Contacts
-              </CardTitle>
-              <CardDescription>People you've recently added or updated</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {recentContacts && recentContacts.length > 0 ? (
-                <div className="space-y-3">
-                  {recentContacts.map((contact) => (
-                    <div key={contact.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-medium">
-                        {contact.first_name?.[0]}{contact.last_name?.[0]}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">
-                          {contact.first_name} {contact.last_name}
-                        </p>
-                        <p className="text-sm text-muted-foreground capitalize">
-                          {contact.relationship_type?.replace('_', ' ')}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-muted-foreground text-center py-4">No contacts yet.</p>
-              )}
-            </CardContent>
-          </Card>
-        );
-      case 'upcoming-events':
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Upcoming Events
-              </CardTitle>
-              <CardDescription>Important dates coming up</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {upcomingEvents && upcomingEvents.length > 0 ? (
-                <div className="space-y-3">
-                  {upcomingEvents.map((event) => (
-                    <div key={event.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500/10 text-green-600">
-                        <Calendar className="h-5 w-5" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{event.title}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {formatDistanceToNow(new Date(event.event_date), { addSuffix: true })}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-muted-foreground text-center py-4">No upcoming events.</p>
-              )}
-            </CardContent>
-          </Card>
-        );
-      case 'decay-alert':
-        return <DecayAlertWidget />;
-      case 'relationship-health':
-        return <RelationshipHealthWidget />;
-      case 'weekly-summary':
-        return <WeeklySummaryWidget />;
-      case 'introduction-suggestions':
-        return <IntroductionSuggestions />;
-      case 'followup-suggestions':
-        return <FollowUpSuggestions />;
-      case 'auto-schedule':
-        return <AutoScheduleFollowups />;
-      case 'contact-groups':
-        return <ContactGroupsWidget />;
-      case 'relationship-scores':
-        return <RelationshipScoreCard />;
-      case 'network-graph':
-        return <NetworkGraph />;
-      case 'quick-tips':
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
-                Quick Tips
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="p-4 rounded-lg bg-muted/50">
-                  <h4 className="font-medium mb-1">Add Your Contacts</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Start by adding the people who matter most to you.
-                  </p>
-                </div>
-                <div className="p-4 rounded-lg bg-muted/50">
-                  <h4 className="font-medium mb-1">Log Interactions</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Track calls, meetings, and messages to never forget a conversation.
-                  </p>
-                </div>
-                <div className="p-4 rounded-lg bg-muted/50">
-                  <h4 className="font-medium mb-1">Set Reminders</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Never miss a birthday or important milestone again.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      case 'security-alerts':
-        return <SecurityAlertsWidget />;
-      case 'intelligence-insights':
-        return <IntelligenceInsightsWidget />;
-      case 'data-quality':
-        return <DataQualityMonitor />;
-      case 'proactive-actions':
-        return <ProactiveActionsWidget />;
-      case 'live-activity-feed':
-        return <LiveActivityFeed />;
-      case 'anomaly-detection':
-        return <AnomalyDetectionWidget />;
-      case 'relationship-analytics':
-        return <RelationshipAnalytics />;
-      case 'ai-contact-grouping':
-        return <AIContactGrouping />;
-      case 'calendar-sync-status':
-        return <CalendarSyncStatus />;
-      case 'biometric-status':
-        return <BiometricStatusWidget />;
-      case 'influence-overview':
-        return <RelationshipOverviewWidget />;
-      case 'relationship-forecast':
-        return <RelationshipForecastWidget />;
-      case 'network-risk':
-        return <NetworkRiskPanel />;
-      case 'introduction-matcher':
-        return <IntroductionMatcherPanel />;
-      case 'daily-briefing':
-        return <DailyBriefingWidget />;
-      case 'gift-suggestions':
-        return null; // Gift suggestions require a specific profileId - show in contact detail
-      case 'outreach-scheduler':
-        return <OutreachSchedulerWidget />;
-      case 'relationship-autopilot':
-        return <RelationshipAutopilotWidget />;
-      case 'gift-calendar':
-        return <GiftCalendarWidget />;
-      case 'ai-chat-assistant':
-        return <AIChatAssistant className="h-[500px]" />;
-      case 'unified-intelligence':
-        return <UnifiedIntelligenceDashboard />;
-      case 'communication-velocity':
-        return <CommunicationVelocityWidget />;
-      case 'behavioral-anomalies':
-        return <BehavioralAnomalyDashboard />;
-      default:
-        return null;
     }
   };
 
@@ -401,6 +185,7 @@ export default function Dashboard() {
             <DashboardCustomizer />
           </div>
         </div>
+        
         {isEditing && (
           <div className="p-3 bg-primary/10 rounded-lg text-sm text-primary">
             <Edit3 className="inline h-4 w-4 mr-2" />
@@ -427,7 +212,7 @@ export default function Dashboard() {
                   isEditing={isEditing}
                   onRemove={() => toggleDashletVisibility(dashlet.id)}
                 >
-                  {renderDashlet(dashlet.type, dashlet.id)}
+                  {renderDashlet(dashlet.type, dashletContext)}
                 </SortableDashlet>
               ))}
             </div>
