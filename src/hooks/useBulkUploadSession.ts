@@ -136,13 +136,31 @@ export function useBulkUploadSession() {
     setIsPreparing(true);
 
     try {
-      // Process files
+      // Build original paths map from folder structure
+      const originalPaths = new Map<string, string>();
+      if (options.folderStructure) {
+        for (const entry of options.folderStructure) {
+          originalPaths.set(entry.file.name, entry.path);
+        }
+      }
+
+      // Process files with original paths
       const processed = await processFiles(files, {
         userId: userIdRef.current,
         profileId: options.profileId,
         generateHashes: true,
-        folderStructure: options.folderStructure,
+        preserveFolderStructure: !!options.folderStructure,
+      }, (processed, total) => {
+        // Progress callback - could add progress state here
       });
+
+      // Attach original paths to processed files
+      for (const p of processed) {
+        const originalPath = originalPaths.get(p.filename);
+        if (originalPath) {
+          (p as any).originalPath = originalPath;
+        }
+      }
 
       const stats = getBatchStats(processed);
 
@@ -176,7 +194,7 @@ export function useBulkUploadSession() {
         file_size: p.fileSize,
         mime_type: p.mimeType,
         file_type: p.category,
-        content_hash: p.hash,
+        content_hash: p.contentHash,
         status: p.isValid ? 'pending' : 'skipped',
         error_message: p.validationError,
         sort_order: i,

@@ -37,7 +37,8 @@ import { AdvancedFileFilter } from './AdvancedFileFilter';
 import { FolderStructurePreview } from './FolderStructurePreview';
 import { useBulkUploadSession } from '@/hooks/useBulkUploadSession';
 import { extractZipFile, extractedFilesToFiles } from '@/lib/bulkUpload/zipExtractor';
-import { formatFileSize } from '@/lib/bulkUpload';
+import { formatFileSize, type ProcessedFile } from '@/lib/bulkUpload/bulkFileProcessor';
+import { getFileCategory } from '@/lib/bulkUpload/fileTypeMapping';
 import { toast } from 'sonner';
 
 interface Contact {
@@ -52,6 +53,7 @@ interface PendingFile {
   file: File;
   path: string;
   selected: boolean;
+  category: string;
 }
 
 interface BulkUploadDialogProps {
@@ -82,9 +84,12 @@ export function BulkUploadDialog({
   const [autoAnalyze, setAutoAnalyze] = useState(false);
   const [isProcessingZip, setIsProcessingZip] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
+  const [processedFiles, setProcessedFiles] = useState<ProcessedFile[]>([]);
   const [folderStructure, setFolderStructure] = useState<FolderEntry[] | null>(null);
   const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
   const [showFolderPreview, setShowFolderPreview] = useState(false);
+  const [excludedPaths, setExcludedPaths] = useState<Set<string>>(new Set());
+  const [preserveFolderStructure, setPreserveFolderStructure] = useState(true);
   
   const {
     session,
@@ -126,7 +131,11 @@ export function BulkUploadDialog({
             console.log(`ZIP extraction: ${progress}% - ${currentFile}`);
           });
           filesToUpload = extractedFilesToFiles(extracted.files);
-          folderEntries = extracted.files.map(f => ({ file: f.file, path: f.path }));
+          // Map extracted files to FolderEntry format
+          folderEntries = extracted.files.map(ef => {
+            const file = new File([ef.blob], ef.name, { type: ef.mimeType });
+            return { file, path: ef.originalPath };
+          });
           toast.success(`Extracted ${extracted.files.length} files from ZIP`);
         } catch (error) {
           console.error('ZIP extraction error:', error);
@@ -174,9 +183,11 @@ export function BulkUploadDialog({
         file,
         path: folderEntries?.[index]?.path || file.name,
         selected: true,
+        category: getFileCategory(file.name, file.type),
       }));
 
       setPendingFiles(pending);
+      setExcludedPaths(new Set());
       setFolderStructure(folderEntries);
       
       // Show folder preview if there's folder structure
@@ -190,19 +201,47 @@ export function BulkUploadDialog({
     }
   }, [defaultFileFilter]);
 
-  // Handle filter changes
-  const handleFilterChange = useCallback((filteredFiles: PendingFile[]) => {
-    setPendingFiles(filteredFiles);
+  // Handle folder/file include toggle for FolderStructurePreview
+  const handleToggleInclude = useCallback((path: string, included: boolean) => {
+    setExcludedPaths(prev => {
+      const next = new Set(prev);
+      if (included) {
+        next.delete(path);
+        // Also remove children if it's a folder
+        for (const p of prev) {
+          if (p.startsWith(path + '/')) {
+            next.delete(p);
+          }
+        }
+      } else {
+        next.add(path);
+        // Also exclude children if it's a folder
+        for (const pf of pendingFiles) {
+          if (pf.path.startsWith(path + '/')) {
+            next.add(pf.path);
+          }
+        }
+      }
+      return next;
+    });
+  }, [pendingFiles]);
+
+  // Handle changes from AdvancedFileFilter
+  const handleFilesChange = useCallback((newFiles: ProcessedFile[]) => {
+    setProcessedFiles(newFiles);
+    // Sync back to pendingFiles
+    const newPaths = new Set(newFiles.map(f => f.originalPath || f.filename));
+    setPendingFiles(prev => prev.map(pf => ({
+      ...pf,
+      selected: newPaths.has(pf.path) || newPaths.has(pf.file.name)
+    })));
   }, []);
 
-  // Handle folder selection toggle
-  const handleFolderToggle = useCallback((path: string, selected: boolean) => {
-    setPendingFiles(prev => prev.map(f => {
-      if (f.path.startsWith(path + '/') || f.path === path) {
-        return { ...f, selected };
-      }
-      return f;
-    }));
+  // Handle file removal from AdvancedFileFilter
+  const handleRemoveFiles = useCallback((fileIds: string[]) => {
+    const idsSet = new Set(fileIds);
+    setProcessedFiles(prev => prev.filter(f => !idsSet.has(f.id)));
+    setPendingFiles(prev => prev.filter(pf => !idsSet.has(`${pf.file.name}-${pf.file.size}`)));
   }, []);
 
   const handleStartUpload = useCallback(async () => {
@@ -237,9 +276,12 @@ export function BulkUploadDialog({
     cancel();
     reset();
     setPendingFiles([]);
+    setProcessedFiles([]);
     setFolderStructure(null);
     setShowAdvancedFilter(false);
     setShowFolderPreview(false);
+    setExcludedPaths(new Set());
+    setPreserveFolderStructure(true);
     onOpenChange(false);
   }, [cancel, reset, onOpenChange]);
 
@@ -251,11 +293,14 @@ export function BulkUploadDialog({
     if (!newOpen) {
       reset();
       setPendingFiles([]);
+      setProcessedFiles([]);
       setFolderStructure(null);
       setSelectedContact(null);
       setAutoAnalyze(false);
       setShowAdvancedFilter(false);
       setShowFolderPreview(false);
+      setExcludedPaths(new Set());
+      setPreserveFolderStructure(true);
       setActiveTab('upload');
     }
     
@@ -279,7 +324,7 @@ export function BulkUploadDialog({
     errorMessage: item.error || undefined
   })) || [];
 
-  const selectedPendingFiles = pendingFiles.filter(f => f.selected);
+  const selectedPendingFiles = pendingFiles.filter(f => f.selected && !excludedPaths.has(f.path));
   const totalFiles = session?.totalFiles || selectedPendingFiles.length;
   const completedFiles = session?.completedFiles || 0;
   const failedFiles = session?.failedFiles || 0;
@@ -381,16 +426,36 @@ export function BulkUploadDialog({
                 {/* Folder Structure Preview */}
                 {showFolderPreview && folderStructure && (
                   <FolderStructurePreview
-                    files={pendingFiles.map(f => ({ path: f.path, selected: f.selected }))}
-                    onToggleFolder={handleFolderToggle}
+                    files={pendingFiles.map(f => ({ 
+                      file: f.file, 
+                      path: f.path, 
+                      category: f.category
+                    }))}
+                    onToggleInclude={handleToggleInclude}
+                    excludedPaths={excludedPaths}
+                    preserveStructure={preserveFolderStructure}
+                    onPreserveStructureChange={setPreserveFolderStructure}
                   />
                 )}
 
                 {/* Advanced Filter */}
                 {showAdvancedFilter && (
                   <AdvancedFileFilter
-                    files={pendingFiles}
-                    onFilterChange={handleFilterChange}
+                    files={pendingFiles.map(f => ({
+                      id: `${f.file.name}-${f.file.size}`,
+                      file: f.file,
+                      filename: f.file.name,
+                      originalPath: f.path,
+                      fileSize: f.file.size,
+                      mimeType: f.file.type || 'application/octet-stream',
+                      category: f.category as any,
+                      bucket: 'uploads',
+                      storagePath: f.path,
+                      sortOrder: 0,
+                      isValid: true,
+                    }))}
+                    onFilesChange={handleFilesChange}
+                    onRemoveFiles={handleRemoveFiles}
                   />
                 )}
               </div>
