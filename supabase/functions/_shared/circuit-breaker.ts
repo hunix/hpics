@@ -62,15 +62,17 @@ async function persistCircuitState(
   component: string,
   state: CircuitBreakerState
 ): Promise<void> {
+  const updateData: Record<string, unknown> = {
+    circuit_state: state.state,
+    circuit_opened_at: state.openedAt ? new Date(state.openedAt).toISOString() : null,
+    circuit_failure_count: state.failures,
+    consecutive_failures: state.failures,
+    updated_at: new Date().toISOString()
+  };
+  
   await supabase
     .from('system_health')
-    .update({
-      circuit_state: state.state,
-      circuit_opened_at: state.openedAt ? new Date(state.openedAt).toISOString() : null,
-      circuit_failure_count: state.failures,
-      consecutive_failures: state.failures,
-      updated_at: new Date().toISOString()
-    })
+    .update(updateData as never)
     .eq('component', component);
 }
 
@@ -89,13 +91,14 @@ async function loadCircuitState(
 
   if (!data) return null;
 
+  const record = data as Record<string, unknown>;
   return {
-    state: (data.circuit_state as CircuitState) || 'closed',
-    failures: data.circuit_failure_count || 0,
+    state: (record.circuit_state as CircuitState) || 'closed',
+    failures: (record.circuit_failure_count as number) || 0,
     successes: 0,
     lastFailure: null,
     lastSuccess: null,
-    openedAt: data.circuit_opened_at ? new Date(data.circuit_opened_at).getTime() : null,
+    openedAt: record.circuit_opened_at ? new Date(record.circuit_opened_at as string).getTime() : null,
     halfOpenAttempts: 0
   };
 }
@@ -370,17 +373,19 @@ export async function sendToDeadLetter(
   jobSnapshot: Record<string, unknown>,
   failureReason: string
 ): Promise<string | null> {
+  const insertData: Record<string, unknown> = {
+    original_job_id: jobId,
+    user_id: userId,
+    job_snapshot: jobSnapshot,
+    failure_reason: failureReason,
+    first_failure_at: new Date().toISOString(),
+    last_failure_at: new Date().toISOString(),
+    status: 'pending'
+  };
+
   const { data, error } = await supabase
     .from('orchestrator_dead_letter')
-    .insert({
-      original_job_id: jobId,
-      user_id: userId,
-      job_snapshot: jobSnapshot,
-      failure_reason: failureReason,
-      first_failure_at: new Date().toISOString(),
-      last_failure_at: new Date().toISOString(),
-      status: 'pending'
-    })
+    .insert(insertData as never)
     .select('id')
     .single();
 
@@ -390,10 +395,16 @@ export async function sendToDeadLetter(
   }
 
   // Update original job status
+  const updateData: Record<string, unknown> = { 
+    status: 'dead_letter', 
+    updated_at: new Date().toISOString() 
+  };
+  
   await supabase
     .from('orchestrator_jobs')
-    .update({ status: 'dead_letter', updated_at: new Date().toISOString() })
+    .update(updateData as never)
     .eq('id', jobId);
 
-  return data.id;
+  const record = data as Record<string, unknown>;
+  return record?.id as string || null;
 }
