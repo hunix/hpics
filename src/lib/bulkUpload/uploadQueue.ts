@@ -1,6 +1,6 @@
 /**
  * Bulk Upload Queue Engine
- * Handles concurrent uploads with pause/resume, retry logic, and rate limiting
+ * Handles concurrent uploads with pause/resume, retry logic, rate limiting, and speed tracking
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -20,6 +20,12 @@ export interface UploadItem extends ProcessedFile {
   dbItemId?: string;
 }
 
+export interface SpeedStats {
+  bytesPerSecond: number;
+  etaSeconds: number;
+  lastSamples: { timestamp: number; bytes: number }[];
+}
+
 export interface QueueConfig {
   maxConcurrent: number;
   minDelayMs: number;
@@ -30,6 +36,7 @@ export interface QueueConfig {
   onItemFailed?: (item: UploadItem) => void;
   onQueueComplete?: (items: UploadItem[]) => void;
   onStatusChange?: (status: QueueStatus) => void;
+  onSpeedUpdate?: (stats: SpeedStats) => void;
 }
 
 export type QueueStatus = 'idle' | 'running' | 'paused' | 'completed' | 'cancelled';
@@ -51,6 +58,12 @@ export class BulkUploadQueue {
   private profileId: string | null = null;
   private userId: string | null = null;
   private autoAnalyze = false;
+  
+  // Speed tracking
+  private speedSamples: { timestamp: number; bytes: number }[] = [];
+  private totalUploadedBytes = 0;
+  private totalBytes = 0;
+  private speedUpdateInterval: ReturnType<typeof setInterval> | null = null;
   
   constructor(config: Partial<QueueConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -78,6 +91,11 @@ export class BulkUploadQueue {
     this.profileId = profileId || null;
     this.autoAnalyze = autoAnalyze;
     this.status = 'idle';
+    
+    // Calculate total bytes
+    this.totalBytes = this.items.reduce((sum, item) => sum + (item.isValid ? item.fileSize : 0), 0);
+    this.totalUploadedBytes = 0;
+    this.speedSamples = [];
   }
   
   /**
@@ -89,6 +107,9 @@ export class BulkUploadQueue {
     this.status = 'running';
     this.abortController = new AbortController();
     this.config.onStatusChange?.(this.status);
+    
+    // Start speed tracking
+    this.startSpeedTracking();
     
     await this.processQueue();
     
@@ -102,6 +123,7 @@ export class BulkUploadQueue {
     if (this.status !== 'running') return;
     
     this.status = 'paused';
+    this.stopSpeedTracking();
     this.config.onStatusChange?.(this.status);
   }
   
@@ -112,6 +134,7 @@ export class BulkUploadQueue {
     if (this.status !== 'paused') return;
     
     this.status = 'running';
+    this.startSpeedTracking();
     this.config.onStatusChange?.(this.status);
     
     await this.processQueue();
@@ -123,6 +146,7 @@ export class BulkUploadQueue {
   cancel(): void {
     this.status = 'cancelled';
     this.abortController?.abort();
+    this.stopSpeedTracking();
     
     // Mark pending items as cancelled
     for (const item of this.items) {
@@ -148,6 +172,7 @@ export class BulkUploadQueue {
     
     if (this.status === 'completed' || this.status === 'paused') {
       this.status = 'running';
+      this.startSpeedTracking();
       this.config.onStatusChange?.(this.status);
       await this.processQueue();
     }
@@ -181,6 +206,7 @@ export class BulkUploadQueue {
     
     if (this.status !== 'running') {
       this.status = 'running';
+      this.startSpeedTracking();
       this.config.onStatusChange?.(this.status);
       await this.processQueue();
     }
@@ -198,6 +224,9 @@ export class BulkUploadQueue {
     skipped: number;
     progress: number;
     items: UploadItem[];
+    speedStats: SpeedStats;
+    totalBytes: number;
+    uploadedBytes: number;
   } {
     const completed = this.items.filter(i => i.status === 'uploaded').length;
     const failed = this.items.filter(i => i.status === 'failed').length;
@@ -216,7 +245,76 @@ export class BulkUploadQueue {
       skipped,
       progress,
       items: [...this.items],
+      speedStats: this.calculateSpeed(),
+      totalBytes: this.totalBytes,
+      uploadedBytes: this.totalUploadedBytes,
     };
+  }
+  
+  /**
+   * Start speed tracking interval
+   */
+  private startSpeedTracking(): void {
+    this.stopSpeedTracking();
+    this.speedUpdateInterval = setInterval(() => {
+      const stats = this.calculateSpeed();
+      this.config.onSpeedUpdate?.(stats);
+    }, 1000);
+  }
+  
+  /**
+   * Stop speed tracking interval
+   */
+  private stopSpeedTracking(): void {
+    if (this.speedUpdateInterval) {
+      clearInterval(this.speedUpdateInterval);
+      this.speedUpdateInterval = null;
+    }
+  }
+  
+  /**
+   * Calculate current upload speed and ETA
+   */
+  private calculateSpeed(): SpeedStats {
+    const now = Date.now();
+    const windowMs = 5000; // 5 second window for averaging
+    
+    // Remove old samples
+    this.speedSamples = this.speedSamples.filter(s => now - s.timestamp < windowMs);
+    
+    if (this.speedSamples.length < 2) {
+      return {
+        bytesPerSecond: 0,
+        etaSeconds: 0,
+        lastSamples: this.speedSamples,
+      };
+    }
+    
+    // Calculate speed from samples
+    const oldest = this.speedSamples[0];
+    const newest = this.speedSamples[this.speedSamples.length - 1];
+    const timeDiff = (newest.timestamp - oldest.timestamp) / 1000;
+    const bytesDiff = newest.bytes - oldest.bytes;
+    
+    const bytesPerSecond = timeDiff > 0 ? bytesDiff / timeDiff : 0;
+    const remainingBytes = this.totalBytes - this.totalUploadedBytes;
+    const etaSeconds = bytesPerSecond > 0 ? remainingBytes / bytesPerSecond : 0;
+    
+    return {
+      bytesPerSecond,
+      etaSeconds,
+      lastSamples: this.speedSamples,
+    };
+  }
+  
+  /**
+   * Add speed sample
+   */
+  private addSpeedSample(): void {
+    this.speedSamples.push({
+      timestamp: Date.now(),
+      bytes: this.totalUploadedBytes,
+    });
   }
   
   /**
@@ -230,6 +328,7 @@ export class BulkUploadQueue {
       if (pendingItems.length === 0 && this.activeUploads === 0) {
         // Queue is complete
         this.status = 'completed';
+        this.stopSpeedTracking();
         this.config.onStatusChange?.(this.status);
         this.config.onQueueComplete?.(this.items);
         
@@ -277,6 +376,10 @@ export class BulkUploadQueue {
       // Update item
       item.status = 'uploaded';
       item.progress = 100;
+      
+      // Track uploaded bytes
+      this.totalUploadedBytes += item.fileSize;
+      this.addSpeedSample();
       
       if (item.category === 'document') {
         item.documentId = recordId;

@@ -1,5 +1,5 @@
 /**
- * BulkUploadProgress - Detailed progress view for bulk uploads
+ * BulkUploadProgress - Detailed progress view with speed and ETA
  */
 
 import { useMemo } from 'react';
@@ -13,7 +13,9 @@ import {
   SkipForward, 
   Clock,
   Loader2,
-  RotateCcw
+  RotateCcw,
+  Gauge,
+  Timer
 } from 'lucide-react';
 import { BulkUploadFileItem, FileItemStatus } from './BulkUploadFileItem';
 import { formatFileSize } from '@/lib/bulkUpload';
@@ -28,6 +30,11 @@ export interface UploadItem {
   errorMessage?: string;
 }
 
+export interface SpeedStats {
+  bytesPerSecond: number;
+  etaSeconds: number;
+}
+
 interface BulkUploadProgressProps {
   items: UploadItem[];
   totalFiles: number;
@@ -39,6 +46,7 @@ interface BulkUploadProgressProps {
   isUploading: boolean;
   isPaused: boolean;
   startedAt?: Date | null;
+  speedStats?: SpeedStats | null;
   onRetryFile: (id: string) => void;
   onSkipFile: (id: string) => void;
   onRetryAllFailed: () => void;
@@ -55,6 +63,7 @@ export function BulkUploadProgress({
   isUploading,
   isPaused,
   startedAt,
+  speedStats,
   onRetryFile,
   onSkipFile,
   onRetryAllFailed
@@ -104,6 +113,31 @@ export function BulkUploadProgress({
     return `${seconds}s`;
   }, [startedAt]);
 
+  // Format speed
+  const formattedSpeed = useMemo(() => {
+    if (!speedStats || speedStats.bytesPerSecond <= 0) return null;
+    return formatFileSize(speedStats.bytesPerSecond) + '/s';
+  }, [speedStats]);
+
+  // Format ETA
+  const formattedEta = useMemo(() => {
+    if (!speedStats || speedStats.etaSeconds <= 0 || !isUploading || isPaused) return null;
+    
+    const seconds = Math.ceil(speedStats.etaSeconds);
+    if (seconds < 60) return `~${seconds}s`;
+    
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    
+    if (minutes < 60) {
+      return remainingSeconds > 0 ? `~${minutes}m ${remainingSeconds}s` : `~${minutes}m`;
+    }
+    
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return `~${hours}h ${remainingMinutes}m`;
+  }, [speedStats, isUploading, isPaused]);
+
   return (
     <div className="space-y-4">
       {/* Overall Progress */}
@@ -120,6 +154,24 @@ export function BulkUploadProgress({
           <span>{stats.bytesProgress}%</span>
         </div>
       </div>
+
+      {/* Speed and ETA Row */}
+      {(formattedSpeed || formattedEta) && (
+        <div className="flex items-center gap-4 text-sm bg-primary/5 rounded-lg p-3">
+          {formattedSpeed && (
+            <div className="flex items-center gap-1.5 text-primary">
+              <Gauge className="h-4 w-4" />
+              <span className="font-medium">{formattedSpeed}</span>
+            </div>
+          )}
+          {formattedEta && (
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <Timer className="h-4 w-4" />
+              <span>{formattedEta} remaining</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Stats Row */}
       <div className="flex items-center justify-between bg-muted/50 rounded-lg p-3">

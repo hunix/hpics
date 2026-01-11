@@ -9,7 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Plus, FileText, File, ExternalLink, Trash2, Search, CreditCard, AlertTriangle, Loader2, Grid3X3, List, LayoutGrid } from 'lucide-react';
+import { Plus, FileText, File, ExternalLink, Trash2, Search, CreditCard, AlertTriangle, Loader2, Grid3X3, List, LayoutGrid, Upload } from 'lucide-react';
+import { BulkUploadDialog } from '@/components/uploads/BulkUploadDialog';
 import { useAuth } from '@/hooks/useAuth';
 import { format, differenceInDays } from 'date-fns';
 import { DocumentUpload } from '@/components/uploads/DocumentUpload';
@@ -34,6 +35,7 @@ export default function Documents() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
   const [openingDocId, setOpeningDocId] = useState<string | null>(null);
 
@@ -351,10 +353,16 @@ export default function Documents() {
                 AI Search
               </TabsTrigger>
             </TabsList>
-            <Button onClick={() => setIsUploadOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Upload Document
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => setIsBulkUploadOpen(true)}>
+                <Upload className="mr-2 h-4 w-4" />
+                Bulk Upload
+              </Button>
+              <Button onClick={() => setIsUploadOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Upload Document
+              </Button>
+            </div>
           </div>
 
           <TabsContent value="all" className="mt-6 space-y-6">
@@ -651,6 +659,15 @@ export default function Documents() {
       </div>
 
       <DocumentUpload open={isUploadOpen} onOpenChange={setIsUploadOpen} />
+      <BulkUploadDialog 
+        open={isBulkUploadOpen} 
+        onOpenChange={setIsBulkUploadOpen}
+        defaultFileFilter="documents"
+        onComplete={() => {
+          queryClient.invalidateQueries({ queryKey: ['documents-paginated'] });
+          queryClient.invalidateQueries({ queryKey: ['document-folders'] });
+        }}
+      />
     </AppLayout>
   );
 }
