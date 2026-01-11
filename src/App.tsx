@@ -47,6 +47,7 @@ const CrossModalIntelligencePage = lazy(() => import("./pages/CrossModalIntellig
 const AdvancedNetworkPage = lazy(() => import("./pages/AdvancedNetworkPage"));
 const AICostCenterPage = lazy(() => import("./pages/AICostCenterPage"));
 const IntelligenceCenter = lazy(() => import("./pages/IntelligenceCenter"));
+const IntelligenceCommandCenter = lazy(() => import("./pages/IntelligenceCommandCenter"));
 const AIChat = lazy(() => import("./pages/AIChat"));
 const ShareReceive = lazy(() => import("./pages/ShareReceive"));
 
@@ -106,6 +107,7 @@ const App = () => (
                         <Route path="/network-advanced" element={<AdvancedNetworkPage />} />
                         <Route path="/ai-costs" element={<AICostCenterPage />} />
                         <Route path="/intelligence" element={<IntelligenceCenter />} />
+                        <Route path="/intelligence/command-center" element={<IntelligenceCommandCenter />} />
                         <Route path="/ai-chat" element={<AIChat />} />
                         <Route path="/share-receive" element={<ShareReceive />} />
                         <Route path="*" element={<NotFound />} />
