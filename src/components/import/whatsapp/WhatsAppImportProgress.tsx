@@ -1,9 +1,9 @@
-import { Pause, Play, X, CheckCircle, XCircle, RefreshCw, SkipForward, Loader2 } from 'lucide-react';
+import { Pause, Play, X, CheckCircle, XCircle, RefreshCw, SkipForward, Loader2, Cloud, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import type { ImportStage, MediaFileState } from './types';
+import type { ImportStage, MediaFileState, ServerSideProgress } from './types';
 import { formatFileSize } from './whatsappZipProcessor';
 
 interface WhatsAppImportProgressProps {
@@ -19,14 +19,19 @@ interface WhatsAppImportProgressProps {
   onCancel: () => void;
   onRetryFile: (filename: string) => void;
   onSkipFile: (filename: string) => void;
+  isServerSide?: boolean;
+  serverProgress?: ServerSideProgress | null;
 }
 
 const stageLabels: Record<ImportStage, string> = {
   idle: 'Ready',
+  selecting_mode: 'Selecting processing mode...',
   extracting: 'Extracting ZIP...',
   parsing: 'Parsing messages...',
   reviewing: 'Review import',
   resolving_duplicates: 'Resolving duplicates...',
+  uploading_zip: 'Uploading ZIP file...',
+  server_processing: 'Server processing...',
   uploading_media: 'Uploading media...',
   importing_messages: 'Importing messages...',
   paused: 'Paused',
@@ -47,14 +52,41 @@ export function WhatsAppImportProgress({
   onCancel,
   onRetryFile,
   onSkipFile,
+  isServerSide = false,
+  serverProgress,
 }: WhatsAppImportProgressProps) {
   const isUploading = stage === 'uploading_media';
   const isImporting = stage === 'importing_messages';
-  const isActive = isUploading || isImporting;
+  const isUploadingZip = stage === 'uploading_zip';
+  const isServerProcessing = stage === 'server_processing';
+  const isActive = isUploading || isImporting || isUploadingZip || isServerProcessing;
 
+  // Calculate progress based on mode
   const mediaProgress = totalMedia > 0 ? (mediaUploaded / totalMedia) * 100 : 0;
   const messageProgress = totalMessages > 0 ? (messagesImported / totalMessages) * 100 : 0;
-  const overallProgress = isUploading ? mediaProgress * 0.6 : 60 + messageProgress * 0.4;
+  
+  let overallProgress: number;
+  if (isServerSide && serverProgress) {
+    if (serverProgress.stage === 'uploading_zip') {
+      overallProgress = serverProgress.totalBytes > 0 
+        ? (serverProgress.bytesProcessed / serverProgress.totalBytes) * 20 
+        : 0;
+    } else if (serverProgress.stage === 'extracting') {
+      overallProgress = 20 + (serverProgress.totalFiles > 0 
+        ? (serverProgress.filesProcessed / serverProgress.totalFiles) * 20 
+        : 0);
+    } else if (serverProgress.stage === 'uploading_media') {
+      overallProgress = 40 + mediaProgress * 0.4;
+    } else if (serverProgress.stage === 'importing_messages') {
+      overallProgress = 80 + messageProgress * 0.2;
+    } else if (serverProgress.stage === 'completed') {
+      overallProgress = 100;
+    } else {
+      overallProgress = 0;
+    }
+  } else {
+    overallProgress = isUploading ? mediaProgress * 0.6 : 60 + messageProgress * 0.4;
+  }
 
   return (
     <div className="space-y-4">
@@ -62,13 +94,22 @@ export function WhatsAppImportProgress({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {isActive && !isPaused && (
-            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            <>
+              {isServerSide ? (
+                <Cloud className="h-4 w-4 text-primary animate-pulse" />
+              ) : (
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              )}
+            </>
           )}
           <span className="font-medium">{stageLabels[stage]}</span>
+          {isServerSide && (
+            <Badge variant="outline" className="text-xs">Server</Badge>
+          )}
         </div>
         
         <div className="flex items-center gap-2">
-          {isActive && (
+          {isActive && !isServerSide && (
             <>
               {isPaused ? (
                 <Button size="sm" variant="outline" onClick={onResume}>
@@ -97,8 +138,85 @@ export function WhatsAppImportProgress({
         </p>
       </div>
 
-      {/* Media files list */}
-      {totalMedia > 0 && (
+      {/* Server-side progress details */}
+      {isServerSide && serverProgress && (
+        <div className="space-y-3">
+          {/* ZIP upload progress */}
+          {serverProgress.stage === 'uploading_zip' && (
+            <div className="bg-muted/50 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Upload className="h-4 w-4 text-primary" />
+                <span className="text-sm">Uploading ZIP file...</span>
+              </div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-muted-foreground">
+                  {formatFileSize(serverProgress.bytesProcessed)} / {formatFileSize(serverProgress.totalBytes)}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {serverProgress.totalBytes > 0 
+                    ? Math.round((serverProgress.bytesProcessed / serverProgress.totalBytes) * 100) 
+                    : 0}%
+                </span>
+              </div>
+              <Progress 
+                value={serverProgress.totalBytes > 0 
+                  ? (serverProgress.bytesProcessed / serverProgress.totalBytes) * 100 
+                  : 0} 
+                className="h-1.5" 
+              />
+            </div>
+          )}
+          
+          {/* Extraction progress */}
+          {serverProgress.stage === 'extracting' && (
+            <div className="bg-muted/50 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm">Extracting files...</span>
+                {serverProgress.currentFile && (
+                  <span className="text-xs text-muted-foreground truncate max-w-[200px]">
+                    {serverProgress.currentFile}
+                  </span>
+                )}
+              </div>
+              <Progress 
+                value={serverProgress.totalFiles > 0 
+                  ? (serverProgress.filesProcessed / serverProgress.totalFiles) * 100 
+                  : 0} 
+                className="h-1.5" 
+              />
+            </div>
+          )}
+          
+          {/* Media upload progress (server-side) */}
+          {serverProgress.stage === 'uploading_media' && serverProgress.totalFiles > 0 && (
+            <div className="bg-muted/50 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm">Uploading media...</span>
+                <span className="text-sm text-muted-foreground">
+                  {serverProgress.filesProcessed} / {serverProgress.totalFiles}
+                </span>
+              </div>
+              <Progress value={mediaProgress} className="h-1.5" />
+            </div>
+          )}
+          
+          {/* Message import progress (server-side) */}
+          {serverProgress.stage === 'importing_messages' && (
+            <div className="bg-muted/50 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm">Importing messages...</span>
+                <span className="text-sm text-muted-foreground">
+                  {serverProgress.messagesProcessed} / {serverProgress.totalMessages}
+                </span>
+              </div>
+              <Progress value={messageProgress} className="h-1.5" />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Media files list (client-side only) */}
+      {!isServerSide && totalMedia > 0 && (
         <div className="border rounded-lg">
           <div className="p-2 border-b bg-muted/50 flex items-center justify-between">
             <h4 className="text-sm font-medium">Media Files</h4>
@@ -121,8 +239,8 @@ export function WhatsAppImportProgress({
         </div>
       )}
 
-      {/* Message progress */}
-      {isImporting && (
+      {/* Message progress (client-side only) */}
+      {!isServerSide && isImporting && (
         <div className="bg-muted/50 rounded-lg p-3">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm">Messages</span>

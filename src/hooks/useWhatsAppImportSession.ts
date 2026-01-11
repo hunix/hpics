@@ -6,6 +6,8 @@ import type {
   DuplicateAction,
   ParsedMessageState,
   MediaFileState,
+  ProcessingMode,
+  ServerSideProgress,
 } from '@/components/import/whatsapp/types';
 
 export function useWhatsAppImportSession(userId: string | undefined) {
@@ -238,6 +240,7 @@ function mapDbToSession(data: Record<string, unknown>): ImportSession {
     userId: data.user_id as string,
     profileId: data.profile_id as string,
     status: data.status as ImportStage,
+    processingMode: (data.processing_mode as ProcessingMode) || 'client',
     fileName: data.file_name as string | undefined,
     fileSize: data.file_size as number | undefined,
     totalMessages: (data.total_messages as number) || 0,
@@ -256,5 +259,7 @@ function mapDbToSession(data: Record<string, unknown>): ImportSession {
     errorMessage: data.error_message as string | undefined,
     createdAt: data.created_at as string,
     updatedAt: data.updated_at as string,
+    serverSessionId: data.server_session_id as string | undefined,
+    serverProgress: data.server_progress as ServerSideProgress | undefined,
   };
 }

@@ -21,6 +21,7 @@ import { WhatsAppImportProgress } from './whatsapp/WhatsAppImportProgress';
 import { WhatsAppDuplicateResolver } from './whatsapp/WhatsAppDuplicateResolver';
 import { WhatsAppResumeSession } from './whatsapp/WhatsAppResumeSession';
 import { WhatsAppCleanupBanner } from './whatsapp/WhatsAppCleanupBanner';
+import { ProcessingModeSelector } from './whatsapp/ProcessingModeSelector';
 
 import { 
   extractMediaReference, 
@@ -54,6 +55,8 @@ import type {
   MediaFileState,
   ImportStats,
   ExistingConversation,
+  ProcessingMode,
+  ServerSideProgress,
 } from './whatsapp/types';
 
 interface ParsedMessage {
@@ -90,6 +93,12 @@ export function WhatsAppImport() {
   const [isPaused, setIsPaused] = useState(false);
   const [messagesImported, setMessagesImported] = useState(0);
   const [mediaUploaded, setMediaUploaded] = useState(0);
+  
+  // Processing mode state
+  const [processingMode, setProcessingMode] = useState<ProcessingMode>('client');
+  const [showModeSelector, setShowModeSelector] = useState(false);
+  const [serverProgress, setServerProgress] = useState<ServerSideProgress | null>(null);
+  const [serverSessionId, setServerSessionId] = useState<string | null>(null);
   
   // Duplicate handling
   const [existingConversation, setExistingConversation] = useState<ExistingConversation | null>(null);
@@ -294,44 +303,35 @@ export function WhatsAppImport() {
     return Array.from(names);
   };
 
-  // File handling
+  // File handling - shows mode selector for ZIP files
   const handleFileSelected = useCallback(async (file: File) => {
     setUploadedFile(file);
     setZipContents(null);
     setAllMessages([]);
     setStats(null);
-    setStage('extracting');
     
-    try {
-      if (file.name.endsWith('.zip')) {
-        const contents = await processWhatsAppZip(file);
-        setZipContents(contents);
-        setChatText(contents.chatText);
-        
-        const mediaStats = getMediaStats(contents.mediaFiles);
-        setStats({
-          totalMessages: 0,
-          totalMedia: mediaStats.total,
-          images: mediaStats.images,
-          videos: mediaStats.videos,
-          audio: mediaStats.audio,
-          documents: mediaStats.documents,
-          stickers: mediaStats.stickers,
-          dateRange: { start: null, end: null },
-        });
-        
-        const names = detectNamesFromChat(contents.chatText);
-        setDetectedNames(names);
-        
-        if (names.length === 1) {
-          setContactName(names[0]);
+    // For ZIP files, show mode selector
+    if (file.name.endsWith('.zip')) {
+      // Check for saved preference
+      const savedMode = localStorage.getItem('whatsapp-import-processing-mode') as ProcessingMode | null;
+      if (savedMode === 'client' || savedMode === 'server') {
+        // Use saved preference, skip selector
+        setProcessingMode(savedMode);
+        if (savedMode === 'client') {
+          await processClientSide(file);
+        } else {
+          await processServerSide(file);
         }
-        
-        toast({ 
-          title: 'ZIP extracted', 
-          description: `Found ${mediaStats.total} media files` 
-        });
       } else {
+        // Show mode selector
+        setShowModeSelector(true);
+        setStage('selecting_mode');
+      }
+    } else {
+      // Text file - always client-side
+      setProcessingMode('client');
+      setStage('extracting');
+      try {
         const text = await file.text();
         setChatText(text);
         
@@ -341,10 +341,51 @@ export function WhatsAppImport() {
         if (names.length === 1) {
           setContactName(names[0]);
         }
+        setStage('reviewing');
+      } catch {
+        setStage('failed');
+        toast({ 
+          title: 'Failed to process file', 
+          description: 'Make sure it\'s a valid WhatsApp export', 
+          variant: 'destructive' 
+        });
+      }
+    }
+  }, [toast]);
+
+  // Process ZIP client-side (existing flow)
+  const processClientSide = useCallback(async (file: File) => {
+    setStage('extracting');
+    try {
+      const contents = await processWhatsAppZip(file);
+      setZipContents(contents);
+      setChatText(contents.chatText);
+      
+      const mediaStats = getMediaStats(contents.mediaFiles);
+      setStats({
+        totalMessages: 0,
+        totalMedia: mediaStats.total,
+        images: mediaStats.images,
+        videos: mediaStats.videos,
+        audio: mediaStats.audio,
+        documents: mediaStats.documents,
+        stickers: mediaStats.stickers,
+        dateRange: { start: null, end: null },
+      });
+      
+      const names = detectNamesFromChat(contents.chatText);
+      setDetectedNames(names);
+      
+      if (names.length === 1) {
+        setContactName(names[0]);
       }
       
+      toast({ 
+        title: 'ZIP extracted', 
+        description: `Found ${mediaStats.total} media files` 
+      });
       setStage('reviewing');
-    } catch (error) {
+    } catch {
       setStage('failed');
       toast({ 
         title: 'Failed to process file', 
@@ -353,6 +394,175 @@ export function WhatsAppImport() {
       });
     }
   }, [toast]);
+
+  // Process ZIP server-side
+  const processServerSide = useCallback(async (file: File) => {
+    if (!user) return;
+    
+    setStage('uploading_zip');
+    setServerProgress({
+      stage: 'uploading_zip',
+      filesProcessed: 0,
+      totalFiles: 0,
+      messagesProcessed: 0,
+      totalMessages: 0,
+      bytesProcessed: 0,
+      totalBytes: file.size,
+    });
+
+    try {
+      // Initialize server session
+      const initResponse = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-whatsapp-zip`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'initialize',
+            fileName: file.name,
+            fileSize: file.size,
+            profileId: selectedProfile || undefined,
+          }),
+        }
+      );
+
+      if (!initResponse.ok) {
+        throw new Error('Failed to initialize server session');
+      }
+
+      const { sessionId, uploadUrl } = await initResponse.json();
+      setServerSessionId(sessionId);
+
+      // Upload ZIP to presigned URL
+      const uploadResponse = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': 'application/zip',
+        },
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload ZIP file');
+      }
+
+      // Notify server that upload is complete
+      const completeResponse = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-whatsapp-zip`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'upload-complete',
+            sessionId,
+            profileId: selectedProfile,
+          }),
+        }
+      );
+
+      if (!completeResponse.ok) {
+        throw new Error('Failed to start processing');
+      }
+
+      // Start polling for progress
+      setStage('server_processing');
+      pollServerProgress(sessionId);
+      
+      toast({
+        title: 'Upload complete',
+        description: 'Server is now processing your WhatsApp export',
+      });
+    } catch (error) {
+      setStage('failed');
+      toast({
+        title: 'Server processing failed',
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive',
+      });
+    }
+  }, [user, selectedProfile, toast]);
+
+  // Poll server for progress updates
+  const pollServerProgress = useCallback(async (sessionId: string) => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-whatsapp-zip`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'status',
+              sessionId,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to get status');
+        }
+
+        const progress = await response.json();
+        setServerProgress(progress);
+        setMediaUploaded(progress.filesProcessed);
+        setMessagesImported(progress.messagesProcessed);
+
+        if (progress.stage === 'completed') {
+          clearInterval(pollInterval);
+          setStage('completed');
+          queryClient.invalidateQueries({ queryKey: ['conversations'] });
+          queryClient.invalidateQueries({ queryKey: ['media'] });
+          toast({
+            title: 'Import complete',
+            description: `Imported ${progress.messagesProcessed} messages and ${progress.filesProcessed} media files`,
+          });
+          resetState();
+        } else if (progress.stage === 'failed') {
+          clearInterval(pollInterval);
+          setStage('failed');
+          toast({
+            title: 'Import failed',
+            description: progress.error || 'Unknown error',
+            variant: 'destructive',
+          });
+        }
+      } catch (error) {
+        console.error('Polling error:', error);
+      }
+    }, 2000); // Poll every 2 seconds
+
+    // Cleanup on unmount
+    return () => clearInterval(pollInterval);
+  }, [queryClient, toast]);
+
+  // Handle mode selection
+  const handleModeSelected = useCallback(async (mode: ProcessingMode) => {
+    setProcessingMode(mode);
+    setShowModeSelector(false);
+    
+    if (!uploadedFile) return;
+    
+    if (mode === 'client') {
+      await processClientSide(uploadedFile);
+    } else {
+      await processServerSide(uploadedFile);
+    }
+  }, [uploadedFile, processClientSide, processServerSide]);
+
+  const handleModeCancelled = useCallback(() => {
+    setShowModeSelector(false);
+    setStage('idle');
+    setUploadedFile(null);
+  }, []);
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -755,12 +965,16 @@ export function WhatsAppImport() {
     setExistingConversation(null);
     setDuplicateAction('ask');
     setShowDuplicateResolver(false);
+    setShowModeSelector(false);
+    setProcessingMode('client');
+    setServerProgress(null);
+    setServerSessionId(null);
   }, []);
 
   // Determine what to show
-  const isProcessing = ['extracting', 'uploading_media', 'importing_messages'].includes(stage);
+  const isProcessing = ['extracting', 'uploading_media', 'importing_messages', 'uploading_zip', 'server_processing'].includes(stage);
   const showProgress = isProcessing || stage === 'paused';
-  const showPreview = allMessages.length > 0 && !showProgress && !showDuplicateResolver;
+  const showPreview = allMessages.length > 0 && !showProgress && !showDuplicateResolver && !showModeSelector;
 
   return (
     <Card>
@@ -799,29 +1013,45 @@ export function WhatsAppImport() {
           />
         )}
 
+        {/* Processing Mode Selector */}
+        {showModeSelector && uploadedFile && (
+          <ProcessingModeSelector
+            fileSize={uploadedFile.size}
+            mediaCount={stats?.totalMedia || 0}
+            fileName={uploadedFile.name}
+            onModeSelected={handleModeSelected}
+            onCancel={handleModeCancelled}
+          />
+        )}
+
         {/* Progress view with modal lock during active import */}
-        {showProgress && (
+        {showProgress && !showModeSelector && (
           <>
             {/* Full-screen overlay for active import - covers entire page */}
-            {['uploading_media', 'importing_messages'].includes(stage) && !isPaused && (
+            {['uploading_media', 'importing_messages', 'uploading_zip', 'server_processing'].includes(stage) && !isPaused && (
               <div className="fixed inset-0 z-50 bg-background/98 backdrop-blur-sm flex items-center justify-center">
                 <Card className="w-full max-w-2xl mx-4 border-2 border-primary/20 shadow-2xl">
                   <CardHeader className="pb-3">
                     <div className="flex items-center gap-2 text-amber-600 dark:text-amber-500">
                       <Loader2 className="h-5 w-5 animate-spin" />
-                      <CardTitle>Import in Progress</CardTitle>
+                      <CardTitle>
+                        {processingMode === 'server' ? 'Server Processing' : 'Import in Progress'}
+                      </CardTitle>
                     </div>
                     <CardDescription>
-                      ⚠️ Please do not close this tab or refresh the page. Your import will be lost.
+                      {processingMode === 'server' 
+                        ? 'Your file is being processed on our servers. You can close this tab and come back later.'
+                        : '⚠️ Please do not close this tab or refresh the page. Your import will be lost.'
+                      }
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <WhatsAppImportProgress
                       stage={stage}
-                      messagesImported={messagesImported}
-                      totalMessages={allMessages.length}
-                      mediaUploaded={mediaUploaded}
-                      totalMedia={mediaFilesState.length}
+                      messagesImported={serverProgress?.messagesProcessed || messagesImported}
+                      totalMessages={serverProgress?.totalMessages || allMessages.length}
+                      mediaUploaded={serverProgress?.filesProcessed || mediaUploaded}
+                      totalMedia={serverProgress?.totalFiles || mediaFilesState.length}
                       mediaFiles={mediaFilesState}
                       isPaused={isPaused}
                       onPause={handlePause}
@@ -829,6 +1059,8 @@ export function WhatsAppImport() {
                       onCancel={handleCancel}
                       onRetryFile={handleRetryFile}
                       onSkipFile={handleSkipFile}
+                      isServerSide={processingMode === 'server'}
+                      serverProgress={serverProgress}
                     />
                   </CardContent>
                 </Card>
@@ -836,13 +1068,13 @@ export function WhatsAppImport() {
             )}
             
             {/* Normal progress view (when paused or extracting) */}
-            {(!['uploading_media', 'importing_messages'].includes(stage) || isPaused) && (
+            {(!['uploading_media', 'importing_messages', 'uploading_zip', 'server_processing'].includes(stage) || isPaused) && (
               <WhatsAppImportProgress
                 stage={stage}
-                messagesImported={messagesImported}
-                totalMessages={allMessages.length}
-                mediaUploaded={mediaUploaded}
-                totalMedia={mediaFilesState.length}
+                messagesImported={serverProgress?.messagesProcessed || messagesImported}
+                totalMessages={serverProgress?.totalMessages || allMessages.length}
+                mediaUploaded={serverProgress?.filesProcessed || mediaUploaded}
+                totalMedia={serverProgress?.totalFiles || mediaFilesState.length}
                 mediaFiles={mediaFilesState}
                 isPaused={isPaused}
                 onPause={handlePause}
@@ -850,13 +1082,15 @@ export function WhatsAppImport() {
                 onCancel={handleCancel}
                 onRetryFile={handleRetryFile}
                 onSkipFile={handleSkipFile}
+                isServerSide={processingMode === 'server'}
+                serverProgress={serverProgress}
               />
             )}
           </>
         )}
 
         {/* Normal import flow */}
-        {!showProgress && !showDuplicateResolver && (
+        {!showProgress && !showDuplicateResolver && !showModeSelector && (
           <>
             {/* Cleanup banner for failed imports */}
             {showCleanupBanner && orphanedCount > 0 && (

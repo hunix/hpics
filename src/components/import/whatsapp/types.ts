@@ -1,14 +1,19 @@
 export type ImportStage = 
   | 'idle'
+  | 'selecting_mode'
   | 'extracting'
   | 'parsing'
   | 'reviewing'
   | 'resolving_duplicates'
+  | 'uploading_zip'
+  | 'server_processing'
   | 'uploading_media'
   | 'importing_messages'
   | 'paused'
   | 'completed'
   | 'failed';
+
+export type ProcessingMode = 'client' | 'server';
 
 export type MediaFileStatus = 
   | 'pending'
@@ -74,6 +79,7 @@ export interface ImportSession {
   userId: string;
   profileId: string;
   status: ImportStage;
+  processingMode: ProcessingMode;
   fileName?: string;
   fileSize?: number;
   totalMessages: number;
@@ -92,6 +98,21 @@ export interface ImportSession {
   errorMessage?: string;
   createdAt: string;
   updatedAt: string;
+  // Server-side processing fields
+  serverSessionId?: string;
+  serverProgress?: ServerSideProgress;
+}
+
+export interface ServerSideProgress {
+  stage: 'uploading_zip' | 'extracting' | 'uploading_media' | 'importing_messages' | 'completed' | 'failed';
+  currentFile?: string;
+  filesProcessed: number;
+  totalFiles: number;
+  messagesProcessed: number;
+  totalMessages: number;
+  bytesProcessed: number;
+  totalBytes: number;
+  error?: string;
 }
 
 export interface ImportStats {
