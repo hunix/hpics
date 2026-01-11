@@ -37,7 +37,7 @@ export function ContextualActions({ profileId, profileName, onAction, className 
         .from('profiles')
         .select('*, contact_personal_info (*)')
         .eq('id', profileId)
-        .single();
+        .maybeSingle();
       return data;
     },
   });
@@ -47,7 +47,7 @@ export function ContextualActions({ profileId, profileName, onAction, className 
     queryFn: async () => {
       const { data } = await supabase
         .from('communications')
-        .select('occurred_at, communication_type')
+        .select('occurred_at, channel')
         .eq('profile_id', profileId)
         .order('occurred_at', { ascending: false })
         .limit(5);
