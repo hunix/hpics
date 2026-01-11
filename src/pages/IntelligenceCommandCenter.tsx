@@ -29,6 +29,10 @@ import { format, formatDistanceToNow } from "date-fns";
 import { AnalysisEventStream } from "@/components/intelligence/AnalysisEventStream";
 import { SystemHealthPanel } from "@/components/intelligence/SystemHealthPanel";
 import { AggregateViewer } from "@/components/intelligence/AggregateViewer";
+import { CaasProgressPanel } from "@/components/intelligence/CaasProgressPanel";
+import { DataRetentionManager } from "@/components/intelligence/DataRetentionManager";
+import { SourceAssetRegistry } from "@/components/intelligence/SourceAssetRegistry";
+import { CrossModalCorrelationViewer } from "@/components/intelligence/CrossModalCorrelationViewer";
 
 interface JobStats {
   total: number;
@@ -259,18 +263,26 @@ export default function IntelligenceCommandCenter() {
 
       {/* Main Content Tabs */}
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <Zap className="h-4 w-4" />
             Live Stream
           </TabsTrigger>
           <TabsTrigger value="health" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
-            System Health
+            Health
           </TabsTrigger>
           <TabsTrigger value="aggregates" className="flex items-center gap-2">
             <Brain className="h-4 w-4" />
             Aggregates
+          </TabsTrigger>
+          <TabsTrigger value="assets" className="flex items-center gap-2">
+            <Database className="h-4 w-4" />
+            Assets
+          </TabsTrigger>
+          <TabsTrigger value="fusion" className="flex items-center gap-2">
+            <Activity className="h-4 w-4" />
+            Fusion
           </TabsTrigger>
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
@@ -299,21 +311,19 @@ export default function IntelligenceCommandCenter() {
           />
         </TabsContent>
 
+        <TabsContent value="assets" className="mt-4">
+          <SourceAssetRegistry />
+        </TabsContent>
+
+        <TabsContent value="fusion" className="mt-4">
+          <CrossModalCorrelationViewer />
+        </TabsContent>
+
         <TabsContent value="settings" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>CAAS Configuration</CardTitle>
-              <CardDescription>
-                Configure the Centralized AI Analysis System behavior
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-muted-foreground text-sm">
-                Settings panel coming soon. Configure retry policies, circuit breakers, 
-                and analysis preferences.
-              </p>
-            </CardContent>
-          </Card>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <CaasProgressPanel />
+            <DataRetentionManager />
+          </div>
         </TabsContent>
       </Tabs>
     </div>
