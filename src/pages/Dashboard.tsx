@@ -15,11 +15,15 @@ import { SortableDashlet } from '@/components/dashboard/SortableDashlet';
 import { DashboardCustomizer } from '@/components/dashboard/DashboardCustomizer';
 import { DashboardPresets } from '@/components/dashboard/DashboardPresets';
 import { renderDashlet, type DashletContext } from '@/lib/dashletRegistry';
+import { MobileDashboard } from '@/components/dashboard/MobileDashboard';
+import { useDeviceDetection } from '@/hooks/useDeviceDetection';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const { layout, isLoading: isLoadingLayout, reorderDashlets, toggleDashletVisibility } = useDashboardLayout();
+  const { deviceType } = useDeviceDetection();
+  const isMobile = deviceType === 'mobile';
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -151,6 +155,15 @@ export default function Dashboard() {
       reorderDashlets(active.id as string, over.id as string);
     }
   };
+
+  // Show mobile dashboard on mobile devices
+  if (isMobile) {
+    return (
+      <AppLayout title="Dashboard">
+        <MobileDashboard />
+      </AppLayout>
+    );
+  }
 
   if (isLoadingLayout) {
     return (

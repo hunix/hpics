@@ -17,9 +17,11 @@ import { VirtualizedContactsList } from '@/components/contacts/VirtualizedContac
 import { VirtualizedContactsGrid } from '@/components/contacts/VirtualizedContactsGrid';
 import { AlphabeticalSidebar } from '@/components/contacts/AlphabeticalSidebar';
 import { BulkDeleteDialog } from '@/components/contacts/BulkDeleteDialog';
+import { MobileContactsList } from '@/components/contacts/MobileContactsList';
 import { toast } from 'sonner';
 import { getSubtypesForRelationship } from '@/lib/relationshipSubtypes';
 import { useSecurityMonitor } from '@/hooks/useSecurityMonitor';
+import { useDeviceDetection } from '@/hooks/useDeviceDetection';
 import { 
   useEnhancedContacts, 
   useContactLetterCounts, 
@@ -49,6 +51,8 @@ export default function Contacts() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { trackBulkOperation } = useSecurityMonitor();
+  const { deviceType } = useDeviceDetection();
+  const isMobile = deviceType === 'mobile';
   
   // UI State
   const [searchQuery, setSearchQuery] = useState('');
@@ -308,6 +312,40 @@ export default function Contacts() {
 
     return viewContent;
   };
+
+  // Mobile view
+  if (isMobile) {
+    return (
+      <AppLayout title="Contacts" showQuickCapture>
+        <MobileContactsList
+          contacts={contacts.map(c => ({
+            id: c.id,
+            first_name: c.first_name,
+            last_name: c.last_name,
+            organization: c.organization,
+            avatar_url: c.avatar_url,
+            is_favorite: c.is_favorite,
+            relationship_type: c.relationship_type,
+            tags: c.tags,
+          }))}
+          onToggleFavorite={(id, isFav) => toggleFavoriteMutation.mutate({ id, isFavorite: isFav })}
+          isLoading={isLoading}
+          hasNextPage={hasNextPage}
+          onLoadMore={() => fetchNextPage()}
+          onAddContact={() => setIsCreateDialogOpen(true)}
+        />
+        <ContactDialog
+          open={isCreateDialogOpen}
+          onOpenChange={(open) => {
+            setIsCreateDialogOpen(open);
+            if (!open) {
+              queryClient.invalidateQueries({ queryKey: ['enhanced-contacts'] });
+            }
+          }}
+        />
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout title="Contacts" showQuickCapture>

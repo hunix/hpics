@@ -154,9 +154,10 @@ export function DecayAlertWidget() {
         {decayContacts && decayContacts.length > 0 ? (
           <div className="space-y-3">
             {decayContacts.map((contact) => (
-              <div 
+              <a 
                 key={contact.id} 
-                className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                href={`/contacts/${contact.id}`}
+                className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -175,13 +176,13 @@ export function DecayAlertWidget() {
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.preventDefault()}>
                   {contact.email && (
                     <Button 
                       variant="ghost" 
                       size="icon" 
                       className="h-8 w-8"
-                      onClick={() => handleEmail(contact.email!, contact.name)}
+                      onClick={(e) => { e.preventDefault(); handleEmail(contact.email!, contact.name); }}
                       title="Send email"
                     >
                       <Mail className="h-4 w-4" />
@@ -193,7 +194,7 @@ export function DecayAlertWidget() {
                         variant="ghost" 
                         size="icon" 
                         className="h-8 w-8"
-                        onClick={() => handleCall(contact.phone!)}
+                        onClick={(e) => { e.preventDefault(); handleCall(contact.phone!); }}
                         title="Call"
                       >
                         <Phone className="h-4 w-4" />
@@ -202,7 +203,7 @@ export function DecayAlertWidget() {
                         variant="ghost" 
                         size="icon" 
                         className="h-8 w-8 text-green-600"
-                        onClick={() => handleWhatsApp(contact.phone!, contact.name)}
+                        onClick={(e) => { e.preventDefault(); handleWhatsApp(contact.phone!, contact.name); }}
                         title="WhatsApp"
                       >
                         <MessageCircle className="h-4 w-4" />
@@ -210,7 +211,7 @@ export function DecayAlertWidget() {
                     </>
                   )}
                 </div>
-              </div>
+              </a>
             ))}
             <Button variant="outline" className="w-full mt-2" onClick={() => window.location.href = '/network'}>
               View Full Network

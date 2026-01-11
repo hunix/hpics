@@ -170,7 +170,11 @@ const dashletRenderers: Partial<Record<DashletType, DashletRenderer>> = {
         {ctx.recentContacts && ctx.recentContacts.length > 0 ? (
           <div className="space-y-3">
             {ctx.recentContacts.map((contact) => (
-              <div key={contact.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+              <a 
+                key={contact.id} 
+                href={`/contacts/${contact.id}`}
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer active:scale-[0.98]"
+              >
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-medium">
                   {contact.first_name?.[0]}{contact.last_name?.[0]}
                 </div>
@@ -182,7 +186,7 @@ const dashletRenderers: Partial<Record<DashletType, DashletRenderer>> = {
                     {contact.relationship_type?.replace('_', ' ')}
                   </p>
                 </div>
-              </div>
+              </a>
             ))}
           </div>
         ) : (
