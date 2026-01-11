@@ -240,22 +240,26 @@ export async function checkEmailDuplicates(
 
   const existingIds = new Set<string>();
 
-  // Check fingerprints table for email message IDs
+  // Check fingerprints table for email message IDs stored as fingerprints
   const batchSize = 100;
   for (let i = 0; i < messageIds.length; i += batchSize) {
     const batch = messageIds.slice(i, i + batchSize);
     
+    // Email message IDs are stored as fingerprints prefixed with "email|"
+    const emailFingerprints = batch.map(id => `email|${id}`);
+    
     const { data } = await supabase
       .from('message_fingerprints')
-      .select('metadata->message_id')
+      .select('fingerprint')
       .eq('user_id', user.id)
-      .in('metadata->message_id', batch);
+      .eq('source_type', 'gmail')
+      .in('fingerprint', emailFingerprints);
 
     if (data) {
       data.forEach(row => {
-        if (row['metadata->message_id']) {
-          existingIds.add(row['metadata->message_id'] as string);
-        }
+        // Extract original message ID from fingerprint
+        const msgId = row.fingerprint.replace('email|', '');
+        existingIds.add(msgId);
       });
     }
   }
