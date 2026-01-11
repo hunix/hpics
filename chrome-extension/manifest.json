@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Intel CRM - Social Profile Capture",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Capture Instagram, LinkedIn, Threads, and Twitter profiles directly to your Intel CRM",
   "permissions": [
     "activeTab",

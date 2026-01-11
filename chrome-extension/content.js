@@ -52,6 +52,49 @@
   let currentPlatform = null;
   let captureButton = null;
   let isCapturing = false;
+  let contextValid = true;
+
+  // Wrapper to safely send messages with context invalidation recovery
+  async function safeSendMessage(message) {
+    const MAX_RETRIES = 2;
+    let lastError = null;
+    
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        // Check if extension context is still valid
+        if (!chrome.runtime?.id) {
+          contextValid = false;
+          throw new Error('Extension context invalidated - please refresh the page');
+        }
+        
+        const response = await chrome.runtime.sendMessage(message);
+        contextValid = true;
+        return response;
+      } catch (error) {
+        lastError = error;
+        console.warn(`[Intel CRM] Message attempt ${attempt + 1} failed:`, error.message);
+        
+        // Check for context invalidation errors
+        if (error.message?.includes('Extension context invalidated') || 
+            error.message?.includes('Could not establish connection') ||
+            error.message?.includes('Receiving end does not exist')) {
+          
+          contextValid = false;
+          
+          if (attempt < MAX_RETRIES) {
+            // Wait a bit and retry - service worker might wake up
+            await new Promise(r => setTimeout(r, 500));
+            continue;
+          }
+        }
+        
+        // Non-recoverable error or max retries reached
+        throw error;
+      }
+    }
+    
+    throw lastError;
+  }
 
   // Initialize
   function init() {
@@ -106,28 +149,44 @@
     status.className = 'intel-crm-status visible';
 
     try {
+      // Check context validity before extraction
+      if (!chrome.runtime?.id) {
+        throw new Error('Please refresh the page to reconnect the extension');
+      }
+      
       const profileData = await extractProfileData();
       
       if (!profileData) {
         throw new Error('Could not extract profile data');
       }
 
-      const response = await chrome.runtime.sendMessage({
+      // Use safe message sender with retry logic
+      const response = await safeSendMessage({
         type: 'CAPTURE_PROFILE',
         payload: profileData
       });
 
-      if (response.success) {
+      if (response?.success) {
         status.textContent = '✓ Captured!';
         status.classList.add('success');
         btn.classList.remove('capturing');
         btn.classList.add('success');
       } else {
-        throw new Error(response.error || 'Capture failed');
+        throw new Error(response?.error || 'Capture failed');
       }
     } catch (error) {
       console.error('[Intel CRM] Capture error:', error);
-      status.textContent = '✗ ' + error.message;
+      
+      // Provide user-friendly error messages
+      let errorMsg = error.message;
+      if (error.message?.includes('Extension context invalidated') ||
+          error.message?.includes('Could not establish connection')) {
+        errorMsg = 'Connection lost - refresh page';
+      } else if (error.message?.includes('Receiving end does not exist')) {
+        errorMsg = 'Extension sleeping - try again';
+      }
+      
+      status.textContent = '✗ ' + errorMsg;
       status.classList.add('error');
       btn.classList.remove('capturing');
       btn.classList.add('error');
@@ -137,7 +196,7 @@
       isCapturing = false;
       btn.classList.remove('success', 'error');
       status.classList.remove('visible', 'success', 'error');
-    }, 3000);
+    }, 4000); // Increased to 4s to give user time to read error
   }
 
   async function extractProfileData() {
@@ -393,12 +452,33 @@
       }
     });
 
-    // Respond to extension detection
+    // Respond to extension detection with context check
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === 'PING') {
         sendResponse({ type: 'PONG', platform: currentPlatform?.name });
+      } else if (message.type === 'WAKE_UP') {
+        // Service worker woke up, we're still connected
+        contextValid = true;
+        sendResponse({ type: 'AWAKE', platform: currentPlatform?.name });
       }
+      return true;
     });
+    
+    // Periodic context health check
+    setInterval(() => {
+      if (!chrome.runtime?.id) {
+        console.warn('[Intel CRM] Context lost - button will show refresh message on next click');
+        contextValid = false;
+        // Update button to indicate refresh needed
+        if (captureButton && !isCapturing) {
+          const status = captureButton.querySelector('.intel-crm-status');
+          if (status) {
+            status.textContent = 'Refresh page to reconnect';
+            status.className = 'intel-crm-status visible warning';
+          }
+        }
+      }
+    }, 30000); // Check every 30 seconds
   }
 
   function observePageChanges() {
