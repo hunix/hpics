@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Users, Calendar, MessageSquare, MoreHorizontal, Search, Brain, Shield, Settings, Network, FileText, BarChart3, Image, Upload, Activity, DollarSign } from 'lucide-react';
+import { Home, Users, Camera, Sparkles, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hapticFeedback } from '@/lib/nativeFeatures';
 import { navigationItems, categoryConfig } from '@/lib/navigationConfig';
@@ -20,11 +20,11 @@ interface NavItem {
   icon: React.ElementType;
 }
 
+// Mobile-first navigation: Focus on intel collection
 const mainNavItems: NavItem[] = [
   { path: '/dashboard', label: 'Home', icon: Home },
   { path: '/contacts', label: 'Contacts', icon: Users },
-  { path: '/calendar', label: 'Calendar', icon: Calendar },
-  { path: '/communications', label: 'Messages', icon: MessageSquare },
+  { path: '/ai-chat', label: 'AI', icon: Sparkles },
 ];
 
 export function MobileBottomNav() {
@@ -40,7 +40,7 @@ export function MobileBottomNav() {
   };
 
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
-  const isMoreActive = !mainNavItems.some(item => isActive(item.path));
+  const isMoreActive = !mainNavItems.some(item => isActive(item.path)) && !location.pathname.startsWith('/ai-chat');
 
   // Filter accessible navigation items
   const accessibleItems = navigationItems.filter(item => {
@@ -59,7 +59,8 @@ export function MobileBottomNav() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t md:hidden safe-area-pb">
       <div className="flex items-center justify-around h-16 px-1">
-        {mainNavItems.map((item) => {
+        {/* Left nav items */}
+        {mainNavItems.slice(0, 2).map((item) => {
           const Icon = item.icon;
           const active = isActive(item.path);
           
@@ -86,6 +87,54 @@ export function MobileBottomNav() {
           );
         })}
 
+        {/* Center Capture FAB */}
+        <div className="flex flex-col items-center justify-center flex-1 h-full relative">
+          <button
+            onClick={async () => {
+              await hapticFeedback('medium');
+              navigate('/ai-chat');
+            }}
+            className={cn(
+              "flex items-center justify-center w-14 h-14 rounded-full transition-all",
+              "bg-gradient-to-br from-violet-500 to-indigo-600",
+              "shadow-lg shadow-violet-500/25 -mt-6",
+              "active:scale-95"
+            )}
+          >
+            <Camera className="h-6 w-6 text-white" />
+          </button>
+          <span className="text-[10px] font-medium text-muted-foreground mt-0.5">Capture</span>
+        </div>
+
+        {/* AI tab */}
+        {mainNavItems.slice(2).map((item) => {
+          const Icon = item.icon;
+          const active = isActive(item.path);
+          
+          return (
+            <button
+              key={item.path}
+              onClick={() => handleNavigation(item.path)}
+              className={cn(
+                "flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all touch-target-lg",
+                "active:scale-95",
+                active 
+                  ? "text-primary" 
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <div className={cn(
+                "relative flex items-center justify-center w-10 h-7 rounded-full transition-colors",
+                active && "bg-primary/10"
+              )}>
+                <Icon className={cn("h-5 w-5", active && "text-primary")} />
+              </div>
+              <span className="text-[10px] font-medium">{item.label}</span>
+            </button>
+          );
+        })}
+
+        {/* More button */}
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
           <SheetTrigger asChild>
             <button
@@ -110,7 +159,6 @@ export function MobileBottomNav() {
             side="bottom" 
             className="h-[75vh] sm:h-[60vh] rounded-t-2xl px-4 pb-8 safe-area-pb"
           >
-            {/* Drag handle indicator */}
             <div className="flex justify-center pt-2 pb-4">
               <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
             </div>
@@ -131,7 +179,6 @@ export function MobileBottomNav() {
                           {config.title}
                         </h3>
                       </div>
-                      {/* Responsive grid: 3 cols on small, 4 on medium+ */}
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                         {items.map((item) => {
                           const Icon = item.icon;
@@ -144,27 +191,16 @@ export function MobileBottomNav() {
                               className={cn(
                                 'flex flex-col items-center gap-2 p-3 rounded-xl transition-all touch-target',
                                 'hover:bg-accent active:scale-95',
-                                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                                active && [
-                                  'bg-accent',
-                                  config.borderClass,
-                                  'border',
-                                ]
+                                active && ['bg-accent', config.borderClass, 'border']
                               )}
                             >
                               <div className={cn(
                                 'flex items-center justify-center w-11 h-11 rounded-xl',
-                                active ? [
-                                  `bg-gradient-to-br ${config.gradient}`,
-                                  'shadow-md',
-                                ] : [
-                                  'bg-muted/70',
-                                ]
+                                active 
+                                  ? [`bg-gradient-to-br ${config.gradient}`, 'shadow-md'] 
+                                  : ['bg-muted/70']
                               )}>
-                                <Icon className={cn(
-                                  'h-5 w-5',
-                                  active ? 'text-white' : config.textClass
-                                )} />
+                                <Icon className={cn('h-5 w-5', active ? 'text-white' : config.textClass)} />
                               </div>
                               <span className={cn(
                                 'text-xs font-medium text-center line-clamp-1',

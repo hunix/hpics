@@ -134,7 +134,7 @@ export function FloatingAIAssistant() {
     <>
       {/* Floating button */}
       <AnimatePresence>
-        {!isOpen && (
+      {!isOpen && (
           <motion.button
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -143,11 +143,15 @@ export function FloatingAIAssistant() {
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsOpen(true)}
             className={cn(
-              'fixed bottom-6 right-6 z-50',
+              'fixed z-50',
+              // Position above bottom nav on mobile (nav is ~64px + safe area)
+              'bottom-24 right-4 md:bottom-6 md:right-6',
+              // Hide on mobile since AI has its own tab now
+              'hidden md:flex',
               'w-14 h-14 rounded-full',
               'bg-gradient-to-br from-violet-500 to-indigo-600',
               'shadow-lg shadow-violet-500/25',
-              'flex items-center justify-center',
+              'items-center justify-center',
               'hover:shadow-xl hover:shadow-violet-500/30 transition-shadow'
             )}
           >

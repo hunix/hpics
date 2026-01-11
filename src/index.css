@@ -121,10 +121,18 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
   
-  /* Prevent overscroll/bounce on mobile */
-  html, body {
+  /* Prevent overscroll/bounce on mobile and fix viewport overflow */
+  html, body, #root {
     overscroll-behavior: none;
     -webkit-overflow-scrolling: touch;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+  
+  /* Ensure all content respects viewport boundaries */
+  .container-mobile {
+    max-width: 100%;
+    overflow-x: hidden;
   }
 }
 
