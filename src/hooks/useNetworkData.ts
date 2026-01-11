@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Network Data Hook
+ * 
+ * Custom hook for fetching and processing network visualization data.
+ * Handles profile fetching, decay calculation, and network metric computation.
+ */
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -5,6 +12,24 @@ import { differenceInDays } from 'date-fns';
 import { calculateNetworkMetrics, type NetworkMetrics } from '@/lib/network';
 import type { VisualizationNode, VisualizationLink, NetworkVisualizationData } from '@/lib/network/types/visualization';
 
+/**
+ * Hook for fetching network visualization data
+ * 
+ * Fetches profiles, communications, messages, and events to build
+ * a complete network visualization with:
+ * - Node importance scores
+ * - Relationship decay levels
+ * - Network centrality metrics (PageRank, closeness, betweenness)
+ * - Community clusters
+ * 
+ * @returns Query result with nodes, links, and network metrics
+ * 
+ * @example
+ * const { data, isLoading } = useNetworkData();
+ * // data.nodes - Visualization nodes with metrics
+ * // data.links - Connections between nodes
+ * // data.metrics - Aggregate network analytics
+ */
 export function useNetworkData() {
   const { user } = useAuth();
 
@@ -178,6 +203,7 @@ export function useNetworkData() {
       return { nodes, links, metrics };
     },
     enabled: !!user,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes - cache for navigation
+    gcTime: 30 * 60 * 1000, // 30 minutes - keep in memory
   });
 }
