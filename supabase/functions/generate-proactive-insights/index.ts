@@ -179,7 +179,38 @@ Return a JSON object:
       weekly_summary: 'Maintain regular contact with key relationships'
     });
 
-    // Store high-priority insights as notifications/tasks
+    // Store ALL insights to proactive_insights table
+    for (const insight of analysis.insights) {
+      // Map priority to valid values
+      const priorityMap: Record<string, string> = {
+        'urgent': 'critical',
+        'high': 'high',
+        'medium': 'medium',
+        'low': 'low'
+      };
+      
+      await supabase.from('proactive_insights').insert({
+        user_id: user.id,
+        profile_id: insight.affected_contacts[0]?.id || null,
+        insight_type: insight.type,
+        title: insight.title,
+        description: insight.description,
+        priority: priorityMap[insight.priority] || 'medium',
+        category: insight.type,
+        action_type: 'suggested',
+        action_data: {
+          suggested_action: insight.suggested_action,
+          deadline: insight.deadline,
+          context: insight.context,
+          affected_contacts: insight.affected_contacts
+        },
+        status: 'pending',
+        generated_at: new Date().toISOString(),
+        expires_at: insight.deadline || null
+      });
+    }
+    
+    // Also store high-priority ones to activity feed for immediate visibility
     for (const insight of analysis.insights.filter(i => i.priority === 'urgent' || i.priority === 'high')) {
       await supabase.from('contact_activity_feed').insert({
         user_id: user.id,

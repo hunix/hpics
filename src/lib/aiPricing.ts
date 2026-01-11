@@ -153,3 +153,77 @@ export function getProviderColor(provider: string): string {
       return 'bg-muted';
   }
 }
+
+// Model tiers for simplified selection
+export interface ModelTier {
+  id: string;
+  name: string;
+  description: string;
+  models: {
+    google: string;
+    openai: string;
+  };
+  costMultiplier: number; // Relative cost (1 = baseline)
+  qualityScore: number; // 1-10 quality rating
+  speedScore: number; // 1-10 speed rating
+}
+
+export const MODEL_TIERS: ModelTier[] = [
+  {
+    id: 'speed',
+    name: 'Speed',
+    description: 'Fastest responses, lowest cost. Best for simple tasks.',
+    models: {
+      google: 'google/gemini-2.5-flash-lite',
+      openai: 'openai/gpt-5-nano',
+    },
+    costMultiplier: 0.25,
+    qualityScore: 6,
+    speedScore: 10,
+  },
+  {
+    id: 'balanced',
+    name: 'Balanced',
+    description: 'Good performance at reasonable cost. Recommended for most tasks.',
+    models: {
+      google: 'google/gemini-2.5-flash',
+      openai: 'openai/gpt-5-mini',
+    },
+    costMultiplier: 1,
+    qualityScore: 8,
+    speedScore: 8,
+  },
+  {
+    id: 'quality',
+    name: 'Quality',
+    description: 'Best accuracy and reasoning. Use for complex analysis.',
+    models: {
+      google: 'google/gemini-2.5-pro',
+      openai: 'openai/gpt-5',
+    },
+    costMultiplier: 4,
+    qualityScore: 10,
+    speedScore: 5,
+  },
+  {
+    id: 'nextgen',
+    name: 'Next Gen',
+    description: 'Cutting-edge models with latest capabilities.',
+    models: {
+      google: 'google/gemini-3-pro-preview',
+      openai: 'openai/gpt-5',
+    },
+    costMultiplier: 5,
+    qualityScore: 10,
+    speedScore: 4,
+  },
+];
+
+export function getModelForTier(tierId: string, preferredProvider: 'google' | 'openai' = 'google'): string {
+  const tier = MODEL_TIERS.find(t => t.id === tierId) || MODEL_TIERS[1]; // Default to balanced
+  return tier.models[preferredProvider];
+}
+
+export function getTierById(tierId: string): ModelTier | undefined {
+  return MODEL_TIERS.find(t => t.id === tierId);
+}

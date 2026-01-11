@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
-  Database, Play, Pause, RefreshCw, CheckCircle2, 
-  XCircle, Loader2, Zap, Brain, TrendingUp 
+  Database, Play, RefreshCw, CheckCircle2, 
+  Loader2, Zap, Brain, TrendingUp, Lightbulb 
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,6 +19,8 @@ interface BackfillStats {
   totalVoice: number;
   embeddedVoice: number;
   totalEntities: number;
+  proactiveInsights: number;
+  crossPatterns: number;
 }
 
 export function IntelligenceBackfillPanel() {
@@ -36,63 +37,46 @@ export function IntelligenceBackfillPanel() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Get message counts
-      const { count: totalMessages } = await supabase
-        .from('messages')
-        .select('*', { count: 'exact', head: true });
-
-      // Get embedded message counts
-      const { count: embeddedMessages } = await supabase
-        .from('document_embeddings')
-        .select('*', { count: 'exact', head: true })
-        .eq('source_type', 'message')
-        .eq('user_id', user.id);
-
-      // Get observation counts
-      const { count: totalObservations } = await supabase
-        .from('contact_observations')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
-
-      const { count: embeddedObservations } = await supabase
-        .from('document_embeddings')
-        .select('*', { count: 'exact', head: true })
-        .eq('source_type', 'observation')
-        .eq('user_id', user.id);
-
-      // Get voice counts
-      const { count: totalVoice } = await supabase
-        .from('voice_insights')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
-
-      const { count: embeddedVoice } = await supabase
-        .from('document_embeddings')
-        .select('*', { count: 'exact', head: true })
-        .eq('source_type', 'voice')
-        .eq('user_id', user.id);
-
-      // Get entity counts
-      const { count: totalEntities } = await supabase
-        .from('entity_mentions')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
+      // Run all counts in parallel
+      const [
+        messagesResult,
+        embeddedMessagesResult,
+        observationsResult,
+        embeddedObservationsResult,
+        voiceResult,
+        embeddedVoiceResult,
+        entitiesResult,
+        insightsResult,
+        patternsResult
+      ] = await Promise.all([
+        supabase.from('messages').select('*', { count: 'exact', head: true }),
+        supabase.from('document_embeddings').select('*', { count: 'exact', head: true }).eq('source_type', 'message').eq('user_id', user.id),
+        supabase.from('contact_observations').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+        supabase.from('document_embeddings').select('*', { count: 'exact', head: true }).eq('source_type', 'observation').eq('user_id', user.id),
+        supabase.from('voice_insights').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+        supabase.from('document_embeddings').select('*', { count: 'exact', head: true }).eq('source_type', 'voice').eq('user_id', user.id),
+        supabase.from('entity_mentions').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+        supabase.from('proactive_insights').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('status', 'pending'),
+        supabase.from('cross_contact_patterns').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_active', true)
+      ]);
 
       return {
-        totalMessages: totalMessages || 0,
-        embeddedMessages: embeddedMessages || 0,
-        totalObservations: totalObservations || 0,
-        embeddedObservations: embeddedObservations || 0,
-        totalVoice: totalVoice || 0,
-        embeddedVoice: embeddedVoice || 0,
-        totalEntities: totalEntities || 0,
+        totalMessages: messagesResult.count || 0,
+        embeddedMessages: embeddedMessagesResult.count || 0,
+        totalObservations: observationsResult.count || 0,
+        embeddedObservations: embeddedObservationsResult.count || 0,
+        totalVoice: voiceResult.count || 0,
+        embeddedVoice: embeddedVoiceResult.count || 0,
+        totalEntities: entitiesResult.count || 0,
+        proactiveInsights: insightsResult.count || 0,
+        crossPatterns: patternsResult.count || 0,
       } as BackfillStats;
     },
     refetchInterval: isRunning ? 5000 : false,
   });
 
   const runBackfillMutation = useMutation({
-    mutationFn: async (type: 'embeddings' | 'entities' | 'patterns') => {
+    mutationFn: async (type: 'embeddings' | 'entities' | 'patterns' | 'insights') => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error('Not authenticated');
 
@@ -168,6 +152,28 @@ export function IntelligenceBackfillPanel() {
           const error = await response.json();
           throw new Error(error.error || 'Pattern detection failed');
         }
+      } else if (type === 'insights') {
+        setCurrentTask('Generating proactive insights...');
+        setProgress(30);
+
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-proactive-insights`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({}),
+          }
+        );
+
+        setProgress(70);
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Insight generation failed');
+        }
       }
 
       setProgress(100);
@@ -223,7 +229,7 @@ export function IntelligenceBackfillPanel() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <div className="p-3 bg-muted/50 rounded-lg">
             <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
               <Brain className="h-3 w-3" />
@@ -261,6 +267,22 @@ export function IntelligenceBackfillPanel() {
           <div className="p-3 bg-muted/50 rounded-lg">
             <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
               <TrendingUp className="h-3 w-3" />
+              Patterns
+            </div>
+            <div className="text-lg font-bold">{stats?.crossPatterns || 0}</div>
+          </div>
+
+          <div className="p-3 bg-muted/50 rounded-lg">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+              <Lightbulb className="h-3 w-3" />
+              Insights
+            </div>
+            <div className="text-lg font-bold">{stats?.proactiveInsights || 0}</div>
+          </div>
+
+          <div className="p-3 bg-muted/50 rounded-lg">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+              <TrendingUp className="h-3 w-3" />
               Voice
             </div>
             <div className="text-lg font-bold">
@@ -286,7 +308,7 @@ export function IntelligenceBackfillPanel() {
         )}
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -317,6 +339,16 @@ export function IntelligenceBackfillPanel() {
             <TrendingUp className="h-3 w-3 mr-1" />
             Patterns
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => runBackfillMutation.mutate('insights')}
+            disabled={isRunning}
+            className="text-xs"
+          >
+            <Lightbulb className="h-3 w-3 mr-1" />
+            Insights
+          </Button>
         </div>
 
         <Button
@@ -325,6 +357,7 @@ export function IntelligenceBackfillPanel() {
             await runBackfillMutation.mutateAsync('embeddings');
             await runBackfillMutation.mutateAsync('entities');
             await runBackfillMutation.mutateAsync('patterns');
+            await runBackfillMutation.mutateAsync('insights');
           }}
           disabled={isRunning}
         >

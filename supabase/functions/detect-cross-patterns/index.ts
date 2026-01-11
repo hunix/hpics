@@ -243,41 +243,52 @@ Return as JSON: { "assessment": "...", "insights": ["..."], "risks": ["..."] }`
             const content = data.choices[0].message.content;
             const jsonMatch = content.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
-              const aiAnalysis = JSON.parse(jsonMatch[0]);
-              // Store the AI analysis
-              await supabase.from('cross_contact_patterns').upsert({
-                user_id: user.id,
-                pattern_type: 'ai_synthesis',
-                pattern_data: aiAnalysis,
-                detected_at: new Date().toISOString(),
-                confidence_score: 0.8
-              }, {
-                onConflict: 'user_id,pattern_type'
-              });
-            }
+            const aiAnalysis = JSON.parse(jsonMatch[0]);
+            // Store the AI analysis using correct column names
+            await supabase.from('cross_contact_patterns').upsert({
+              user_id: user.id,
+              pattern_type: 'ai_synthesis',
+              title: 'Network Intelligence Summary',
+              description: aiAnalysis.assessment || 'AI-generated network analysis',
+              confidence_score: 0.8,
+              profiles_involved: [],
+              evidence: {
+                insights: aiAnalysis.insights || [],
+                risks: aiAnalysis.risks || [],
+                generatedAt: new Date().toISOString()
+              },
+              detected_at: new Date().toISOString(),
+              is_active: true
+            }, {
+              onConflict: 'user_id,pattern_type'
+            });
           }
-        } catch (aiErr) {
-          console.error('AI analysis error:', aiErr);
         }
+      } catch (aiErr) {
+        console.error('AI analysis error:', aiErr);
       }
     }
+  }
 
-    // Store detected patterns
-    for (const pattern of patterns) {
-      await supabase.from('cross_contact_patterns').insert({
-        user_id: user.id,
-        pattern_type: pattern.patternType,
-        pattern_data: {
-          description: pattern.description,
-          evidence: pattern.evidence,
-          severity: pattern.severity,
-          suggestedAction: pattern.suggestedAction
-        },
-        involved_profile_ids: pattern.involvedProfiles,
-        confidence_score: pattern.confidence,
-        detected_at: new Date().toISOString()
-      });
-    }
+  // Store detected patterns using correct column names
+  for (const pattern of patterns) {
+    await supabase.from('cross_contact_patterns').insert({
+      user_id: user.id,
+      pattern_type: pattern.patternType,
+      title: pattern.description.slice(0, 100),
+      description: pattern.description,
+      confidence_score: pattern.confidence,
+      profiles_involved: pattern.involvedProfiles,
+      evidence: {
+        data: pattern.evidence,
+        severity: pattern.severity,
+        suggestedAction: pattern.suggestedAction,
+        actionable: pattern.actionable
+      },
+      detected_at: new Date().toISOString(),
+      is_active: true
+    });
+  }
 
     return new Response(JSON.stringify({
       success: true,
