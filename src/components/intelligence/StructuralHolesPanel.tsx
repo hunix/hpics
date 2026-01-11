@@ -19,7 +19,7 @@ import {
   calculateNetworkDensity,
   getClusterColor,
   type StructuralHole
-} from '@/lib/networkAlgorithms';
+} from '@/lib/network';
 
 interface ProfileData {
   id: string;

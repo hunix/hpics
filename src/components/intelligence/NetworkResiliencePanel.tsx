@@ -15,18 +15,16 @@ import {
 } from 'lucide-react';
 import { 
   analyzeNetworkResilience, 
-  ResilienceMetrics 
-} from '@/lib/networkAlgorithmsAdvanced';
-import {
   simulateInfluencePropagation,
   analyzeTemporalNetwork,
   analyzeCommunityEvolution,
   recommendStrategicConnections,
-  InfluencePropagationResult,
-  TemporalNetworkMetrics,
-  CommunityEvolution,
-  ConnectionRecommendation,
-} from '@/lib/networkAlgorithmsEnhanced';
+  type ResilienceMetrics,
+  type InfluencePropagationResult,
+  type TemporalNetworkMetrics,
+  type CommunityEvolution,
+  type StrategicConnection,
+} from '@/lib/network';
 
 interface NetworkNode {
   id: string;
@@ -159,7 +157,7 @@ export function NetworkResiliencePanel() {
   }, [networkData, simulationSeed]);
 
   // Strategic connection recommendations
-  const connectionRecommendations = useMemo<ConnectionRecommendation[]>(() => {
+  const connectionRecommendations = useMemo<StrategicConnection[]>(() => {
     if (!networkData?.nodes.length) return [];
     const focusNode = networkData.nodes.find(n => n.is_favorite) || networkData.nodes[0];
     if (!focusNode) return [];
