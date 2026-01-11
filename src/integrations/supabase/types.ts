@@ -11654,6 +11654,7 @@ export type Database = {
           ai_budget_enforce_limits: boolean | null
           ai_budget_monthly_limit_cents: number | null
           ai_budget_weekly_limit_cents: number | null
+          ai_model_tier: string | null
           created_at: string
           documents_items_per_page: number | null
           documents_view_mode: string | null
@@ -11665,6 +11666,7 @@ export type Database = {
           main_media_view_mode: string | null
           media_items_per_page: number | null
           media_view_mode: string | null
+          preferred_ai_provider: string | null
           reminder_email: string | null
           theme: string | null
           updated_at: string
@@ -11677,6 +11679,7 @@ export type Database = {
           ai_budget_enforce_limits?: boolean | null
           ai_budget_monthly_limit_cents?: number | null
           ai_budget_weekly_limit_cents?: number | null
+          ai_model_tier?: string | null
           created_at?: string
           documents_items_per_page?: number | null
           documents_view_mode?: string | null
@@ -11688,6 +11691,7 @@ export type Database = {
           main_media_view_mode?: string | null
           media_items_per_page?: number | null
           media_view_mode?: string | null
+          preferred_ai_provider?: string | null
           reminder_email?: string | null
           theme?: string | null
           updated_at?: string
@@ -11700,6 +11704,7 @@ export type Database = {
           ai_budget_enforce_limits?: boolean | null
           ai_budget_monthly_limit_cents?: number | null
           ai_budget_weekly_limit_cents?: number | null
+          ai_model_tier?: string | null
           created_at?: string
           documents_items_per_page?: number | null
           documents_view_mode?: string | null
@@ -11711,6 +11716,7 @@ export type Database = {
           main_media_view_mode?: string | null
           media_items_per_page?: number | null
           media_view_mode?: string | null
+          preferred_ai_provider?: string | null
           reminder_email?: string | null
           theme?: string | null
           updated_at?: string
