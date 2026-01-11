@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Brain, Database, Network, Mic, Chrome, Zap, 
-  Settings, RefreshCw, TrendingUp, Users, Globe
+  Settings, RefreshCw, TrendingUp, Users, Globe, Inbox
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,7 @@ import { VoiceSignaturePanel } from '@/components/intelligence/VoiceSignaturePan
 import { ChromeExtensionPanel } from '@/components/devices/ChromeExtensionPanel';
 import { WearableSyncSettings } from '@/components/devices/WearableSyncSettings';
 import { NFCTagManager } from '@/components/devices/NFCTagManager';
+import { DeviceCapturesManager } from '@/components/capture/DeviceCapturesManager';
 
 export default function IntelligenceCenter() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -49,10 +50,14 @@ export default function IntelligenceCenter() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto">
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 h-auto">
           <TabsTrigger value="overview" className="gap-1.5 py-2">
             <Brain className="h-4 w-4" />
             <span className="hidden md:inline">Overview</span>
+          </TabsTrigger>
+          <TabsTrigger value="captures" className="gap-1.5 py-2">
+            <Inbox className="h-4 w-4" />
+            <span className="hidden md:inline">Captures</span>
           </TabsTrigger>
           <TabsTrigger value="agent" className="gap-1.5 py-2">
             <Globe className="h-4 w-4" />
@@ -83,6 +88,11 @@ export default function IntelligenceCenter() {
               <EntityMentionsPanel />
             </div>
           </div>
+        </TabsContent>
+
+        {/* Captures Tab */}
+        <TabsContent value="captures" className="space-y-4">
+          <DeviceCapturesManager />
         </TabsContent>
 
         {/* AI Agent Tab */}
