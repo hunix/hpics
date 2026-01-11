@@ -14711,9 +14711,11 @@ export type Database = {
           media_files_state: Json | null
           media_uploaded: number | null
           messages_imported: number | null
+          metadata: Json | null
           new_conversation_id: string | null
           parsed_messages: Json | null
           paused_at: string | null
+          processing_mode: string | null
           profile_id: string
           skipped_files: Json | null
           status: string
@@ -14735,9 +14737,11 @@ export type Database = {
           media_files_state?: Json | null
           media_uploaded?: number | null
           messages_imported?: number | null
+          metadata?: Json | null
           new_conversation_id?: string | null
           parsed_messages?: Json | null
           paused_at?: string | null
+          processing_mode?: string | null
           profile_id: string
           skipped_files?: Json | null
           status?: string
@@ -14759,9 +14763,11 @@ export type Database = {
           media_files_state?: Json | null
           media_uploaded?: number | null
           messages_imported?: number | null
+          metadata?: Json | null
           new_conversation_id?: string | null
           parsed_messages?: Json | null
           paused_at?: string | null
+          processing_mode?: string | null
           profile_id?: string
           skipped_files?: Json | null
           status?: string
