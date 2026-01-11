@@ -8,10 +8,21 @@ const corsHeaders = {
 
 // List of allowed secret names that users can configure
 const ALLOWED_SECRETS = [
+  // Connected via Lovable Connectors
   'FIRECRAWL_API_KEY',
+  'PERPLEXITY_API_KEY',
+  // People Intelligence
+  'PDL_API_KEY',
+  'PROXYCURL_API_KEY',
+  'HUNTER_API_KEY',
+  // Social Media
+  'RAPIDAPI_KEY',
+  // Research & Search
+  'DIFFBOT_API_KEY',
+  'TAVILY_API_KEY',
   'NEWS_API_KEY', 
   'GOOGLE_SEARCH_API_KEY',
-  'HUNTER_API_KEY',
+  // Legacy/Other
   'CLEARBIT_API_KEY',
   'LINKEDIN_API_KEY',
   'TWITTER_API_KEY',
@@ -62,17 +73,13 @@ serve(async (req) => {
       });
     }
 
-    // For user-specific secrets, we store them in app_settings with encryption
-    // Note: In a production environment, you'd want to use proper secret management
-    // Here we store encrypted in app_settings as Lovable Cloud handles actual secrets
-    
     // Store the secret reference in app_settings (the actual secret is managed via Lovable Cloud)
     const { error: settingError } = await supabase
       .from('app_settings')
       .upsert({
         user_id: user.id,
         setting_key: `secret_${secretName.toLowerCase()}`,
-        setting_value: 'configured', // We don't store the actual value here
+        setting_value: 'configured',
         metadata: {
           configured_at: new Date().toISOString(),
           secret_name: secretName,
