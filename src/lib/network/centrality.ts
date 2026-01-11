@@ -1,11 +1,31 @@
-// Network Centrality Algorithms
+/**
+ * @fileoverview Network Centrality Algorithms
+ * 
+ * Implements various centrality measures for network analysis:
+ * - PageRank: Measures node importance based on incoming connections (Google's algorithm)
+ * - Closeness: How quickly a node can reach all others
+ * - Betweenness: How often a node lies on shortest paths (bridge detection)
+ * - Eigenvector: Connection to influential nodes
+ */
 
 import type { NetworkNode, NetworkLink, CentralityMap } from './types';
 import { buildAdjacencyList, normalizeMap } from './utils';
 
 /**
  * PageRank Algorithm
- * Calculates importance/influence based on incoming connections
+ * 
+ * Calculates node importance based on incoming link structure.
+ * Nodes linked by important nodes get higher scores.
+ * 
+ * @param nodes - Array of network nodes
+ * @param links - Array of network links
+ * @param dampingFactor - Probability of following a link (default 0.85)
+ * @param iterations - Number of iterations to converge (default 100)
+ * @returns Map of node IDs to normalized PageRank scores (0-1)
+ * 
+ * @example
+ * const ranks = calculatePageRank(nodes, links);
+ * const topInfluencer = [...ranks.entries()].sort((a, b) => b[1] - a[1])[0];
  */
 export function calculatePageRank(
   nodes: NetworkNode[],
@@ -50,7 +70,18 @@ export function calculatePageRank(
 
 /**
  * Closeness Centrality
- * Measures how close a node is to all other nodes
+ * 
+ * Measures how close a node is to all other nodes in the network.
+ * Higher scores indicate nodes that can quickly reach everyone.
+ * Useful for identifying efficient communicators or information spreaders.
+ * 
+ * @param nodes - Array of network nodes
+ * @param links - Array of network links
+ * @returns Map of node IDs to normalized closeness scores (0-1)
+ * 
+ * @example
+ * const closeness = calculateClosenessCentrality(nodes, links);
+ * // High closeness = well-connected, central position
  */
 export function calculateClosenessCentrality(
   nodes: NetworkNode[],
@@ -93,7 +124,20 @@ export function calculateClosenessCentrality(
 
 /**
  * Betweenness Centrality
- * Measures how often a node lies on shortest paths
+ * 
+ * Measures how often a node lies on the shortest path between other nodes.
+ * High betweenness indicates "bridge" nodes that connect different groups.
+ * Critical for identifying connectors and potential network vulnerabilities.
+ * 
+ * Uses Brandes' algorithm for efficient O(nm) computation.
+ * 
+ * @param nodes - Array of network nodes
+ * @param links - Array of network links
+ * @returns Map of node IDs to normalized betweenness scores (0-1)
+ * 
+ * @example
+ * const betweenness = calculateBetweennessCentrality(nodes, links);
+ * // High betweenness = critical bridge connector
  */
 export function calculateBetweennessCentrality(
   nodes: NetworkNode[],
@@ -160,7 +204,22 @@ export function calculateBetweennessCentrality(
 
 /**
  * Eigenvector Centrality
- * Nodes connected to influential nodes are more influential
+ * 
+ * Measures influence where connections to influential nodes matter more.
+ * A node has high eigenvector centrality if it's connected to other
+ * high-centrality nodes (influence by association).
+ * 
+ * Uses power iteration method with configurable tolerance.
+ * 
+ * @param nodes - Array of network nodes
+ * @param links - Array of network links
+ * @param iterations - Maximum iterations (default 100)
+ * @param tolerance - Convergence tolerance (default 1e-6)
+ * @returns Map of node IDs to normalized eigenvector scores (0-1)
+ * 
+ * @example
+ * const eigen = calculateEigenvectorCentrality(nodes, links);
+ * // High eigenvector = connected to influential people
  */
 export function calculateEigenvectorCentrality(
   nodes: NetworkNode[],
