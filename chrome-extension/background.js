@@ -23,6 +23,7 @@ let connectionState = {
 let activityLog = [];
 
 // Heartbeat interval reference
+let keepAliveInterval = null;
 let heartbeatInterval = null;
 
 // Initialize storage with defaults
@@ -40,6 +41,7 @@ chrome.runtime.onInstalled.addListener(async () => {
 chrome.runtime.onStartup.addListener(() => {
   loadStoredState();
   startHeartbeat();
+  startKeepAlive();
 });
 
 // Load stored state on service worker activation
@@ -57,6 +59,7 @@ async function loadStoredState() {
 
 // Initialize on load
 loadStoredState();
+startKeepAlive(); // Start keep-alive immediately
 
 // Listen for messages from content scripts and popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -426,5 +429,27 @@ function stopHeartbeat() {
     clearInterval(heartbeatInterval);
     heartbeatInterval = null;
     console.log('[Intel CRM] Heartbeat stopped');
+  }
+}
+
+// Keep service worker alive with periodic self-ping
+function startKeepAlive() {
+  if (keepAliveInterval) return;
+  
+  // Ping every 25 seconds to keep service worker active (before 30s timeout)
+  keepAliveInterval = setInterval(() => {
+    chrome.runtime.getPlatformInfo(() => {
+      // This is just to keep the service worker alive
+    });
+  }, 25000);
+  
+  console.log('[Intel CRM] Keep-alive started');
+}
+
+function stopKeepAlive() {
+  if (keepAliveInterval) {
+    clearInterval(keepAliveInterval);
+    keepAliveInterval = null;
+    console.log('[Intel CRM] Keep-alive stopped');
   }
 }
