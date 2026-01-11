@@ -2142,9 +2142,11 @@ export type Database = {
           created_at: string
           failed_files: number
           id: string
+          last_activity_at: string | null
           name: string | null
           paused_at: string | null
           profile_id: string | null
+          resumable_until: string | null
           skipped_files: number
           source_type: string
           started_at: string | null
@@ -2163,9 +2165,11 @@ export type Database = {
           created_at?: string
           failed_files?: number
           id?: string
+          last_activity_at?: string | null
           name?: string | null
           paused_at?: string | null
           profile_id?: string | null
+          resumable_until?: string | null
           skipped_files?: number
           source_type?: string
           started_at?: string | null
@@ -2184,9 +2188,11 @@ export type Database = {
           created_at?: string
           failed_files?: number
           id?: string
+          last_activity_at?: string | null
           name?: string | null
           paused_at?: string | null
           profile_id?: string | null
+          resumable_until?: string | null
           skipped_files?: number
           source_type?: string
           started_at?: string | null
