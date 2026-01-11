@@ -1,11 +1,26 @@
-// Network Influence and Propagation Analysis
+/**
+ * @fileoverview Network Influence and Propagation Analysis
+ * Implements influence spreading, propagation simulation, and flow tracing.
+ */
 
 import type { NetworkNode, NetworkLink, InfluencePropagationResult, InfluenceFlow, PropagationWave } from './types';
 import { buildAdjacencyList, bfsReachable } from './utils';
 
 /**
- * Influence Propagation Algorithm
- * Simulates how influence spreads through the network from seed nodes
+ * Calculates influence propagation from seed nodes through the network.
+ * Uses iterative spreading with exponential decay to simulate how
+ * influence/information flows from initial sources.
+ * 
+ * @param nodes - Array of network nodes
+ * @param links - Array of connections between nodes
+ * @param seedNodes - Array of node IDs to start propagation from
+ * @param decayFactor - How much influence decreases per hop (0-1, default: 0.5)
+ * @param iterations - Number of propagation rounds (default: 10)
+ * @returns Map of nodeId to influence score (0-1)
+ * 
+ * @example
+ * const influence = calculateInfluencePropagation(nodes, links, ['ceo-node'], 0.5, 10);
+ * influence.get('employee-node'); // Returns influence received (e.g., 0.25)
  */
 export function calculateInfluencePropagation(
   nodes: NetworkNode[],
@@ -49,7 +64,17 @@ export function calculateInfluencePropagation(
 }
 
 /**
- * Simulate Influence Propagation with detailed metrics
+ * Simulates influence propagation with Monte Carlo sampling.
+ * Runs multiple simulations to generate probabilistic reach estimates
+ * and identifies bottleneck nodes that limit spread.
+ * 
+ * @param nodes - Array of network nodes
+ * @param links - Array of connections between nodes
+ * @param seedNodeId - Starting node for propagation
+ * @param propagationProbability - Chance of spreading per edge (default: 0.3)
+ * @param maxSteps - Maximum propagation hops (default: 10)
+ * @param simulations - Number of Monte Carlo runs (default: 100)
+ * @returns Detailed propagation results including waves and bottlenecks
  */
 export function simulateInfluencePropagation(
   nodes: NetworkNode[],
@@ -172,8 +197,15 @@ function identifyBottlenecks(
 }
 
 /**
- * Trace Influence Flow Paths
- * Traces how information/influence flows through the network
+ * Traces the influence flow path between two nodes.
+ * Finds the strongest path (by edge weights) using BFS and
+ * identifies bottleneck nodes that constrain the flow.
+ * 
+ * @param nodes - Array of network nodes
+ * @param links - Array of connections between nodes
+ * @param sourceId - Starting node ID
+ * @param targetId - Destination node ID
+ * @returns InfluenceFlow with path, strength, and bottleneck, or null if unreachable
  */
 export function traceInfluenceFlow(
   nodes: NetworkNode[],
