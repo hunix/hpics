@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import {
   Select,
   SelectContent,
@@ -17,6 +18,7 @@ import {
 import { Loader2, Brain, Sparkles, MessageSquare, Lightbulb, RotateCcw, Save } from 'lucide-react';
 import { ANALYSIS_TYPES, getAnalysisTypesByCategory, type AnalysisTypeConfig } from '@/lib/analysisTypes';
 import { AI_MODEL_PRICING, formatCentsToUSD, getProviderColor, type ModelPricing } from '@/lib/aiPricing';
+import { AIModelTierSelector } from './AIModelTierSelector';
 
 // Get available models for selection
 const availableModels = Object.entries(AI_MODEL_PRICING).filter(
@@ -202,11 +204,16 @@ export function AIModelPreferences() {
 
   return (
     <div className="space-y-6">
+      {/* Global Tier Selector */}
+      <AIModelTierSelector />
+      
+      <Separator />
+      
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-medium">AI Model Configuration</h3>
+          <h3 className="text-lg font-medium">Per-Analysis Model Overrides</h3>
           <p className="text-sm text-muted-foreground">
-            Choose which AI model to use for each type of analysis
+            Fine-tune which AI model to use for specific analysis types
           </p>
         </div>
         <div className="flex gap-2">

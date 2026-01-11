@@ -6,13 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, Area, AreaChart, Legend
 } from 'recharts';
 import { 
   DollarSign, TrendingUp, TrendingDown, Zap, Clock, AlertTriangle,
-  Brain, Target, Activity
+  Brain, Target, Activity, Users
 } from 'lucide-react';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 
@@ -35,29 +36,50 @@ interface UsageStats {
   costByDay: { date: string; cost: number; calls: number }[];
   costByFunction: { function: string; cost: number; calls: number }[];
   costByModel: { model: string; cost: number; calls: number }[];
+  costByContact: { profileId: string; name: string; cost: number; calls: number }[];
   recentCalls: any[];
+  budget: { daily: number; weekly: number; monthly: number } | null;
+  previousPeriodCost: number;
 }
 
 export function AICostDashboard() {
+  const { user } = useAuth();
   const [timeRange, setTimeRange] = useState('7');
 
   const { data: stats, isLoading } = useQuery({
-    queryKey: ['ai-usage-stats', timeRange],
+    queryKey: ['ai-usage-stats', timeRange, user?.id],
     queryFn: async (): Promise<UsageStats> => {
       const days = parseInt(timeRange);
       const startDate = startOfDay(subDays(new Date(), days)).toISOString();
       const endDate = endOfDay(new Date()).toISOString();
+      const previousStart = startOfDay(subDays(new Date(), days * 2)).toISOString();
 
+      // Fetch logs with profile info
       const { data: logs, error } = await supabase
         .from('ai_usage_logs')
-        .select('*')
+        .select('*, profiles:profile_id(first_name, last_name)')
         .gte('created_at', startDate)
         .lte('created_at', endDate)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
+      // Fetch previous period for comparison
+      const { data: prevLogs } = await supabase
+        .from('ai_usage_logs')
+        .select('actual_cost_cents')
+        .gte('created_at', previousStart)
+        .lt('created_at', startDate);
+
+      // Fetch budget from user_preferences
+      const { data: userPrefs } = await supabase
+        .from('user_preferences')
+        .select('ai_budget_daily_limit_cents, ai_budget_weekly_limit_cents, ai_budget_monthly_limit_cents')
+        .eq('user_id', user?.id)
+        .single();
+
       const allLogs = logs || [];
+      const previousPeriodCost = (prevLogs || []).reduce((sum, log) => sum + (log.actual_cost_cents || 0), 0);
 
       // Calculate totals
       const totalCost = allLogs.reduce((sum, log) => sum + (log.actual_cost_cents || 0), 0);
@@ -100,6 +122,20 @@ export function AICostDashboard() {
         costByModelMap[model].calls += 1;
       });
 
+      // Group by contact
+      const costByContactMap: Record<string, { name: string; cost: number; calls: number }> = {};
+      allLogs.forEach(log => {
+        if (log.profile_id) {
+          const profile = log.profiles as { first_name?: string; last_name?: string } | null;
+          const name = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 'Unknown';
+          if (!costByContactMap[log.profile_id]) {
+            costByContactMap[log.profile_id] = { name, cost: 0, calls: 0 };
+          }
+          costByContactMap[log.profile_id].cost += log.actual_cost_cents || 0;
+          costByContactMap[log.profile_id].calls += 1;
+        }
+      });
+
       return {
         totalCost,
         totalTokens,
@@ -118,9 +154,20 @@ export function AICostDashboard() {
         costByModel: Object.entries(costByModelMap)
           .map(([model, data]) => ({ model, ...data }))
           .sort((a, b) => b.cost - a.cost),
+        costByContact: Object.entries(costByContactMap)
+          .map(([profileId, data]) => ({ profileId, ...data }))
+          .sort((a, b) => b.cost - a.cost)
+          .slice(0, 10),
         recentCalls: allLogs.slice(0, 20),
+        budget: userPrefs ? {
+          daily: userPrefs.ai_budget_daily_limit_cents || 0,
+          weekly: userPrefs.ai_budget_weekly_limit_cents || 0,
+          monthly: userPrefs.ai_budget_monthly_limit_cents || 0,
+        } : null,
+        previousPeriodCost,
       };
     },
+    enabled: !!user,
   });
 
   if (isLoading) {
@@ -157,6 +204,58 @@ export function AICostDashboard() {
         </Select>
       </div>
 
+      {/* Budget Progress Section */}
+      {stats?.budget && (stats.budget.daily > 0 || stats.budget.weekly > 0 || stats.budget.monthly > 0) && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              Budget Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {stats.budget.daily > 0 && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Daily</span>
+                    <span>{formatCost(stats.totalCost / parseInt(timeRange))} / {formatCost(stats.budget.daily)}</span>
+                  </div>
+                  <Progress 
+                    value={Math.min(100, ((stats.totalCost / parseInt(timeRange)) / stats.budget.daily) * 100)} 
+                    className="h-2"
+                  />
+                </div>
+              )}
+              {stats.budget.weekly > 0 && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Weekly</span>
+                    <span>{formatCost(stats.totalCost)} / {formatCost(stats.budget.weekly)}</span>
+                  </div>
+                  <Progress 
+                    value={Math.min(100, (stats.totalCost / stats.budget.weekly) * 100)} 
+                    className="h-2"
+                  />
+                </div>
+              )}
+              {stats.budget.monthly > 0 && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Monthly</span>
+                    <span>{formatCost(stats.totalCost)} / {formatCost(stats.budget.monthly)}</span>
+                  </div>
+                  <Progress 
+                    value={Math.min(100, (stats.totalCost / stats.budget.monthly) * 100)} 
+                    className="h-2"
+                  />
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
@@ -164,7 +263,19 @@ export function AICostDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Cost</p>
-                <p className="text-2xl font-bold">{formatCost(stats?.totalCost || 0)}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-2xl font-bold">{formatCost(stats?.totalCost || 0)}</p>
+                  {stats?.previousPeriodCost !== undefined && stats.previousPeriodCost > 0 && (
+                    <Badge variant={stats.totalCost > stats.previousPeriodCost ? 'destructive' : 'default'} className="text-xs">
+                      {stats.totalCost > stats.previousPeriodCost ? (
+                        <TrendingUp className="h-3 w-3 mr-1" />
+                      ) : (
+                        <TrendingDown className="h-3 w-3 mr-1" />
+                      )}
+                      {Math.abs(((stats.totalCost - stats.previousPeriodCost) / stats.previousPeriodCost) * 100).toFixed(0)}%
+                    </Badge>
+                  )}
+                </div>
               </div>
               <DollarSign className="h-8 w-8 text-primary opacity-50" />
             </div>
@@ -212,6 +323,7 @@ export function AICostDashboard() {
       <Tabs defaultValue="spending" className="space-y-4">
         <TabsList>
           <TabsTrigger value="spending">Spending Trend</TabsTrigger>
+          <TabsTrigger value="contacts">By Contact</TabsTrigger>
           <TabsTrigger value="functions">By Function</TabsTrigger>
           <TabsTrigger value="models">By Model</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
@@ -250,6 +362,51 @@ export function AICostDashboard() {
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="contacts">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Cost by Contact
+              </CardTitle>
+              <CardDescription>Top 10 contacts by AI spend</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {stats?.costByContact && stats.costByContact.length > 0 ? (
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={stats.costByContact} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis 
+                        type="number" 
+                        tickFormatter={(v) => formatCost(v)}
+                        className="text-xs"
+                      />
+                      <YAxis 
+                        type="category" 
+                        dataKey="name" 
+                        width={120}
+                        className="text-xs"
+                      />
+                      <Tooltip 
+                        formatter={(value: number, name: string) => [
+                          name === 'cost' ? formatCost(value) : value,
+                          name === 'cost' ? 'Cost' : 'Calls'
+                        ]}
+                      />
+                      <Bar dataKey="cost" fill="hsl(var(--chart-2))" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="h-80 flex items-center justify-center text-muted-foreground">
+                  No contact-specific AI usage recorded yet
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
