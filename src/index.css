@@ -120,6 +120,12 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Prevent overscroll/bounce on mobile */
+  html, body {
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 /* Mobile & PWA utilities */
@@ -134,6 +140,10 @@ All colors MUST be HSL.
   }
   .safe-area-mt { margin-top: env(safe-area-inset-top); }
   .safe-area-mb { margin-bottom: env(safe-area-inset-bottom); }
+  
+  /* Samsung Galaxy S25 Ultra specific (3120x1440, 6.9") */
+  .samsung-safe-top { padding-top: max(env(safe-area-inset-top), 48px); }
+  .samsung-safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 34px); }
   
   /* Hide scrollbar but keep functionality */
   .scrollbar-hide {
@@ -153,6 +163,10 @@ All colors MUST be HSL.
     min-height: 48px;
     min-width: 48px;
   }
+  .touch-target-xl {
+    min-height: 56px;
+    min-width: 56px;
+  }
   
   /* Prevent text selection on interactive elements */
   .no-select {
@@ -167,6 +181,27 @@ All colors MUST be HSL.
     -webkit-overflow-scrolling: touch;
   }
   
+  /* Mobile-optimized tap states */
+  .tap-highlight-none {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Active state for touch */
+  .touch-active:active {
+    @apply scale-[0.97] opacity-80;
+    transition: transform 0.1s ease, opacity 0.1s ease;
+  }
+  
+  /* Full-height mobile viewport (accounts for browser chrome) */
+  .h-screen-mobile {
+    height: 100vh;
+    height: 100dvh;
+  }
+  .min-h-screen-mobile {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  
   /* Fix for iOS input zoom */
   @supports (-webkit-touch-callout: none) {
     input[type="text"],
@@ -178,5 +213,104 @@ All colors MUST be HSL.
     select {
       font-size: 16px !important;
     }
+  }
+  
+  /* Samsung-specific edge-to-edge optimization */
+  @media screen and (min-width: 400px) and (max-width: 500px) and (min-height: 800px) {
+    .samsung-card {
+      @apply rounded-2xl;
+    }
+    .samsung-btn {
+      @apply rounded-xl py-4;
+    }
+  }
+  
+  /* Pull-to-refresh indicator */
+  .pull-indicator {
+    @apply absolute left-1/2 -translate-x-1/2 -top-12 opacity-0 transition-all duration-200;
+  }
+  .pull-indicator.pulling {
+    @apply opacity-100 -top-8;
+  }
+  .pull-indicator.refreshing {
+    @apply -top-6;
+  }
+  
+  /* Swipe action container */
+  .swipe-container {
+    @apply relative overflow-hidden;
+  }
+  .swipe-content {
+    @apply relative z-10 transition-transform duration-200 ease-out;
+  }
+  .swipe-action {
+    @apply absolute inset-y-0 flex items-center justify-center;
+  }
+  .swipe-action-left {
+    @apply left-0 bg-primary text-primary-foreground;
+  }
+  .swipe-action-right {
+    @apply right-0 bg-destructive text-destructive-foreground;
+  }
+}
+
+/* Custom scrollbar for desktop */
+@layer utilities {
+  @media (min-width: 768px) {
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: hsl(var(--muted-foreground) / 0.3);
+      border-radius: 3px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: hsl(var(--muted-foreground) / 0.5);
+    }
+  }
+}
+
+/* Animation utilities for mobile */
+@layer utilities {
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+  .animate-slide-down {
+    animation: slideDown 0.3s ease-out;
+  }
+  .animate-slide-left {
+    animation: slideLeft 0.3s ease-out;
+  }
+  .animate-slide-right {
+    animation: slideRight 0.3s ease-out;
+  }
+  .animate-bounce-in {
+    animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+  
+  @keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes slideDown {
+    from { transform: translateY(-100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes slideLeft {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes slideRight {
+    from { transform: translateX(-100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes bounceIn {
+    0% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); opacity: 1; }
   }
 }
