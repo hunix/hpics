@@ -11,17 +11,36 @@ const corsHeaders = {
 };
 
 interface EnrichmentSource {
-  type: 'web_search' | 'social_scrape' | 'company_research' | 'osint' | 'firecrawl';
+  type: string;
   priority: number;
   trustLevel: number;
+  costCents: number;
+  requiresSecret?: string;
 }
 
 const ENRICHMENT_SOURCES: EnrichmentSource[] = [
-  { type: 'social_scrape', priority: 1, trustLevel: 0.9 },
-  { type: 'company_research', priority: 2, trustLevel: 0.85 },
-  { type: 'web_search', priority: 3, trustLevel: 0.7 },
-  { type: 'osint', priority: 4, trustLevel: 0.75 },
-  { type: 'firecrawl', priority: 5, trustLevel: 0.8 },
+  // Tier 1: Highest trust, most complete data
+  { type: 'peopledatalabs', priority: 1, trustLevel: 0.95, costCents: 30, requiresSecret: 'PDL_API_KEY' },
+  { type: 'proxycurl', priority: 1, trustLevel: 0.92, costCents: 10, requiresSecret: 'PROXYCURL_API_KEY' },
+  { type: 'social_scrape', priority: 1, trustLevel: 0.9, costCents: 5 },
+  
+  // Tier 2: Good data, moderate cost
+  { type: 'perplexity', priority: 2, trustLevel: 0.90, costCents: 5, requiresSecret: 'PERPLEXITY_API_KEY' },
+  { type: 'company_research', priority: 2, trustLevel: 0.85, costCents: 10 },
+  { type: 'diffbot', priority: 2, trustLevel: 0.88, costCents: 10, requiresSecret: 'DIFFBOT_API_KEY' },
+  
+  // Tier 3: Supplementary data
+  { type: 'hunter', priority: 3, trustLevel: 0.85, costCents: 5, requiresSecret: 'HUNTER_API_KEY' },
+  { type: 'tavily', priority: 3, trustLevel: 0.80, costCents: 1, requiresSecret: 'TAVILY_API_KEY' },
+  { type: 'web_search', priority: 3, trustLevel: 0.7, costCents: 8 },
+  
+  // Tier 4: Social and news
+  { type: 'rapidapi_social', priority: 4, trustLevel: 0.75, costCents: 3, requiresSecret: 'RAPIDAPI_KEY' },
+  { type: 'osint', priority: 4, trustLevel: 0.75, costCents: 15 },
+  
+  // Tier 5: General web data
+  { type: 'firecrawl', priority: 5, trustLevel: 0.8, costCents: 5, requiresSecret: 'FIRECRAWL_API_KEY' },
+  { type: 'news_api', priority: 6, trustLevel: 0.70, costCents: 0, requiresSecret: 'NEWS_API_KEY' },
 ];
 
 serve(async (req) => {
@@ -43,6 +62,7 @@ serve(async (req) => {
       sources = ['social_scrape', 'web_search'],
       forceRefresh = false,
       maxCostCents = 50,
+      depth = 'standard', // 'quick', 'standard', 'deep'
     } = await req.json();
 
     if (!profileId) {
@@ -99,6 +119,9 @@ serve(async (req) => {
       }
     }
 
+    // Determine which sources to use based on depth and available data
+    const availableSources = await selectOptimalSources(profile, sources, depth, maxCostCents);
+
     // Create orchestration job
     const { data: job } = await supabase
       .from('enrichment_jobs')
@@ -107,7 +130,7 @@ serve(async (req) => {
         profile_id: profileId,
         job_type: 'orchestrated',
         priority: profile.is_favorite ? 90 : 50,
-        source_config: { sources, maxCostCents, forceRefresh },
+        source_config: { sources: availableSources, maxCostCents, forceRefresh, depth },
         status: 'processing',
         started_at: new Date().toISOString(),
       })
@@ -120,7 +143,7 @@ serve(async (req) => {
     let totalCost = 0;
 
     // Run enrichment sources in priority order
-    const sortedSources = sources
+    const sortedSources = availableSources
       .map((s: string) => ENRICHMENT_SOURCES.find(es => es.type === s))
       .filter(Boolean)
       .sort((a: any, b: any) => a.priority - b.priority);
@@ -129,12 +152,124 @@ serve(async (req) => {
       if (!source) continue;
       if (totalCost >= maxCostCents) break;
 
+      // Check if required secret is available
+      if (source.requiresSecret) {
+        const secretValue = Deno.env.get(source.requiresSecret);
+        if (!secretValue) {
+          console.log(`Skipping ${source.type}: missing ${source.requiresSecret}`);
+          continue;
+        }
+      }
+
       try {
         let enrichmentResult: any = null;
 
         switch (source.type) {
+          case 'peopledatalabs':
+            if (profile.email || profile.linkedin_url) {
+              const response = await supabase.functions.invoke('enrich-pdl', {
+                body: { profileId, email: profile.email, linkedinUrl: profile.linkedin_url },
+              });
+              if (!response.error) {
+                enrichmentResult = response.data;
+                totalCost += source.costCents;
+              }
+            }
+            break;
+
+          case 'proxycurl':
+            if (profile.linkedin_url) {
+              const response = await supabase.functions.invoke('scrape-linkedin-proxycurl', {
+                body: { profileId, linkedinUrl: profile.linkedin_url },
+              });
+              if (!response.error) {
+                enrichmentResult = response.data;
+                totalCost += source.costCents;
+              }
+            }
+            break;
+
+          case 'perplexity':
+            const searchName = `${profile.first_name} ${profile.last_name} ${profile.organization || ''}`.trim();
+            const perplexityResponse = await supabase.functions.invoke('perplexity-search', {
+              body: { 
+                profileId,
+                query: `Professional background and recent news about ${searchName}`,
+                searchType: 'person_research',
+              },
+            });
+            if (!perplexityResponse.error) {
+              enrichmentResult = perplexityResponse.data;
+              totalCost += source.costCents;
+            }
+            break;
+
+          case 'hunter':
+            if (profile.email || (profile.first_name && profile.organization)) {
+              const response = await supabase.functions.invoke('enrich-hunter', {
+                body: { 
+                  profileId, 
+                  email: profile.email,
+                  firstName: profile.first_name,
+                  lastName: profile.last_name,
+                  domain: profile.organization,
+                },
+              });
+              if (!response.error) {
+                enrichmentResult = response.data;
+                totalCost += source.costCents;
+              }
+            }
+            break;
+
+          case 'rapidapi_social':
+            const handles = [profile.twitter_url, profile.instagram_url, profile.tiktok_url].filter(Boolean);
+            if (handles.length > 0) {
+              const response = await supabase.functions.invoke('scrape-social-rapidapi', {
+                body: { profileId, handles },
+              });
+              if (!response.error) {
+                enrichmentResult = response.data;
+                totalCost += source.costCents;
+              }
+            }
+            break;
+
+          case 'diffbot':
+            if (profile.organization) {
+              const response = await supabase.functions.invoke('extract-diffbot', {
+                body: { profileId, query: `${profile.first_name} ${profile.last_name} ${profile.organization}` },
+              });
+              if (!response.error) {
+                enrichmentResult = response.data;
+                totalCost += source.costCents;
+              }
+            }
+            break;
+
+          case 'tavily':
+            const tavilyQuery = `${profile.first_name} ${profile.last_name} ${profile.organization || ''}`.trim();
+            const tavilyResponse = await supabase.functions.invoke('search-tavily', {
+              body: { profileId, query: tavilyQuery, searchDepth: 'advanced' },
+            });
+            if (!tavilyResponse.error) {
+              enrichmentResult = tavilyResponse.data;
+              totalCost += source.costCents;
+            }
+            break;
+
+          case 'news_api':
+            const newsQuery = `"${profile.first_name} ${profile.last_name}"`;
+            const newsResponse = await supabase.functions.invoke('search-news', {
+              body: { profileId, query: newsQuery, searchType: 'everything' },
+            });
+            if (!newsResponse.error) {
+              enrichmentResult = newsResponse.data;
+              totalCost += source.costCents;
+            }
+            break;
+
           case 'social_scrape':
-            // Use existing social profile scraper
             if (profile.linkedin_url || profile.email) {
               const response = await supabase.functions.invoke('scrape-social-profile', {
                 body: {
@@ -146,13 +281,12 @@ serve(async (req) => {
               });
               if (!response.error) {
                 enrichmentResult = response.data;
-                totalCost += 5;
+                totalCost += source.costCents;
               }
             }
             break;
 
           case 'company_research':
-            // Research company if org is known
             if (profile.organization) {
               const response = await supabase.functions.invoke('enrich-contact', {
                 body: {
@@ -163,13 +297,12 @@ serve(async (req) => {
               });
               if (!response.error) {
                 enrichmentResult = response.data;
-                totalCost += 10;
+                totalCost += source.costCents;
               }
             }
             break;
 
           case 'web_search':
-            // General web search for the person
             const searchQuery = `${profile.first_name} ${profile.last_name} ${profile.organization || ''}`.trim();
             const response = await supabase.functions.invoke('enrich-contact', {
               body: {
@@ -180,25 +313,22 @@ serve(async (req) => {
             });
             if (!response.error) {
               enrichmentResult = response.data;
-              totalCost += 8;
+              totalCost += source.costCents;
             }
             break;
 
           case 'osint':
-            // OSINT scan
             const osintResponse = await supabase.functions.invoke('osint-scan', {
               body: { profileId, depth: 'standard' },
             });
             if (!osintResponse.error) {
               enrichmentResult = osintResponse.data;
-              totalCost += 15;
+              totalCost += source.costCents;
             }
             break;
 
           case 'firecrawl':
-            // Use Firecrawl for company website
             if (profile.organization) {
-              // Check if Firecrawl is available
               const firecrawlKey = Deno.env.get('FIRECRAWL_API_KEY');
               if (firecrawlKey) {
                 try {
@@ -215,7 +345,7 @@ serve(async (req) => {
                   });
                   if (fcResponse.ok) {
                     enrichmentResult = await fcResponse.json();
-                    totalCost += 5;
+                    totalCost += source.costCents;
                   }
                 } catch (e) {
                   console.warn('Firecrawl failed:', e);
@@ -230,6 +360,7 @@ serve(async (req) => {
             data: enrichmentResult,
             trustLevel: source.trustLevel,
             fetchedAt: new Date().toISOString(),
+            costCents: source.costCents,
           };
         }
       } catch (err) {
@@ -240,16 +371,28 @@ serve(async (req) => {
     // Merge results with conflict resolution
     const mergedData = await mergeEnrichmentResults(supabase, user.id, profileId, results);
 
-    // Update profile with merged data
+    // Update profile with merged data (excluding enrichment_sources which doesn't exist)
     if (Object.keys(mergedData).length > 0) {
+      const { enrichment_provenance, ...profileUpdates } = mergedData;
       await supabase
         .from('profiles')
         .update({
-          ...mergedData,
+          ...profileUpdates,
           last_enriched_at: new Date().toISOString(),
-          enrichment_sources: Object.keys(results),
         })
         .eq('id', profileId);
+
+      // Store provenance separately if needed
+      if (enrichment_provenance) {
+        await supabase
+          .from('app_settings')
+          .upsert({
+            user_id: user.id,
+            setting_key: `enrichment_provenance_${profileId}`,
+            setting_value: JSON.stringify(enrichment_provenance),
+            metadata: { sources: Object.keys(results), totalCost },
+          }, { onConflict: 'user_id,setting_key' });
+      }
     }
 
     // Update job status
@@ -269,6 +412,7 @@ serve(async (req) => {
       jobId,
       merged: mergedData,
       sourcesProcessed: Object.keys(results).length,
+      sourcesAttempted: sortedSources.length,
       errors: Object.keys(errors).length > 0 ? errors : undefined,
       totalCostCents: totalCost,
     }), {
@@ -286,6 +430,66 @@ serve(async (req) => {
   }
 });
 
+async function selectOptimalSources(
+  profile: any,
+  requestedSources: string[],
+  depth: string,
+  maxCostCents: number
+): Promise<string[]> {
+  const selected: string[] = [];
+  let estimatedCost = 0;
+
+  // Determine source priority based on available data
+  const hasEmail = !!profile.email;
+  const hasLinkedIn = !!profile.linkedin_url;
+  const hasCompany = !!profile.organization;
+  const hasSocialHandles = !!(profile.twitter_url || profile.instagram_url || profile.tiktok_url);
+
+  // Source recommendations based on available data
+  const recommendations: Record<string, string[]> = {
+    quick: ['social_scrape', 'perplexity'],
+    standard: ['peopledatalabs', 'proxycurl', 'perplexity', 'hunter', 'social_scrape'],
+    deep: ['peopledatalabs', 'proxycurl', 'perplexity', 'hunter', 'diffbot', 'tavily', 'rapidapi_social', 'news_api', 'osint'],
+  };
+
+  const sourcesToConsider = requestedSources.length > 0 
+    ? requestedSources 
+    : recommendations[depth] || recommendations.standard;
+
+  for (const sourceType of sourcesToConsider) {
+    const sourceConfig = ENRICHMENT_SOURCES.find(s => s.type === sourceType);
+    if (!sourceConfig) continue;
+    if (estimatedCost + sourceConfig.costCents > maxCostCents) continue;
+
+    // Check if source is relevant for this profile
+    let isRelevant = true;
+    switch (sourceType) {
+      case 'peopledatalabs':
+      case 'hunter':
+        isRelevant = hasEmail || hasLinkedIn;
+        break;
+      case 'proxycurl':
+        isRelevant = hasLinkedIn;
+        break;
+      case 'rapidapi_social':
+        isRelevant = hasSocialHandles;
+        break;
+      case 'company_research':
+      case 'diffbot':
+      case 'firecrawl':
+        isRelevant = hasCompany;
+        break;
+    }
+
+    if (isRelevant) {
+      selected.push(sourceType);
+      estimatedCost += sourceConfig.costCents;
+    }
+  }
+
+  return selected;
+}
+
 async function mergeEnrichmentResults(
   supabase: any,
   userId: string,
@@ -295,14 +499,18 @@ async function mergeEnrichmentResults(
   const merged: Record<string, any> = {};
   const provenance: Record<string, { source: string; confidence: number; fetchedAt: string }> = {};
 
-  // Fields to potentially merge
+  // Fields to potentially merge with their source priority
   const fieldPriority: Record<string, string[]> = {
-    job_title: ['social_scrape', 'company_research', 'web_search'],
-    organization: ['social_scrape', 'company_research', 'web_search'],
-    bio: ['social_scrape', 'web_search'],
-    linkedin_url: ['social_scrape', 'osint'],
-    interests: ['social_scrape', 'web_search'],
-    skills: ['social_scrape', 'web_search'],
+    job_title: ['peopledatalabs', 'proxycurl', 'social_scrape', 'company_research', 'perplexity', 'web_search'],
+    organization: ['peopledatalabs', 'proxycurl', 'social_scrape', 'company_research', 'hunter', 'web_search'],
+    bio: ['proxycurl', 'social_scrape', 'perplexity', 'web_search'],
+    linkedin_url: ['proxycurl', 'peopledatalabs', 'social_scrape', 'osint'],
+    email: ['hunter', 'peopledatalabs', 'social_scrape'],
+    phone: ['peopledatalabs', 'hunter'],
+    interests: ['social_scrape', 'perplexity', 'diffbot', 'web_search'],
+    skills: ['proxycurl', 'peopledatalabs', 'social_scrape', 'web_search'],
+    location: ['peopledatalabs', 'proxycurl', 'social_scrape'],
+    website: ['hunter', 'diffbot', 'firecrawl'],
   };
 
   for (const [field, sourcePriority] of Object.entries(fieldPriority)) {
