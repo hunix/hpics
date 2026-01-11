@@ -18,6 +18,8 @@ import { ContactDetailMobileNav } from '@/components/contacts/ContactDetailMobil
 import { ContactSectionSearch } from '@/components/contacts/ContactSectionSearch';
 import { ContactDetailHeader } from '@/components/contacts/ContactDetailHeader';
 import { ContactDetailContent } from '@/components/contacts/ContactDetailContent';
+import { MobileIntelSheet } from '@/components/mobile/MobileIntelSheet';
+import { MobileIntelActions } from '@/components/mobile/MobileIntelActions';
 import { cn } from '@/lib/utils';
 import { type SectionId, getCategoryForSection } from '@/lib/contactDetailCategories';
 import type { Tables } from '@/integrations/supabase/types';
@@ -277,6 +279,19 @@ export default function ContactDetail() {
         open={isEmailDialogOpen}
         onOpenChange={setIsEmailDialogOpen}
         defaultTo={contactMethods?.find(m => m.contact_type === 'email')?.value || ''}
+        profileId={contact.id}
+        profileName={contactName}
+      />
+
+      {/* Mobile Intel Components */}
+      <MobileIntelSheet 
+        profileId={contact.id} 
+        profileName={contactName}
+        onAction={(action) => {
+          if (action === 'email') setIsEmailDialogOpen(true);
+        }}
+      />
+      <MobileIntelActions 
         profileId={contact.id}
         profileName={contactName}
       />
