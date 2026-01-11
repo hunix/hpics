@@ -28,6 +28,7 @@ import {
   Trash2,
   Filter
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export type ViewMode = 'cards' | 'table' | 'list' | 'avatars';
 export type SortOption = 'name-asc' | 'name-desc' | 'recent' | 'oldest' | 'organization' | 'relationship';
@@ -113,25 +114,29 @@ export function ContactsToolbar({
   };
 
   return (
-    <div className="space-y-4">
-      {/* Main Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between">
-        <div className="flex flex-1 gap-2 items-center">
-          <div className="relative flex-1 max-w-md">
+    <div className="space-y-4 max-w-full overflow-hidden">
+      {/* Main Toolbar - Mobile Optimized */}
+      <div className="flex flex-col gap-3">
+        {/* Search Row - Always Full Width */}
+        <div className="flex gap-2 items-center w-full">
+          <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search contacts..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-10"
+              className="pl-10 w-full"
             />
           </div>
           
           <Button 
             variant="outline" 
             size="icon"
+            className={cn(
+              "shrink-0 relative",
+              activeFiltersCount > 0 ? 'border-primary' : ''
+            )}
             onClick={() => setShowFilters(!showFilters)}
-            className={activeFiltersCount > 0 ? 'border-primary' : ''}
           >
             <Filter className="h-4 w-4" />
             {activeFiltersCount > 0 && (
@@ -142,59 +147,66 @@ export function ContactsToolbar({
           </Button>
         </div>
 
-        <div className="flex gap-2 items-center">
-          {/* Bulk Actions */}
-          {selectedCount > 0 && (
-            <Button variant="destructive" size="sm" onClick={onBulkDelete}>
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete ({selectedCount})
-            </Button>
-          )}
-
-          {/* Sort Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <ArrowUpDown className="mr-2 h-4 w-4" />
-                {sortLabels[sortOption]}
+        {/* Actions Row - Responsive */}
+        <div className="flex flex-wrap gap-2 items-center justify-between">
+          <div className="flex gap-2 items-center flex-wrap">
+            {/* Bulk Actions */}
+            {selectedCount > 0 && (
+              <Button variant="destructive" size="sm" onClick={onBulkDelete}>
+                <Trash2 className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Delete ({selectedCount})</span>
+                <span className="sm:hidden">({selectedCount})</span>
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {Object.entries(sortLabels).map(([key, label]) => (
-                <DropdownMenuItem 
-                  key={key} 
-                  onClick={() => onSortChange(key as SortOption)}
-                  className={sortOption === key ? 'bg-accent' : ''}
+            )}
+
+            {/* Sort Dropdown - Compact on Mobile */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="shrink-0">
+                  <ArrowUpDown className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{sortLabels[sortOption]}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {Object.entries(sortLabels).map(([key, label]) => (
+                  <DropdownMenuItem 
+                    key={key} 
+                    onClick={() => onSortChange(key as SortOption)}
+                    className={sortOption === key ? 'bg-accent' : ''}
+                  >
+                    {label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* View Mode Toggle - Compact */}
+            <div className="flex border rounded-md shrink-0">
+              {Object.entries(viewModeIcons).map(([mode, icon]) => (
+                <Button
+                  key={mode}
+                  variant={viewMode === mode ? 'secondary' : 'ghost'}
+                  size="sm"
+                  className="px-2"
+                  onClick={() => onViewModeChange(mode as ViewMode)}
                 >
-                  {label}
-                </DropdownMenuItem>
+                  {icon}
+                </Button>
               ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* View Mode Toggle */}
-          <div className="flex border rounded-md">
-            {Object.entries(viewModeIcons).map(([mode, icon]) => (
-              <Button
-                key={mode}
-                variant={viewMode === mode ? 'secondary' : 'ghost'}
-                size="sm"
-                className="px-2"
-                onClick={() => onViewModeChange(mode as ViewMode)}
-              >
-                {icon}
-              </Button>
-            ))}
+            </div>
           </div>
 
-          <Button variant="outline" onClick={onImport}>
-            <Upload className="mr-2 h-4 w-4" />
-            Import
-          </Button>
-          <Button onClick={onAddContact}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Contact
-          </Button>
+          {/* Add/Import Buttons */}
+          <div className="flex gap-2 items-center">
+            <Button variant="outline" size="sm" onClick={onImport} className="shrink-0">
+              <Upload className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Import</span>
+            </Button>
+            <Button size="sm" onClick={onAddContact} className="shrink-0">
+              <Plus className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Add Contact</span>
+            </Button>
+          </div>
         </div>
       </div>
 
