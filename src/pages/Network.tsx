@@ -28,7 +28,7 @@ import {
   getClusterColor, 
   CLUSTER_COLORS,
   type NetworkMetrics 
-} from '@/lib/networkAlgorithms';
+} from '@/lib/network';
 
 interface NetworkNode {
   id: string;

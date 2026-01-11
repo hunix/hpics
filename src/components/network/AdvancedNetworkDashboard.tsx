@@ -21,13 +21,13 @@ import {
   analyzeNetworkResilience,
   classifyCommunityRoles,
   identifyGrowthOpportunities,
-  WeakTie,
-  PredictedLink,
-  ResilienceMetrics,
-  NodeRole,
-  GrowthOpportunity
-} from '@/lib/networkAlgorithmsAdvanced';
-import { detectClusters } from '@/lib/networkAlgorithms';
+  detectClusters,
+  type WeakTie,
+  type PredictedLink,
+  type ResilienceMetrics,
+  type NodeRole,
+  type GrowthOpportunity
+} from '@/lib/network';
 
 interface NetworkNode {
   id: string;
