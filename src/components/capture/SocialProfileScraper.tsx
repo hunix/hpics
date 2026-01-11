@@ -186,31 +186,118 @@ export function SocialProfileScraper({ profileId, onComplete }: SocialProfileScr
     setResult(null);
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('scrape-social-profile', {
-        body: {
-          profileUrl,
-          profileId,
-          scrapeDepth,
-          includeRecentPosts: scrapeDepth !== 'quick',
-          maxPosts: scrapeDepth === 'deep' ? 20 : 5,
-          runDeepAnalysis: scrapeDepth === 'deep',
-        },
-      });
+      const detectedPlatform = detectPlatform(profileUrl);
+      
+      // Use deep scraping edge functions for Instagram and Threads in deep mode
+      if (scrapeDepth === 'deep' && (detectedPlatform === 'instagram' || detectedPlatform === 'threads')) {
+        const functionName = detectedPlatform === 'instagram' ? 'scrape-instagram-deep' : 'scrape-threads-deep';
+        
+        const { data, error: fnError } = await supabase.functions.invoke(functionName, {
+          body: {
+            url: profileUrl,
+            profileId,
+            options: {
+              useFirecrawl: true,
+              includeScreenshot: false,
+              maxPosts: 50,
+              extractBranding: false,
+            },
+          },
+        });
 
-      if (fnError) throw fnError;
+        if (fnError) throw fnError;
 
-      if (data.error) {
-        throw new Error(data.error);
-      }
+        if (!data.success) {
+          throw new Error(data.error || 'Deep scrape failed');
+        }
 
-      setResult(data.data);
-      toast({
-        title: 'Profile Scraped',
-        description: `Found ${data.data.username || 'profile'} on ${data.platform}`,
-      });
+        // Transform deep scrape result to standard format
+        const profile = data.profile || {};
+        const transformedResult: ScrapeResult = {
+          platform: detectedPlatform,
+          username: profile.username || profile.handle || '',
+          displayName: profile.displayName,
+          bio: profile.bio,
+          followersCount: profile.followersCount,
+          followingCount: profile.followingCount,
+          postsCount: profile.postsCount,
+          isVerified: profile.isVerified,
+          isPrivate: profile.isPrivate,
+          isBusiness: profile.isBusiness,
+          website: profile.externalUrl,
+          category: profile.category,
+          recentPosts: detectedPlatform === 'instagram' 
+            ? (data.recentPosts || []).slice(0, 20).map((p: any) => ({
+                content: p.caption || p.alt,
+                likes: p.likes || p.likesHint,
+                comments: p.comments || p.commentsHint,
+                views: p.views,
+              }))
+            : (data.recentThreads || []).slice(0, 20).map((t: any) => ({
+                content: t.content,
+                likes: t.likes,
+                comments: t.replies,
+              })),
+          intelligence: {
+            topics: detectedPlatform === 'threads' && data.contentAnalysis 
+              ? Object.keys(data.contentAnalysis.topHashtags || {}).slice(0, 10) 
+              : undefined,
+            engagementRate: data.contentAnalysis?.totalEngagement 
+              ? (data.contentAnalysis.totalEngagement / Math.max(data.contentAnalysis.totalThreads, 1)) 
+              : undefined,
+            contentTypes: {
+              posts: data.recentPosts?.length || data.recentThreads?.length || 0,
+              reels: data.reels?.length || 0,
+              highlights: data.highlights?.length || 0,
+            },
+          },
+          autoTags: [
+            ...(detectedPlatform === 'instagram' && data.highlights?.length ? ['Has Highlights'] : []),
+            ...(detectedPlatform === 'instagram' && data.reels?.length ? ['Has Reels'] : []),
+            ...(profile.isVerified ? ['Verified'] : []),
+            ...(profile.isBusiness ? ['Business Account'] : []),
+            `${data.recentPosts?.length || data.recentThreads?.length || 0} posts captured`,
+          ],
+          confidence: data.success ? 0.95 : 0.5,
+        };
 
-      if (data.captureId) {
-        onComplete?.(data.captureId, data.data);
+        setResult(transformedResult);
+        toast({
+          title: 'Deep Scrape Complete',
+          description: `Captured ${data.recentPosts?.length || data.recentThreads?.length || 0} posts from ${transformedResult.username}`,
+        });
+
+        if (data.captureId) {
+          onComplete?.(data.captureId, transformedResult);
+        }
+      } else {
+        // Standard scraping for other platforms or non-deep modes
+        const { data, error: fnError } = await supabase.functions.invoke('scrape-social-profile', {
+          body: {
+            profileUrl,
+            profileId,
+            scrapeDepth,
+            includeRecentPosts: scrapeDepth !== 'quick',
+            maxPosts: scrapeDepth === 'deep' ? 20 : 5,
+            runDeepAnalysis: scrapeDepth === 'deep',
+          },
+        });
+
+        if (fnError) throw fnError;
+
+        if (data.error) {
+          throw new Error(data.error);
+        }
+
+        setResult(data.data);
+        toast({
+          title: 'Profile Scraped',
+          description: `Found ${data.data.username || 'profile'} on ${data.platform}`,
+        });
+
+        if (data.captureId) {
+          onComplete?.(data.captureId, data.data);
+        }
       }
     } catch (err) {
       console.error('Scrape error:', err);
