@@ -137,7 +137,7 @@
     captureButton.querySelector('.intel-crm-btn').addEventListener('click', handleCapture);
   }
 
-  async function handleCapture() {
+  async function handleCapture(deepScrape = false) {
     if (isCapturing) return;
     isCapturing = true;
 
@@ -145,7 +145,7 @@
     const status = captureButton.querySelector('.intel-crm-status');
     
     btn.classList.add('capturing');
-    status.textContent = 'Capturing...';
+    status.textContent = deepScrape ? 'Deep scraping...' : 'Capturing...';
     status.className = 'intel-crm-status visible';
 
     try {
@@ -154,7 +154,18 @@
         throw new Error('Please refresh the page to reconnect the extension');
       }
       
-      const profileData = await extractProfileData();
+      // Get config to check if deep scrape is enabled
+      const configResponse = await safeSendMessage({ type: 'GET_CONFIG' });
+      const config = configResponse?.data || {};
+      const useDeepScrape = deepScrape || config.deepScrape;
+      
+      let profileData;
+      
+      if (useDeepScrape) {
+        profileData = await extractProfileDataDeep(status);
+      } else {
+        profileData = await extractProfileData();
+      }
       
       if (!profileData) {
         throw new Error('Could not extract profile data');
@@ -167,7 +178,8 @@
       });
 
       if (response?.success) {
-        status.textContent = '✓ Captured!';
+        const postCount = profileData.recentPosts?.length || profileData.posts?.length || 0;
+        status.textContent = `✓ Captured ${postCount} posts!`;
         status.classList.add('success');
         btn.classList.remove('capturing');
         btn.classList.add('success');
@@ -196,7 +208,192 @@
       isCapturing = false;
       btn.classList.remove('success', 'error');
       status.classList.remove('visible', 'success', 'error');
-    }, 4000); // Increased to 4s to give user time to read error
+    }, 4000);
+  }
+
+  /**
+   * Deep extraction with scroll support
+   */
+  async function extractProfileDataDeep(statusEl) {
+    const url = window.location.href;
+    const match = url.match(currentPlatform.profilePattern);
+    
+    if (!match) {
+      console.log('[Intel CRM] Not on a profile page');
+      return null;
+    }
+
+    const username = match[currentPlatform.name === 'twitter' ? 2 : 1];
+    
+    const data = {
+      platform: currentPlatform.name,
+      url: url,
+      username: username,
+      capturedAt: new Date().toISOString(),
+      captureMode: 'deep',
+    };
+
+    // Platform-specific deep extraction
+    switch (currentPlatform.name) {
+      case 'instagram':
+        await extractInstagramDeep(data, statusEl);
+        break;
+      case 'threads':
+        await extractThreadsDeep(data, statusEl);
+        break;
+      default:
+        // Fall back to regular extraction for unsupported platforms
+        return extractProfileData();
+    }
+
+    // Get page HTML for additional AI processing
+    data.pageHtml = extractCleanedHtml();
+    data.rawContent = document.body.innerText.substring(0, 100000);
+
+    console.log('[Intel CRM] Deep extracted data:', data);
+    return data;
+  }
+
+  /**
+   * Deep Instagram extraction
+   */
+  async function extractInstagramDeep(data, statusEl) {
+    // Extract profile header
+    data.profile = extractInstagramProfileDeep();
+    data.name = data.profile.displayName || data.username;
+    data.bio = data.profile.bio;
+    data.avatarUrl = data.profile.profilePicUrl;
+    data.stats = {
+      posts: data.profile.postsCount?.toString(),
+      followers: data.profile.followersCount?.toString(),
+      following: data.profile.followingCount?.toString(),
+    };
+
+    // Extract highlights
+    data.highlights = extractInstagramHighlights();
+
+    // Scroll and collect posts
+    data.recentPosts = [];
+    let scrollAttempts = 0;
+    const maxScrolls = 15;
+    let lastCount = 0;
+    let noNewCount = 0;
+
+    while (data.recentPosts.length < 50 && scrollAttempts < maxScrolls) {
+      if (statusEl) {
+        statusEl.textContent = `Collecting posts... ${data.recentPosts.length}`;
+      }
+
+      const visiblePosts = extractInstagramPostsDeep();
+      visiblePosts.forEach(post => {
+        if (!data.recentPosts.some(p => p.postUrl === post.postUrl)) {
+          data.recentPosts.push(post);
+        }
+      });
+
+      if (data.recentPosts.length === lastCount) {
+        noNewCount++;
+        if (noNewCount >= 3) break;
+      } else {
+        noNewCount = 0;
+      }
+      lastCount = data.recentPosts.length;
+
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      await sleep(1500);
+      scrollAttempts++;
+    }
+
+    // Try to extract Reels if we have few posts
+    if (data.recentPosts.length < 20) {
+      const reelsTab = document.querySelector('a[href*="/reels/"]');
+      if (reelsTab) {
+        data.reels = [];
+        try {
+          reelsTab.click();
+          await sleep(2000);
+          
+          const reelLinks = document.querySelectorAll('a[href*="/reel/"]');
+          reelLinks.forEach((link, idx) => {
+            if (idx >= 20) return;
+            const img = link.querySelector('img');
+            data.reels.push({
+              reelUrl: link.href,
+              thumbnailUrl: img?.src,
+              alt: img?.alt,
+            });
+          });
+
+          // Go back to posts
+          window.history.back();
+          await sleep(1000);
+        } catch (e) {
+          console.warn('[Intel CRM] Reels extraction failed:', e);
+        }
+      }
+    }
+
+    // Scroll back to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /**
+   * Deep Threads extraction
+   */
+  async function extractThreadsDeep(data, statusEl) {
+    // Extract profile header
+    data.profile = extractThreadsProfileDeep();
+    data.name = data.profile.displayName || data.profile.handle || data.username;
+    data.bio = data.profile.bio;
+    data.avatarUrl = data.profile.profilePicUrl;
+    data.stats = {
+      followers: data.profile.followersCount?.toString(),
+      following: data.profile.followingCount?.toString(),
+    };
+
+    // Scroll and collect threads
+    data.recentThreads = [];
+    let scrollAttempts = 0;
+    const maxScrolls = 20;
+    let lastCount = 0;
+    let noNewCount = 0;
+
+    while (data.recentThreads.length < 50 && scrollAttempts < maxScrolls) {
+      if (statusEl) {
+        statusEl.textContent = `Collecting threads... ${data.recentThreads.length}`;
+      }
+
+      const visibleThreads = extractThreadsPostsDeep();
+      visibleThreads.forEach(thread => {
+        const isDuplicate = data.recentThreads.some(
+          t => t.content === thread.content && t.timestamp === thread.timestamp
+        );
+        if (!isDuplicate && (thread.content || thread.hasMedia)) {
+          data.recentThreads.push(thread);
+        }
+      });
+
+      if (data.recentThreads.length === lastCount) {
+        noNewCount++;
+        if (noNewCount >= 3) break;
+      } else {
+        noNewCount = 0;
+      }
+      lastCount = data.recentThreads.length;
+
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      await sleep(1500);
+      scrollAttempts++;
+    }
+
+    // Analyze content patterns
+    data.contentAnalysis = analyzeThreadsContent(data.recentThreads);
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   async function extractProfileData() {
