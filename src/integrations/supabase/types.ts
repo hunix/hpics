@@ -8917,6 +8917,88 @@ export type Database = {
         }
         Relationships: []
       }
+      location_history: {
+        Row: {
+          accuracy: number | null
+          activity_type: string | null
+          altitude: number | null
+          created_at: string | null
+          heading: number | null
+          id: string
+          latitude: number
+          longitude: number
+          metadata: Json | null
+          place_name: string | null
+          place_type: string | null
+          profile_id: string | null
+          recorded_at: string
+          source: string | null
+          speed: number | null
+          steps_since_last: number | null
+          user_id: string
+        }
+        Insert: {
+          accuracy?: number | null
+          activity_type?: string | null
+          altitude?: number | null
+          created_at?: string | null
+          heading?: number | null
+          id?: string
+          latitude: number
+          longitude: number
+          metadata?: Json | null
+          place_name?: string | null
+          place_type?: string | null
+          profile_id?: string | null
+          recorded_at: string
+          source?: string | null
+          speed?: number | null
+          steps_since_last?: number | null
+          user_id: string
+        }
+        Update: {
+          accuracy?: number | null
+          activity_type?: string | null
+          altitude?: number | null
+          created_at?: string | null
+          heading?: number | null
+          id?: string
+          latitude?: number
+          longitude?: number
+          metadata?: Json | null
+          place_name?: string | null
+          place_type?: string | null
+          profile_id?: string | null
+          recorded_at?: string
+          source?: string | null
+          speed?: number | null
+          steps_since_last?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "location_history_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "location_history_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "location_history_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mbox_import_sessions: {
         Row: {
           completed_at: string | null
@@ -9505,6 +9587,51 @@ export type Database = {
           },
         ]
       }
+      message_fingerprints: {
+        Row: {
+          conversation_id: string | null
+          created_at: string | null
+          fingerprint: string
+          id: string
+          message_id: string | null
+          source_type: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string | null
+          fingerprint: string
+          id?: string
+          message_id?: string | null
+          source_type: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string | null
+          fingerprint?: string
+          id?: string
+          message_id?: string | null
+          source_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_fingerprints_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_fingerprints_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string
@@ -9767,6 +9894,90 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      movement_routes: {
+        Row: {
+          created_at: string | null
+          distance_meters: number | null
+          duration_minutes: number | null
+          end_location_id: string | null
+          end_time: string | null
+          id: string
+          profile_id: string | null
+          route_polyline: string | null
+          start_location_id: string | null
+          start_time: string | null
+          transport_mode: string | null
+          user_id: string
+          waypoints: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          distance_meters?: number | null
+          duration_minutes?: number | null
+          end_location_id?: string | null
+          end_time?: string | null
+          id?: string
+          profile_id?: string | null
+          route_polyline?: string | null
+          start_location_id?: string | null
+          start_time?: string | null
+          transport_mode?: string | null
+          user_id: string
+          waypoints?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          distance_meters?: number | null
+          duration_minutes?: number | null
+          end_location_id?: string | null
+          end_time?: string | null
+          id?: string
+          profile_id?: string | null
+          route_polyline?: string | null
+          start_location_id?: string | null
+          start_time?: string | null
+          transport_mode?: string | null
+          user_id?: string
+          waypoints?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movement_routes_end_location_id_fkey"
+            columns: ["end_location_id"]
+            isOneToOne: false
+            referencedRelation: "location_history"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movement_routes_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "movement_routes_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "movement_routes_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movement_routes_start_location_id_fkey"
+            columns: ["start_location_id"]
+            isOneToOne: false
+            referencedRelation: "location_history"
             referencedColumns: ["id"]
           },
         ]
@@ -12034,6 +12245,82 @@ export type Database = {
           },
           {
             foreignKeyName: "surveillance_alerts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sync_cursors: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          id: string
+          items_synced_total: number | null
+          last_item_id: string | null
+          last_item_timestamp: string | null
+          last_sync_at: string | null
+          metadata: Json | null
+          profile_id: string | null
+          source_identifier: string | null
+          source_type: string
+          sync_hash: string | null
+          sync_status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          items_synced_total?: number | null
+          last_item_id?: string | null
+          last_item_timestamp?: string | null
+          last_sync_at?: string | null
+          metadata?: Json | null
+          profile_id?: string | null
+          source_identifier?: string | null
+          source_type: string
+          sync_hash?: string | null
+          sync_status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          items_synced_total?: number | null
+          last_item_id?: string | null
+          last_item_timestamp?: string | null
+          last_sync_at?: string | null
+          metadata?: Json | null
+          profile_id?: string | null
+          source_identifier?: string | null
+          source_type?: string
+          sync_hash?: string | null
+          sync_status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_cursors_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "sync_cursors_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "sync_cursors_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
