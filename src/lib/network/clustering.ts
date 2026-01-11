@@ -1,10 +1,23 @@
-// Network Clustering and Community Detection
+/**
+ * @fileoverview Network Clustering and Community Detection Algorithms
+ * Implements Louvain modularity optimization, label propagation,
+ * hierarchical clustering, and structural hole detection.
+ */
 
 import type { NetworkNode, NetworkLink, ClusterMap, HierarchicalCluster, StructuralHole } from './types';
 import { buildAdjacencyList, getNodeWeight } from './utils';
 
 /**
- * Community Detection using Louvain-like Modularity Optimization
+ * Detects communities using Louvain-like modularity optimization.
+ * Iteratively optimizes node assignments to maximize within-cluster connections.
+ * 
+ * @param nodes - Array of network nodes
+ * @param links - Array of connections between nodes
+ * @returns Map of nodeId to clusterId assignments
+ * 
+ * @example
+ * const clusters = detectClusters(nodes, links);
+ * clusters.get('node1'); // Returns cluster ID (e.g., 0, 1, 2...)
  */
 export function detectClusters(nodes: NetworkNode[], links: NetworkLink[]): ClusterMap {
   const n = nodes.length;
@@ -81,7 +94,13 @@ export function detectClusters(nodes: NetworkNode[], links: NetworkLink[]): Clus
 }
 
 /**
- * Label Propagation Community Detection
+ * Detects communities using label propagation algorithm.
+ * Nodes adopt the most frequent label among their neighbors.
+ * Fast O(n*k) complexity, good for large networks.
+ * 
+ * @param nodes - Array of network nodes
+ * @param adj - Pre-built adjacency list for the network
+ * @returns Map of nodeId to community label assignments
  */
 export function detectCommunitiesLabelPropagation(
   nodes: NetworkNode[],
@@ -129,8 +148,13 @@ export function detectCommunitiesLabelPropagation(
 }
 
 /**
- * Hierarchical Cluster Detection
- * Builds nested community structure for drill-down analysis
+ * Builds hierarchical cluster structure for drill-down analysis.
+ * Creates nested communities at multiple resolution levels.
+ * 
+ * @param nodes - Array of network nodes
+ * @param links - Array of connections between nodes
+ * @param levels - Number of hierarchy levels to generate (default: 3)
+ * @returns Array of HierarchicalCluster objects, one per level
  */
 export function detectHierarchicalClusters(
   nodes: NetworkNode[],
@@ -191,8 +215,14 @@ export function detectHierarchicalClusters(
 }
 
 /**
- * Structural Hole Detection
- * Identifies gaps between communities representing networking opportunities
+ * Detects structural holes between communities.
+ * Identifies nodes that bridge sparse connections between clusters,
+ * representing valuable networking opportunities (Burt's theory).
+ * 
+ * @param nodes - Array of network nodes
+ * @param links - Array of connections between nodes
+ * @param clusters - Pre-computed cluster assignments
+ * @returns Array of StructuralHole objects sorted by bridge score
  */
 export function detectStructuralHoles(
   nodes: NetworkNode[],

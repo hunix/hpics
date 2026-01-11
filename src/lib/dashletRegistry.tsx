@@ -1,8 +1,63 @@
-import React, { lazy, Suspense, ComponentType } from 'react';
+/**
+ * @fileoverview Dashlet Registry with Lazy Loading and Error Boundaries
+ * Centralizes dashlet component loading and rendering for the Dashboard.
+ * Implements factory pattern with Suspense and error isolation.
+ */
+
+import React, { lazy, Suspense, ComponentType, Component, ErrorInfo, ReactNode } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar, Clock, TrendingUp, Users, Star, MessageSquare } from 'lucide-react';
+import { Calendar, Clock, TrendingUp, Users, Star, MessageSquare, AlertTriangle } from 'lucide-react';
 import type { DashletType } from '@/lib/dashletDefinitions';
+
+// Error Boundary for individual dashlets
+interface DashletErrorBoundaryState {
+  hasError: boolean;
+  error?: Error;
+}
+
+interface DashletErrorBoundaryProps {
+  children: ReactNode;
+  dashletType: string;
+}
+
+class DashletErrorBoundary extends Component<DashletErrorBoundaryProps, DashletErrorBoundaryState> {
+  constructor(props: DashletErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error): DashletErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error(`Dashlet [${this.props.dashletType}] error:`, error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <Card className="border-destructive/50">
+          <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+            <AlertTriangle className="h-8 w-8 text-destructive mb-2" />
+            <p className="text-sm text-muted-foreground">
+              Failed to load widget
+            </p>
+            <button 
+              onClick={() => this.setState({ hasError: false })}
+              className="mt-2 text-xs text-primary hover:underline"
+            >
+              Try again
+            </button>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 // Lazy load heavy components for better performance
 const DecayAlertWidget = lazy(() => import('@/components/dashboard/DecayAlertWidget').then(m => ({ default: m.DecayAlertWidget })));
@@ -37,9 +92,24 @@ const UnifiedIntelligenceDashboard = lazy(() => import('@/components/intelligenc
 const CommunicationVelocityWidget = lazy(() => import('@/components/dashboard/CommunicationVelocityWidget').then(m => ({ default: m.CommunicationVelocityWidget })));
 const BehavioralAnomalyDashboard = lazy(() => import('@/components/intelligence/BehavioralAnomalyDashboard').then(m => ({ default: m.BehavioralAnomalyDashboard })));
 
-// Dashlet Suspense wrapper
+/**
+ * Suspense loading fallback for dashlets
+ */
 function DashletLoader() {
   return <Skeleton className="h-64 w-full" />;
+}
+
+/**
+ * Wraps a lazy component with Suspense and Error Boundary
+ */
+function withDashletSafety(dashletType: string, element: ReactNode): ReactNode {
+  return (
+    <DashletErrorBoundary dashletType={dashletType}>
+      <Suspense fallback={<DashletLoader />}>
+        {element}
+      </Suspense>
+    </DashletErrorBoundary>
+  );
 }
 
 // Type for dashlet renderer context
@@ -188,38 +258,38 @@ const dashletRenderers: Partial<Record<DashletType, DashletRenderer>> = {
     </Card>
   ),
 
-  'decay-alert': () => <Suspense fallback={<DashletLoader />}><DecayAlertWidget /></Suspense>,
-  'relationship-health': () => <Suspense fallback={<DashletLoader />}><RelationshipHealthWidget /></Suspense>,
-  'weekly-summary': () => <Suspense fallback={<DashletLoader />}><WeeklySummaryWidget /></Suspense>,
-  'introduction-suggestions': () => <Suspense fallback={<DashletLoader />}><IntroductionSuggestions /></Suspense>,
-  'followup-suggestions': () => <Suspense fallback={<DashletLoader />}><FollowUpSuggestions /></Suspense>,
-  'auto-schedule': () => <Suspense fallback={<DashletLoader />}><AutoScheduleFollowups /></Suspense>,
-  'contact-groups': () => <Suspense fallback={<DashletLoader />}><ContactGroupsWidget /></Suspense>,
-  'relationship-scores': () => <Suspense fallback={<DashletLoader />}><RelationshipScoreCard /></Suspense>,
-  'network-graph': () => <Suspense fallback={<DashletLoader />}><NetworkGraph /></Suspense>,
-  'security-alerts': () => <Suspense fallback={<DashletLoader />}><SecurityAlertsWidget /></Suspense>,
-  'intelligence-insights': () => <Suspense fallback={<DashletLoader />}><IntelligenceInsightsWidget /></Suspense>,
-  'data-quality': () => <Suspense fallback={<DashletLoader />}><DataQualityMonitor /></Suspense>,
-  'proactive-actions': () => <Suspense fallback={<DashletLoader />}><ProactiveActionsWidget /></Suspense>,
-  'live-activity-feed': () => <Suspense fallback={<DashletLoader />}><LiveActivityFeed /></Suspense>,
-  'anomaly-detection': () => <Suspense fallback={<DashletLoader />}><AnomalyDetectionWidget /></Suspense>,
-  'relationship-analytics': () => <Suspense fallback={<DashletLoader />}><RelationshipAnalytics /></Suspense>,
-  'ai-contact-grouping': () => <Suspense fallback={<DashletLoader />}><AIContactGrouping /></Suspense>,
-  'calendar-sync-status': () => <Suspense fallback={<DashletLoader />}><CalendarSyncStatus /></Suspense>,
-  'biometric-status': () => <Suspense fallback={<DashletLoader />}><BiometricStatusWidget /></Suspense>,
-  'influence-overview': () => <Suspense fallback={<DashletLoader />}><RelationshipOverviewWidget /></Suspense>,
-  'relationship-forecast': () => <Suspense fallback={<DashletLoader />}><RelationshipForecastWidget /></Suspense>,
-  'network-risk': () => <Suspense fallback={<DashletLoader />}><NetworkRiskPanel /></Suspense>,
-  'introduction-matcher': () => <Suspense fallback={<DashletLoader />}><IntroductionMatcherPanel /></Suspense>,
-  'daily-briefing': () => <Suspense fallback={<DashletLoader />}><DailyBriefingWidget /></Suspense>,
+  'decay-alert': () => withDashletSafety('decay-alert', <DecayAlertWidget />),
+  'relationship-health': () => withDashletSafety('relationship-health', <RelationshipHealthWidget />),
+  'weekly-summary': () => withDashletSafety('weekly-summary', <WeeklySummaryWidget />),
+  'introduction-suggestions': () => withDashletSafety('introduction-suggestions', <IntroductionSuggestions />),
+  'followup-suggestions': () => withDashletSafety('followup-suggestions', <FollowUpSuggestions />),
+  'auto-schedule': () => withDashletSafety('auto-schedule', <AutoScheduleFollowups />),
+  'contact-groups': () => withDashletSafety('contact-groups', <ContactGroupsWidget />),
+  'relationship-scores': () => withDashletSafety('relationship-scores', <RelationshipScoreCard />),
+  'network-graph': () => withDashletSafety('network-graph', <NetworkGraph />),
+  'security-alerts': () => withDashletSafety('security-alerts', <SecurityAlertsWidget />),
+  'intelligence-insights': () => withDashletSafety('intelligence-insights', <IntelligenceInsightsWidget />),
+  'data-quality': () => withDashletSafety('data-quality', <DataQualityMonitor />),
+  'proactive-actions': () => withDashletSafety('proactive-actions', <ProactiveActionsWidget />),
+  'live-activity-feed': () => withDashletSafety('live-activity-feed', <LiveActivityFeed />),
+  'anomaly-detection': () => withDashletSafety('anomaly-detection', <AnomalyDetectionWidget />),
+  'relationship-analytics': () => withDashletSafety('relationship-analytics', <RelationshipAnalytics />),
+  'ai-contact-grouping': () => withDashletSafety('ai-contact-grouping', <AIContactGrouping />),
+  'calendar-sync-status': () => withDashletSafety('calendar-sync-status', <CalendarSyncStatus />),
+  'biometric-status': () => withDashletSafety('biometric-status', <BiometricStatusWidget />),
+  'influence-overview': () => withDashletSafety('influence-overview', <RelationshipOverviewWidget />),
+  'relationship-forecast': () => withDashletSafety('relationship-forecast', <RelationshipForecastWidget />),
+  'network-risk': () => withDashletSafety('network-risk', <NetworkRiskPanel />),
+  'introduction-matcher': () => withDashletSafety('introduction-matcher', <IntroductionMatcherPanel />),
+  'daily-briefing': () => withDashletSafety('daily-briefing', <DailyBriefingWidget />),
   'gift-suggestions': () => null, // Requires profileId
-  'outreach-scheduler': () => <Suspense fallback={<DashletLoader />}><OutreachSchedulerWidget /></Suspense>,
-  'relationship-autopilot': () => <Suspense fallback={<DashletLoader />}><RelationshipAutopilotWidget /></Suspense>,
-  'gift-calendar': () => <Suspense fallback={<DashletLoader />}><GiftCalendarWidget /></Suspense>,
-  'ai-chat-assistant': () => <Suspense fallback={<DashletLoader />}><AIChatAssistant className="h-[500px]" /></Suspense>,
-  'unified-intelligence': () => <Suspense fallback={<DashletLoader />}><UnifiedIntelligenceDashboard /></Suspense>,
-  'communication-velocity': () => <Suspense fallback={<DashletLoader />}><CommunicationVelocityWidget /></Suspense>,
-  'behavioral-anomalies': () => <Suspense fallback={<DashletLoader />}><BehavioralAnomalyDashboard /></Suspense>,
+  'outreach-scheduler': () => withDashletSafety('outreach-scheduler', <OutreachSchedulerWidget />),
+  'relationship-autopilot': () => withDashletSafety('relationship-autopilot', <RelationshipAutopilotWidget />),
+  'gift-calendar': () => withDashletSafety('gift-calendar', <GiftCalendarWidget />),
+  'ai-chat-assistant': () => withDashletSafety('ai-chat-assistant', <AIChatAssistant className="h-[500px]" />),
+  'unified-intelligence': () => withDashletSafety('unified-intelligence', <UnifiedIntelligenceDashboard />),
+  'communication-velocity': () => withDashletSafety('communication-velocity', <CommunicationVelocityWidget />),
+  'behavioral-anomalies': () => withDashletSafety('behavioral-anomalies', <BehavioralAnomalyDashboard />),
 };
 
 /**

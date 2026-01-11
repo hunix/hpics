@@ -1,4 +1,8 @@
-// Network Resilience and Prediction Analysis
+/**
+ * @fileoverview Network Resilience, Prediction, and Strategic Analysis
+ * Implements resilience metrics, weak tie detection, link prediction,
+ * community role classification, and strategic connection recommendations.
+ */
 
 import type {
   NetworkNode, NetworkLink, ResilienceMetrics, WeakTie, PredictedLink,
@@ -9,8 +13,13 @@ import { calculatePageRank, calculateClosenessCentrality, calculateBetweennessCe
 import { detectClusters } from './clustering';
 
 /**
- * Network Resilience Analysis
- * Measures how robust the network is to node removal
+ * Analyzes network resilience to node removal attacks.
+ * Measures connectivity, identifies critical nodes, and calculates
+ * vulnerability score based on giant component fragmentation.
+ * 
+ * @param nodes - Array of network nodes
+ * @param links - Array of connections between nodes
+ * @returns ResilienceMetrics with connectivity, critical nodes, and vulnerability
  */
 export function analyzeNetworkResilience(
   nodes: NetworkNode[],
@@ -54,8 +63,14 @@ export function analyzeNetworkResilience(
 }
 
 /**
- * Weak Tie Detection (Granovetter's Strength of Weak Ties)
- * Identifies valuable loose connections that bridge different communities
+ * Detects weak ties based on Granovetter's "Strength of Weak Ties" theory.
+ * Identifies cross-community connections that provide access to novel
+ * information and opportunities not available within tight-knit groups.
+ * 
+ * @param nodes - Array of network nodes
+ * @param links - Array of connections between nodes
+ * @param clusters - Pre-computed cluster assignments
+ * @returns Array of WeakTie objects sorted by bridge score
  */
 export function detectWeakTies(
   nodes: NetworkNode[],
@@ -97,7 +112,14 @@ export function detectWeakTies(
 }
 
 /**
- * Link Prediction using Adamic-Adar
+ * Predicts likely future connections using Adamic-Adar index.
+ * Scores potential links based on shared neighbors, weighted by
+ * the inverse log of neighbor degree (rare shared neighbors score higher).
+ * 
+ * @param nodes - Array of network nodes
+ * @param links - Array of existing connections
+ * @param topK - Number of top predictions to return (default: 20)
+ * @returns Array of PredictedLink objects sorted by score
  */
 export function predictLinks(
   nodes: NetworkNode[],
@@ -149,7 +171,14 @@ export function predictLinks(
 }
 
 /**
- * Community Role Classification
+ * Classifies nodes by their community role based on connection patterns.
+ * Roles: leader (high internal), connector (high external), 
+ * active (moderate both), peripheral (low activity), isolated (no connections).
+ * 
+ * @param nodes - Array of network nodes
+ * @param links - Array of connections between nodes
+ * @param clusters - Pre-computed cluster assignments
+ * @returns Array of NodeRole objects with role classification and metrics
  */
 export function classifyCommunityRoles(
   nodes: NetworkNode[],
@@ -196,7 +225,13 @@ export function classifyCommunityRoles(
 }
 
 /**
- * Identify Network Growth Opportunities
+ * Identifies opportunities to strengthen the network through new connections.
+ * Detects under-connected cluster pairs that could benefit from bridging.
+ * 
+ * @param nodes - Array of network nodes
+ * @param links - Array of connections between nodes
+ * @param clusters - Pre-computed cluster assignments
+ * @returns Array of GrowthOpportunity suggestions
  */
 export function identifyGrowthOpportunities(
   nodes: NetworkNode[],
@@ -247,8 +282,15 @@ export function identifyGrowthOpportunities(
 }
 
 /**
- * Recommend Strategic Connections
- * Identifies high-value connection opportunities based on network position
+ * Recommends high-value strategic connections for a focus node.
+ * Combines PageRank influence, cluster bridging potential, and
+ * introduction paths to identify optimal networking targets.
+ * 
+ * @param nodes - Array of network nodes
+ * @param links - Array of connections between nodes
+ * @param focusNodeId - The node seeking connection recommendations
+ * @param topK - Number of recommendations to return (default: 5)
+ * @returns Array of StrategicConnection recommendations sorted by expected impact
  */
 export function recommendStrategicConnections(
   nodes: NetworkNode[],
@@ -315,7 +357,11 @@ export function recommendStrategicConnections(
 }
 
 /**
- * Calculate Network Density
+ * Calculates network density (ratio of actual to possible connections).
+ * 
+ * @param nodes - Array of network nodes
+ * @param links - Array of connections between nodes
+ * @returns Density value between 0 (sparse) and 1 (complete graph)
  */
 export function calculateNetworkDensity(
   nodes: NetworkNode[],
@@ -328,7 +374,13 @@ export function calculateNetworkDensity(
 }
 
 /**
- * Calculate comprehensive network metrics
+ * Calculates comprehensive network metrics in a single pass.
+ * Aggregates PageRank, centrality measures, clustering, and
+ * identifies top influencers and bridge connectors.
+ * 
+ * @param nodes - Array of network nodes
+ * @param links - Array of connections between nodes
+ * @returns NetworkMetrics object with all centrality maps and insights
  */
 export function calculateNetworkMetrics(
   nodes: NetworkNode[],

@@ -1,4 +1,8 @@
-// Temporal Network Analysis
+/**
+ * @fileoverview Temporal Network Analysis
+ * Implements time-based network analysis including dormant connection detection,
+ * relationship trajectory prediction, and seasonal pattern identification.
+ */
 
 import type {
   NetworkNode, NetworkLink, TemporalNetworkMetrics, SleepingConnection,
@@ -8,7 +12,14 @@ import { buildAdjacencyList } from './utils';
 import { detectCommunitiesLabelPropagation } from './clustering';
 
 /**
- * Analyze Temporal Network Patterns
+ * Analyzes temporal patterns in network relationships.
+ * Identifies sleeping connections, predicts relationship trajectories,
+ * and detects seasonal interaction patterns.
+ * 
+ * @param nodes - Array of network nodes
+ * @param links - Array of connections (should include timestamps)
+ * @param timeWindowDays - Analysis window in days (default: 365)
+ * @returns TemporalNetworkMetrics with sleeping connections, predictions, and patterns
  */
 export function analyzeTemporalNetwork(
   nodes: NetworkNode[],
@@ -147,7 +158,14 @@ export function analyzeTemporalNetwork(
 }
 
 /**
- * Analyze Community Evolution
+ * Analyzes how communities evolve over time.
+ * Tracks community snapshots, member transitions, and calculates
+ * health metrics including cohesion, fragmentation risk, and growth potential.
+ * 
+ * @param nodes - Array of network nodes
+ * @param links - Array of connections between nodes
+ * @param previousClusters - Optional previous cluster state for transition detection
+ * @returns CommunityEvolution with snapshots, transitions, and health metrics
  */
 export function analyzeCommunityEvolution(
   nodes: NetworkNode[],
