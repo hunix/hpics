@@ -375,6 +375,54 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_request_cache: {
+        Row: {
+          cache_key: string
+          cost_saved_cents: number | null
+          created_at: string | null
+          expires_at: string
+          hit_count: number | null
+          id: string
+          last_hit_at: string | null
+          model_name: string
+          prompt_hash: string
+          response_content: string
+          response_metadata: Json | null
+          tokens_saved: number | null
+          user_id: string
+        }
+        Insert: {
+          cache_key: string
+          cost_saved_cents?: number | null
+          created_at?: string | null
+          expires_at: string
+          hit_count?: number | null
+          id?: string
+          last_hit_at?: string | null
+          model_name: string
+          prompt_hash: string
+          response_content: string
+          response_metadata?: Json | null
+          tokens_saved?: number | null
+          user_id: string
+        }
+        Update: {
+          cache_key?: string
+          cost_saved_cents?: number | null
+          created_at?: string | null
+          expires_at?: string
+          hit_count?: number | null
+          id?: string
+          last_hit_at?: string | null
+          model_name?: string
+          prompt_hash?: string
+          response_content?: string
+          response_metadata?: Json | null
+          tokens_saved?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_usage_logs: {
         Row: {
           actual_cost_cents: number | null
@@ -1367,6 +1415,82 @@ export type Database = {
           },
         ]
       }
+      brand_intelligence: {
+        Row: {
+          color_palette: Json | null
+          communication_style: string | null
+          company_name: string | null
+          created_at: string | null
+          extracted_branding: Json | null
+          id: string
+          key_messages: string[] | null
+          last_scraped_at: string | null
+          logos: Json | null
+          profile_id: string | null
+          tone_of_voice: string | null
+          typography: Json | null
+          updated_at: string | null
+          user_id: string
+          website_url: string | null
+        }
+        Insert: {
+          color_palette?: Json | null
+          communication_style?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          extracted_branding?: Json | null
+          id?: string
+          key_messages?: string[] | null
+          last_scraped_at?: string | null
+          logos?: Json | null
+          profile_id?: string | null
+          tone_of_voice?: string | null
+          typography?: Json | null
+          updated_at?: string | null
+          user_id: string
+          website_url?: string | null
+        }
+        Update: {
+          color_palette?: Json | null
+          communication_style?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          extracted_branding?: Json | null
+          id?: string
+          key_messages?: string[] | null
+          last_scraped_at?: string | null
+          logos?: Json | null
+          profile_id?: string | null
+          tone_of_voice?: string | null
+          typography?: Json | null
+          updated_at?: string | null
+          user_id?: string
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_intelligence_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "brand_intelligence_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "brand_intelligence_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bulk_analysis_items: {
         Row: {
           actual_cost_cents: number | null
@@ -1860,6 +1984,65 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_evolution: {
+        Row: {
+          cohesion_score: number | null
+          community_id: number
+          community_label: string | null
+          detected_at: string | null
+          external_connections: number | null
+          growth_rate: number | null
+          health_score: number | null
+          id: string
+          leader_profile_ids: string[] | null
+          member_count: number
+          member_profile_ids: string[] | null
+          snapshot_id: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          cohesion_score?: number | null
+          community_id: number
+          community_label?: string | null
+          detected_at?: string | null
+          external_connections?: number | null
+          growth_rate?: number | null
+          health_score?: number | null
+          id?: string
+          leader_profile_ids?: string[] | null
+          member_count: number
+          member_profile_ids?: string[] | null
+          snapshot_id?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          cohesion_score?: number | null
+          community_id?: number
+          community_label?: string | null
+          detected_at?: string | null
+          external_connections?: number | null
+          growth_rate?: number | null
+          health_score?: number | null
+          id?: string
+          leader_profile_ids?: string[] | null
+          member_count?: number
+          member_profile_ids?: string[] | null
+          snapshot_id?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_evolution_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "network_snapshots"
             referencedColumns: ["id"]
           },
         ]
@@ -6428,6 +6611,88 @@ export type Database = {
         }
         Relationships: []
       }
+      enrichment_jobs: {
+        Row: {
+          completed_at: string | null
+          cost_cents: number | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          job_type: string
+          max_retries: number | null
+          priority: number | null
+          processing_time_ms: number | null
+          profile_id: string | null
+          result: Json | null
+          retry_count: number | null
+          source_config: Json | null
+          started_at: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          cost_cents?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          job_type: string
+          max_retries?: number | null
+          priority?: number | null
+          processing_time_ms?: number | null
+          profile_id?: string | null
+          result?: Json | null
+          retry_count?: number | null
+          source_config?: Json | null
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          cost_cents?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          job_type?: string
+          max_retries?: number | null
+          priority?: number | null
+          processing_time_ms?: number | null
+          profile_id?: string | null
+          result?: Json | null
+          retry_count?: number | null
+          source_config?: Json | null
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enrichment_jobs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "enrichment_jobs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "enrichment_jobs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       enrichment_queue: {
         Row: {
           attempts: number | null
@@ -7197,6 +7462,83 @@ export type Database = {
           },
         ]
       }
+      gait_analyses: {
+        Row: {
+          ai_model_used: string | null
+          confidence_score: number | null
+          created_at: string | null
+          emotional_indicators: Json | null
+          gait_pattern: Json | null
+          health_indicators: Json | null
+          id: string
+          personality_indicators: Json | null
+          profile_id: string | null
+          source_recording_id: string | null
+          updated_at: string | null
+          user_id: string
+          video_url: string | null
+        }
+        Insert: {
+          ai_model_used?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          emotional_indicators?: Json | null
+          gait_pattern?: Json | null
+          health_indicators?: Json | null
+          id?: string
+          personality_indicators?: Json | null
+          profile_id?: string | null
+          source_recording_id?: string | null
+          updated_at?: string | null
+          user_id: string
+          video_url?: string | null
+        }
+        Update: {
+          ai_model_used?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          emotional_indicators?: Json | null
+          gait_pattern?: Json | null
+          health_indicators?: Json | null
+          id?: string
+          personality_indicators?: Json | null
+          profile_id?: string | null
+          source_recording_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gait_analyses_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "gait_analyses_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "gait_analyses_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gait_analyses_source_recording_id_fkey"
+            columns: ["source_recording_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_recordings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       generated_reports: {
         Row: {
           created_at: string
@@ -7651,6 +7993,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      influence_simulations: {
+        Row: {
+          created_at: string | null
+          id: string
+          max_reach_achieved: number | null
+          optimal_seeds_suggested: string[] | null
+          parameters: Json | null
+          propagation_model: string | null
+          results: Json
+          seed_profile_ids: string[]
+          simulation_name: string | null
+          simulation_steps: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          max_reach_achieved?: number | null
+          optimal_seeds_suggested?: string[] | null
+          parameters?: Json | null
+          propagation_model?: string | null
+          results?: Json
+          seed_profile_ids: string[]
+          simulation_name?: string | null
+          simulation_steps?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          max_reach_achieved?: number | null
+          optimal_seeds_suggested?: string[] | null
+          parameters?: Json | null
+          propagation_model?: string | null
+          results?: Json
+          seed_profile_ids?: string[]
+          simulation_name?: string | null
+          simulation_steps?: number | null
+          user_id?: string
+        }
+        Relationships: []
       }
       influence_strategies: {
         Row: {
@@ -8180,6 +8564,104 @@ export type Database = {
           },
           {
             foreignKeyName: "interaction_biometrics_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intervention_playbooks: {
+        Row: {
+          channel_recommendations: string[] | null
+          churn_prediction_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          escalation_path: Json | null
+          gift_suggestions: Json | null
+          id: string
+          intervention_steps: Json | null
+          outcome: string | null
+          outcome_notes: string | null
+          outreach_scripts: Json | null
+          playbook_type: string | null
+          profile_id: string | null
+          risk_level: string | null
+          started_at: string | null
+          status: string | null
+          success_probability: number | null
+          timing_recommendations: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          channel_recommendations?: string[] | null
+          churn_prediction_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          escalation_path?: Json | null
+          gift_suggestions?: Json | null
+          id?: string
+          intervention_steps?: Json | null
+          outcome?: string | null
+          outcome_notes?: string | null
+          outreach_scripts?: Json | null
+          playbook_type?: string | null
+          profile_id?: string | null
+          risk_level?: string | null
+          started_at?: string | null
+          status?: string | null
+          success_probability?: number | null
+          timing_recommendations?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          channel_recommendations?: string[] | null
+          churn_prediction_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          escalation_path?: Json | null
+          gift_suggestions?: Json | null
+          id?: string
+          intervention_steps?: Json | null
+          outcome?: string | null
+          outcome_notes?: string | null
+          outreach_scripts?: Json | null
+          playbook_type?: string | null
+          profile_id?: string | null
+          risk_level?: string | null
+          started_at?: string | null
+          status?: string | null
+          success_probability?: number | null
+          timing_recommendations?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intervention_playbooks_churn_prediction_id_fkey"
+            columns: ["churn_prediction_id"]
+            isOneToOne: false
+            referencedRelation: "churn_predictions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intervention_playbooks_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "intervention_playbooks_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "intervention_playbooks_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -8843,6 +9325,104 @@ export type Database = {
           },
         ]
       }
+      meeting_intelligence: {
+        Row: {
+          action_items: Json | null
+          briefing_generated_at: string | null
+          commitments: Json | null
+          created_at: string | null
+          event_id: string | null
+          follow_up_draft: Json | null
+          follow_up_sent: boolean | null
+          follow_up_sent_at: string | null
+          id: string
+          meeting_date: string | null
+          meeting_effectiveness_score: number | null
+          meeting_title: string | null
+          next_touchpoint_date: string | null
+          post_summary: Json | null
+          pre_briefing: Json | null
+          profile_id: string | null
+          relationship_impact_score: number | null
+          summary_generated_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          action_items?: Json | null
+          briefing_generated_at?: string | null
+          commitments?: Json | null
+          created_at?: string | null
+          event_id?: string | null
+          follow_up_draft?: Json | null
+          follow_up_sent?: boolean | null
+          follow_up_sent_at?: string | null
+          id?: string
+          meeting_date?: string | null
+          meeting_effectiveness_score?: number | null
+          meeting_title?: string | null
+          next_touchpoint_date?: string | null
+          post_summary?: Json | null
+          pre_briefing?: Json | null
+          profile_id?: string | null
+          relationship_impact_score?: number | null
+          summary_generated_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          action_items?: Json | null
+          briefing_generated_at?: string | null
+          commitments?: Json | null
+          created_at?: string | null
+          event_id?: string | null
+          follow_up_draft?: Json | null
+          follow_up_sent?: boolean | null
+          follow_up_sent_at?: string | null
+          id?: string
+          meeting_date?: string | null
+          meeting_effectiveness_score?: number | null
+          meeting_title?: string | null
+          next_touchpoint_date?: string | null
+          post_summary?: Json | null
+          pre_briefing?: Json | null
+          profile_id?: string | null
+          relationship_impact_score?: number | null
+          summary_generated_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_intelligence_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_intelligence_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "meeting_intelligence_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "meeting_intelligence_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_recordings: {
         Row: {
           audio_events: Json | null
@@ -9316,6 +9896,42 @@ export type Database = {
           recommendations?: Json | null
           risk_score?: number | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      network_snapshots: {
+        Row: {
+          change_summary: Json | null
+          community_structure: Json | null
+          created_at: string | null
+          graph_data: Json | null
+          id: string
+          metrics: Json
+          snapshot_date: string
+          snapshot_type: string | null
+          user_id: string
+        }
+        Insert: {
+          change_summary?: Json | null
+          community_structure?: Json | null
+          created_at?: string | null
+          graph_data?: Json | null
+          id?: string
+          metrics?: Json
+          snapshot_date: string
+          snapshot_type?: string | null
+          user_id: string
+        }
+        Update: {
+          change_summary?: Json | null
+          community_structure?: Json | null
+          created_at?: string | null
+          graph_data?: Json | null
+          id?: string
+          metrics?: Json
+          snapshot_date?: string
+          snapshot_type?: string | null
           user_id?: string
         }
         Relationships: []
@@ -11340,6 +11956,91 @@ export type Database = {
         }
         Relationships: []
       }
+      surveillance_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          alert_type: string
+          auto_generated: boolean | null
+          created_at: string | null
+          description: string | null
+          expires_at: string | null
+          id: string
+          is_acknowledged: boolean | null
+          is_read: boolean | null
+          is_resolved: boolean | null
+          profile_id: string | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          severity: string | null
+          source: string | null
+          source_data: Json | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          alert_type: string
+          auto_generated?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_acknowledged?: boolean | null
+          is_read?: boolean | null
+          is_resolved?: boolean | null
+          profile_id?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          severity?: string | null
+          source?: string | null
+          source_data?: Json | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          alert_type?: string
+          auto_generated?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_acknowledged?: boolean | null
+          is_read?: boolean | null
+          is_resolved?: boolean | null
+          profile_id?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          severity?: string | null
+          source?: string | null
+          source_data?: Json | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "surveillance_alerts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "surveillance_alerts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "surveillance_alerts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       synced_calendar_events: {
         Row: {
           attendees: Json | null
@@ -12511,6 +13212,171 @@ export type Database = {
           },
           {
             foreignKeyName: "voice_signatures_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      web_monitoring_jobs: {
+        Row: {
+          alert_on_new_results: boolean | null
+          alert_threshold: number | null
+          created_at: string | null
+          frequency_hours: number | null
+          id: string
+          is_active: boolean | null
+          job_name: string
+          last_result_count: number | null
+          last_results: Json | null
+          last_run_at: string | null
+          profile_id: string | null
+          search_query: string
+          search_type: string | null
+          total_mentions_found: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          alert_on_new_results?: boolean | null
+          alert_threshold?: number | null
+          created_at?: string | null
+          frequency_hours?: number | null
+          id?: string
+          is_active?: boolean | null
+          job_name: string
+          last_result_count?: number | null
+          last_results?: Json | null
+          last_run_at?: string | null
+          profile_id?: string | null
+          search_query: string
+          search_type?: string | null
+          total_mentions_found?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          alert_on_new_results?: boolean | null
+          alert_threshold?: number | null
+          created_at?: string | null
+          frequency_hours?: number | null
+          id?: string
+          is_active?: boolean | null
+          job_name?: string
+          last_result_count?: number | null
+          last_results?: Json | null
+          last_run_at?: string | null
+          profile_id?: string | null
+          search_query?: string
+          search_type?: string | null
+          total_mentions_found?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "web_monitoring_jobs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "web_monitoring_jobs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "web_monitoring_jobs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      web_monitoring_results: {
+        Row: {
+          detected_at: string | null
+          id: string
+          importance_score: number | null
+          is_flagged: boolean | null
+          is_new: boolean | null
+          is_read: boolean | null
+          job_id: string
+          metadata: Json | null
+          profile_id: string | null
+          result_content: string | null
+          result_snippet: string | null
+          result_title: string | null
+          result_url: string | null
+          sentiment_score: number | null
+          source_domain: string | null
+          user_id: string
+        }
+        Insert: {
+          detected_at?: string | null
+          id?: string
+          importance_score?: number | null
+          is_flagged?: boolean | null
+          is_new?: boolean | null
+          is_read?: boolean | null
+          job_id: string
+          metadata?: Json | null
+          profile_id?: string | null
+          result_content?: string | null
+          result_snippet?: string | null
+          result_title?: string | null
+          result_url?: string | null
+          sentiment_score?: number | null
+          source_domain?: string | null
+          user_id: string
+        }
+        Update: {
+          detected_at?: string | null
+          id?: string
+          importance_score?: number | null
+          is_flagged?: boolean | null
+          is_new?: boolean | null
+          is_read?: boolean | null
+          job_id?: string
+          metadata?: Json | null
+          profile_id?: string | null
+          result_content?: string | null
+          result_snippet?: string | null
+          result_title?: string | null
+          result_url?: string | null
+          sentiment_score?: number | null
+          source_domain?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "web_monitoring_results_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "web_monitoring_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "web_monitoring_results_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "web_monitoring_results_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "web_monitoring_results_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
