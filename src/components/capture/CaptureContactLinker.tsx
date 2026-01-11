@@ -37,28 +37,63 @@ export function CaptureContactLinker({
 }: CaptureContactLinkerProps) {
   const [open, setOpen] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [searchResults, setSearchResults] = useState<Contact[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Load initial contacts (favorites + recent)
   useEffect(() => {
     if (open) {
       loadContacts();
     }
   }, [open]);
 
+  // Server-side search when debounced query changes
+  useEffect(() => {
+    if (debouncedQuery.length >= 2) {
+      searchContacts(debouncedQuery);
+    } else {
+      setSearchResults([]);
+    }
+  }, [debouncedQuery]);
+
   const loadContacts = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      // Load favorites first
+      const { data: favorites } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, organization, avatar_url, bio')
-        .order('first_name')
-        .limit(100);
+        .eq('is_favorite', true)
+        .order('updated_at', { ascending: false })
+        .limit(50);
 
-      if (error) throw error;
-      setContacts(data || []);
+      // Load recent contacts
+      const { data: recent } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, organization, avatar_url, bio')
+        .order('updated_at', { ascending: false })
+        .limit(50);
+
+      // Merge and dedupe
+      const merged = [...(favorites || [])];
+      recent?.forEach(c => {
+        if (!merged.find(m => m.id === c.id)) merged.push(c);
+      });
+
+      setContacts(merged.slice(0, 100));
     } catch (error) {
       console.error('Failed to load contacts:', error);
     } finally {
@@ -66,17 +101,36 @@ export function CaptureContactLinker({
     }
   };
 
-  // Filter contacts based on search
+  const searchContacts = async (query: string) => {
+    setIsSearching(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, organization, avatar_url, bio')
+        .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,organization.ilike.%${query}%`)
+        .order('first_name')
+        .limit(30);
+
+      if (error) throw error;
+      setSearchResults(data || []);
+    } catch (error) {
+      console.error('Failed to search contacts:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Use search results if searching, otherwise filter local contacts
   const filteredContacts = useMemo(() => {
+    if (debouncedQuery.length >= 2) return searchResults;
     if (!searchQuery) return contacts;
     const query = searchQuery.toLowerCase();
     return contacts.filter(c => 
       c.first_name?.toLowerCase().includes(query) ||
       c.last_name?.toLowerCase().includes(query) ||
-      c.organization?.toLowerCase().includes(query) ||
-      c.bio?.toLowerCase().includes(query)
+      c.organization?.toLowerCase().includes(query)
     );
-  }, [contacts, searchQuery]);
+  }, [contacts, searchResults, searchQuery, debouncedQuery]);
 
   // Suggest contacts based on extracted data
   const suggestedContacts = useMemo(() => {
@@ -167,11 +221,14 @@ export function CaptureContactLinker({
           <div className="relative">
             <Search className="absolute left-2 top-2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search contacts..."
+              placeholder="Type 2+ chars to search all..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-8 h-8"
             />
+            {isSearching && (
+              <Loader2 className="absolute right-2 top-2 h-4 w-4 animate-spin text-muted-foreground" />
+            )}
           </div>
         </div>
 
