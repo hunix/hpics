@@ -9702,6 +9702,7 @@ export type Database = {
           last_contact_date: string | null
           last_name: string | null
           last_osint_scan: string | null
+          last_social_capture_at: string | null
           linkedin_url: string | null
           linkedin_url_encrypted: string | null
           nickname: string | null
@@ -9713,6 +9714,7 @@ export type Database = {
           relationship_type:
             | Database["public"]["Enums"]["relationship_type"]
             | null
+          social_platforms: Json | null
           tags: string[] | null
           updated_at: string
           user_id: string
@@ -9736,6 +9738,7 @@ export type Database = {
           last_contact_date?: string | null
           last_name?: string | null
           last_osint_scan?: string | null
+          last_social_capture_at?: string | null
           linkedin_url?: string | null
           linkedin_url_encrypted?: string | null
           nickname?: string | null
@@ -9747,6 +9750,7 @@ export type Database = {
           relationship_type?:
             | Database["public"]["Enums"]["relationship_type"]
             | null
+          social_platforms?: Json | null
           tags?: string[] | null
           updated_at?: string
           user_id: string
@@ -9770,6 +9774,7 @@ export type Database = {
           last_contact_date?: string | null
           last_name?: string | null
           last_osint_scan?: string | null
+          last_social_capture_at?: string | null
           linkedin_url?: string | null
           linkedin_url_encrypted?: string | null
           nickname?: string | null
@@ -9781,6 +9786,7 @@ export type Database = {
           relationship_type?:
             | Database["public"]["Enums"]["relationship_type"]
             | null
+          social_platforms?: Json | null
           tags?: string[] | null
           updated_at?: string
           user_id?: string
@@ -11219,6 +11225,73 @@ export type Database = {
           {
             foreignKeyName: "shared_experiences_profile_id_fkey"
             columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_identity_links: {
+        Row: {
+          capture_ids: string[]
+          confidence_score: number | null
+          confirmed_at: string | null
+          created_at: string | null
+          id: string
+          is_confirmed: boolean | null
+          match_reasons: Json | null
+          platforms: string[]
+          primary_profile_id: string | null
+          updated_at: string | null
+          user_id: string
+          usernames: Json | null
+        }
+        Insert: {
+          capture_ids: string[]
+          confidence_score?: number | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          id?: string
+          is_confirmed?: boolean | null
+          match_reasons?: Json | null
+          platforms: string[]
+          primary_profile_id?: string | null
+          updated_at?: string | null
+          user_id: string
+          usernames?: Json | null
+        }
+        Update: {
+          capture_ids?: string[]
+          confidence_score?: number | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          id?: string
+          is_confirmed?: boolean | null
+          match_reasons?: Json | null
+          platforms?: string[]
+          primary_profile_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+          usernames?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_identity_links_primary_profile_id_fkey"
+            columns: ["primary_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "social_identity_links_primary_profile_id_fkey"
+            columns: ["primary_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "social_identity_links_primary_profile_id_fkey"
+            columns: ["primary_profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
