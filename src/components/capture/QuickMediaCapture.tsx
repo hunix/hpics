@@ -199,10 +199,11 @@ export function QuickMediaCapture({
         .insert([{
           user_id: user.id,
           profile_id: profileId || null,
-          url: publicUrl,
-          type: capturedMedia.type,
-          file_name: fileName,
-          file_size: capturedMedia.blob.size
+          file_url: publicUrl,
+          storage_path: filePath,
+          mime_type: capturedMedia.blob.type,
+          file_size: capturedMedia.blob.size,
+          caption: `${capturedMedia.type === 'photo' ? 'Photo' : 'Video'} captured on ${new Date().toLocaleDateString()}`
         }]);
 
       if (insertError) throw insertError;
