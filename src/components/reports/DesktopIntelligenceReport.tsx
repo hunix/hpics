@@ -95,11 +95,12 @@ export function DesktopIntelligenceReport({
           .limit(1)
           .maybeSingle(),
         supabase
-          .from('notes')
-          .select('*')
+          .from('ai_analyses')
+          .select('result, generated_at')
           .eq('profile_id', profileId)
-          .order('created_at', { ascending: false })
-          .limit(20),
+          .eq('analysis_type', 'behavioral')
+          .order('generated_at', { ascending: false })
+          .limit(5),
       ]);
 
       return {
@@ -111,7 +112,7 @@ export function DesktopIntelligenceReport({
         relationship: relationshipScore.data,
         predictions: predictions.data || [],
         lastScan: scanSession.data,
-        observations: observations.data || [],
+        behavioralAnalyses: observations.data || [],
       };
     },
     enabled: !!profileId,
@@ -205,13 +206,11 @@ export function DesktopIntelligenceReport({
           title="Trust Score"
           value={trustScore}
           icon={Shield}
-          trend={reportData?.trust?.trend}
         />
         <ScoreCard
           title="Relationship"
           value={relationshipScore}
           icon={Heart}
-          trend={reportData?.relationship?.trend}
         />
         <ScoreCard
           title="Influence Index"
@@ -294,10 +293,10 @@ export function DesktopIntelligenceReport({
                   </div>
                   <Separator />
                   <div className="grid grid-cols-2 gap-3 text-sm">
-                    <TrustMetric label="Reliability" value={reportData.trust.reliability_score} />
+                    <TrustMetric label="Authenticity" value={reportData.trust.authenticity_score} />
                     <TrustMetric label="Consistency" value={reportData.trust.consistency_score} />
-                    <TrustMetric label="Transparency" value={reportData.trust.transparency_score} />
-                    <TrustMetric label="Competence" value={reportData.trust.competence_score} />
+                    <TrustMetric label="Confidence" value={reportData.trust.confidence_level} />
+                    <TrustMetric label="Overall Trust" value={reportData.trust.overall_trust_score} />
                   </div>
                 </>
               ) : (
@@ -392,28 +391,20 @@ export function DesktopIntelligenceReport({
               {reportData?.relationship ? (
                 <>
                   <div className="text-center py-4">
-                    <div className="text-4xl font-bold">{relationshipScore}%</div>
+                    <div className="text-4xl font-bold">{Math.round(relationshipScore * 100)}%</div>
                     <div className="text-sm text-muted-foreground mt-1">Overall Score</div>
-                    <Badge
-                      variant={
-                        reportData.relationship.trend === 'up' ? 'default' :
-                        reportData.relationship.trend === 'down' ? 'destructive' : 'secondary'
-                      }
-                      className="mt-2"
-                    >
-                      {reportData.relationship.trend === 'up' && <TrendingUp className="h-3 w-3 mr-1" />}
-                      {reportData.relationship.trend === 'down' && <TrendingDown className="h-3 w-3 mr-1" />}
-                      {reportData.relationship.trend || 'Stable'}
+                    <Badge variant="secondary" className="mt-2">
+                      Stable
                     </Badge>
                   </div>
                   <Separator />
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div className="text-center p-2 bg-muted/50 rounded">
-                      <div className="font-bold">{reportData.relationship.engagement_score || 0}%</div>
-                      <div className="text-xs text-muted-foreground">Engagement</div>
+                      <div className="font-bold">{Math.round((reportData.relationship.frequency_score || 0) * 100)}%</div>
+                      <div className="text-xs text-muted-foreground">Frequency</div>
                     </div>
                     <div className="text-center p-2 bg-muted/50 rounded">
-                      <div className="font-bold">{reportData.relationship.sentiment_score || 0}%</div>
+                      <div className="font-bold">{Math.round((reportData.relationship.sentiment_score || 0) * 100)}%</div>
                       <div className="text-xs text-muted-foreground">Sentiment</div>
                     </div>
                   </div>
@@ -471,25 +462,25 @@ export function DesktopIntelligenceReport({
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <User className="h-4 w-4 text-primary" />
-                Recent Observations
+                Behavioral Analyses
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {reportData?.observations?.length > 0 ? (
+              {reportData?.behavioralAnalyses?.length > 0 ? (
                 <ScrollArea className="h-[150px]">
                   <div className="space-y-2">
-                    {reportData.observations.slice(0, 5).map((obs: any) => (
-                      <div key={obs.id} className="text-sm border-l-2 border-primary/30 pl-2">
-                        <p className="line-clamp-2">{obs.content}</p>
+                    {reportData.behavioralAnalyses.slice(0, 5).map((analysis: any, idx: number) => (
+                      <div key={idx} className="text-sm border-l-2 border-primary/30 pl-2">
+                        <p className="line-clamp-2">{analysis.result?.summary || 'Behavioral analysis'}</p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {format(new Date(obs.created_at), 'MMM d, yyyy')}
+                          {format(new Date(analysis.generated_at), 'MMM d, yyyy')}
                         </p>
                       </div>
                     ))}
                   </div>
                 </ScrollArea>
               ) : (
-                <p className="text-sm text-muted-foreground">No observations recorded</p>
+                <p className="text-sm text-muted-foreground">No behavioral analyses recorded</p>
               )}
             </CardContent>
           </Card>

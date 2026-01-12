@@ -81,8 +81,20 @@ export function PreferencePredictionsPanel({
       
       if (error) throw error;
       return (data || []).map(p => ({
-        ...p,
-        evidence_sources: Array.isArray(p.evidence_sources) ? p.evidence_sources : [],
+        id: p.id,
+        preference_category: p.preference_category,
+        preference_key: p.preference_key,
+        predicted_value: p.predicted_value,
+        confidence_score: p.confidence_score,
+        evidence_count: p.evidence_count,
+        last_updated: p.last_updated,
+        evidence_sources: (Array.isArray(p.evidence_sources) 
+          ? p.evidence_sources.map((s: any) => ({
+              type: s?.type || 'unknown',
+              id: s?.id || '',
+              snippet: s?.snippet
+            }))
+          : []) as Preference['evidence_sources'],
       })) as Preference[];
     },
     enabled: !!profileId,
