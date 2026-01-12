@@ -2496,6 +2496,79 @@ export type Database = {
           },
         ]
       }
+      comprehensive_scan_sessions: {
+        Row: {
+          completed_at: string | null
+          cost_cents: number | null
+          created_at: string | null
+          device_type: string | null
+          error_message: string | null
+          id: string
+          profile_id: string
+          results_summary: Json | null
+          stages_completed: Json | null
+          started_at: string | null
+          status: string | null
+          total_stages: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          cost_cents?: number | null
+          created_at?: string | null
+          device_type?: string | null
+          error_message?: string | null
+          id?: string
+          profile_id: string
+          results_summary?: Json | null
+          stages_completed?: Json | null
+          started_at?: string | null
+          status?: string | null
+          total_stages?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          cost_cents?: number | null
+          created_at?: string | null
+          device_type?: string | null
+          error_message?: string | null
+          id?: string
+          profile_id?: string
+          results_summary?: Json | null
+          stages_completed?: Json | null
+          started_at?: string | null
+          status?: string | null
+          total_stages?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comprehensive_scan_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "comprehensive_scan_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "comprehensive_scan_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       connection_intelligence: {
         Row: {
           communication_overlap: Json | null
@@ -4609,6 +4682,70 @@ export type Database = {
           },
         ]
       }
+      contact_predicted_preferences: {
+        Row: {
+          confidence_score: number | null
+          created_at: string | null
+          evidence_count: number | null
+          evidence_sources: Json | null
+          id: string
+          last_updated: string | null
+          predicted_value: string | null
+          preference_category: string
+          preference_key: string
+          profile_id: string
+          user_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string | null
+          evidence_count?: number | null
+          evidence_sources?: Json | null
+          id?: string
+          last_updated?: string | null
+          predicted_value?: string | null
+          preference_category: string
+          preference_key: string
+          profile_id: string
+          user_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string | null
+          evidence_count?: number | null
+          evidence_sources?: Json | null
+          id?: string
+          last_updated?: string | null
+          predicted_value?: string | null
+          preference_category?: string
+          preference_key?: string
+          profile_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_predicted_preferences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_predicted_preferences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_predicted_preferences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_properties: {
         Row: {
           address: string | null
@@ -5766,6 +5903,48 @@ export type Database = {
           id?: string
           layout?: Json
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      data_access_events: {
+        Row: {
+          access_type: string
+          accessed_at: string | null
+          anomaly_score: number | null
+          id: string
+          ip_address: unknown
+          is_flagged: boolean | null
+          metadata: Json | null
+          resource_id: string | null
+          resource_type: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          access_type: string
+          accessed_at?: string | null
+          anomaly_score?: number | null
+          id?: string
+          ip_address?: unknown
+          is_flagged?: boolean | null
+          metadata?: Json | null
+          resource_id?: string | null
+          resource_type: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          access_type?: string
+          accessed_at?: string | null
+          anomaly_score?: number | null
+          id?: string
+          ip_address?: unknown
+          is_flagged?: boolean | null
+          metadata?: Json | null
+          resource_id?: string | null
+          resource_type?: string
+          user_agent?: string | null
           user_id?: string
         }
         Relationships: []
@@ -15021,6 +15200,21 @@ export type Database = {
           confidence: number
           profile_id: string
           source: string
+        }[]
+      }
+      get_account_storage_summary: {
+        Args: { p_user_id: string }
+        Returns: {
+          ai_cost_cents: number
+          ai_tokens_used: number
+          contact_count: number
+          document_bytes: number
+          media_bytes: number
+          message_count: number
+          recording_bytes: number
+          storage_quota_bytes: number
+          total_bytes: number
+          usage_percentage: number
         }[]
       }
       get_contact_filter_options: {
