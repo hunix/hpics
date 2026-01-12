@@ -2357,6 +2357,94 @@ export type Database = {
           },
         ]
       }
+      capture_upload_progress: {
+        Row: {
+          capture_type: string | null
+          checksum: string
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          local_capture_id: string
+          metadata: Json | null
+          mime_type: string | null
+          profile_id: string | null
+          retry_count: number | null
+          status: string | null
+          storage_bucket: string | null
+          storage_path: string | null
+          total_chunks: number
+          total_size: number | null
+          updated_at: string | null
+          uploaded_chunks: number | null
+          user_id: string
+        }
+        Insert: {
+          capture_type?: string | null
+          checksum: string
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          local_capture_id: string
+          metadata?: Json | null
+          mime_type?: string | null
+          profile_id?: string | null
+          retry_count?: number | null
+          status?: string | null
+          storage_bucket?: string | null
+          storage_path?: string | null
+          total_chunks: number
+          total_size?: number | null
+          updated_at?: string | null
+          uploaded_chunks?: number | null
+          user_id: string
+        }
+        Update: {
+          capture_type?: string | null
+          checksum?: string
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          local_capture_id?: string
+          metadata?: Json | null
+          mime_type?: string | null
+          profile_id?: string | null
+          retry_count?: number | null
+          status?: string | null
+          storage_bucket?: string | null
+          storage_path?: string | null
+          total_chunks?: number
+          total_size?: number | null
+          updated_at?: string | null
+          uploaded_chunks?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capture_upload_progress_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "capture_upload_progress_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "capture_upload_progress_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       certifications: {
         Row: {
           created_at: string
