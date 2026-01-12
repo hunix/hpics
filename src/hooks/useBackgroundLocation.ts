@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { nativeIntelligence, LocationData, GeofenceConfig } from '@/lib/mobile/nativeIntelligence';
 import { toast } from 'sonner';
