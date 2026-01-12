@@ -11,12 +11,11 @@ import { useBackgroundLocation } from './useBackgroundLocation';
 import { useSmartTriggers } from './useSmartTriggers';
 import { toast } from 'sonner';
 
-// Context types
-type ContextType = 
+// Context types - exported for use in other components
+export type ContextType = 
   | 'commute'
   | 'work'
   | 'social'
-  | 'exercise'
   | 'rest'
   | 'unknown';
 
@@ -49,12 +48,16 @@ interface ContextualRecommendation {
   reason: string;
 }
 
-interface UseContextEngineReturn {
-  currentContext: ContextPrediction | null;
+export interface UseContextEngineReturn {
+  currentContext: ContextType;
+  confidence: number;
+  isPinned: boolean;
   isMonitoring: boolean;
   contextHistory: ContextHistory[];
   recommendations: ContextualRecommendation[];
   lastSnapshot: ContextSnapshot | null;
+  pinContext: (context: ContextType) => void;
+  unpinContext: () => void;
   startMonitoring: () => Promise<boolean>;
   stopMonitoring: () => void;
   captureSnapshot: () => Promise<ContextSnapshot | null>;
@@ -65,11 +68,13 @@ interface UseContextEngineReturn {
 
 export function useContextEngine(): UseContextEngineReturn {
   const { user } = useAuth();
-  const [currentContext, setCurrentContext] = useState<ContextPrediction | null>(null);
+  const [currentPrediction, setCurrentPrediction] = useState<ContextPrediction | null>(null);
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [contextHistory, setContextHistory] = useState<ContextHistory[]>([]);
   const [recommendations, setRecommendations] = useState<ContextualRecommendation[]>([]);
   const [lastSnapshot, setLastSnapshot] = useState<ContextSnapshot | null>(null);
+  const [isPinned, setIsPinned] = useState(false);
+  const [pinnedContext, setPinnedContext] = useState<ContextType | null>(null);
 
   const { currentLocation, nearbyContacts, geofences } = useBackgroundLocation();
   const { evaluateTrigger } = useSmartTriggers();
@@ -77,6 +82,17 @@ export function useContextEngine(): UseContextEngineReturn {
   const monitoringInterval = useRef<ReturnType<typeof setInterval>>();
   const lastContextRef = useRef<ContextType>('unknown');
   const contextStartRef = useRef<Date>(new Date());
+
+  // Pin/unpin context
+  const pinContext = useCallback((context: ContextType) => {
+    setPinnedContext(context);
+    setIsPinned(true);
+  }, []);
+
+  const unpinContext = useCallback(() => {
+    setPinnedContext(null);
+    setIsPinned(false);
+  }, []);
 
   // Classify context based on multiple signals
   const classifyContext = useCallback((snapshot: ContextSnapshot): ContextPrediction => {
@@ -94,7 +110,7 @@ export function useContextEngine(): UseContextEngineReturn {
       switch (snapshot.activity.type) {
         case 'running':
         case 'cycling':
-          context = 'exercise';
+          context = 'social'; // Active context
           confidence = 0.85;
           factors.push('high physical activity detected');
           break;
@@ -149,7 +165,7 @@ export function useContextEngine(): UseContextEngineReturn {
           context = snapshot.activity?.type === 'stationary' ? 'rest' : 'unknown';
           confidence = 0.8;
         } else if (name.includes('gym') || name.includes('fitness')) {
-          context = 'exercise';
+          context = 'social'; // Fitness context
           confidence = 0.9;
         }
       }
@@ -202,9 +218,6 @@ export function useContextEngine(): UseContextEngineReturn {
       case 'social':
         suggestedActions.push('Capture moment', 'Tag contacts', 'Log interaction');
         break;
-      case 'exercise':
-        suggestedActions.push('Track activity', 'Pause notifications');
-        break;
     }
 
     return {
@@ -223,7 +236,7 @@ export function useContextEngine(): UseContextEngineReturn {
 
       // Classify context
       const prediction = classifyContext(snapshot);
-      setCurrentContext(prediction);
+      setCurrentPrediction(prediction);
 
       // Detect context change
       if (prediction.context !== lastContextRef.current && prediction.confidence > 0.6) {
@@ -232,7 +245,7 @@ export function useContextEngine(): UseContextEngineReturn {
           const historyEntry: ContextHistory = {
             id: crypto.randomUUID(),
             context: lastContextRef.current,
-            confidence: currentContext?.confidence || 0.5,
+            confidence: currentPrediction?.confidence || 0.5,
             startedAt: contextStartRef.current,
             endedAt: new Date(),
             duration: Math.floor((Date.now() - contextStartRef.current.getTime()) / 1000),
@@ -276,7 +289,7 @@ export function useContextEngine(): UseContextEngineReturn {
       console.error('Error capturing snapshot:', error);
       return null;
     }
-  }, [user, classifyContext, currentContext, nearbyContacts, evaluateTrigger]);
+  }, [user, classifyContext, currentPrediction, nearbyContacts, evaluateTrigger]);
 
   // Start monitoring
   const startMonitoring = useCallback(async (): Promise<boolean> => {
@@ -317,17 +330,17 @@ export function useContextEngine(): UseContextEngineReturn {
 
   // Get current context prediction
   const getContextPrediction = useCallback((): ContextPrediction => {
-    return currentContext || {
+    return currentPrediction || {
       context: 'unknown',
       confidence: 0,
       factors: [],
       suggestedActions: []
     };
-  }, [currentContext]);
+  }, [currentPrediction]);
 
   // Get contextual recommendations
   const getRecommendations = useCallback(async (): Promise<ContextualRecommendation[]> => {
-    if (!user || !currentContext) return [];
+    if (!user || !currentPrediction) return [];
 
     const recs: ContextualRecommendation[] = [];
 
@@ -355,7 +368,7 @@ export function useContextEngine(): UseContextEngineReturn {
             profileId: contact.id,
             profileName: contactName,
             priority: daysSinceContact > 90 ? 'high' : 'medium',
-            reason: currentContext.context === 'commute' 
+            reason: currentPrediction.context === 'commute' 
               ? 'Good time to make a call during commute'
               : 'Relationship maintenance'
           });
@@ -364,7 +377,7 @@ export function useContextEngine(): UseContextEngineReturn {
     }
 
     // Context-specific recommendations
-    switch (currentContext.context) {
+    switch (currentPrediction.context) {
       case 'commute':
         recs.push({
           id: 'commute-capture',
@@ -403,7 +416,7 @@ export function useContextEngine(): UseContextEngineReturn {
 
     setRecommendations(recs);
     return recs;
-  }, [user, currentContext, nearbyContacts]);
+  }, [user, currentPrediction, nearbyContacts]);
 
   // Get optimal contact time for a profile
   const getOptimalContactTime = useCallback(async (
@@ -437,17 +450,28 @@ export function useContextEngine(): UseContextEngineReturn {
 
   // Auto-refresh recommendations when context changes
   useEffect(() => {
-    if (currentContext) {
+    if (currentPrediction) {
       getRecommendations();
     }
-  }, [currentContext, getRecommendations]);
+  }, [currentPrediction, getRecommendations]);
+
+  // Computed values
+  const currentContext: ContextType = isPinned && pinnedContext 
+    ? pinnedContext 
+    : currentPrediction?.context || 'unknown';
+  
+  const confidence = currentPrediction?.confidence || 0;
 
   return {
     currentContext,
+    confidence,
+    isPinned,
     isMonitoring,
     contextHistory,
     recommendations,
     lastSnapshot,
+    pinContext,
+    unpinContext,
     startMonitoring,
     stopMonitoring,
     captureSnapshot,

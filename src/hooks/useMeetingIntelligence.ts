@@ -58,14 +58,18 @@ interface UseMeetingIntelligenceOptions {
   notifyOnActionItems?: boolean;
 }
 
-interface UseMeetingIntelligenceReturn {
+export interface UseMeetingIntelligenceReturn {
   currentMeeting: Meeting | null;
   isRecording: boolean;
   isAnalyzing: boolean;
   upcomingEvents: CalendarEvent[];
   pastMeetings: Meeting[];
+  currentTranscript: string;
+  detectedParticipants: MeetingParticipant[];
   startMeeting: (title?: string, calendarEventId?: string) => Promise<string | null>;
   endMeeting: () => Promise<Meeting | null>;
+  startRecording: () => Promise<void>;
+  stopRecording: () => Promise<void>;
   pauseRecording: () => void;
   resumeRecording: () => void;
   addManualNote: (note: string) => void;
@@ -371,6 +375,22 @@ export function useMeetingIntelligence(
     }
   }, []);
 
+  // Start recording (alias for startMeeting)
+  const startRecording = useCallback(async () => {
+    await startMeeting();
+  }, [startMeeting]);
+
+  // Stop recording (alias for endMeeting)
+  const stopRecording = useCallback(async () => {
+    await endMeeting();
+  }, [endMeeting]);
+
+  // Get current transcript
+  const currentTranscript = transcript;
+
+  // Get detected participants
+  const detectedParticipants = Array.from(participantsRef.current.values());
+
   // Get meeting insights
   const getMeetingInsights = useCallback(async (meetingId: string): Promise<MeetingInsight[]> => {
     if (meetingId === currentMeeting?.id) {
@@ -434,8 +454,12 @@ export function useMeetingIntelligence(
     isAnalyzing,
     upcomingEvents,
     pastMeetings,
+    currentTranscript,
+    detectedParticipants,
     startMeeting,
     endMeeting,
+    startRecording,
+    stopRecording,
     pauseRecording,
     resumeRecording,
     addManualNote,
