@@ -183,17 +183,22 @@ export function LiveIntelligenceScanner({
             }
           }
           
+          // Get dominant expression
+          const dominantExpression = face.expressions 
+            ? Object.entries(face.expressions).reduce((a, b) => a[1] > b[1] ? a : b)[0]
+            : 'neutral';
+          
           // Record emotion if tracking
           if (isRecordingEmotions) {
-            emotionRecorder.recordSample(face.expression, face.confidence);
+            emotionRecorder.recordSample(dominantExpression, face.confidence);
           }
           
           return {
             id: `face-${faceIdCounter.current++}`,
-            boundingBox: face.boundingBox,
-            age: face.age,
-            gender: face.gender,
-            expression: face.expression,
+            boundingBox: face.box,
+            age: face.age || 0,
+            gender: face.gender || 'unknown',
+            expression: dominantExpression,
             confidence: face.confidence,
             matchedContact,
             pose
@@ -243,7 +248,7 @@ export function LiveIntelligenceScanner({
   };
 
   // Draw AR overlay
-  const drawOverlay = (results: FaceAnalysisResult[], faces: DetectedFace[]) => {
+  const drawOverlay = (results: EnhancedFaceDetection[], faces: DetectedFace[]) => {
     if (!canvasRef.current || !videoRef.current) return;
     
     const canvas = canvasRef.current;
@@ -256,7 +261,7 @@ export function LiveIntelligenceScanner({
     
     results.forEach((result, idx) => {
       const face = faces[idx];
-      const { x, y, width, height } = result.boundingBox;
+      const { x, y, width, height } = result.box;
       
       // Face bounding box
       ctx.strokeStyle = face.matchedContact 
@@ -282,9 +287,9 @@ export function LiveIntelligenceScanner({
       ctx.fillRect(x + width - 3, y + height - cornerSize, 3, cornerSize);
       
       // Landmarks
-      if (showLandmarks) {
+      if (showLandmarks && result.landmarks) {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-        result.landmarks.forEach(point => {
+        result.landmarks.positions.forEach(point => {
           ctx.beginPath();
           ctx.arc(point.x, point.y, 1.5, 0, Math.PI * 2);
           ctx.fill();
