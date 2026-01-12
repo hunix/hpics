@@ -314,3 +314,42 @@ verify_jwt = false
 
 [functions.manipulation-vulnerability-assessment]
 verify_jwt = false
+
+[functions.deep-osint-scan]
+verify_jwt = false
+
+[functions.action-intelligence-engine]
+verify_jwt = false
+
+[functions.cross-contact-correlation]
+verify_jwt = false
+
+[functions.prediction-calibration-engine]
+verify_jwt = false
+
+[functions.chrome-extension-deep-scrape]
+verify_jwt = false
+
+[functions.mobile-sensor-intelligence]
+verify_jwt = false
+
+[functions.insight-prioritizer]
+verify_jwt = false
+
+[functions.counter-intelligence-monitor]
+verify_jwt = false
+
+[functions.enhanced-deception-detector]
+verify_jwt = false
+
+[functions.security-threat-analyzer]
+verify_jwt = false
+
+[functions.linguistic-deception-analyzer]
+verify_jwt = false
+
+[functions.emotional-trajectory-analyzer]
+verify_jwt = false
+
+[functions.churn-prediction-engine]
+verify_jwt = false

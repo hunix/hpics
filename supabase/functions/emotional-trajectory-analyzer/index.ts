@@ -1,0 +1,250 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const lovableKey = Deno.env.get('LOVABLE_API_KEY');
+    
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const { profileId, userId, timeRange = 180 } = await req.json();
+
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - timeRange);
+
+    // Gather emotional data across time
+    const [
+      { data: messages },
+      { data: voiceInsights },
+      { data: facialAnalyses },
+      { data: interactions },
+      { data: observations }
+    ] = await Promise.all([
+      supabase.from('messages')
+        .select('content, received_at, sentiment_score')
+        .eq('profile_id', profileId)
+        .gte('received_at', cutoffDate.toISOString())
+        .order('received_at', { ascending: true })
+        .limit(1000),
+      supabase.from('voice_insights')
+        .select('*')
+        .eq('profile_id', profileId)
+        .gte('created_at', cutoffDate.toISOString())
+        .order('created_at', { ascending: true }),
+      supabase.from('media_analyses')
+        .select('*')
+        .eq('profile_id', profileId)
+        .eq('analysis_type', 'facial')
+        .gte('created_at', cutoffDate.toISOString())
+        .order('created_at', { ascending: true }),
+      supabase.from('interactions')
+        .select('*')
+        .eq('profile_id', profileId)
+        .gte('occurred_at', cutoffDate.toISOString())
+        .order('occurred_at', { ascending: true }),
+      supabase.from('observations')
+        .select('*')
+        .eq('profile_id', profileId)
+        .gte('observed_at', cutoffDate.toISOString())
+        .order('observed_at', { ascending: true })
+    ]);
+
+    const EMOTIONAL_TRAJECTORY_PROMPT = `You are an expert in emotional intelligence and psychological trajectory analysis. Analyze the following longitudinal emotional data to map emotional patterns, predict future states, and identify intervention opportunities.
+
+Provide comprehensive emotional trajectory analysis in this JSON format:
+{
+  "currentEmotionalState": {
+    "primaryEmotion": "string",
+    "secondaryEmotions": ["string"],
+    "intensity": 1-10,
+    "stability": 1-10,
+    "authenticity": 0-1
+  },
+  "emotionalBaseline": {
+    "dominantMood": "string",
+    "typicalRange": { "low": number, "high": number },
+    "volatility": 1-10,
+    "resilience": 1-10
+  },
+  "trajectoryAnalysis": {
+    "overallTrend": "improving|stable|declining|volatile",
+    "trendStrength": 0-1,
+    "keyInflectionPoints": [
+      {
+        "timestamp": "string",
+        "emotionalShift": "string",
+        "magnitude": number,
+        "possibleCause": "string"
+      }
+    ],
+    "cyclicalPatterns": [
+      {
+        "pattern": "string",
+        "frequency": "string",
+        "predictability": 0-1
+      }
+    ]
+  },
+  "emotionalTriggers": {
+    "positiveTrigers": [
+      {
+        "trigger": "string",
+        "intensity": number,
+        "frequency": number
+      }
+    ],
+    "negativeTrigers": [
+      {
+        "trigger": "string",
+        "intensity": number,
+        "frequency": number
+      }
+    ]
+  },
+  "moodPredictions": {
+    "next24Hours": {
+      "predictedMood": "string",
+      "confidence": 0-1,
+      "riskFactors": ["string"]
+    },
+    "nextWeek": {
+      "predictedTrend": "string",
+      "confidence": 0-1,
+      "opportunities": ["string"]
+    },
+    "nextMonth": {
+      "predictedTrajectory": "string",
+      "confidence": 0-1,
+      "interventionPoints": ["string"]
+    }
+  },
+  "emotionalNeeds": {
+    "unmetNeeds": ["string"],
+    "overindulgedNeeds": ["string"],
+    "balanceRecommendations": ["string"]
+  },
+  "relationshipEmotionalDynamics": {
+    "emotionalAvailability": 1-10,
+    "reciprocityBalance": -100 to 100,
+    "emotionalSafety": 1-10,
+    "vulnerabilityCapacity": 1-10
+  },
+  "stressIndicators": {
+    "currentStressLevel": 1-10,
+    "stressTrend": "increasing|stable|decreasing",
+    "primaryStressors": ["string"],
+    "copingEffectiveness": 1-10
+  },
+  "emotionalGrowthOpportunities": [
+    {
+      "area": "string",
+      "currentState": "string",
+      "potentialGrowth": "string",
+      "suggestedApproach": "string"
+    }
+  ],
+  "warningSignals": [
+    {
+      "signal": "string",
+      "severity": "critical|concerning|monitor",
+      "timeframe": "string",
+      "recommendedAction": "string"
+    }
+  ],
+  "optimalEngagementWindows": [
+    {
+      "timeWindow": "string",
+      "emotionalState": "string",
+      "recommendedTopics": ["string"],
+      "topicsToAvoid": ["string"]
+    }
+  ]
+}`;
+
+    const emotionalData = {
+      messages: messages || [],
+      voiceInsights: voiceInsights || [],
+      facialAnalyses: facialAnalyses || [],
+      interactions: interactions || [],
+      observations: observations || [],
+      timeRange
+    };
+
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${lovableKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-pro',
+        messages: [
+          { role: 'system', content: EMOTIONAL_TRAJECTORY_PROMPT },
+          { role: 'user', content: JSON.stringify(emotionalData) }
+        ],
+        temperature: 0.3,
+      }),
+    });
+
+    if (!aiResponse.ok) {
+      if (aiResponse.status === 429) {
+        return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      throw new Error(`AI Gateway error: ${aiResponse.status}`);
+    }
+
+    const aiData = await aiResponse.json();
+    const content = aiData.choices?.[0]?.message?.content || '';
+    
+    let analysis;
+    try {
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+    } catch (e: any) {
+      analysis = { raw: content, parseError: true };
+    }
+
+    // Store emotional trajectory analysis
+    await supabase.from('ai_analyses').insert({
+      user_id: userId,
+      profile_id: profileId,
+      analysis_type: 'emotional_trajectory',
+      result: analysis,
+      generated_at: new Date().toISOString()
+    });
+
+    return new Response(JSON.stringify({
+      success: true,
+      analysis,
+      dataPoints: {
+        messages: messages?.length || 0,
+        voiceInsights: voiceInsights?.length || 0,
+        facialAnalyses: facialAnalyses?.length || 0,
+        interactions: interactions?.length || 0
+      },
+      timestamp: new Date().toISOString()
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error: any) {
+    console.error('Emotional trajectory analyzer error:', error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+});
