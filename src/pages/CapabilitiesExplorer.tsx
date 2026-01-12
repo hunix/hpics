@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -12,9 +12,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { AppLayout } from '@/components/AppLayout';
+import { QuickVoiceRecorder } from '@/components/capture/QuickVoiceRecorder';
+import { QuickMediaCapture } from '@/components/capture/QuickMediaCapture';
+import { toast } from 'sonner';
+
+type DialogType = 'voice' | 'photo' | 'scan' | null;
 
 interface Feature {
   id: string;
@@ -23,6 +28,7 @@ interface Feature {
   category: string;
   icon: React.ElementType;
   route?: string;
+  dialogType?: DialogType;
   tags: string[];
   isNew?: boolean;
   isPremium?: boolean;
@@ -36,11 +42,11 @@ const FEATURES: Feature[] = [
   { id: 'network-intelligence', name: 'Network Intelligence', description: 'Map hidden connections between contacts', category: 'Intelligence', icon: Users, route: '/network-intelligence', tags: ['network', 'connections', 'graph'] },
   { id: 'counter-intelligence', name: 'Counter Intelligence', description: 'Detect deception and monitor threats', category: 'Intelligence', icon: Shield, route: '/counter-intelligence', tags: ['security', 'deception', 'threats'], isPremium: true },
   
-  // Capture Category
-  { id: 'photo-capture', name: 'Photo Capture', description: 'AI-powered photo analysis with face recognition', category: 'Capture', icon: Camera, route: '/media', tags: ['photo', 'face', 'recognition'] },
-  { id: 'voice-recording', name: 'Voice Recording', description: 'Transcribe and analyze conversations', category: 'Capture', icon: Mic, route: '/analysis', tags: ['voice', 'transcription', 'audio'] },
+  // Capture Category - These open dialogs instead of navigating
+  { id: 'photo-capture', name: 'Photo Capture', description: 'AI-powered photo analysis with face recognition', category: 'Capture', icon: Camera, dialogType: 'photo', tags: ['photo', 'face', 'recognition'] },
+  { id: 'voice-recording', name: 'Voice Recording', description: 'Transcribe and analyze conversations', category: 'Capture', icon: Mic, dialogType: 'voice', tags: ['voice', 'transcription', 'audio'] },
   { id: 'document-scan', name: 'Document Scanning', description: 'OCR and intelligent document processing', category: 'Capture', icon: FileText, route: '/documents', tags: ['document', 'ocr', 'scan'] },
-  { id: 'face-scanner', name: 'Live Face Scanner', description: 'Real-time face detection and identification', category: 'Capture', icon: Scan, route: '/contacts', tags: ['face', 'biometric', 'live'], isNew: true },
+  { id: 'face-scanner', name: 'Live Face Scanner', description: 'Real-time face detection and identification', category: 'Capture', icon: Scan, dialogType: 'scan', tags: ['face', 'biometric', 'live'], isNew: true },
   
   // Mobile Category
   { id: 'location-tracking', name: 'Location Tracking', description: 'Background location with geofence alerts', category: 'Mobile', icon: MapPin, route: '/mobile/ecosystem', tags: ['location', 'gps', 'geofence'] },
@@ -82,6 +88,7 @@ export default function CapabilitiesExplorer() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [activeDialog, setActiveDialog] = useState<DialogType>(null);
 
   const filteredFeatures = useMemo(() => {
     return FEATURES.filter(feature => {
@@ -108,11 +115,28 @@ export default function CapabilitiesExplorer() {
     });
   };
 
-  const handleFeatureClick = (feature: Feature) => {
-    if (feature.route) {
+  const handleFeatureClick = useCallback((feature: Feature) => {
+    if (feature.dialogType) {
+      if (feature.dialogType === 'scan') {
+        // Navigate to contacts with scanner mode
+        navigate('/contacts?mode=scanner');
+        return;
+      }
+      setActiveDialog(feature.dialogType);
+    } else if (feature.route) {
       navigate(feature.route);
     }
-  };
+  }, [navigate]);
+
+  const handleCaptureComplete = useCallback((url: string, type: string) => {
+    toast.success(`${type === 'photo' ? 'Photo' : 'Video'} captured successfully!`);
+    setActiveDialog(null);
+  }, []);
+
+  const handleRecordingComplete = useCallback((url: string) => {
+    toast.success('Voice recording saved!');
+    setActiveDialog(null);
+  }, []);
 
   return (
     <AppLayout title="Capabilities Explorer">
@@ -262,6 +286,20 @@ export default function CapabilitiesExplorer() {
         )}
       </div>
       </div>
+
+      {/* Voice Recorder Dialog */}
+      <QuickVoiceRecorder
+        open={activeDialog === 'voice'}
+        onOpenChange={(open) => !open && setActiveDialog(null)}
+        onComplete={handleRecordingComplete}
+      />
+
+      {/* Photo/Video Capture Dialog */}
+      <QuickMediaCapture
+        open={activeDialog === 'photo'}
+        onOpenChange={(open) => !open && setActiveDialog(null)}
+        onComplete={handleCaptureComplete}
+      />
     </AppLayout>
   );
 }

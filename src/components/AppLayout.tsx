@@ -13,6 +13,7 @@ import { PushNotificationBanner } from '@/components/mobile/PushNotificationBann
 import { InstallPromptBanner } from '@/components/mobile/InstallPromptBanner';
 import { ProactiveAlertBanner } from '@/components/intelligence/ProactiveAlertBanner';
 import { NotificationCenter } from '@/components/navigation/NotificationCenter';
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
 import { useOfflineData } from '@/hooks/useOfflineData';
 
 // Lazy load heavy components
@@ -83,6 +84,7 @@ export function AppLayout({ children, title, showQuickCapture = false, capturePr
           {showAlerts && <div className="px-4 sm:px-6 pt-4"><ProactiveAlertBanner /></div>}
           {/* Main content with proper padding for bottom nav */}
           <main className="flex-1 overflow-auto scroll-smooth-touch scrollbar-hide p-4 sm:p-6 pb-28 md:pb-6 safe-area-pb samsung-safe-bottom">
+            <Breadcrumbs />
             {children}
           </main>
         </SidebarInset>
