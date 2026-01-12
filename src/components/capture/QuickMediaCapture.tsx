@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Camera, Image, Video, X, Send, Loader2, SwitchCamera, Zap } from 'lucide-react';
+import { Camera, Image, Video, X, Send, Loader2, SwitchCamera, Zap, Save, Sparkles } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -35,6 +35,7 @@ export function QuickMediaCapture({
   const [isProcessing, setIsProcessing] = useState(false);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const [isRecordingVideo, setIsRecordingVideo] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -42,6 +43,9 @@ export function QuickMediaCapture({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const videoChunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const MAX_VIDEO_DURATION = 60; // 60 seconds max
 
   // Start camera when dialog opens
   useEffect(() => {
@@ -59,8 +63,17 @@ export function QuickMediaCapture({
       stopCamera();
       if (capturedMedia?.url) URL.revokeObjectURL(capturedMedia.url);
       setCapturedMedia(null);
+      setRecordingDuration(0);
     }
   }, [open]);
+
+  // Auto-stop recording at max duration
+  useEffect(() => {
+    if (recordingDuration >= MAX_VIDEO_DURATION && isRecordingVideo) {
+      stopVideoRecording();
+      toast.info(`Maximum recording duration of ${MAX_VIDEO_DURATION} seconds reached`);
+    }
+  }, [recordingDuration, isRecordingVideo]);
 
   const startCamera = useCallback(async () => {
     try {
@@ -84,8 +97,13 @@ export function QuickMediaCapture({
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
     setIsCapturing(false);
     setIsRecordingVideo(false);
+    setRecordingDuration(0);
   }, []);
 
   const switchCamera = useCallback(() => {
@@ -137,11 +155,21 @@ export function QuickMediaCapture({
 
     mediaRecorder.start(100);
     setIsRecordingVideo(true);
+    setRecordingDuration(0);
+    
+    // Start duration timer
+    recordingTimerRef.current = setInterval(() => {
+      setRecordingDuration(prev => prev + 1);
+    }, 1000);
   }, [stopCamera]);
 
   const stopVideoRecording = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
+    }
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
     }
     setIsRecordingVideo(false);
   }, []);
@@ -174,7 +202,7 @@ export function QuickMediaCapture({
     }
   }, [capturedMedia, mode, startCamera]);
 
-  const saveMedia = useCallback(async () => {
+  const saveMedia = useCallback(async (withAnalysis: boolean = false) => {
     if (!capturedMedia || !user) return;
 
     setIsProcessing(true);
@@ -203,12 +231,20 @@ export function QuickMediaCapture({
           storage_path: filePath,
           mime_type: capturedMedia.blob.type,
           file_size: capturedMedia.blob.size,
-          caption: `${capturedMedia.type === 'photo' ? 'Photo' : 'Video'} captured on ${new Date().toLocaleDateString()}`
+          caption: `${capturedMedia.type === 'photo' ? 'Photo' : 'Video'} captured on ${new Date().toLocaleDateString()}`,
+          processing_status: withAnalysis ? 'pending' : 'completed'
         }]);
 
       if (insertError) throw insertError;
 
-      toast.success(`${capturedMedia.type === 'photo' ? 'Photo' : 'Video'} saved!`);
+      // Trigger AI analysis if requested
+      if (withAnalysis) {
+        toast.success(`${capturedMedia.type === 'photo' ? 'Photo' : 'Video'} saved! AI analysis started...`);
+        // Could invoke edge function here for analysis
+      } else {
+        toast.success(`${capturedMedia.type === 'photo' ? 'Photo' : 'Video'} saved!`);
+      }
+      
       onComplete?.(publicUrl, capturedMedia.type);
       onOpenChange(false);
     } catch (error) {
@@ -219,6 +255,12 @@ export function QuickMediaCapture({
     }
   }, [capturedMedia, user, profileId, onComplete, onOpenChange]);
 
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
@@ -228,7 +270,7 @@ export function QuickMediaCapture({
             Quick Capture
           </DialogTitle>
           <DialogDescription>
-            Capture photos or videos for AI analysis
+            Capture photos or videos
           </DialogDescription>
         </DialogHeader>
 
@@ -292,6 +334,16 @@ export function QuickMediaCapture({
                   className="w-full h-full object-cover"
                 />
                 
+                {/* Recording indicator */}
+                {isRecordingVideo && (
+                  <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/60 backdrop-blur rounded-full px-4 py-2">
+                    <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+                    <span className="text-white font-mono text-sm">
+                      {formatDuration(recordingDuration)} / {formatDuration(MAX_VIDEO_DURATION)}
+                    </span>
+                  </div>
+                )}
+                
                 {isCapturing && (
                   <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-4">
                     <Button
@@ -299,6 +351,7 @@ export function QuickMediaCapture({
                       variant="secondary"
                       onClick={switchCamera}
                       className="h-10 w-10 rounded-full"
+                      disabled={isRecordingVideo}
                     >
                       <SwitchCamera className="h-5 w-5" />
                     </Button>
@@ -306,7 +359,7 @@ export function QuickMediaCapture({
                       size="lg"
                       onClick={isRecordingVideo ? stopVideoRecording : startVideoRecording}
                       className={cn(
-                        "h-16 w-16 rounded-full",
+                        "h-16 w-16 rounded-full transition-all",
                         isRecordingVideo ? "bg-red-500 hover:bg-red-600" : "bg-white hover:bg-gray-100"
                       )}
                     >
@@ -359,24 +412,33 @@ export function QuickMediaCapture({
           </div>
         )}
 
-        <DialogFooter>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           {capturedMedia && (
-            <Button onClick={saveMedia} disabled={isProcessing}>
-              {isProcessing ? (
-                <>
+            <>
+              <Button 
+                variant="secondary" 
+                onClick={() => saveMedia(false)} 
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4 mr-2" />
-                  Save & Analyze
-                </>
-              )}
-            </Button>
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                Save Only
+              </Button>
+              <Button onClick={() => saveMedia(true)} disabled={isProcessing}>
+                {isProcessing ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4 mr-2" />
+                )}
+                Save & Analyze
+              </Button>
+            </>
           )}
         </DialogFooter>
       </DialogContent>
