@@ -940,6 +940,78 @@ export type Database = {
         }
         Relationships: []
       }
+      automation_rules: {
+        Row: {
+          action_config: Json
+          action_type: string
+          conditions: Json | null
+          cooldown_minutes: number | null
+          created_at: string | null
+          description: string | null
+          execution_count: number | null
+          failure_count: number | null
+          id: string
+          is_active: boolean | null
+          last_error: string | null
+          last_success_at: string | null
+          last_triggered_at: string | null
+          max_daily_executions: number | null
+          name: string
+          priority: number | null
+          success_count: number | null
+          trigger_config: Json
+          trigger_type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          action_config: Json
+          action_type: string
+          conditions?: Json | null
+          cooldown_minutes?: number | null
+          created_at?: string | null
+          description?: string | null
+          execution_count?: number | null
+          failure_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_error?: string | null
+          last_success_at?: string | null
+          last_triggered_at?: string | null
+          max_daily_executions?: number | null
+          name: string
+          priority?: number | null
+          success_count?: number | null
+          trigger_config: Json
+          trigger_type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          action_config?: Json
+          action_type?: string
+          conditions?: Json | null
+          cooldown_minutes?: number | null
+          created_at?: string | null
+          description?: string | null
+          execution_count?: number | null
+          failure_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_error?: string | null
+          last_success_at?: string | null
+          last_triggered_at?: string | null
+          max_daily_executions?: number | null
+          name?: string
+          priority?: number | null
+          success_count?: number | null
+          trigger_config?: Json
+          trigger_type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       batch_jobs: {
         Row: {
           actual_cost_cents: number | null
@@ -5284,6 +5356,99 @@ export type Database = {
           },
         ]
       }
+      context_snapshots: {
+        Row: {
+          activity_confidence: number | null
+          activity_type: string | null
+          ai_insights: Json | null
+          ambient_light_level: number | null
+          ambient_noise_level: number | null
+          battery_level: number | null
+          calendar_event_id: string | null
+          captured_at: string | null
+          connected_bluetooth_devices: Json | null
+          context_confidence: number | null
+          created_at: string | null
+          heart_rate: number | null
+          id: string
+          inferred_context: string | null
+          is_indoor: boolean | null
+          latitude: number | null
+          location_accuracy: number | null
+          location_name: string | null
+          location_type: string | null
+          longitude: number | null
+          nearby_contacts: Json | null
+          network_type: string | null
+          snapshot_type: string
+          step_count: number | null
+          stress_level: number | null
+          trigger_source: string | null
+          user_id: string
+          weather_conditions: Json | null
+        }
+        Insert: {
+          activity_confidence?: number | null
+          activity_type?: string | null
+          ai_insights?: Json | null
+          ambient_light_level?: number | null
+          ambient_noise_level?: number | null
+          battery_level?: number | null
+          calendar_event_id?: string | null
+          captured_at?: string | null
+          connected_bluetooth_devices?: Json | null
+          context_confidence?: number | null
+          created_at?: string | null
+          heart_rate?: number | null
+          id?: string
+          inferred_context?: string | null
+          is_indoor?: boolean | null
+          latitude?: number | null
+          location_accuracy?: number | null
+          location_name?: string | null
+          location_type?: string | null
+          longitude?: number | null
+          nearby_contacts?: Json | null
+          network_type?: string | null
+          snapshot_type: string
+          step_count?: number | null
+          stress_level?: number | null
+          trigger_source?: string | null
+          user_id: string
+          weather_conditions?: Json | null
+        }
+        Update: {
+          activity_confidence?: number | null
+          activity_type?: string | null
+          ai_insights?: Json | null
+          ambient_light_level?: number | null
+          ambient_noise_level?: number | null
+          battery_level?: number | null
+          calendar_event_id?: string | null
+          captured_at?: string | null
+          connected_bluetooth_devices?: Json | null
+          context_confidence?: number | null
+          created_at?: string | null
+          heart_rate?: number | null
+          id?: string
+          inferred_context?: string | null
+          is_indoor?: boolean | null
+          latitude?: number | null
+          location_accuracy?: number | null
+          location_name?: string | null
+          location_type?: string | null
+          longitude?: number | null
+          nearby_contacts?: Json | null
+          network_type?: string | null
+          snapshot_type?: string
+          step_count?: number | null
+          stress_level?: number | null
+          trigger_source?: string | null
+          user_id?: string
+          weather_conditions?: Json | null
+        }
+        Relationships: []
+      }
       conversation_analyses: {
         Row: {
           activity_heatmap: Json | null
@@ -8331,6 +8496,94 @@ export type Database = {
           },
         ]
       }
+      geofences: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          geofence_type: string | null
+          id: string
+          is_active: boolean | null
+          last_triggered_at: string | null
+          latitude: number
+          longitude: number
+          metadata: Json | null
+          name: string
+          notification_enabled: boolean | null
+          notification_message: string | null
+          profile_id: string | null
+          radius_meters: number
+          trigger_count: number | null
+          trigger_on_enter: boolean | null
+          trigger_on_exit: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          geofence_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_triggered_at?: string | null
+          latitude: number
+          longitude: number
+          metadata?: Json | null
+          name: string
+          notification_enabled?: boolean | null
+          notification_message?: string | null
+          profile_id?: string | null
+          radius_meters?: number
+          trigger_count?: number | null
+          trigger_on_enter?: boolean | null
+          trigger_on_exit?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          geofence_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_triggered_at?: string | null
+          latitude?: number
+          longitude?: number
+          metadata?: Json | null
+          name?: string
+          notification_enabled?: boolean | null
+          notification_message?: string | null
+          profile_id?: string | null
+          radius_meters?: number
+          trigger_count?: number | null
+          trigger_on_enter?: boolean | null
+          trigger_on_exit?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "geofences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "geofences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "geofences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gift_ideas: {
         Row: {
           ai_reasoning: string | null
@@ -9613,6 +9866,98 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      live_transcriptions: {
+        Row: {
+          audio_quality_score: number | null
+          created_at: string | null
+          id: string
+          is_commitment: boolean | null
+          is_question: boolean | null
+          keywords: string[] | null
+          language: string | null
+          match_confidence: number | null
+          matched_profile_id: string | null
+          recording_id: string | null
+          sentiment_score: number | null
+          session_id: string
+          speaker_label: string | null
+          text: string
+          timestamp_end: number | null
+          timestamp_start: number
+          user_id: string
+          word_count: number | null
+        }
+        Insert: {
+          audio_quality_score?: number | null
+          created_at?: string | null
+          id?: string
+          is_commitment?: boolean | null
+          is_question?: boolean | null
+          keywords?: string[] | null
+          language?: string | null
+          match_confidence?: number | null
+          matched_profile_id?: string | null
+          recording_id?: string | null
+          sentiment_score?: number | null
+          session_id: string
+          speaker_label?: string | null
+          text: string
+          timestamp_end?: number | null
+          timestamp_start: number
+          user_id: string
+          word_count?: number | null
+        }
+        Update: {
+          audio_quality_score?: number | null
+          created_at?: string | null
+          id?: string
+          is_commitment?: boolean | null
+          is_question?: boolean | null
+          keywords?: string[] | null
+          language?: string | null
+          match_confidence?: number | null
+          matched_profile_id?: string | null
+          recording_id?: string | null
+          sentiment_score?: number | null
+          session_id?: string
+          speaker_label?: string | null
+          text?: string
+          timestamp_end?: number | null
+          timestamp_start?: number
+          user_id?: string
+          word_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_transcriptions_matched_profile_id_fkey"
+            columns: ["matched_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "live_transcriptions_matched_profile_id_fkey"
+            columns: ["matched_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "live_transcriptions_matched_profile_id_fkey"
+            columns: ["matched_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_transcriptions_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_recordings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       local_ai_endpoints: {
         Row: {
@@ -11670,6 +12015,85 @@ export type Database = {
           version?: number
         }
         Relationships: []
+      }
+      proximity_events: {
+        Row: {
+          confidence: number | null
+          context_data: Json | null
+          created_at: string | null
+          detected_at: string | null
+          detected_profile_id: string | null
+          detection_method: string
+          device_info: Json | null
+          duration_seconds: number | null
+          ended_at: string | null
+          id: string
+          interaction_type: string | null
+          latitude: number | null
+          location_accuracy: number | null
+          location_name: string | null
+          longitude: number | null
+          user_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          context_data?: Json | null
+          created_at?: string | null
+          detected_at?: string | null
+          detected_profile_id?: string | null
+          detection_method: string
+          device_info?: Json | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          interaction_type?: string | null
+          latitude?: number | null
+          location_accuracy?: number | null
+          location_name?: string | null
+          longitude?: number | null
+          user_id: string
+        }
+        Update: {
+          confidence?: number | null
+          context_data?: Json | null
+          created_at?: string | null
+          detected_at?: string | null
+          detected_profile_id?: string | null
+          detection_method?: string
+          device_info?: Json | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          interaction_type?: string | null
+          latitude?: number | null
+          location_accuracy?: number | null
+          location_name?: string | null
+          longitude?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proximity_events_detected_profile_id_fkey"
+            columns: ["detected_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "proximity_events_detected_profile_id_fkey"
+            columns: ["detected_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "proximity_events_detected_profile_id_fkey"
+            columns: ["detected_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       psychological_profile_access_logs: {
         Row: {
