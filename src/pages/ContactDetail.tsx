@@ -20,6 +20,8 @@ import { ContactDetailHeader } from '@/components/contacts/ContactDetailHeader';
 import { ContactDetailContent } from '@/components/contacts/ContactDetailContent';
 import { MobileIntelSheet } from '@/components/mobile/MobileIntelSheet';
 import { MobileIntelActions } from '@/components/mobile/MobileIntelActions';
+import { ComprehensiveScanButton } from '@/components/intelligence/ComprehensiveScanButton';
+import { ComprehensiveIntelligenceScan } from '@/components/intelligence/ComprehensiveIntelligenceScan';
 import { cn } from '@/lib/utils';
 import { type SectionId, getCategoryForSection } from '@/lib/contactDetailCategories';
 import type { Tables } from '@/integrations/supabase/types';
@@ -295,6 +297,24 @@ export default function ContactDetail() {
         profileId={contact.id}
         profileName={contactName}
       />
+      
+      {/* Comprehensive Scan FAB (Mobile) */}
+      <ComprehensiveScanButton
+        profileId={contact.id}
+        profileName={contactName}
+        className="md:hidden"
+      />
+      
+      {/* Desktop Comprehensive Scan Card */}
+      {activeSection === 'unified-profile' && (
+        <div className="hidden md:block fixed bottom-6 right-6 z-40">
+          <ComprehensiveIntelligenceScan
+            profileId={contact.id}
+            profileName={contactName}
+            className="w-96 shadow-2xl"
+          />
+        </div>
+      )}
     </AppLayout>
   );
 }

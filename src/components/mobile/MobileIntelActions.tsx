@@ -9,7 +9,8 @@ import {
   X,
   ScanLine,
   Brain,
-  Globe
+  Globe,
+  Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { hapticFeedback } from '@/lib/nativeFeatures';
@@ -25,10 +26,12 @@ interface MobileIntelActionsProps {
   onScanDocument?: () => void;
   onEnrich?: () => void;
   onAnalyze?: () => void;
+  onFullScan?: () => void;
   className?: string;
 }
 
 const actions = [
+  { id: 'fullscan', icon: Zap, label: 'Full Scan', color: 'bg-gradient-to-r from-indigo-500 to-purple-500' },
   { id: 'photo', icon: Camera, label: 'Photo', color: 'bg-blue-500' },
   { id: 'video', icon: Video, label: 'Video', color: 'bg-red-500' },
   { id: 'voice', icon: Mic, label: 'Voice', color: 'bg-orange-500' },
@@ -46,6 +49,7 @@ export function MobileIntelActions({
   onScanDocument,
   onEnrich,
   onAnalyze,
+  onFullScan,
   className,
 }: MobileIntelActionsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -60,6 +64,9 @@ export function MobileIntelActions({
     setIsExpanded(false);
     
     switch (actionId) {
+      case 'fullscan':
+        onFullScan?.();
+        break;
       case 'photo':
         onCapturePhoto?.();
         break;

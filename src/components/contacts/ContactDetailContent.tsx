@@ -74,6 +74,7 @@ const ContactActivityHistory = lazy(() => import('@/components/contacts/ContactA
 const ContactGroupSelector = lazy(() => import('@/components/contacts/ContactGroupSelector').then(m => ({ default: m.ContactGroupSelector })));
 const ContactEnrichment = lazy(() => import('@/components/contacts/ContactEnrichment').then(m => ({ default: m.ContactEnrichment })));
 const ContactCommentsPanel = lazy(() => import('@/components/collaboration/ContactCommentsPanel').then(m => ({ default: m.ContactCommentsPanel })));
+const PreferencePredictionsPanel = lazy(() => import('@/components/intelligence/PreferencePredictionsPanel').then(m => ({ default: m.PreferencePredictionsPanel })));
 
 type Profile = Tables<'profiles'>;
 
@@ -176,7 +177,12 @@ export function ContactDetailContent({
       case 'inferred-connections':
         return <InferredConnectionsPanel profileId={contact.id} contactName={contactName} />;
       case 'predictions':
-        return <BehavioralPredictionsPanel profileId={contact.id} contactName={contactName} />;
+        return (
+          <div className="space-y-6">
+            <BehavioralPredictionsPanel profileId={contact.id} contactName={contactName} />
+            <PreferencePredictionsPanel profileId={contact.id} profileName={contactName} />
+          </div>
+        );
       case 'dossier':
         return <DossierGenerator profileId={contact.id} profileName={contactName} />;
       case 'network-intel':
