@@ -13,15 +13,11 @@ import { toast } from 'sonner';
 
 // Context types
 type ContextType = 
-  | 'meeting'
   | 'commute'
   | 'work'
   | 'social'
   | 'exercise'
   | 'rest'
-  | 'travel'
-  | 'shopping'
-  | 'dining'
   | 'unknown';
 
 interface ContextPrediction {
@@ -197,14 +193,11 @@ export function useContextEngine(): UseContextEngineReturn {
     // Generate suggested actions based on context
     const suggestedActions: string[] = [];
     switch (context) {
-      case 'meeting':
-        suggestedActions.push('Start recording', 'Take notes', 'Identify participants');
-        break;
       case 'commute':
         suggestedActions.push('Call a contact', 'Listen to voicemails', 'Review daily agenda');
         break;
       case 'work':
-        suggestedActions.push('Check pending follow-ups', 'Schedule meetings');
+        suggestedActions.push('Check pending follow-ups', 'Schedule meetings', 'Start recording');
         break;
       case 'social':
         suggestedActions.push('Capture moment', 'Tag contacts', 'Log interaction');
@@ -341,25 +334,26 @@ export function useContextEngine(): UseContextEngineReturn {
     // Get contacts that haven't been contacted recently
     const { data: staleContacts } = await supabase
       .from('profiles')
-      .select('id, full_name, last_contact_date')
+      .select('id, first_name, last_name, updated_at')
       .eq('user_id', user.id)
-      .order('last_contact_date', { ascending: true, nullsFirst: true })
+      .order('updated_at', { ascending: true, nullsFirst: true })
       .limit(5);
 
     if (staleContacts) {
-      for (const contact of staleContacts) {
-        const daysSinceContact = contact.last_contact_date
-          ? Math.floor((Date.now() - new Date(contact.last_contact_date).getTime()) / (1000 * 60 * 60 * 24))
+      for (const contact of staleContacts as any[]) {
+        const contactName = `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || 'Unknown';
+        const daysSinceContact = contact.updated_at
+          ? Math.floor((Date.now() - new Date(contact.updated_at).getTime()) / (1000 * 60 * 60 * 24))
           : 999;
 
         if (daysSinceContact > 30) {
           recs.push({
             id: `reconnect-${contact.id}`,
             type: 'contact',
-            title: `Reconnect with ${contact.full_name}`,
+            title: `Reconnect with ${contactName}`,
             description: `${daysSinceContact} days since last contact`,
             profileId: contact.id,
-            profileName: contact.full_name,
+            profileName: contactName,
             priority: daysSinceContact > 90 ? 'high' : 'medium',
             reason: currentContext.context === 'commute' 
               ? 'Good time to make a call during commute'
@@ -382,14 +376,14 @@ export function useContextEngine(): UseContextEngineReturn {
         });
         break;
 
-      case 'meeting':
+      case 'work':
         recs.push({
-          id: 'meeting-record',
+          id: 'work-record',
           type: 'capture',
           title: 'Start meeting recording',
           description: 'Capture meeting intelligence',
           priority: 'high',
-          reason: 'Meeting context detected'
+          reason: 'Work context detected'
         });
         break;
 

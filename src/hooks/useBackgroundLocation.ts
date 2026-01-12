@@ -196,13 +196,10 @@ export function useBackgroundLocation(
   ) => {
     if (!user) return;
 
-    // Update geofence trigger count
+    // Update geofence last triggered
     await supabase
       .from('geofences')
-      .update({
-        last_triggered_at: new Date().toISOString(),
-        trigger_count: supabase.rpc('increment', { row_id: geofence.id })
-      })
+      .update({ last_triggered_at: new Date().toISOString() })
       .eq('id', geofence.id);
 
     // Log proximity event if linked to contact
@@ -404,18 +401,17 @@ export function useBackgroundLocation(
 
     const nearby: Array<{ profileId: string; distance: number; name?: string }> = [];
 
-    contactGeofences.forEach(gf => {
+    contactGeofences.forEach((gf: any) => {
       const distance = nativeIntelligence.calculateDistance(
         currentLocation.latitude, currentLocation.longitude,
         gf.latitude, gf.longitude
       );
 
       if (distance < 1000) { // Within 1km
-        const contact = contacts.find(c => c.id === gf.profile_id);
         nearby.push({
           profileId: gf.profile_id!,
           distance,
-          name: contact?.full_name || undefined
+          name: gf.name || undefined
         });
       }
     });
