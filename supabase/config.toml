@@ -287,3 +287,12 @@ verify_jwt = false
 
 [functions.predict-contact-preferences]
 verify_jwt = false
+
+[functions.deep-intelligence-engine]
+verify_jwt = false
+
+[functions.cross-modal-deception-engine]
+verify_jwt = false
+
+[functions.predictive-trajectory-engine]
+verify_jwt = false
