@@ -16,6 +16,7 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { useBackgroundLocation } from '@/hooks/useBackgroundLocation';
 import { useContextEngine } from '@/hooks/useContextEngine';
+import { AppLayout } from '@/components/AppLayout';
 
 interface EcosystemService {
   id: string;
@@ -132,28 +133,9 @@ export default function MobileEcosystemPage() {
   const ecosystemProgress = (activeServices / services.length) * 100;
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Smartphone className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold">Mobile Ecosystem</h1>
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => navigate('/command-center')}
-            >
-              <Zap className="h-4 w-4 mr-2" />
-              Command Center
-            </Button>
-          </div>
-        </div>
-      </div>
+    <AppLayout title="Mobile Ecosystem">
+      <div className="space-y-6">
 
-      <div className="container mx-auto px-4 py-6 space-y-6">
         {/* Ecosystem Progress */}
         <Card className="border-border/50">
           <CardHeader className="pb-2">
@@ -296,6 +278,6 @@ export default function MobileEcosystemPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </AppLayout>
   );
 }

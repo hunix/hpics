@@ -16,13 +16,15 @@ import { ChromeExtensionPanel } from '@/components/devices/ChromeExtensionPanel'
 import { WearableSyncSettings } from '@/components/devices/WearableSyncSettings';
 import { NFCTagManager } from '@/components/devices/NFCTagManager';
 import { DeviceCapturesManager } from '@/components/capture/DeviceCapturesManager';
+import { AppLayout } from '@/components/AppLayout';
 
 export default function IntelligenceCenter() {
   const [activeTab, setActiveTab] = useState('overview');
 
   return (
-    <div className="container mx-auto p-4 md:p-6 max-w-7xl space-y-6">
-      {/* Header */}
+    <AppLayout title="Intelligence Center">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -185,6 +187,7 @@ export default function IntelligenceCenter() {
           </div>
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </AppLayout>
   );
 }

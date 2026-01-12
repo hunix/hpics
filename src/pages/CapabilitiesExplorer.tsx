@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
+import { AppLayout } from '@/components/AppLayout';
 
 interface Feature {
   id: string;
@@ -114,10 +115,11 @@ export default function CapabilitiesExplorer() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <AppLayout title="Capabilities Explorer">
+      <div className="space-y-6">
       {/* Header */}
-      <div className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-4">
+      <div className="sticky top-0 z-40 -mx-4 sm:-mx-6 -mt-4 sm:-mt-6 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="px-4 py-4">
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -152,8 +154,8 @@ export default function CapabilitiesExplorer() {
       </div>
 
       {/* Category Tabs */}
-      <div className="border-b border-border/30 bg-muted/20">
-        <div className="container mx-auto px-4">
+      <div className="-mx-4 sm:-mx-6 border-b border-border/30 bg-muted/20">
+        <div className="px-4">
           <ScrollArea className="w-full whitespace-nowrap">
             <div className="flex gap-2 py-3">
               {CATEGORIES.map(category => (
@@ -173,7 +175,7 @@ export default function CapabilitiesExplorer() {
       </div>
 
       {/* Features Grid */}
-      <div className="container mx-auto px-4 py-6">
+      <div>
         <AnimatePresence mode="popLayout">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredFeatures.map((feature, index) => (
@@ -259,6 +261,7 @@ export default function CapabilitiesExplorer() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </AppLayout>
   );
 }

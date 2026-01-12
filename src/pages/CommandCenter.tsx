@@ -16,6 +16,9 @@ import { ContextPanel } from '@/components/command/ContextPanel';
 import { useUnifiedIntelligence } from '@/hooks/useUnifiedIntelligence';
 import { useContextEngine } from '@/hooks/useContextEngine';
 import { cn } from '@/lib/utils';
+import { AppLayout } from '@/components/AppLayout';
+import { QuickVoiceRecorder } from '@/components/capture/QuickVoiceRecorder';
+import { QuickMediaCapture } from '@/components/capture/QuickMediaCapture';
 
 interface QuickAction {
   id: string;
@@ -31,16 +34,16 @@ export default function CommandCenter() {
   const { criticalCount, importantCount } = useUnifiedIntelligence();
   const { currentContext, confidence } = useContextEngine();
   const [isCapturing, setIsCapturing] = useState(false);
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
+  const [showMediaCapture, setShowMediaCapture] = useState(false);
 
   const handleCapture = useCallback(() => {
-    setIsCapturing(true);
-    // Trigger device camera/capture
-    setTimeout(() => setIsCapturing(false), 2000);
+    setShowMediaCapture(true);
   }, []);
 
   const handleRecord = useCallback(() => {
-    navigate('/analysis');
-  }, [navigate]);
+    setShowVoiceRecorder(true);
+  }, []);
 
   const handleScan = useCallback(() => {
     // Navigate to face scanner or trigger scan
@@ -106,10 +109,25 @@ export default function CommandCenter() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <AppLayout title="Command Center">
+      {/* Voice Recorder Dialog */}
+      <QuickVoiceRecorder 
+        open={showVoiceRecorder} 
+        onOpenChange={setShowVoiceRecorder}
+        onComplete={() => setShowVoiceRecorder(false)}
+      />
+      
+      {/* Media Capture Dialog */}
+      <QuickMediaCapture
+        open={showMediaCapture}
+        onOpenChange={setShowMediaCapture}
+        onComplete={() => setShowMediaCapture(false)}
+      />
+      
+      <div className="space-y-6">
       {/* Status Bar */}
-      <div className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-2">
+      <div className="sticky top-0 z-40 -mx-4 sm:-mx-6 -mt-4 sm:-mt-6 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="px-4 py-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
@@ -147,8 +165,8 @@ export default function CommandCenter() {
       </div>
 
       {/* Quick Action Ribbon */}
-      <div className="border-b border-border/30 bg-muted/30">
-        <div className="container mx-auto px-4 py-3">
+      <div className="-mx-4 sm:-mx-6 border-b border-border/30 bg-muted/30">
+        <div className="px-4 py-3">
           <div className="flex items-center gap-2 overflow-x-auto pb-1">
             {quickActions.map((action) => (
               <motion.div
@@ -193,7 +211,7 @@ export default function CommandCenter() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="container mx-auto px-4 py-6">
+      <div>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Priority Feed - Left Panel */}
           <div className="lg:col-span-7 xl:col-span-8">
@@ -250,6 +268,7 @@ export default function CommandCenter() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </AppLayout>
   );
 }
