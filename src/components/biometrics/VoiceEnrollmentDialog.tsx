@@ -348,7 +348,7 @@ export function VoiceEnrollmentDialog({
         .update({
           voice_embedding: serializeFingerprint(averagedFingerprint),
           voice_sample_count: samples.length,
-          voice_speaker_profile: {
+          voice_speaker_profile: JSON.parse(JSON.stringify({
             samples: samples.map(s => ({
               duration: s.duration,
               prompt: s.prompt,
@@ -356,7 +356,7 @@ export function VoiceEnrollmentDialog({
               capturedAt: s.timestamp.toISOString(),
             })),
             averagedFeatures: averagedFingerprint.features,
-          },
+          })),
           updated_at: new Date().toISOString(),
         })
         .eq('profile_id', profileId)

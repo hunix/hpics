@@ -95,7 +95,7 @@ export function ContactCapturesGallery({
         // Photos and videos from media table
         supabase
           .from('media')
-          .select('id, url, media_type, created_at, metadata')
+          .select('id, file_url, mime_type, created_at, ai_metadata')
           .eq('user_id', user.id)
           .eq('profile_id', profileId)
           .order('created_at', { ascending: false }),
@@ -103,7 +103,7 @@ export function ContactCapturesGallery({
         // Voice recordings
         supabase
           .from('voice_notes')
-          .select('id, storage_url, duration_seconds, created_at')
+          .select('id, file_url, duration_seconds, created_at')
           .eq('user_id', user.id)
           .eq('profile_id', profileId)
           .order('created_at', { ascending: false }),
@@ -114,13 +114,13 @@ export function ContactCapturesGallery({
       // Process media
       if (mediaResult.data) {
         for (const item of mediaResult.data) {
-          const type = (item.media_type as string)?.startsWith('video') ? 'video' : 'photo';
+          const type = (item.mime_type as string)?.startsWith('video') ? 'video' : 'photo';
           results.push({
             id: item.id,
             type,
-            url: item.url || '',
+            url: item.file_url || '',
             createdAt: item.created_at,
-            metadata: item.metadata as CapturedMedia['metadata'],
+            metadata: item.ai_metadata as CapturedMedia['metadata'],
             source: 'media',
           });
         }
@@ -132,7 +132,7 @@ export function ContactCapturesGallery({
           results.push({
             id: item.id,
             type: 'voice',
-            url: item.storage_url || '',
+            url: item.file_url || '',
             createdAt: item.created_at,
             metadata: { duration: item.duration_seconds || 0 },
             source: 'voice_notes',
