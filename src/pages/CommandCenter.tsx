@@ -17,8 +17,10 @@ import { useUnifiedIntelligence } from '@/hooks/useUnifiedIntelligence';
 import { useContextEngine } from '@/hooks/useContextEngine';
 import { cn } from '@/lib/utils';
 import { AppLayout } from '@/components/AppLayout';
-import { QuickVoiceRecorder } from '@/components/capture/QuickVoiceRecorder';
-import { QuickMediaCapture } from '@/components/capture/QuickMediaCapture';
+import { AdaptiveVoiceRecorder } from '@/components/capture/AdaptiveVoiceRecorder';
+import { AdaptiveMediaCapture } from '@/components/capture/AdaptiveMediaCapture';
+import { LiveFaceScanner } from '@/components/mobile/LiveFaceScanner';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 interface QuickAction {
   id: string;
@@ -36,6 +38,7 @@ export default function CommandCenter() {
   const [isCapturing, setIsCapturing] = useState(false);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [showMediaCapture, setShowMediaCapture] = useState(false);
+  const [showFaceScanner, setShowFaceScanner] = useState(false);
 
   const handleCapture = useCallback(() => {
     setShowMediaCapture(true);
@@ -46,9 +49,8 @@ export default function CommandCenter() {
   }, []);
 
   const handleScan = useCallback(() => {
-    // Navigate to face scanner or trigger scan
-    navigate('/contacts');
-  }, [navigate]);
+    setShowFaceScanner(true);
+  }, []);
 
   const handleSearch = useCallback(() => {
     navigate('/semantic-search');
@@ -110,19 +112,32 @@ export default function CommandCenter() {
 
   return (
     <AppLayout title="Command Center">
-      {/* Voice Recorder Dialog */}
-      <QuickVoiceRecorder 
+      {/* Voice Recorder - Adaptive (mobile fullscreen / desktop dialog) */}
+      <AdaptiveVoiceRecorder 
         open={showVoiceRecorder} 
         onOpenChange={setShowVoiceRecorder}
         onComplete={() => setShowVoiceRecorder(false)}
       />
       
-      {/* Media Capture Dialog */}
-      <QuickMediaCapture
+      {/* Media Capture - Adaptive (mobile fullscreen / desktop dialog) */}
+      <AdaptiveMediaCapture
         open={showMediaCapture}
         onOpenChange={setShowMediaCapture}
         onComplete={() => setShowMediaCapture(false)}
       />
+      
+      {/* Face Scanner Dialog */}
+      <Dialog open={showFaceScanner} onOpenChange={setShowFaceScanner}>
+        <DialogContent className="max-w-2xl p-0 overflow-hidden">
+          <LiveFaceScanner 
+            className="border-0"
+            onProfileMatch={(profileId) => {
+              setShowFaceScanner(false);
+              navigate(`/contacts/${profileId}`);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
       
       <div className="space-y-6">
       {/* Status Bar */}
