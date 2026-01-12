@@ -22,6 +22,12 @@ export interface PoseGuidance {
   deviation: number; // Degrees from ideal
 }
 
+export interface GuidanceResult {
+  instruction: string;
+  targetAngle: string;
+  isAligned: boolean;
+}
+
 // Ideal angles for enrollment
 const IDEAL_POSES: Record<string, { yaw: number; pitch: number }> = {
   front: { yaw: 0, pitch: 0 },
@@ -131,45 +137,58 @@ export function estimateHeadPose(
 /**
  * Get guidance for achieving a target pose
  */
-export function getGuidance(
-  currentPose: HeadPose,
-  targetAngle: 'front' | 'left' | 'right' | 'up' | 'down'
-): PoseGuidance {
-  const ideal = IDEAL_POSES[targetAngle];
+export function getAngleGuidance(
+  pose: HeadPose,
+  coverage: { front: boolean; left: boolean; right: boolean; up: boolean; down: boolean }
+): GuidanceResult {
+  // Determine which angles are still needed
+  const needed: string[] = [];
+  if (!coverage.front) needed.push('front');
+  if (!coverage.left) needed.push('left');
+  if (!coverage.right) needed.push('right');
+  if (!coverage.up) needed.push('up');
+  if (!coverage.down) needed.push('down');
   
-  const yawDiff = ideal.yaw - currentPose.yaw;
-  const pitchDiff = ideal.pitch - currentPose.pitch;
-  
-  const deviation = Math.sqrt(yawDiff * yawDiff + pitchDiff * pitchDiff);
-  const progress = Math.max(0, 1 - deviation / 45);
-  const isStable = deviation < ANGLE_TOLERANCE && Math.abs(currentPose.roll) < 10;
-
-  let instruction = '';
-  
-  if (deviation < ANGLE_TOLERANCE) {
-    instruction = 'Perfect! Hold still...';
-  } else {
-    const parts: string[] = [];
-    
-    if (Math.abs(yawDiff) > 5) {
-      parts.push(yawDiff > 0 ? 'Turn left' : 'Turn right');
-    }
-    if (Math.abs(pitchDiff) > 5) {
-      parts.push(pitchDiff > 0 ? 'Look down' : 'Look up');
-    }
-    if (Math.abs(currentPose.roll) > 10) {
-      parts.push(currentPose.roll > 0 ? 'Tilt head left' : 'Tilt head right');
-    }
-    
-    instruction = parts.length > 0 ? parts.join(' and ') : 'Adjust position';
+  if (needed.length === 0) {
+    return { instruction: 'All angles captured!', targetAngle: 'front', isAligned: true };
   }
-
+  
+  const target = needed[0];
+  const instructions: Record<string, string> = {
+    front: 'Look straight at the camera',
+    left: 'Turn your head to the left',
+    right: 'Turn your head to the right',
+    up: 'Look slightly upward',
+    down: 'Look slightly downward',
+  };
+  
   return {
-    angle: targetAngle,
+    instruction: instructions[target] || 'Hold steady',
+    targetAngle: target,
+    isAligned: false,
+  };
+}
+
+export function getGuidance(
+  pose: HeadPose,
+  targetYaw: number = 0,
+  targetPitch: number = 0
+): GuidanceResult {
+  const yawDiff = Math.abs(pose.yaw - targetYaw);
+  const pitchDiff = Math.abs(pose.pitch - targetPitch);
+  const isAligned = yawDiff < 15 && pitchDiff < 15;
+  
+  let instruction = 'Hold steady';
+  if (yawDiff > 15) {
+    instruction = pose.yaw < targetYaw ? 'Turn right' : 'Turn left';
+  } else if (pitchDiff > 15) {
+    instruction = pose.pitch < targetPitch ? 'Look down' : 'Look up';
+  }
+  
+  return {
     instruction,
-    progress,
-    isStable,
-    deviation,
+    targetAngle: 'front',
+    isAligned,
   };
 }
 
