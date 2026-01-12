@@ -353,3 +353,18 @@ verify_jwt = false
 
 [functions.churn-prediction-engine]
 verify_jwt = false
+
+[functions.correlate-location-contacts]
+verify_jwt = false
+
+[functions.analyze-communication-patterns]
+verify_jwt = false
+
+[functions.infer-social-context]
+verify_jwt = false
+
+[functions.predict-context]
+verify_jwt = false
+
+[functions.learn-biometric-patterns]
+verify_jwt = false
