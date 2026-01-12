@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useComprehensiveScan } from '@/hooks/useComprehensiveScan';
 import { ArrowLeft, User, ChevronRight } from 'lucide-react';
 import { ContactDialog } from '@/components/contacts/ContactDialog';
 import { DeepIntelligencePanel } from '@/components/intelligence/DeepIntelligencePanel';
@@ -152,6 +153,9 @@ export default function ContactDetail() {
 
   const contactName = contact ? `${contact.first_name} ${contact.last_name || ''}`.trim() : '';
   const activeCategory = getCategoryForSection(activeSection);
+  
+  // Initialize comprehensive scan hook
+  const { startScan } = useComprehensiveScan(id || '');
 
   if (isLoading) {
     return (
@@ -296,6 +300,7 @@ export default function ContactDetail() {
       <MobileIntelActions 
         profileId={contact.id}
         profileName={contactName}
+        onFullScan={() => startScan('mobile')}
       />
       
       {/* Comprehensive Scan FAB (Mobile) */}

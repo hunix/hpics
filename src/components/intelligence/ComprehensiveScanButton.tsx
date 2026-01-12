@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { ScanLine, X, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { ScanLine, X, Loader2, CheckCircle, AlertCircle, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { hapticFeedback } from '@/lib/nativeFeatures';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useComprehensiveScan } from '@/hooks/useComprehensiveScan';
+import { MobileIntelligenceReport } from '@/components/reports/MobileIntelligenceReport';
 
 interface ComprehensiveScanButtonProps {
   profileId: string;
@@ -32,6 +34,7 @@ export function ComprehensiveScanButton({
   className,
 }: ComprehensiveScanButtonProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showReport, setShowReport] = useState(false);
   const { 
     isScanning, 
     progress, 
@@ -41,6 +44,8 @@ export function ComprehensiveScanButton({
     startScan, 
     cancelScan 
   } = useComprehensiveScan(profileId);
+  
+  const scanComplete = progress === 100 && !isScanning;
 
   const handleToggle = async () => {
     await hapticFeedback('medium');
@@ -164,7 +169,18 @@ export function ComprehensiveScanButton({
 
               {/* Actions */}
               <div className="p-4 border-t bg-muted/30 flex gap-2">
-                {!isScanning ? (
+                {scanComplete ? (
+                  <Button
+                    className="flex-1"
+                    onClick={() => {
+                      setShowReport(true);
+                      setIsExpanded(false);
+                    }}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    View Report
+                  </Button>
+                ) : !isScanning ? (
                   <Button
                     className="flex-1"
                     onClick={handleStartScan}
@@ -228,6 +244,20 @@ export function ComprehensiveScanButton({
           />
         </svg>
       )}
+      
+      {/* Intelligence Report Sheet */}
+      <Sheet open={showReport} onOpenChange={setShowReport}>
+        <SheetContent side="bottom" className="h-[90vh] p-0">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Intelligence Report</SheetTitle>
+          </SheetHeader>
+          <MobileIntelligenceReport 
+            profileId={profileId} 
+            profileName={profileName}
+            onClose={() => setShowReport(false)}
+          />
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
