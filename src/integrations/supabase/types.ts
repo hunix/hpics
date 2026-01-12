@@ -1633,6 +1633,64 @@ export type Database = {
         }
         Relationships: []
       }
+      bluetooth_devices: {
+        Row: {
+          created_at: string | null
+          device_id: string
+          device_name: string | null
+          device_type: string | null
+          id: string
+          last_seen_at: string | null
+          profile_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_id: string
+          device_name?: string | null
+          device_type?: string | null
+          id?: string
+          last_seen_at?: string | null
+          profile_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          device_id?: string
+          device_name?: string | null
+          device_type?: string | null
+          id?: string
+          last_seen_at?: string | null
+          profile_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bluetooth_devices_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "bluetooth_devices_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "bluetooth_devices_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       body_language_analyses: {
         Row: {
           ai_model_used: string | null
@@ -6415,6 +6473,85 @@ export type Database = {
           {
             foreignKeyName: "device_captures_profile_id_fkey"
             columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      device_contacts: {
+        Row: {
+          birthday: string | null
+          created_at: string | null
+          emails: string[] | null
+          has_photo: boolean | null
+          id: string
+          linked_profile_id: string | null
+          name: string
+          notes: string | null
+          organization: string | null
+          phone_contact_id: string
+          phones: string[] | null
+          photo_base64: string | null
+          synced_at: string | null
+          title: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          birthday?: string | null
+          created_at?: string | null
+          emails?: string[] | null
+          has_photo?: boolean | null
+          id?: string
+          linked_profile_id?: string | null
+          name: string
+          notes?: string | null
+          organization?: string | null
+          phone_contact_id: string
+          phones?: string[] | null
+          photo_base64?: string | null
+          synced_at?: string | null
+          title?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          birthday?: string | null
+          created_at?: string | null
+          emails?: string[] | null
+          has_photo?: boolean | null
+          id?: string
+          linked_profile_id?: string | null
+          name?: string
+          notes?: string | null
+          organization?: string | null
+          phone_contact_id?: string
+          phones?: string[] | null
+          photo_base64?: string | null
+          synced_at?: string | null
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_contacts_linked_profile_id_fkey"
+            columns: ["linked_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "device_contacts_linked_profile_id_fkey"
+            columns: ["linked_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "device_contacts_linked_profile_id_fkey"
+            columns: ["linked_profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

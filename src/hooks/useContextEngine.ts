@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { nativeIntelligence, ContextSnapshot, ActivityState, LocationData } from '@/lib/mobile/nativeIntelligence';
 import { useBackgroundLocation } from './useBackgroundLocation';
