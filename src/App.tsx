@@ -50,6 +50,9 @@ const IntelligenceCenter = lazy(() => import("./pages/IntelligenceCenter"));
 const IntelligenceCommandCenter = lazy(() => import("./pages/IntelligenceCommandCenter"));
 const AIChat = lazy(() => import("./pages/AIChat"));
 const ShareReceive = lazy(() => import("./pages/ShareReceive"));
+const CommandCenter = lazy(() => import("./pages/CommandCenter"));
+const CapabilitiesExplorer = lazy(() => import("./pages/CapabilitiesExplorer"));
+const MobileEcosystemPage = lazy(() => import("./pages/MobileEcosystemPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -110,6 +113,9 @@ const App = () => (
                         <Route path="/intelligence/command-center" element={<IntelligenceCommandCenter />} />
                         <Route path="/ai-chat" element={<AIChat />} />
                         <Route path="/share-receive" element={<ShareReceive />} />
+                        <Route path="/command-center" element={<CommandCenter />} />
+                        <Route path="/capabilities" element={<CapabilitiesExplorer />} />
+                        <Route path="/mobile/ecosystem" element={<MobileEcosystemPage />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                     </Suspense>
