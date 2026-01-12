@@ -3,22 +3,19 @@
  * Real-time updates, grouped by urgency tier, one-tap actions
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   AlertTriangle, 
   Clock, 
   Users, 
-  Calendar, 
   Brain, 
-  Shield,
-  ChevronRight,
-  Bell,
   Zap,
-  Eye,
   Check,
-  X
+  X,
+  Bell,
+  Lightbulb
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -27,9 +24,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { 
   useUnifiedIntelligence, 
-  UnifiedIntelligenceItem, 
-  PriorityLevel,
-  IntelligenceCategory 
+  IntelligenceItem,
+  PriorityTier,
+  IntelligenceItemType
 } from '@/hooks/useUnifiedIntelligence';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -37,50 +34,37 @@ interface PriorityFeedProps {
   className?: string;
   showHeader?: boolean;
   maxHeight?: string;
-  onItemClick?: (item: UnifiedIntelligenceItem) => void;
+  onItemClick?: (item: IntelligenceItem) => void;
 }
 
-const CATEGORY_ICONS: Record<IntelligenceCategory, typeof AlertTriangle> = {
+const CATEGORY_ICONS: Record<IntelligenceItemType, typeof AlertTriangle> = {
   decay_alert: AlertTriangle,
   anomaly: Brain,
   proximity: Users,
-  calendar: Calendar,
-  insight: Zap,
   action_item: Check,
-  follow_up: Clock,
-  biometric_match: Eye,
-  security_alert: Shield,
+  recommendation: Lightbulb,
 };
 
-const CATEGORY_COLORS: Record<IntelligenceCategory, string> = {
+const CATEGORY_COLORS: Record<IntelligenceItemType, string> = {
   decay_alert: 'text-orange-500',
   anomaly: 'text-violet-500',
   proximity: 'text-blue-500',
-  calendar: 'text-emerald-500',
-  insight: 'text-amber-500',
   action_item: 'text-green-500',
-  follow_up: 'text-cyan-500',
-  biometric_match: 'text-pink-500',
-  security_alert: 'text-red-500',
+  recommendation: 'text-amber-500',
 };
 
-const PRIORITY_STYLES: Record<PriorityLevel, { bg: string; border: string; badge: string }> = {
+const PRIORITY_STYLES: Record<PriorityTier, { bg: string; border: string; badge: string }> = {
   critical: {
     bg: 'bg-red-500/10',
     border: 'border-red-500/30',
     badge: 'bg-red-500 text-white',
   },
-  high: {
+  important: {
     bg: 'bg-orange-500/10',
     border: 'border-orange-500/30',
     badge: 'bg-orange-500 text-white',
   },
-  medium: {
-    bg: 'bg-yellow-500/10',
-    border: 'border-yellow-500/30',
-    badge: 'bg-yellow-500 text-black',
-  },
-  low: {
+  informational: {
     bg: 'bg-muted/50',
     border: 'border-border',
     badge: 'bg-muted text-muted-foreground',
@@ -92,12 +76,12 @@ function FeedItem({
   onAction,
   onDismiss 
 }: { 
-  item: UnifiedIntelligenceItem; 
+  item: IntelligenceItem; 
   onAction: () => void;
   onDismiss: () => void;
 }) {
-  const Icon = CATEGORY_ICONS[item.category];
-  const colorClass = CATEGORY_COLORS[item.category];
+  const Icon = CATEGORY_ICONS[item.type];
+  const colorClass = CATEGORY_COLORS[item.type];
   const priorityStyle = PRIORITY_STYLES[item.priority];
 
   return (
@@ -115,9 +99,8 @@ function FeedItem({
     >
       <div className="flex items-start gap-3">
         {/* Avatar or Icon */}
-        {item.profileAvatar || item.profileName ? (
+        {item.profileName ? (
           <Avatar className="h-10 w-10 flex-shrink-0">
-            <AvatarImage src={item.profileAvatar} />
             <AvatarFallback className="bg-primary/10 text-primary text-sm">
               {item.profileName?.charAt(0) || '?'}
             </AvatarFallback>
@@ -151,7 +134,7 @@ function FeedItem({
 
         {/* Actions */}
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          {item.actionLabel && (
+          {item.actions && item.actions.length > 0 && (
             <Button 
               size="sm" 
               variant="secondary" 
@@ -161,7 +144,7 @@ function FeedItem({
                 onAction();
               }}
             >
-              {item.actionLabel}
+              {item.actions[0].label}
             </Button>
           )}
           <Button
@@ -187,18 +170,17 @@ function PrioritySection({
   onItemAction,
   onItemDismiss
 }: { 
-  priority: PriorityLevel; 
-  items: UnifiedIntelligenceItem[];
-  onItemAction: (item: UnifiedIntelligenceItem) => void;
-  onItemDismiss: (item: UnifiedIntelligenceItem) => void;
+  priority: PriorityTier; 
+  items: IntelligenceItem[];
+  onItemAction: (item: IntelligenceItem) => void;
+  onItemDismiss: (item: IntelligenceItem) => void;
 }) {
   if (items.length === 0) return null;
 
-  const labels: Record<PriorityLevel, string> = {
+  const labels: Record<PriorityTier, string> = {
     critical: 'Requires Immediate Attention',
-    high: 'Important',
-    medium: 'Informational',
-    low: 'Low Priority',
+    important: 'Important',
+    informational: 'Informational',
   };
 
   return (
@@ -207,9 +189,8 @@ function PrioritySection({
         <div className={cn(
           'h-2 w-2 rounded-full',
           priority === 'critical' && 'bg-red-500 animate-pulse',
-          priority === 'high' && 'bg-orange-500',
-          priority === 'medium' && 'bg-yellow-500',
-          priority === 'low' && 'bg-muted-foreground'
+          priority === 'important' && 'bg-orange-500',
+          priority === 'informational' && 'bg-muted-foreground'
         )} />
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
           {labels[priority]}
@@ -239,19 +220,29 @@ export function PriorityFeed({
   onItemClick 
 }: PriorityFeedProps) {
   const navigate = useNavigate();
-  const { groupedByPriority, stats } = useUnifiedIntelligence({ limit: 30 });
+  const { items, criticalCount, importantCount, dismissItem } = useUnifiedIntelligence();
 
-  const handleItemAction = (item: UnifiedIntelligenceItem) => {
+  // Group items by priority
+  const groupedByPriority = useMemo(() => {
+    return {
+      critical: items.filter(i => i.priority === 'critical'),
+      important: items.filter(i => i.priority === 'important'),
+      informational: items.filter(i => i.priority === 'informational'),
+    };
+  }, [items]);
+
+  const totalCount = items.length;
+
+  const handleItemAction = (item: IntelligenceItem) => {
     if (onItemClick) {
       onItemClick(item);
-    } else if (item.actionUrl) {
-      navigate(item.actionUrl);
+    } else if (item.profileId) {
+      navigate(`/contacts/${item.profileId}`);
     }
   };
 
-  const handleItemDismiss = (item: UnifiedIntelligenceItem) => {
-    // TODO: Implement dismiss logic (mark as read, snooze, etc.)
-    console.log('Dismiss:', item.id);
+  const handleItemDismiss = (item: IntelligenceItem) => {
+    dismissItem(item.id);
   };
 
   return (
@@ -261,9 +252,9 @@ export function PriorityFeed({
           <div className="flex items-center gap-2">
             <Bell className="h-4 w-4 text-primary" />
             <h3 className="font-semibold">Priority Feed</h3>
-            {stats.critical > 0 && (
+            {criticalCount > 0 && (
               <Badge variant="destructive" className="animate-pulse">
-                {stats.critical} urgent
+                {criticalCount} urgent
               </Badge>
             )}
           </div>
@@ -275,7 +266,7 @@ export function PriorityFeed({
 
       <ScrollArea className="flex-1" style={{ maxHeight }}>
         <div className="space-y-4 pr-4 py-3">
-          {stats.total === 0 ? (
+          {totalCount === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p className="text-sm">All caught up!</p>
@@ -290,20 +281,14 @@ export function PriorityFeed({
                 onItemDismiss={handleItemDismiss}
               />
               <PrioritySection
-                priority="high"
-                items={groupedByPriority.high}
+                priority="important"
+                items={groupedByPriority.important}
                 onItemAction={handleItemAction}
                 onItemDismiss={handleItemDismiss}
               />
               <PrioritySection
-                priority="medium"
-                items={groupedByPriority.medium}
-                onItemAction={handleItemAction}
-                onItemDismiss={handleItemDismiss}
-              />
-              <PrioritySection
-                priority="low"
-                items={groupedByPriority.low}
+                priority="informational"
+                items={groupedByPriority.informational}
                 onItemAction={handleItemAction}
                 onItemDismiss={handleItemDismiss}
               />
