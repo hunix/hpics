@@ -9,8 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { useComprehensiveScan } from '@/hooks/useComprehensiveScan';
+import { DesktopIntelligenceReport } from '@/components/reports/DesktopIntelligenceReport';
 import { formatDistanceToNow } from 'date-fns';
 
 interface ComprehensiveIntelligenceScanProps {
@@ -38,6 +40,7 @@ export function ComprehensiveIntelligenceScan({
   className,
 }: ComprehensiveIntelligenceScanProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showReport, setShowReport] = useState(false);
   const { 
     isScanning, 
     progress, 
@@ -54,6 +57,7 @@ export function ComprehensiveIntelligenceScan({
   const completedCount = stagesCompleted.length;
   const totalStages = SCAN_STAGES.length;
   const coveragePercent = Math.round((completedCount / totalStages) * 100);
+  const scanComplete = progress === 100 && !isScanning;
 
   return (
     <Card className={cn("overflow-hidden", className)}>
@@ -170,7 +174,15 @@ export function ComprehensiveIntelligenceScan({
 
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">
-          {!isScanning ? (
+          {scanComplete ? (
+            <Button 
+              className="flex-1" 
+              onClick={() => setShowReport(true)}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              View Report
+            </Button>
+          ) : !isScanning ? (
             <Button 
               className="flex-1" 
               onClick={() => startScan('desktop')}
@@ -198,6 +210,19 @@ export function ComprehensiveIntelligenceScan({
           )}
         </div>
       </CardContent>
+      
+      {/* Intelligence Report Dialog */}
+      <Dialog open={showReport} onOpenChange={setShowReport}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Intelligence Report: {profileName}</DialogTitle>
+          </DialogHeader>
+          <DesktopIntelligenceReport 
+            profileId={profileId} 
+            profileName={profileName}
+          />
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
