@@ -296,3 +296,21 @@ verify_jwt = false
 
 [functions.predictive-trajectory-engine]
 verify_jwt = false
+
+[functions.analyze-romantic-intelligence]
+verify_jwt = false
+
+[functions.analyze-community-class]
+verify_jwt = false
+
+[functions.behavioral-dna-sequencer]
+verify_jwt = false
+
+[functions.detect-shadow-networks]
+verify_jwt = false
+
+[functions.fortune-trajectory-engine]
+verify_jwt = false
+
+[functions.manipulation-vulnerability-assessment]
+verify_jwt = false
