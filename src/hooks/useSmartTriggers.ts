@@ -206,12 +206,13 @@ export function useSmartTriggers(): UseSmartTriggersReturn {
 
         case 'log_interaction':
           if (user && context.profileId) {
-            await supabase.from('interactions').insert({
+            await supabase.from('proximity_events').insert({
               user_id: user.id,
-              profile_id: context.profileId,
-              interaction_type: rule.actionConfig.interactionType || 'automated',
-              notes: rule.actionConfig.notes || `Triggered by: ${rule.name}`,
-              occurred_at: new Date().toISOString()
+              detected_profile_id: context.profileId,
+              detection_method: 'automation',
+              confidence: 1.0,
+              interaction_type: 'active',
+              context_data: { trigger: rule.name }
             });
           }
           return { success: true };
@@ -323,20 +324,20 @@ export function useSmartTriggers(): UseSmartTriggersReturn {
   ): Promise<string | null> => {
     if (!user) return null;
 
-    const { data, error } = await supabase.from('automation_rules').insert({
+    const { data, error } = await supabase.from('automation_rules').insert([{
       user_id: user.id,
       name: rule.name,
       description: rule.description,
       trigger_type: rule.triggerType,
       trigger_config: rule.triggerConfig,
-      conditions: rule.conditions,
+      conditions: JSON.parse(JSON.stringify(rule.conditions)),
       action_type: rule.actionType,
       action_config: rule.actionConfig,
       is_active: rule.isActive,
       cooldown_minutes: rule.cooldownMinutes,
       max_daily_executions: rule.maxDailyExecutions,
       priority: rule.priority
-    }).select().single();
+    }]).select().single();
 
     if (error) {
       toast.error('Failed to create rule');

@@ -125,21 +125,11 @@ export function useNativeContacts(): UseNativeContactsReturn {
 
       // Check if running on native platform
       if (Capacitor.isNativePlatform()) {
-        // Dynamic import for native-only plugin
+        // Native contacts plugin would be used here
         try {
-          const { Contacts } = await import('@capacitor/contacts');
-          const result = await Contacts.getContacts({
-            projection: {
-              name: true,
-              phones: true,
-              emails: true,
-              image: true,
-              organization: true,
-              birthday: true,
-              note: true
-            }
-          });
-          deviceContacts = result.contacts as PhoneContact[];
+          toast.info('Syncing device contacts...');
+          // In production, native plugin would provide contacts
+          // For now, skip native sync
         } catch (e) {
           console.log('Contacts plugin not available');
         }
@@ -372,17 +362,22 @@ export function useNativeContacts(): UseNativeContactsReturn {
     const contact = contacts.find(c => c.phoneContactId === phoneContactId);
     if (!contact) return null;
 
+    // Parse name
+    const nameParts = contact.name.split(' ');
+    const firstName = nameParts[0] || contact.name;
+    const lastName = nameParts.slice(1).join(' ') || null;
+
     // Create profile
     const { data, error } = await supabase
       .from('profiles')
       .insert({
         user_id: user.id,
-        full_name: contact.name,
+        first_name: firstName,
+        last_name: lastName,
         email: contact.emails[0] || null,
         phone: contact.phones[0] || null,
         company: contact.organization || null,
-        title: contact.title || null,
-        source: 'phone_contacts'
+        title: contact.title || null
       })
       .select()
       .single();

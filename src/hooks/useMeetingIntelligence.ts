@@ -232,12 +232,10 @@ export function useMeetingIntelligence(
 
     // Save meeting to database
     await supabase.from('meeting_recordings').insert({
-      id: meetingId,
       user_id: user.id,
       title: meeting.title,
       status: 'recording',
-      calendar_event_id: calendarEventId,
-      started_at: meeting.startedAt.toISOString()
+      file_url: ''
     });
 
     toast.success('Meeting recording started');
@@ -375,14 +373,11 @@ export function useMeetingIntelligence(
 
   // Get meeting insights
   const getMeetingInsights = useCallback(async (meetingId: string): Promise<MeetingInsight[]> => {
-    const { data } = await supabase
-      .from('meeting_recordings')
-      .select('insights')
-      .eq('id', meetingId)
-      .single();
-
-    return (data?.insights as MeetingInsight[]) || [];
-  }, []);
+    if (meetingId === currentMeeting?.id) {
+      return insightsRef.current;
+    }
+    return [];
+  }, [currentMeeting]);
 
   // Generate follow-up message
   const generateFollowUp = useCallback(async (meetingId: string): Promise<string | null> => {

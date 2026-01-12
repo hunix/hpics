@@ -183,18 +183,18 @@ export function useGalleryMonitor(
 
       // Store in database if faces were detected
       if (detectedFaces.length > 0 && linkedProfiles.length > 0) {
-        // Link to profiles
+        // Log as proximity events
         for (const profileId of linkedProfiles) {
-          await supabase.from('media').insert({
+          await supabase.from('proximity_events').insert({
             user_id: user.id,
-            profile_id: profileId,
-            media_type: 'image',
-            storage_path: photoPath,
-            source: 'gallery_auto',
-            ai_analysis: {
+            detected_profile_id: profileId,
+            detection_method: 'face',
+            confidence: 0.9,
+            interaction_type: 'passive',
+            context_data: {
               auto_detected: true,
               faces_count: detectedFaces.length,
-              matched_at: new Date().toISOString()
+              source: 'gallery_auto'
             }
           });
         }
@@ -273,17 +273,17 @@ export function useGalleryMonitor(
     if (!photo) return false;
 
     try {
-      // Create media record
-      await supabase.from('media').insert({
+      // Log as proximity event
+      await supabase.from('proximity_events').insert({
         user_id: user.id,
-        profile_id: profileId,
-        media_type: 'image',
-        storage_path: photo.filepath,
-        source: 'gallery_manual',
-        ai_analysis: {
+        detected_profile_id: profileId,
+        detection_method: 'face',
+        confidence: 1.0,
+        interaction_type: 'active',
+        context_data: {
           manual_tag: true,
           face_index: faceIndex,
-          tagged_at: new Date().toISOString()
+          source: 'gallery_manual'
         }
       });
 

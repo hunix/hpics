@@ -223,10 +223,10 @@ export function useBluetoothProximity(
       // Initialize BLE
       await BleClient.initialize();
 
-      // Request permissions
-      const hasPermission = await BleClient.requestPermissions();
-      if (!hasPermission) {
-        toast.error('Bluetooth permission denied');
+      // Check if Bluetooth is enabled
+      const isEnabled = await BleClient.isEnabled();
+      if (!isEnabled) {
+        toast.error('Please enable Bluetooth');
         return false;
       }
 
@@ -317,10 +317,11 @@ export function useBluetoothProximity(
     if (!error) {
       setRegisteredDevices(prev => {
         const existing = prev.findIndex(d => d.deviceId === deviceId);
+        const profileName = profile ? `${(profile as any).first_name || ''} ${(profile as any).last_name || ''}`.trim() || 'Unknown' : 'Unknown';
         const newDevice = {
           deviceId,
           profileId,
-          profileName: profile?.full_name || 'Unknown',
+          profileName,
           deviceName
         };
         
