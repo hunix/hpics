@@ -3,6 +3,7 @@ import {
   Upload, Settings, Network, CalendarDays, Video, Scan, BarChart3, FileBarChart, 
   UsersRound, Download, Shield, Waypoints, Sparkles, ShieldAlert, Activity, 
   Layers, Cpu, DollarSign, Home, Briefcase, Eye, AlertTriangle, Lock,
+  Zap, Compass, Smartphone,
   type LucideIcon
 } from 'lucide-react';
 import type { AppRole, ClearanceLevel } from '@/hooks/useClearance';
@@ -116,6 +117,16 @@ export const categoryConfig: Record<NavCategory, {
 // All navigation items with role/clearance requirements
 export const navigationItems: NavItem[] = [
   // Command Center
+  {
+    id: 'command-center',
+    title: 'Command Center',
+    url: '/command-center',
+    icon: Zap,
+    description: 'Unified mission control hub',
+    badge: 'new',
+    category: 'command',
+    keywords: ['command', 'hub', 'mission', 'control', 'priority'],
+  },
   {
     id: 'dashboard',
     title: 'Dashboard',
@@ -319,6 +330,25 @@ export const navigationItems: NavItem[] = [
   },
   
   // System
+  {
+    id: 'capabilities',
+    title: 'Capabilities',
+    url: '/capabilities',
+    icon: Compass,
+    description: 'Explore all system features',
+    category: 'system',
+    keywords: ['capabilities', 'features', 'explore', 'discover'],
+  },
+  {
+    id: 'mobile-ecosystem',
+    title: 'Mobile Ecosystem',
+    url: '/mobile/ecosystem',
+    icon: Smartphone,
+    description: 'Mobile intelligence services',
+    badge: 'new',
+    category: 'system',
+    keywords: ['mobile', 'ecosystem', 'bluetooth', 'location', 'ambient'],
+  },
   {
     id: 'system-health',
     title: 'System Health',
