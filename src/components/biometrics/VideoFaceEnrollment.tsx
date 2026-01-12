@@ -13,8 +13,8 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { offlineMLService, type EnhancedFaceDetection } from '@/lib/offlineMLService';
-import { getAngleGuidance, type HeadPose } from '@/lib/headPoseEstimation';
+import { offlineMLService, type EnhancedFaceDetection, type HeadPose } from '@/lib/offlineMLService';
+import { getAngleGuidance } from '@/lib/headPoseEstimation';
 import { cn } from '@/lib/utils';
 
 interface EnrollmentFrame {
@@ -152,8 +152,9 @@ export function VideoFaceEnrollment({ profileId, onComplete, onCancel }: VideoFa
           const face = results[0];
           setFaceDetected(true);
           
-          // Use head pose from detection
-          const pose: HeadPose = face.headPose || { yaw: 0, pitch: 0, roll: 0, confidence: 0.5 };
+          // Use head pose from detection - add confidence if missing
+          const rawPose = face.headPose || { yaw: 0, pitch: 0, roll: 0 };
+          const pose: HeadPose = { ...rawPose, confidence: (rawPose as any).confidence ?? face.confidence };
           setCurrentPose(pose);
           
           // Calculate quality
@@ -189,7 +190,7 @@ export function VideoFaceEnrollment({ profileId, onComplete, onCancel }: VideoFa
     animationRef.current = requestAnimationFrame(detect);
   }, [isRecording, angleCoverage, processingFrame]);
 
-  const calculateFrameQuality = (face: FaceAnalysisResult, pose: HeadPose): number => {
+  const calculateFrameQuality = (face: EnhancedFaceDetection, pose: HeadPose): number => {
     let quality = 1.0;
     
     // Penalize extreme angles
@@ -200,14 +201,17 @@ export function VideoFaceEnrollment({ profileId, onComplete, onCancel }: VideoFa
     quality *= face.confidence;
     
     // Bonus for neutral expression (more stable for enrollment)
-    if (face.expression === 'neutral') {
+    const dominantExpression = face.expressions 
+      ? Object.entries(face.expressions).reduce((a, b) => a[1] > b[1] ? a : b)[0]
+      : 'neutral';
+    if (dominantExpression === 'neutral') {
       quality *= 1.1;
     }
     
     return Math.min(1, Math.max(0, quality));
   };
 
-  const captureFrame = async (face: FaceAnalysisResult, pose: HeadPose, frameQuality: number) => {
+  const captureFrame = async (face: EnhancedFaceDetection, pose: HeadPose, frameQuality: number) => {
     if (!videoRef.current || !canvasRef.current) return;
     
     // Determine which angle category this belongs to
@@ -233,15 +237,25 @@ export function VideoFaceEnrollment({ profileId, onComplete, onCancel }: VideoFa
     ctx.drawImage(videoRef.current, 0, 0);
     const imageData = tempCanvas.toDataURL('image/jpeg', 0.9);
     
+    // Get dominant expression
+    const dominantExpression = face.expressions 
+      ? Object.entries(face.expressions).reduce((a, b) => a[1] > b[1] ? a : b)[0]
+      : 'neutral';
+    
+    // Convert landmarks to simple array
+    const landmarkPoints = face.landmarks 
+      ? face.landmarks.positions.map(p => ({ x: p.x, y: p.y }))
+      : [];
+    
     const newFrame: EnrollmentFrame = {
       timestamp: Date.now(),
       angle: pose,
       quality: frameQuality,
-      descriptor: face.descriptor,
-      landmarks: face.landmarks,
-      expression: face.expression,
-      age: face.age,
-      gender: face.gender,
+      descriptor: face.descriptor || new Float32Array(128),
+      landmarks: landmarkPoints,
+      expression: dominantExpression,
+      age: face.age || 0,
+      gender: face.gender || 'unknown',
       imageData
     };
     
@@ -276,7 +290,7 @@ export function VideoFaceEnrollment({ profileId, onComplete, onCancel }: VideoFa
     return 'front';
   };
 
-  const drawOverlay = (face: FaceAnalysisResult, pose: HeadPose, frameQuality: number) => {
+  const drawOverlay = (face: EnhancedFaceDetection, pose: HeadPose, frameQuality: number) => {
     if (!canvasRef.current || !videoRef.current) return;
     
     const canvas = canvasRef.current;
@@ -294,11 +308,13 @@ export function VideoFaceEnrollment({ profileId, onComplete, onCancel }: VideoFa
       ? 'rgba(34, 197, 94, 0.8)' 
       : 'rgba(234, 179, 8, 0.8)';
     
-    face.landmarks.forEach(point => {
-      ctx.beginPath();
-      ctx.arc(point.x, point.y, 2, 0, Math.PI * 2);
-      ctx.fill();
-    });
+    if (face.landmarks) {
+      face.landmarks.positions.forEach(point => {
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 2, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
     
     // Draw pose indicator
     const centerX = canvas.width / 2;
