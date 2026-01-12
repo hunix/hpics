@@ -50,6 +50,7 @@ import { CostOptimizationAdvisor } from '@/components/ai/CostOptimizationAdvisor
 import { BudgetAlertPanel } from '@/components/ai/BudgetAlertPanel';
 import { PerContactSpendAnalysis } from '@/components/ai/PerContactSpendAnalysis';
 import { ModelEfficiencyComparison } from '@/components/ai/ModelEfficiencyComparison';
+import { AccountStorageConsumption } from '@/components/analytics/AccountStorageConsumption';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -297,6 +298,7 @@ export default function Settings() {
         </TabsContent>
 
         <TabsContent value="storage" className="space-y-6 mt-6">
+          <AccountStorageConsumption />
           <StorageAnalytics />
         </TabsContent>
 

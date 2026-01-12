@@ -281,3 +281,9 @@ verify_jwt = false
 
 [functions.detect-cross-patterns]
 verify_jwt = false
+
+[functions.comprehensive-contact-scan]
+verify_jwt = false
+
+[functions.predict-contact-preferences]
+verify_jwt = false
