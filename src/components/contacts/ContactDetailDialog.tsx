@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useProtectedContactDelete } from '@/hooks/mutations/useProtectedDelete';
 import {
   Dialog,
   DialogContent,
@@ -89,14 +90,8 @@ export function ContactDetailDialog({ contact, open, onOpenChange }: ContactDeta
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from('profiles').delete().eq('id', contact.id);
-      if (error) throw error;
-    },
+  const { mutate: deleteContact, isPending: isDeleting } = useProtectedContactDelete({
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contacts'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       toast({ title: 'Contact deleted', description: `${contact.first_name} has been removed.` });
       onOpenChange(false);
     },
@@ -183,9 +178,10 @@ export function ContactDetailDialog({ contact, open, onOpenChange }: ContactDeta
                     <Button 
                       variant="outline" 
                       size="icon" 
+                      disabled={isDeleting}
                       onClick={() => {
                         if (confirm('Are you sure you want to delete this contact?')) {
-                          deleteMutation.mutate();
+                          deleteContact({ id: contact.id });
                         }
                       }}
                     >

@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useProtectedDocumentDelete } from '@/hooks/mutations/useProtectedDelete';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -145,15 +146,7 @@ export function ContactDocumentsManager({ profileId, contactName }: ContactDocum
     setCurrentPage(0);
   }, [searchQuery, typeFilter, itemsPerPage]);
 
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('documents').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contact-documents', profileId] });
-      toast({ title: 'Document deleted' });
-    },
+  const { mutate: deleteDocument } = useProtectedDocumentDelete(profileId, {
     onError: (error) => {
       toast({ title: 'Error deleting document', description: error.message, variant: 'destructive' });
     },
@@ -175,7 +168,7 @@ export function ContactDocumentsManager({ profileId, contactName }: ContactDocum
   };
 
   const handleDelete = (id: string) => {
-    deleteMutation.mutate(id);
+    deleteDocument({ id });
   };
 
   if (isLoading) {

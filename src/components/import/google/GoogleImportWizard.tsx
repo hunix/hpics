@@ -1,13 +1,16 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useFormDraft } from '@/hooks/reliability/useFormDraft';
+import { AutoSaveIndicator } from '@/components/reliability/AutoSaveIndicator';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Upload, ArrowRight, ArrowLeft, Check, RotateCcw, 
   AlertTriangle, Merge, Plus, SkipForward,
@@ -28,6 +31,17 @@ import {
 } from '../shared/duplicateDetection';
 
 type WizardStep = 'upload' | 'mapping' | 'preview' | 'duplicates' | 'import';
+
+interface GoogleDraftData {
+  step: WizardStep;
+  columnMapping: Record<string, number>;
+  duplicateFilter: 'all' | 'duplicates' | 'new';
+  duplicatePage: number;
+  fileName?: string;
+  contactCount?: number;
+  [key: string]: unknown;
+}
+
 
 const STEPS = [
   { key: 'upload' as const, label: 'Upload' },
@@ -61,6 +75,56 @@ export function GoogleImportWizard() {
   const [duplicatePage, setDuplicatePage] = useState(1);
   
   const currentStepIndex = STEPS.findIndex(s => s.key === step);
+
+  // Form draft for auto-save/recovery
+  const {
+    data: draftData,
+    hasDraft,
+    isSaving,
+    lastSaved,
+    setData: updateData,
+    restoreDraft,
+    discardDraft,
+  } = useFormDraft<GoogleDraftData>({
+    formType: 'google_import',
+    formKey: user?.id || 'anonymous',
+    debounceMs: 1000,
+    expiryDays: 7,
+  });
+
+  // Sync state changes to draft
+  useEffect(() => {
+    if (step !== 'upload' || Object.keys(columnMapping).length > 0) {
+      updateData({
+        step,
+        columnMapping,
+        duplicateFilter,
+        duplicatePage,
+        fileName: file?.name,
+        contactCount: parseResult?.contacts.length,
+      });
+    }
+  }, [step, columnMapping, duplicateFilter, duplicatePage, file?.name, parseResult?.contacts.length, updateData]);
+
+  // Restore draft handler
+  const handleRestoreDraft = () => {
+    restoreDraft();
+    if (draftData) {
+      if (draftData.step && draftData.step !== 'import') {
+        setStep(draftData.step);
+      }
+      if (draftData.columnMapping) {
+        setColumnMapping(draftData.columnMapping);
+      }
+      if (draftData.duplicateFilter) {
+        setDuplicateFilter(draftData.duplicateFilter);
+      }
+      if (draftData.duplicatePage) {
+        setDuplicatePage(draftData.duplicatePage);
+      }
+    }
+    toast.success('Draft restored - please re-upload your CSV file to continue');
+  };
   
   // Fetch existing contacts for duplicate detection
   const { data: existingContacts = [] } = useQuery({
@@ -387,9 +451,42 @@ export function GoogleImportWizard() {
     toSkip: duplicateResults.filter(r => r.action === 'skip').length
   };
   
+  // Draft recovery banner
+  const DraftBanner = () => hasDraft && step === 'upload' ? (
+    <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20">
+      <RotateCcw className="h-4 w-4" />
+      <AlertDescription className="flex items-center justify-between">
+        <span>
+          You have an unsaved import session
+          {draftData?.fileName ? ` (${draftData.fileName}, ${draftData.contactCount || 0} contacts)` : ''}.
+          Would you like to restore your mapping settings?
+        </span>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={discardDraft}>
+            Discard
+          </Button>
+          <Button size="sm" onClick={handleRestoreDraft}>
+            Restore
+          </Button>
+        </div>
+      </AlertDescription>
+    </Alert>
+  ) : null;
+
   return (
     <div className="space-y-6">
-      {/* Step indicator */}
+      {/* Draft recovery banner */}
+      <DraftBanner />
+      
+      {/* Step indicator with auto-save */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          <AutoSaveIndicator 
+            status={isSaving ? 'saving' : hasDraft ? 'saved' : 'idle'} 
+            lastSaved={lastSaved || undefined} 
+          />
+        </div>
+      </div>
       <div className="flex items-center justify-between">
         {STEPS.map((s, i) => (
           <div key={s.key} className="flex items-center">

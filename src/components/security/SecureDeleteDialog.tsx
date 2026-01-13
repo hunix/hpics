@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertTriangle, Trash2, Shield, FileKey } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useCSRFToken } from "@/hooks/security/useCSRFToken";
 import { toast } from "sonner";
 
 interface SecureDeleteDialogProps {
@@ -29,6 +30,9 @@ export function SecureDeleteDialog({
   const [understood, setUnderstood] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [certificate, setCertificate] = useState<any>(null);
+  
+  // CSRF token for secure deletion
+  const { token: csrfToken, validateToken, refreshToken } = useCSRFToken();
 
   const requiredPhrase = "DELETE PERMANENTLY";
 
@@ -43,13 +47,24 @@ export function SecureDeleteDialog({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Call crypto-shred edge function
+      // Validate or refresh CSRF token
+      let validToken = csrfToken;
+      if (!validToken || !validateToken(validToken)) {
+        validToken = refreshToken();
+        if (!validToken) {
+          throw new Error("Unable to generate security token. Please refresh and try again.");
+        }
+      }
+      console.log('[CSRF] SecureDelete using token:', validToken.substring(0, 8) + '...');
+
+      // Call crypto-shred edge function with CSRF token
       const response = await supabase.functions.invoke('crypto-shred', {
         body: {
           recordType,
           recordId,
           recordSummary,
-          shreddingPasses: 3
+          shreddingPasses: 3,
+          csrfToken: validToken
         }
       });
 
