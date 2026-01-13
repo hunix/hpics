@@ -44,7 +44,7 @@ interface ReliableBatchOptions<T> {
   onItemComplete?: (item: T, result: unknown, index: number) => void;
   onItemFail?: (item: T, error: Error, index: number) => Promise<UserDecision> | UserDecision;
   onBatchComplete?: (results: Array<{ item: T; result?: unknown; error?: string }>) => void;
-  getItemId?: (item: T) => string;
+  getItemId?: (item: T, index: number) => string;
   getErrorPattern?: (item: T, error: Error) => string;
 }
 
@@ -68,7 +68,7 @@ export function useReliableBatch<T>({
   onBatchComplete,
   getItemId = (_item: T, index: number) => `item_${index}`,
   getErrorPattern = () => 'default',
-}: ReliableBatchOptions<T> & { getItemId?: (item: T, index: number) => string }) {
+}: ReliableBatchOptions<T>) {
   const { user } = useAuth();
   const storageKey = `${STORAGE_PREFIX}${taskName}_${providedBatchId || 'current'}`;
   const processingRef = useRef(false);
