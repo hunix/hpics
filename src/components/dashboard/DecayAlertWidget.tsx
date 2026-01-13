@@ -25,14 +25,15 @@ export function DecayAlertWidget() {
   const { data: decayContacts, isLoading } = useQuery({
     queryKey: ['decay-contacts', user?.id],
     queryFn: async () => {
-      // Fetch profiles with contact methods
+      // Fetch active profiles with contact methods
       const { data: profiles } = await supabase
         .from('profiles')
         .select(`
           id, first_name, last_name, relationship_type, is_favorite, last_contact_date,
           contact_methods(contact_type, value, is_primary)
         `)
-        .eq('user_id', user!.id);
+        .eq('user_id', user!.id)
+        .eq('is_active', true);
 
       if (!profiles) return [];
 

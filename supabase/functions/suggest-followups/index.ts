@@ -52,11 +52,12 @@ serve(async (req) => {
       // No body or invalid JSON - use defaults
     }
 
-    // Fetch contacts with their last communication
+    // Fetch active contacts with their last communication
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
       .select('id, first_name, last_name, relationship_type, last_contact_date, is_favorite')
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .eq('is_active', true);
 
     if (profilesError) throw profilesError;
 

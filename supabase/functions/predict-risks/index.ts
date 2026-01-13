@@ -53,11 +53,12 @@ serve(async (req) => {
       // No body or invalid JSON - use defaults
     }
 
-    // Fetch all profiles with their communication data
+    // Fetch active profiles with their communication data
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
       .select('*')
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .eq('is_active', true);
 
     if (profilesError) throw profilesError;
 

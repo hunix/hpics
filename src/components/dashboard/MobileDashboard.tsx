@@ -33,8 +33,8 @@ export function MobileDashboard() {
     queryKey: ['mobile-dashboard-stats', user?.id],
     queryFn: async () => {
       const [profilesRes, favoritesRes, eventsRes, capturesRes] = await Promise.all([
-        supabase.from('profiles').select('id', { count: 'exact' }),
-        supabase.from('profiles').select('id', { count: 'exact' }).eq('is_favorite', true),
+        supabase.from('profiles').select('id', { count: 'exact' }).eq('is_active', true),
+        supabase.from('profiles').select('id', { count: 'exact' }).eq('is_favorite', true).eq('is_active', true),
         supabase.from('events').select('id', { count: 'exact' })
           .eq('is_active', true)
           .gte('event_date', new Date().toISOString()),
@@ -60,8 +60,9 @@ export function MobileDashboard() {
         .from('profiles')
         .select('id, first_name, last_name, avatar_url, last_contact_date, is_favorite')
         .eq('user_id', user!.id)
+        .eq('is_active', true)
         .order('last_contact_date', { ascending: true, nullsFirst: true })
-        .limit(5);
+        .limit(10);
 
       return (data || []).filter(p => {
         if (!p.last_contact_date) return true;
@@ -80,6 +81,7 @@ export function MobileDashboard() {
         .from('profiles')
         .select('id, first_name, last_name, avatar_url, organization')
         .eq('user_id', user!.id)
+        .eq('is_active', true)
         .order('updated_at', { ascending: false })
         .limit(8);
       return data || [];
