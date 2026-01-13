@@ -33,11 +33,12 @@ serve(async (req) => {
 
     const patterns: Pattern[] = [];
 
-    // 1. Find shared employers
+    // 1. Find shared employers (active contacts only)
     const { data: profiles } = await supabase
       .from('profiles')
       .select('id, first_name, last_name, organization')
       .eq('user_id', user.id)
+      .eq('is_active', true)
       .not('organization', 'is', null);
 
     if (profiles) {

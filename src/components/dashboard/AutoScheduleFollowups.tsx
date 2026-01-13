@@ -29,11 +29,12 @@ export function AutoScheduleFollowups() {
   const { data: pendingSchedules, isLoading } = useQuery({
     queryKey: ['pending-schedules', user?.id],
     queryFn: async () => {
-      // Get contacts without upcoming follow-up events
+      // Get active contacts without upcoming follow-up events
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, relationship_type, last_contact_date')
-        .eq('user_id', user!.id);
+        .eq('user_id', user!.id)
+        .eq('is_active', true);
 
       const { data: existingEvents } = await supabase
         .from('events')

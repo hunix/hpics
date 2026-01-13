@@ -73,11 +73,12 @@ export function RelationshipAutopilotWidget() {
         })) as ChurnRiskContact[];
       }
 
-      // Fallback: calculate from last communication
+      // Fallback: calculate from last communication (active contacts only)
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, avatar_url')
         .eq('user_id', user.id)
+        .eq('is_active', true)
         .limit(100);
 
       if (!profiles) return [];

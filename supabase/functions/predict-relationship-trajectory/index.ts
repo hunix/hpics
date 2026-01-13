@@ -73,11 +73,12 @@ serve(async (req) => {
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
 
-    // Fetch profiles
+    // Fetch active profiles only
     let profileQuery = supabase
       .from('profiles')
       .select('id, first_name, last_name, relationship_type, is_favorite')
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .eq('is_active', true);
     
     if (profileIds && profileIds.length > 0) {
       profileQuery = profileQuery.in('id', profileIds);

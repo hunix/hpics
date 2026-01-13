@@ -125,11 +125,12 @@ export function DailyBriefingWidget() {
         });
       }
 
-      // Fetch at-risk relationships
+      // Fetch at-risk relationships (active contacts only)
       const { data: atRiskProfiles } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, last_contact_date')
         .eq('user_id', user?.id)
+        .eq('is_active', true)
         .eq('is_favorite', true)
         .or(`last_contact_date.is.null,last_contact_date.lt.${addDays(today, -30).toISOString()}`)
         .limit(5);

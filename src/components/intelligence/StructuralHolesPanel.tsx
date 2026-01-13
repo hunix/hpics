@@ -37,11 +37,13 @@ export function StructuralHolesPanel() {
   const { data: networkData, isLoading } = useQuery({
     queryKey: ['network-structural-analysis', user?.id],
     queryFn: async () => {
+      // Analyze only active contacts for network analysis
       const [profilesRes, relationshipsRes] = await Promise.all([
         supabase
           .from('profiles')
           .select('id, first_name, last_name, relationship_type, avatar_url')
-          .eq('user_id', user!.id),
+          .eq('user_id', user!.id)
+          .eq('is_active', true),
         supabase
           .from('contact_relationships')
           .select('from_profile_id, to_profile_id, relationship_type')
