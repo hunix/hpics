@@ -93,7 +93,6 @@ export function RiskRadar({ compact = false }: RiskRadarProps) {
         .select(`
           id,
           deception_score,
-          confidence_score,
           analyzed_at,
           profile_id,
           profiles!deception_analyses_profile_id_fkey (

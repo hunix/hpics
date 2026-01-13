@@ -185,7 +185,7 @@ export function PredictionFeed({ compact = false }: PredictionFeedProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => generatePrediction.mutate()}
+              onClick={() => generatePrediction.mutate(undefined)}
               disabled={generatePrediction.isPending}
               className="h-8 gap-1"
             >

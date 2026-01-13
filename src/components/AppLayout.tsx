@@ -21,6 +21,10 @@ const FloatingAIAssistant = lazy(() =>
   import('@/components/ai/FloatingAIAssistant').then(m => ({ default: m.FloatingAIAssistant }))
 );
 
+const UltimateCommandFAB = lazy(() => 
+  import('@/components/command/UltimateCommandFAB').then(m => ({ default: m.UltimateCommandFAB }))
+);
+
 interface AppLayoutProps {
   children: ReactNode;
   title?: string;
@@ -98,6 +102,11 @@ export function AppLayout({ children, title, showQuickCapture = false, capturePr
         {/* Floating AI Assistant */}
         <Suspense fallback={null}>
           <FloatingAIAssistant />
+        </Suspense>
+        
+        {/* Ultimate Command FAB */}
+        <Suspense fallback={null}>
+          <UltimateCommandFAB />
         </Suspense>
       </div>
     </SidebarProvider>
