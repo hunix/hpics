@@ -1,5 +1,6 @@
 // Transaction Saga Pattern - Multi-step transactions with compensation
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 export type SagaStepStatus = 'pending' | 'executing' | 'completed' | 'failed' | 'compensating' | 'compensated';
 
@@ -40,6 +41,8 @@ export interface SagaOptions<TContext = Record<string, unknown>> {
   onError?: (error: Error, context: TContext) => void;
   persistState?: boolean;
   sagaId?: string;
+  userId?: string;
+  sagaName?: string;
 }
 
 export interface SagaActions<TContext = Record<string, unknown>> {
@@ -58,7 +61,20 @@ interface SagaAuditEntry {
 export function useTransactionSaga<TContext extends Record<string, unknown>>(
   options: SagaOptions<TContext>
 ): { state: SagaState<TContext>; actions: SagaActions<TContext> } {
-  const { steps, onStepComplete, onStepFail, onComplete, onRollback, onError } = options;
+  const { 
+    steps, 
+    onStepComplete, 
+    onStepFail, 
+    onComplete, 
+    onRollback, 
+    onError,
+    persistState = false,
+    sagaId: providedSagaId,
+    userId,
+    sagaName = 'unnamed_saga',
+  } = options;
+  
+  const sagaIdRef = useRef(providedSagaId || `saga_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   
   const [state, setState] = useState<SagaState<TContext>>(() => ({
     status: 'idle',
@@ -74,8 +90,66 @@ export function useTransactionSaga<TContext extends Record<string, unknown>>(
   const auditLogRef = useRef<SagaAuditEntry[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Persist saga state to DB
+  const persistSagaState = useCallback(async (
+    sagaState: SagaState<TContext>,
+    auditLog: SagaAuditEntry[]
+  ) => {
+    if (!persistState || !userId) return;
+    
+    try {
+      // First check if record exists
+      const { data: existing } = await supabase
+        .from('saga_transactions')
+        .select('id')
+        .eq('saga_name', `${sagaName}_${sagaIdRef.current}`)
+        .eq('user_id', userId)
+        .maybeSingle();
+      
+      const sagaData = {
+        saga_name: `${sagaName}_${sagaIdRef.current}`,
+        user_id: userId,
+        saga_type: 'transaction',
+        status: sagaState.status,
+        current_step: sagaState.currentStep,
+        total_steps: steps.length,
+        steps: JSON.parse(JSON.stringify(sagaState.steps.map(s => ({
+          name: s.name,
+          status: s.status,
+          retryCount: s.retryCount,
+          error: s.error?.message,
+        })))),
+        context: JSON.parse(JSON.stringify(sagaState.context)),
+        audit_log: JSON.parse(JSON.stringify(auditLog.map(e => ({
+          timestamp: e.timestamp.toISOString(),
+          action: e.action,
+          stepName: e.stepName,
+          details: e.details,
+        })))),
+        error_message: sagaState.error?.message || null,
+        started_at: sagaState.startedAt?.toISOString() || null,
+        completed_at: sagaState.completedAt?.toISOString() || null,
+        updated_at: new Date().toISOString(),
+      };
+      
+      if (existing) {
+        await supabase
+          .from('saga_transactions')
+          .update(sagaData)
+          .eq('id', existing.id);
+      } else {
+        await supabase
+          .from('saga_transactions')
+          .insert([sagaData]);
+      }
+    } catch (error) {
+      console.error('Error persisting saga state:', error);
+    }
+  }, [persistState, userId, sagaName, steps.length]);
+
   const addAuditEntry = useCallback((entry: Omit<SagaAuditEntry, 'timestamp'>) => {
-    auditLogRef.current.push({ ...entry, timestamp: new Date() });
+    const newEntry = { ...entry, timestamp: new Date() };
+    auditLogRef.current.push(newEntry);
   }, []);
 
   const updateStepStatus = useCallback((stepIndex: number, updates: Partial<SagaStepResult>) => {
@@ -207,37 +281,52 @@ export function useTransactionSaga<TContext extends Record<string, unknown>>(
         setState(prev => ({ ...prev, context: currentContext }));
       }
 
-      setState(prev => ({
-        ...prev,
+      const completedState: SagaState<TContext> = {
+        ...state,
         status: 'completed',
         completedAt: new Date(),
         context: currentContext,
-      }));
+        currentStep: steps.length - 1,
+        steps: state.steps.map(s => ({ ...s })),
+      };
+      
+      setState(completedState);
       addAuditEntry({ action: 'saga_complete' });
+      
+      // Persist to DB
+      await persistSagaState(completedState, auditLogRef.current);
+      
       onComplete?.(currentContext);
 
       return { success: true, context: currentContext };
     } catch (error) {
       const sagaError = error instanceof Error ? error : new Error(String(error));
       
-      setState(prev => ({
-        ...prev,
+      const failedState: SagaState<TContext> = {
+        ...state,
         status: 'failed',
         error: sagaError,
         completedAt: new Date(),
-      }));
+        context: currentContext,
+        steps: state.steps.map(s => ({ ...s })),
+      };
+      
+      setState(failedState);
       addAuditEntry({ action: 'saga_fail', details: sagaError.message });
 
       // Compensate completed steps
       if (lastCompletedStep >= 0) {
         await compensateSteps(lastCompletedStep, currentContext);
       }
+      
+      // Persist failed state to DB
+      await persistSagaState(failedState, auditLogRef.current);
 
       onError?.(sagaError, currentContext);
       
       return { success: false, context: currentContext, error: sagaError };
     }
-  }, [steps, executeStep, compensateSteps, addAuditEntry, onComplete, onError]);
+  }, [steps, executeStep, compensateSteps, addAuditEntry, onComplete, onError, persistSagaState, state]);
 
   const reset = useCallback(() => {
     abortControllerRef.current?.abort();

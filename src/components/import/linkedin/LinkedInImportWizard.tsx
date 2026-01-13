@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Upload, ArrowRight, ArrowLeft, Check, RotateCcw } from 'lucide-react';
+import { Upload, ArrowRight, ArrowLeft, Check, RotateCcw, RotateCw } from 'lucide-react';
 import { parseLinkedInCSV, ParseResult } from './linkedinCsvParser';
 import { ColumnMapping, autoMapColumns, applyMapping, MappedContact } from './linkedinMapping';
 import { validateRows, ValidationResult, generateDiagnosticsReport } from './linkedinValidation';
@@ -14,8 +14,20 @@ import { ImportDiagnosticsPanel } from './ImportDiagnosticsPanel';
 import { MappingEditor } from './MappingEditor';
 import { ValidationSummary } from './ValidationSummary';
 import { ImportProgressPanel, ImportError } from './ImportProgressPanel';
+import { useFormDraft } from '@/hooks/reliability/useFormDraft';
+import { AutoSaveIndicator } from '@/components/reliability/AutoSaveIndicator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 type WizardStep = 'upload' | 'mapping' | 'validate' | 'import';
+
+interface WizardDraftData extends Record<string, unknown> {
+  step: WizardStep;
+  mapping: ColumnMapping;
+  parseResultMeta?: {
+    headers: string[];
+    rowCount: number;
+  };
+}
 
 const STEPS: { key: WizardStep; label: string }[] = [
   { key: 'upload', label: 'Upload' },
@@ -27,6 +39,24 @@ const STEPS: { key: WizardStep; label: string }[] = [
 export function LinkedInImportWizard() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  
+  // Form draft for auto-save and recovery
+  const { 
+    data: draftData, 
+    setData: setDraftData, 
+    hasDraft, 
+    isSaving, 
+    lastSaved, 
+    restoreDraft, 
+    discardDraft 
+  } = useFormDraft<WizardDraftData>({
+    formType: 'linkedin_import',
+    formKey: user?.id || 'anonymous',
+    debounceMs: 2000,
+    expiryDays: 7,
+  });
+  
+  const [showDraftBanner, setShowDraftBanner] = useState(false);
   
   // Wizard state
   const [step, setStep] = useState<WizardStep>('upload');
@@ -41,6 +71,43 @@ export function LinkedInImportWizard() {
   const [importErrors, setImportErrors] = useState<ImportError[]>([]);
   
   const currentStepIndex = STEPS.findIndex(s => s.key === step);
+  
+  // Check for draft on mount
+  useEffect(() => {
+    if (hasDraft && draftData && step === 'upload') {
+      setShowDraftBanner(true);
+    }
+  }, [hasDraft, draftData, step]);
+  
+  // Save draft when state changes (except during import)
+  useEffect(() => {
+    if (step !== 'import' && step !== 'upload') {
+      setDraftData({
+        step,
+        mapping,
+        parseResultMeta: parseResult ? {
+          headers: parseResult.headers,
+          rowCount: parseResult.parsedRowCount,
+        } : undefined,
+      });
+    }
+  }, [step, mapping, parseResult, setDraftData]);
+  
+  // Handle draft restoration
+  const handleRestoreDraft = useCallback(() => {
+    const restored = restoreDraft();
+    if (restored) {
+      setStep(restored.step);
+      setMapping(restored.mapping);
+      setShowDraftBanner(false);
+      toast.info('Draft restored. Please re-upload your CSV file to continue.');
+    }
+  }, [restoreDraft]);
+  
+  const handleDiscardDraft = useCallback(() => {
+    discardDraft();
+    setShowDraftBanner(false);
+  }, [discardDraft]);
   
   // Handle file upload
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -211,6 +278,34 @@ export function LinkedInImportWizard() {
   
   return (
     <div className="space-y-6">
+      {/* Draft recovery banner */}
+      {showDraftBanner && (
+        <Alert>
+          <RotateCw className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between">
+            <span>You have an unsaved import session. Would you like to continue where you left off?</span>
+            <div className="flex gap-2 ml-4">
+              <Button variant="outline" size="sm" onClick={handleDiscardDraft}>
+                Start Fresh
+              </Button>
+              <Button size="sm" onClick={handleRestoreDraft}>
+                Restore Draft
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {/* Auto-save indicator */}
+      {step !== 'upload' && step !== 'import' && (
+        <div className="flex justify-end">
+          <AutoSaveIndicator 
+            status={isSaving ? 'saving' : lastSaved ? 'saved' : 'idle'} 
+            lastSaved={lastSaved || undefined}
+          />
+        </div>
+      )}
+      
       {/* Step indicator */}
       <div className="flex items-center justify-between">
         {STEPS.map((s, i) => (

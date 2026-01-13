@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { supabase } from '@/integrations/supabase/client';
 
 type TaskStatus = 'idle' | 'running' | 'paused' | 'completed' | 'failed' | 'recovering';
 
@@ -39,6 +40,8 @@ interface ReliableTaskOptions<T> {
   onComplete?: (result: T) => void;
   onError?: (error: Error, state: TaskState<T>) => void;
   onStepChange?: (step: number, data: T) => void;
+  persistToDb?: boolean;
+  userId?: string;
 }
 
 const STORAGE_PREFIX = 'reliable_task_';
@@ -59,6 +62,8 @@ export function useReliableTask<T extends Record<string, unknown>>({
   onComplete,
   onError,
   onStepChange,
+  persistToDb = false,
+  userId,
 }: ReliableTaskOptions<T>) {
   const storageKey = `${STORAGE_PREFIX}${taskName}`;
   const autoSaveRef = useRef<NodeJS.Timeout | null>(null);
@@ -96,19 +101,93 @@ export function useReliableTask<T extends Record<string, unknown>>({
 
   const [state, setState] = useState<TaskState<T>>(getInitialState);
 
-  // Save checkpoint to storage
-  const saveCheckpoint = useCallback((newState: TaskState<T>) => {
+  // Load from DB on mount if persistToDb is enabled
+  useEffect(() => {
+    if (!persistToDb || !userId) return;
+    
+    const loadFromDb = async () => {
+      try {
+        const { data: checkpoint } = await supabase
+          .from('task_checkpoints')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('task_name', taskName)
+          .eq('status', 'running')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (checkpoint && checkpoint.data) {
+          const checkpointData = checkpoint.data as Record<string, unknown>;
+          setState(prev => ({
+            ...prev,
+            taskId: checkpoint.task_id,
+            currentStep: checkpoint.current_step,
+            status: 'recovering' as TaskStatus,
+            data: checkpointData as T,
+            lastCheckpoint: checkpoint.updated_at,
+          }));
+        }
+      } catch (error) {
+        // No checkpoint found or error, use localStorage
+        console.debug('No DB checkpoint found, using localStorage');
+      }
+    };
+    
+    loadFromDb();
+  }, [persistToDb, userId, taskName]);
+
+  // Save checkpoint to storage and optionally to DB
+  const saveCheckpoint = useCallback(async (newState: TaskState<T>) => {
+    const checkpointTime = new Date().toISOString();
+    
     try {
+      // Always save to localStorage as fallback
       const checkpoint = {
         ...newState,
-        lastCheckpoint: new Date().toISOString(),
+        lastCheckpoint: checkpointTime,
       };
       localStorage.setItem(storageKey, JSON.stringify(checkpoint));
-      setState(prev => ({ ...prev, lastCheckpoint: checkpoint.lastCheckpoint }));
+      setState(prev => ({ ...prev, lastCheckpoint: checkpointTime }));
+      
+      // Save to DB if enabled
+      if (persistToDb && userId) {
+        // First check if record exists
+        const { data: existing } = await supabase
+          .from('task_checkpoints')
+          .select('id')
+          .eq('task_id', newState.taskId)
+          .maybeSingle();
+        
+        if (existing) {
+          await supabase
+            .from('task_checkpoints')
+            .update({
+              current_step: newState.currentStep,
+              total_steps: totalSteps,
+              data: JSON.parse(JSON.stringify(newState.data)),
+              status: newState.status !== 'completed' && newState.status !== 'failed' ? 'running' : newState.status,
+              updated_at: checkpointTime,
+            })
+            .eq('task_id', newState.taskId);
+        } else {
+          await supabase
+            .from('task_checkpoints')
+            .insert([{
+              task_id: newState.taskId,
+              user_id: userId,
+              task_name: taskName,
+              current_step: newState.currentStep,
+              total_steps: totalSteps,
+              data: JSON.parse(JSON.stringify(newState.data)),
+              status: 'running',
+            }]);
+        }
+      }
     } catch (error) {
       console.error('Error saving checkpoint:', error);
     }
-  }, [storageKey]);
+  }, [storageKey, persistToDb, userId, taskName, totalSteps]);
 
   // Auto-save interval
   useEffect(() => {
