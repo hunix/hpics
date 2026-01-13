@@ -13,6 +13,7 @@ import { GlobalShortcutsProvider } from "@/components/providers/GlobalShortcutsP
 import { AIBudgetWarning } from "@/components/ai/AIBudgetWarning";
 import { FullPageLoader } from "@/components/ui/LoadingSpinner";
 import { lazyWithRetry } from "@/lib/chunkErrorHandler";
+import { SessionTimeoutProvider } from "@/components/providers/SessionTimeoutProvider";
 
 // Eagerly loaded core pages
 import Index from "./pages/Index";
@@ -76,12 +77,13 @@ const App = () => (
           <TooltipProvider>
             <RealtimeProvider>
               <AIConfirmationProvider>
-                <Toaster />
-                <Sonner />
-                <AIBudgetWarning />
-                <BrowserRouter>
-                  <GlobalShortcutsProvider>
-                    <Suspense fallback={<FullPageLoader />}>
+                <SessionTimeoutProvider timeoutMinutes={30} warningMinutes={5}>
+                  <Toaster />
+                  <Sonner />
+                  <AIBudgetWarning />
+                  <BrowserRouter>
+                    <GlobalShortcutsProvider>
+                      <Suspense fallback={<FullPageLoader />}>
                       <Routes>
                         <Route path="/" element={<Index />} />
                         <Route path="/auth" element={<Auth />} />
@@ -123,9 +125,10 @@ const App = () => (
                         <Route path="/social-intelligence" element={<SocialIntelligenceDashboard />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
-                    </Suspense>
-                  </GlobalShortcutsProvider>
-                </BrowserRouter>
+                      </Suspense>
+                    </GlobalShortcutsProvider>
+                  </BrowserRouter>
+                </SessionTimeoutProvider>
               </AIConfirmationProvider>
             </RealtimeProvider>
           </TooltipProvider>

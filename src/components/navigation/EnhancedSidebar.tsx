@@ -9,7 +9,7 @@ import { NavItemEnhanced } from './NavItemEnhanced';
 import { QuickAccessBar } from './QuickAccessBar';
 import { SidebarFooterEnhanced } from './SidebarFooterEnhanced';
 import { NavigationSpotlight } from './NavigationSpotlight';
-import { SystemHealthIndicator } from './SystemHealthIndicator';
+import { HealthStatusBadge } from '@/components/reliability/HealthStatusBadge';
 import { HiddenItemsManager } from './HiddenItemsManager';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -128,7 +128,7 @@ export function EnhancedSidebar() {
               <Sparkles className="h-3.5 w-3.5 text-violet-500" />
               <span className="text-xs font-medium text-muted-foreground">Intelligence Ready</span>
             </div>
-            <SystemHealthIndicator compact />
+            <HealthStatusBadge compact showDetails={false} />
           </div>
           
           {/* Quick access bar */}
