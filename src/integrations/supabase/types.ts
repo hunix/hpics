@@ -10181,6 +10181,96 @@ export type Database = {
         }
         Relationships: []
       }
+      integration_guides: {
+        Row: {
+          api_key_format: string | null
+          api_key_location: string | null
+          api_key_steps: Json | null
+          category: string
+          common_errors: Json | null
+          created_at: string | null
+          difficulty_level: string | null
+          display_name: string
+          documentation_url: string | null
+          estimated_setup_time: string | null
+          expected_response: string | null
+          features_enabled: Json | null
+          free_tier_limits: string | null
+          has_connector: boolean | null
+          id: string
+          integration_id: string
+          pricing_model: string | null
+          pricing_url: string | null
+          registration_steps: Json | null
+          registration_url: string | null
+          requires_oauth: boolean | null
+          support_url: string | null
+          test_endpoint: string | null
+          test_headers: Json | null
+          test_method: string | null
+          updated_at: string | null
+          usage_description: string | null
+        }
+        Insert: {
+          api_key_format?: string | null
+          api_key_location?: string | null
+          api_key_steps?: Json | null
+          category?: string
+          common_errors?: Json | null
+          created_at?: string | null
+          difficulty_level?: string | null
+          display_name: string
+          documentation_url?: string | null
+          estimated_setup_time?: string | null
+          expected_response?: string | null
+          features_enabled?: Json | null
+          free_tier_limits?: string | null
+          has_connector?: boolean | null
+          id?: string
+          integration_id: string
+          pricing_model?: string | null
+          pricing_url?: string | null
+          registration_steps?: Json | null
+          registration_url?: string | null
+          requires_oauth?: boolean | null
+          support_url?: string | null
+          test_endpoint?: string | null
+          test_headers?: Json | null
+          test_method?: string | null
+          updated_at?: string | null
+          usage_description?: string | null
+        }
+        Update: {
+          api_key_format?: string | null
+          api_key_location?: string | null
+          api_key_steps?: Json | null
+          category?: string
+          common_errors?: Json | null
+          created_at?: string | null
+          difficulty_level?: string | null
+          display_name?: string
+          documentation_url?: string | null
+          estimated_setup_time?: string | null
+          expected_response?: string | null
+          features_enabled?: Json | null
+          free_tier_limits?: string | null
+          has_connector?: boolean | null
+          id?: string
+          integration_id?: string
+          pricing_model?: string | null
+          pricing_url?: string | null
+          registration_steps?: Json | null
+          registration_url?: string | null
+          requires_oauth?: boolean | null
+          support_url?: string | null
+          test_endpoint?: string | null
+          test_headers?: Json | null
+          test_method?: string | null
+          updated_at?: string | null
+          usage_description?: string | null
+        }
+        Relationships: []
+      }
       intelligence_alert_rules: {
         Row: {
           conditions: Json

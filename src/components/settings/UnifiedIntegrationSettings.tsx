@@ -29,9 +29,11 @@ import {
 import { 
   CheckCircle2, XCircle, Loader2, Eye, EyeOff, 
   ExternalLink, Key, ChevronDown, Shield, Zap,
-  AlertTriangle, Info
+  AlertTriangle, Info, HelpCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { IntegrationHelpModal } from './IntegrationHelpModal';
+import { useTestIntegration } from '@/hooks/useTestIntegration';
 
 // ============================================================================
 // INTELLIGENCE READINESS SCORE
@@ -100,6 +102,7 @@ interface IntegrationCardProps {
   };
   onToggle: (enabled: boolean) => void;
   onSaveSecret: (secretKey: string, value: string) => Promise<void>;
+  onOpenHelp: (secretKey: string) => void;
   isSaving: boolean;
 }
 
@@ -108,12 +111,14 @@ function IntegrationCard({
   status, 
   onToggle, 
   onSaveSecret,
+  onOpenHelp,
   isSaving 
 }: IntegrationCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [editingSecret, setEditingSecret] = useState<string | null>(null);
   const [secretValue, setSecretValue] = useState('');
   const [showSecret, setShowSecret] = useState(false);
+  const testMutation = useTestIntegration();
   
   const Icon = integration.icon;
   const allSecretsConfigured = integration.secrets.every(
@@ -246,53 +251,75 @@ function IntegrationCard({
                       </div>
                       
                       {isEditing ? (
-                        <div className="flex gap-2">
-                          <div className="relative flex-1">
-                            <Input
-                              type={showSecret ? 'text' : 'password'}
-                              value={secretValue}
-                              onChange={(e) => setSecretValue(e.target.value)}
-                              placeholder={secret.placeholder || `Enter ${secret.label}`}
-                              className="pr-10"
-                            />
+                        <div className="space-y-2">
+                          <div className="flex gap-2">
+                            <div className="relative flex-1">
+                              <Input
+                                type={showSecret ? 'text' : 'password'}
+                                value={secretValue}
+                                onChange={(e) => setSecretValue(e.target.value)}
+                                placeholder={secret.placeholder || `Enter ${secret.label}`}
+                                className="pr-10"
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="absolute right-0 top-0 h-full px-3"
+                                onClick={() => setShowSecret(!showSecret)}
+                              >
+                                {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </Button>
+                            </div>
                             <Button
-                              type="button"
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
-                              className="absolute right-0 top-0 h-full px-3"
-                              onClick={() => setShowSecret(!showSecret)}
+                              onClick={() => testMutation.mutate({ integrationId: secret.key, apiKey: secretValue })}
+                              disabled={testMutation.isPending || !secretValue.trim()}
+                              className="gap-1"
                             >
-                              {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              {testMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />}
+                              Test
                             </Button>
                           </div>
-                          <Button
-                            onClick={handleSaveSecret}
-                            disabled={isSaving || !secretValue.trim()}
-                            size="sm"
-                          >
-                            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={handleSaveSecret}
+                              disabled={isSaving || !secretValue.trim()}
+                              size="sm"
+                              className="flex-1"
+                            >
+                              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => { setEditingSecret(null); setSecretValue(''); }}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                              setEditingSecret(null);
-                              setSecretValue('');
-                            }}
+                            onClick={() => setEditingSecret(secret.key)}
+                            className="flex-1 justify-start"
                           >
-                            Cancel
+                            <Key className="h-4 w-4 mr-2" />
+                            {isConfigured ? 'Update' : 'Add'} {secret.label}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onOpenHelp(secret.key)}
+                            className="px-2"
+                          >
+                            <HelpCircle className="h-4 w-4" />
                           </Button>
                         </div>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setEditingSecret(secret.key)}
-                          className="w-full justify-start"
-                        >
-                          <Key className="h-4 w-4 mr-2" />
-                          {isConfigured ? 'Update' : 'Add'} {secret.label}
-                        </Button>
                       )}
                     </div>
                   );
@@ -352,6 +379,7 @@ export function UnifiedIntegrationSettings() {
   const queryClient = useQueryClient();
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<IntegrationCategory>('connectors');
+  const [helpModalKey, setHelpModalKey] = useState<string | null>(null);
 
   // Fetch integration configs
   const { data: configs } = useQuery({
