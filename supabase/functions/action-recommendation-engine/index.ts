@@ -158,7 +158,7 @@ serve(async (req) => {
       { data: upcomingEvents },
       { data: relationshipHealth }
     ] = await Promise.all([
-      supabase.from('profiles').select('id, name, company, title, relationship_type, relationship_strength, last_contact, tags').eq('user_id', userId).limit(100),
+      supabase.from('profiles').select('id, name, company, title, relationship_type, relationship_strength, last_contact, tags').eq('user_id', userId).eq('is_active', true).limit(100),
       supabase.from('messages').select('profile_id, content, direction, created_at, ai_analysis').eq('user_id', userId).order('created_at', { ascending: false }).limit(200),
       supabase.from('personality_profiles').select('profile_id, exploitation_profile, communication_style').eq('user_id', userId),
       supabase.from('influence_campaigns').select('*').eq('user_id', userId).eq('status', 'active'),

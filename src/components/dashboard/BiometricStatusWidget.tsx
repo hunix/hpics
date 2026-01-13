@@ -30,7 +30,8 @@ export function BiometricStatusWidget() {
       const { count } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .eq('is_active', true);
       return count || 0;
     },
     enabled: !!user
