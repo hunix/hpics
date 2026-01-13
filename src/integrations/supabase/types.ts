@@ -2905,6 +2905,75 @@ export type Database = {
           },
         ]
       }
+      compliance_violations: {
+        Row: {
+          actual_value: string | null
+          category: string | null
+          created_at: string | null
+          description: string | null
+          entity_id: string | null
+          entity_type: string
+          escalated_to: string | null
+          escalation_reason: string | null
+          expected_value: string | null
+          field_path: string | null
+          id: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          rule_id: string
+          rule_name: string | null
+          severity: string
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          actual_value?: string | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          entity_id?: string | null
+          entity_type: string
+          escalated_to?: string | null
+          escalation_reason?: string | null
+          expected_value?: string | null
+          field_path?: string | null
+          id?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          rule_id: string
+          rule_name?: string | null
+          severity: string
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          actual_value?: string | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          escalated_to?: string | null
+          escalation_reason?: string | null
+          expected_value?: string | null
+          field_path?: string | null
+          id?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          rule_id?: string
+          rule_name?: string | null
+          severity?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       comprehensive_scan_sessions: {
         Row: {
           completed_at: string | null
@@ -7343,6 +7412,48 @@ export type Database = {
           },
         ]
       }
+      document_hashes: {
+        Row: {
+          algorithm: string | null
+          created_at: string | null
+          document_id: string
+          document_type: string
+          file_size: number | null
+          hash: string
+          id: string
+          is_valid: boolean | null
+          last_verified_at: string | null
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          algorithm?: string | null
+          created_at?: string | null
+          document_id: string
+          document_type: string
+          file_size?: number | null
+          hash: string
+          id?: string
+          is_valid?: boolean | null
+          last_verified_at?: string | null
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          algorithm?: string | null
+          created_at?: string | null
+          document_id?: string
+          document_type?: string
+          file_size?: number | null
+          hash?: string
+          id?: string
+          is_valid?: boolean | null
+          last_verified_at?: string | null
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       document_insights: {
         Row: {
           ai_model_used: string | null
@@ -8409,6 +8520,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      error_logs: {
+        Row: {
+          category: string | null
+          code: string
+          context: Json | null
+          created_at: string | null
+          id: string
+          is_resolved: boolean | null
+          message: string | null
+          reference_id: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          severity: string | null
+          stack_trace: string | null
+          url: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          code: string
+          context?: Json | null
+          created_at?: string | null
+          id?: string
+          is_resolved?: boolean | null
+          message?: string | null
+          reference_id: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          severity?: string | null
+          stack_trace?: string | null
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          code?: string
+          context?: Json | null
+          created_at?: string | null
+          id?: string
+          is_resolved?: boolean | null
+          message?: string | null
+          reference_id?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          severity?: string | null
+          stack_trace?: string | null
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       events: {
         Row: {
@@ -13934,6 +14099,63 @@ export type Database = {
         }
         Relationships: []
       }
+      saga_transactions: {
+        Row: {
+          audit_log: Json | null
+          completed_at: string | null
+          context: Json | null
+          created_at: string | null
+          current_step: number | null
+          error_message: string | null
+          id: string
+          result: Json | null
+          saga_name: string
+          saga_type: string | null
+          started_at: string | null
+          status: string | null
+          steps: Json
+          total_steps: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          audit_log?: Json | null
+          completed_at?: string | null
+          context?: Json | null
+          created_at?: string | null
+          current_step?: number | null
+          error_message?: string | null
+          id?: string
+          result?: Json | null
+          saga_name: string
+          saga_type?: string | null
+          started_at?: string | null
+          status?: string | null
+          steps: Json
+          total_steps: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          audit_log?: Json | null
+          completed_at?: string | null
+          context?: Json | null
+          created_at?: string | null
+          current_step?: number | null
+          error_message?: string | null
+          id?: string
+          result?: Json | null
+          saga_name?: string
+          saga_type?: string | null
+          started_at?: string | null
+          status?: string | null
+          steps?: Json
+          total_steps?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       saved_searches: {
         Row: {
           created_at: string
@@ -15306,6 +15528,48 @@ export type Database = {
           requests_last_hour?: number | null
           status?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      task_checkpoints: {
+        Row: {
+          created_at: string | null
+          current_step: number | null
+          data: Json | null
+          error_message: string | null
+          id: string
+          status: string | null
+          task_id: string
+          task_name: string
+          total_steps: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_step?: number | null
+          data?: Json | null
+          error_message?: string | null
+          id?: string
+          status?: string | null
+          task_id: string
+          task_name: string
+          total_steps: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          current_step?: number | null
+          data?: Json | null
+          error_message?: string | null
+          id?: string
+          status?: string | null
+          task_id?: string
+          task_name?: string
+          total_steps?: number
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }

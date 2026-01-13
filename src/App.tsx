@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react';
+import { Suspense } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,6 +12,7 @@ import { AIConfirmationProvider } from "@/contexts/AIConfirmationContext";
 import { GlobalShortcutsProvider } from "@/components/providers/GlobalShortcutsProvider";
 import { AIBudgetWarning } from "@/components/ai/AIBudgetWarning";
 import { FullPageLoader } from "@/components/ui/LoadingSpinner";
+import { lazyWithRetry } from "@/lib/chunkErrorHandler";
 
 // Eagerly loaded core pages
 import Index from "./pages/Index";
@@ -21,40 +22,40 @@ import Contacts from "./pages/Contacts";
 import ContactDetail from "./pages/ContactDetail";
 import NotFound from "./pages/NotFound";
 
-// Lazy loaded pages for performance
-const ConversationDetail = lazy(() => import("./pages/ConversationDetail"));
-const Communications = lazy(() => import("./pages/Communications"));
-const Documents = lazy(() => import("./pages/Documents"));
-const MediaPage = lazy(() => import("./pages/Media"));
-const Events = lazy(() => import("./pages/Events"));
-const Insights = lazy(() => import("./pages/Insights"));
-const Import = lazy(() => import("./pages/Import"));
-const Settings = lazy(() => import("./pages/Settings"));
-const Network = lazy(() => import("./pages/Network"));
-const Calendar = lazy(() => import("./pages/Calendar"));
-const VideoAnalysis = lazy(() => import("./pages/VideoAnalysis"));
-const MediaAnalysis = lazy(() => import("./pages/MediaAnalysis"));
-const BulkAnalysisDashboard = lazy(() => import("./pages/BulkAnalysisDashboard"));
-const Reports = lazy(() => import("./pages/Reports"));
-const TeamDashboard = lazy(() => import("./pages/TeamDashboard"));
-const Install = lazy(() => import("./pages/Install"));
-const Security = lazy(() => import("./pages/Security"));
-const NetworkIntelligence = lazy(() => import("./pages/NetworkIntelligence"));
-const SemanticSearchPage = lazy(() => import("./pages/SemanticSearchPage"));
-const CounterIntelligence = lazy(() => import("./pages/CounterIntelligence"));
-const SystemHealthPage = lazy(() => import("./pages/SystemHealthPage"));
-const CrossModalIntelligencePage = lazy(() => import("./pages/CrossModalIntelligencePage"));
-const AdvancedNetworkPage = lazy(() => import("./pages/AdvancedNetworkPage"));
-const AICostCenterPage = lazy(() => import("./pages/AICostCenterPage"));
-const IntelligenceCenter = lazy(() => import("./pages/IntelligenceCenter"));
-const IntelligenceCommandCenter = lazy(() => import("./pages/IntelligenceCommandCenter"));
-const AIChat = lazy(() => import("./pages/AIChat"));
-const ShareReceive = lazy(() => import("./pages/ShareReceive"));
-const CommandCenter = lazy(() => import("./pages/CommandCenter"));
-const CapabilitiesExplorer = lazy(() => import("./pages/CapabilitiesExplorer"));
-const MobileEcosystemPage = lazy(() => import("./pages/MobileEcosystemPage"));
-const UltimateCommandCenter = lazy(() => import("./pages/UltimateCommandCenter"));
-const SocialIntelligenceDashboard = lazy(() => import("./pages/SocialIntelligenceDashboard"));
+// Lazy loaded pages with retry for deployment resilience
+const ConversationDetail = lazyWithRetry(() => import("./pages/ConversationDetail"));
+const Communications = lazyWithRetry(() => import("./pages/Communications"));
+const Documents = lazyWithRetry(() => import("./pages/Documents"));
+const MediaPage = lazyWithRetry(() => import("./pages/Media"));
+const Events = lazyWithRetry(() => import("./pages/Events"));
+const Insights = lazyWithRetry(() => import("./pages/Insights"));
+const Import = lazyWithRetry(() => import("./pages/Import"));
+const Settings = lazyWithRetry(() => import("./pages/Settings"));
+const Network = lazyWithRetry(() => import("./pages/Network"));
+const Calendar = lazyWithRetry(() => import("./pages/Calendar"));
+const VideoAnalysis = lazyWithRetry(() => import("./pages/VideoAnalysis"));
+const MediaAnalysis = lazyWithRetry(() => import("./pages/MediaAnalysis"));
+const BulkAnalysisDashboard = lazyWithRetry(() => import("./pages/BulkAnalysisDashboard"));
+const Reports = lazyWithRetry(() => import("./pages/Reports"));
+const TeamDashboard = lazyWithRetry(() => import("./pages/TeamDashboard"));
+const Install = lazyWithRetry(() => import("./pages/Install"));
+const Security = lazyWithRetry(() => import("./pages/Security"));
+const NetworkIntelligence = lazyWithRetry(() => import("./pages/NetworkIntelligence"));
+const SemanticSearchPage = lazyWithRetry(() => import("./pages/SemanticSearchPage"));
+const CounterIntelligence = lazyWithRetry(() => import("./pages/CounterIntelligence"));
+const SystemHealthPage = lazyWithRetry(() => import("./pages/SystemHealthPage"));
+const CrossModalIntelligencePage = lazyWithRetry(() => import("./pages/CrossModalIntelligencePage"));
+const AdvancedNetworkPage = lazyWithRetry(() => import("./pages/AdvancedNetworkPage"));
+const AICostCenterPage = lazyWithRetry(() => import("./pages/AICostCenterPage"));
+const IntelligenceCenter = lazyWithRetry(() => import("./pages/IntelligenceCenter"));
+const IntelligenceCommandCenter = lazyWithRetry(() => import("./pages/IntelligenceCommandCenter"));
+const AIChat = lazyWithRetry(() => import("./pages/AIChat"));
+const ShareReceive = lazyWithRetry(() => import("./pages/ShareReceive"));
+const CommandCenter = lazyWithRetry(() => import("./pages/CommandCenter"));
+const CapabilitiesExplorer = lazyWithRetry(() => import("./pages/CapabilitiesExplorer"));
+const MobileEcosystemPage = lazyWithRetry(() => import("./pages/MobileEcosystemPage"));
+const UltimateCommandCenter = lazyWithRetry(() => import("./pages/UltimateCommandCenter"));
+const SocialIntelligenceDashboard = lazyWithRetry(() => import("./pages/SocialIntelligenceDashboard"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
