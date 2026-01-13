@@ -339,26 +339,34 @@ export function useHealthCheck(options: HealthCheckOptions = {}) {
     onStatusChange,
   ]);
 
-  // Auto-check on mount and interval
+  // Auto-check on mount and interval - using ref to avoid infinite loops
+  const runHealthCheckRef = useRef(runHealthCheck);
+  runHealthCheckRef.current = runHealthCheck;
+  
   useEffect(() => {
     if (!autoCheck) return;
 
-    // Initial check
-    runHealthCheck();
+    // Initial check with delay to prevent mount spam
+    const initialTimeout = setTimeout(() => {
+      runHealthCheckRef.current();
+    }, 1000);
 
-    // Set up interval
-    intervalRef.current = setInterval(runHealthCheck, intervalMs);
+    // Set up interval with stable reference
+    intervalRef.current = setInterval(() => {
+      runHealthCheckRef.current();
+    }, intervalMs);
 
     return () => {
+      clearTimeout(initialTimeout);
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
     };
-  }, [autoCheck, intervalMs, runHealthCheck]);
+  }, [autoCheck, intervalMs]); // Removed runHealthCheck from deps
 
-  // Listen for online/offline events
+  // Listen for online/offline events - using ref to avoid dependency issues
   useEffect(() => {
-    const handleOnline = () => runHealthCheck();
+    const handleOnline = () => runHealthCheckRef.current();
     const handleOffline = () => {
       setHealth(prev => ({
         ...prev,
@@ -382,7 +390,7 @@ export function useHealthCheck(options: HealthCheckOptions = {}) {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [runHealthCheck]);
+  }, []); // Empty deps - uses ref
 
   return {
     health,
