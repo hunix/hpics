@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -229,6 +230,9 @@ serve(async (req) => {
     // Generate AI insights
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     let insights: string[] = [];
+    
+    // Get AI config from platform settings
+    const aiConfig = await getAIConfig(supabase, user.id);
 
     if (LOVABLE_API_KEY) {
       try {
@@ -239,7 +243,7 @@ serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
+            model: aiConfig.speedModel,
             messages: [{
               role: "user",
               content: `Analyze this professional network and provide 3-5 strategic insights (JSON array of strings):
@@ -251,7 +255,7 @@ serve(async (req) => {
               - Top influencer: ${influencers[0]?.name || 'None'}
               - Health score: ${healthScore.toFixed(0)}/100`,
             }],
-            temperature: 0.7,
+            temperature: aiConfig.temperature,
           }),
         });
 

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callAI, selectModel } from "../_shared/ai-client.ts";
+import { callAI } from "../_shared/ai-client.ts";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -215,12 +216,15 @@ serve(async (req) => {
     // Generate AI answer if requested and we have results
     if (includeAnswer && sortedResults.length > 0) {
       try {
+        // Get AI config from platform settings
+        const aiConfig = await getAIConfig(supabase, user.id);
+        
         const contextChunks = sortedResults.map((r, i) => 
           `[Source ${i + 1} - ${r.source_type}]: ${r.content}`
         ).join('\n\n');
 
         const aiResponse = await callAI({
-          model: selectModel(modelTier as any),
+          model: aiConfig.defaultModel,
           messages: [
             {
               role: 'system',
