@@ -33,6 +33,14 @@ export const INACTIVE_CONTACT_EXCEPTIONS = [
   'sync_utility',
   'merge_contacts',
   'bulk_activation',
+  // Analysis selectors - user explicitly selects a contact for analysis
+  'cross_modal_synthesis_selector',
+  'bulk_enrichment_selector',
+  'capture_contact_linker',
+  'media_upload_assignment',
+  'unknown_persons_queue',
+  // Single-profile operations - user explicitly selected the profile
+  'single_profile_analysis',
 ] as const;
 
 export type InactiveContactException = typeof INACTIVE_CONTACT_EXCEPTIONS[number];

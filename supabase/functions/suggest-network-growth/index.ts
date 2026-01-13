@@ -39,7 +39,8 @@ serve(async (req) => {
     const { data: profiles } = await supabase
       .from('profiles')
       .select('id, first_name, last_name, organization, job_title, relationship_type, industry, is_favorite')
-      .eq('user_id', user.id);
+      .eq('user_id', user.id)
+      .eq('is_active', true);
 
     if (!profiles || profiles.length === 0) {
       return new Response(JSON.stringify({

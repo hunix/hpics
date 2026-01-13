@@ -53,6 +53,7 @@ serve(async (req) => {
         .from("profiles")
         .select("id")
         .eq("user_id", user.id)
+        .eq("is_active", true)
         .limit(100);
       profilesToAnalyze = (profiles || []).map(p => p.id);
     } else {
@@ -80,7 +81,8 @@ serve(async (req) => {
     const { data: allProfiles } = await supabase
       .from("profiles")
       .select("id, first_name, last_name, company, title, relationship_type")
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .eq("is_active", true);
 
     const profileMap = new Map((allProfiles || []).map(p => [p.id, p]));
 
