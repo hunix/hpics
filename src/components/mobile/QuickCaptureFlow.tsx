@@ -44,7 +44,7 @@ export function QuickCaptureFlow({ capturedBlob, captureType, onComplete, onCanc
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
-      const { data } = await supabase.from('profiles').select('id, first_name, last_name, avatar_url, is_favorite, updated_at').eq('user_id', user.id).order('updated_at', { ascending: false }).limit(50);
+      const { data } = await supabase.from('profiles').select('id, first_name, last_name, avatar_url, is_favorite, updated_at').eq('user_id', user.id).eq('is_active', true).order('updated_at', { ascending: false }).limit(50);
       return data || [];
     },
   });
