@@ -12787,15 +12787,20 @@ export type Database = {
           hierarchy_level: string | null
           id: string
           initial_intel_completed: boolean | null
+          instagram_followers: number | null
+          instagram_handle: string | null
           is_encrypted: boolean | null
           is_favorite: boolean | null
           is_self_profile: boolean | null
           job_title: string | null
           last_accessed_at: string | null
           last_contact_date: string | null
+          last_enriched_at: string | null
           last_name: string | null
           last_osint_scan: string | null
           last_social_capture_at: string | null
+          linkedin_connections: number | null
+          linkedin_handle: string | null
           linkedin_url: string | null
           linkedin_url_encrypted: string | null
           nickname: string | null
@@ -12809,6 +12814,10 @@ export type Database = {
             | null
           social_platforms: Json | null
           tags: string[] | null
+          tiktok_followers: number | null
+          tiktok_handle: string | null
+          twitter_followers: number | null
+          twitter_handle: string | null
           updated_at: string
           user_id: string
           workspace_id: string | null
@@ -12823,15 +12832,20 @@ export type Database = {
           hierarchy_level?: string | null
           id?: string
           initial_intel_completed?: boolean | null
+          instagram_followers?: number | null
+          instagram_handle?: string | null
           is_encrypted?: boolean | null
           is_favorite?: boolean | null
           is_self_profile?: boolean | null
           job_title?: string | null
           last_accessed_at?: string | null
           last_contact_date?: string | null
+          last_enriched_at?: string | null
           last_name?: string | null
           last_osint_scan?: string | null
           last_social_capture_at?: string | null
+          linkedin_connections?: number | null
+          linkedin_handle?: string | null
           linkedin_url?: string | null
           linkedin_url_encrypted?: string | null
           nickname?: string | null
@@ -12845,6 +12859,10 @@ export type Database = {
             | null
           social_platforms?: Json | null
           tags?: string[] | null
+          tiktok_followers?: number | null
+          tiktok_handle?: string | null
+          twitter_followers?: number | null
+          twitter_handle?: string | null
           updated_at?: string
           user_id: string
           workspace_id?: string | null
@@ -12859,15 +12877,20 @@ export type Database = {
           hierarchy_level?: string | null
           id?: string
           initial_intel_completed?: boolean | null
+          instagram_followers?: number | null
+          instagram_handle?: string | null
           is_encrypted?: boolean | null
           is_favorite?: boolean | null
           is_self_profile?: boolean | null
           job_title?: string | null
           last_accessed_at?: string | null
           last_contact_date?: string | null
+          last_enriched_at?: string | null
           last_name?: string | null
           last_osint_scan?: string | null
           last_social_capture_at?: string | null
+          linkedin_connections?: number | null
+          linkedin_handle?: string | null
           linkedin_url?: string | null
           linkedin_url_encrypted?: string | null
           nickname?: string | null
@@ -12881,6 +12904,10 @@ export type Database = {
             | null
           social_platforms?: Json | null
           tags?: string[] | null
+          tiktok_followers?: number | null
+          tiktok_handle?: string | null
+          twitter_followers?: number | null
+          twitter_handle?: string | null
           updated_at?: string
           user_id?: string
           workspace_id?: string | null

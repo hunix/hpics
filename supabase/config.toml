@@ -392,3 +392,9 @@ verify_jwt = false
 
 [functions.action-recommendation-engine]
 verify_jwt = false
+
+[functions.scrape-comprehensive-social]
+verify_jwt = false
+
+[functions.aggregate-social-intelligence]
+verify_jwt = false

@@ -54,6 +54,7 @@ const CommandCenter = lazy(() => import("./pages/CommandCenter"));
 const CapabilitiesExplorer = lazy(() => import("./pages/CapabilitiesExplorer"));
 const MobileEcosystemPage = lazy(() => import("./pages/MobileEcosystemPage"));
 const UltimateCommandCenter = lazy(() => import("./pages/UltimateCommandCenter"));
+const SocialIntelligenceDashboard = lazy(() => import("./pages/SocialIntelligenceDashboard"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -118,6 +119,7 @@ const App = () => (
                         <Route path="/capabilities" element={<CapabilitiesExplorer />} />
                         <Route path="/mobile/ecosystem" element={<MobileEcosystemPage />} />
                         <Route path="/ultimate-command" element={<UltimateCommandCenter />} />
+                        <Route path="/social-intelligence" element={<SocialIntelligenceDashboard />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                     </Suspense>

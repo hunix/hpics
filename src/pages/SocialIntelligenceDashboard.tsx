@@ -51,6 +51,20 @@ export default function SocialIntelligenceDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const queryClient = useQueryClient();
 
+  // Define profile type for social intelligence
+  type SocialProfile = {
+    id: string;
+    avatar_url: string | null;
+    instagram_handle: string | null;
+    twitter_handle: string | null;
+    linkedin_handle: string | null;
+    tiktok_handle: string | null;
+    instagram_followers: number | null;
+    twitter_followers: number | null;
+    tiktok_followers: number | null;
+    last_enriched_at: string | null;
+  };
+
   // Fetch all profiles with social handles
   const { data: profiles, isLoading: profilesLoading } = useQuery({
     queryKey: ['profiles-with-social'],
@@ -58,11 +72,13 @@ export default function SocialIntelligenceDashboard() {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, avatar_url, instagram_handle, twitter_handle, linkedin_handle, tiktok_handle, instagram_followers, twitter_followers, tiktok_followers, last_enriched_at')
-        .or('instagram_handle.neq.,twitter_handle.neq.,linkedin_handle.neq.,tiktok_handle.neq.')
         .order('last_enriched_at', { ascending: false, nullsFirst: false });
 
       if (error) throw error;
-      return data || [];
+      // Filter profiles that have at least one social handle
+      return (data as SocialProfile[] || []).filter(p => 
+        p.instagram_handle || p.twitter_handle || p.linkedin_handle || p.tiktok_handle
+      );
     },
   });
 
