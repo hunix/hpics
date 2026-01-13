@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAI } from "../_shared/ai-client.ts";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -132,6 +133,13 @@ Return as JSON: { "findings": [...] }
 
 Note: Generate plausible but generic findings - do not invent specific facts.`;
 
+    // Get AI config from platform settings
+    const serviceClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+    const aiConfig = await getAIConfig(serviceClient, user.id);
+
     const aiResponse = await callAI({
       userId: user.id,
       functionName: "osint-scan",
@@ -140,9 +148,9 @@ Note: Generate plausible but generic findings - do not invent specific facts.`;
         { role: "system", content: "You are an OSINT intelligence analyst. Return valid JSON only." },
         { role: "user", content: osintPrompt }
       ],
-      model: "google/gemini-2.5-flash",
+      model: aiConfig.defaultModel,
       temperature: 0.5,
-      maxTokens: 2000,
+      maxTokens: aiConfig.maxTokens,
     });
 
     try {

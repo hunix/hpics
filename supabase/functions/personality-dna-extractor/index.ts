@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -187,6 +188,9 @@ serve(async (req) => {
       observationNotes: observations?.map(o => ({ note: o.notes, type: o.observation_type }))
     };
 
+    // Get AI config from platform settings
+    const aiConfig = await getAIConfig(supabase, userId);
+
     // Call AI for personality extraction
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -195,7 +199,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-pro',
+        model: aiConfig.qualityModel,
         messages: [
           { role: 'system', content: PERSONALITY_EXTRACTION_PROMPT },
           { role: 'user', content: `Analyze this contact's personality from the following data:\n\n${JSON.stringify(contextData, null, 2)}` }
@@ -258,7 +262,7 @@ serve(async (req) => {
       user_id: userId,
       profile_id: profileId,
       function_name: 'personality-dna-extractor',
-      model_name: 'google/gemini-2.5-pro',
+      model_name: aiConfig.qualityModel,
       provider: 'lovable',
       input_tokens: aiResult.usage?.prompt_tokens || 0,
       output_tokens: aiResult.usage?.completion_tokens || 0,

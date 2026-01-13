@@ -152,7 +152,7 @@ serve(async (req) => {
       { data: behavioralData },
       { data: relationships }
     ] = await Promise.all([
-      supabase.from('profiles').select('id, name, company, title, tags, relationship_type').eq('user_id', userId).limit(200),
+      supabase.from('profiles').select('id, name, company, title, tags, relationship_type').eq('user_id', userId).eq('is_active', true).limit(200),
       supabase.from('messages').select('profile_id, content, created_at, direction, ai_analysis').eq('user_id', userId).order('created_at', { ascending: false }).limit(1000),
       supabase.from('contact_interactions').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(500),
       supabase.from('contact_observations').select('profile_id, observation_type, notes, created_at').eq('user_id', userId).limit(300),
