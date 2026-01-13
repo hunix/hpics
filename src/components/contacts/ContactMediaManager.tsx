@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useProtectedMediaDelete } from '@/hooks/mutations/useProtectedDelete';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -197,15 +198,7 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
     return signedUrls.get(path) || null;
   };
 
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('media').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contact-media', profileId] });
-      toast({ title: 'Media deleted' });
-    },
+  const { mutate: deleteMedia } = useProtectedMediaDelete(profileId, {
     onError: (error) => {
       toast({ title: 'Error deleting media', description: error.message, variant: 'destructive' });
     },
@@ -225,7 +218,7 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
   });
 
   const handleDelete = (id: string) => {
-    deleteMutation.mutate(id);
+    deleteMedia({ id });
   };
 
   if (isLoading) {

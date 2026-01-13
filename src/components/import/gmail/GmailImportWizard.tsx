@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useFormDraft } from '@/hooks/reliability/useFormDraft';
+import { AutoSaveIndicator } from '@/components/reliability/AutoSaveIndicator';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -11,16 +14,55 @@ import {
   Loader2, 
   Download,
   Trash2,
-  AlertCircle
+  AlertCircle,
+  RotateCcw
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+interface GmailDraftData {
+  step: 'setup' | 'connect' | 'import' | 'complete';
+  [key: string]: unknown;
+}
+
 export function GmailImportWizard() {
+  const { user } = useAuth();
   const [step, setStep] = useState<'setup' | 'connect' | 'import' | 'complete'>('setup');
   const [showConfig, setShowConfig] = useState(false);
   const queryClient = useQueryClient();
 
   const redirectUri = `${window.location.origin}/import?source=gmail`;
+
+  // Form draft for auto-save/recovery
+  const {
+    data: draftData,
+    hasDraft,
+    isSaving,
+    lastSaved,
+    setData: updateData,
+    restoreDraft,
+    discardDraft,
+  } = useFormDraft<GmailDraftData>({
+    formType: 'gmail_import',
+    formKey: user?.id || 'anonymous',
+    debounceMs: 1000,
+    expiryDays: 7,
+  });
+
+  // Sync step changes to draft
+  useEffect(() => {
+    if (step !== 'setup') {
+      updateData({ step });
+    }
+  }, [step, updateData]);
+
+  // Restore draft handler
+  const handleRestoreDraft = () => {
+    restoreDraft();
+    if (draftData?.step) {
+      setStep(draftData.step);
+    }
+    toast.success('Draft restored');
+  };
 
   // Check existing connection
   const { data: gmailConfig, isLoading: isLoadingConfig } = useQuery({
@@ -164,6 +206,24 @@ export function GmailImportWizard() {
     );
   }
 
+  // Draft recovery banner
+  const DraftBanner = () => hasDraft && step === 'setup' ? (
+    <Alert className="mb-4 border-amber-200 bg-amber-50 dark:bg-amber-950/20">
+      <RotateCcw className="h-4 w-4" />
+      <AlertDescription className="flex items-center justify-between">
+        <span>You have an unsaved import session. Would you like to restore it?</span>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={discardDraft}>
+            Discard
+          </Button>
+          <Button size="sm" onClick={handleRestoreDraft}>
+            Restore
+          </Button>
+        </div>
+      </AlertDescription>
+    </Alert>
+  ) : null;
+
   // Already connected
   if (gmailConfig) {
     return (
@@ -243,20 +303,28 @@ export function GmailImportWizard() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-            <Mail className="h-6 w-6 text-red-600 dark:text-red-400" />
+    <>
+      <DraftBanner />
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                <Mail className="h-6 w-6 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <CardTitle>Import Gmail Contacts</CardTitle>
+                <CardDescription>
+                  Connect your Google account to import contacts
+                </CardDescription>
+              </div>
+            </div>
+            <AutoSaveIndicator 
+              status={isSaving ? 'saving' : hasDraft ? 'saved' : 'idle'} 
+              lastSaved={lastSaved || undefined} 
+            />
           </div>
-          <div>
-            <CardTitle>Import Gmail Contacts</CardTitle>
-            <CardDescription>
-              Connect your Google account to import contacts
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
+        </CardHeader>
       <CardContent className="space-y-6">
         <Alert>
           <AlertCircle className="h-4 w-4" />
@@ -292,5 +360,6 @@ export function GmailImportWizard() {
         </Button>
       </CardContent>
     </Card>
+    </>
   );
 }

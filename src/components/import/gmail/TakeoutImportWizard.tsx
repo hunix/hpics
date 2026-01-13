@@ -1,7 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useFormDraft } from '@/hooks/reliability/useFormDraft';
+import { AutoSaveIndicator } from '@/components/reliability/AutoSaveIndicator';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -16,7 +18,8 @@ import {
   Shield,
   Mail,
   Users,
-  ExternalLink
+  ExternalLink,
+  RotateCcw
 } from 'lucide-react';
 import {
   Alert,
@@ -25,6 +28,14 @@ import {
 } from '@/components/ui/alert';
 
 type ImportStep = 'instructions' | 'upload' | 'processing' | 'matching' | 'complete';
+
+interface TakeoutDraftData {
+  step: ImportStep;
+  fileName?: string;
+  fileSize?: number;
+  [key: string]: unknown;
+}
+
 
 interface ImportProgress {
   totalEmails: number;
@@ -48,6 +59,42 @@ export function TakeoutImportWizard() {
     currentBatch: 0,
     totalBatches: 0,
   });
+
+  // Form draft for auto-save/recovery
+  const {
+    data: draftData,
+    hasDraft,
+    isSaving,
+    lastSaved,
+    setData: updateData,
+    restoreDraft,
+    discardDraft,
+  } = useFormDraft<TakeoutDraftData>({
+    formType: 'takeout_import',
+    formKey: user?.id || 'anonymous',
+    debounceMs: 1000,
+    expiryDays: 7,
+  });
+
+  // Sync step changes to draft (can't save File object, only metadata)
+  useEffect(() => {
+    if (step !== 'instructions') {
+      updateData({
+        step,
+        fileName: selectedFile?.name,
+        fileSize: selectedFile?.size,
+      });
+    }
+  }, [step, selectedFile?.name, selectedFile?.size, updateData]);
+
+  // Restore draft handler
+  const handleRestoreDraft = () => {
+    restoreDraft();
+    if (draftData?.step && draftData.step !== 'processing' && draftData.step !== 'matching') {
+      setStep(draftData.step);
+    }
+    toast.success('Draft restored');
+  };
 
   // Import mutation
   const importMutation = useMutation({
@@ -390,18 +437,46 @@ export function TakeoutImportWizard() {
     </div>
   );
 
+  // Draft recovery banner
+  const DraftBanner = () => hasDraft && step === 'instructions' ? (
+    <Alert className="mb-4 border-amber-200 bg-amber-50 dark:bg-amber-950/20">
+      <RotateCcw className="h-4 w-4" />
+      <AlertDescription className="flex items-center justify-between">
+        <span>You have an unsaved import session{draftData?.fileName ? ` (${draftData.fileName})` : ''}. Would you like to restore it?</span>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={discardDraft}>
+            Discard
+          </Button>
+          <Button size="sm" onClick={handleRestoreDraft}>
+            Restore
+          </Button>
+        </div>
+      </AlertDescription>
+    </Alert>
+  ) : null;
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Download className="h-5 w-5" />
-          Google Takeout Import
-        </CardTitle>
-        <CardDescription>
-          Import your complete Gmail history from a Google Takeout export. 
-          No OAuth credentials required - you download your own data.
-        </CardDescription>
-      </CardHeader>
+    <>
+      <DraftBanner />
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Download className="h-5 w-5" />
+                Google Takeout Import
+              </CardTitle>
+              <CardDescription>
+                Import your complete Gmail history from a Google Takeout export. 
+                No OAuth credentials required - you download your own data.
+              </CardDescription>
+            </div>
+            <AutoSaveIndicator 
+              status={isSaving ? 'saving' : hasDraft ? 'saved' : 'idle'} 
+              lastSaved={lastSaved || undefined} 
+            />
+          </div>
+        </CardHeader>
       <CardContent>
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
@@ -440,5 +515,6 @@ export function TakeoutImportWizard() {
         {step === 'complete' && renderComplete()}
       </CardContent>
     </Card>
+    </>
   );
 }
