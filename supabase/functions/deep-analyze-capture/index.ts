@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -152,6 +153,9 @@ Deno.serve(async (req) => {
 
     console.log(`Deep analyzing capture ${captureId} with mode: ${analysisMode}`);
 
+    // Get AI config from platform settings
+    const aiConfig = await getAIConfig(supabase, user.id);
+
     const extractedData = capture.extracted_data || {};
     const platform = extractedData.platform || capture.source_app || 'unknown';
     const posts = extractedData.posts || extractedData.rawData?.posts || [];
@@ -164,19 +168,19 @@ Deno.serve(async (req) => {
 
     // Run analysis passes based on mode
     if (analysisMode === 'full' || analysisMode === 'entities') {
-      analysis.entities = await runEntityExtraction(lovableApiKey, platform, contentForAnalysis);
+      analysis.entities = await runEntityExtraction(lovableApiKey, platform, contentForAnalysis, aiConfig.speedModel);
     }
 
     if (analysisMode === 'full' || analysisMode === 'content') {
-      analysis.content = await runContentIntelligence(lovableApiKey, platform, contentForAnalysis);
+      analysis.content = await runContentIntelligence(lovableApiKey, platform, contentForAnalysis, aiConfig.speedModel);
     }
 
     if (analysisMode === 'full' || analysisMode === 'relationships') {
-      analysis.relationships = await runRelationshipMapping(lovableApiKey, platform, contentForAnalysis);
+      analysis.relationships = await runRelationshipMapping(lovableApiKey, platform, contentForAnalysis, aiConfig.speedModel);
     }
 
     if (analysisMode === 'full' || analysisMode === 'behavioral') {
-      analysis.behavioral = await runBehavioralInsights(lovableApiKey, platform, contentForAnalysis, posts);
+      analysis.behavioral = await runBehavioralInsights(lovableApiKey, platform, contentForAnalysis, posts, aiConfig.defaultModel);
     }
 
     // Link detected entities to existing profiles
@@ -190,7 +194,7 @@ Deno.serve(async (req) => {
 
     // Generate summary and recommendations
     if (analysisMode === 'full') {
-      analysis.summary = await generateAnalysisSummary(lovableApiKey, analysis, profile);
+      analysis.summary = await generateAnalysisSummary(lovableApiKey, analysis, profile, aiConfig.qualityModel);
     }
 
     // Update capture with analysis
@@ -215,7 +219,7 @@ Deno.serve(async (req) => {
     await supabase.from('ai_usage_logs').insert({
       user_id: user.id,
       function_name: 'deep-analyze-capture',
-      model_name: 'google/gemini-2.5-flash',
+      model_name: aiConfig.speedModel,
       provider: 'google',
       estimated_cost_cents: 5,
       status: 'completed',
@@ -272,7 +276,7 @@ function prepareContentForAnalysis(profile: any, posts: any[]): string {
   return parts.join('\n');
 }
 
-async function runEntityExtraction(apiKey: string, platform: string, content: string): Promise<EntityExtraction> {
+async function runEntityExtraction(apiKey: string, platform: string, content: string, model: string): Promise<EntityExtraction> {
   const response = await fetch('https://ai.lovable.dev/api/chat', {
     method: 'POST',
     headers: {
@@ -280,7 +284,7 @@ async function runEntityExtraction(apiKey: string, platform: string, content: st
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
+      model,
       messages: [{
         role: 'user',
         content: `Analyze this ${platform} profile content and extract all entities.
@@ -313,7 +317,7 @@ ${content.substring(0, 8000)}`
   }
 }
 
-async function runContentIntelligence(apiKey: string, platform: string, content: string): Promise<ContentIntelligence> {
+async function runContentIntelligence(apiKey: string, platform: string, content: string, model: string): Promise<ContentIntelligence> {
   const response = await fetch('https://ai.lovable.dev/api/chat', {
     method: 'POST',
     headers: {
@@ -321,7 +325,7 @@ async function runContentIntelligence(apiKey: string, platform: string, content:
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
+      model,
       messages: [{
         role: 'user',
         content: `Analyze the content intelligence of this ${platform} profile.
@@ -376,7 +380,7 @@ ${content.substring(0, 8000)}`
   }
 }
 
-async function runRelationshipMapping(apiKey: string, platform: string, content: string): Promise<RelationshipMapping> {
+async function runRelationshipMapping(apiKey: string, platform: string, content: string, model: string): Promise<RelationshipMapping> {
   const response = await fetch('https://ai.lovable.dev/api/chat', {
     method: 'POST',
     headers: {
@@ -384,7 +388,7 @@ async function runRelationshipMapping(apiKey: string, platform: string, content:
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
+      model,
       messages: [{
         role: 'user',
         content: `Map the relationships evident in this ${platform} profile.
@@ -427,7 +431,7 @@ ${content.substring(0, 8000)}`
   }
 }
 
-async function runBehavioralInsights(apiKey: string, platform: string, content: string, posts: any[]): Promise<BehavioralInsights> {
+async function runBehavioralInsights(apiKey: string, platform: string, content: string, posts: any[], model: string): Promise<BehavioralInsights> {
   // Calculate posting patterns from timestamps
   const timestamps = posts
     .filter(p => p.timestamp)
@@ -460,7 +464,7 @@ async function runBehavioralInsights(apiKey: string, platform: string, content: 
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
+      model,
       messages: [{
         role: 'user',
         content: `Analyze behavioral patterns from this ${platform} profile.
@@ -539,7 +543,7 @@ async function linkEntitiesToProfiles(supabase: any, userId: string, people: any
   });
 }
 
-async function generateAnalysisSummary(apiKey: string, analysis: any, profile: any): Promise<any> {
+async function generateAnalysisSummary(apiKey: string, analysis: any, profile: any, model: string): Promise<any> {
   const response = await fetch('https://ai.lovable.dev/api/chat', {
     method: 'POST',
     headers: {
@@ -547,7 +551,7 @@ async function generateAnalysisSummary(apiKey: string, analysis: any, profile: a
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
+      model,
       messages: [{
         role: 'user',
         content: `Generate a comprehensive summary from this social profile analysis.

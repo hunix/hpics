@@ -3,6 +3,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -266,6 +267,9 @@ function extractKeyInfo(content: string, targetName: string): { findings: string
 
 async function synthesizeWithAI(dossier: Partial<ResearchDossier>, steps: ResearchStep[], supabase: any, userId: string): Promise<ResearchDossier> {
   const startTime = Date.now();
+  
+  // Get AI config from platform settings
+  const aiConfig = await getAIConfig(supabase, userId);
 
   const prompt = `Synthesize the following research into a comprehensive intelligence dossier.
 
@@ -307,9 +311,9 @@ Format as JSON:
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: aiConfig.qualityModel,
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.3,
+        temperature: aiConfig.temperature,
         max_tokens: 2000
       })
     });
@@ -320,7 +324,7 @@ Format as JSON:
     await supabase.from('ai_usage_logs').insert({
       user_id: userId,
       function_name: 'deep-research-agent',
-      model_name: 'gemini-2.5-flash',
+      model_name: aiConfig.qualityModel,
       provider: 'google',
       estimated_cost_cents: 2,
       response_time_ms: Date.now() - startTime,
