@@ -565,6 +565,7 @@ export function UnifiedIntegrationSettings() {
                       }
                       onSaveSecret={saveSecret}
                       isSaving={savingKey !== null}
+                      onOpenHelp={(secretKey) => setHelpModalKey(secretKey)}
                     />
                   ))}
                 </div>
@@ -588,6 +589,13 @@ export function UnifiedIntegrationSettings() {
           </div>
         </div>
       </div>
+      
+      {/* Integration Help Modal */}
+      <IntegrationHelpModal
+        integrationId={helpModalKey}
+        isOpen={!!helpModalKey}
+        onClose={() => setHelpModalKey(null)}
+      />
     </div>
   );
 }
