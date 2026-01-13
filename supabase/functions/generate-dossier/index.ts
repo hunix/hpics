@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callAI, parseAIJson, selectModel, getUserPreferredModel, FUNCTION_TO_ANALYSIS_TYPE } from "../_shared/ai-client.ts";
+import { callAI, parseAIJson } from "../_shared/ai-client.ts";
 import { getRAGContext, type Citation } from "../_shared/rag-helper.ts";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -282,12 +283,15 @@ serve(async (req) => {
       );
       citations = ragContext.citations;
 
-      // Get user's preferred model
-      const analysisType = FUNCTION_TO_ANALYSIS_TYPE['generate-dossier'] || 'dossier';
-      const preferredModel = await getUserPreferredModel(userId, analysisType, selectModel('quality'));
+      // Get AI config from platform settings
+      const supabaseService = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+      const aiConfig = await getAIConfig(supabaseService, userId);
 
       const aiResponse = await callAI({
-        model: preferredModel,
+        model: aiConfig.qualityModel,
         messages: [
           {
             role: 'system',
