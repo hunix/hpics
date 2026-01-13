@@ -368,3 +368,27 @@ verify_jwt = false
 
 [functions.learn-biometric-patterns]
 verify_jwt = false
+
+[functions.personality-dna-extractor]
+verify_jwt = false
+
+[functions.influence-orchestrator-v2]
+verify_jwt = false
+
+[functions.cross-modal-deception-v2]
+verify_jwt = false
+
+[functions.financial-intelligence-scan]
+verify_jwt = false
+
+[functions.power-network-analyzer]
+verify_jwt = false
+
+[functions.deep-correlation-mapper]
+verify_jwt = false
+
+[functions.behavioral-future-modeler]
+verify_jwt = false
+
+[functions.action-recommendation-engine]
+verify_jwt = false

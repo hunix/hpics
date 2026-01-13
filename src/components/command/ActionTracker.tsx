@@ -190,7 +190,7 @@ export function ActionTracker({ compact = false }: ActionTrackerProps) {
                       <p className="text-xs text-muted-foreground mb-1">{action.profileName}</p>
                       <p className="text-xs text-muted-foreground line-clamp-1">{action.description}</p>
                       
-                      {action.successScore !== undefined && action.status !== 'pending' && (
+                      {action.successScore !== undefined && (
                         <div className="mt-2 space-y-1">
                           <div className="flex justify-between text-xs">
                             <span className="text-muted-foreground">Success Score</span>
