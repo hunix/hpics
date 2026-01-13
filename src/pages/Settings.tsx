@@ -5,6 +5,7 @@ import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/hooks/useAuth';
@@ -38,6 +39,7 @@ import { BudgetAlertPanel } from '@/components/ai/BudgetAlertPanel';
 import { PerContactSpendAnalysis } from '@/components/ai/PerContactSpendAnalysis';
 import { ModelEfficiencyComparison } from '@/components/ai/ModelEfficiencyComparison';
 import { AccountStorageConsumption } from '@/components/analytics/AccountStorageConsumption';
+import { IntegrationHealthDashboard } from '@/components/settings/IntegrationHealthDashboard';
 import { RealTimeSecurityDashboard } from '@/components/security/RealTimeSecurityDashboard';
 
 export default function Settings() {
@@ -200,7 +202,20 @@ export default function Settings() {
       case 'biometrics':
         return <div className="space-y-6"><BiometricSettings /><BiometricBatchScan /><BiometricAnalyticsDashboard /></div>;
       case 'integrations':
-        return <UnifiedIntegrationSettings />;
+        return (
+          <Tabs defaultValue="config" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="config">Configuration</TabsTrigger>
+              <TabsTrigger value="health">Health Dashboard</TabsTrigger>
+            </TabsList>
+            <TabsContent value="config">
+              <UnifiedIntegrationSettings />
+            </TabsContent>
+            <TabsContent value="health">
+              <IntegrationHealthDashboard />
+            </TabsContent>
+          </Tabs>
+        );
       case 'teams':
         return <WorkspaceSettings />;
       case 'ai-models':

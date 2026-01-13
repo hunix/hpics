@@ -10271,6 +10271,42 @@ export type Database = {
         }
         Relationships: []
       }
+      integration_test_history: {
+        Row: {
+          created_at: string | null
+          id: string
+          integration_id: string
+          message: string | null
+          response_time_ms: number | null
+          secret_key: string
+          success: boolean
+          tested_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          integration_id: string
+          message?: string | null
+          response_time_ms?: number | null
+          secret_key: string
+          success: boolean
+          tested_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          integration_id?: string
+          message?: string | null
+          response_time_ms?: number | null
+          secret_key?: string
+          success?: boolean
+          tested_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       intelligence_alert_rules: {
         Row: {
           conditions: Json
