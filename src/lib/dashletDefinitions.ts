@@ -63,7 +63,7 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Statistics Overview',
     description: 'Key metrics: contacts, favorites, communications, events',
     icon: BarChart3,
-    defaultVisible: true,
+    defaultVisible: false,
     category: 'overview',
   },
   {

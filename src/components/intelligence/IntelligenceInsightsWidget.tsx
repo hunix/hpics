@@ -40,7 +40,7 @@ export function IntelligenceInsightsWidget() {
         { data: recentComms },
         { data: decayingScores },
       ] = await Promise.all([
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('user_id', user!.id),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('user_id', user!.id).eq('is_active', true),
         supabase.from('communications').select('*', { count: 'exact', head: true }).eq('user_id', user!.id),
         supabase
           .from('communications')

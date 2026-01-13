@@ -43,7 +43,7 @@ export default function Dashboard() {
     queryKey: ['dashboard-stats', user?.id],
     queryFn: async () => {
       const [profilesRes, communicationsRes, eventsRes, birthdaysRes] = await Promise.all([
-        supabase.from('profiles').select('id, is_favorite', { count: 'exact' }),
+        supabase.from('profiles').select('id, is_favorite', { count: 'exact' }).eq('is_active', true),
         supabase.from('communications').select('id', { count: 'exact' }),
         supabase.from('events').select('id, event_date').eq('is_active', true).gte('event_date', new Date().toISOString()),
         supabase.from('contact_personal_info').select('date_of_birth').not('date_of_birth', 'is', null),
@@ -61,7 +61,7 @@ export default function Dashboard() {
       }).length;
       
       return {
-        totalContacts: profilesRes.count ?? 0,
+        totalContacts: profilesRes.data?.length ?? 0,
         favoriteContacts: profilesRes.data?.filter(p => p.is_favorite).length ?? 0,
         totalCommunications: communicationsRes.count ?? 0,
         upcomingEvents: (eventsRes.data?.length ?? 0) + upcomingBirthdaysCount,
@@ -76,6 +76,7 @@ export default function Dashboard() {
       const { data } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, avatar_url, relationship_type, last_contact_date')
+        .eq('is_active', true)
         .order('updated_at', { ascending: false })
         .limit(5);
       return data ?? [];
@@ -98,7 +99,8 @@ export default function Dashboard() {
           .order('event_date', { ascending: true }),
         supabase
           .from('contact_personal_info')
-          .select('id, date_of_birth, profile_id, profiles(first_name, last_name)')
+          .select('id, date_of_birth, profile_id, profiles!inner(first_name, last_name, is_active)')
+          .eq('profiles.is_active', true)
           .not('date_of_birth', 'is', null),
       ]);
 
@@ -144,7 +146,7 @@ export default function Dashboard() {
 
   // Build stat cards data
   const statCards: DashboardStat[] = [
-    { title: 'Total Contacts', value: stats?.totalContacts ?? 0, icon: Users, color: 'primary', href: '/contacts' },
+    { title: 'Active Contacts', value: stats?.totalContacts ?? 0, icon: Users, color: 'primary', href: '/contacts' },
     { title: 'Favorites', value: stats?.favoriteContacts ?? 0, icon: Star, color: 'yellow-500', href: '/contacts?filter=favorites' },
     { title: 'Communications', value: stats?.totalCommunications ?? 0, icon: MessageSquare, color: 'blue-500', href: '/communications' },
     { title: 'Upcoming Events', value: stats?.upcomingEvents ?? 0, icon: Calendar, color: 'green-500', href: '/calendar' },
