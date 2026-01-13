@@ -82,20 +82,20 @@ export function EnhancedSidebar() {
   
   return (
     <>
-      <Sidebar className="border-r border-border/50">
-        {/* Header */}
-        <SidebarHeader className="border-b border-border/50 px-4 py-3">
+      <Sidebar className="border-r border-border/40 bg-sidebar/95 backdrop-blur-xl">
+        {/* Header with premium styling */}
+        <SidebarHeader className="border-b border-border/40 px-4 py-3 bg-gradient-to-b from-sidebar to-transparent">
           <div className="flex items-center gap-3">
             <div className={cn(
               'flex h-10 w-10 items-center justify-center rounded-xl',
-              'bg-gradient-to-br from-primary to-primary/80',
-              'shadow-lg shadow-primary/25'
+              'bg-gradient-to-br from-primary via-primary/90 to-primary/80',
+              'shadow-lg shadow-primary/30 ring-1 ring-primary/20'
             )}>
               <Users className="h-5 w-5 text-primary-foreground" />
             </div>
             <div className="flex flex-col">
-              <span className="text-base font-bold tracking-tight">PICS</span>
-              <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
+              <span className="text-base font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">PICS</span>
+              <span className="text-[10px] text-muted-foreground/80 uppercase tracking-widest font-medium">
                 Intelligence CRM
               </span>
             </div>
