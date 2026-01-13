@@ -1016,6 +1016,36 @@ export type Database = {
           },
         ]
       }
+      analysis_type_config: {
+        Row: {
+          analysis_type: string
+          config_key: string
+          config_value: Json
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis_type: string
+          config_key: string
+          config_value: Json
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis_type?: string
+          config_key?: string
+          config_value?: Json
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           created_at: string | null
@@ -3671,6 +3701,65 @@ export type Database = {
           },
           {
             foreignKeyName: "contact_communication_preferences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_config_overrides: {
+        Row: {
+          config_key: string
+          config_value: Json
+          created_at: string
+          id: string
+          profile_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          config_key: string
+          config_value: Json
+          created_at?: string
+          id?: string
+          profile_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          config_key?: string
+          config_value?: Json
+          created_at?: string
+          id?: string
+          profile_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_config_overrides_config_key_fkey"
+            columns: ["config_key"]
+            isOneToOne: false
+            referencedRelation: "platform_config"
+            referencedColumns: ["config_key"]
+          },
+          {
+            foreignKeyName: "contact_config_overrides_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_config_overrides_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_config_overrides_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -12941,6 +13030,57 @@ export type Database = {
           },
         ]
       }
+      platform_config: {
+        Row: {
+          category: string
+          config_key: string
+          config_value: Json
+          created_at: string
+          default_value: Json
+          description: string | null
+          display_name: string
+          id: string
+          is_sensitive: boolean | null
+          requires_restart: boolean | null
+          subcategory: string | null
+          updated_at: string
+          value_constraints: Json | null
+          value_type: string
+        }
+        Insert: {
+          category: string
+          config_key: string
+          config_value?: Json
+          created_at?: string
+          default_value: Json
+          description?: string | null
+          display_name: string
+          id?: string
+          is_sensitive?: boolean | null
+          requires_restart?: boolean | null
+          subcategory?: string | null
+          updated_at?: string
+          value_constraints?: Json | null
+          value_type?: string
+        }
+        Update: {
+          category?: string
+          config_key?: string
+          config_value?: Json
+          created_at?: string
+          default_value?: Json
+          description?: string | null
+          display_name?: string
+          id?: string
+          is_sensitive?: boolean | null
+          requires_restart?: boolean | null
+          subcategory?: string | null
+          updated_at?: string
+          value_constraints?: Json | null
+          value_type?: string
+        }
+        Relationships: []
+      }
       power_network_analyses: {
         Row: {
           analysis_type: string
@@ -16069,6 +16209,41 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "media"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_config_overrides: {
+        Row: {
+          config_key: string
+          config_value: Json
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          config_key: string
+          config_value: Json
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          config_key?: string
+          config_value?: Json
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_config_overrides_config_key_fkey"
+            columns: ["config_key"]
+            isOneToOne: false
+            referencedRelation: "platform_config"
+            referencedColumns: ["config_key"]
           },
         ]
       }
