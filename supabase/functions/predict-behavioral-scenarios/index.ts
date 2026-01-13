@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -112,6 +113,9 @@ serve(async (req) => {
       });
     }
 
+    // Get AI config for model selection
+    const aiConfig = await getAIConfig(supabase, user.id);
+
     // Call AI for predictions
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -120,7 +124,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
+        model: aiConfig.defaultModel,
         messages: [
           {
             role: 'system',
@@ -241,12 +245,12 @@ ${context.communicationPatterns}`
       });
     }
 
-    // Log AI usage
+    // Log AI usage with config model
     await supabase.from('ai_usage_logs').insert({
       user_id: user.id,
       profile_id,
       function_name: 'predict-behavioral-scenarios',
-      model_name: 'google/gemini-3-flash-preview',
+      model_name: aiConfig.defaultModel,
       provider: 'lovable',
       estimated_cost_cents: 2,
       status: 'completed',

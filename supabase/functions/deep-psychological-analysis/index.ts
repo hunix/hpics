@@ -1,8 +1,9 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callAI, parseAIJson, selectModel, getUserPreferredModel, FUNCTION_TO_ANALYSIS_TYPE } from "../_shared/ai-client.ts";
+import { callAI, parseAIJson, FUNCTION_TO_ANALYSIS_TYPE } from "../_shared/ai-client.ts";
 import { getRAGContext } from "../_shared/rag-helper.ts";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -303,9 +304,9 @@ serve(async (req) => {
     // PHASE 3: Call AI for comprehensive analysis using unified client
     // ============================================
 
-    // Get user's preferred model
-    const analysisType = FUNCTION_TO_ANALYSIS_TYPE['deep-psychological-analysis'] || 'psychological_analysis';
-    const preferredModel = model_preference || await getUserPreferredModel(user.id, analysisType, selectModel('quality'));
+    // Get AI config for model selection
+    const aiConfig = await getAIConfig(supabase, user.id);
+    const preferredModel = model_preference || aiConfig.qualityModel; // Use quality model for deep analysis
     
     console.log(`Using model: ${preferredModel}`);
     

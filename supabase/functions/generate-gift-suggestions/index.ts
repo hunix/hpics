@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -71,6 +72,9 @@ Personality traits: ${personalityTraits}
 
 Focus on thoughtful, personalized gifts that show you know them well.`;
 
+    // Get AI config for model selection
+    const aiConfig = await getAIConfig(supabase, user.id);
+
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -78,7 +82,7 @@ Focus on thoughtful, personalized gifts that show you know them well.`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: aiConfig.speedModel, // Use speed model for gift suggestions
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
@@ -119,11 +123,12 @@ Focus on thoughtful, personalized gifts that show you know them well.`;
     const inputTokens = aiResponse.usage?.prompt_tokens || 0;
     const outputTokens = aiResponse.usage?.completion_tokens || 0;
     
+    // Log usage with config model
     await supabase.from('ai_usage_logs').insert({
       user_id: user.id,
       profile_id: profileId,
       function_name: 'generate-gift-suggestions',
-      model_name: 'google/gemini-2.5-flash',
+      model_name: aiConfig.speedModel,
       provider: 'google',
       input_tokens: inputTokens,
       output_tokens: outputTokens,

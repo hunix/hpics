@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -79,6 +80,9 @@ Context:
 
 Write ONLY the message body, no subject line or signature.`;
 
+    // Get AI config for model selection
+    const aiConfig = await getAIConfig(supabase, user.id);
+
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -86,13 +90,13 @@ Write ONLY the message body, no subject line or signature.`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: aiConfig.speedModel, // Use speed model for drafts
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
         max_tokens: 300,
-        temperature: 0.7
+        temperature: aiConfig.temperature
       }),
     });
 
@@ -109,11 +113,12 @@ Write ONLY the message body, no subject line or signature.`;
     const inputTokens = aiResponse.usage?.prompt_tokens || 0;
     const outputTokens = aiResponse.usage?.completion_tokens || 0;
     
+    // Log usage with config model
     await supabase.from('ai_usage_logs').insert({
       user_id: user.id,
       profile_id: profileId,
       function_name: 'generate-outreach-draft',
-      model_name: 'google/gemini-2.5-flash',
+      model_name: aiConfig.speedModel,
       provider: 'google',
       input_tokens: inputTokens,
       output_tokens: outputTokens,

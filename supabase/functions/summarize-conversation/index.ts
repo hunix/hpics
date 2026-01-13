@@ -2,6 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAI, parseAIJson } from "../_shared/ai-client.ts";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const FUNCTION_VERSION = "2026-01-08-unified-ai-v1";
 
@@ -108,7 +109,14 @@ serve(async (req) => {
       throw new Error('conversationId and userId are required');
     }
 
-    const selectedModel = model || 'google/gemini-2.5-flash';
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Get AI config for model selection
+    const aiConfig = await getAIConfig(supabase, userId);
+    const selectedModel = model || aiConfig.defaultModel;
     console.log(`Selected model: ${selectedModel}`);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

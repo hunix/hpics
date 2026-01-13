@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAI, parseAIJson } from "../_shared/ai-client.ts";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -114,15 +115,22 @@ ${JSON.stringify(contactsData, null, 2)}
 Analyze these contacts and suggest which pairs I should introduce to each other, explaining why each introduction would be valuable.`;
 
     try {
+      // Get AI config for model selection
+      const supabaseService = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+      const aiConfig = await getAIConfig(supabaseService, userId);
+
       const aiResponse = await callAI({
-        model: 'google/gemini-2.5-flash',
+        model: aiConfig.speedModel, // Use speed model for introductions
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
         userId,
         functionName: 'suggest-introductions',
-        temperature: 0.7,
+        temperature: aiConfig.temperature,
       });
       const result = parseAIJson(aiResponse.content, { introductions: [] });
       return new Response(JSON.stringify(result), {

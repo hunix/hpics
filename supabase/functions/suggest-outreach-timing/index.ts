@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callAI, selectModel } from "../_shared/ai-client.ts";
+import { callAI } from "../_shared/ai-client.ts";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -180,8 +181,15 @@ Preferred channels: ${bestChannels.map(c => `${c.channel} (${c.count} uses)`).jo
 Provide a brief, actionable recommendation (2-3 sentences) for the optimal time and method to reach out to this person for maximum engagement.`;
 
       try {
+        // Get AI config for model selection
+        const supabaseService = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        );
+        const aiConfig = await getAIConfig(supabaseService, user.id);
+
         const aiResponse = await callAI({
-          model: selectModel('speed'),
+          model: aiConfig.speedModel, // Use speed model for timing suggestions
           messages: [
             { role: 'system', content: 'You are a relationship management assistant. Give brief, practical advice.' },
             { role: 'user', content: prompt }
@@ -189,7 +197,7 @@ Provide a brief, actionable recommendation (2-3 sentences) for the optimal time 
           userId: user.id,
           functionName: 'suggest-outreach-timing',
           profileId,
-          temperature: 0.7,
+          temperature: aiConfig.temperature,
           maxTokens: 300,
           metadata: {
             total_interactions: communications.length,

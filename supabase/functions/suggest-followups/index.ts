@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callAI, parseAIJson, selectModel, getUserPreferredModel, FUNCTION_TO_ANALYSIS_TYPE } from "../_shared/ai-client.ts";
+import { callAI, parseAIJson, FUNCTION_TO_ANALYSIS_TYPE } from "../_shared/ai-client.ts";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -91,13 +92,12 @@ serve(async (req) => {
       };
     });
 
-    // Get user's preferred model for followup suggestions
-    const analysisType = FUNCTION_TO_ANALYSIS_TYPE['suggest-followups'] || 'followup_suggestions';
-    const preferredModel = await getUserPreferredModel(userId, analysisType, selectModel(modelTier as any));
+    // Get AI config for model selection
+    const aiConfig = await getAIConfig(supabase, userId);
 
     // Use unified AI client for intelligent suggestions
     const aiResponse = await callAI({
-      model: preferredModel,
+      model: aiConfig.speedModel, // Use speed model for suggestions
       messages: [
         { 
           role: 'system', 
