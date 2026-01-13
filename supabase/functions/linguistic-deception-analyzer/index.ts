@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -157,6 +158,9 @@ Provide analysis in this JSON format:
   ]
 }`;
 
+    // Get AI config for model selection
+    const aiConfig = await getAIConfig(supabase, userId);
+
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -164,7 +168,7 @@ Provide analysis in this JSON format:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-pro',
+        model: aiConfig.qualityModel, // Use quality model for deception analysis
         messages: [
           { role: 'system', content: LIWC_ANALYSIS_PROMPT },
           { role: 'user', content: JSON.stringify({ texts: textsToAnalyze, analysisType }) }

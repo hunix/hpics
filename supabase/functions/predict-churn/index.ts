@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
+import { callAI, parseAIJson } from "../_shared/ai-client.ts";
 import { CHURN_PROMPTS, fillTemplate } from "../_shared/prompts.ts";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -190,6 +191,9 @@ serve(async (req) => {
       };
     }));
 
+    // Get AI config for model selection
+    const aiConfig = await getAIConfig(supabase, user.id);
+
     // Store predictions in churn_predictions table for accuracy tracking
     const predictionsToStore = churnPredictions.filter(p => p.risk_score >= 30).slice(0, 20);
     if (predictionsToStore.length > 0) {
@@ -202,7 +206,7 @@ serve(async (req) => {
         risk_level: p.risk_level,
         risk_score: p.risk_score,
         contributing_factors: p.features,
-        model_used: selectModel('balanced'),
+        model_used: aiConfig.defaultModel,
         intervention_recommended: p.risk_level === 'critical' ? 'immediate_outreach' :
                                   p.risk_level === 'high' ? 'scheduled_follow_up' : 'monitor',
       }));
@@ -227,7 +231,7 @@ serve(async (req) => {
         });
 
         const aiResponse = await callAI({
-          model: selectModel('balanced'),
+          model: aiConfig.defaultModel,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
@@ -235,8 +239,8 @@ serve(async (req) => {
           userId: user.id,
           functionName: 'predict-churn',
           promptKey: 'churn.intervention',
-          temperature: 0.5,
-          maxTokens: 1500,
+          temperature: aiConfig.temperature,
+          maxTokens: aiConfig.maxTokens,
           metadata: { high_risk_count: highRiskContacts.length },
         });
 

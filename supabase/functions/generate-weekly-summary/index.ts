@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
+import { callAI, parseAIJson } from "../_shared/ai-client.ts";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -113,15 +114,18 @@ Be encouraging and specific.`;
   };
 
   try {
+    // Get AI config for model selection
+    const aiConfig = await getAIConfig(supabase, userId);
+
     const aiResponse = await callAI({
-      model: selectModel('speed'), // Use speed tier for summaries
+      model: aiConfig.speedModel, // Use speed tier for summaries
       messages: [
         { role: 'system', content: 'You are a supportive relationship coach providing weekly summaries.' },
         { role: 'user', content: prompt }
       ],
       userId,
       functionName: 'generate-weekly-summary',
-      temperature: 0.7,
+      temperature: aiConfig.temperature,
       maxTokens: 1500,
       metadata: {
         weekStart: weekStart.toISOString(),

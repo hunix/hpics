@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
+import { callAI, parseAIJson } from "../_shared/ai-client.ts";
 import { CHURN_PROMPTS, fillTemplate } from "../_shared/prompts.ts";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -305,6 +306,9 @@ serve(async (req) => {
       await supabase.from('churn_predictions').insert(predictionRecords);
     }
 
+    // Get AI config for model selection
+    const aiConfig = await getAIConfig(supabase, user.id);
+
     // Generate AI intervention recommendations for high-risk contacts
     let interventions: any[] = [];
     const highRiskContacts = churnPredictions.filter(p => p.risk_score >= 50).slice(0, 8);
@@ -338,7 +342,7 @@ ${JSON.stringify(highRiskContacts.map(c => ({
 })), null, 2)}`;
 
         const aiResponse = await callAI({
-          model: selectModel('balanced'),
+          model: aiConfig.defaultModel,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
@@ -346,8 +350,8 @@ ${JSON.stringify(highRiskContacts.map(c => ({
           userId: user.id,
           functionName: 'predict-churn-enhanced',
           promptKey: 'churn.enhanced_intervention',
-          temperature: 0.5,
-          maxTokens: 2000,
+          temperature: aiConfig.temperature,
+          maxTokens: aiConfig.maxTokens,
         });
 
         interventions = parseAIJson(aiResponse.content, { interventions: [] }).interventions || [];

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAI } from "../_shared/ai-client.ts";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -74,13 +75,21 @@ serve(async (req) => {
     // Extract features for ML prediction
     const features = extractFeatures(communications || [], messages || [], observations || [], baselines || []);
 
+    // Get AI config for model selection
+    const supabaseService = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+    const aiConfig = await getAIConfig(supabaseService, user.id);
+
     // Generate predictions using AI
     const predictions = await generatePredictions(
       user.id,
       profileId,
       profile,
       features,
-      predictionTypes
+      predictionTypes,
+      aiConfig
     );
 
     // Store predictions
@@ -220,7 +229,8 @@ async function generatePredictions(
   profileId: string,
   profile: any,
   features: any,
-  predictionTypes: string[]
+  predictionTypes: string[],
+  aiConfig: any
 ) {
   const prompt = `You are a behavioral prediction AI analyzing relationship patterns.
 
@@ -255,8 +265,8 @@ Respond with a JSON object containing predictions for each type. Each prediction
       { role: "system", content: "You are a behavioral prediction AI. Return valid JSON only." },
       { role: "user", content: prompt }
     ],
-    model: "google/gemini-2.5-flash",
-    temperature: 0.3,
+    model: aiConfig.speedModel, // Use speed model for predictions
+    temperature: aiConfig.temperature,
     maxTokens: 2000,
   });
 

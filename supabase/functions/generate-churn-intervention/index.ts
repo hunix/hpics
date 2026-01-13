@@ -3,7 +3,8 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
+import { callAI, parseAIJson } from "../_shared/ai-client.ts";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -210,9 +211,12 @@ serve(async (req) => {
         .slice(0, 3)
         .join('\n') || 'No data on past successful interactions');
 
+    // Get AI config for model selection
+    const aiConfig = await getAIConfig(supabase, user.id);
+
     // Call AI
     const aiResponse = await callAI({
-      model: selectModel('quality'), // Use quality model for important interventions
+      model: aiConfig.qualityModel, // Use quality model for important interventions
       messages: [
         { role: 'system', content: INTERVENTION_PROMPT.system },
         { role: 'user', content: userPrompt },
@@ -221,8 +225,8 @@ serve(async (req) => {
       functionName: 'generate-churn-intervention',
       profileId,
       promptKey: 'churn.intervention_playbook',
-      temperature: 0.7,
-      maxTokens: 3000,
+      temperature: aiConfig.temperature,
+      maxTokens: aiConfig.maxTokens,
       metadata: { riskLevel, daysSinceContact },
     });
 
