@@ -14403,6 +14403,172 @@ export type Database = {
           },
         ]
       }
+      social_comments: {
+        Row: {
+          author_avatar_url: string | null
+          author_display_name: string | null
+          author_profile_url: string | null
+          author_username: string | null
+          comment_id: string | null
+          commented_at: string | null
+          content: string | null
+          created_at: string | null
+          id: string
+          is_verified: boolean | null
+          likes_count: number | null
+          platform: string
+          post_id: string | null
+          replied_to_id: string | null
+          replies_count: number | null
+          scraped_at: string | null
+          sentiment_score: number | null
+          user_id: string
+        }
+        Insert: {
+          author_avatar_url?: string | null
+          author_display_name?: string | null
+          author_profile_url?: string | null
+          author_username?: string | null
+          comment_id?: string | null
+          commented_at?: string | null
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          is_verified?: boolean | null
+          likes_count?: number | null
+          platform: string
+          post_id?: string | null
+          replied_to_id?: string | null
+          replies_count?: number | null
+          scraped_at?: string | null
+          sentiment_score?: number | null
+          user_id: string
+        }
+        Update: {
+          author_avatar_url?: string | null
+          author_display_name?: string | null
+          author_profile_url?: string | null
+          author_username?: string | null
+          comment_id?: string | null
+          commented_at?: string | null
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          is_verified?: boolean | null
+          likes_count?: number | null
+          platform?: string
+          post_id?: string | null
+          replied_to_id?: string | null
+          replies_count?: number | null
+          scraped_at?: string | null
+          sentiment_score?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "social_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_comments_replied_to_id_fkey"
+            columns: ["replied_to_id"]
+            isOneToOne: false
+            referencedRelation: "social_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_connections: {
+        Row: {
+          connected_avatar_url: string | null
+          connected_bio: string | null
+          connected_display_name: string | null
+          connected_followers_count: number | null
+          connected_profile_url: string | null
+          connected_user_id: string | null
+          connected_username: string
+          connected_verified: boolean | null
+          connection_type: string
+          created_at: string | null
+          first_seen_at: string | null
+          id: string
+          is_active: boolean | null
+          last_seen_at: string | null
+          platform: string
+          profile_id: string | null
+          relationship_strength: number | null
+          scraped_at: string | null
+          user_id: string
+        }
+        Insert: {
+          connected_avatar_url?: string | null
+          connected_bio?: string | null
+          connected_display_name?: string | null
+          connected_followers_count?: number | null
+          connected_profile_url?: string | null
+          connected_user_id?: string | null
+          connected_username: string
+          connected_verified?: boolean | null
+          connection_type: string
+          created_at?: string | null
+          first_seen_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_seen_at?: string | null
+          platform: string
+          profile_id?: string | null
+          relationship_strength?: number | null
+          scraped_at?: string | null
+          user_id: string
+        }
+        Update: {
+          connected_avatar_url?: string | null
+          connected_bio?: string | null
+          connected_display_name?: string | null
+          connected_followers_count?: number | null
+          connected_profile_url?: string | null
+          connected_user_id?: string | null
+          connected_username?: string
+          connected_verified?: boolean | null
+          connection_type?: string
+          created_at?: string | null
+          first_seen_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_seen_at?: string | null
+          platform?: string
+          profile_id?: string | null
+          relationship_strength?: number | null
+          scraped_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_connections_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "social_connections_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "social_connections_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       social_identity_links: {
         Row: {
           capture_ids: string[]
@@ -14464,6 +14630,262 @@ export type Database = {
           {
             foreignKeyName: "social_identity_links_primary_profile_id_fkey"
             columns: ["primary_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_likers: {
+        Row: {
+          created_at: string | null
+          id: string
+          liked_at: string | null
+          liker_avatar_url: string | null
+          liker_display_name: string | null
+          liker_profile_url: string | null
+          liker_user_id: string | null
+          liker_username: string
+          liker_verified: boolean | null
+          post_id: string | null
+          scraped_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          liked_at?: string | null
+          liker_avatar_url?: string | null
+          liker_display_name?: string | null
+          liker_profile_url?: string | null
+          liker_user_id?: string | null
+          liker_username: string
+          liker_verified?: boolean | null
+          post_id?: string | null
+          scraped_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          liked_at?: string | null
+          liker_avatar_url?: string | null
+          liker_display_name?: string | null
+          liker_profile_url?: string | null
+          liker_user_id?: string | null
+          liker_username?: string
+          liker_verified?: boolean | null
+          post_id?: string | null
+          scraped_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_likers_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "social_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_posts: {
+        Row: {
+          caption: string | null
+          comments_count: number | null
+          content: string | null
+          created_at: string | null
+          engagement_rate: number | null
+          hashtags: string[] | null
+          id: string
+          is_pinned: boolean | null
+          is_sponsored: boolean | null
+          likes_count: number | null
+          location: string | null
+          media_type: string | null
+          media_urls: Json | null
+          mentions: string[] | null
+          platform: string
+          post_id: string
+          post_url: string | null
+          posted_at: string | null
+          profile_id: string | null
+          raw_data: Json | null
+          saves_count: number | null
+          scraped_at: string | null
+          sentiment_score: number | null
+          shares_count: number | null
+          updated_at: string | null
+          user_id: string
+          views_count: number | null
+        }
+        Insert: {
+          caption?: string | null
+          comments_count?: number | null
+          content?: string | null
+          created_at?: string | null
+          engagement_rate?: number | null
+          hashtags?: string[] | null
+          id?: string
+          is_pinned?: boolean | null
+          is_sponsored?: boolean | null
+          likes_count?: number | null
+          location?: string | null
+          media_type?: string | null
+          media_urls?: Json | null
+          mentions?: string[] | null
+          platform: string
+          post_id: string
+          post_url?: string | null
+          posted_at?: string | null
+          profile_id?: string | null
+          raw_data?: Json | null
+          saves_count?: number | null
+          scraped_at?: string | null
+          sentiment_score?: number | null
+          shares_count?: number | null
+          updated_at?: string | null
+          user_id: string
+          views_count?: number | null
+        }
+        Update: {
+          caption?: string | null
+          comments_count?: number | null
+          content?: string | null
+          created_at?: string | null
+          engagement_rate?: number | null
+          hashtags?: string[] | null
+          id?: string
+          is_pinned?: boolean | null
+          is_sponsored?: boolean | null
+          likes_count?: number | null
+          location?: string | null
+          media_type?: string | null
+          media_urls?: Json | null
+          mentions?: string[] | null
+          platform?: string
+          post_id?: string
+          post_url?: string | null
+          posted_at?: string | null
+          profile_id?: string | null
+          raw_data?: Json | null
+          saves_count?: number | null
+          scraped_at?: string | null
+          sentiment_score?: number | null
+          shares_count?: number | null
+          updated_at?: string | null
+          user_id?: string
+          views_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_posts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "social_posts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "social_posts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_scrape_jobs: {
+        Row: {
+          completed_at: string | null
+          cost_cents: number | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          is_recurring: boolean | null
+          items_scraped: number | null
+          items_total: number | null
+          last_cursor: string | null
+          platform: string
+          profile_id: string | null
+          provider: string | null
+          raw_response: Json | null
+          recurrence_interval: string | null
+          scheduled_for: string | null
+          scrape_type: string
+          started_at: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          cost_cents?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          is_recurring?: boolean | null
+          items_scraped?: number | null
+          items_total?: number | null
+          last_cursor?: string | null
+          platform: string
+          profile_id?: string | null
+          provider?: string | null
+          raw_response?: Json | null
+          recurrence_interval?: string | null
+          scheduled_for?: string | null
+          scrape_type: string
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          cost_cents?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          is_recurring?: boolean | null
+          items_scraped?: number | null
+          items_total?: number | null
+          last_cursor?: string | null
+          platform?: string
+          profile_id?: string | null
+          provider?: string | null
+          raw_response?: Json | null
+          recurrence_interval?: string | null
+          scheduled_for?: string | null
+          scrape_type?: string
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_scrape_jobs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "social_scrape_jobs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "social_scrape_jobs_profile_id_fkey"
+            columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

@@ -1,6 +1,23 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Capacitor } from '@capacitor/core';
 
 export type DeviceType = 'mobile' | 'tablet' | 'desktop';
+
+// Check if running in Capacitor native app
+const isCapacitorNative = (): boolean => {
+  try {
+    return Capacitor.isNativePlatform();
+  } catch {
+    return false;
+  }
+};
+
+// Check for force mobile URL parameter
+const hasForceMobileParam = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  const params = new URLSearchParams(window.location.search);
+  return params.get('forceMobile') === 'true';
+};
 export type ScreenSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 export type Orientation = 'portrait' | 'landscape';
 
@@ -23,6 +40,11 @@ interface DeviceInfo {
 }
 
 function getDeviceType(width: number): DeviceType {
+  // Force mobile for Capacitor native apps or forceMobile URL param
+  if (isCapacitorNative() || hasForceMobileParam()) {
+    return 'mobile';
+  }
+  
   if (width < 768) return 'mobile';
   if (width < 1024) return 'tablet';
   return 'desktop';
