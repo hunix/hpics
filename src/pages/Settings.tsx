@@ -7,46 +7,33 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Sun, Bell, Mail, Loader2, Smartphone, Link2, Bot, Cpu, MessageCircle, HardDrive, Trash2, Users, Fingerprint, DollarSign, Activity, Shield } from 'lucide-react';
+import { Moon, Sun, Bell, Mail, Loader2, Smartphone } from 'lucide-react';
+import { SettingsLayout } from '@/components/settings/SettingsLayout';
 import { AnalyticsExport } from '@/components/analytics/AnalyticsExport';
-import { EmailIntegration } from '@/components/settings/EmailIntegration';
-import { OutlookIntegration } from '@/components/settings/OutlookIntegration';
 import { PushNotifications } from '@/components/settings/PushNotifications';
 import { LocalAIEndpoints } from '@/components/settings/LocalAIEndpoints';
 import { AIModelPreferences } from '@/components/settings/AIModelPreferences';
 import { AIBudgetSettings } from '@/components/settings/AIBudgetSettings';
 import { AICostDashboard } from '@/components/ai/AICostDashboard';
-import { WhatsAppSetup } from '@/components/whatsapp/WhatsAppSetup';
-import { ResendIntegration } from '@/components/settings/ResendIntegration';
 import { VAPIDConfiguration } from '@/components/settings/VAPIDConfiguration';
 import { StorageAnalytics } from '@/components/analytics/StorageAnalytics';
 import { DuplicateProfileMerger } from '@/components/contacts/DuplicateProfileMerger';
 import { NotificationPreferences } from '@/components/settings/NotificationPreferences';
-import { CalendarSyncSettings } from '@/components/settings/CalendarSyncSettings';
-import { WebhookManager } from '@/components/settings/WebhookManager';
 import { WorkspaceSettings } from '@/components/settings/WorkspaceSettings';
-import { CronJobManager } from '@/components/settings/CronJobManager';
 import { BiometricSettings } from '@/components/settings/BiometricSettings';
 import { BiometricBatchScan } from '@/components/settings/BiometricBatchScan';
 import { BiometricAnalyticsDashboard } from '@/components/settings/BiometricAnalyticsDashboard';
 import { PromptVersionManager } from '@/components/settings/PromptVersionManager';
-import { OSINTIntegrations } from '@/components/settings/OSINTIntegrations';
-import { EnrichmentQueueMonitor } from '@/components/ai/EnrichmentQueueMonitor';
-import { BackfillJobsManager } from '@/components/ai/BackfillJobsManager';
+import { UnifiedIntegrationSettings } from '@/components/settings/UnifiedIntegrationSettings';
 import { OfflineSyncPanel } from '@/components/mobile/OfflineSyncPanel';
 import { CostProjectionWidget } from '@/components/ai/CostProjectionWidget';
 import { CostOptimizationPanel } from '@/components/ai/CostOptimizationPanel';
 import { ContactCostAnalysis } from '@/components/ai/ContactCostAnalysis';
 import { PromptABTestPanel } from '@/components/ai/PromptABTestPanel';
-import { CrossModalSynthesisPanel } from '@/components/ai/CrossModalSynthesisPanel';
-import { EnrichmentQueueStatus } from '@/components/ai/EnrichmentQueueStatus';
 import { DataValidationDashboard } from '@/components/testing/DataValidationDashboard';
-import { AIBudgetAlerts } from '@/components/ai/AIBudgetAlerts';
-import { CostOptimizationAdvisor } from '@/components/ai/CostOptimizationAdvisor';
 import { BudgetAlertPanel } from '@/components/ai/BudgetAlertPanel';
 import { PerContactSpendAnalysis } from '@/components/ai/PerContactSpendAnalysis';
 import { ModelEfficiencyComparison } from '@/components/ai/ModelEfficiencyComparison';
@@ -59,10 +46,11 @@ export default function Settings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
+  const [activeSection, setActiveSection] = useState('appearance');
   const [emailReminders, setEmailReminders] = useState(true);
   const [reminderEmail, setReminderEmail] = useState('');
 
-  const { data: preferences, isLoading } = useQuery({
+  const { data: preferences } = useQuery({
     queryKey: ['user-preferences', user?.id],
     queryFn: async () => {
       const { data } = await supabase
@@ -75,7 +63,6 @@ export default function Settings() {
     enabled: !!user,
   });
 
-  // Fetch VAPID configuration from app_settings
   const { data: vapidConfig } = useQuery({
     queryKey: ['app-settings', 'vapid', user?.id],
     queryFn: async () => {
@@ -110,17 +97,11 @@ export default function Settings() {
         reminder_email: reminderEmail || null,
         theme,
       };
-
       if (preferences) {
-        const { error } = await supabase
-          .from('user_preferences')
-          .update(data)
-          .eq('user_id', user!.id);
+        const { error } = await supabase.from('user_preferences').update(data).eq('user_id', user!.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from('user_preferences')
-          .insert(data);
+        const { error } = await supabase.from('user_preferences').insert(data);
         if (error) throw error;
       }
     },
@@ -133,286 +114,124 @@ export default function Settings() {
     },
   });
 
-  const handleVapidSave = (publicKey: string) => {
+  const handleVapidSave = () => {
     queryClient.invalidateQueries({ queryKey: ['app-settings', 'vapid'] });
-    toast({ 
-      title: 'VAPID public key saved', 
-      description: 'Add the private key as a secret named VAPID_PRIVATE_KEY to enable production push notifications.' 
-    });
+    toast({ title: 'VAPID public key saved' });
+  };
+
+  const renderContent = () => {
+    switch (activeSection) {
+      case 'appearance':
+        return (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  {theme === 'dark' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+                  Appearance
+                </CardTitle>
+                <CardDescription>Customize how the app looks</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Dark Mode</Label>
+                    <p className="text-sm text-muted-foreground">Use dark theme</p>
+                  </div>
+                  <Switch checked={theme === 'dark'} onCheckedChange={(c) => setTheme(c ? 'dark' : 'light')} />
+                </div>
+              </CardContent>
+            </Card>
+            <AnalyticsExport />
+            <div className="flex justify-end">
+              <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+                {saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Settings
+              </Button>
+            </div>
+          </div>
+        );
+      case 'notifications':
+        return (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Mail className="h-5 w-5" />Email Notifications</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div><Label>Email Reminders</Label><p className="text-sm text-muted-foreground">Receive email notifications</p></div>
+                  <Switch checked={emailReminders} onCheckedChange={setEmailReminders} />
+                </div>
+                {emailReminders && (
+                  <div className="space-y-2">
+                    <Label htmlFor="reminder-email">Reminder Email</Label>
+                    <Input id="reminder-email" type="email" value={reminderEmail} onChange={(e) => setReminderEmail(e.target.value)} placeholder="your@email.com" />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            <PushNotifications vapidPublicKey={vapidPublicKey} />
+            <VAPIDConfiguration isConfigured={isVapidConfigured} currentPublicKey={vapidPublicKey} onSave={handleVapidSave} />
+            <NotificationPreferences />
+          </div>
+        );
+      case 'mobile':
+        return (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Smartphone className="h-5 w-5" />Install as App</CardTitle>
+                <CardDescription>Install on your device for quick access</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 bg-muted/50 rounded-lg"><h4 className="font-medium">iOS</h4><p className="text-sm text-muted-foreground">Tap Share → Add to Home Screen</p></div>
+                <div className="p-4 bg-muted/50 rounded-lg"><h4 className="font-medium">Android</h4><p className="text-sm text-muted-foreground">Tap menu → Add to Home screen</p></div>
+              </CardContent>
+            </Card>
+            <OfflineSyncPanel />
+            <PushNotifications vapidPublicKey={vapidPublicKey} />
+          </div>
+        );
+      case 'storage':
+        return <div className="space-y-6"><AccountStorageConsumption /><StorageAnalytics /></div>;
+      case 'cleanup':
+        return <DuplicateProfileMerger />;
+      case 'biometrics':
+        return <div className="space-y-6"><BiometricSettings /><BiometricBatchScan /><BiometricAnalyticsDashboard /></div>;
+      case 'integrations':
+        return <UnifiedIntegrationSettings />;
+      case 'teams':
+        return <WorkspaceSettings />;
+      case 'ai-models':
+        return <div className="space-y-6"><AIModelPreferences /><AIBudgetSettings /><PromptVersionManager /><PromptABTestPanel /></div>;
+      case 'ai-costs':
+        return (
+          <div className="space-y-6">
+            <BudgetAlertPanel />
+            <AICostDashboard />
+            <CostProjectionWidget />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6"><CostOptimizationPanel /><ContactCostAnalysis /></div>
+            <PerContactSpendAnalysis />
+            <ModelEfficiencyComparison />
+          </div>
+        );
+      case 'local-ai':
+        return <LocalAIEndpoints />;
+      case 'security':
+        return <RealTimeSecurityDashboard />;
+      case 'system':
+        return <DataValidationDashboard />;
+      default:
+        return null;
+    }
   };
 
   return (
     <AppLayout title="Settings">
-      <Tabs defaultValue="general" className="max-w-5xl">
-        <TabsList className="grid w-full grid-cols-13">
-          <TabsTrigger value="general">
-            <Sun className="h-4 w-4 mr-2" />
-            General
-          </TabsTrigger>
-          <TabsTrigger value="notifications">
-            <Bell className="h-4 w-4 mr-2" />
-            Notifications
-          </TabsTrigger>
-          <TabsTrigger value="biometrics">
-            <Fingerprint className="h-4 w-4 mr-2" />
-            Biometrics
-          </TabsTrigger>
-          <TabsTrigger value="storage">
-            <HardDrive className="h-4 w-4 mr-2" />
-            Storage
-          </TabsTrigger>
-          <TabsTrigger value="cleanup">
-            <Trash2 className="h-4 w-4 mr-2" />
-            Cleanup
-          </TabsTrigger>
-          <TabsTrigger value="integrations">
-            <Link2 className="h-4 w-4 mr-2" />
-            Integrations
-          </TabsTrigger>
-          <TabsTrigger value="teams">
-            <Users className="h-4 w-4 mr-2" />
-            Teams
-          </TabsTrigger>
-          <TabsTrigger value="ai-models">
-            <Cpu className="h-4 w-4 mr-2" />
-            AI Models
-          </TabsTrigger>
-          <TabsTrigger value="ai-costs">
-            <DollarSign className="h-4 w-4 mr-2" />
-            AI Costs
-          </TabsTrigger>
-          <TabsTrigger value="local-ai">
-            <Bot className="h-4 w-4 mr-2" />
-            Local AI
-          </TabsTrigger>
-          <TabsTrigger value="mobile">
-            <Smartphone className="h-4 w-4 mr-2" />
-            Mobile
-          </TabsTrigger>
-          <TabsTrigger value="security">
-            <Shield className="h-4 w-4 mr-2" />
-            Security
-          </TabsTrigger>
-          <TabsTrigger value="system">
-            <Activity className="h-4 w-4 mr-2" />
-            System
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="general" className="space-y-6 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                {theme === 'dark' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-                Appearance
-              </CardTitle>
-              <CardDescription>Customize how PICS looks</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Dark Mode</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Use dark theme across the application
-                  </p>
-                </div>
-                <Switch
-                  checked={theme === 'dark'}
-                  onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <AnalyticsExport />
-
-          <div className="flex justify-end">
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-              {saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save Settings
-            </Button>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="notifications" className="space-y-6 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Mail className="h-5 w-5" />
-                Email Notifications
-              </CardTitle>
-              <CardDescription>Configure email reminders for events</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Email Reminders</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Receive email notifications for upcoming events
-                  </p>
-                </div>
-                <Switch
-                  checked={emailReminders}
-                  onCheckedChange={setEmailReminders}
-                />
-              </div>
-
-              {emailReminders && (
-                <div className="space-y-2">
-                  <Label htmlFor="reminder-email">
-                    <Mail className="inline h-4 w-4 mr-1" />
-                    Reminder Email
-                  </Label>
-                  <Input
-                    id="reminder-email"
-                    type="email"
-                    value={reminderEmail}
-                    onChange={(e) => setReminderEmail(e.target.value)}
-                    placeholder="your@email.com"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Leave blank to use your account email
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <PushNotifications vapidPublicKey={vapidPublicKey} />
-
-          <VAPIDConfiguration 
-            isConfigured={isVapidConfigured}
-            currentPublicKey={vapidPublicKey}
-            onSave={handleVapidSave} 
-          />
-
-          <NotificationPreferences />
-
-          <div className="flex justify-end">
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-              {saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save Settings
-            </Button>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="biometrics" className="space-y-6 mt-6">
-          <BiometricSettings />
-          <BiometricBatchScan />
-          <BiometricAnalyticsDashboard />
-        </TabsContent>
-
-        <TabsContent value="storage" className="space-y-6 mt-6">
-          <AccountStorageConsumption />
-          <StorageAnalytics />
-        </TabsContent>
-
-        <TabsContent value="cleanup" className="space-y-6 mt-6">
-          <DuplicateProfileMerger />
-        </TabsContent>
-
-        <TabsContent value="integrations" className="space-y-6 mt-6">
-          <OSINTIntegrations />
-          <CalendarSyncSettings />
-          <OutlookIntegration />
-          <ResendIntegration 
-            isConfigured={true} 
-            onSave={() => {}} 
-          />
-          <WhatsAppSetup />
-          <WebhookManager />
-          <EmailIntegration />
-          <CronJobManager />
-        </TabsContent>
-
-        <TabsContent value="teams" className="space-y-6 mt-6">
-          <WorkspaceSettings />
-        </TabsContent>
-
-        <TabsContent value="ai-models" className="space-y-6 mt-6">
-          <AIModelPreferences />
-          <AIBudgetSettings />
-          <PromptVersionManager />
-          <PromptABTestPanel />
-        </TabsContent>
-
-        <TabsContent value="ai-costs" className="space-y-6 mt-6">
-          <BudgetAlertPanel />
-          <AICostDashboard />
-          <CostProjectionWidget />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <CostOptimizationPanel />
-            <ContactCostAnalysis />
-          </div>
-          <PerContactSpendAnalysis />
-          <ModelEfficiencyComparison />
-          <AIBudgetAlerts />
-          <CostOptimizationAdvisor />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <EnrichmentQueueStatus />
-            <CrossModalSynthesisPanel />
-          </div>
-          <BackfillJobsManager />
-          <EnrichmentQueueMonitor />
-        </TabsContent>
-
-        <TabsContent value="local-ai" className="space-y-6 mt-6">
-          <LocalAIEndpoints />
-        </TabsContent>
-
-        <TabsContent value="mobile" className="space-y-6 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Smartphone className="h-5 w-5" />
-                Install as App
-              </CardTitle>
-              <CardDescription>
-                Install PICS on your device for quick access and offline support
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="p-4 bg-muted/50 rounded-lg space-y-3">
-                <h4 className="font-medium">iOS (Safari)</h4>
-                <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
-                  <li>Tap the Share button in Safari</li>
-                  <li>Scroll down and tap "Add to Home Screen"</li>
-                  <li>Tap "Add" in the top right corner</li>
-                </ol>
-              </div>
-              
-              <div className="p-4 bg-muted/50 rounded-lg space-y-3">
-                <h4 className="font-medium">Android (Chrome)</h4>
-                <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
-                  <li>Tap the menu (three dots) in Chrome</li>
-                  <li>Tap "Add to Home screen" or "Install app"</li>
-                  <li>Confirm by tapping "Add"</li>
-                </ol>
-              </div>
-
-              <div className="p-4 bg-muted/50 rounded-lg space-y-3">
-                <h4 className="font-medium">Desktop (Chrome/Edge)</h4>
-                <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
-                  <li>Click the install icon in the address bar</li>
-                  <li>Or open the browser menu and select "Install PICS..."</li>
-                </ol>
-              </div>
-            </CardContent>
-          </Card>
-
-          <OfflineSyncPanel />
-
-          <PushNotifications vapidPublicKey={vapidPublicKey} />
-        </TabsContent>
-
-        <TabsContent value="security" className="space-y-6 mt-6">
-          <RealTimeSecurityDashboard />
-        </TabsContent>
-
-        <TabsContent value="system" className="space-y-6 mt-6">
-          <DataValidationDashboard />
-        </TabsContent>
-      </Tabs>
+      <SettingsLayout activeSection={activeSection} onSectionChange={setActiveSection}>
+        {renderContent()}
+      </SettingsLayout>
     </AppLayout>
   );
 }
