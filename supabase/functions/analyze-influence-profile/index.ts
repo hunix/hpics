@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAI, parseAIJson } from "../_shared/ai-client.ts";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -154,9 +155,12 @@ Generate a comprehensive influence profile including:
 8. Timing and channel preferences
 9. Overall influence score and confidence level`;
 
+    // Get platform config for AI model
+    const aiConfig = await getAIConfig(supabase, user.id);
+
     // Call AI using unified client
     const aiResult = await callAI({
-      model: modelKey,
+      model: aiConfig.qualityModel,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
@@ -164,7 +168,7 @@ Generate a comprehensive influence profile including:
       userId: user.id,
       functionName: 'analyze-influence-profile',
       profileId: profileId,
-      maxTokens: 4000,
+      maxTokens: aiConfig.maxTokens,
     });
 
     // Parse response - use any for flexible AI response structure

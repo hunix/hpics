@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
+import { callAI, parseAIJson } from "../_shared/ai-client.ts";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -138,8 +139,11 @@ Output a JSON object with these exact fields:
 
 Be specific and actionable. Base recommendations on the actual data provided.`;
 
+    // Get platform config for AI model
+    const aiConfig = await getAIConfig(supabase, userId);
+    
     const aiResponse = await callAI({
-      model: selectModel('balanced'),
+      model: aiConfig.defaultModel,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: `Generate an interaction playbook for ${contactName} based on this data:\n\n${JSON.stringify(context, null, 2)}` },
@@ -147,8 +151,8 @@ Be specific and actionable. Base recommendations on the actual data provided.`;
       userId,
       functionName: 'generate-playbook',
       profileId: profile_id,
-      temperature: 0.6,
-      maxTokens: 2500,
+      temperature: aiConfig.temperature,
+      maxTokens: aiConfig.maxTokens,
       metadata: {
         has_personal_info: !!personalInfo,
         interests_count: interests?.length || 0,

@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callAI, parseAIJson, getUserPreferredModel, FUNCTION_TO_ANALYSIS_TYPE } from "../_shared/ai-client.ts";
+import { callAI, parseAIJson } from "../_shared/ai-client.ts";
 import { getRAGContext } from "../_shared/rag-helper.ts";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -119,12 +120,11 @@ Return as JSON with these exact keys: executiveSummary, keyFacts (array), recent
       ? `${prompt}\n\nADDITIONAL CONTEXT FROM DOCUMENTS AND RECORDS:\n${ragContext.context}\n\nWhen using information from these sources, cite them as [Source N].`
       : prompt;
 
-    // Get user's preferred model for briefings
-    const analysisType = FUNCTION_TO_ANALYSIS_TYPE['generate-briefing'] || 'briefing';
-    const preferredModel = await getUserPreferredModel(userId, analysisType, 'google/gemini-2.5-flash');
+    // Get platform config for AI model
+    const aiConfig = await getAIConfig(supabase, userId);
 
     const aiResponse = await callAI({
-      model: preferredModel,
+      model: aiConfig.defaultModel,
       messages: [
         { role: 'system', content: 'You are a professional relationship intelligence assistant. Always respond with valid JSON. When citing sources, use [Source N] format.' },
         { role: 'user', content: enrichedPrompt }
@@ -132,7 +132,7 @@ Return as JSON with these exact keys: executiveSummary, keyFacts (array), recent
       userId,
       functionName: 'generate-briefing',
       profileId: profileId,
-      maxTokens: 2500,
+      maxTokens: aiConfig.maxTokens,
       promptKey: 'BRIEFING_GENERATION',
     });
 

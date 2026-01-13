@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
+import { callAI, parseAIJson } from "../_shared/ai-client.ts";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -66,9 +67,12 @@ For each interest, provide a confidence score (0-1) based on how strongly the ev
 
 Return JSON: { "interests": [{ "name": "...", "type": "...", "confidence": 0.0-1.0, "reasoning": "..." }] }`;
 
+    // Get platform config for AI model
+    const aiConfig = await getAIConfig(supabase, profile.user_id);
+    
     // Use unified AI client with speed tier for quick detection
     const aiResponse = await callAI({
-      model: selectModel(modelTier as any),
+      model: aiConfig.speedModel,
       messages: [
         { role: 'system', content: 'You are an interest detection AI. Analyze profiles to identify likely interests and hobbies. Respond with valid JSON only.' },
         { role: 'user', content: prompt }
@@ -76,7 +80,7 @@ Return JSON: { "interests": [{ "name": "...", "type": "...", "confidence": 0.0-1
       userId: profile.user_id,
       functionName: 'detect-interests',
       profileId: profileId,
-      temperature: 0.5,
+      temperature: aiConfig.temperature,
       metadata: { dataPoints: communications.length + education.length + skills.length },
     });
 

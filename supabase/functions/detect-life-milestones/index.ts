@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAI, parseAIJson } from "../_shared/ai-client.ts";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -147,8 +148,11 @@ Return JSON with this structure:
 
     let detected: { milestones: any[] } = { milestones: [] };
     try {
+      // Get platform config for AI model
+      const aiConfig = await getAIConfig(supabase, userId);
+      
       const aiResponse = await callAI({
-        model: 'google/gemini-2.5-flash',
+        model: aiConfig.speedModel,
         messages: [
           { role: 'system', content: 'You are a life milestone detection AI. Identify significant life events from conversations. Return valid JSON only.' },
           { role: 'user', content: prompt }
