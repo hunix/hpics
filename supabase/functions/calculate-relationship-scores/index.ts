@@ -45,11 +45,12 @@ serve(async (req) => {
 
     const { profileId, recalculateAll } = await req.json().catch(() => ({}));
 
-    // Get profiles to calculate scores for
+    // Get profiles to calculate scores for (active contacts only)
     let profilesQuery = supabaseClient
       .from('profiles')
       .select('id, is_favorite, last_contact_date')
-      .eq('user_id', user.id);
+      .eq('user_id', user.id)
+      .eq('is_active', true);
 
     if (profileId && !recalculateAll) {
       profilesQuery = profilesQuery.eq('id', profileId);

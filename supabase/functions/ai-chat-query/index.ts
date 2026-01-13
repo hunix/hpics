@@ -27,16 +27,17 @@ serve(async (req) => {
 
     const { message, conversationHistory } = await req.json();
 
-    // Gather context from the user's data
+    // Gather context from the user's data (active contacts only)
     const contextParts: string[] = [];
 
-    // Get contact stats
+    // Get active contact stats
     const { count: contactCount } = await supabase
       .from('profiles')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id);
+      .eq('user_id', user.id)
+      .eq('is_active', true);
 
-    contextParts.push(`Total contacts: ${contactCount || 0}`);
+    contextParts.push(`Active contacts: ${contactCount || 0}`);
 
     // Get recent communications
     const { data: recentComms } = await supabase
@@ -71,7 +72,7 @@ serve(async (req) => {
       contextParts.push(`Upcoming events: ${eventSummary}`);
     }
 
-    // Get contacts needing follow-up (no contact in 30+ days)
+    // Get active contacts needing follow-up (no contact in 30+ days)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
@@ -82,6 +83,7 @@ serve(async (req) => {
         communications(occurred_at)
       `)
       .eq('user_id', user.id)
+      .eq('is_active', true)
       .limit(100);
 
     const needsFollowUp = staleContacts?.filter(p => {

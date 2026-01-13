@@ -35,7 +35,7 @@ export function useDataQualityScanner() {
 
       const issues: DataQualityIssue[] = [];
 
-      // Fetch all necessary data in parallel
+      // Fetch all necessary data in parallel (active contacts only for quality scanning)
       const [
         { data: profiles },
         { data: contactMethods },
@@ -44,7 +44,7 @@ export function useDataQualityScanner() {
         { data: media },
         { data: documents },
       ] = await Promise.all([
-        supabase.from('profiles').select('id, first_name, last_name, organization, avatar_url, created_at').eq('user_id', user.id),
+        supabase.from('profiles').select('id, first_name, last_name, organization, avatar_url, created_at').eq('user_id', user.id).eq('is_active', true),
         supabase.from('contact_methods').select('id, profile_id, contact_type, value'),
         supabase.from('contact_relationships').select('id, from_profile_id, to_profile_id, relationship_type').eq('user_id', user.id),
         supabase.from('communications').select('profile_id, occurred_at').eq('user_id', user.id).order('occurred_at', { ascending: false }),

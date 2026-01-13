@@ -48,10 +48,12 @@ export function AdvancedNetworkDashboard() {
   const { data: networkData, isLoading, refetch } = useQuery({
     queryKey: ['advanced-network-data', user?.id],
     queryFn: async () => {
+      // Analyze only active contacts for network intelligence
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, organization, is_favorite')
         .eq('user_id', user!.id)
+        .eq('is_active', true)
         .limit(500);
 
       const profileIds = (profiles || []).map(p => p.id);

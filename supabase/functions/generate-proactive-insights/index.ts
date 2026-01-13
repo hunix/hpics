@@ -48,7 +48,7 @@ serve(async (req) => {
       });
     }
 
-    // Gather comprehensive data for proactive insights
+    // Gather comprehensive data for proactive insights (active contacts only)
     const [
       { data: profiles },
       { data: upcomingEvents },
@@ -61,6 +61,7 @@ serve(async (req) => {
         .from('profiles')
         .select('id, first_name, last_name, relationship_type, last_contact_date, is_favorite')
         .eq('user_id', user.id)
+        .eq('is_active', true)
         .limit(100),
       supabase
         .from('events')
@@ -87,6 +88,7 @@ serve(async (req) => {
         .from('profiles')
         .select('id, first_name, last_name, last_contact_date')
         .eq('user_id', user.id)
+        .eq('is_active', true)
         .lt('last_contact_date', new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString())
         .limit(10),
       supabase

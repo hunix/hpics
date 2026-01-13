@@ -50,11 +50,12 @@ serve(async (req) => {
       });
     }
 
-    // Fetch all contacts with their details
+    // Fetch all active contacts with their details
     const { data: profiles, error: profilesError } = await supabaseClient
       .from('profiles')
       .select('id, first_name, last_name, organization, job_title, relationship_type, bio, tags')
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .eq('is_active', true);
 
     if (profilesError) throw profilesError;
     if (!profiles || profiles.length < 2) {

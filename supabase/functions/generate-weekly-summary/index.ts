@@ -34,7 +34,7 @@ async function generateSummaryForUser(supabase: any, userId: string) {
       .eq('user_id', userId)
       .gte('event_date', weekStart.toISOString())
       .lte('event_date', weekEnd.toISOString()),
-    supabase.from('profiles').select('*').eq('user_id', userId),
+    supabase.from('profiles').select('*').eq('user_id', userId).eq('is_active', true),
     supabase.from('ai_analyses').select('*, profiles(first_name, last_name)')
       .eq('user_id', userId)
       .gte('generated_at', weekStart.toISOString()),

@@ -53,7 +53,7 @@ serve(async (req) => {
     // Use service role client for database operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch contacts with their details
+    // Fetch active contacts with their details
     const { data: contacts, error: contactsError } = await supabase
       .from("profiles")
       .select(`
@@ -62,6 +62,7 @@ serve(async (req) => {
         groups:contact_group_members(group:contact_groups(name))
       `)
       .eq("user_id", userId)
+      .eq("is_active", true)
       .limit(200);
 
     if (contactsError) {
