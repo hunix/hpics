@@ -8,16 +8,19 @@ import { LucideIcon, Inbox } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
+export interface EmptyStateActionObject {
+  label: string;
+  onClick?: () => void;
+  href?: string;
+  icon?: LucideIcon;
+}
+
 export interface EmptyStateProps {
   icon?: LucideIcon;
   title: string;
   description?: string;
-  action?: {
-    label: string;
-    onClick?: () => void;
-    href?: string;
-    icon?: LucideIcon;
-  };
+  /** Action can be a config object or custom ReactNode */
+  action?: EmptyStateActionObject | React.ReactNode;
   secondaryAction?: {
     label: string;
     onClick?: () => void;
@@ -99,23 +102,37 @@ export function EmptyState({
       {(action || secondaryAction) && (
         <div className="flex items-center gap-3 mt-6">
           {action && (
-            <Button
-              onClick={action.onClick}
-              asChild={!!action.href}
-              size={size === 'sm' ? 'sm' : 'default'}
-            >
-              {action.href ? (
-                <a href={action.href}>
-                  {action.icon && <action.icon className="w-4 h-4 mr-2" />}
-                  {action.label}
-                </a>
-              ) : (
-                <>
-                  {action.icon && <action.icon className="w-4 h-4 mr-2" />}
-                  {action.label}
-                </>
-              )}
-            </Button>
+            // Check if action is an object with 'label' property (EmptyStateActionObject)
+            typeof action === 'object' && action !== null && 'label' in action ? (
+              <Button
+                onClick={(action as EmptyStateActionObject).onClick}
+                asChild={!!(action as EmptyStateActionObject).href}
+                size={size === 'sm' ? 'sm' : 'default'}
+              >
+                {(action as EmptyStateActionObject).href ? (
+                  <a href={(action as EmptyStateActionObject).href}>
+                    {(action as EmptyStateActionObject).icon && (
+                      <span className="mr-2">
+                        {React.createElement((action as EmptyStateActionObject).icon!, { className: 'w-4 h-4' })}
+                      </span>
+                    )}
+                    {(action as EmptyStateActionObject).label}
+                  </a>
+                ) : (
+                  <>
+                    {(action as EmptyStateActionObject).icon && (
+                      <span className="mr-2">
+                        {React.createElement((action as EmptyStateActionObject).icon!, { className: 'w-4 h-4' })}
+                      </span>
+                    )}
+                    {(action as EmptyStateActionObject).label}
+                  </>
+                )}
+              </Button>
+            ) : (
+              // Render as custom ReactNode - wrap in fragment to satisfy type
+              <>{action as React.ReactNode}</>
+            )
           )}
           {secondaryAction && (
             <Button

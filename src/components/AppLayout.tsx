@@ -69,17 +69,17 @@ export function AppLayout({ children, title, showQuickCapture = false, capturePr
       <div className="min-h-screen-mobile flex w-full">
         <AppSidebar />
         <SidebarInset className="flex flex-col flex-1">
-          {/* Header with mobile-first design */}
-          <header className="flex h-14 shrink-0 items-center gap-2 border-b px-3 sm:px-4 safe-area-pt samsung-safe-top">
+          {/* Header with enhanced styling */}
+          <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border/50 bg-background/80 backdrop-blur-sm px-3 sm:px-4 safe-area-pt samsung-safe-top sticky top-0 z-40">
             {/* Show sidebar trigger on all screens */}
             <SidebarTrigger className="-ml-1 touch-target-lg flex items-center justify-center" />
             <Separator orientation="vertical" className="mr-2 h-4 hidden sm:block" />
             {title && (
-              <h1 className="text-base sm:text-lg font-semibold truncate max-w-[160px] sm:max-w-none">
+              <h1 className="text-base sm:text-lg font-semibold truncate max-w-[160px] sm:max-w-none text-foreground">
                 {title}
               </h1>
             )}
-            <div className="ml-auto flex items-center gap-1 sm:gap-2">
+            <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
               <GlobalSearch />
               <NotificationCenter />
             </div>
