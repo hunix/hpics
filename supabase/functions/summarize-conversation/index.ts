@@ -119,12 +119,6 @@ serve(async (req) => {
     const selectedModel = model || aiConfig.defaultModel;
     console.log(`Selected model: ${selectedModel}`);
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
-    
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
     // Fetch conversation details
     const { data: conversation, error: convoError } = await supabase
       .from('conversations')

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
+import { callAI, parseAIJson } from "../_shared/ai-client.ts";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -136,9 +137,15 @@ serve(async (req) => {
 
     console.log(`Running ${analysisType} analysis for profile ${profileId}`);
 
+    // Get AI config for model selection
+    const aiConfig = await getAIConfig(supabase, profile.user_id);
+    const selectedModel = modelTier === 'quality' ? aiConfig.qualityModel : 
+                          modelTier === 'speed' ? aiConfig.speedModel : 
+                          aiConfig.defaultModel;
+
     // Use the unified AI client with automatic logging
     const aiResponse = await callAI({
-      model: selectModel(modelTier as any),
+      model: selectedModel,
       messages: [
         { role: "system", content: prompts.systemPrompt },
         { role: "user", content: `Analyze this person:\n\n${JSON.stringify(context, null, 2)}\n\nRespond with valid JSON matching the expected structure.` }
@@ -146,7 +153,7 @@ serve(async (req) => {
       userId: profile.user_id,
       functionName: "analyze-profile",
       profileId: profileId,
-      temperature: 0.7,
+      temperature: aiConfig.temperature,
       metadata: { analysisType, modelTier },
     });
 

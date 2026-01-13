@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callAI, parseAIJson, selectModel } from "../_shared/ai-client.ts";
+import { callAI, parseAIJson } from "../_shared/ai-client.ts";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -120,9 +121,15 @@ Analyze the vocal patterns and provide results in JSON format:
   "summary": "..."
 }`;
 
+    // Get AI config for model selection
+    const aiConfig = await getAIConfig(supabase, userId);
+    const selectedModel = modelTier === 'quality' ? aiConfig.qualityModel : 
+                          modelTier === 'speed' ? aiConfig.speedModel : 
+                          aiConfig.defaultModel;
+
     // Use unified AI client
     const aiResponse = await callAI({
-      model: selectModel(modelTier as any),
+      model: selectedModel,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
@@ -131,7 +138,7 @@ Analyze the vocal patterns and provide results in JSON format:
       functionName: 'analyze-vocal',
       profileId: profileId,
       recordingId: recordingId,
-      temperature: 0.5,
+      temperature: aiConfig.temperature,
       metadata: { hasAudio: !!audioUrl, hasTranscription: !!transcription },
     });
 

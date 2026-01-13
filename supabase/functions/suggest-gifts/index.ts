@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callAI, parseAIJson, selectModel, getUserPreferredModel, FUNCTION_TO_ANALYSIS_TYPE } from "../_shared/ai-client.ts";
+import { callAI, parseAIJson } from "../_shared/ai-client.ts";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -66,13 +67,15 @@ ${priceRange ? `PRICE RANGE: ${priceRange}` : 'PRICE RANGE: Any'}
 
 Return a JSON object with a "gifts" array containing 5 gift suggestions. Each gift should have: title, description, reasoning (why it's meaningful), priceRange (budget/moderate/premium/luxury), and category.`;
 
-    // Get user's preferred model for gift suggestions
-    const analysisType = FUNCTION_TO_ANALYSIS_TYPE['suggest-gifts'] || 'gift_suggestions';
-    const preferredModel = await getUserPreferredModel(profile.user_id, analysisType, selectModel(modelTier as any));
+    // Get AI config for model selection
+    const aiConfig = await getAIConfig(supabase, profile.user_id);
+    const selectedModel = modelTier === 'quality' ? aiConfig.qualityModel : 
+                          modelTier === 'speed' ? aiConfig.speedModel : 
+                          aiConfig.defaultModel;
 
     // Use unified AI client
     const aiResponse = await callAI({
-      model: preferredModel,
+      model: selectedModel,
       messages: [
         { role: 'system', content: 'You are a thoughtful gift suggestion expert. Always respond with valid JSON only, no markdown.' },
         { role: 'user', content: prompt }
@@ -80,7 +83,7 @@ Return a JSON object with a "gifts" array containing 5 gift suggestions. Each gi
       userId: profile.user_id,
       functionName: 'suggest-gifts',
       profileId: profileId,
-      temperature: 0.8,
+      temperature: aiConfig.temperature,
       promptKey: 'GIFT_SUGGESTIONS',
       metadata: { occasion, priceRange },
     });
