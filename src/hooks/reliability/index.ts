@@ -18,3 +18,8 @@ export {
 export { useTransactionSaga } from './useTransactionSaga';
 export { useHealthCheck } from './useHealthCheck';
 export { useReliableMutation } from './useReliableMutation';
+
+// Re-export security hooks for convenience
+export { useSessionTimeout } from '@/hooks/security/useSessionTimeout';
+export { useComplianceEnforcement } from '@/hooks/security/useComplianceEnforcement';
+export { useDocumentIntegrity } from '@/hooks/security/useDocumentIntegrity';

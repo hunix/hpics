@@ -1,7 +1,8 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, RefreshCw, Home, Bug } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Home, Bug, Copy, CheckCircle } from 'lucide-react';
+import { ErrorService, CapturedError } from '@/services/ErrorService';
 
 interface Props {
   children: ReactNode;
@@ -16,6 +17,8 @@ interface State {
   errorInfo: ErrorInfo | null;
   retryAttempts: number;
   isRetrying: boolean;
+  capturedError: CapturedError | null;
+  copiedRefId: boolean;
 }
 
 export class ErrorBoundaryWithRecovery extends Component<Props, State> {
@@ -29,6 +32,8 @@ export class ErrorBoundaryWithRecovery extends Component<Props, State> {
       errorInfo: null,
       retryAttempts: 0,
       isRetrying: false,
+      capturedError: null,
+      copiedRefId: false,
     };
   }
 
@@ -40,8 +45,13 @@ export class ErrorBoundaryWithRecovery extends Component<Props, State> {
     this.setState({ errorInfo });
     this.props.onError?.(error, errorInfo);
     
-    // Log error for debugging
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    // Capture error with ErrorService for persistence and reference ID
+    ErrorService.capture(error, {
+      component: errorInfo.componentStack?.split('\n')[1]?.trim() || 'Unknown',
+      action: 'render',
+    }).then(capturedError => {
+      this.setState({ capturedError });
+    });
 
     // Attempt auto-recovery for transient errors
     if (this.isTransientError(error) && this.state.retryAttempts < (this.props.retryCount || 3)) {
@@ -94,7 +104,17 @@ export class ErrorBoundaryWithRecovery extends Component<Props, State> {
       errorInfo: null,
       retryAttempts: 0,
       isRetrying: false,
+      capturedError: null,
+      copiedRefId: false,
     });
+  };
+
+  handleCopyRefId = () => {
+    if (this.state.capturedError?.referenceId) {
+      navigator.clipboard.writeText(this.state.capturedError.referenceId);
+      this.setState({ copiedRefId: true });
+      setTimeout(() => this.setState({ copiedRefId: false }), 2000);
+    }
   };
 
   handleGoHome = () => {
@@ -171,6 +191,27 @@ export class ErrorBoundaryWithRecovery extends Component<Props, State> {
               <CardDescription>{description}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Reference ID for support */}
+              {this.state.capturedError?.referenceId && (
+                <div className="flex items-center justify-center gap-2 p-2 bg-muted rounded-md">
+                  <span className="text-xs text-muted-foreground">Reference ID:</span>
+                  <code className="text-xs font-mono font-medium">
+                    {this.state.capturedError.referenceId}
+                  </code>
+                  <button
+                    onClick={this.handleCopyRefId}
+                    className="p-1 hover:bg-background rounded transition-colors"
+                    title="Copy reference ID"
+                  >
+                    {this.state.copiedRefId ? (
+                      <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                  </button>
+                </div>
+              )}
+
               {isRetrying && (
                 <div className="text-center text-sm text-muted-foreground">
                   <RefreshCw className="h-4 w-4 animate-spin inline-block mr-2" />
