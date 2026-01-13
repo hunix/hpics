@@ -1,6 +1,7 @@
 // Process device captures with AI extraction and validation
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -124,6 +125,9 @@ serve(async (req) => {
     let matchedProfileId: string | null = null;
 
     console.log(`Processing ${type} capture ${captureId} for user ${user.id}`);
+    
+    // Get AI config from platform settings
+    const aiConfig = await getAIConfig(supabase, user.id);
 
     // Process based on capture type
     switch (type) {
@@ -136,7 +140,7 @@ serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-3-flash-preview",
+            model: aiConfig.speedModel,
             messages: [
               {
                 role: "system",
@@ -164,7 +168,7 @@ Return a JSON object with these fields (use null for unknown):
                 content: `Extract contact info from:\n${capture.raw_content || JSON.stringify(capture.extracted_data || capture.metadata)}\n\nSource: ${capture.source_app || 'unknown'}`
               }
             ],
-            temperature: 0.3,
+            temperature: aiConfig.temperature,
             max_tokens: 2000,
           }),
         });

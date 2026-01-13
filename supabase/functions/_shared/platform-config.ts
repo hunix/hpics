@@ -18,6 +18,8 @@ export interface PlatformConfigValue {
 export const CONFIG_DEFAULTS: Record<string, any> = {
   // AI Configuration
   'ai.default_model': 'google/gemini-2.5-flash',
+  'ai.quality_model': 'google/gemini-2.5-pro',
+  'ai.speed_model': 'google/gemini-2.5-flash-lite',
   'ai.max_tokens_per_request': 4000,
   'ai.temperature_default': 0.7,
   'ai.daily_budget_cents': 5000,
@@ -26,6 +28,15 @@ export const CONFIG_DEFAULTS: Record<string, any> = {
   'ai.budget_alert_threshold': 80,
   'ai.cache_enabled': true,
   'ai.cache_ttl_hours': 24,
+  
+  // RAG Configuration
+  'rag.max_results': 20,
+  'rag.similarity_threshold': 0.7,
+  'rag.rerank_enabled': true,
+  'rag.cross_encoder_model': 'cross-encoder/ms-marco-MiniLM-L-6-v2',
+  'rag.hybrid_search_alpha': 0.5, // Balance between semantic (0) and keyword (1)
+  'rag.context_window_tokens': 8000,
+  'rag.citation_required': true,
   
   // Relationship Configuration
   'relationship.decay_enabled': true,
@@ -370,5 +381,41 @@ export async function getEnrichmentConfig(
     linkedinEnabled: configs['enrichment.linkedin_enabled'],
     webSearchEnabled: configs['enrichment.web_search_enabled'],
     newsMonitoringEnabled: configs['enrichment.news_monitoring_enabled'],
+  };
+}
+
+/**
+ * Get RAG-specific configuration values
+ */
+export async function getRAGConfig(
+  supabaseClient: SupabaseClientAny,
+  userId?: string
+): Promise<{
+  maxResults: number;
+  similarityThreshold: number;
+  rerankEnabled: boolean;
+  crossEncoderModel: string;
+  hybridSearchAlpha: number;
+  contextWindowTokens: number;
+  citationRequired: boolean;
+}> {
+  const configs = await getPlatformConfigs(supabaseClient, [
+    'rag.max_results',
+    'rag.similarity_threshold',
+    'rag.rerank_enabled',
+    'rag.cross_encoder_model',
+    'rag.hybrid_search_alpha',
+    'rag.context_window_tokens',
+    'rag.citation_required',
+  ], { userId });
+  
+  return {
+    maxResults: configs['rag.max_results'],
+    similarityThreshold: configs['rag.similarity_threshold'],
+    rerankEnabled: configs['rag.rerank_enabled'],
+    crossEncoderModel: configs['rag.cross_encoder_model'],
+    hybridSearchAlpha: configs['rag.hybrid_search_alpha'],
+    contextWindowTokens: configs['rag.context_window_tokens'],
+    citationRequired: configs['rag.citation_required'],
   };
 }

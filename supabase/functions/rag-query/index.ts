@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAI } from "../_shared/ai-client.ts";
-import { getAIConfig } from "../_shared/platform-config.ts";
+import { getAIConfig, getRAGConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -60,6 +60,10 @@ serve(async (req) => {
       });
     }
 
+    // Get RAG config from platform settings
+    const ragConfig = await getRAGConfig(supabase, user.id);
+    const effectiveMaxResults = maxResults || ragConfig.maxResults;
+
     // Search across multiple data sources
     const results: RAGResult[] = [];
 
@@ -68,7 +72,7 @@ serve(async (req) => {
       p_user_id: user.id,
       p_profile_id: profileId,
       p_source_type: sourceTypes?.[0] || null,
-      p_limit: maxResults,
+      p_limit: effectiveMaxResults,
     });
 
     if (embeddings) {
@@ -90,7 +94,7 @@ serve(async (req) => {
       .eq('conversations.user_id', user.id)
       .ilike('content', `%${query}%`)
       .order('sent_at', { ascending: false })
-      .limit(maxResults);
+      .limit(effectiveMaxResults);
 
     if (profileId) {
       messageQuery = messageQuery.eq('conversations.profile_id', profileId);
@@ -120,7 +124,7 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .or(`subject.ilike.%${query}%,content.ilike.%${query}%`)
       .order('occurred_at', { ascending: false })
-      .limit(maxResults);
+      .limit(effectiveMaxResults);
 
     if (profileId) {
       commQuery = commQuery.eq('profile_id', profileId);
@@ -149,7 +153,7 @@ serve(async (req) => {
       .select('id, analysis_type, result, generated_at, profile_id, profiles(first_name, last_name)')
       .eq('user_id', user.id)
       .order('generated_at', { ascending: false })
-      .limit(maxResults);
+      .limit(effectiveMaxResults);
 
     if (profileId) {
       analysisQuery = analysisQuery.eq('profile_id', profileId);
@@ -182,7 +186,7 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .ilike('observation_text', `%${query}%`)
       .order('created_at', { ascending: false })
-      .limit(maxResults);
+      .limit(effectiveMaxResults);
 
     if (profileId) {
       obsQuery = obsQuery.eq('profile_id', profileId);
@@ -205,10 +209,13 @@ serve(async (req) => {
       }
     }
 
+    // Filter by similarity threshold from config
+    const filteredResults = results.filter(r => r.relevance_score >= ragConfig.similarityThreshold);
+
     // Sort by relevance and limit
-    const sortedResults = results
+    const sortedResults = filteredResults
       .sort((a, b) => b.relevance_score - a.relevance_score)
-      .slice(0, maxResults);
+      .slice(0, effectiveMaxResults);
 
     let answer = null;
     let citations: any[] = [];
