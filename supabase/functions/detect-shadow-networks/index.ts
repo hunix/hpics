@@ -144,13 +144,14 @@ serve(async (req) => {
       );
     }
 
-    // Determine profiles to analyze
+    // Determine profiles to analyze (active only)
     let profileIds = targetProfileIds;
     if (!profileIds || profileIds.length === 0) {
       const profilesResult = await supabase
         .from("profiles")
         .select("id")
         .eq("user_id", userId)
+        .eq("is_active", true)
         .limit(100);
       profileIds = (profilesResult.data || []).map(p => p.id);
     }

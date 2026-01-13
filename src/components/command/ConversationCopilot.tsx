@@ -52,7 +52,7 @@ export function ConversationCopilot() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedContact, setSelectedContact] = useState<string>('');
 
-  // Fetch contacts for selector
+  // Fetch contacts for selector (active contacts only)
   const { data: contacts = [] } = useQuery({
     queryKey: ['copilot-contacts', user?.id],
     queryFn: async () => {
@@ -62,6 +62,7 @@ export function ConversationCopilot() {
         .from('profiles')
         .select('id, first_name, last_name')
         .eq('user_id', user.id)
+        .eq('is_active', true)
         .order('first_name')
         .limit(100);
       

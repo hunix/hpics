@@ -43,6 +43,7 @@ export function CrossModalIntelligenceHub() {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, first_name, last_name')
+        .eq('is_active', true)
         .order('first_name')
         .limit(200);
       if (error) throw error;

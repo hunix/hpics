@@ -49,6 +49,7 @@ export default function Insights() {
       const { data } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, relationship_type')
+        .eq('is_active', true)
         .order('updated_at', { ascending: false })
         .limit(6);
       return data ?? [];
@@ -78,6 +79,7 @@ export default function Insights() {
       const { data } = await supabase
         .from('profiles')
         .select('id, first_name, last_name')
+        .eq('is_active', true)
         .order('first_name');
       return data ?? [];
     },

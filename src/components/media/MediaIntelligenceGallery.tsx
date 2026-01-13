@@ -111,7 +111,7 @@ export function MediaIntelligenceGallery() {
     enabled: !!user,
   });
 
-  // Fetch contacts for bulk tagging
+  // Fetch contacts for bulk tagging (active only)
   const { data: contacts } = useQuery({
     queryKey: ['contacts-for-tagging'],
     queryFn: async () => {
@@ -119,6 +119,7 @@ export function MediaIntelligenceGallery() {
         .from('profiles')
         .select('id, first_name, last_name, avatar_url')
         .eq('user_id', user?.id)
+        .eq('is_active', true)
         .order('first_name');
       
       return data || [];

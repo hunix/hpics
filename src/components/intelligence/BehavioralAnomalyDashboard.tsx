@@ -62,11 +62,12 @@ export function BehavioralAnomalyDashboard() {
       const { data, error } = await query;
       if (error) throw error;
 
-      // Get profile names
+      // Get profile names (only active contacts)
       const profileIds = [...new Set(data?.map(a => a.profile_id) || [])];
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, first_name, last_name")
+        .eq("is_active", true)
         .in("id", profileIds);
 
       const profileMap = new Map(profiles?.map(p => [p.id, `${p.first_name} ${p.last_name || ''}`.trim()]) || []);
