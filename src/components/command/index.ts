@@ -10,3 +10,4 @@ export { PredictionFeed } from './PredictionFeed';
 export { ActionTracker } from './ActionTracker';
 export { ConversationCopilot } from './ConversationCopilot';
 export { NetworkPulse } from './NetworkPulse';
+export { UltimateCommandFAB } from './UltimateCommandFAB';

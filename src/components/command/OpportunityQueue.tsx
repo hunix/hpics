@@ -1,6 +1,6 @@
 /**
  * Opportunity Queue Component
- * Prioritized influence opportunities with optimal timing
+ * Prioritized influence opportunities with edge function integration
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,12 +8,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Target, Clock, Zap, TrendingUp, CheckCircle2 } from 'lucide-react';
+import { Target, Clock, Zap, TrendingUp, CheckCircle2, RefreshCw, Sparkles, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
 
 interface OpportunityQueueProps {
   compact?: boolean;
@@ -35,6 +36,62 @@ interface Opportunity {
 
 export function OpportunityQueue({ compact = false }: OpportunityQueueProps) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Mutation to generate new opportunities
+  const generateOpportunities = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('action-recommendation-engine', {
+        body: {
+          type: 'generate_opportunities',
+          userId: user?.id
+        }
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['opportunity-queue'] });
+      toast.success('New opportunities generated');
+    },
+    onError: (error) => {
+      console.error('Generation failed:', error);
+      toast.error('Failed to generate opportunities');
+    }
+  });
+
+  // Mutation to act on an opportunity
+  const actOnOpportunity = useMutation({
+    mutationFn: async (opportunityId: string) => {
+      const { error } = await supabase
+        .from('action_recommendations')
+        .update({ 
+          status: 'in_progress',
+          actioned_at: new Date().toISOString()
+        })
+        .eq('id', opportunityId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['opportunity-queue'] });
+      toast.success('Action started');
+    }
+  });
+
+  // Mutation to complete an opportunity
+  const completeOpportunity = useMutation({
+    mutationFn: async (opportunityId: string) => {
+      const { error } = await supabase
+        .from('action_recommendations')
+        .update({ status: 'completed' })
+        .eq('id', opportunityId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['opportunity-queue'] });
+      toast.success('Opportunity completed');
+    }
+  });
 
   const { data: opportunities = [], isLoading } = useQuery({
     queryKey: ['opportunity-queue', user?.id],
@@ -130,10 +187,26 @@ export function OpportunityQueue({ compact = false }: OpportunityQueueProps) {
             <Target className="h-5 w-5 text-emerald-500" />
             Opportunity Queue
           </CardTitle>
-          <Badge variant="secondary" className="gap-1">
-            <Zap className="h-3 w-3" />
-            {opportunities.filter(o => o.status === 'pending').length} Active
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => generateOpportunities.mutate()}
+              disabled={generateOpportunities.isPending}
+              className="h-8 gap-1"
+            >
+              {generateOpportunities.isPending ? (
+                <RefreshCw className="h-3 w-3 animate-spin" />
+              ) : (
+                <Sparkles className="h-3 w-3" />
+              )}
+              <span className="hidden sm:inline">Generate</span>
+            </Button>
+            <Badge variant="secondary" className="gap-1">
+              <Zap className="h-3 w-3" />
+              {opportunities.filter(o => o.status === 'pending').length} Active
+            </Badge>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -143,7 +216,7 @@ export function OpportunityQueue({ compact = false }: OpportunityQueueProps) {
               <div className="text-center py-8 text-muted-foreground">
                 <Target className="h-12 w-12 mx-auto mb-2 opacity-20" />
                 <p>No opportunities detected yet</p>
-                <p className="text-sm">Keep building your network</p>
+                <p className="text-sm">Click Generate to find opportunities</p>
               </div>
             ) : (
               opportunities.map(opp => (
@@ -181,8 +254,24 @@ export function OpportunityQueue({ compact = false }: OpportunityQueueProps) {
                     </div>
                     {opp.status === 'completed' ? (
                       <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    ) : opp.status === 'in_progress' ? (
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="h-7 text-xs gap-1"
+                        onClick={() => completeOpportunity.mutate(opp.id)}
+                      >
+                        <CheckCircle2 className="h-3 w-3" />
+                        Complete
+                      </Button>
                     ) : (
-                      <Button size="sm" variant="ghost" className="h-7 text-xs">
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="h-7 text-xs gap-1"
+                        onClick={() => actOnOpportunity.mutate(opp.id)}
+                      >
+                        <Play className="h-3 w-3" />
                         Act Now
                       </Button>
                     )}

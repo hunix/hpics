@@ -3,9 +3,9 @@
  * Unified Intelligence Command Interface
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PowerMatrix } from '@/components/command/PowerMatrix';
 import { OpportunityQueue } from '@/components/command/OpportunityQueue';
@@ -14,6 +14,7 @@ import { PredictionFeed } from '@/components/command/PredictionFeed';
 import { ActionTracker } from '@/components/command/ActionTracker';
 import { ConversationCopilot } from '@/components/command/ConversationCopilot';
 import { NetworkPulse } from '@/components/command/NetworkPulse';
+import { useRealtimeCommandCenter } from '@/hooks/useRealtimeCommandCenter';
 import { 
   Crown, 
   Target, 
@@ -21,13 +22,29 @@ import {
   Brain, 
   Zap, 
   MessageSquare,
-  Activity,
   LayoutGrid
 } from 'lucide-react';
 
 export default function UltimateCommandCenter() {
   const { user, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') || 'overview';
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  // Enable realtime updates for all command center data
+  useRealtimeCommandCenter({ showNotifications: true });
+
+  // Sync tab state with URL
+  useEffect(() => {
+    if (activeTab !== initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
 
   if (loading) {
     return (
@@ -63,7 +80,7 @@ export default function UltimateCommandCenter() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7 gap-1">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <LayoutGrid className="h-4 w-4" />

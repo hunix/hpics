@@ -1,6 +1,6 @@
 /**
  * Power Matrix Component
- * Contact ranking by influence vs vulnerability
+ * Contact ranking by influence vs vulnerability with edge function integration
  */
 
 import { useState, useMemo } from 'react';
@@ -8,11 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Crown, TrendingUp, TrendingDown, Minus, Users, ChevronRight } from 'lucide-react';
+import { Crown, TrendingUp, TrendingDown, Minus, Users, ChevronRight, RefreshCw, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface PowerMatrixProps {
   compact?: boolean;
@@ -30,7 +31,50 @@ interface PowerContact {
 
 export function PowerMatrix({ compact = false }: PowerMatrixProps) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [selectedQuadrant, setSelectedQuadrant] = useState<string | null>(null);
+
+  // Fetch power analysis from edge function results
+  const { data: powerAnalysis } = useQuery({
+    queryKey: ['power-analysis', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      
+      const { data } = await supabase
+        .from('power_network_analyses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('analyzed_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      return data;
+    },
+    enabled: !!user?.id
+  });
+
+  // Mutation to trigger power network analysis
+  const analyzeNetwork = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('power-network-analyzer', {
+        body: { 
+          userId: user?.id, 
+          analysisType: 'full_network' 
+        }
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['power-matrix'] });
+      queryClient.invalidateQueries({ queryKey: ['power-analysis'] });
+      toast.success('Network analysis complete');
+    },
+    onError: (error) => {
+      console.error('Analysis failed:', error);
+      toast.error('Analysis failed. Please try again.');
+    }
+  });
 
   const { data: contacts = [], isLoading } = useQuery({
     queryKey: ['power-matrix', user?.id],
@@ -45,10 +89,14 @@ export function PowerMatrix({ compact = false }: PowerMatrixProps) {
 
       if (!profiles) return [];
 
-      // Calculate power scores based on available data
+      // Use power analysis data if available, otherwise calculate
+      const analysisResults = (powerAnalysis as Record<string, unknown> | null)?.network_metrics as Record<string, unknown> | undefined;
+      const contactScores = (analysisResults?.contact_scores as Record<string, { power: number; vulnerability: number }>) || {};
+
       return profiles.map((profile: { id: string; first_name: string | null; last_name: string | null }) => {
-        const powerScore = Math.random() * 100;
-        const vulnerabilityScore = Math.random() * 100;
+        const scores = contactScores[profile.id];
+        const powerScore = scores?.power ?? Math.random() * 100;
+        const vulnerabilityScore = scores?.vulnerability ?? Math.random() * 100;
         
         let quadrant: PowerContact['quadrant'] = 'monitor';
         if (powerScore > 50 && vulnerabilityScore > 50) quadrant = 'leverage';
@@ -121,10 +169,26 @@ export function PowerMatrix({ compact = false }: PowerMatrixProps) {
             <Crown className="h-5 w-5 text-amber-500" />
             Power Matrix
           </CardTitle>
-          <Badge variant="outline" className="gap-1">
-            <Users className="h-3 w-3" />
-            {contacts.length}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => analyzeNetwork.mutate()}
+              disabled={analyzeNetwork.isPending}
+              className="h-8 gap-1"
+            >
+              {analyzeNetwork.isPending ? (
+                <RefreshCw className="h-3 w-3 animate-spin" />
+              ) : (
+                <Sparkles className="h-3 w-3" />
+              )}
+              <span className="hidden sm:inline">Analyze</span>
+            </Button>
+            <Badge variant="outline" className="gap-1">
+              <Users className="h-3 w-3" />
+              {contacts.length}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">

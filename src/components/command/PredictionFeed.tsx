@@ -1,18 +1,20 @@
 /**
  * Prediction Feed Component
- * AI forecasts for upcoming relationship events
+ * AI forecasts for upcoming relationship events with edge function integration
  */
 
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Progress } from '@/components/ui/progress';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Brain, Calendar, TrendingUp, Sparkles } from 'lucide-react';
+import { Brain, Calendar, Sparkles, RefreshCw, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, addDays } from 'date-fns';
+import { toast } from 'sonner';
 
 interface PredictionFeedProps {
   compact?: boolean;
@@ -36,6 +38,31 @@ interface Prediction {
 
 export function PredictionFeed({ compact = false }: PredictionFeedProps) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Mutation to generate new predictions
+  const generatePrediction = useMutation({
+    mutationFn: async (profileId?: string) => {
+      const { data, error } = await supabase.functions.invoke('behavioral-future-modeler', {
+        body: {
+          profileId,
+          userId: user?.id,
+          scenarioType: 'general',
+          stimulus: 'relationship_forecast'
+        }
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['prediction-feed'] });
+      toast.success('New prediction generated');
+    },
+    onError: (error) => {
+      console.error('Prediction failed:', error);
+      toast.error('Failed to generate prediction');
+    }
+  });
 
   const { data: predictions = [], isLoading } = useQuery({
     queryKey: ['prediction-feed', user?.id],
@@ -154,10 +181,26 @@ export function PredictionFeed({ compact = false }: PredictionFeedProps) {
             <Brain className="h-5 w-5 text-violet-500" />
             Predictions
           </CardTitle>
-          <Badge variant="secondary" className="gap-1">
-            <Sparkles className="h-3 w-3" />
-            AI Powered
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => generatePrediction.mutate()}
+              disabled={generatePrediction.isPending}
+              className="h-8 gap-1"
+            >
+              {generatePrediction.isPending ? (
+                <RefreshCw className="h-3 w-3 animate-spin" />
+              ) : (
+                <Wand2 className="h-3 w-3" />
+              )}
+              <span className="hidden sm:inline">Generate</span>
+            </Button>
+            <Badge variant="secondary" className="gap-1">
+              <Sparkles className="h-3 w-3" />
+              AI Powered
+            </Badge>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -167,7 +210,7 @@ export function PredictionFeed({ compact = false }: PredictionFeedProps) {
               <div className="text-center py-8 text-muted-foreground">
                 <Brain className="h-12 w-12 mx-auto mb-2 opacity-20" />
                 <p>No predictions yet</p>
-                <p className="text-sm">More data needed for forecasting</p>
+                <p className="text-sm">Click Generate to create forecasts</p>
               </div>
             ) : (
               predictions.map(pred => (
@@ -189,7 +232,7 @@ export function PredictionFeed({ compact = false }: PredictionFeedProps) {
                       
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Calendar className="h-3 w-3" />
-                        <span>Predicted: {format(pred.predictedDate, 'MMM d, yyyy')}</span>
+                        <span>Predicted: {format(new Date(pred.predictedDate), 'MMM d, yyyy')}</span>
                       </div>
 
                       {!compact && (

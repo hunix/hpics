@@ -1,21 +1,22 @@
 /**
  * Conversation Copilot Component
- * Real-time conversation assistance with AI-powered suggestions
+ * Real-time conversation assistance with AI-powered suggestions and contact selector
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { 
   MessageSquare, 
   Sparkles, 
-  Send, 
   Copy, 
   ThumbsUp, 
   ThumbsDown,
@@ -23,7 +24,8 @@ import {
   Target,
   Shield,
   Heart,
-  Zap
+  Zap,
+  User
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -37,6 +39,11 @@ interface Suggestion {
   reasoning: string;
 }
 
+interface Contact {
+  id: string;
+  name: string;
+}
+
 export function ConversationCopilot() {
   const { user } = useAuth();
   const [context, setContext] = useState('');
@@ -44,6 +51,50 @@ export function ConversationCopilot() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedContact, setSelectedContact] = useState<string>('');
+
+  // Fetch contacts for selector
+  const { data: contacts = [] } = useQuery({
+    queryKey: ['copilot-contacts', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .eq('user_id', user.id)
+        .order('first_name')
+        .limit(100);
+      
+      return (data || []).map(p => ({
+        id: p.id,
+        name: `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Unknown'
+      }));
+    },
+    enabled: !!user?.id
+  });
+
+  // Mutation to save feedback
+  const saveFeedback = useMutation({
+    mutationFn: async ({ suggestionId, isPositive }: { suggestionId: string; isPositive: boolean }) => {
+      // Store feedback in app_settings as a simple key-value store
+      const { error } = await supabase
+        .from('app_settings')
+        .upsert({
+          user_id: user?.id,
+          setting_key: `copilot_feedback_${suggestionId}`,
+          setting_value: isPositive ? 'positive' : 'negative',
+          metadata: { 
+            context, 
+            objective,
+            timestamp: new Date().toISOString()
+          }
+        });
+      if (error) throw error;
+    },
+    onSuccess: (_, { isPositive }) => {
+      toast.success(isPositive ? 'Thanks for the feedback!' : 'Feedback noted');
+    }
+  });
 
   const generateSuggestions = async () => {
     if (!context.trim() || !user?.id) return;
@@ -105,6 +156,10 @@ export function ConversationCopilot() {
     toast.success('Copied to clipboard');
   };
 
+  const handleFeedback = (suggestionId: string, isPositive: boolean) => {
+    saveFeedback.mutate({ suggestionId, isPositive });
+  };
+
   const getTypeIcon = (type: Suggestion['type']) => {
     switch (type) {
       case 'opener': return <MessageSquare className="h-4 w-4" />;
@@ -151,6 +206,27 @@ export function ConversationCopilot() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Contact Selector */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Contact (optional)
+            </label>
+            <Select value={selectedContact} onValueChange={setSelectedContact}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a contact for personalized suggestions" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No specific contact</SelectItem>
+                {contacts.map(contact => (
+                  <SelectItem key={contact.id} value={contact.id}>
+                    {contact.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="space-y-2">
             <label className="text-sm font-medium">Objective</label>
             <Input
@@ -253,10 +329,20 @@ export function ConversationCopilot() {
 
                     <div className="flex items-center justify-between pt-2">
                       <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0"
+                          onClick={() => handleFeedback(suggestion.id, true)}
+                        >
                           <ThumbsUp className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0"
+                          onClick={() => handleFeedback(suggestion.id, false)}
+                        >
                           <ThumbsDown className="h-4 w-4" />
                         </Button>
                       </div>
