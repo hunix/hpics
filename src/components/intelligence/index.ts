@@ -13,3 +13,8 @@ export { BehavioralDNAPanel } from './BehavioralDNAPanel';
 export { CounterIntelligenceDashboard } from './CounterIntelligenceDashboard';
 export { FortuneTrajectoryPanel } from './FortuneTrajectoryPanel';
 export { ManipulationVulnerabilityPanel } from './ManipulationVulnerabilityPanel';
+
+// Superiority Intelligence Components
+export { SuperiorityDashboard } from './SuperiorityDashboard';
+export { PowerDynamicsAnalyzer } from './PowerDynamicsAnalyzer';
+export { NetworkInfluenceMap } from './NetworkInfluenceMap';

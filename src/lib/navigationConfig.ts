@@ -158,6 +158,17 @@ export const navigationItems: NavItem[] = [
     keywords: ['rag', 'agent', 'hub', 'intelligence', 'ai'],
   },
   {
+    id: 'superiority',
+    title: 'Strategic Superiority',
+    url: '/superiority',
+    icon: Crown,
+    description: 'Influence, power dynamics & psychological advantage',
+    badge: 'new',
+    category: 'intelligence',
+    requiredRole: 'analyst',
+    keywords: ['superiority', 'influence', 'power', 'psychology', 'manipulation', 'strategy', 'leverage'],
+  },
+  {
     id: 'ai-insights',
     title: 'AI Insights',
     url: '/insights',
