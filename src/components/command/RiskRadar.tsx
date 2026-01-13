@@ -1,17 +1,19 @@
 /**
  * Risk Radar Component
- * 360° threat/decay monitoring across network
+ * 360° threat/decay monitoring with edge function integration
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Shield, AlertTriangle, AlertCircle, Info, TrendingDown, Clock } from 'lucide-react';
+import { Shield, AlertTriangle, AlertCircle, Info, TrendingDown, Clock, RefreshCw, Scan } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
 
 interface RiskRadarProps {
   compact?: boolean;
@@ -35,6 +37,29 @@ interface Risk {
 
 export function RiskRadar({ compact = false }: RiskRadarProps) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Mutation to scan for risks using deception analysis
+  const scanForRisks = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('cross-modal-deception-v2', {
+        body: {
+          userId: user?.id,
+          analysisType: 'network_scan'
+        }
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['risk-radar'] });
+      toast.success('Risk scan complete');
+    },
+    onError: (error) => {
+      console.error('Scan failed:', error);
+      toast.error('Risk scan failed');
+    }
+  });
 
   const { data: risks = [], isLoading } = useQuery({
     queryKey: ['risk-radar', user?.id],
@@ -62,6 +87,25 @@ export function RiskRadar({ compact = false }: RiskRadarProps) {
         .order('detected_at', { ascending: false })
         .limit(compact ? 5 : 15);
 
+      // Fetch deception analyses
+      const { data: deceptions } = await supabase
+        .from('deception_analyses')
+        .select(`
+          id,
+          deception_score,
+          confidence_score,
+          analyzed_at,
+          profile_id,
+          profiles!deception_analyses_profile_id_fkey (
+            first_name,
+            last_name
+          )
+        `)
+        .eq('user_id', user.id)
+        .gt('deception_score', 0.5)
+        .order('analyzed_at', { ascending: false })
+        .limit(5);
+
       const riskList: Risk[] = [];
 
       if (anomalies) {
@@ -86,8 +130,31 @@ export function RiskRadar({ compact = false }: RiskRadarProps) {
         });
       }
 
-      // Add simulated risks for demonstration
-      if (riskList.length < 3) {
+      if (deceptions) {
+        deceptions.forEach((d: { id: string; deception_score: number | null; analyzed_at: string; profile_id: string; profiles: { first_name: string | null; last_name: string | null } | null }) => {
+          const score = d.deception_score || 0;
+          riskList.push({
+            id: d.id,
+            type: 'deception',
+            severity: score > 0.8 ? 'critical' : score > 0.6 ? 'high' : 'medium',
+            title: 'Credibility Concern',
+            description: `Deception indicators detected (${(score * 100).toFixed(0)}% confidence)`,
+            profileName: d.profiles 
+              ? `${d.profiles.first_name || ''} ${d.profiles.last_name || ''}`.trim()
+              : 'Unknown',
+            profileId: d.profile_id,
+            detectedAt: new Date(d.analyzed_at),
+            metrics: {
+              currentValue: score * 100,
+              threshold: 50,
+              trend: 'worsening'
+            }
+          });
+        });
+      }
+
+      // Add simulated risks for demonstration if needed
+      if (riskList.length < 2) {
         const sampleRisks: Risk[] = [
           {
             id: 'decay-1',
@@ -112,10 +179,13 @@ export function RiskRadar({ compact = false }: RiskRadarProps) {
             metrics: { currentValue: 40, threshold: 25, trend: 'worsening' }
           }
         ];
-        riskList.push(...sampleRisks.slice(0, 3 - riskList.length));
+        riskList.push(...sampleRisks.slice(0, 2 - riskList.length));
       }
 
-      return riskList;
+      return riskList.sort((a, b) => {
+        const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+        return severityOrder[a.severity] - severityOrder[b.severity];
+      });
     },
     enabled: !!user?.id
   });
@@ -176,17 +246,33 @@ export function RiskRadar({ compact = false }: RiskRadarProps) {
             <Shield className="h-5 w-5 text-rose-500" />
             Risk Radar
           </CardTitle>
-          <div className="flex gap-1">
-            {criticalCount > 0 && (
-              <Badge variant="destructive" className="text-xs">
-                {criticalCount} Critical
-              </Badge>
-            )}
-            {highCount > 0 && (
-              <Badge variant="outline" className={cn('text-xs', getSeverityColor('high'))}>
-                {highCount} High
-              </Badge>
-            )}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => scanForRisks.mutate()}
+              disabled={scanForRisks.isPending}
+              className="h-8 gap-1"
+            >
+              {scanForRisks.isPending ? (
+                <RefreshCw className="h-3 w-3 animate-spin" />
+              ) : (
+                <Scan className="h-3 w-3" />
+              )}
+              <span className="hidden sm:inline">Scan</span>
+            </Button>
+            <div className="flex gap-1">
+              {criticalCount > 0 && (
+                <Badge variant="destructive" className="text-xs">
+                  {criticalCount} Critical
+                </Badge>
+              )}
+              {highCount > 0 && (
+                <Badge variant="outline" className={cn('text-xs', getSeverityColor('high'))}>
+                  {highCount} High
+                </Badge>
+              )}
+            </div>
           </div>
         </div>
       </CardHeader>
