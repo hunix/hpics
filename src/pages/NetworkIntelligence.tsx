@@ -31,7 +31,7 @@ export default function NetworkIntelligence() {
     queryKey: ['network-health-stats', user?.id],
     queryFn: async () => {
       const [profilesRes, scoresRes, actionsRes, anomaliesRes] = await Promise.all([
-        supabase.from('profiles').select('id, is_favorite, relationship_type', { count: 'exact' }),
+        supabase.from('profiles').select('id, is_favorite, relationship_type', { count: 'exact' }).eq('is_active', true),
         supabase.from('relationship_scores').select('overall_score, sentiment_score'),
         supabase.from('influence_actions').select('id, status').eq('status', 'pending'),
         supabase.from('behavioral_anomalies').select('id, severity').eq('is_resolved', false),
