@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getRelationshipConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,10 +17,6 @@ const INTERACTION_WEIGHTS = {
   social_media: 2,
   other: 2,
 };
-
-// Decay rate per day without contact (percentage points)
-const BASE_DECAY_RATE = 0.5;
-const FAVORITE_DECAY_RATE = 0.25; // Slower decay for favorites
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -64,6 +61,15 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    // Get relationship configuration from platform config
+    const serviceClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+    const relationshipConfig = await getRelationshipConfig(serviceClient, user.id);
+    const BASE_DECAY_RATE = relationshipConfig.decayRateDaily;
+    const FAVORITE_DECAY_MULTIPLIER = relationshipConfig.favoriteDecayMultiplier;
 
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -145,8 +151,8 @@ serve(async (req) => {
       // Normalize weighted score to 0-100 (target: 50 weighted points = 100)
       const normalizedWeightedScore = Math.min(100, Math.round((weightedInteractionScore / 50) * 100));
 
-      // Calculate decay rate
-      const decayRate = profile.is_favorite ? FAVORITE_DECAY_RATE : BASE_DECAY_RATE;
+      // Calculate decay rate using platform config
+      const decayRate = profile.is_favorite ? (BASE_DECAY_RATE * FAVORITE_DECAY_MULTIPLIER) : BASE_DECAY_RATE;
       const daysSinceLastContact = lastContactDate
         ? Math.floor((now.getTime() - lastContactDate.getTime()) / (1000 * 60 * 60 * 24))
         : 30;

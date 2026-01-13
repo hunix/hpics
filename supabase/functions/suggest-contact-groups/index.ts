@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAI, parseAIJson } from "../_shared/ai-client.ts";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -133,15 +134,19 @@ Rules:
 
     let suggestions: any[] = [];
     try {
+      // Get AI config from platform settings
+      const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+      const aiConfig = await getAIConfig(serviceClient, userId);
+
       const aiResponse = await callAI({
-        model: "google/gemini-2.5-flash",
+        model: aiConfig.defaultModel,
         messages: [
           { role: "system", content: "You are an expert at analyzing relationships and finding patterns in contact networks. Return only valid JSON." },
           { role: "user", content: prompt },
         ],
         userId,
         functionName: "suggest-contact-groups",
-        temperature: 0.7,
+        temperature: aiConfig.temperature,
       });
 
       const parsed = parseAIJson(aiResponse.content, []) as any;

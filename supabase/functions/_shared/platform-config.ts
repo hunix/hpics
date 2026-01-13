@@ -239,6 +239,8 @@ export async function getAIConfig(
   userId?: string
 ): Promise<{
   defaultModel: string;
+  qualityModel: string;
+  speedModel: string;
   maxTokens: number;
   temperature: number;
   dailyBudgetCents: number;
@@ -260,6 +262,8 @@ export async function getAIConfig(
   
   return {
     defaultModel: configs['ai.default_model'],
+    qualityModel: 'google/gemini-2.5-pro', // Quality tier is always pro
+    speedModel: 'google/gemini-2.5-flash-lite', // Speed tier is always lite
     maxTokens: configs['ai.max_tokens_per_request'],
     temperature: configs['ai.temperature_default'],
     dailyBudgetCents: configs['ai.daily_budget_cents'],
@@ -279,6 +283,7 @@ export async function getRelationshipConfig(
 ): Promise<{
   decayEnabled: boolean;
   decayRateDaily: number;
+  favoriteDecayMultiplier: number;
   maxDecayPercent: number;
   priorityBoostVip: number;
   contactReminderDays: number;
@@ -294,6 +299,7 @@ export async function getRelationshipConfig(
   return {
     decayEnabled: configs['relationship.decay_enabled'],
     decayRateDaily: configs['relationship.decay_rate_daily'],
+    favoriteDecayMultiplier: 0.5, // Favorites decay at 50% the rate
     maxDecayPercent: configs['relationship.max_decay_percent'],
     priorityBoostVip: configs['relationship.priority_boost_vip'],
     contactReminderDays: configs['relationship.contact_reminder_days'],

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -237,6 +238,9 @@ serve(async (req) => {
       }
     };
 
+    // Get AI config from platform settings
+    const aiConfig = await getAIConfig(supabase, userId);
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -244,7 +248,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: aiConfig.defaultModel,
         messages: [
           { role: "system", content: BEHAVIORAL_DNA_PROMPT },
           { 
@@ -252,7 +256,7 @@ serve(async (req) => {
             content: `Perform comprehensive Behavioral DNA sequencing on the following data:\n\n${JSON.stringify(contextData, null, 2)}`
           }
         ],
-        temperature: 0.3,
+        temperature: aiConfig.temperature,
       }),
     });
 
