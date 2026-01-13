@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callAI, parseAIJson, getUserPreferredModel, FUNCTION_TO_ANALYSIS_TYPE } from "../_shared/ai-client.ts";
+import { callAI, parseAIJson } from "../_shared/ai-client.ts";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -68,8 +69,9 @@ serve(async (req) => {
       });
     }
 
-    const analysisType = FUNCTION_TO_ANALYSIS_TYPE['analyze-document-comprehensive'] || 'document_analysis';
-    const model = requestedModel || await getUserPreferredModel(user.id, analysisType, 'google/gemini-2.5-flash');
+    // Get AI config for model selection
+    const aiConfig = await getAIConfig(supabase, user.id);
+    const model = requestedModel || aiConfig.defaultModel;
 
     // Get user's existing contacts for matching
     let existingContacts: any[] = [];
@@ -101,7 +103,7 @@ serve(async (req) => {
       functionName: 'analyze-document-comprehensive',
       profileId,
       maxTokens: 4000,
-      temperature: 0.2,
+      temperature: aiConfig.temperature,
     });
 
     const analysis: Record<string, any> = parseAIJson(aiResponse.content, {});

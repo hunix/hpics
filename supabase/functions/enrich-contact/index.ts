@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAI, parseAIJson } from "../_shared/ai-client.ts";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -199,10 +200,14 @@ serve(async (req) => {
 
     console.log('Analyzing content, total length:', contentToAnalyze.length);
 
+    // Get AI config for model selection
+    const serviceClient = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const aiConfig = await getAIConfig(serviceClient, user.id);
+
     let extractedData;
     try {
       const aiResponse = await callAI({
-        model: 'google/gemini-2.5-flash',
+        model: aiConfig.speedModel,
         messages: [
           {
             role: 'system',
@@ -216,7 +221,7 @@ serve(async (req) => {
         userId: user.id,
         functionName: 'enrich-contact',
         profileId,
-        temperature: 0.3,
+        temperature: aiConfig.temperature,
       });
       
       extractedData = parseAIJson(aiResponse.content, null);

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAI } from "../_shared/ai-client.ts";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -56,6 +57,9 @@ serve(async (req) => {
     const userId = claimsData.claims.sub;
     const body = await req.json().catch(() => ({}));
     const { profileId, threadId, analyzeAll = false } = body;
+
+    // Get AI config for model selection
+    const aiConfig = await getAIConfig(supabase, userId);
 
     console.log(`[analyze-email-insights] Analyzing for user: ${userId}, profile: ${profileId}`);
 
@@ -152,10 +156,11 @@ Provide a JSON response with:
 
       try {
         const response = await callAI({
-          model: 'google/gemini-2.5-flash',
+          model: aiConfig.speedModel,
           messages: [{ role: 'user', content: prompt }],
           functionName: 'analyze-email-insights',
           userId,
+          temperature: aiConfig.temperature,
         });
 
         // Parse JSON from response

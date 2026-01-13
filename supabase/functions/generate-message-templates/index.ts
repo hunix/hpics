@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAI, parseAIJson } from "../_shared/ai-client.ts";
+import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -43,6 +44,15 @@ serve(async (req) => {
 
     const { profileId, context } = await req.json();
 
+    // Create service client for config lookup
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Get AI config for model selection
+    const aiConfig = await getAIConfig(supabase, userId);
+
     const systemPrompt = `You are an expert at crafting personalized, professional messages. Generate message templates that feel genuine and contextually appropriate. Consider the relationship type, recent interactions, shared interests, and upcoming events when crafting messages. Return JSON with structure: { "templates": [{ "type": "check-in|follow-up|meeting-request", "subject": "...", "body": "...", "context": "..." }] }`;
 
     const userPrompt = `Generate 3 personalized message templates for reaching out to:
@@ -64,7 +74,7 @@ Make each template feel personal and natural, not generic.`;
 
     try {
       const aiResponse = await callAI({
-        model: 'google/gemini-2.5-flash',
+        model: aiConfig.speedModel,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
@@ -72,7 +82,7 @@ Make each template feel personal and natural, not generic.`;
         userId,
         functionName: 'generate-message-templates',
         profileId,
-        temperature: 0.7,
+        temperature: aiConfig.temperature,
       });
 
       const result = parseAIJson(aiResponse.content, { templates: [] });
