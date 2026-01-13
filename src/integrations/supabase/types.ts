@@ -109,6 +109,112 @@ export type Database = {
         }
         Relationships: []
       }
+      action_recommendations: {
+        Row: {
+          action_script: string | null
+          actioned_at: string | null
+          category: string | null
+          created_at: string
+          description: string
+          expected_outcome: string | null
+          expires_at: string | null
+          generated_at: string
+          id: string
+          opportunity_window: Json | null
+          outcome_recorded: Json | null
+          priority_score: number
+          profile_id: string | null
+          recommendation_type: string
+          risk_assessment: Json | null
+          status: string | null
+          success_probability: number | null
+          suggested_action: string
+          supporting_evidence: Json | null
+          talking_points: string[] | null
+          title: string
+          trigger_reason: string | null
+          urgency: string | null
+          user_id: string
+          viewed_at: string | null
+        }
+        Insert: {
+          action_script?: string | null
+          actioned_at?: string | null
+          category?: string | null
+          created_at?: string
+          description: string
+          expected_outcome?: string | null
+          expires_at?: string | null
+          generated_at?: string
+          id?: string
+          opportunity_window?: Json | null
+          outcome_recorded?: Json | null
+          priority_score: number
+          profile_id?: string | null
+          recommendation_type: string
+          risk_assessment?: Json | null
+          status?: string | null
+          success_probability?: number | null
+          suggested_action: string
+          supporting_evidence?: Json | null
+          talking_points?: string[] | null
+          title: string
+          trigger_reason?: string | null
+          urgency?: string | null
+          user_id: string
+          viewed_at?: string | null
+        }
+        Update: {
+          action_script?: string | null
+          actioned_at?: string | null
+          category?: string | null
+          created_at?: string
+          description?: string
+          expected_outcome?: string | null
+          expires_at?: string | null
+          generated_at?: string
+          id?: string
+          opportunity_window?: Json | null
+          outcome_recorded?: Json | null
+          priority_score?: number
+          profile_id?: string | null
+          recommendation_type?: string
+          risk_assessment?: Json | null
+          status?: string | null
+          success_probability?: number | null
+          suggested_action?: string
+          supporting_evidence?: Json | null
+          talking_points?: string[] | null
+          title?: string
+          trigger_reason?: string | null
+          urgency?: string | null
+          user_id?: string
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "action_recommendations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "action_recommendations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "action_recommendations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_analyses: {
         Row: {
           analysis_type: string
@@ -1353,6 +1459,91 @@ export type Database = {
           },
           {
             foreignKeyName: "behavioral_predictions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      behavioral_scenario_predictions: {
+        Row: {
+          actual_response: Json | null
+          alternative_responses: Json | null
+          confidence_score: number
+          context: Json | null
+          created_at: string
+          evidence_basis: Json | null
+          id: string
+          model_version: string | null
+          predicted_response: Json
+          prediction_accuracy: number | null
+          profile_id: string
+          response_probability: number | null
+          scenario_category: string | null
+          scenario_type: string
+          stimulus: string
+          user_id: string
+          valid_until: string | null
+          validated_at: string | null
+        }
+        Insert: {
+          actual_response?: Json | null
+          alternative_responses?: Json | null
+          confidence_score: number
+          context?: Json | null
+          created_at?: string
+          evidence_basis?: Json | null
+          id?: string
+          model_version?: string | null
+          predicted_response: Json
+          prediction_accuracy?: number | null
+          profile_id: string
+          response_probability?: number | null
+          scenario_category?: string | null
+          scenario_type: string
+          stimulus: string
+          user_id: string
+          valid_until?: string | null
+          validated_at?: string | null
+        }
+        Update: {
+          actual_response?: Json | null
+          alternative_responses?: Json | null
+          confidence_score?: number
+          context?: Json | null
+          created_at?: string
+          evidence_basis?: Json | null
+          id?: string
+          model_version?: string | null
+          predicted_response?: Json
+          prediction_accuracy?: number | null
+          profile_id?: string
+          response_probability?: number | null
+          scenario_category?: string | null
+          scenario_type?: string
+          stimulus?: string
+          user_id?: string
+          valid_until?: string | null
+          validated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "behavioral_scenario_predictions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "behavioral_scenario_predictions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "behavioral_scenario_predictions_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -6293,6 +6484,197 @@ export type Database = {
         }
         Relationships: []
       }
+      deception_analyses: {
+        Row: {
+          analysis_version: string | null
+          analyzed_at: string
+          behavioral_indicators: Json | null
+          conflict_severity: number | null
+          created_at: string
+          cross_modal_conflicts: Json | null
+          deception_likelihood: string | null
+          deception_score: number | null
+          deception_timeline: Json | null
+          expression_authenticity_score: number | null
+          facial_indicators: Json | null
+          id: string
+          linguistic_authenticity_score: number | null
+          linguistic_deception_markers: Json | null
+          linguistic_indicators: Json | null
+          micro_expressions: Json | null
+          models_used: string[] | null
+          overall_confidence: number
+          peak_deception_moments: Json | null
+          profile_id: string
+          source_id: string | null
+          source_type: string
+          user_id: string
+          vocal_authenticity_score: number | null
+          vocal_indicators: Json | null
+          voice_stress_markers: Json | null
+        }
+        Insert: {
+          analysis_version?: string | null
+          analyzed_at?: string
+          behavioral_indicators?: Json | null
+          conflict_severity?: number | null
+          created_at?: string
+          cross_modal_conflicts?: Json | null
+          deception_likelihood?: string | null
+          deception_score?: number | null
+          deception_timeline?: Json | null
+          expression_authenticity_score?: number | null
+          facial_indicators?: Json | null
+          id?: string
+          linguistic_authenticity_score?: number | null
+          linguistic_deception_markers?: Json | null
+          linguistic_indicators?: Json | null
+          micro_expressions?: Json | null
+          models_used?: string[] | null
+          overall_confidence: number
+          peak_deception_moments?: Json | null
+          profile_id: string
+          source_id?: string | null
+          source_type: string
+          user_id: string
+          vocal_authenticity_score?: number | null
+          vocal_indicators?: Json | null
+          voice_stress_markers?: Json | null
+        }
+        Update: {
+          analysis_version?: string | null
+          analyzed_at?: string
+          behavioral_indicators?: Json | null
+          conflict_severity?: number | null
+          created_at?: string
+          cross_modal_conflicts?: Json | null
+          deception_likelihood?: string | null
+          deception_score?: number | null
+          deception_timeline?: Json | null
+          expression_authenticity_score?: number | null
+          facial_indicators?: Json | null
+          id?: string
+          linguistic_authenticity_score?: number | null
+          linguistic_deception_markers?: Json | null
+          linguistic_indicators?: Json | null
+          micro_expressions?: Json | null
+          models_used?: string[] | null
+          overall_confidence?: number
+          peak_deception_moments?: Json | null
+          profile_id?: string
+          source_id?: string | null
+          source_type?: string
+          user_id?: string
+          vocal_authenticity_score?: number | null
+          vocal_indicators?: Json | null
+          voice_stress_markers?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deception_analyses_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "deception_analyses_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "deception_analyses_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deep_correlations: {
+        Row: {
+          actionable_insights: string[] | null
+          confidence: number
+          correlation_type: string
+          discovered_at: string
+          evidence: Json
+          evidence_count: number | null
+          expires_at: string | null
+          id: string
+          implications: string[] | null
+          involved_profiles: string[]
+          last_validated_at: string | null
+          primary_profile_id: string | null
+          risk_assessment: Json | null
+          strength: number
+          user_id: string
+          verified: boolean | null
+          verified_at: string | null
+        }
+        Insert: {
+          actionable_insights?: string[] | null
+          confidence: number
+          correlation_type: string
+          discovered_at?: string
+          evidence?: Json
+          evidence_count?: number | null
+          expires_at?: string | null
+          id?: string
+          implications?: string[] | null
+          involved_profiles: string[]
+          last_validated_at?: string | null
+          primary_profile_id?: string | null
+          risk_assessment?: Json | null
+          strength: number
+          user_id: string
+          verified?: boolean | null
+          verified_at?: string | null
+        }
+        Update: {
+          actionable_insights?: string[] | null
+          confidence?: number
+          correlation_type?: string
+          discovered_at?: string
+          evidence?: Json
+          evidence_count?: number | null
+          expires_at?: string | null
+          id?: string
+          implications?: string[] | null
+          involved_profiles?: string[]
+          last_validated_at?: string | null
+          primary_profile_id?: string | null
+          risk_assessment?: Json | null
+          strength?: number
+          user_id?: string
+          verified?: boolean | null
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deep_correlations_primary_profile_id_fkey"
+            columns: ["primary_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "deep_correlations_primary_profile_id_fkey"
+            columns: ["primary_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "deep_correlations_primary_profile_id_fkey"
+            columns: ["primary_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deletion_requests: {
         Row: {
           aggregates_affected: number | null
@@ -8594,6 +8976,103 @@ export type Database = {
           },
         ]
       }
+      financial_intelligence: {
+        Row: {
+          asset_indicators: Json | null
+          career_earnings_potential: Json | null
+          created_at: string
+          debt_indicators: Json | null
+          estimated_net_worth_max: number | null
+          estimated_net_worth_min: number | null
+          evidence_sources: Json | null
+          financial_stress_score: number | null
+          id: string
+          income_trajectory: Json | null
+          last_analyzed_at: string | null
+          lifestyle_tier: string | null
+          net_worth_currency: string | null
+          opportunity_windows: Json | null
+          optimal_ask_timing: Json | null
+          overall_confidence: number | null
+          profile_id: string
+          updated_at: string
+          user_id: string
+          vulnerability_windows: Json | null
+          wealth_tier: number | null
+          wealth_tier_confidence: number | null
+        }
+        Insert: {
+          asset_indicators?: Json | null
+          career_earnings_potential?: Json | null
+          created_at?: string
+          debt_indicators?: Json | null
+          estimated_net_worth_max?: number | null
+          estimated_net_worth_min?: number | null
+          evidence_sources?: Json | null
+          financial_stress_score?: number | null
+          id?: string
+          income_trajectory?: Json | null
+          last_analyzed_at?: string | null
+          lifestyle_tier?: string | null
+          net_worth_currency?: string | null
+          opportunity_windows?: Json | null
+          optimal_ask_timing?: Json | null
+          overall_confidence?: number | null
+          profile_id: string
+          updated_at?: string
+          user_id: string
+          vulnerability_windows?: Json | null
+          wealth_tier?: number | null
+          wealth_tier_confidence?: number | null
+        }
+        Update: {
+          asset_indicators?: Json | null
+          career_earnings_potential?: Json | null
+          created_at?: string
+          debt_indicators?: Json | null
+          estimated_net_worth_max?: number | null
+          estimated_net_worth_min?: number | null
+          evidence_sources?: Json | null
+          financial_stress_score?: number | null
+          id?: string
+          income_trajectory?: Json | null
+          last_analyzed_at?: string | null
+          lifestyle_tier?: string | null
+          net_worth_currency?: string | null
+          opportunity_windows?: Json | null
+          optimal_ask_timing?: Json | null
+          overall_confidence?: number | null
+          profile_id?: string
+          updated_at?: string
+          user_id?: string
+          vulnerability_windows?: Json | null
+          wealth_tier?: number | null
+          wealth_tier_confidence?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_intelligence_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "financial_intelligence_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "financial_intelligence_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gait_analyses: {
         Row: {
           ai_model_used: string | null
@@ -9210,6 +9689,115 @@ export type Database = {
             columns: ["strategy_id"]
             isOneToOne: false
             referencedRelation: "influence_strategies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      influence_campaigns: {
+        Row: {
+          adaptation_history: Json | null
+          completed_at: string | null
+          compliance_achieved: boolean | null
+          control_group: boolean | null
+          created_at: string
+          description: string | null
+          executed_touches: Json | null
+          id: string
+          lessons_learned: string[] | null
+          name: string
+          next_touch_at: string | null
+          objective: string
+          optimal_windows: Json | null
+          outcome_value: Json | null
+          planned_touches: Json | null
+          primary_principle: string | null
+          principles_applied: string[] | null
+          priority: number | null
+          profile_id: string
+          resistance_patterns: Json | null
+          started_at: string | null
+          status: string | null
+          updated_at: string
+          urgency_level: string | null
+          user_id: string
+          variant_id: string | null
+        }
+        Insert: {
+          adaptation_history?: Json | null
+          completed_at?: string | null
+          compliance_achieved?: boolean | null
+          control_group?: boolean | null
+          created_at?: string
+          description?: string | null
+          executed_touches?: Json | null
+          id?: string
+          lessons_learned?: string[] | null
+          name: string
+          next_touch_at?: string | null
+          objective: string
+          optimal_windows?: Json | null
+          outcome_value?: Json | null
+          planned_touches?: Json | null
+          primary_principle?: string | null
+          principles_applied?: string[] | null
+          priority?: number | null
+          profile_id: string
+          resistance_patterns?: Json | null
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string
+          urgency_level?: string | null
+          user_id: string
+          variant_id?: string | null
+        }
+        Update: {
+          adaptation_history?: Json | null
+          completed_at?: string | null
+          compliance_achieved?: boolean | null
+          control_group?: boolean | null
+          created_at?: string
+          description?: string | null
+          executed_touches?: Json | null
+          id?: string
+          lessons_learned?: string[] | null
+          name?: string
+          next_touch_at?: string | null
+          objective?: string
+          optimal_windows?: Json | null
+          outcome_value?: Json | null
+          planned_touches?: Json | null
+          primary_principle?: string | null
+          principles_applied?: string[] | null
+          priority?: number | null
+          profile_id?: string
+          resistance_patterns?: Json | null
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string
+          urgency_level?: string | null
+          user_id?: string
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "influence_campaigns_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "influence_campaigns_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "influence_campaigns_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -11925,6 +12513,187 @@ export type Database = {
           tenant_id?: string
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      personality_profiles: {
+        Row: {
+          agreeableness: Json | null
+          conscientiousness: Json | null
+          created_at: string
+          exploitation_angles: Json | null
+          extraction_sources: string[] | null
+          extraversion: Json | null
+          facet_scores: Json | null
+          id: string
+          influence_vulnerabilities: Json | null
+          last_analyzed_at: string | null
+          neuroticism: Json | null
+          openness: Json | null
+          profile_id: string
+          sample_size: number | null
+          stability_coefficient: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agreeableness?: Json | null
+          conscientiousness?: Json | null
+          created_at?: string
+          exploitation_angles?: Json | null
+          extraction_sources?: string[] | null
+          extraversion?: Json | null
+          facet_scores?: Json | null
+          id?: string
+          influence_vulnerabilities?: Json | null
+          last_analyzed_at?: string | null
+          neuroticism?: Json | null
+          openness?: Json | null
+          profile_id: string
+          sample_size?: number | null
+          stability_coefficient?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agreeableness?: Json | null
+          conscientiousness?: Json | null
+          created_at?: string
+          exploitation_angles?: Json | null
+          extraction_sources?: string[] | null
+          extraversion?: Json | null
+          facet_scores?: Json | null
+          id?: string
+          influence_vulnerabilities?: Json | null
+          last_analyzed_at?: string | null
+          neuroticism?: Json | null
+          openness?: Json | null
+          profile_id?: string
+          sample_size?: number | null
+          stability_coefficient?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personality_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "personality_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "personality_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      power_network_analyses: {
+        Row: {
+          analysis_type: string
+          average_clustering: number | null
+          betweenness_rankings: Json | null
+          brokers: Json | null
+          closeness_rankings: Json | null
+          coalition_strength: Json | null
+          communities: Json | null
+          community_bridges: Json | null
+          computed_at: string
+          created_at: string
+          critical_nodes: Json | null
+          detected_coalitions: Json | null
+          eigenvector_rankings: Json | null
+          expires_at: string | null
+          gatekeepers: Json | null
+          id: string
+          influence_paths: Json | null
+          influencers: Json | null
+          katz_rankings: Json | null
+          network_density: number | null
+          optimal_targets: Json | null
+          pagerank_rankings: Json | null
+          power_scores: Json | null
+          scope_description: string | null
+          structural_holes: Json | null
+          total_edges: number | null
+          total_nodes: number | null
+          user_id: string
+          vulnerability_map: Json | null
+          weak_ties: Json | null
+        }
+        Insert: {
+          analysis_type: string
+          average_clustering?: number | null
+          betweenness_rankings?: Json | null
+          brokers?: Json | null
+          closeness_rankings?: Json | null
+          coalition_strength?: Json | null
+          communities?: Json | null
+          community_bridges?: Json | null
+          computed_at?: string
+          created_at?: string
+          critical_nodes?: Json | null
+          detected_coalitions?: Json | null
+          eigenvector_rankings?: Json | null
+          expires_at?: string | null
+          gatekeepers?: Json | null
+          id?: string
+          influence_paths?: Json | null
+          influencers?: Json | null
+          katz_rankings?: Json | null
+          network_density?: number | null
+          optimal_targets?: Json | null
+          pagerank_rankings?: Json | null
+          power_scores?: Json | null
+          scope_description?: string | null
+          structural_holes?: Json | null
+          total_edges?: number | null
+          total_nodes?: number | null
+          user_id: string
+          vulnerability_map?: Json | null
+          weak_ties?: Json | null
+        }
+        Update: {
+          analysis_type?: string
+          average_clustering?: number | null
+          betweenness_rankings?: Json | null
+          brokers?: Json | null
+          closeness_rankings?: Json | null
+          coalition_strength?: Json | null
+          communities?: Json | null
+          community_bridges?: Json | null
+          computed_at?: string
+          created_at?: string
+          critical_nodes?: Json | null
+          detected_coalitions?: Json | null
+          eigenvector_rankings?: Json | null
+          expires_at?: string | null
+          gatekeepers?: Json | null
+          id?: string
+          influence_paths?: Json | null
+          influencers?: Json | null
+          katz_rankings?: Json | null
+          network_density?: number | null
+          optimal_targets?: Json | null
+          pagerank_rankings?: Json | null
+          power_scores?: Json | null
+          scope_description?: string | null
+          structural_holes?: Json | null
+          total_edges?: number | null
+          total_nodes?: number | null
+          user_id?: string
+          vulnerability_map?: Json | null
+          weak_ties?: Json | null
         }
         Relationships: []
       }
