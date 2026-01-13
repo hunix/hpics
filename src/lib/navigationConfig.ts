@@ -3,7 +3,7 @@ import {
   Upload, Settings, Network, CalendarDays, Video, Scan, BarChart3, FileBarChart, 
   UsersRound, Download, Shield, Waypoints, Sparkles, ShieldAlert, Activity, 
   Layers, Cpu, DollarSign, Home, Briefcase, Eye, AlertTriangle, Lock,
-  Zap, Compass, Smartphone,
+  Zap, Compass, Smartphone, Crown,
   type LucideIcon
 } from 'lucide-react';
 import type { AppRole, ClearanceLevel } from '@/hooks/useClearance';
@@ -118,12 +118,21 @@ export const categoryConfig: Record<NavCategory, {
 export const navigationItems: NavItem[] = [
   // Command Center
   {
+    id: 'ultimate-command',
+    title: 'Ultimate Command',
+    url: '/ultimate-command',
+    icon: Crown,
+    description: 'Strategic intelligence & power control',
+    badge: 'new',
+    category: 'command',
+    keywords: ['ultimate', 'power', 'matrix', 'strategic', 'control', 'superiority', 'influence'],
+  },
+  {
     id: 'command-center',
     title: 'Command Center',
     url: '/command-center',
     icon: Zap,
     description: 'Unified mission control hub',
-    badge: 'new',
     category: 'command',
     keywords: ['command', 'hub', 'mission', 'control', 'priority'],
   },
