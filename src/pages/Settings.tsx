@@ -41,6 +41,7 @@ import { ModelEfficiencyComparison } from '@/components/ai/ModelEfficiencyCompar
 import { AccountStorageConsumption } from '@/components/analytics/AccountStorageConsumption';
 import { IntegrationHealthDashboard } from '@/components/settings/IntegrationHealthDashboard';
 import { RealTimeSecurityDashboard } from '@/components/security/RealTimeSecurityDashboard';
+import { PlatformConfigSettings } from '@/components/settings/PlatformConfigSettings';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -235,6 +236,8 @@ export default function Settings() {
         return <LocalAIEndpoints />;
       case 'security':
         return <RealTimeSecurityDashboard />;
+      case 'platform-config':
+        return <PlatformConfigSettings />;
       case 'system':
         return <DataValidationDashboard />;
       default:

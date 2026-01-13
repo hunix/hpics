@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { 
   Sun, Bell, Fingerprint, HardDrive, Trash2, Link2, 
   Users, Cpu, DollarSign, Bot, Smartphone, Shield, Activity,
-  ChevronRight
+  ChevronRight, Settings2, Sliders
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -67,6 +67,13 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     sections: [
       { id: 'teams', label: 'Workspace', icon: Users },
       { id: 'security', label: 'Security', icon: Shield },
+    ],
+  },
+  {
+    id: 'platform',
+    label: 'Platform Admin',
+    sections: [
+      { id: 'platform-config', label: 'Platform Configuration', icon: Sliders, badge: 'Admin' },
     ],
   },
   {
