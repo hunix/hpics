@@ -1,6 +1,7 @@
 // Reliable Mutation Hook - Enterprise-grade mutations with resilience
 import { useState, useCallback, useRef } from 'react';
 import { useMutation, useQueryClient, UseMutationOptions } from '@tanstack/react-query';
+import { checkRateLimit, recordRequest, applyPenalty, RateLimitError } from '@/lib/rateLimiter';
 
 export interface RetryConfig {
   maxAttempts: number;
@@ -30,16 +31,25 @@ export interface OfflineConfig {
   syncOnReconnect?: boolean;
 }
 
+export interface RateLimitConfig {
+  enabled: boolean;
+  key?: string;
+  maxRequests?: number;
+  windowMs?: number;
+}
+
 export interface ReliableMutationOptions<TData, TError, TVariables> {
   retry?: Partial<RetryConfig>;
   optimistic?: Partial<OptimisticConfig<TData, TVariables>>;
   audit?: Partial<AuditConfig>;
   offline?: Partial<OfflineConfig>;
+  rateLimit?: Partial<RateLimitConfig>;
   deduplicateMs?: number;
   circuitBreakerKey?: string;
   onRetry?: (attempt: number, error: TError) => void;
   onSuccess?: (data: TData, variables: TVariables) => void;
   onError?: (error: TError, variables: TVariables) => void;
+  onRateLimited?: (retryAfter: number) => void;
 }
 
 interface MutationState {
@@ -47,6 +57,7 @@ interface MutationState {
   lastError?: Error;
   isRetrying: boolean;
   queuedOperations: number;
+  isRateLimited: boolean;
 }
 
 const DEFAULT_RETRY_CONFIG: RetryConfig = {
@@ -54,7 +65,7 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
   baseDelayMs: 1000,
   backoffMultiplier: 2,
   maxDelayMs: 30000,
-  retryableErrors: ['NetworkError', 'TimeoutError', 'ECONNRESET', '503', '504'],
+  retryableErrors: ['NetworkError', 'TimeoutError', 'ECONNRESET', '503', '504', '429'],
 };
 
 const offlineQueue: Map<string, { variables: unknown; timestamp: number }[]> = new Map();
@@ -72,19 +83,23 @@ export function useReliableMutation<
     optimistic = {},
     audit = {},
     offline = {},
+    rateLimit = {},
     deduplicateMs = 1000,
     onRetry,
     onSuccess,
     onError,
+    onRateLimited,
   } = options;
 
   const retryConfig = { ...DEFAULT_RETRY_CONFIG, ...retry };
+  const rateLimitConfig = { enabled: false, ...rateLimit };
   const queryClient = useQueryClient();
   
   const [state, setState] = useState<MutationState>({
     attempts: 0,
     isRetrying: false,
     queuedOperations: 0,
+    isRateLimited: false,
   });
 
   const lastMutationRef = useRef<{ hash: string; timestamp: number } | null>(null);
@@ -165,6 +180,25 @@ export function useReliableMutation<
 
   const mutationOptions: UseMutationOptions<TData, TError, TVariables> = {
     mutationFn: async (variables: TVariables) => {
+      // Rate limit check
+      if (rateLimitConfig.enabled) {
+        const rateLimitKey = rateLimitConfig.key || 'default_mutation';
+        const customConfig = rateLimitConfig.maxRequests && rateLimitConfig.windowMs 
+          ? { maxRequests: rateLimitConfig.maxRequests, windowMs: rateLimitConfig.windowMs }
+          : undefined;
+        
+        const { allowed, retryAfter } = checkRateLimit(rateLimitKey, customConfig);
+        
+        if (!allowed) {
+          setState(prev => ({ ...prev, isRateLimited: true }));
+          onRateLimited?.(retryAfter || 1000);
+          throw new RateLimitError(`Rate limit exceeded. Retry after ${retryAfter}ms`, retryAfter || 1000);
+        }
+        
+        recordRequest(rateLimitKey);
+        setState(prev => ({ ...prev, isRateLimited: false }));
+      }
+
       // Deduplication check
       const hash = hashVariables(variables);
       const now = Date.now();

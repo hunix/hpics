@@ -1,4 +1,4 @@
-// Document Integrity Hook - SHA-256 hash verification
+// Document Integrity Hook - SHA-256 hash verification with DB persistence
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -18,6 +18,8 @@ interface DocumentHash {
   algorithm: string;
   createdAt: string;
   createdBy: string;
+  fileSize?: number;
+  fileName?: string;
 }
 
 // Compute SHA-256 hash of file
@@ -42,10 +44,11 @@ export function useDocumentIntegrity() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastResult, setLastResult] = useState<IntegrityResult | null>(null);
 
-  // Hash a document and store the hash
+  // Hash a document and store the hash in document_hashes table
   const hashDocument = useCallback(async (
     documentId: string,
-    file: File | Blob
+    file: File | Blob,
+    metadata?: { fileName?: string }
   ): Promise<string> => {
     if (!user) throw new Error('User not authenticated');
     
@@ -55,20 +58,21 @@ export function useDocumentIntegrity() {
       const arrayBuffer = await readFileAsArrayBuffer(file);
       const hash = await computeHash(arrayBuffer);
       
-      // Store hash in app_settings or a dedicated table
-      // Using app_settings with a special key pattern for simplicity
+      // Store hash in document_hashes table
       const { error } = await supabase
-        .from('app_settings')
+        .from('document_hashes')
         .upsert({
           user_id: user.id,
-          setting_key: `document_hash_${documentId}`,
-          setting_value: hash,
-          metadata: {
-            algorithm: 'SHA-256',
-            createdAt: new Date().toISOString(),
-            fileSize: file.size,
-            fileType: file.type,
-          },
+          document_id: documentId,
+          document_type: 'file',
+          hash: hash,
+          algorithm: 'SHA-256',
+          file_size: file.size,
+          is_valid: true,
+          metadata: { fileName: metadata?.fileName || (file instanceof File ? file.name : null) },
+          created_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id,document_id'
         });
 
       if (error) {
@@ -96,16 +100,16 @@ export function useDocumentIntegrity() {
       const arrayBuffer = await readFileAsArrayBuffer(file);
       const computedHash = await computeHash(arrayBuffer);
       
-      // Get stored hash
+      // Get stored hash from document_hashes table
       const { data, error } = await supabase
-        .from('app_settings')
-        .select('setting_value')
+        .from('document_hashes')
+        .select('hash, created_at')
         .eq('user_id', user.id)
-        .eq('setting_key', `document_hash_${documentId}`)
-        .single();
+        .eq('document_id', documentId)
+        .maybeSingle();
 
-      const storedHash = error ? null : data?.setting_value;
-      const isValid = storedHash === computedHash;
+      const storedHash = error ? null : data?.hash;
+      const isValid = storedHash !== null && hashesMatch(storedHash, computedHash);
       
       const result: IntegrityResult = {
         isValid,
@@ -116,14 +120,18 @@ export function useDocumentIntegrity() {
       };
 
       setLastResult(result);
+
+      // Update last_verified_at timestamp
+      if (data && !error) {
+        await supabase
+          .from('document_hashes')
+          .update({ last_verified_at: result.verifiedAt, is_valid: isValid })
+          .eq('user_id', user.id)
+          .eq('document_id', documentId);
+      }
       
-      // Log verification attempt
       if (!isValid && storedHash) {
-        console.warn('Document integrity check failed:', {
-          documentId,
-          storedHash,
-          computedHash,
-        });
+        console.warn('Document integrity check failed:', { documentId });
       }
 
       return result;
@@ -139,21 +147,24 @@ export function useDocumentIntegrity() {
     if (!user) return null;
 
     const { data, error } = await supabase
-      .from('app_settings')
-      .select('*')
+      .from('document_hashes')
+      .select('id, document_id, hash, algorithm, file_size, metadata, created_at')
       .eq('user_id', user.id)
-      .eq('setting_key', `document_hash_${documentId}`)
-      .single();
+      .eq('document_id', documentId)
+      .maybeSingle();
 
     if (error || !data) return null;
 
+    const metadata = data.metadata as Record<string, string> | null;
     return {
       id: data.id,
-      documentId,
-      hash: data.setting_value || '',
-      algorithm: (data.metadata as Record<string, string>)?.algorithm || 'SHA-256',
-      createdAt: (data.metadata as Record<string, string>)?.createdAt || data.created_at || '',
-      createdBy: data.user_id,
+      documentId: data.document_id,
+      hash: data.hash,
+      algorithm: data.algorithm,
+      createdAt: data.created_at,
+      createdBy: user.id,
+      fileSize: data.file_size || undefined,
+      fileName: metadata?.fileName || undefined,
     };
   }, [user]);
 
@@ -162,10 +173,10 @@ export function useDocumentIntegrity() {
     if (!user) return;
 
     await supabase
-      .from('app_settings')
+      .from('document_hashes')
       .delete()
       .eq('user_id', user.id)
-      .eq('setting_key', `document_hash_${documentId}`);
+      .eq('document_id', documentId);
   }, [user]);
 
   // Batch verify multiple documents
