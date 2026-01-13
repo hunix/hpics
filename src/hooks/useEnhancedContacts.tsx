@@ -13,13 +13,16 @@ export interface EnhancedContact {
   hierarchy_level: string | null;
   avatar_url: string | null;
   is_favorite: boolean;
+  is_active: boolean;
   tags: string[] | null;
   created_at: string;
   country: string | null;
+  last_interaction_at: string | null;
+  engagement_score: number;
   total_count: number;
 }
 
-export type SortBy = 'name' | 'recent' | 'oldest' | 'organization' | 'relationship';
+export type SortBy = 'name' | 'recent' | 'oldest' | 'organization' | 'relationship' | 'engagement';
 export type SortOrder = 'asc' | 'desc';
 
 interface UseEnhancedContactsOptions {
@@ -28,6 +31,7 @@ interface UseEnhancedContactsOptions {
   subtypeFilter?: string | null;
   tagFilter?: string | null;
   favoriteFilter?: boolean;
+  activeFilter?: boolean | null;
   letterFilter?: string | null;
   sortBy?: SortBy;
   sortOrder?: SortOrder;
@@ -41,6 +45,7 @@ export function useEnhancedContacts({
   subtypeFilter,
   tagFilter,
   favoriteFilter,
+  activeFilter,
   letterFilter,
   sortBy = 'name',
   sortOrder = 'asc',
@@ -58,6 +63,7 @@ export function useEnhancedContacts({
       subtypeFilter,
       tagFilter,
       favoriteFilter,
+      activeFilter,
       letterFilter,
       sortBy,
       sortOrder,
@@ -72,6 +78,7 @@ export function useEnhancedContacts({
         p_relationship_subtype: subtypeFilter || null,
         p_tag: tagFilter || null,
         p_is_favorite: favoriteFilter || null,
+        p_is_active: activeFilter ?? null,
         p_first_letter: letterFilter || null,
         p_sort_by: sortBy,
         p_sort_order: sortOrder,
@@ -94,6 +101,32 @@ export function useEnhancedContacts({
     initialPageParam: 0,
     enabled: enabled && !!user?.id,
     staleTime: 30000,
+  });
+}
+
+// Hook to get active contact counts
+export function useActiveContactCounts() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['active-contact-counts', user?.id],
+    queryFn: async () => {
+      if (!user?.id) throw new Error('No user');
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('is_active', { count: 'exact' })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      const active = data?.filter(p => p.is_active).length ?? 0;
+      const total = data?.length ?? 0;
+
+      return { active, inactive: total - active, total };
+    },
+    enabled: !!user?.id,
+    staleTime: 60000,
   });
 }
 

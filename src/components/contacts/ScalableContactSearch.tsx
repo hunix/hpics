@@ -11,7 +11,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ChevronsUpDown, Check, Search, Loader2, User, Star, Clock, X } from 'lucide-react';
+import { ChevronsUpDown, Check, Search, Loader2, User, Star, Clock, X, Sparkles, BookUser } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
@@ -22,6 +22,9 @@ interface Contact {
   avatar_url: string | null;
   organization: string | null;
   is_favorite?: boolean;
+  is_active?: boolean;
+  last_interaction_at?: string | null;
+  selection_priority?: number;
 }
 
 interface ScalableContactSearchProps {
@@ -39,6 +42,8 @@ interface ScalableContactSearchProps {
   maxResults?: number;
   /** Show compact trigger (icon only) */
   compact?: boolean;
+  /** Show all contacts (including inactive address book) */
+  showAddressBook?: boolean;
 }
 
 // Storage key for recent contacts
@@ -76,6 +81,7 @@ export function ScalableContactSearch({
   minSearchChars = 3,
   maxResults = 30,
   compact = false,
+  showAddressBook = true,
 }: ScalableContactSearchProps) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
@@ -92,69 +98,27 @@ export function ScalableContactSearch({
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Fetch favorites (always available, no search required)
-  const { data: favorites = [], isLoading: loadingFavorites } = useQuery({
-    queryKey: ['favorites-for-search', user?.id],
+  // Get recent contact IDs
+  const recentIds = useMemo(() => getRecentContactIds(), [open]);
+
+  // Use smart selection function for prioritized contacts
+  const { data: prioritizedContacts = [], isLoading: loadingPrioritized } = useQuery({
+    queryKey: ['contacts-for-selection', user?.id, debouncedSearch, recentIds],
     queryFn: async () => {
       if (!user) return [];
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, avatar_url, organization, is_favorite')
-        .eq('user_id', user.id)
-        .eq('is_favorite', true)
-        .order('first_name')
-        .limit(50);
+      
+      const { data, error } = await supabase.rpc('get_contacts_for_selection', {
+        p_user_id: user.id,
+        p_search_query: debouncedSearch || null,
+        p_recent_ids: recentIds.length > 0 ? recentIds : null,
+        p_limit: maxResults,
+      });
+      
       if (error) throw error;
       return (data || []) as Contact[];
     },
     enabled: !!user && open,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  // Fetch recent contacts
-  const recentIds = useMemo(() => getRecentContactIds(), [open]);
-  
-  const { data: recentContacts = [] } = useQuery({
-    queryKey: ['recent-contacts-for-search', user?.id, recentIds],
-    queryFn: async () => {
-      if (!user || recentIds.length === 0) return [];
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, avatar_url, organization, is_favorite')
-        .eq('user_id', user.id)
-        .in('id', recentIds);
-      if (error) throw error;
-      // Sort by recency
-      const contactMap = new Map((data || []).map(c => [c.id, c]));
-      return recentIds.map(id => contactMap.get(id)).filter(Boolean) as Contact[];
-    },
-    enabled: !!user && open && recentIds.length > 0,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  // Server-side search (only when 3+ characters)
-  const shouldSearch = debouncedSearch.trim().length >= minSearchChars;
-  
-  const { data: searchResults = [], isLoading: loadingSearch, isFetching: fetchingSearch } = useQuery({
-    queryKey: ['contact-search', user?.id, debouncedSearch],
-    queryFn: async () => {
-      if (!user || !shouldSearch) return [];
-      
-      const searchTerm = `%${debouncedSearch.trim()}%`;
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, avatar_url, organization, is_favorite')
-        .eq('user_id', user.id)
-        .or(`first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},organization.ilike.${searchTerm}`)
-        .order('is_favorite', { ascending: false })
-        .order('first_name')
-        .limit(maxResults);
-      
-      if (error) throw error;
-      return (data || []) as Contact[];
-    },
-    enabled: !!user && open && shouldSearch,
-    staleTime: 30 * 1000, // Cache search results for 30 seconds
+    staleTime: 30 * 1000,
   });
 
   // Fetch selected contact if we have an ID but it's not in the lists
@@ -164,7 +128,7 @@ export function ScalableContactSearch({
       if (!selectedId || !user) return null;
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, avatar_url, organization, is_favorite')
+        .select('id, first_name, last_name, avatar_url, organization, is_favorite, is_active')
         .eq('id', selectedId)
         .eq('user_id', user.id)
         .maybeSingle();
@@ -175,24 +139,73 @@ export function ScalableContactSearch({
     staleTime: 5 * 60 * 1000,
   });
 
-  // Combine all contacts for display
-  const displayContacts = useMemo(() => {
-    if (shouldSearch) {
-      return searchResults;
+  // Group contacts by priority
+  const groupedContacts = useMemo(() => {
+    const recent: Contact[] = [];
+    const favorites: Contact[] = [];
+    const active: Contact[] = [];
+    const addressBook: Contact[] = [];
+
+    const recentIdSet = new Set(recentIds);
+
+    prioritizedContacts.forEach(contact => {
+      if (recentIdSet.has(contact.id)) {
+        recent.push(contact);
+      } else if (contact.is_favorite) {
+        favorites.push(contact);
+      } else if (contact.is_active) {
+        active.push(contact);
+      } else if (showAddressBook) {
+        addressBook.push(contact);
+      }
+    });
+
+    // Sort recent by the order in recentIds
+    recent.sort((a, b) => recentIds.indexOf(a.id) - recentIds.indexOf(b.id));
+
+    return { recent, favorites, active, addressBook };
+  }, [prioritizedContacts, recentIds, showAddressBook]);
+
+  // Flatten for display with section markers
+  const displayItems = useMemo(() => {
+    const items: { type: 'section' | 'contact'; data: Contact | string }[] = [];
+    const hasSearch = debouncedSearch.trim().length >= minSearchChars;
+
+    if (hasSearch) {
+      // When searching, show flat list
+      prioritizedContacts.forEach(c => items.push({ type: 'contact', data: c }));
+    } else {
+      // Show grouped with sections
+      if (groupedContacts.recent.length > 0) {
+        items.push({ type: 'section', data: 'Recent' });
+        groupedContacts.recent.forEach(c => items.push({ type: 'contact', data: c }));
+      }
+      if (groupedContacts.favorites.length > 0) {
+        items.push({ type: 'section', data: 'Favorites' });
+        groupedContacts.favorites.forEach(c => items.push({ type: 'contact', data: c }));
+      }
+      if (groupedContacts.active.length > 0) {
+        items.push({ type: 'section', data: 'Active Contacts' });
+        groupedContacts.active.forEach(c => items.push({ type: 'contact', data: c }));
+      }
+      if (groupedContacts.addressBook.length > 0) {
+        items.push({ type: 'section', data: 'Address Book' });
+        groupedContacts.addressBook.forEach(c => items.push({ type: 'contact', data: c }));
+      }
     }
-    
-    // Show favorites first, then recent (excluding duplicates)
-    const favoriteIds = new Set(favorites.map(f => f.id));
-    const uniqueRecent = recentContacts.filter(r => !favoriteIds.has(r.id));
-    
-    return [...favorites, ...uniqueRecent];
-  }, [shouldSearch, searchResults, favorites, recentContacts]);
+
+    return items;
+  }, [groupedContacts, prioritizedContacts, debouncedSearch, minSearchChars]);
 
   // Virtualizer for efficient rendering
   const virtualizer = useVirtualizer({
-    count: displayContacts.length + (allowNone ? 1 : 0),
+    count: displayItems.length + (allowNone ? 1 : 0),
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 52,
+    estimateSize: (index) => {
+      if (allowNone && index === 0) return 52;
+      const item = displayItems[index - (allowNone ? 1 : 0)];
+      return item?.type === 'section' ? 32 : 52;
+    },
     overscan: 5,
   });
 
@@ -207,28 +220,28 @@ export function ScalableContactSearch({
     setSearch('');
   }, [onSelect]);
 
-  const isLoading = loadingFavorites || (shouldSearch && loadingSearch);
-  const isSearching = fetchingSearch && shouldSearch;
+  const isLoading = loadingPrioritized;
+  const shouldSearch = debouncedSearch.trim().length >= minSearchChars;
 
   // Get display name for selected contact
   const displayName = useMemo(() => {
     if (!selectedId) return null;
     
-    // Check in all our sources
-    const allContacts = [...favorites, ...recentContacts, ...searchResults];
-    const found = allContacts.find(c => c.id === selectedId) || selectedContact;
+    const found = prioritizedContacts.find(c => c.id === selectedId) || selectedContact;
     
     if (found) {
       return `${found.first_name} ${found.last_name || ''}`.trim();
     }
     return 'Loading...';
-  }, [selectedId, favorites, recentContacts, searchResults, selectedContact]);
+  }, [selectedId, prioritizedContacts, selectedContact]);
 
   const currentContact = useMemo(() => {
     if (!selectedId) return null;
-    const allContacts = [...favorites, ...recentContacts, ...searchResults];
-    return allContacts.find(c => c.id === selectedId) || selectedContact;
-  }, [selectedId, favorites, recentContacts, searchResults, selectedContact]);
+    return prioritizedContacts.find(c => c.id === selectedId) || selectedContact;
+  }, [selectedId, prioritizedContacts, selectedContact]);
+
+  const activeCount = prioritizedContacts.filter(c => c.is_active || c.is_favorite).length;
+  const totalCount = prioritizedContacts.length;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -300,30 +313,14 @@ export function ScalableContactSearch({
           )}
         </div>
 
-        {/* Section Headers */}
-        {!shouldSearch && displayContacts.length > 0 && (
-          <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted/50 border-b flex items-center gap-2">
-            {favorites.length > 0 ? (
-              <>
-                <Star className="h-3 w-3" />
-                Favorites & Recent
-              </>
-            ) : (
-              <>
-                <Clock className="h-3 w-3" />
-                Recent Contacts
-              </>
-            )}
-          </div>
-        )}
-
+        {/* Search Results Header */}
         {shouldSearch && (
           <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted/50 border-b flex items-center justify-between">
             <span className="flex items-center gap-2">
               <Search className="h-3 w-3" />
               Search Results
             </span>
-            {isSearching && <Loader2 className="h-3 w-3 animate-spin" />}
+            {isLoading && <Loader2 className="h-3 w-3 animate-spin" />}
           </div>
         )}
 
@@ -332,14 +329,14 @@ export function ScalableContactSearch({
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
-        ) : displayContacts.length === 0 && !allowNone ? (
+        ) : displayItems.length === 0 && !allowNone ? (
           <div className="py-8 text-center">
             <p className="text-sm text-muted-foreground">
               {shouldSearch 
                 ? 'No contacts found' 
                 : search.length > 0 
                   ? `Type ${minSearchChars - search.length} more to search`
-                  : 'No favorites or recent contacts'
+                  : 'No contacts yet'
               }
             </p>
             {!shouldSearch && (
@@ -362,9 +359,9 @@ export function ScalableContactSearch({
             >
               {virtualizer.getVirtualItems().map((virtualItem) => {
                 const isNoneOption = allowNone && virtualItem.index === 0;
-                const contact = isNoneOption
+                const item = isNoneOption
                   ? null
-                  : displayContacts[virtualItem.index - (allowNone ? 1 : 0)];
+                  : displayItems[virtualItem.index - (allowNone ? 1 : 0)];
 
                 if (isNoneOption) {
                   return (
@@ -398,9 +395,39 @@ export function ScalableContactSearch({
                   );
                 }
 
-                if (!contact) return null;
+                if (!item) return null;
 
+                // Section header
+                if (item.type === 'section') {
+                  const sectionName = item.data as string;
+                  const icon = sectionName === 'Recent' ? Clock :
+                               sectionName === 'Favorites' ? Star :
+                               sectionName === 'Active Contacts' ? Sparkles :
+                               BookUser;
+                  const Icon = icon;
+                  
+                  return (
+                    <div
+                      key={`section-${sectionName}`}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: `${virtualItem.size}px`,
+                        transform: `translateY(${virtualItem.start}px)`,
+                      }}
+                      className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted/50 border-b flex items-center gap-2"
+                    >
+                      <Icon className="h-3 w-3" />
+                      {sectionName}
+                    </div>
+                  );
+                }
+
+                const contact = item.data as Contact;
                 const isSelected = contact.id === selectedId;
+                const isInactive = !contact.is_active && !contact.is_favorite;
 
                 return (
                   <div
@@ -418,23 +445,27 @@ export function ScalableContactSearch({
                       onClick={() => handleSelect(contact)}
                       className={cn(
                         'w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors',
-                        isSelected && 'bg-muted'
+                        isSelected && 'bg-muted',
+                        isInactive && 'opacity-60'
                       )}
                     >
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={contact.avatar_url || undefined} />
-                        <AvatarFallback className="text-xs">
+                        <AvatarFallback className={cn("text-xs", isInactive && "bg-muted")}>
                           {contact.first_name?.[0]}
                           {contact.last_name?.[0]}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col items-start min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <span className="truncate font-medium">
+                          <span className={cn("truncate font-medium", isInactive && "text-muted-foreground")}>
                             {contact.first_name} {contact.last_name}
                           </span>
                           {contact.is_favorite && (
                             <Star className="h-3 w-3 text-yellow-500 fill-yellow-500 shrink-0" />
+                          )}
+                          {contact.is_active && !contact.is_favorite && (
+                            <Sparkles className="h-3 w-3 text-primary shrink-0" />
                           )}
                         </div>
                         {contact.organization && (
@@ -459,16 +490,17 @@ export function ScalableContactSearch({
           {shouldSearch ? (
             <>
               <Badge variant="outline" className="text-xs">
-                {searchResults.length} result{searchResults.length !== 1 ? 's' : ''}
+                {totalCount} result{totalCount !== 1 ? 's' : ''}
               </Badge>
-              {searchResults.length >= maxResults && (
+              {totalCount >= maxResults && (
                 <span>• Refine search for more</span>
               )}
             </>
           ) : (
             <>
-              <Badge variant="outline" className="text-xs">
-                {favorites.length} favorite{favorites.length !== 1 ? 's' : ''}
+              <Badge variant="outline" className="text-xs flex items-center gap-1">
+                <Sparkles className="h-2.5 w-2.5" />
+                {activeCount} active
               </Badge>
               <span>•</span>
               <span>Type to search all</span>

@@ -3739,6 +3739,58 @@ export type Database = {
           },
         ]
       }
+      contact_engagement_log: {
+        Row: {
+          created_at: string | null
+          id: string
+          interaction_type: string
+          interaction_weight: number | null
+          metadata: Json | null
+          profile_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          interaction_type: string
+          interaction_weight?: number | null
+          metadata?: Json | null
+          profile_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          interaction_type?: string
+          interaction_weight?: number | null
+          metadata?: Json | null
+          profile_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_engagement_log_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_engagement_log_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_engagement_log_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_financial_history: {
         Row: {
           amount: number
@@ -13069,17 +13121,21 @@ export type Database = {
       }
       profiles: {
         Row: {
+          activation_date: string | null
           avatar_url: string | null
           bio: string | null
           bio_encrypted: string | null
           created_at: string
+          data_richness_score: number | null
           encryption_classification: string | null
+          engagement_score: number | null
           first_name: string
           hierarchy_level: string | null
           id: string
           initial_intel_completed: boolean | null
           instagram_followers: number | null
           instagram_handle: string | null
+          is_active: boolean | null
           is_encrypted: boolean | null
           is_favorite: boolean | null
           is_self_profile: boolean | null
@@ -13087,6 +13143,7 @@ export type Database = {
           last_accessed_at: string | null
           last_contact_date: string | null
           last_enriched_at: string | null
+          last_interaction_at: string | null
           last_name: string | null
           last_osint_scan: string | null
           last_social_capture_at: string | null
@@ -13114,17 +13171,21 @@ export type Database = {
           workspace_id: string | null
         }
         Insert: {
+          activation_date?: string | null
           avatar_url?: string | null
           bio?: string | null
           bio_encrypted?: string | null
           created_at?: string
+          data_richness_score?: number | null
           encryption_classification?: string | null
+          engagement_score?: number | null
           first_name: string
           hierarchy_level?: string | null
           id?: string
           initial_intel_completed?: boolean | null
           instagram_followers?: number | null
           instagram_handle?: string | null
+          is_active?: boolean | null
           is_encrypted?: boolean | null
           is_favorite?: boolean | null
           is_self_profile?: boolean | null
@@ -13132,6 +13193,7 @@ export type Database = {
           last_accessed_at?: string | null
           last_contact_date?: string | null
           last_enriched_at?: string | null
+          last_interaction_at?: string | null
           last_name?: string | null
           last_osint_scan?: string | null
           last_social_capture_at?: string | null
@@ -13159,17 +13221,21 @@ export type Database = {
           workspace_id?: string | null
         }
         Update: {
+          activation_date?: string | null
           avatar_url?: string | null
           bio?: string | null
           bio_encrypted?: string | null
           created_at?: string
+          data_richness_score?: number | null
           encryption_classification?: string | null
+          engagement_score?: number | null
           first_name?: string
           hierarchy_level?: string | null
           id?: string
           initial_intel_completed?: boolean | null
           instagram_followers?: number | null
           instagram_handle?: string | null
+          is_active?: boolean | null
           is_encrypted?: boolean | null
           is_favorite?: boolean | null
           is_self_profile?: boolean | null
@@ -13177,6 +13243,7 @@ export type Database = {
           last_accessed_at?: string | null
           last_contact_date?: string | null
           last_enriched_at?: string | null
+          last_interaction_at?: string | null
           last_name?: string | null
           last_osint_scan?: string | null
           last_social_capture_at?: string | null
@@ -17545,6 +17612,25 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_contacts_for_selection: {
+        Args: {
+          p_limit?: number
+          p_recent_ids?: string[]
+          p_search_query?: string
+          p_user_id: string
+        }
+        Returns: {
+          avatar_url: string
+          first_name: string
+          id: string
+          is_active: boolean
+          is_favorite: boolean
+          last_interaction_at: string
+          last_name: string
+          organization: string
+          selection_priority: number
+        }[]
+      }
       get_document_folders: {
         Args: { p_user_id: string }
         Returns: {
@@ -17824,37 +17910,73 @@ export type Database = {
           total_count: number
         }[]
       }
-      search_contacts_v3: {
-        Args: {
-          p_first_letter?: string
-          p_is_favorite?: boolean
-          p_limit?: number
-          p_offset?: number
-          p_relationship_subtype?: string
-          p_relationship_type?: string
-          p_search_query?: string
-          p_sort_by?: string
-          p_sort_order?: string
-          p_tag?: string
-          p_user_id: string
-        }
-        Returns: {
-          avatar_url: string
-          country: string
-          created_at: string
-          first_name: string
-          hierarchy_level: string
-          id: string
-          is_favorite: boolean
-          job_title: string
-          last_name: string
-          organization: string
-          relationship_subtype: string
-          relationship_type: string
-          tags: string[]
-          total_count: number
-        }[]
-      }
+      search_contacts_v3:
+        | {
+            Args: {
+              p_first_letter?: string
+              p_is_favorite?: boolean
+              p_limit?: number
+              p_offset?: number
+              p_relationship_subtype?: string
+              p_relationship_type?: string
+              p_search_query?: string
+              p_sort_by?: string
+              p_sort_order?: string
+              p_tag?: string
+              p_user_id: string
+            }
+            Returns: {
+              avatar_url: string
+              country: string
+              created_at: string
+              first_name: string
+              hierarchy_level: string
+              id: string
+              is_favorite: boolean
+              job_title: string
+              last_name: string
+              organization: string
+              relationship_subtype: string
+              relationship_type: string
+              tags: string[]
+              total_count: number
+            }[]
+          }
+        | {
+            Args: {
+              p_first_letter?: string
+              p_is_active?: boolean
+              p_is_favorite?: boolean
+              p_limit?: number
+              p_offset?: number
+              p_relationship_subtype?: string
+              p_relationship_type?: string
+              p_search_query?: string
+              p_sort_by?: string
+              p_sort_order?: string
+              p_tag?: string
+              p_user_id: string
+            }
+            Returns: {
+              avatar_url: string
+              country: string
+              created_at: string
+              engagement_score: number
+              first_name: string
+              hierarchy_level: string
+              id: string
+              is_active: boolean
+              is_favorite: boolean
+              job_title: string
+              last_interaction_at: string
+              last_name: string
+              organization: string
+              relationship_subtype: string
+              relationship_type: string
+              tags: string[]
+              total_count: number
+            }[]
+          }
       search_document_embeddings: {
         Args: {
           p_limit?: number
@@ -17889,6 +18011,10 @@ export type Database = {
           profile_id: string
           sent_at: string
         }[]
+      }
+      toggle_contact_active_status: {
+        Args: { p_is_active: boolean; p_profile_id: string }
+        Returns: undefined
       }
       track_navigation_access: { Args: { p_route: string }; Returns: undefined }
       verify_churn_prediction_outcomes: { Args: never; Returns: undefined }

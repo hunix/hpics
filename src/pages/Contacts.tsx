@@ -26,9 +26,12 @@ import {
   useEnhancedContacts, 
   useContactLetterCounts, 
   useContactFilterOptions,
+  useActiveContactCounts,
   type SortBy 
 } from '@/hooks/useEnhancedContacts';
 import type { Tables } from '@/integrations/supabase/types';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Sparkles, BookUser } from 'lucide-react';
 
 type Profile = Tables<'profiles'> & { 
   relationship_subtype?: string; 
@@ -69,6 +72,7 @@ export default function Contacts() {
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [favoriteFilter, setFavoriteFilter] = useState(false);
   const [letterFilter, setLetterFilter] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<boolean | null>(true); // Default to active contacts only
 
   // Debounce search query
   useEffect(() => {
@@ -97,6 +101,7 @@ export default function Contacts() {
     subtypeFilter,
     tagFilter,
     favoriteFilter: favoriteFilter || undefined,
+    activeFilter,
     letterFilter,
     sortBy,
     sortOrder,
@@ -112,6 +117,9 @@ export default function Contacts() {
 
   // Letter counts for sidebar
   const { data: letterCounts = [] } = useContactLetterCounts();
+  
+  // Active contact counts
+  const { data: activeCounts } = useActiveContactCounts();
 
   // Filter options
   const { data: filterOptions } = useContactFilterOptions();
@@ -352,6 +360,26 @@ export default function Contacts() {
       <div className="flex gap-4">
         {/* Main content */}
         <div className="flex-1 space-y-6">
+          {/* Active/Address Book Toggle */}
+          <Tabs 
+            value={activeFilter === true ? 'active' : activeFilter === false ? 'addressbook' : 'all'} 
+            onValueChange={(v) => setActiveFilter(v === 'active' ? true : v === 'addressbook' ? false : null)}
+            className="w-full"
+          >
+            <TabsList className="grid w-full max-w-md grid-cols-3">
+              <TabsTrigger value="active" className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                Active ({activeCounts?.active ?? 0})
+              </TabsTrigger>
+              <TabsTrigger value="addressbook" className="flex items-center gap-2">
+                <BookUser className="h-4 w-4" />
+                Address Book ({activeCounts?.inactive ?? 0})
+              </TabsTrigger>
+              <TabsTrigger value="all">
+                All ({activeCounts?.total ?? 0})
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
           <ContactsToolbar
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
