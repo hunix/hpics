@@ -175,7 +175,7 @@ serve(async (req) => {
       { data: financialIntel },
       { data: previousAnalyses }
     ] = await Promise.all([
-      supabase.from('profiles').select('id, name, company, title, relationship_type, relationship_strength, tags').eq('user_id', userId).limit(500),
+      supabase.from('profiles').select('id, name, company, title, relationship_type, relationship_strength, tags').eq('user_id', userId).eq('is_active', true).limit(500),
       supabase.from('contact_relationships').select('*').eq('user_id', userId),
       supabase.from('contact_interactions').select('profile_id, interaction_type, sentiment, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(1000),
       supabase.from('personality_profiles').select('profile_id, openness, extraversion, agreeableness').eq('user_id', userId),

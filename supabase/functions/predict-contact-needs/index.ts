@@ -79,7 +79,8 @@ serve(async (req) => {
       supabase
         .from('profiles')
         .select('id, first_name, last_name, relationship_type, is_favorite')
-        .eq('user_id', user.id),
+        .eq('user_id', user.id)
+        .eq('is_active', true),
       supabase
         .from('communications')
         .select('profile_id, occurred_at, channel, sentiment_score')

@@ -47,7 +47,7 @@ export default function SocialPanel() {
     enabled: !!user?.id,
   });
 
-  // Fetch conversation starters for nearby contacts
+  // Fetch conversation starters for nearby contacts (active only)
   const { data: icebreakers } = useQuery({
     queryKey: ['social-icebreakers', user?.id],
     queryFn: async () => {
@@ -57,6 +57,7 @@ export default function SocialPanel() {
         .from('profiles')
         .select('id, first_name, last_name, avatar_url, interests, notes')
         .eq('user_id', user.id)
+        .eq('is_active', true)
         .not('interests', 'is', null)
         .limit(3);
       return data || [];

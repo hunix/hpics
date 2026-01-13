@@ -108,6 +108,7 @@ export function GlobalAICommand() {
         const { data: contacts } = await supabase
           .from('profiles')
           .select('id, first_name, last_name')
+          .eq('is_active', true)
           .ilike('first_name', `%${name.split(' ')[0]}%`)
           .limit(1);
 

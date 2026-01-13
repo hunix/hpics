@@ -96,6 +96,7 @@ export function useOfflineData(): UseOfflineDataReturn {
         .from('profiles')
         .select('id, first_name, last_name, avatar_url, organization, job_title, relationship_type, is_favorite, updated_at')
         .eq('user_id', user.id)
+        .eq('is_active', true)
         .order('first_name');
 
       if (contacts) {
