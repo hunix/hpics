@@ -13,3 +13,8 @@ export {
   createLengthValidator,
   createPatternValidator,
 } from './useValidationGate';
+
+// Phase 4-6 Additions
+export { useTransactionSaga } from './useTransactionSaga';
+export { useHealthCheck } from './useHealthCheck';
+export { useReliableMutation } from './useReliableMutation';
