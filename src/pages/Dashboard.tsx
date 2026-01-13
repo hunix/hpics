@@ -1,22 +1,28 @@
+/**
+ * @fileoverview Dashboard Page
+ * Main dashboard with customizable widgets using the design system
+ */
+
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/AppLayout';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Users, MessageSquare, Calendar, Star, Edit3 } from 'lucide-react';
+import { Users, MessageSquare, Calendar, Star } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { formatDistanceToNow, parseISO, setYear, getYear, isBefore, addYears } from 'date-fns';
 import { DndContext, closestCenter, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useDashboardLayout } from '@/hooks/useDashboardLayout';
 import { SortableDashlet } from '@/components/dashboard/SortableDashlet';
-import { DashboardCustomizer } from '@/components/dashboard/DashboardCustomizer';
-import { DashboardPresets } from '@/components/dashboard/DashboardPresets';
 import { renderDashlet, type DashletContext } from '@/lib/dashletRegistry';
 import { MobileDashboard } from '@/components/dashboard/MobileDashboard';
 import { useDeviceDetection } from '@/hooks/useDeviceDetection';
+
+// Design system components
+import { LoadingState } from '@/components/shared/LoadingState';
+import { DashboardStatsGrid, type DashboardStat } from '@/components/dashboard/DashboardStatsGrid';
+import { DashboardHeader, DashboardEditBanner } from '@/components/dashboard/DashboardHeader';
+import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -136,14 +142,17 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
+  // Build stat cards data
+  const statCards: DashboardStat[] = [
+    { title: 'Total Contacts', value: stats?.totalContacts ?? 0, icon: Users, color: 'primary', href: '/contacts' },
+    { title: 'Favorites', value: stats?.favoriteContacts ?? 0, icon: Star, color: 'yellow-500', href: '/contacts?filter=favorites' },
+    { title: 'Communications', value: stats?.totalCommunications ?? 0, icon: MessageSquare, color: 'blue-500', href: '/communications' },
+    { title: 'Upcoming Events', value: stats?.upcomingEvents ?? 0, icon: Calendar, color: 'green-500', href: '/calendar' },
+  ];
+
   // Build context for dashlet rendering
   const dashletContext: DashletContext = {
-    statCards: [
-      { title: 'Total Contacts', value: stats?.totalContacts ?? 0, icon: Users, color: 'text-primary' },
-      { title: 'Favorites', value: stats?.favoriteContacts ?? 0, icon: Star, color: 'text-yellow-500' },
-      { title: 'Communications', value: stats?.totalCommunications ?? 0, icon: MessageSquare, color: 'text-blue-500' },
-      { title: 'Upcoming Events', value: stats?.upcomingEvents ?? 0, icon: Calendar, color: 'text-green-500' },
-    ],
+    statCards: statCards.map(s => ({ ...s, color: `text-${s.color}` })),
     recentContacts,
     upcomingEvents,
     formatDistanceToNow,
@@ -168,10 +177,10 @@ export default function Dashboard() {
   if (isLoadingLayout) {
     return (
       <AppLayout title="Dashboard">
-        <div className="space-y-6">
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-64 w-full" />
-        </div>
+        <LoadingState 
+          message="Loading your dashboard..."
+          className="min-h-[400px]"
+        />
       </AppLayout>
     );
   }
@@ -181,30 +190,17 @@ export default function Dashboard() {
   return (
     <AppLayout title="Dashboard">
       <div className="space-y-6">
-        {/* Dashboard Controls */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Button
-              variant={isEditing ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setIsEditing(!isEditing)}
-            >
-              <Edit3 className="h-4 w-4 mr-2" />
-              {isEditing ? 'Done Editing' : 'Edit Layout'}
-            </Button>
-          </div>
-          <div className="flex items-center gap-2">
-            <DashboardPresets />
-            <DashboardCustomizer />
-          </div>
-        </div>
+        {/* Dashboard Header Controls */}
+        <DashboardHeader 
+          isEditing={isEditing} 
+          onToggleEdit={() => setIsEditing(!isEditing)} 
+        />
         
-        {isEditing && (
-          <div className="p-3 bg-primary/10 rounded-lg text-sm text-primary">
-            <Edit3 className="inline h-4 w-4 mr-2" />
-            Drag widgets to reorder. Click X to hide. Use Customize to show hidden widgets.
-          </div>
-        )}
+        {/* Edit Mode Banner */}
+        <DashboardEditBanner isEditing={isEditing} />
+
+        {/* Stats Overview - Always visible */}
+        <DashboardStatsGrid stats={statCards} isLoading={!stats} />
 
         {/* Dashlets */}
         <DndContext
@@ -232,16 +228,8 @@ export default function Dashboard() {
           </SortableContext>
         </DndContext>
 
-        {visibleDashlets.length === 0 && (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground mb-4">
-                No widgets visible. Click "Customize" to add widgets to your dashboard.
-              </p>
-              <DashboardCustomizer />
-            </CardContent>
-          </Card>
-        )}
+        {/* Empty State */}
+        {visibleDashlets.length === 0 && <DashboardEmptyState />}
       </div>
     </AppLayout>
   );
