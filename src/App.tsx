@@ -40,6 +40,7 @@ const BulkAnalysisDashboard = lazyWithRetry(() => import("./pages/BulkAnalysisDa
 const Reports = lazyWithRetry(() => import("./pages/Reports"));
 const TeamDashboard = lazyWithRetry(() => import("./pages/TeamDashboard"));
 const Install = lazyWithRetry(() => import("./pages/Install"));
+const Downloads = lazyWithRetry(() => import("./pages/Downloads"));
 const Security = lazyWithRetry(() => import("./pages/Security"));
 const NetworkIntelligence = lazyWithRetry(() => import("./pages/NetworkIntelligence"));
 const SemanticSearchPage = lazyWithRetry(() => import("./pages/SemanticSearchPage"));
@@ -106,6 +107,7 @@ const App = () => (
                         <Route path="/reports" element={<Reports />} />
                         <Route path="/team" element={<TeamDashboard />} />
                         <Route path="/install" element={<Install />} />
+                        <Route path="/downloads" element={<Downloads />} />
                         <Route path="/security" element={<Security />} />
                         <Route path="/network-intelligence" element={<NetworkIntelligence />} />
                         <Route path="/semantic-search" element={<SemanticSearchPage />} />
