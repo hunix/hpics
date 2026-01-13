@@ -2,7 +2,8 @@
 // Orchestrates comprehensive enrichment based on contact priority
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getEnrichmentConfig as getEnrichmentConfigFromDB, getPlatformConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,29 +16,37 @@ interface EnrichmentConfig {
   priority: number;
 }
 
-function getEnrichmentConfig(profile: any): EnrichmentConfig {
+async function getEnrichmentConfig(supabase: any, profile: any, userId: string): Promise<EnrichmentConfig> {
+  // Fetch platform config for enrichment settings
+  const config = await getEnrichmentConfigFromDB(supabase, userId, profile.id);
+  
   // VIP contacts get full enrichment
   if (profile.is_favorite || profile.relationship_type === 'client') {
+    const vipMaxCost = await getPlatformConfig(supabase, 'enrichment.vip_max_cost_cents', { userId }) || 100;
     return {
-      sources: ['social_scrape', 'company_research', 'web_search', 'osint'],
-      maxCostCents: 100,
+      sources: config.linkedinEnabled && config.webSearchEnabled 
+        ? ['social_scrape', 'company_research', 'web_search', 'osint']
+        : ['web_search'],
+      maxCostCents: vipMaxCost,
       priority: 90,
     };
   }
   
   // Important relationships get standard enrichment
   if (['family', 'mentor', 'friend'].includes(profile.relationship_type)) {
+    const standardMaxCost = await getPlatformConfig(supabase, 'enrichment.standard_max_cost_cents', { userId }) || 50;
     return {
-      sources: ['social_scrape', 'web_search'],
-      maxCostCents: 50,
+      sources: config.linkedinEnabled ? ['social_scrape', 'web_search'] : ['web_search'],
+      maxCostCents: standardMaxCost,
       priority: 70,
     };
   }
   
   // Standard contacts get basic enrichment
+  const basicMaxCost = await getPlatformConfig(supabase, 'enrichment.basic_max_cost_cents', { userId }) || 20;
   return {
     sources: ['web_search'],
-    maxCostCents: 20,
+    maxCostCents: basicMaxCost,
     priority: 50,
   };
 }
@@ -91,13 +100,24 @@ serve(async (req) => {
     }
 
     userId = userId || profile.user_id;
+    
+    // Ensure userId is valid
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'User ID could not be determined' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
-    // Check if enrichment is needed
+    // Check if enrichment is needed - using database-driven thresholds
     if (!forceRefresh && profile.last_enriched_at) {
       const hoursSince = (Date.now() - new Date(profile.last_enriched_at).getTime()) / (1000 * 60 * 60);
       
-      // Skip if recently enriched (VIP: 24h, others: 72h)
-      const threshold = profile.is_favorite ? 24 : 72;
+      // Get configurable thresholds from platform config
+      const vipThreshold = await getPlatformConfig(supabase, 'intelligence.vip_enrichment_interval_hours', { userId: userId }) || 24;
+      const standardThreshold = await getPlatformConfig(supabase, 'intelligence.enrichment_interval_hours', { userId: userId }) || 72;
+      
+      const threshold = profile.is_favorite ? vipThreshold : standardThreshold;
       if (hoursSince < threshold) {
         return new Response(JSON.stringify({
           success: true,
@@ -110,8 +130,8 @@ serve(async (req) => {
       }
     }
 
-    // Get enrichment configuration based on profile importance
-    const config = getEnrichmentConfig(profile);
+    // Get enrichment configuration based on profile importance (now database-driven)
+    const config = await getEnrichmentConfig(supabase, profile, userId);
 
     // Check for existing pending job
     const { data: existingJob } = await supabase

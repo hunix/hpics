@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getAIConfig, getPlatformConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -145,6 +146,11 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Get AI configuration from database
+    const aiConfig = await getAIConfig(supabase, userId);
+    const maxContactsToAnalyze = await getPlatformConfig(supabase, 'analysis.max_contacts_per_recommendation', { userId }) || 100;
+    const maxRecentMessages = await getPlatformConfig(supabase, 'analysis.max_recent_messages', { userId }) || 200;
+
     // Gather comprehensive intelligence
     const [
       { data: profiles },
@@ -158,8 +164,8 @@ serve(async (req) => {
       { data: upcomingEvents },
       { data: relationshipHealth }
     ] = await Promise.all([
-      supabase.from('profiles').select('id, name, company, title, relationship_type, relationship_strength, last_contact, tags').eq('user_id', userId).eq('is_active', true).limit(100),
-      supabase.from('messages').select('profile_id, content, direction, created_at, ai_analysis').eq('user_id', userId).order('created_at', { ascending: false }).limit(200),
+      supabase.from('profiles').select('id, name, company, title, relationship_type, relationship_strength, last_contact, tags').eq('user_id', userId).eq('is_active', true).limit(maxContactsToAnalyze),
+      supabase.from('messages').select('profile_id, content, direction, created_at, ai_analysis').eq('user_id', userId).order('created_at', { ascending: false }).limit(maxRecentMessages),
       supabase.from('personality_profiles').select('profile_id, exploitation_profile, communication_style').eq('user_id', userId),
       supabase.from('influence_campaigns').select('*').eq('user_id', userId).eq('status', 'active'),
       supabase.from('deception_analyses').select('profile_id, overall_deception_score, risk_level, analyzed_at').eq('user_id', userId).gte('analyzed_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
@@ -205,7 +211,7 @@ serve(async (req) => {
       upcomingCalendar: upcomingEvents
     };
 
-    // Generate recommendations
+    // Generate recommendations using database-configured model
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -213,12 +219,13 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-pro',
+        model: aiConfig.defaultModel,
         messages: [
           { role: 'system', content: ACTION_RECOMMENDATION_PROMPT },
           { role: 'user', content: `Generate action recommendations from this intelligence:\n\n${JSON.stringify(intelligenceData, null, 2)}` }
         ],
-        temperature: 0.4
+        temperature: aiConfig.temperature,
+        max_tokens: aiConfig.maxTokens
       })
     });
 
@@ -281,11 +288,11 @@ serve(async (req) => {
       await supabase.from('action_recommendations').insert(recommendationsToInsert);
     }
 
-    // Log AI usage
+    // Log AI usage with actual model used
     await supabase.from('ai_usage_logs').insert({
       user_id: userId,
       function_name: 'action-recommendation-engine',
-      model_name: 'google/gemini-2.5-pro',
+      model_name: aiConfig.defaultModel,
       provider: 'lovable',
       input_tokens: aiResult.usage?.prompt_tokens || 0,
       output_tokens: aiResult.usage?.completion_tokens || 0,
