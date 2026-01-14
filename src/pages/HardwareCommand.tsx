@@ -21,6 +21,8 @@ import { MissionControl } from '@/components/hardware/MissionControl';
 import { CommandConsole } from '@/components/hardware/CommandConsole';
 import { TelemetryFeed } from '@/components/hardware/TelemetryFeed';
 import { RegisterDeviceDialog } from '@/components/hardware/RegisterDeviceDialog';
+import { AerialOpsPanel } from '@/components/hardware/AerialOpsPanel';
+import { TSCMPanel } from '@/components/hardware/TSCMPanel';
 
 export default function HardwareCommand() {
   const navigate = useNavigate();
@@ -140,19 +142,11 @@ export default function HardwareCommand() {
           </TabsContent>
 
           <TabsContent value="aerial">
-            <div className="text-center py-12 text-muted-foreground">
-              <Plane className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <h3 className="text-lg font-medium">Aerial Operations</h3>
-              <p className="text-sm">Drone mission planning and control coming in Phase 4</p>
-            </div>
+            <AerialOpsPanel />
           </TabsContent>
 
           <TabsContent value="tscm">
-            <div className="text-center py-12 text-muted-foreground">
-              <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <h3 className="text-lg font-medium">Technical Surveillance Counter-Measures</h3>
-              <p className="text-sm">Bug sweeping and counter-surveillance coming in Phase 5</p>
-            </div>
+            <TSCMPanel />
           </TabsContent>
         </Tabs>
       </main>

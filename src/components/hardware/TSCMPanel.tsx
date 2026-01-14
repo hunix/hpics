@@ -10,7 +10,6 @@ import {
   Search, 
   AlertTriangle,
   CheckCircle,
-  XCircle,
   Play,
   FileText,
   MapPin,
@@ -19,42 +18,49 @@ import { useTSCMIntelligence } from '@/hooks/useTSCMIntelligence';
 
 export function TSCMPanel() {
   const { 
-    startSweep, 
-    analyzeRoom, 
-    detectBugs, 
-    getThreatAssessment,
+    sweeps,
+    activeSweep,
+    criticalSweeps,
+    highSweeps,
+    completedSweeps,
+    startSweep,
     isStartingSweep,
-    isDetecting,
+    completeSweep,
+    isCompletingSweep,
+    generateReport,
+    getProtocol,
   } = useTSCMIntelligence();
 
-  const [activeSweep, setActiveSweep] = useState<any>(null);
-  const [threatAssessment, setThreatAssessment] = useState<any>(null);
   const [detectionResults, setDetectionResults] = useState<any>(null);
 
-  const handleStartSweep = async () => {
-    const result = await startSweep({
-      room_data: {
-        name: 'Conference Room A',
-        dimensions: { width: 10, height: 3, depth: 8 },
-      },
+  const handleStartSweep = () => {
+    startSweep({
+      location_name: 'Conference Room A',
+      sweep_type: 'comprehensive',
+      devices: ['rf-scanner-001', 'thermal-001'],
     });
-    if (result) {
-      setActiveSweep(result);
+  };
+
+  const handleCompleteSweep = () => {
+    if (activeSweep?.id) {
+      completeSweep(activeSweep.id);
     }
   };
 
-  const handleDetectBugs = async () => {
-    const result = await detectBugs(activeSweep?.id);
-    if (result) {
-      setDetectionResults(result);
+  const handleGenerateReport = async () => {
+    if (activeSweep?.id) {
+      const report = await generateReport(activeSweep.id);
+      if (report) {
+        console.log('Report generated:', report);
+      }
     }
   };
 
-  const handleGetAssessment = async () => {
-    const result = await getThreatAssessment();
-    if (result) {
-      setThreatAssessment(result);
-    }
+  const threatStats = {
+    critical: criticalSweeps.length,
+    high: highSweeps.length,
+    total: sweeps.length,
+    completed: completedSweeps.length,
   };
 
   return (
@@ -66,104 +72,81 @@ export function TSCMPanel() {
           <p className="text-muted-foreground">Bug detection and counter-surveillance operations</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={handleGetAssessment} variant="outline">
-            <Shield className="h-4 w-4 mr-2" />
-            Threat Assessment
-          </Button>
-          <Button onClick={handleStartSweep} disabled={isStartingSweep}>
+          <Button onClick={handleStartSweep} disabled={isStartingSweep || !!activeSweep}>
             <Play className="h-4 w-4 mr-2" />
             Start Sweep
           </Button>
         </div>
       </div>
 
-      {/* Threat Assessment Card */}
-      {threatAssessment && (
-        <Card className="border-orange-500/50 bg-orange-500/5">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                Threat Assessment
-              </CardTitle>
-              <Badge variant={
-                threatAssessment.risk_level === 'low' ? 'secondary' :
-                threatAssessment.risk_level === 'elevated' ? 'default' : 'destructive'
-              }>
-                {threatAssessment.risk_level.toUpperCase()}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Overall Score</p>
-                <p className="text-2xl font-bold">{threatAssessment.overall_score}/100</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Days Since Sweep</p>
-                <p className="text-2xl font-bold">{threatAssessment.days_since_sweep}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Active Threats</p>
-                <p className="text-2xl font-bold">{threatAssessment.active_threats}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Historical Incidents</p>
-                <p className="text-2xl font-bold">{threatAssessment.historical_incidents}</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {Object.entries(threatAssessment.vulnerability_breakdown || {}).map(([key, value]: [string, any]) => (
-                <div key={key} className="p-3 rounded-lg bg-background">
-                  <p className="text-xs text-muted-foreground uppercase">{key}</p>
-                  <Progress value={value.score} className="h-2 mt-2" />
-                  <p className="text-xs mt-1">{value.score}/100</p>
-                </div>
-              ))}
-            </div>
+      {/* Stats Overview */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Total Sweeps</p>
+            <p className="text-2xl font-bold">{threatStats.total}</p>
           </CardContent>
         </Card>
-      )}
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Completed</p>
+            <p className="text-2xl font-bold text-green-500">{threatStats.completed}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-red-500/30">
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Critical</p>
+            <p className="text-2xl font-bold text-red-500">{threatStats.critical}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-orange-500/30">
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">High</p>
+            <p className="text-2xl font-bold text-orange-500">{threatStats.high}</p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Active Sweep Progress */}
       {activeSweep && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Active Sweep: {activeSweep.room}</CardTitle>
+              <CardTitle>Active Sweep: {activeSweep.location_name}</CardTitle>
               <Badge variant="default">IN PROGRESS</Badge>
             </div>
             <CardDescription>
-              Estimated duration: {activeSweep.estimated_duration_minutes} minutes
+              Started: {new Date(activeSweep.started_at || activeSweep.created_at).toLocaleString()}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {activeSweep.phases?.map((phase: any, index: number) => (
-              <div key={index} className="flex items-center gap-4">
-                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                  {phase.status === 'completed' ? (
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                  ) : phase.status === 'in_progress' ? (
-                    <Radio className="h-4 w-4 text-blue-500 animate-pulse" />
-                  ) : (
-                    <div className="h-2 w-2 rounded-full bg-muted-foreground" />
-                  )}
+            <div className="space-y-3">
+              <div className="flex items-center gap-4">
+                <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
+                  <Radio className="h-4 w-4 text-blue-500 animate-pulse" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium">{phase.name}</p>
-                  <Progress value={phase.progress} className="h-1 mt-1" />
+                  <p className="text-sm font-medium">RF Spectrum Analysis</p>
+                  <Progress value={50} className="h-1 mt-1" />
                 </div>
               </div>
-            ))}
+              <div className="flex items-center gap-4">
+                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                  <Thermometer className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Thermal Scanning</p>
+                  <Progress value={0} className="h-1 mt-1" />
+                </div>
+              </div>
+            </div>
 
             <div className="flex gap-2 pt-4">
-              <Button onClick={handleDetectBugs} disabled={isDetecting}>
-                <Search className="h-4 w-4 mr-2" />
-                Run Detection
+              <Button onClick={handleCompleteSweep} disabled={isCompletingSweep}>
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Complete Sweep
               </Button>
-              <Button variant="outline">
+              <Button variant="outline" onClick={handleGenerateReport}>
                 <FileText className="h-4 w-4 mr-2" />
                 Generate Report
               </Button>
@@ -172,83 +155,40 @@ export function TSCMPanel() {
         </Card>
       )}
 
-      {/* Detection Results */}
-      {detectionResults && (
-        <Card className={detectionResults.overall_threat_level === 'high' ? 'border-red-500/50' : ''}>
+      {/* Recent Completed Sweeps */}
+      {completedSweeps.length > 0 && (
+        <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5" />
-                Detection Results
-              </CardTitle>
-              <Badge variant={
-                detectionResults.overall_threat_level === 'low' ? 'secondary' :
-                detectionResults.overall_threat_level === 'medium' ? 'default' : 'destructive'
-              }>
-                {detectionResults.overall_threat_level.toUpperCase()} THREAT
-              </Badge>
-            </div>
+            <CardTitle className="text-lg">Recent Sweeps</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {detectionResults.findings?.length > 0 ? (
-              <div className="space-y-3">
-                <h4 className="font-medium text-red-500">⚠️ Threats Detected</h4>
-                {detectionResults.findings.map((finding: any) => (
-                  <div
-                    key={finding.id}
-                    className="p-4 rounded-lg bg-red-500/10 border border-red-500/30"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-medium">{finding.type.replace('_', ' ').toUpperCase()}</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {finding.description}
-                        </p>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                          <span>Freq: {finding.frequency} MHz</span>
-                          <span>Power: {finding.power} dBm</span>
-                          <span>Confidence: {Math.round(finding.confidence * 100)}%</span>
-                        </div>
-                      </div>
-                      <Badge variant="destructive">{finding.threat_level}</Badge>
+          <CardContent>
+            <div className="space-y-3">
+              {completedSweeps.slice(0, 5).map((sweep) => (
+                <div
+                  key={sweep.id}
+                  className={`p-4 rounded-lg border ${
+                    sweep.threat_level === 'critical' ? 'bg-red-500/10 border-red-500/30' :
+                    sweep.threat_level === 'high' ? 'bg-orange-500/10 border-orange-500/30' :
+                    'bg-muted/50'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-medium">{sweep.location_name}</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {new Date(sweep.completed_at || sweep.created_at).toLocaleString()}
+                      </p>
                     </div>
-                    <p className="text-sm text-orange-400 mt-2">
-                      ⚡ {finding.recommended_action}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 text-green-500">
-                <CheckCircle className="h-5 w-5" />
-                <span>No threats detected in scanned areas</span>
-              </div>
-            )}
-
-            {detectionResults.clean_areas?.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="font-medium text-green-500">✓ Cleared Areas</h4>
-                <div className="flex flex-wrap gap-2">
-                  {detectionResults.clean_areas.map((area: any, index: number) => (
-                    <Badge key={index} variant="outline" className="text-green-500 border-green-500/50">
-                      <CheckCircle className="h-3 w-3 mr-1" />
-                      {area.zone.replace('_', ' ')}
+                    <Badge variant={
+                      sweep.threat_level === 'critical' ? 'destructive' :
+                      sweep.threat_level === 'high' ? 'default' : 'secondary'
+                    }>
+                      {sweep.threat_level || 'clear'}
                     </Badge>
-                  ))}
+                  </div>
                 </div>
-              </div>
-            )}
-
-            {detectionResults.recommendations?.length > 0 && (
-              <div className="space-y-2 pt-4 border-t">
-                <h4 className="font-medium">Recommendations</h4>
-                <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                  {detectionResults.recommendations.map((rec: string, index: number) => (
-                    <li key={index}>{rec}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}
