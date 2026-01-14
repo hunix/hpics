@@ -64,6 +64,7 @@ const PsychologyIntelligence = lazyWithRetry(() => import("./pages/PsychologyInt
 const DeceptionAnalysis = lazyWithRetry(() => import("./pages/DeceptionAnalysis"));
 const BiometricHub = lazyWithRetry(() => import("./pages/BiometricHub"));
 const HardwareCommand = lazyWithRetry(() => import("./pages/HardwareCommand"));
+const Supremacy = lazyWithRetry(() => import("./pages/Supremacy"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -137,6 +138,7 @@ const App = () => (
                         <Route path="/deception-analysis" element={<DeceptionAnalysis />} />
                         <Route path="/biometric-hub" element={<BiometricHub />} />
                         <Route path="/hardware-command" element={<HardwareCommand />} />
+                        <Route path="/supremacy" element={<Supremacy />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                       </Suspense>
