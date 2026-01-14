@@ -135,6 +135,7 @@ const App = () => (
                         <Route path="/psychology-intelligence" element={<PsychologyIntelligence />} />
                         <Route path="/deception-analysis" element={<DeceptionAnalysis />} />
                         <Route path="/biometric-hub" element={<BiometricHub />} />
+                        <Route path="/hardware-command" element={<HardwareCommand />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                       </Suspense>
