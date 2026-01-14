@@ -111,7 +111,7 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Introduction Suggestions',
     description: 'AI-suggested mutual introductions',
     icon: UserPlus,
-    defaultVisible: true,
+    defaultVisible: false,
     category: 'ai',
   },
   {
@@ -127,7 +127,7 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Auto-Schedule Follow-ups',
     description: 'Batch schedule reminders for multiple contacts',
     icon: Target,
-    defaultVisible: true,
+    defaultVisible: false,
     category: 'tools',
   },
   {
@@ -135,7 +135,7 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Contact Groups',
     description: 'View and manage contact circles',
     icon: Users,
-    defaultVisible: true,
+    defaultVisible: false,
     category: 'relationships',
   },
   {
@@ -143,7 +143,7 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Relationship Scores',
     description: 'Top and bottom relationship scores',
     icon: Star,
-    defaultVisible: true,
+    defaultVisible: false,
     category: 'relationships',
   },
   {
@@ -151,7 +151,7 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Network Graph',
     description: 'Visual network of your connections',
     icon: Network,
-    defaultVisible: true,
+    defaultVisible: false,
     category: 'overview',
   },
   {
@@ -167,7 +167,7 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Security Alerts',
     description: 'Real-time security monitoring and threat detection',
     icon: Shield,
-    defaultVisible: true,
+    defaultVisible: false,
     category: 'tools',
   },
   {
@@ -175,7 +175,7 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Intelligence Insights',
     description: 'AI-powered network analysis and predictions',
     icon: Brain,
-    defaultVisible: true,
+    defaultVisible: false,
     category: 'ai',
   },
   {
@@ -183,7 +183,7 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Data Quality Monitor',
     description: 'Proactive data health scanning and issue detection',
     icon: ShieldCheck,
-    defaultVisible: true,
+    defaultVisible: false,
     category: 'tools',
   },
   {
@@ -191,7 +191,7 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Proactive Actions',
     description: 'AI-suggested follow-ups and timely actions',
     icon: Zap,
-    defaultVisible: true,
+    defaultVisible: false,
     category: 'ai',
   },
   {
@@ -199,7 +199,7 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Live Activity Feed',
     description: 'Real-time activity stream with anomaly detection',
     icon: Radio,
-    defaultVisible: true,
+    defaultVisible: false,
     category: 'ai',
   },
   {
@@ -207,7 +207,7 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Anomaly Detection',
     description: 'Behavioral pattern analysis and deviation alerts',
     icon: AlertTriangle,
-    defaultVisible: true,
+    defaultVisible: false,
     category: 'ai',
   },
   {
@@ -215,7 +215,7 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Relationship Analytics',
     description: 'Communication trends, engagement charts, and metrics',
     icon: PieChart,
-    defaultVisible: true,
+    defaultVisible: false,
     category: 'relationships',
   },
   {
@@ -223,7 +223,7 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'AI Contact Grouping',
     description: 'AI-suggested smart groups based on patterns',
     icon: UsersRound,
-    defaultVisible: true,
+    defaultVisible: false,
     category: 'ai',
   },
   {
@@ -231,7 +231,7 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Calendar Sync Status',
     description: 'Monitor calendar synchronization status',
     icon: CalendarClock,
-    defaultVisible: true,
+    defaultVisible: false,
     category: 'tools',
   },
   {
@@ -239,7 +239,7 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Biometric Identity',
     description: 'Overview of contact biometric enrollment and pending matches',
     icon: Fingerprint,
-    defaultVisible: true,
+    defaultVisible: false,
     category: 'ai',
   },
   {
@@ -247,7 +247,7 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Influence Command Center',
     description: 'Pending influence actions and methodology effectiveness',
     icon: Target,
-    defaultVisible: true,
+    defaultVisible: false,
     category: 'ai',
   },
   {
@@ -255,7 +255,7 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Relationship Forecast',
     description: '30-day trajectory predictions for your network',
     icon: TrendingUp,
-    defaultVisible: true,
+    defaultVisible: false,
     category: 'ai',
   },
   {
@@ -263,7 +263,7 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Network Risk Monitor',
     description: 'At-risk relationships and AI recommendations',
     icon: Shield,
-    defaultVisible: true,
+    defaultVisible: false,
     category: 'ai',
   },
   {
@@ -271,7 +271,7 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Introduction Matcher',
     description: 'High-value connection opportunities in your network',
     icon: Link2,
-    defaultVisible: true,
+    defaultVisible: false,
     category: 'ai',
   },
   {
@@ -303,7 +303,7 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Relationship Autopilot',
     description: 'AI-powered churn prevention with auto-drafted outreach',
     icon: Zap,
-    defaultVisible: true,
+    defaultVisible: false,
     category: 'ai',
   },
   {
@@ -311,7 +311,7 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Gift Calendar',
     description: 'Upcoming occasions with AI gift suggestions',
     icon: Gift,
-    defaultVisible: true,
+    defaultVisible: false,
     category: 'ai',
   },
   {
@@ -319,7 +319,7 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'AI Chat Assistant',
     description: 'Natural language queries about your contacts',
     icon: Brain,
-    defaultVisible: true,
+    defaultVisible: false,
     category: 'ai',
   },
   {
@@ -327,7 +327,7 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Intelligence Hub',
     description: 'Unified proactive insights, anomalies, and action items',
     icon: Sparkles,
-    defaultVisible: true,
+    defaultVisible: false,
     category: 'ai',
   },
   {
