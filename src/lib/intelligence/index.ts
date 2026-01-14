@@ -1,21 +1,33 @@
 /**
  * Intelligence Libraries Index
  * 
- * Core intelligence modules for the Ultimate Intelligence Superiority System.
+ * Core intelligence modules for the Absolute General Intelligence System (AGIS).
  */
 
-// Personality Analysis (Phase 2)
+// Personality Analysis
 export * from '../personality/oceanExtractor';
 
-// Influence Orchestration (Phase 5)
+// Influence Orchestration
 export * from '../influence/principlePlaybookGenerator';
 export * from '../influence/optimalTimingEngine';
 
-// Deception Detection (Phase 1)
+// Deception Detection
 export * from '../deception/deceptionAnalyzer';
 
-// Financial Intelligence (Phase 3)
+// Financial Intelligence
 export * from '../finance/wealthEstimator';
 
-// Power Network Analysis (Phase 4)
+// Power Network Analysis
 export * from '../network/powerAnalyzer';
+
+// AGIS Phase 4: Neural-Behavioral Integration
+export * from '../biometrics/pupillometryAnalyzer';
+export * from '../biometrics/hrvInference';
+export * from '../biometrics/microExpressionAnalyzer';
+export * from '../biometrics/voiceStressAnalyzer';
+
+// AGIS Phase 5: Game Theory & Strategic Modeling
+export * from './gameTheoryEngine';
+
+// AGIS Phase 8: Mobile Intelligence
+export * from '../mobile/mobileIntelligenceService';
