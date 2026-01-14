@@ -30,6 +30,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useEconomicIntelligence } from '@/hooks/useEconomicIntelligence';
+import { ContactNewsAlerts } from '@/components/intelligence/ContactNewsAlerts';
 import { cn } from '@/lib/utils';
 
 const SIGNAL_COLORS: Record<string, string> = {

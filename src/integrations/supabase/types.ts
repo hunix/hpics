@@ -3393,6 +3393,88 @@ export type Database = {
           },
         ]
       }
+      contact_behavior_predictions: {
+        Row: {
+          accuracy_score: number | null
+          actual_outcome: Json | null
+          confidence_score: number
+          created_at: string | null
+          evidence: Json | null
+          id: string
+          is_validated: boolean | null
+          predicted_date_range: unknown
+          prediction_type: string
+          prediction_value: Json
+          profile_id: string | null
+          time_horizon: string | null
+          trigger_details: Json | null
+          trigger_source: string
+          updated_at: string | null
+          user_id: string
+          validation_date: string | null
+        }
+        Insert: {
+          accuracy_score?: number | null
+          actual_outcome?: Json | null
+          confidence_score: number
+          created_at?: string | null
+          evidence?: Json | null
+          id?: string
+          is_validated?: boolean | null
+          predicted_date_range?: unknown
+          prediction_type: string
+          prediction_value: Json
+          profile_id?: string | null
+          time_horizon?: string | null
+          trigger_details?: Json | null
+          trigger_source: string
+          updated_at?: string | null
+          user_id: string
+          validation_date?: string | null
+        }
+        Update: {
+          accuracy_score?: number | null
+          actual_outcome?: Json | null
+          confidence_score?: number
+          created_at?: string | null
+          evidence?: Json | null
+          id?: string
+          is_validated?: boolean | null
+          predicted_date_range?: unknown
+          prediction_type?: string
+          prediction_value?: Json
+          profile_id?: string | null
+          time_horizon?: string | null
+          trigger_details?: Json | null
+          trigger_source?: string
+          updated_at?: string | null
+          user_id?: string
+          validation_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_behavior_predictions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_behavior_predictions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_behavior_predictions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_biometrics: {
         Row: {
           ai_model_used: string | null
@@ -4925,54 +5007,170 @@ export type Database = {
           },
         ]
       }
+      contact_news_alerts: {
+        Row: {
+          action_outcome: string | null
+          actioned_at: string | null
+          alert_type: string
+          conversation_starters: string[] | null
+          created_at: string | null
+          description: string | null
+          expires_at: string | null
+          id: string
+          is_actioned: boolean | null
+          is_read: boolean | null
+          news_item_id: string | null
+          predicted_impact: Json | null
+          profile_id: string | null
+          recommended_actions: Json | null
+          severity: string
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          action_outcome?: string | null
+          actioned_at?: string | null
+          alert_type: string
+          conversation_starters?: string[] | null
+          created_at?: string | null
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_actioned?: boolean | null
+          is_read?: boolean | null
+          news_item_id?: string | null
+          predicted_impact?: Json | null
+          profile_id?: string | null
+          recommended_actions?: Json | null
+          severity?: string
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          action_outcome?: string | null
+          actioned_at?: string | null
+          alert_type?: string
+          conversation_starters?: string[] | null
+          created_at?: string | null
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_actioned?: boolean | null
+          is_read?: boolean | null
+          news_item_id?: string | null
+          predicted_impact?: Json | null
+          profile_id?: string | null
+          recommended_actions?: Json | null
+          severity?: string
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_news_alerts_news_item_id_fkey"
+            columns: ["news_item_id"]
+            isOneToOne: false
+            referencedRelation: "news_intelligence_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_news_alerts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_news_alerts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_news_alerts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_news_correlations: {
         Row: {
+          action_recommendations: Json | null
+          actual_outcome: string | null
           conversation_starters: string[] | null
           correlation_strength: number
           correlation_type: string
           created_at: string
+          historical_accuracy: number | null
           id: string
           impact_on_contact: string | null
           is_dismissed: boolean | null
           is_reviewed: boolean | null
           matched_entities: Json | null
           news_item_id: string | null
+          opportunity_type: string | null
+          predicted_behavior: string | null
           predicted_behaviors: Json | null
+          predicted_timeline: string | null
+          prediction_type: string | null
           profile_id: string | null
           recommended_actions: Json | null
           user_id: string
+          validated_at: string | null
         }
         Insert: {
+          action_recommendations?: Json | null
+          actual_outcome?: string | null
           conversation_starters?: string[] | null
           correlation_strength: number
           correlation_type: string
           created_at?: string
+          historical_accuracy?: number | null
           id?: string
           impact_on_contact?: string | null
           is_dismissed?: boolean | null
           is_reviewed?: boolean | null
           matched_entities?: Json | null
           news_item_id?: string | null
+          opportunity_type?: string | null
+          predicted_behavior?: string | null
           predicted_behaviors?: Json | null
+          predicted_timeline?: string | null
+          prediction_type?: string | null
           profile_id?: string | null
           recommended_actions?: Json | null
           user_id: string
+          validated_at?: string | null
         }
         Update: {
+          action_recommendations?: Json | null
+          actual_outcome?: string | null
           conversation_starters?: string[] | null
           correlation_strength?: number
           correlation_type?: string
           created_at?: string
+          historical_accuracy?: number | null
           id?: string
           impact_on_contact?: string | null
           is_dismissed?: boolean | null
           is_reviewed?: boolean | null
           matched_entities?: Json | null
           news_item_id?: string | null
+          opportunity_type?: string | null
+          predicted_behavior?: string | null
           predicted_behaviors?: Json | null
+          predicted_timeline?: string | null
+          prediction_type?: string | null
           profile_id?: string | null
           recommended_actions?: Json | null
           user_id?: string
+          validated_at?: string | null
         }
         Relationships: [
           {
@@ -16635,6 +16833,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tracked_industries: {
+        Row: {
+          contacts_count: number | null
+          created_at: string | null
+          current_sentiment: number | null
+          event_summary: string | null
+          id: string
+          industry_name: string
+          keywords: string[] | null
+          last_major_event: string | null
+          opportunity_score: number | null
+          risk_level: string | null
+          sentiment_baseline: number | null
+          sentiment_trend: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          contacts_count?: number | null
+          created_at?: string | null
+          current_sentiment?: number | null
+          event_summary?: string | null
+          id?: string
+          industry_name: string
+          keywords?: string[] | null
+          last_major_event?: string | null
+          opportunity_score?: number | null
+          risk_level?: string | null
+          sentiment_baseline?: number | null
+          sentiment_trend?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          contacts_count?: number | null
+          created_at?: string | null
+          current_sentiment?: number | null
+          event_summary?: string | null
+          id?: string
+          industry_name?: string
+          keywords?: string[] | null
+          last_major_event?: string | null
+          opportunity_score?: number | null
+          risk_level?: string | null
+          sentiment_baseline?: number | null
+          sentiment_trend?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       trust_assessments: {
         Row: {
