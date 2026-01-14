@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import {
   Sheet,
   SheetContent,
@@ -15,10 +15,11 @@ import {
 } from '@/components/ui/sheet';
 import { Settings2, RotateCcw, GripVertical } from 'lucide-react';
 import { useDashboardLayout } from '@/hooks/useDashboardLayout';
-import { DASHLET_DEFINITIONS, getDashletDefinition } from '@/lib/dashletDefinitions';
+import { DASHLET_DEFINITIONS } from '@/lib/dashletDefinitions';
+import { GridLayoutSelector } from '@/components/shared/GridLayoutSelector';
 
 export function DashboardCustomizer() {
-  const { layout, toggleDashletVisibility, resetToDefault, isSaving } = useDashboardLayout();
+  const { layout, gridColumns, toggleDashletVisibility, setGridColumns, resetToDefault, isSaving } = useDashboardLayout();
   const [open, setOpen] = useState(false);
 
   const categories = [
@@ -52,18 +53,35 @@ export function DashboardCustomizer() {
         <SheetHeader>
           <SheetTitle>Customize Dashboard</SheetTitle>
           <SheetDescription>
-            Show or hide widgets. Drag widgets on the dashboard to reorder them.
+            Adjust layout and show/hide widgets.
           </SheetDescription>
         </SheetHeader>
         
-        <div className="flex justify-end mt-4">
-          <Button variant="outline" size="sm" onClick={resetToDefault}>
+        {/* Grid Layout Selector */}
+        <div className="mt-6 space-y-3">
+          <Label className="text-sm font-medium">Layout</Label>
+          <GridLayoutSelector 
+            value={gridColumns} 
+            onChange={setGridColumns}
+            min={1}
+            max={6}
+          />
+          <p className="text-xs text-muted-foreground">
+            Choose how many widgets appear side-by-side. Adjusts responsively on smaller screens.
+          </p>
+        </div>
+
+        <Separator className="my-4" />
+
+        <div className="flex items-center justify-between">
+          <Label className="text-sm font-medium">Widgets</Label>
+          <Button variant="outline" size="sm" onClick={resetToDefault} disabled={isSaving}>
             <RotateCcw className="h-4 w-4 mr-2" />
-            Reset to Default
+            Reset
           </Button>
         </div>
 
-        <ScrollArea className="h-[calc(100vh-200px)] mt-4">
+        <ScrollArea className="h-[calc(100vh-340px)] mt-4">
           <div className="space-y-6 pr-4">
             {categories.map(category => (
               <div key={category.key}>
@@ -78,7 +96,7 @@ export function DashboardCustomizer() {
                           <dashlet.icon className="h-4 w-4 text-muted-foreground" />
                           <div>
                             <Label className="font-medium">{dashlet.title}</Label>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-muted-foreground line-clamp-1">
                               {dashlet.description}
                             </p>
                           </div>

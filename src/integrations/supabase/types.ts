@@ -6962,6 +6962,7 @@ export type Database = {
       dashboard_layouts: {
         Row: {
           created_at: string
+          grid_columns: number | null
           id: string
           layout: Json
           updated_at: string
@@ -6969,6 +6970,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          grid_columns?: number | null
           id?: string
           layout?: Json
           updated_at?: string
@@ -6976,6 +6978,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          grid_columns?: number | null
           id?: string
           layout?: Json
           updated_at?: string

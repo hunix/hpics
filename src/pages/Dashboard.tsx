@@ -11,12 +11,13 @@ import { Users, MessageSquare, Calendar, Star } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { formatDistanceToNow, parseISO, setYear, getYear, isBefore, addYears } from 'date-fns';
 import { DndContext, closestCenter, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
 import { useDashboardLayout } from '@/hooks/useDashboardLayout';
 import { SortableDashlet } from '@/components/dashboard/SortableDashlet';
 import { renderDashlet, type DashletContext } from '@/lib/dashletRegistry';
 import { MobileDashboard } from '@/components/dashboard/MobileDashboard';
 import { useDeviceDetection } from '@/hooks/useDeviceDetection';
+import { cn } from '@/lib/utils';
 
 // Design system components
 import { LoadingState } from '@/components/shared/LoadingState';
@@ -24,10 +25,23 @@ import { DashboardStatsGrid, type DashboardStat } from '@/components/dashboard/D
 import { DashboardHeader, DashboardEditBanner } from '@/components/dashboard/DashboardHeader';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
 
+// Grid column class mapping
+const getGridColsClass = (cols: number): string => {
+  const mapping: Record<number, string> = {
+    1: 'grid-cols-1',
+    2: 'grid-cols-1 md:grid-cols-2',
+    3: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
+    4: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
+    5: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5',
+    6: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6',
+  };
+  return mapping[cols] ?? 'grid-cols-1 md:grid-cols-2';
+};
+
 export default function Dashboard() {
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
-  const { layout, isLoading: isLoadingLayout, reorderDashlets, toggleDashletVisibility } = useDashboardLayout();
+  const { layout, gridColumns, isLoading: isLoadingLayout, reorderDashlets, toggleDashletVisibility } = useDashboardLayout();
   const { deviceType } = useDeviceDetection();
   const isMobile = deviceType === 'mobile';
 
@@ -188,6 +202,7 @@ export default function Dashboard() {
   }
 
   const visibleDashlets = layout?.filter(d => d.visible) || [];
+  const gridColsClass = getGridColsClass(gridColumns);
 
   return (
     <AppLayout title="Dashboard">
@@ -204,7 +219,7 @@ export default function Dashboard() {
         {/* Stats Overview - Always visible */}
         <DashboardStatsGrid stats={statCards} isLoading={!stats} />
 
-        {/* Dashlets */}
+        {/* Dashlets Grid */}
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -212,9 +227,9 @@ export default function Dashboard() {
         >
           <SortableContext
             items={visibleDashlets.map(d => d.id)}
-            strategy={verticalListSortingStrategy}
+            strategy={rectSortingStrategy}
           >
-            <div className="space-y-6">
+            <div className={cn('grid gap-4', gridColsClass)}>
               {visibleDashlets.map((dashlet) => (
                 <SortableDashlet
                   key={dashlet.id}

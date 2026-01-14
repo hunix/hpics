@@ -3,60 +3,85 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { DashletConfig, getDefaultLayout } from '@/lib/dashletDefinitions';
 
+interface DashboardLayoutData {
+  layout: DashletConfig[];
+  gridColumns: number;
+}
+
 export function useDashboardLayout() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: layout, isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['dashboard-layout', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
+    queryFn: async (): Promise<DashboardLayoutData> => {
+      const { data: dbData, error } = await supabase
         .from('dashboard_layouts')
-        .select('layout')
+        .select('layout, grid_columns')
         .eq('user_id', user!.id)
         .maybeSingle();
       
       if (error) throw error;
       
-      if (!data) {
+      if (!dbData) {
         // Return default layout if none exists
-        return getDefaultLayout();
+        return {
+          layout: getDefaultLayout(),
+          gridColumns: 2,
+        };
       }
       
       // Merge saved layout with defaults to pick up any new dashlets
-      const savedLayout = (data.layout as unknown) as DashletConfig[];
+      const savedLayout = (dbData.layout as unknown) as DashletConfig[];
       const defaults = getDefaultLayout();
       
       // Add any new dashlets that don't exist in saved layout
       const savedTypes = new Set(savedLayout.map(d => d.type));
       const newDashlets = defaults.filter(d => !savedTypes.has(d.type));
       
-      return [
+      const mergedLayout = [
         ...savedLayout,
         ...newDashlets.map((d, i) => ({ ...d, order: savedLayout.length + i })),
       ];
+      
+      return {
+        layout: mergedLayout,
+        gridColumns: dbData.grid_columns ?? 2,
+      };
     },
     enabled: !!user,
   });
 
   const saveLayoutMutation = useMutation({
-    mutationFn: async (newLayout: DashletConfig[]) => {
+    mutationFn: async ({ layout, gridColumns }: { layout?: DashletConfig[]; gridColumns?: number }) => {
       const { data: existing } = await supabase
         .from('dashboard_layouts')
         .select('id')
         .eq('user_id', user!.id)
         .maybeSingle();
 
+      const updateData: Record<string, unknown> = {};
+      if (layout !== undefined) {
+        updateData.layout = JSON.parse(JSON.stringify(layout));
+      }
+      if (gridColumns !== undefined) {
+        updateData.grid_columns = gridColumns;
+      }
+
       if (existing) {
         const { error } = await supabase
           .from('dashboard_layouts')
-          .update({ layout: JSON.parse(JSON.stringify(newLayout)) })
+          .update(updateData)
           .eq('user_id', user!.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from('dashboard_layouts')
-          .insert([{ user_id: user!.id, layout: JSON.parse(JSON.stringify(newLayout)) }]);
+          .insert([{ 
+            user_id: user!.id, 
+            layout: layout ? JSON.parse(JSON.stringify(layout)) : JSON.parse(JSON.stringify(getDefaultLayout())),
+            grid_columns: gridColumns ?? 2,
+          }]);
         if (error) throw error;
       }
     },
@@ -67,27 +92,41 @@ export function useDashboardLayout() {
 
   const updateLayout = (newLayout: DashletConfig[]) => {
     // Optimistically update
-    queryClient.setQueryData(['dashboard-layout', user?.id], newLayout);
-    saveLayoutMutation.mutate(newLayout);
+    queryClient.setQueryData(['dashboard-layout', user?.id], (old: DashboardLayoutData | undefined) => ({
+      layout: newLayout,
+      gridColumns: old?.gridColumns ?? 2,
+    }));
+    saveLayoutMutation.mutate({ layout: newLayout });
+  };
+
+  const setGridColumns = (columns: number) => {
+    // Validate range
+    const validColumns = Math.min(6, Math.max(1, columns));
+    // Optimistically update
+    queryClient.setQueryData(['dashboard-layout', user?.id], (old: DashboardLayoutData | undefined) => ({
+      layout: old?.layout ?? getDefaultLayout(),
+      gridColumns: validColumns,
+    }));
+    saveLayoutMutation.mutate({ gridColumns: validColumns });
   };
 
   const toggleDashletVisibility = (dashletId: string) => {
-    if (!layout) return;
-    const newLayout = layout.map(d => 
+    if (!data?.layout) return;
+    const newLayout = data.layout.map(d => 
       d.id === dashletId ? { ...d, visible: !d.visible } : d
     );
     updateLayout(newLayout);
   };
 
   const reorderDashlets = (activeId: string, overId: string) => {
-    if (!layout) return;
+    if (!data?.layout) return;
     
-    const oldIndex = layout.findIndex(d => d.id === activeId);
-    const newIndex = layout.findIndex(d => d.id === overId);
+    const oldIndex = data.layout.findIndex(d => d.id === activeId);
+    const newIndex = data.layout.findIndex(d => d.id === overId);
     
     if (oldIndex === -1 || newIndex === -1) return;
     
-    const newLayout = [...layout];
+    const newLayout = [...data.layout];
     const [movedItem] = newLayout.splice(oldIndex, 1);
     newLayout.splice(newIndex, 0, movedItem);
     
@@ -98,12 +137,15 @@ export function useDashboardLayout() {
 
   const resetToDefault = () => {
     updateLayout(getDefaultLayout());
+    setGridColumns(2);
   };
 
   return {
-    layout: layout?.sort((a, b) => a.order - b.order),
+    layout: data?.layout?.sort((a, b) => a.order - b.order),
+    gridColumns: data?.gridColumns ?? 2,
     isLoading,
     updateLayout,
+    setGridColumns,
     toggleDashletVisibility,
     reorderDashlets,
     resetToDefault,
