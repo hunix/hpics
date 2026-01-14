@@ -11,9 +11,10 @@ interface SortableDashletProps {
   children: React.ReactNode;
   onRemove?: () => void;
   isEditing?: boolean;
+  className?: string;
 }
 
-export function SortableDashlet({ id, title, children, onRemove, isEditing }: SortableDashletProps) {
+export function SortableDashlet({ id, title, children, onRemove, isEditing, className }: SortableDashletProps) {
   const {
     attributes,
     listeners,
@@ -34,7 +35,8 @@ export function SortableDashlet({ id, title, children, onRemove, isEditing }: So
       style={style}
       className={cn(
         'relative',
-        isDragging && 'opacity-50 z-50'
+        isDragging && 'opacity-50 z-50',
+        className
       )}
     >
       {isEditing && (

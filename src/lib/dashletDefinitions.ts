@@ -8,6 +8,19 @@ export interface DashletConfig {
   title: string;
   visible: boolean;
   order: number;
+  colSpan?: 1 | 2 | 3 | 4 | 5 | 6;
+}
+
+// Layout preset types
+export type LayoutPresetId = 'minimal' | 'standard' | 'power-user' | 'analytics' | 'ai-focused';
+
+export interface LayoutPreset {
+  id: LayoutPresetId;
+  name: string;
+  description: string;
+  gridColumns: number;
+  visibleDashlets: DashletType[];
+  colSpans?: Partial<Record<DashletType, number>>;
 }
 
 export type DashletType = 
@@ -55,6 +68,7 @@ export interface DashletDefinition {
   icon: React.ElementType;
   defaultVisible: boolean;
   category: 'overview' | 'ai' | 'relationships' | 'tools';
+  defaultColSpan?: 1 | 2 | 3 | 4 | 5 | 6;
 }
 
 export const DASHLET_DEFINITIONS: DashletDefinition[] = [
@@ -355,9 +369,96 @@ export const getDefaultLayout = (): DashletConfig[] => {
     title: def.title,
     visible: def.defaultVisible,
     order: index,
+    colSpan: def.defaultColSpan ?? 1,
   }));
 };
 
 export const getDashletDefinition = (type: DashletType): DashletDefinition | undefined => {
   return DASHLET_DEFINITIONS.find(d => d.type === type);
+};
+
+// Layout presets
+export const LAYOUT_PRESETS: LayoutPreset[] = [
+  {
+    id: 'minimal',
+    name: 'Minimal',
+    description: 'Clean, focused view with essential widgets only',
+    gridColumns: 2,
+    visibleDashlets: ['daily-briefing', 'recent-contacts', 'upcoming-events', 'followup-suggestions'],
+    colSpans: { 'daily-briefing': 2 },
+  },
+  {
+    id: 'standard',
+    name: 'Standard',
+    description: 'Balanced layout for everyday use',
+    gridColumns: 3,
+    visibleDashlets: [
+      'daily-briefing', 'recent-contacts', 'upcoming-events', 
+      'relationship-health', 'decay-alert', 'followup-suggestions',
+      'weekly-summary', 'contact-groups'
+    ],
+    colSpans: { 'daily-briefing': 2, 'weekly-summary': 2 },
+  },
+  {
+    id: 'power-user',
+    name: 'Power User',
+    description: 'Dense information layout for advanced users',
+    gridColumns: 4,
+    visibleDashlets: [
+      'daily-briefing', 'recent-contacts', 'upcoming-events', 'relationship-health',
+      'decay-alert', 'followup-suggestions', 'weekly-summary', 'contact-groups',
+      'relationship-scores', 'introduction-suggestions', 'proactive-actions',
+      'calendar-sync-status', 'network-graph', 'intelligence-insights'
+    ],
+    colSpans: { 'daily-briefing': 2, 'network-graph': 2, 'intelligence-insights': 2 },
+  },
+  {
+    id: 'analytics',
+    name: 'Analytics',
+    description: 'Data-focused view with charts and metrics',
+    gridColumns: 3,
+    visibleDashlets: [
+      'stats', 'relationship-analytics', 'relationship-health',
+      'relationship-scores', 'communication-velocity', 'network-graph',
+      'decay-alert', 'behavioral-anomalies'
+    ],
+    colSpans: { 'stats': 3, 'relationship-analytics': 2, 'network-graph': 2 },
+  },
+  {
+    id: 'ai-focused',
+    name: 'AI Focused',
+    description: 'AI-powered insights and automation',
+    gridColumns: 3,
+    visibleDashlets: [
+      'daily-briefing', 'unified-intelligence', 'weekly-summary',
+      'followup-suggestions', 'introduction-suggestions', 'proactive-actions',
+      'relationship-autopilot', 'gift-suggestions', 'ai-contact-grouping'
+    ],
+    colSpans: { 'daily-briefing': 2, 'unified-intelligence': 2, 'weekly-summary': 2 },
+  },
+];
+
+export const applyPreset = (presetId: LayoutPresetId): { layout: DashletConfig[]; gridColumns: number } => {
+  const preset = LAYOUT_PRESETS.find(p => p.id === presetId);
+  if (!preset) {
+    return { layout: getDefaultLayout(), gridColumns: 2 };
+  }
+
+  const layout = DASHLET_DEFINITIONS.map((def, index) => ({
+    id: `dashlet-${def.type}`,
+    type: def.type,
+    title: def.title,
+    visible: preset.visibleDashlets.includes(def.type),
+    order: preset.visibleDashlets.includes(def.type) 
+      ? preset.visibleDashlets.indexOf(def.type) 
+      : 1000 + index,
+    colSpan: (preset.colSpans?.[def.type] ?? def.defaultColSpan ?? 1) as 1 | 2 | 3 | 4 | 5 | 6,
+  }));
+
+  // Sort by order
+  layout.sort((a, b) => a.order - b.order);
+  // Re-assign order sequentially
+  layout.forEach((d, i) => d.order = i);
+
+  return { layout, gridColumns: preset.gridColumns };
 };
