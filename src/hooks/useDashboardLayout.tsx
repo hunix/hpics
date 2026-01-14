@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { DashletConfig, getDefaultLayout } from '@/lib/dashletDefinitions';
+import { DashletConfig, getDefaultLayout, applyPreset, LayoutPresetId } from '@/lib/dashletDefinitions';
 
 interface DashboardLayoutData {
   layout: DashletConfig[];
@@ -118,6 +118,24 @@ export function useDashboardLayout() {
     updateLayout(newLayout);
   };
 
+  const setDashletColSpan = (dashletId: string, colSpan: 1 | 2 | 3 | 4 | 5 | 6) => {
+    if (!data?.layout) return;
+    const newLayout = data.layout.map(d => 
+      d.id === dashletId ? { ...d, colSpan } : d
+    );
+    updateLayout(newLayout);
+  };
+
+  const applyLayoutPreset = (presetId: LayoutPresetId) => {
+    const { layout, gridColumns } = applyPreset(presetId);
+    // Optimistically update
+    queryClient.setQueryData(['dashboard-layout', user?.id], {
+      layout,
+      gridColumns,
+    });
+    saveLayoutMutation.mutate({ layout, gridColumns });
+  };
+
   const reorderDashlets = (activeId: string, overId: string) => {
     if (!data?.layout) return;
     
@@ -147,8 +165,10 @@ export function useDashboardLayout() {
     updateLayout,
     setGridColumns,
     toggleDashletVisibility,
+    setDashletColSpan,
     reorderDashlets,
     resetToDefault,
+    applyLayoutPreset,
     isSaving: saveLayoutMutation.isPending,
   };
 }

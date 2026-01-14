@@ -230,17 +230,24 @@ export default function Dashboard() {
             strategy={rectSortingStrategy}
           >
             <div className={cn('grid gap-4', gridColsClass)}>
-              {visibleDashlets.map((dashlet) => (
-                <SortableDashlet
-                  key={dashlet.id}
-                  id={dashlet.id}
-                  title={dashlet.title}
-                  isEditing={isEditing}
-                  onRemove={() => toggleDashletVisibility(dashlet.id)}
-                >
-                  {renderDashlet(dashlet.type, dashletContext)}
-                </SortableDashlet>
-              ))}
+              {visibleDashlets.map((dashlet) => {
+                // Calculate col-span class respecting grid columns
+                const span = Math.min(dashlet.colSpan ?? 1, gridColumns);
+                const colSpanClass = span > 1 ? `col-span-${span}` : '';
+                
+                return (
+                  <SortableDashlet
+                    key={dashlet.id}
+                    id={dashlet.id}
+                    title={dashlet.title}
+                    isEditing={isEditing}
+                    onRemove={() => toggleDashletVisibility(dashlet.id)}
+                    className={colSpanClass}
+                  >
+                    {renderDashlet(dashlet.type, dashletContext)}
+                  </SortableDashlet>
+                );
+              })}
             </div>
           </SortableContext>
         </DndContext>
