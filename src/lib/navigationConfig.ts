@@ -293,6 +293,16 @@ export const navigationItems: NavItem[] = [
     category: 'security',
     keywords: ['biometrics', 'face', 'voice', 'gait', 'keystroke', 'signature'],
   },
+  {
+    id: 'hardware-command',
+    title: 'Hardware Command',
+    url: '/hardware-command',
+    icon: Cpu,
+    description: 'Multi-modal sensor fusion & device control',
+    category: 'security',
+    requiredRole: 'analyst',
+    keywords: ['hardware', 'devices', 'drone', 'flipper', 'thermal', 'sdr', 'tscm', 'sensors'],
+  },
   
   // System
   {
