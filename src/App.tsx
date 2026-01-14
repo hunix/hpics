@@ -59,6 +59,7 @@ const MobileEcosystemPage = lazyWithRetry(() => import("./pages/MobileEcosystemP
 const UltimateCommandCenter = lazyWithRetry(() => import("./pages/UltimateCommandCenter"));
 const SocialIntelligenceDashboard = lazyWithRetry(() => import("./pages/SocialIntelligenceDashboard"));
 const Superiority = lazyWithRetry(() => import("./pages/Superiority"));
+const InvestmentIntelligence = lazyWithRetry(() => import("./pages/InvestmentIntelligence"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -127,6 +128,7 @@ const App = () => (
                         <Route path="/ultimate-command" element={<UltimateCommandCenter />} />
                         <Route path="/social-intelligence" element={<SocialIntelligenceDashboard />} />
                         <Route path="/superiority" element={<Superiority />} />
+                        <Route path="/investment-intelligence" element={<InvestmentIntelligence />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                       </Suspense>
