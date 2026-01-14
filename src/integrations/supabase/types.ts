@@ -4925,6 +4925,86 @@ export type Database = {
           },
         ]
       }
+      contact_news_correlations: {
+        Row: {
+          conversation_starters: string[] | null
+          correlation_strength: number
+          correlation_type: string
+          created_at: string
+          id: string
+          impact_on_contact: string | null
+          is_dismissed: boolean | null
+          is_reviewed: boolean | null
+          matched_entities: Json | null
+          news_item_id: string | null
+          predicted_behaviors: Json | null
+          profile_id: string | null
+          recommended_actions: Json | null
+          user_id: string
+        }
+        Insert: {
+          conversation_starters?: string[] | null
+          correlation_strength: number
+          correlation_type: string
+          created_at?: string
+          id?: string
+          impact_on_contact?: string | null
+          is_dismissed?: boolean | null
+          is_reviewed?: boolean | null
+          matched_entities?: Json | null
+          news_item_id?: string | null
+          predicted_behaviors?: Json | null
+          profile_id?: string | null
+          recommended_actions?: Json | null
+          user_id: string
+        }
+        Update: {
+          conversation_starters?: string[] | null
+          correlation_strength?: number
+          correlation_type?: string
+          created_at?: string
+          id?: string
+          impact_on_contact?: string | null
+          is_dismissed?: boolean | null
+          is_reviewed?: boolean | null
+          matched_entities?: Json | null
+          news_item_id?: string | null
+          predicted_behaviors?: Json | null
+          profile_id?: string | null
+          recommended_actions?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_news_correlations_news_item_id_fkey"
+            columns: ["news_item_id"]
+            isOneToOne: false
+            referencedRelation: "news_intelligence_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_news_correlations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_news_correlations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "contact_news_correlations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_observations: {
         Row: {
           ai_confidence_score: number | null
@@ -9594,6 +9674,93 @@ export type Database = {
           },
         ]
       }
+      geopolitical_events: {
+        Row: {
+          affected_commodities: Json | null
+          affected_companies: Json | null
+          affected_currencies: Json | null
+          affected_sectors: Json | null
+          countries: string[]
+          created_at: string
+          event_name: string
+          event_type: string
+          id: string
+          investment_implications: Json | null
+          key_actors: Json | null
+          last_escalation_at: string | null
+          last_news_at: string | null
+          monitoring_priority: string | null
+          news_item_count: number | null
+          opportunity_score: number | null
+          regions: string[]
+          resolved_at: string | null
+          risk_score: number | null
+          severity_level: string | null
+          started_at: string | null
+          status: string | null
+          summary: string | null
+          timeline: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          affected_commodities?: Json | null
+          affected_companies?: Json | null
+          affected_currencies?: Json | null
+          affected_sectors?: Json | null
+          countries: string[]
+          created_at?: string
+          event_name: string
+          event_type: string
+          id?: string
+          investment_implications?: Json | null
+          key_actors?: Json | null
+          last_escalation_at?: string | null
+          last_news_at?: string | null
+          monitoring_priority?: string | null
+          news_item_count?: number | null
+          opportunity_score?: number | null
+          regions: string[]
+          resolved_at?: string | null
+          risk_score?: number | null
+          severity_level?: string | null
+          started_at?: string | null
+          status?: string | null
+          summary?: string | null
+          timeline?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          affected_commodities?: Json | null
+          affected_companies?: Json | null
+          affected_currencies?: Json | null
+          affected_sectors?: Json | null
+          countries?: string[]
+          created_at?: string
+          event_name?: string
+          event_type?: string
+          id?: string
+          investment_implications?: Json | null
+          key_actors?: Json | null
+          last_escalation_at?: string | null
+          last_news_at?: string | null
+          monitoring_priority?: string | null
+          news_item_count?: number | null
+          opportunity_score?: number | null
+          regions?: string[]
+          resolved_at?: string | null
+          risk_score?: number | null
+          severity_level?: string | null
+          started_at?: string | null
+          status?: string | null
+          summary?: string | null
+          timeline?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       gift_ideas: {
         Row: {
           ai_reasoning: string | null
@@ -10909,6 +11076,120 @@ export type Database = {
           },
         ]
       }
+      investment_opportunities: {
+        Row: {
+          action: string
+          actioned_at: string | null
+          ai_reasoning: Json | null
+          asset_class: string
+          asset_identifier: string | null
+          confidence_score: number
+          conviction_level: string | null
+          created_at: string
+          description: string | null
+          entry_price_suggestion: number | null
+          expected_roi_pct: number | null
+          historical_pattern_match: number | null
+          id: string
+          max_drawdown_pct: number | null
+          opportunity_type: string
+          outcome: Json | null
+          risk_factors: Json | null
+          risk_level: string
+          sector: string | null
+          source_agreement_score: number | null
+          status: string | null
+          stop_loss: number | null
+          supporting_events: string[] | null
+          supporting_news: string[] | null
+          supporting_signals: string[] | null
+          target_price: number | null
+          thesis: string | null
+          time_horizon_days: number | null
+          title: string
+          updated_at: string
+          urgency: string | null
+          user_id: string
+          valid_from: string
+          valid_until: string | null
+          viewed_at: string | null
+        }
+        Insert: {
+          action: string
+          actioned_at?: string | null
+          ai_reasoning?: Json | null
+          asset_class: string
+          asset_identifier?: string | null
+          confidence_score: number
+          conviction_level?: string | null
+          created_at?: string
+          description?: string | null
+          entry_price_suggestion?: number | null
+          expected_roi_pct?: number | null
+          historical_pattern_match?: number | null
+          id?: string
+          max_drawdown_pct?: number | null
+          opportunity_type: string
+          outcome?: Json | null
+          risk_factors?: Json | null
+          risk_level: string
+          sector?: string | null
+          source_agreement_score?: number | null
+          status?: string | null
+          stop_loss?: number | null
+          supporting_events?: string[] | null
+          supporting_news?: string[] | null
+          supporting_signals?: string[] | null
+          target_price?: number | null
+          thesis?: string | null
+          time_horizon_days?: number | null
+          title: string
+          updated_at?: string
+          urgency?: string | null
+          user_id: string
+          valid_from?: string
+          valid_until?: string | null
+          viewed_at?: string | null
+        }
+        Update: {
+          action?: string
+          actioned_at?: string | null
+          ai_reasoning?: Json | null
+          asset_class?: string
+          asset_identifier?: string | null
+          confidence_score?: number
+          conviction_level?: string | null
+          created_at?: string
+          description?: string | null
+          entry_price_suggestion?: number | null
+          expected_roi_pct?: number | null
+          historical_pattern_match?: number | null
+          id?: string
+          max_drawdown_pct?: number | null
+          opportunity_type?: string
+          outcome?: Json | null
+          risk_factors?: Json | null
+          risk_level?: string
+          sector?: string | null
+          source_agreement_score?: number | null
+          status?: string | null
+          stop_loss?: number | null
+          supporting_events?: string[] | null
+          supporting_news?: string[] | null
+          supporting_signals?: string[] | null
+          target_price?: number | null
+          thesis?: string | null
+          time_horizon_days?: number | null
+          title?: string
+          updated_at?: string
+          urgency?: string | null
+          user_id?: string
+          valid_from?: string
+          valid_until?: string | null
+          viewed_at?: string | null
+        }
+        Relationships: []
+      }
       item_category_templates: {
         Row: {
           category: string
@@ -11330,6 +11611,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      market_sentiment_snapshots: {
+        Row: {
+          asset_class_sentiments: Json | null
+          created_at: string
+          emerging_opportunities: Json | null
+          emerging_risks: Json | null
+          granularity: string
+          id: string
+          negative_news_pct: number | null
+          news_volume: number | null
+          overall_fear_greed: number | null
+          overall_sentiment: number | null
+          positive_news_pct: number | null
+          regional_sentiments: Json | null
+          sector_sentiments: Json | null
+          snapshot_at: string
+          source_count: number | null
+          trending_topics: Json | null
+          user_id: string
+        }
+        Insert: {
+          asset_class_sentiments?: Json | null
+          created_at?: string
+          emerging_opportunities?: Json | null
+          emerging_risks?: Json | null
+          granularity: string
+          id?: string
+          negative_news_pct?: number | null
+          news_volume?: number | null
+          overall_fear_greed?: number | null
+          overall_sentiment?: number | null
+          positive_news_pct?: number | null
+          regional_sentiments?: Json | null
+          sector_sentiments?: Json | null
+          snapshot_at: string
+          source_count?: number | null
+          trending_topics?: Json | null
+          user_id: string
+        }
+        Update: {
+          asset_class_sentiments?: Json | null
+          created_at?: string
+          emerging_opportunities?: Json | null
+          emerging_risks?: Json | null
+          granularity?: string
+          id?: string
+          negative_news_pct?: number | null
+          news_volume?: number | null
+          overall_fear_greed?: number | null
+          overall_sentiment?: number | null
+          positive_news_pct?: number | null
+          regional_sentiments?: Json | null
+          sector_sentiments?: Json | null
+          snapshot_at?: string
+          source_count?: number | null
+          trending_topics?: Json | null
+          user_id?: string
+        }
+        Relationships: []
       }
       mbox_import_sessions: {
         Row: {
@@ -12478,6 +12819,257 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      news_correlations: {
+        Row: {
+          combined_impact_score: number | null
+          conflicting_claims: Json | null
+          consensus_sentiment: number | null
+          correlation_confidence: number
+          created_at: string
+          disputed_claims: Json | null
+          expires_at: string | null
+          first_reported_at: string | null
+          id: string
+          last_updated_at: string
+          narrative_consistency: number | null
+          news_item_ids: string[]
+          source_count: number
+          sources: string[]
+          topic_hash: string
+          topic_summary: string
+          user_id: string
+          validated_facts: Json | null
+        }
+        Insert: {
+          combined_impact_score?: number | null
+          conflicting_claims?: Json | null
+          consensus_sentiment?: number | null
+          correlation_confidence: number
+          created_at?: string
+          disputed_claims?: Json | null
+          expires_at?: string | null
+          first_reported_at?: string | null
+          id?: string
+          last_updated_at?: string
+          narrative_consistency?: number | null
+          news_item_ids: string[]
+          source_count?: number
+          sources: string[]
+          topic_hash: string
+          topic_summary: string
+          user_id: string
+          validated_facts?: Json | null
+        }
+        Update: {
+          combined_impact_score?: number | null
+          conflicting_claims?: Json | null
+          consensus_sentiment?: number | null
+          correlation_confidence?: number
+          created_at?: string
+          disputed_claims?: Json | null
+          expires_at?: string | null
+          first_reported_at?: string | null
+          id?: string
+          last_updated_at?: string
+          narrative_consistency?: number | null
+          news_item_ids?: string[]
+          source_count?: number
+          sources?: string[]
+          topic_hash?: string
+          topic_summary?: string
+          user_id?: string
+          validated_facts?: Json | null
+        }
+        Relationships: []
+      }
+      news_intelligence_items: {
+        Row: {
+          content: string | null
+          created_at: string
+          embedding: string | null
+          entities: Json | null
+          fetched_at: string
+          id: string
+          impact_score: number | null
+          processed_at: string | null
+          processing_status: string | null
+          published_at: string | null
+          raw_response: Json | null
+          regions: string[] | null
+          sectors: string[] | null
+          sentiment_confidence: number | null
+          sentiment_label: string | null
+          sentiment_score: number | null
+          source_credibility_score: number | null
+          source_name: string
+          source_url: string | null
+          summary: string | null
+          tickers: string[] | null
+          title: string
+          topics: string[] | null
+          updated_at: string
+          urgency_level: string | null
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          embedding?: string | null
+          entities?: Json | null
+          fetched_at?: string
+          id?: string
+          impact_score?: number | null
+          processed_at?: string | null
+          processing_status?: string | null
+          published_at?: string | null
+          raw_response?: Json | null
+          regions?: string[] | null
+          sectors?: string[] | null
+          sentiment_confidence?: number | null
+          sentiment_label?: string | null
+          sentiment_score?: number | null
+          source_credibility_score?: number | null
+          source_name: string
+          source_url?: string | null
+          summary?: string | null
+          tickers?: string[] | null
+          title: string
+          topics?: string[] | null
+          updated_at?: string
+          urgency_level?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          embedding?: string | null
+          entities?: Json | null
+          fetched_at?: string
+          id?: string
+          impact_score?: number | null
+          processed_at?: string | null
+          processing_status?: string | null
+          published_at?: string | null
+          raw_response?: Json | null
+          regions?: string[] | null
+          sectors?: string[] | null
+          sentiment_confidence?: number | null
+          sentiment_label?: string | null
+          sentiment_score?: number | null
+          source_credibility_score?: number | null
+          source_name?: string
+          source_url?: string | null
+          summary?: string | null
+          tickers?: string[] | null
+          title?: string
+          topics?: string[] | null
+          updated_at?: string
+          urgency_level?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      news_signals: {
+        Row: {
+          asset_class: string
+          asset_identifier: string | null
+          confidence_score: number
+          contrary_indicators: Json | null
+          correlation_id: string | null
+          created_at: string
+          expected_direction: string | null
+          expected_magnitude: string | null
+          expected_roi_high: number | null
+          expected_roi_low: number | null
+          historical_accuracy: number | null
+          id: string
+          outcome_recorded: Json | null
+          risk_factors: Json | null
+          risk_level: string | null
+          sector: string | null
+          signal_strength: number
+          signal_type: string
+          source_count: number
+          status: string | null
+          stop_loss_suggestion: number | null
+          supporting_news: Json | null
+          time_horizon: string | null
+          triggered_at: string | null
+          updated_at: string
+          user_id: string
+          valid_from: string
+          valid_until: string | null
+        }
+        Insert: {
+          asset_class: string
+          asset_identifier?: string | null
+          confidence_score: number
+          contrary_indicators?: Json | null
+          correlation_id?: string | null
+          created_at?: string
+          expected_direction?: string | null
+          expected_magnitude?: string | null
+          expected_roi_high?: number | null
+          expected_roi_low?: number | null
+          historical_accuracy?: number | null
+          id?: string
+          outcome_recorded?: Json | null
+          risk_factors?: Json | null
+          risk_level?: string | null
+          sector?: string | null
+          signal_strength: number
+          signal_type: string
+          source_count?: number
+          status?: string | null
+          stop_loss_suggestion?: number | null
+          supporting_news?: Json | null
+          time_horizon?: string | null
+          triggered_at?: string | null
+          updated_at?: string
+          user_id: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Update: {
+          asset_class?: string
+          asset_identifier?: string | null
+          confidence_score?: number
+          contrary_indicators?: Json | null
+          correlation_id?: string | null
+          created_at?: string
+          expected_direction?: string | null
+          expected_magnitude?: string | null
+          expected_roi_high?: number | null
+          expected_roi_low?: number | null
+          historical_accuracy?: number | null
+          id?: string
+          outcome_recorded?: Json | null
+          risk_factors?: Json | null
+          risk_level?: string | null
+          sector?: string | null
+          signal_strength?: number
+          signal_type?: string
+          source_count?: number
+          status?: string | null
+          stop_loss_suggestion?: number | null
+          supporting_news?: Json | null
+          time_horizon?: string | null
+          triggered_at?: string | null
+          updated_at?: string
+          user_id?: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "news_signals_correlation_id_fkey"
+            columns: ["correlation_id"]
+            isOneToOne: false
+            referencedRelation: "news_correlations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       nfc_tags: {
         Row: {
