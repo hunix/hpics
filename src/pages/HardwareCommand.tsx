@@ -5,6 +5,7 @@ import { useHardwareDevices } from '@/hooks/useHardwareDevices';
 import { useIntelligenceMissions } from '@/hooks/useIntelligenceMissions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { 
   ArrowLeft, 
   Cpu, 
@@ -20,6 +21,10 @@ import {
   AlertTriangle,
   Brain,
   BarChart3,
+  Heart,
+  Link2,
+  FileText,
+  Bell,
 } from 'lucide-react';
 import { DeviceGrid } from '@/components/hardware/DeviceGrid';
 import { MissionControl } from '@/components/hardware/MissionControl';
@@ -33,6 +38,10 @@ import { SensorDashboard } from '@/components/hardware/SensorDashboard';
 import { HardwareAlertPanel } from '@/components/hardware/HardwareAlertPanel';
 import { IntelligenceFusionPanel } from '@/components/hardware/IntelligenceFusionPanel';
 import { HardwareAnalyticsDashboard } from '@/components/hardware/HardwareAnalyticsDashboard';
+import { DeviceHealthMonitor } from '@/components/hardware/DeviceHealthMonitor';
+import { CrossDeviceCorrelationPanel } from '@/components/hardware/CrossDeviceCorrelationPanel';
+import { ReportExportPanel } from '@/components/hardware/ReportExportPanel';
+import { AlertRulesConfig } from '@/components/hardware/AlertRulesConfig';
 
 export default function HardwareCommand() {
   const navigate = useNavigate();
@@ -108,55 +117,78 @@ export default function HardwareCommand() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-6">
-            <TabsTrigger value="devices" className="gap-2">
-              <Cpu className="h-4 w-4" />
-              Devices
-            </TabsTrigger>
-            <TabsTrigger value="missions" className="gap-2">
-              <Target className="h-4 w-4" />
-              Missions
-            </TabsTrigger>
-            <TabsTrigger value="console" className="gap-2">
-              <Radio className="h-4 w-4" />
-              Command Console
-            </TabsTrigger>
-            <TabsTrigger value="telemetry" className="gap-2">
-              <Thermometer className="h-4 w-4" />
-              Telemetry
-            </TabsTrigger>
-            <TabsTrigger value="aerial" className="gap-2">
-              <Plane className="h-4 w-4" />
-              Aerial Ops
-            </TabsTrigger>
-            <TabsTrigger value="tscm" className="gap-2">
-              <Shield className="h-4 w-4" />
-              TSCM
-            </TabsTrigger>
-            <TabsTrigger value="sdr" className="gap-2">
-              <Waves className="h-4 w-4" />
-              SDR
-            </TabsTrigger>
-            <TabsTrigger value="sensors" className="gap-2">
-              <Activity className="h-4 w-4" />
-              Sensors
-            </TabsTrigger>
-            <TabsTrigger value="alerts" className="gap-2">
-              <AlertTriangle className="h-4 w-4" />
-              Alerts
-            </TabsTrigger>
-            <TabsTrigger value="fusion" className="gap-2">
-              <Brain className="h-4 w-4" />
-              Fusion
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Analytics
-            </TabsTrigger>
-          </TabsList>
+          <ScrollArea className="w-full mb-6">
+            <TabsList className="inline-flex w-max">
+              <TabsTrigger value="devices" className="gap-2">
+                <Cpu className="h-4 w-4" />
+                Devices
+              </TabsTrigger>
+              <TabsTrigger value="health" className="gap-2">
+                <Heart className="h-4 w-4" />
+                Health
+              </TabsTrigger>
+              <TabsTrigger value="missions" className="gap-2">
+                <Target className="h-4 w-4" />
+                Missions
+              </TabsTrigger>
+              <TabsTrigger value="console" className="gap-2">
+                <Radio className="h-4 w-4" />
+                Console
+              </TabsTrigger>
+              <TabsTrigger value="telemetry" className="gap-2">
+                <Thermometer className="h-4 w-4" />
+                Telemetry
+              </TabsTrigger>
+              <TabsTrigger value="aerial" className="gap-2">
+                <Plane className="h-4 w-4" />
+                Aerial
+              </TabsTrigger>
+              <TabsTrigger value="tscm" className="gap-2">
+                <Shield className="h-4 w-4" />
+                TSCM
+              </TabsTrigger>
+              <TabsTrigger value="sdr" className="gap-2">
+                <Waves className="h-4 w-4" />
+                SDR
+              </TabsTrigger>
+              <TabsTrigger value="sensors" className="gap-2">
+                <Activity className="h-4 w-4" />
+                Sensors
+              </TabsTrigger>
+              <TabsTrigger value="alerts" className="gap-2">
+                <AlertTriangle className="h-4 w-4" />
+                Alerts
+              </TabsTrigger>
+              <TabsTrigger value="rules" className="gap-2">
+                <Bell className="h-4 w-4" />
+                Rules
+              </TabsTrigger>
+              <TabsTrigger value="correlations" className="gap-2">
+                <Link2 className="h-4 w-4" />
+                Correlations
+              </TabsTrigger>
+              <TabsTrigger value="fusion" className="gap-2">
+                <Brain className="h-4 w-4" />
+                Fusion
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Analytics
+              </TabsTrigger>
+              <TabsTrigger value="reports" className="gap-2">
+                <FileText className="h-4 w-4" />
+                Reports
+              </TabsTrigger>
+            </TabsList>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
 
           <TabsContent value="devices">
             <DeviceGrid devices={devices} isLoading={devicesLoading} />
+          </TabsContent>
+
+          <TabsContent value="health">
+            <DeviceHealthMonitor />
           </TabsContent>
 
           <TabsContent value="missions">
@@ -191,12 +223,24 @@ export default function HardwareCommand() {
             <HardwareAlertPanel />
           </TabsContent>
 
+          <TabsContent value="rules">
+            <AlertRulesConfig />
+          </TabsContent>
+
+          <TabsContent value="correlations">
+            <CrossDeviceCorrelationPanel />
+          </TabsContent>
+
           <TabsContent value="fusion">
             <IntelligenceFusionPanel />
           </TabsContent>
 
           <TabsContent value="analytics">
             <HardwareAnalyticsDashboard />
+          </TabsContent>
+
+          <TabsContent value="reports">
+            <ReportExportPanel />
           </TabsContent>
         </Tabs>
       </main>
