@@ -767,6 +767,98 @@ export type Database = {
           },
         ]
       }
+      alert_notifications: {
+        Row: {
+          alert_id: string | null
+          channel: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          sent_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          alert_id?: string | null
+          channel?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          sent_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          alert_id?: string | null
+          channel?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          sent_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_notifications_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "hardware_alerts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alert_rules: {
+        Row: {
+          actions: Json
+          conditions: Json
+          cooldown_minutes: number | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          last_triggered_at: string | null
+          priority: number | null
+          rule_name: string
+          rule_type: string
+          trigger_count: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          actions?: Json
+          conditions?: Json
+          cooldown_minutes?: number | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_triggered_at?: string | null
+          priority?: number | null
+          rule_name: string
+          rule_type?: string
+          trigger_count?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          actions?: Json
+          conditions?: Json
+          cooldown_minutes?: number | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_triggered_at?: string | null
+          priority?: number | null
+          rule_name?: string
+          rule_type?: string
+          trigger_count?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       analysis_aggregates: {
         Row: {
           active_events: number | null
@@ -1177,6 +1269,45 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      analytics_forecast: {
+        Row: {
+          confidence_score: number | null
+          created_at: string | null
+          forecast_type: string
+          id: string
+          model_version: string | null
+          period: string
+          predictions: Json
+          user_id: string
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string | null
+          forecast_type: string
+          id?: string
+          model_version?: string | null
+          period?: string
+          predictions?: Json
+          user_id: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string | null
+          forecast_type?: string
+          id?: string
+          model_version?: string | null
+          period?: string
+          predictions?: Json
+          user_id?: string
+          valid_from?: string | null
+          valid_until?: string | null
         }
         Relationships: []
       }
@@ -6703,6 +6834,45 @@ export type Database = {
           },
         ]
       }
+      correlation_rules: {
+        Row: {
+          alert_severity: string | null
+          auto_generate_alert: boolean | null
+          correlation_logic: Json
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          rule_name: string
+          source_device_types: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          alert_severity?: string | null
+          auto_generate_alert?: boolean | null
+          correlation_logic?: Json
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          rule_name: string
+          source_device_types?: string[] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          alert_severity?: string | null
+          auto_generate_alert?: boolean | null
+          correlation_logic?: Json
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          rule_name?: string
+          source_device_types?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       cost_anomaly_alerts: {
         Row: {
           anomaly_type: string
@@ -6980,6 +7150,68 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      cross_device_correlations: {
+        Row: {
+          correlation_strength: number | null
+          correlation_type: string
+          created_at: string | null
+          findings: Json | null
+          id: string
+          is_verified: boolean | null
+          location_overlap: Json | null
+          mission_id: string | null
+          source_events: Json
+          threat_level: string | null
+          time_overlap_seconds: number | null
+          updated_at: string | null
+          user_id: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          correlation_strength?: number | null
+          correlation_type: string
+          created_at?: string | null
+          findings?: Json | null
+          id?: string
+          is_verified?: boolean | null
+          location_overlap?: Json | null
+          mission_id?: string | null
+          source_events?: Json
+          threat_level?: string | null
+          time_overlap_seconds?: number | null
+          updated_at?: string | null
+          user_id: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          correlation_strength?: number | null
+          correlation_type?: string
+          created_at?: string | null
+          findings?: Json | null
+          id?: string
+          is_verified?: boolean | null
+          location_overlap?: Json | null
+          mission_id?: string | null
+          source_events?: Json
+          threat_level?: string | null
+          time_overlap_seconds?: number | null
+          updated_at?: string | null
+          user_id?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cross_device_correlations_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_missions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cross_modal_correlations: {
         Row: {
@@ -7853,6 +8085,56 @@ export type Database = {
             columns: ["linked_profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      device_health_checks: {
+        Row: {
+          check_type: string
+          created_at: string | null
+          device_id: string | null
+          health_score: number | null
+          id: string
+          issues_detected: Json | null
+          metrics: Json | null
+          next_check_at: string | null
+          recommendations: Json | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          check_type: string
+          created_at?: string | null
+          device_id?: string | null
+          health_score?: number | null
+          id?: string
+          issues_detected?: Json | null
+          metrics?: Json | null
+          next_check_at?: string | null
+          recommendations?: Json | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          check_type?: string
+          created_at?: string | null
+          device_id?: string | null
+          health_score?: number | null
+          id?: string
+          issues_detected?: Json | null
+          metrics?: Json | null
+          next_check_at?: string | null
+          recommendations?: Json | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_health_checks_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "hardware_devices"
             referencedColumns: ["id"]
           },
         ]
@@ -10819,11 +11101,14 @@ export type Database = {
           device_name: string | null
           device_type: string
           firmware_version: string | null
+          health_status: string | null
           id: string
           is_online: boolean | null
+          last_health_check_at: string | null
           last_seen_at: string | null
           location: Json | null
           location_name: string | null
+          maintenance_due_at: string | null
           metadata: Json | null
           signal_strength: number | null
           updated_at: string | null
@@ -10839,11 +11124,14 @@ export type Database = {
           device_name?: string | null
           device_type: string
           firmware_version?: string | null
+          health_status?: string | null
           id?: string
           is_online?: boolean | null
+          last_health_check_at?: string | null
           last_seen_at?: string | null
           location?: Json | null
           location_name?: string | null
+          maintenance_due_at?: string | null
           metadata?: Json | null
           signal_strength?: number | null
           updated_at?: string | null
@@ -10859,11 +11147,14 @@ export type Database = {
           device_name?: string | null
           device_type?: string
           firmware_version?: string | null
+          health_status?: string | null
           id?: string
           is_online?: boolean | null
+          last_health_check_at?: string | null
           last_seen_at?: string | null
           location?: Json | null
           location_name?: string | null
+          maintenance_due_at?: string | null
           metadata?: Json | null
           signal_strength?: number | null
           updated_at?: string | null
