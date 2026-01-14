@@ -10626,6 +10626,113 @@ export type Database = {
         }
         Relationships: []
       }
+      hardware_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_type: string
+          auto_resolved: boolean | null
+          created_at: string
+          description: string | null
+          device_id: string | null
+          id: string
+          is_acknowledged: boolean | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          severity: string
+          source_data: Json | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type: string
+          auto_resolved?: boolean | null
+          created_at?: string
+          description?: string | null
+          device_id?: string | null
+          id?: string
+          is_acknowledged?: boolean | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          severity?: string
+          source_data?: Json | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type?: string
+          auto_resolved?: boolean | null
+          created_at?: string
+          description?: string | null
+          device_id?: string | null
+          id?: string
+          is_acknowledged?: boolean | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          severity?: string
+          source_data?: Json | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hardware_alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "hardware_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hardware_analytics_snapshots: {
+        Row: {
+          alert_summary: Json | null
+          created_at: string
+          device_stats: Json | null
+          fusion_summary: Json | null
+          id: string
+          metrics: Json
+          period_end: string
+          period_start: string
+          snapshot_type: string
+          trend_indicators: Json | null
+          user_id: string
+        }
+        Insert: {
+          alert_summary?: Json | null
+          created_at?: string
+          device_stats?: Json | null
+          fusion_summary?: Json | null
+          id?: string
+          metrics?: Json
+          period_end: string
+          period_start: string
+          snapshot_type: string
+          trend_indicators?: Json | null
+          user_id: string
+        }
+        Update: {
+          alert_summary?: Json | null
+          created_at?: string
+          device_stats?: Json | null
+          fusion_summary?: Json | null
+          id?: string
+          metrics?: Json
+          period_end?: string
+          period_start?: string
+          snapshot_type?: string
+          trend_indicators?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       hardware_commands: {
         Row: {
           acknowledged_at: string | null
@@ -11644,6 +11751,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      intelligence_fusion_events: {
+        Row: {
+          confidence_score: number | null
+          correlation_id: string | null
+          created_at: string
+          event_type: string
+          fusion_result: Json | null
+          id: string
+          is_processed: boolean | null
+          location_data: Json | null
+          priority: string | null
+          processed_at: string | null
+          recommendations: Json | null
+          sources: Json
+          temporal_data: Json | null
+          threat_level: string | null
+          user_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          correlation_id?: string | null
+          created_at?: string
+          event_type: string
+          fusion_result?: Json | null
+          id?: string
+          is_processed?: boolean | null
+          location_data?: Json | null
+          priority?: string | null
+          processed_at?: string | null
+          recommendations?: Json | null
+          sources?: Json
+          temporal_data?: Json | null
+          threat_level?: string | null
+          user_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          correlation_id?: string | null
+          created_at?: string
+          event_type?: string
+          fusion_result?: Json | null
+          id?: string
+          is_processed?: boolean | null
+          location_data?: Json | null
+          priority?: string | null
+          processed_at?: string | null
+          recommendations?: Json | null
+          sources?: Json
+          temporal_data?: Json | null
+          threat_level?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       intelligence_methodologies: {
         Row: {
