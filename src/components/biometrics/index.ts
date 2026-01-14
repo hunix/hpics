@@ -24,3 +24,8 @@ export { FaceScanJobMonitor } from './FaceScanJobMonitor';
 
 // Voice
 export { VoiceEnrollmentDialog } from './VoiceEnrollmentDialog';
+
+// Advanced Biometrics
+export { SignatureCaptureCanvas } from './SignatureCaptureCanvas';
+export { GaitCapturePanel } from './GaitCapturePanel';
+export { KeystrokeMonitor } from './KeystrokeMonitor';

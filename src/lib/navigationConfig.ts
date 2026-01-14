@@ -220,7 +220,7 @@ export const navigationItems: NavItem[] = [
     requiredClearance: 'secret',
     keywords: ['ml', 'machine learning', 'advanced'],
   },
-  {
+{
     id: 'counter-intelligence',
     title: 'Counter-Intelligence',
     url: '/counter-intelligence',
@@ -230,6 +230,28 @@ export const navigationItems: NavItem[] = [
     requiredRole: 'supervisor',
     requiredClearance: 'top_secret',
     keywords: ['counter', 'threat', 'detection'],
+  },
+  {
+    id: 'psychology-intelligence',
+    title: 'Psychology Analysis',
+    url: '/psychology',
+    icon: Brain,
+    description: 'Dark Triad, influence playbooks & manipulation detection',
+    badge: 'new',
+    category: 'intelligence',
+    requiredRole: 'analyst',
+    keywords: ['psychology', 'dark triad', 'manipulation', 'influence', 'playbook'],
+  },
+  {
+    id: 'deception-analysis',
+    title: 'Deception Analysis',
+    url: '/deception',
+    icon: Eye,
+    description: 'Multi-modal honesty assessment & voice stress',
+    badge: 'new',
+    category: 'intelligence',
+    requiredRole: 'analyst',
+    keywords: ['deception', 'lie detection', 'voice stress', 'micro-expression'],
   },
   
   // Relationships
@@ -337,7 +359,7 @@ export const navigationItems: NavItem[] = [
     keywords: ['dashboard', 'metrics', 'analytics'],
   },
   
-  // Security
+// Security
   {
     id: 'security-center',
     title: 'Security Center',
@@ -347,6 +369,16 @@ export const navigationItems: NavItem[] = [
     category: 'security',
     requiredRole: 'analyst',
     keywords: ['security', 'protection', 'safety'],
+  },
+  {
+    id: 'biometric-hub',
+    title: 'Biometric Hub',
+    url: '/biometrics',
+    icon: Scan,
+    description: 'Multi-modal biometric enrollment & matching',
+    badge: 'new',
+    category: 'security',
+    keywords: ['biometrics', 'face', 'voice', 'gait', 'keystroke', 'signature'],
   },
   
   // System

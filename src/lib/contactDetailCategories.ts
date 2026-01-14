@@ -21,7 +21,8 @@ export type SectionId =
   | 'temporal' | 'trajectory' | 'triangulation' | 'consistency' | 'unified-profile' | 'shared-experiences'
   | 'team-notes'
   | 'detected-items' | 'unknown-persons' | 'doc-intelligence'
-  | 'voice-insights' | 'document-insights' | 'content-relationships' | 'keyword-watchlist';
+  | 'voice-insights' | 'document-insights' | 'content-relationships' | 'keyword-watchlist'
+  | 'psychology' | 'deception' | 'keystroke-enrollment';
 
 export type CategoryId = 'profile' | 'intelligence' | 'communication' | 'media' | 'connections';
 
@@ -96,6 +97,9 @@ export const categories: Category[] = [
       { id: 'document-insights', label: 'Document Intel', icon: FileText, keywords: ['analysis', 'content'] },
       { id: 'content-relationships', label: 'Content Links', icon: Share2, keywords: ['connections', 'graph'] },
       { id: 'keyword-watchlist', label: 'Keyword Alerts', icon: Search, keywords: ['monitor', 'track'] },
+      { id: 'psychology', label: 'Dark Psychology', icon: Brain, keywords: ['dark triad', 'manipulation', 'influence'] },
+      { id: 'deception', label: 'Deception Detection', icon: Eye, keywords: ['lie', 'stress', 'micro-expression'] },
+      { id: 'keystroke-enrollment', label: 'Keystroke Biometric', icon: Fingerprint, keywords: ['typing', 'dynamics'] },
     ]
   },
   {

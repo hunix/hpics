@@ -18,3 +18,11 @@ export { ManipulationVulnerabilityPanel } from './ManipulationVulnerabilityPanel
 export { SuperiorityDashboard } from './SuperiorityDashboard';
 export { PowerDynamicsAnalyzer } from './PowerDynamicsAnalyzer';
 export { NetworkInfluenceMap } from './NetworkInfluenceMap';
+
+// Psychology & Deception Components
+export { DarkPsychologyDashboard } from './DarkPsychologyDashboard';
+export { DeceptionDetectionConsole } from './DeceptionDetectionConsole';
+export { MicroExpressionTimeline } from './MicroExpressionTimeline';
+export { VoiceStressPanel } from './VoiceStressPanel';
+export { InfluencePlaybookPanel } from './InfluencePlaybookPanel';
+export { LocalMLDashboard } from './LocalMLDashboard';
