@@ -60,6 +60,9 @@ const UltimateCommandCenter = lazyWithRetry(() => import("./pages/UltimateComman
 const SocialIntelligenceDashboard = lazyWithRetry(() => import("./pages/SocialIntelligenceDashboard"));
 const Superiority = lazyWithRetry(() => import("./pages/Superiority"));
 const InvestmentIntelligence = lazyWithRetry(() => import("./pages/InvestmentIntelligence"));
+const PsychologyIntelligence = lazyWithRetry(() => import("./pages/PsychologyIntelligence"));
+const DeceptionAnalysis = lazyWithRetry(() => import("./pages/DeceptionAnalysis"));
+const BiometricHub = lazyWithRetry(() => import("./pages/BiometricHub"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -129,6 +132,9 @@ const App = () => (
                         <Route path="/social-intelligence" element={<SocialIntelligenceDashboard />} />
                         <Route path="/superiority" element={<Superiority />} />
                         <Route path="/investment-intelligence" element={<InvestmentIntelligence />} />
+                        <Route path="/psychology-intelligence" element={<PsychologyIntelligence />} />
+                        <Route path="/deception-analysis" element={<DeceptionAnalysis />} />
+                        <Route path="/biometric-hub" element={<BiometricHub />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                       </Suspense>
