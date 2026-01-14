@@ -1076,6 +1076,60 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_chain_verifications: {
+        Row: {
+          broken_entry_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          end_date: string | null
+          first_broken_at: string | null
+          id: string
+          invalid_entries: number | null
+          metadata: Json | null
+          start_date: string | null
+          status: string
+          total_entries_checked: number | null
+          user_id: string
+          valid_entries: number | null
+          verification_hash: string | null
+          verification_type: string
+        }
+        Insert: {
+          broken_entry_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          end_date?: string | null
+          first_broken_at?: string | null
+          id?: string
+          invalid_entries?: number | null
+          metadata?: Json | null
+          start_date?: string | null
+          status: string
+          total_entries_checked?: number | null
+          user_id: string
+          valid_entries?: number | null
+          verification_hash?: string | null
+          verification_type: string
+        }
+        Update: {
+          broken_entry_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          end_date?: string | null
+          first_broken_at?: string | null
+          id?: string
+          invalid_entries?: number | null
+          metadata?: Json | null
+          start_date?: string | null
+          status?: string
+          total_entries_checked?: number | null
+          user_id?: string
+          valid_entries?: number | null
+          verification_hash?: string | null
+          verification_type?: string
+        }
+        Relationships: []
+      }
       automation_rules: {
         Row: {
           action_config: Json
@@ -6972,6 +7026,124 @@ export type Database = {
         }
         Relationships: []
       }
+      data_classification_tags: {
+        Row: {
+          classification: string
+          column_name: string | null
+          created_at: string | null
+          id: string
+          pii_type: string | null
+          requires_audit: boolean | null
+          requires_encryption: boolean | null
+          retention_days: number | null
+          table_name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          classification?: string
+          column_name?: string | null
+          created_at?: string | null
+          id?: string
+          pii_type?: string | null
+          requires_audit?: boolean | null
+          requires_encryption?: boolean | null
+          retention_days?: number | null
+          table_name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          classification?: string
+          column_name?: string | null
+          created_at?: string | null
+          id?: string
+          pii_type?: string | null
+          requires_audit?: boolean | null
+          requires_encryption?: boolean | null
+          retention_days?: number | null
+          table_name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      data_residency_controls: {
+        Row: {
+          allowed_processing_regions: string[] | null
+          consent_expires_at: string | null
+          consent_obtained_at: string | null
+          created_at: string | null
+          data_region: string
+          deletion_requested_at: string | null
+          deletion_scheduled_for: string | null
+          id: string
+          profile_id: string | null
+          requires_consent: boolean | null
+          restricted_from_regions: string[] | null
+          retention_policy: string | null
+          sovereignty_requirements: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          allowed_processing_regions?: string[] | null
+          consent_expires_at?: string | null
+          consent_obtained_at?: string | null
+          created_at?: string | null
+          data_region?: string
+          deletion_requested_at?: string | null
+          deletion_scheduled_for?: string | null
+          id?: string
+          profile_id?: string | null
+          requires_consent?: boolean | null
+          restricted_from_regions?: string[] | null
+          retention_policy?: string | null
+          sovereignty_requirements?: string[] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          allowed_processing_regions?: string[] | null
+          consent_expires_at?: string | null
+          consent_obtained_at?: string | null
+          created_at?: string | null
+          data_region?: string
+          deletion_requested_at?: string | null
+          deletion_scheduled_for?: string | null
+          id?: string
+          profile_id?: string | null
+          requires_consent?: boolean | null
+          restricted_from_regions?: string[] | null
+          retention_policy?: string | null
+          sovereignty_requirements?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_residency_controls_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "data_residency_controls_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "data_residency_controls_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deception_analyses: {
         Row: {
           analysis_version: string | null
@@ -8613,6 +8785,51 @@ export type Database = {
           },
         ]
       }
+      encryption_key_rotations: {
+        Row: {
+          affected_tables: string[] | null
+          algorithm: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          key_version: number
+          metadata: Json | null
+          rotated_at: string | null
+          rotation_completed_at: string | null
+          rotation_started_by: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          affected_tables?: string[] | null
+          algorithm?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          key_version?: number
+          metadata?: Json | null
+          rotated_at?: string | null
+          rotation_completed_at?: string | null
+          rotation_started_by?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          affected_tables?: string[] | null
+          algorithm?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          key_version?: number
+          metadata?: Json | null
+          rotated_at?: string | null
+          rotation_completed_at?: string | null
+          rotation_started_by?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       encryption_keys: {
         Row: {
           algorithm: string | null
@@ -9559,6 +9776,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      field_access_controls: {
+        Row: {
+          audit_access: boolean | null
+          created_at: string | null
+          encryption_required: boolean | null
+          field_name: string
+          id: string
+          mask_pattern: string | null
+          required_clearance: string | null
+          required_compartments: string[] | null
+          required_roles: string[] | null
+          table_name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          audit_access?: boolean | null
+          created_at?: string | null
+          encryption_required?: boolean | null
+          field_name: string
+          id?: string
+          mask_pattern?: string | null
+          required_clearance?: string | null
+          required_compartments?: string[] | null
+          required_roles?: string[] | null
+          table_name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          audit_access?: boolean | null
+          created_at?: string | null
+          encryption_required?: boolean | null
+          field_name?: string
+          id?: string
+          mask_pattern?: string | null
+          required_clearance?: string | null
+          required_compartments?: string[] | null
+          required_roles?: string[] | null
+          table_name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       financial_intelligence: {
         Row: {
@@ -15550,6 +15812,57 @@ export type Database = {
         }
         Relationships: []
       }
+      security_events: {
+        Row: {
+          action_successful: boolean | null
+          action_taken: string | null
+          created_at: string | null
+          event_type: string
+          failure_reason: string | null
+          id: string
+          metadata: Json | null
+          resource_id: string | null
+          resource_type: string | null
+          risk_score: number | null
+          severity: string
+          source_ip: unknown
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action_successful?: boolean | null
+          action_taken?: string | null
+          created_at?: string | null
+          event_type: string
+          failure_reason?: string | null
+          id?: string
+          metadata?: Json | null
+          resource_id?: string | null
+          resource_type?: string | null
+          risk_score?: number | null
+          severity?: string
+          source_ip?: unknown
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action_successful?: boolean | null
+          action_taken?: string | null
+          created_at?: string | null
+          event_type?: string
+          failure_reason?: string | null
+          id?: string
+          metadata?: Json | null
+          resource_id?: string | null
+          resource_type?: string | null
+          risk_score?: number | null
+          severity?: string
+          source_ip?: unknown
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       security_findings: {
         Row: {
           affected_resource: string | null
@@ -16651,6 +16964,57 @@ export type Database = {
           requests_last_hour?: number | null
           status?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      tamper_detection_alerts: {
+        Row: {
+          actual_value: string | null
+          affected_record_id: string | null
+          affected_table: string
+          detected_at: string | null
+          detection_type: string
+          expected_value: string | null
+          id: string
+          investigated_at: string | null
+          investigated_by: string | null
+          is_resolved: boolean | null
+          metadata: Json | null
+          resolution: string | null
+          severity: string
+          user_id: string
+        }
+        Insert: {
+          actual_value?: string | null
+          affected_record_id?: string | null
+          affected_table: string
+          detected_at?: string | null
+          detection_type: string
+          expected_value?: string | null
+          id?: string
+          investigated_at?: string | null
+          investigated_by?: string | null
+          is_resolved?: boolean | null
+          metadata?: Json | null
+          resolution?: string | null
+          severity?: string
+          user_id: string
+        }
+        Update: {
+          actual_value?: string | null
+          affected_record_id?: string | null
+          affected_table?: string
+          detected_at?: string | null
+          detection_type?: string
+          expected_value?: string | null
+          id?: string
+          investigated_at?: string | null
+          investigated_by?: string | null
+          is_resolved?: boolean | null
+          metadata?: Json | null
+          resolution?: string | null
+          severity?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -18825,6 +19189,18 @@ export type Database = {
         }
         Returns: string
       }
+      log_security_event: {
+        Args: {
+          p_action_successful?: boolean
+          p_action_taken?: string
+          p_event_type: string
+          p_metadata?: Json
+          p_resource_id?: string
+          p_resource_type?: string
+          p_severity?: string
+        }
+        Returns: string
+      }
       match_documents: {
         Args: {
           p_match_count?: number
@@ -19033,6 +19409,15 @@ export type Database = {
         Returns: undefined
       }
       track_navigation_access: { Args: { p_route: string }; Returns: undefined }
+      verify_audit_chain_segment: {
+        Args: { p_end_date?: string; p_start_date?: string; p_user_id: string }
+        Returns: {
+          broken_at: string
+          first_broken_id: string
+          is_valid: boolean
+          total_checked: number
+        }[]
+      }
       verify_churn_prediction_outcomes: { Args: never; Returns: undefined }
     }
     Enums: {
@@ -19061,6 +19446,12 @@ export type Database = {
         | "instagram"
         | "website"
         | "other"
+      data_classification:
+        | "public"
+        | "internal"
+        | "confidential"
+        | "restricted"
+        | "top_secret"
       document_type:
         | "resume"
         | "contract"
@@ -19250,6 +19641,13 @@ export const Constants = {
         "instagram",
         "website",
         "other",
+      ],
+      data_classification: [
+        "public",
+        "internal",
+        "confidential",
+        "restricted",
+        "top_secret",
       ],
       document_type: [
         "resume",
