@@ -599,7 +599,7 @@ class SignatureAnalyzer {
     const geometricSim = this.compareGeometry(sig1.geometry, sig2.geometry, discrepancies);
     
     // Stroke pattern similarity
-    const strokeSim = this.compareStrokes(sig1.strokes, sig2.strokes, discrepancies);
+    const strokeSim = this.compareStrokes(sig1.strokes, sig2.strokes);
 
     // Feature vector cosine similarity
     const featureSim = this.cosineSimilarity(sig1.featureVector, sig2.featureVector);
