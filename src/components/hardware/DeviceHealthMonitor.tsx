@@ -40,7 +40,7 @@ export function DeviceHealthMonitor() {
   const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
 
   const getDeviceHealth = (deviceId: string) => {
-    return healthChecks.find(h => h.device_id === deviceId);
+    return (healthChecks || []).find(h => h.device_id === deviceId);
   };
 
   const getBatteryColor = (level: number | null) => {

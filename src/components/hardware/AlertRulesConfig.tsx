@@ -201,29 +201,22 @@ export function AlertRulesConfig() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Operator</Label>
-                    <Select
-                      value={newRule.conditions.operator}
-                      onValueChange={(v) => setNewRule({
-                        ...newRule,
-                        conditions: { ...newRule.conditions, operator: v as 'lt' | 'lte' | 'gt' | 'gte' | 'eq' }
-                      })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="lt">Less Than</SelectItem>
-                        <SelectItem value="gt">Greater Than</SelectItem>
-                        <SelectItem value="eq">Equals</SelectItem>
-                        <SelectItem value="lte">Less Than or Equal</SelectItem>
-                        <SelectItem value="gte">Greater Than or Equal</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <Select
+                        value={newRule.conditions.operator}
+                        onValueChange={(v) => setNewRule({
+                          ...newRule,
+                          conditions: { ...newRule.conditions, operator: v as 'lt' | 'lte' | 'gt' | 'gte' | 'eq' }
+                        })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="less_than">Less Than</SelectItem>
-                          <SelectItem value="greater_than">Greater Than</SelectItem>
-                          <SelectItem value="equals">Equals</SelectItem>
+                          <SelectItem value="lt">Less Than</SelectItem>
+                          <SelectItem value="gt">Greater Than</SelectItem>
+                          <SelectItem value="eq">Equals</SelectItem>
+                          <SelectItem value="lte">Less Than or Equal</SelectItem>
+                          <SelectItem value="gte">Greater Than or Equal</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -251,7 +244,6 @@ export function AlertRulesConfig() {
                     >
                       <SelectTrigger>
                         <SelectValue />
-                      </SelectTrigger>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="low">Low</SelectItem>
