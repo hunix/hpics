@@ -15,22 +15,37 @@ import {
   generateExploitationPlaybook,
   assessDarkTriad,
   assessBiasSusceptibility,
-  type InfluenceResistance
+  type InfluenceResistance,
+  type CognitiveBias
 } from '@/lib/psychology/darkPsychologyEngine';
 
 interface InfluencePlaybookPanelProps {
   profileId: string;
   profileName: string;
   behavioralData?: {
-    communicationStyle?: string;
-    decisionPatterns?: string[];
-    socialBehavior?: string;
-    emotionalResponses?: string[];
-    riskTolerance?: number;
-    competitiveness?: number;
-    empathyIndicators?: number;
+    messages: Array<{ content: string; direction: 'sent' | 'received' }>;
+    observations: Array<{ type: string; content: string }>;
+    interactions: Array<{ outcome: string; pattern: string }>;
+    personality?: {
+      openness: number;
+      conscientiousness: number;
+      neuroticism: number;
+      agreeableness: number;
+      extraversion: number;
+    };
+    education?: string;
+    criticalThinkingScore?: number;
   };
 }
+
+// Convert INFLUENCE_PRINCIPLES object to array for iteration
+const influencePrinciplesArray = Object.entries(INFLUENCE_PRINCIPLES).map(([key, value]) => ({
+  key,
+  name: value.name,
+  description: value.description,
+  techniques: value.techniques,
+  detection: value.detection
+}));
 
 export function InfluencePlaybookPanel({ 
   profileId, 
@@ -38,17 +53,36 @@ export function InfluencePlaybookPanel({
   behavioralData 
 }: InfluencePlaybookPanelProps) {
   const analysis = useMemo(() => {
-    if (!behavioralData) return null;
+    if (!behavioralData || !behavioralData.personality) return null;
 
-    const darkTriad = assessDarkTriad(behavioralData);
-    const biases = assessBiasSusceptibility(behavioralData);
-    const resistance = calculateInfluenceResistance(behavioralData);
-    const playbook = generateExploitationPlaybook(darkTriad, biases);
+    const darkTriad = assessDarkTriad({
+      messages: behavioralData.messages || [],
+      observations: behavioralData.observations || [],
+      interactions: behavioralData.interactions || []
+    });
+    
+    const biasMap = assessBiasSusceptibility(
+      behavioralData.personality,
+      behavioralData.interactions.map(i => ({ decision: i.outcome, factors: [i.pattern] }))
+    );
+    const biases = Array.from(biasMap.values()).sort((a, b) => b.adjustedSusceptibility - a.adjustedSusceptibility);
+    
+    const resistance = calculateInfluenceResistance(
+      behavioralData.personality,
+      behavioralData.education || 'unknown',
+      behavioralData.criticalThinkingScore || 50
+    );
+    
+    const playbook = generateExploitationPlaybook(
+      behavioralData.personality,
+      darkTriad,
+      biasMap
+    );
 
     return { darkTriad, biases, resistance, playbook };
   }, [behavioralData]);
 
-  if (!behavioralData || !analysis) {
+  if (!behavioralData || !behavioralData.personality || !analysis) {
     return (
       <Card>
         <CardHeader>
@@ -61,7 +95,7 @@ export function InfluencePlaybookPanel({
           <Alert>
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              Behavioral data required to generate influence playbook for {profileName}.
+              Personality and behavioral data required to generate influence playbook for {profileName}.
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -69,7 +103,7 @@ export function InfluencePlaybookPanel({
     );
   }
 
-  const overallVulnerability = 1 - analysis.resistance.overallScore;
+  const overallVulnerability = 1 - (analysis.resistance.overall / 100);
 
   return (
     <Card>
@@ -106,9 +140,9 @@ export function InfluencePlaybookPanel({
             Cialdini's Principles - Vulnerability Map
           </h3>
           <div className="space-y-3">
-            {INFLUENCE_PRINCIPLES.map(principle => {
-              const resistance = analysis.resistance.principleScores[principle.key] || 0.5;
-              const vulnerability = 1 - resistance;
+            {influencePrinciplesArray.map(principle => {
+              const resistanceScore = analysis.resistance.byPrinciple[principle.key] || 50;
+              const vulnerability = 1 - (resistanceScore / 100);
               return (
                 <div key={principle.key} className="space-y-1">
                   <div className="flex items-center justify-between">
@@ -157,10 +191,10 @@ export function InfluencePlaybookPanel({
                       </p>
                     </div>
                     <Badge 
-                      variant={bias.susceptibility > 0.7 ? 'destructive' : 'outline'}
+                      variant={bias.adjustedSusceptibility > 70 ? 'destructive' : 'outline'}
                       className="ml-2"
                     >
-                      {(bias.susceptibility * 100).toFixed(0)}%
+                      {bias.adjustedSusceptibility.toFixed(0)}%
                     </Badge>
                   </div>
                 </CardContent>
@@ -179,7 +213,7 @@ export function InfluencePlaybookPanel({
           </h3>
           <ScrollArea className="h-[250px]">
             <div className="space-y-3">
-              {analysis.playbook.strategies.map((strategy, idx) => (
+              {analysis.playbook.primaryStrategies.map((strategy, idx) => (
                 <Card key={idx}>
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-2">
@@ -195,25 +229,9 @@ export function InfluencePlaybookPanel({
                         {(strategy.effectiveness * 100).toFixed(0)}% effective
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-3">
+                    <p className="text-sm text-muted-foreground">
                       {strategy.description}
                     </p>
-                    <div className="space-y-2">
-                      <div>
-                        <p className="text-xs font-medium text-muted-foreground">APPROACH</p>
-                        <p className="text-sm bg-muted/50 p-2 rounded mt-1">{strategy.approach}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-muted-foreground">KEY TRIGGERS</p>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {strategy.triggers.map((trigger, i) => (
-                            <Badge key={i} variant="secondary" className="text-xs">
-                              {trigger}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -223,19 +241,33 @@ export function InfluencePlaybookPanel({
 
         <Separator />
 
-        {/* Recommended Approaches Summary */}
-        <div>
-          <h3 className="font-medium mb-3 flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Quick Reference - Best Approaches
-          </h3>
-          <div className="space-y-2">
-            {analysis.resistance.recommendedApproaches.map((approach, idx) => (
-              <div key={idx} className="flex items-center gap-2 p-2 bg-muted/30 rounded">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <span className="text-sm">{approach}</span>
-              </div>
-            ))}
+        {/* Weak Points & Strengths Summary */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <h3 className="font-medium mb-3 flex items-center gap-2 text-red-500">
+              <AlertTriangle className="h-4 w-4" />
+              Weak Points
+            </h3>
+            <div className="space-y-2">
+              {analysis.resistance.weakPoints.map((point, idx) => (
+                <div key={idx} className="flex items-center gap-2 p-2 bg-red-500/10 rounded text-sm">
+                  <span>{point}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <h3 className="font-medium mb-3 flex items-center gap-2 text-green-500">
+              <CheckCircle2 className="h-4 w-4" />
+              Strength Points
+            </h3>
+            <div className="space-y-2">
+              {analysis.resistance.strengthPoints.map((point, idx) => (
+                <div key={idx} className="flex items-center gap-2 p-2 bg-green-500/10 rounded text-sm">
+                  <span>{point}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -246,7 +278,7 @@ export function InfluencePlaybookPanel({
               <div>
                 <p className="text-sm font-medium">Overall Influence Profile</p>
                 <p className="text-xs text-muted-foreground">
-                  Based on Dark Triad assessment and bias susceptibility
+                  Based on personality traits and bias susceptibility
                 </p>
               </div>
               <div className="text-right">
