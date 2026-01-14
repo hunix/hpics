@@ -17,6 +17,9 @@ import {
   RefreshCw,
   Waves,
   Activity,
+  AlertTriangle,
+  Brain,
+  BarChart3,
 } from 'lucide-react';
 import { DeviceGrid } from '@/components/hardware/DeviceGrid';
 import { MissionControl } from '@/components/hardware/MissionControl';
@@ -27,6 +30,9 @@ import { AerialOpsPanel } from '@/components/hardware/AerialOpsPanel';
 import { TSCMPanel } from '@/components/hardware/TSCMPanel';
 import { SDRPanel } from '@/components/hardware/SDRPanel';
 import { SensorDashboard } from '@/components/hardware/SensorDashboard';
+import { HardwareAlertPanel } from '@/components/hardware/HardwareAlertPanel';
+import { IntelligenceFusionPanel } from '@/components/hardware/IntelligenceFusionPanel';
+import { HardwareAnalyticsDashboard } from '@/components/hardware/HardwareAnalyticsDashboard';
 
 export default function HardwareCommand() {
   const navigate = useNavigate();
@@ -135,6 +141,18 @@ export default function HardwareCommand() {
               <Activity className="h-4 w-4" />
               Sensors
             </TabsTrigger>
+            <TabsTrigger value="alerts" className="gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              Alerts
+            </TabsTrigger>
+            <TabsTrigger value="fusion" className="gap-2">
+              <Brain className="h-4 w-4" />
+              Fusion
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Analytics
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="devices">
@@ -167,6 +185,18 @@ export default function HardwareCommand() {
 
           <TabsContent value="sensors">
             <SensorDashboard />
+          </TabsContent>
+
+          <TabsContent value="alerts">
+            <HardwareAlertPanel />
+          </TabsContent>
+
+          <TabsContent value="fusion">
+            <IntelligenceFusionPanel />
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <HardwareAnalyticsDashboard />
           </TabsContent>
         </Tabs>
       </main>
