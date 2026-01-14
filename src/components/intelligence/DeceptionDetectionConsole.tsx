@@ -6,14 +6,13 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { 
   Shield, Eye, Mic, Brain, AlertTriangle, 
   TrendingUp, Clock, FileText, Activity, 
   CheckCircle2, XCircle
 } from 'lucide-react';
-import type { MicroExpressionEvent } from '@/lib/psychology/microExpressionAnalyzer';
-import type { VoiceDeceptionAnalysis } from '@/lib/psychology/voiceStressAnalyzer';
+import type { MicroExpressionEvent, DeceptionIndicator } from '@/lib/psychology/microExpressionAnalyzer';
+import type { VoiceDeceptionAnalysis, VoiceStressMarker } from '@/lib/psychology/voiceStressAnalyzer';
 
 interface DeceptionSignal {
   source: 'facial' | 'vocal' | 'linguistic' | 'behavioral';
@@ -56,33 +55,43 @@ export function DeceptionDetectionConsole({
   const allSignals = useMemo(() => {
     const signals: DeceptionSignal[] = [];
 
-    // Process facial events
+    // Process facial events - use deceptionRisk from MicroExpressionEvent
     facialEvents.forEach(event => {
-      if (event.deceptionIndicators) {
-        event.deceptionIndicators.forEach(indicator => {
-          signals.push({
-            source: 'facial',
-            type: indicator.type,
-            description: indicator.description,
-            timestamp: event.timestamp,
-            severity: indicator.severity || 0.5,
-            confidence: event.confidence
-          });
+      if (event.deceptionRisk > 0.3) {
+        signals.push({
+          source: 'facial',
+          type: 'Deception Risk',
+          description: event.interpretation || `${event.emotion} expression with elevated deception risk`,
+          timestamp: event.timestamp,
+          severity: event.deceptionRisk,
+          confidence: event.confidence
+        });
+      }
+      
+      // Add non-authentic expressions as signals
+      if (!event.isAuthentic) {
+        signals.push({
+          source: 'facial',
+          type: 'Inauthentic Expression',
+          description: `Non-genuine ${event.emotion} detected`,
+          timestamp: event.timestamp,
+          severity: 0.6,
+          confidence: event.confidence
         });
       }
     });
 
-    // Process voice analysis
-    voiceAnalysis.forEach(analysis => {
-      if (analysis.indicators) {
-        analysis.indicators.forEach(indicator => {
+    // Process voice analysis - use stressIndicators from VoiceDeceptionAnalysis
+    voiceAnalysis.forEach((analysis, idx) => {
+      if (analysis.stressIndicators && analysis.stressIndicators.length > 0) {
+        analysis.stressIndicators.forEach((marker: VoiceStressMarker) => {
           signals.push({
             source: 'vocal',
-            type: indicator.type,
-            description: indicator.description,
-            timestamp: analysis.timestamp || 0,
-            severity: indicator.severity,
-            confidence: analysis.confidence || 0.7
+            type: marker.type,
+            description: marker.description,
+            timestamp: marker.timestamp,
+            severity: marker.deceptionCorrelation,
+            confidence: marker.confidence
           });
         });
       }
@@ -419,7 +428,7 @@ export function DeceptionDetectionConsole({
                   </div>
 
                   {/* Legend */}
-                  <div className="flex items-center justify-center gap-4 mt-4 text-xs">
+                  <div className="flex justify-center gap-4 mt-4 text-xs">
                     <div className="flex items-center gap-1">
                       <div className="w-3 h-3 rounded bg-blue-500" />
                       <span>Facial</span>

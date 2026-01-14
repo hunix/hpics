@@ -3,17 +3,39 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { Keyboard, Eye, EyeOff, CheckCircle2, AlertTriangle, Activity } from 'lucide-react';
+import { Keyboard, Eye, EyeOff, CheckCircle2, Activity } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { KeystrokeDynamicsAnalyzer, type KeyEvent, type KeystrokeProfile, type KeystrokeComparison } from '@/lib/biometrics/keystrokeDynamics';
+import { keystrokeDynamicsAnalyzer } from '@/lib/biometrics/keystrokeDynamics';
+import type { KeyEvent, KeystrokeProfile, KeystrokeComparison, KeystrokeFeatures } from '@/lib/biometrics/keystrokeDynamics';
 
 interface KeystrokeMonitorProps {
   profileId?: string;
   onMatch?: (profileId: string, confidence: number) => void;
   onMismatch?: (details: KeystrokeComparison) => void;
   showVisualFeedback?: boolean;
+}
+
+// Create a new analyzer instance per monitor
+class KeystrokeAnalyzerInstance {
+  private analyzer = keystrokeDynamicsAnalyzer;
+  
+  processKeyEvent(event: KeyEvent) {
+    this.analyzer.processKeyEvent(event);
+  }
+  
+  analyze() {
+    return this.analyzer.analyze();
+  }
+  
+  clear() {
+    this.analyzer.clear();
+  }
+  
+  compareProfiles(p1: KeystrokeProfile, p2: KeystrokeProfile) {
+    return this.analyzer.compareProfiles(p1, p2);
+  }
 }
 
 export function KeystrokeMonitor({ 
@@ -28,7 +50,7 @@ export function KeystrokeMonitor({
   const [lastActivityTime, setLastActivityTime] = useState<number | null>(null);
   const [eventCount, setEventCount] = useState(0);
   
-  const analyzerRef = useRef(new KeystrokeDynamicsAnalyzer());
+  const analyzerRef = useRef(new KeystrokeAnalyzerInstance());
 
   const { data: profiles } = useQuery({
     queryKey: ['keystroke-profiles', user?.id, profileId],
@@ -69,11 +91,11 @@ export function KeystrokeMonitor({
       if (!currentProfile) return;
       
       for (const storedProfile of profiles) {
-        const features = storedProfile.features as KeystrokeProfile['features'];
+        const features = storedProfile.features as unknown as KeystrokeFeatures;
         const reconstructedProfile: KeystrokeProfile = {
           features,
           keyPresses: [],
-          featureVector: storedProfile.feature_vector,
+          featureVector: storedProfile.feature_vector as number[],
           sampleText: storedProfile.sample_text,
           totalCharacters: storedProfile.total_characters,
           totalDuration: storedProfile.total_duration_ms,
@@ -94,7 +116,7 @@ export function KeystrokeMonitor({
       setIsMonitoring(false);
       setMatchResult(null);
       setEventCount(0);
-      analyzerRef.current = new KeystrokeDynamicsAnalyzer();
+      analyzerRef.current = new KeystrokeAnalyzerInstance();
     } else {
       setIsMonitoring(true);
     }

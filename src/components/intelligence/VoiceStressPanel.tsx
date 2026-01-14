@@ -14,6 +14,7 @@ import {
   type VoiceStressMarker,
   type VoiceBaseline,
   type VoiceDeceptionAnalysis,
+  type VoiceEmotionalState,
   analyzePitchStress,
   analyzeTremor,
   analyzePaceAndPauses,
@@ -29,6 +30,16 @@ interface VoiceStressPanelProps {
   onSegmentSelect?: (segment: VoiceAnalysisInput, index: number) => void;
 }
 
+interface SegmentAnalysis {
+  segment: VoiceAnalysisInput;
+  pitchStress: VoiceStressMarker[];
+  tremor: VoiceStressMarker[];
+  paceAndPauses: VoiceStressMarker[];
+  fillers: VoiceStressMarker[];
+  emotionalState: VoiceEmotionalState;
+  deception: VoiceDeceptionAnalysis;
+}
+
 export function VoiceStressPanel({ 
   audioSegments, 
   baseline: externalBaseline,
@@ -42,20 +53,20 @@ export function VoiceStressPanel({
 
     const baseline = externalBaseline || buildVoiceBaseline(audioSegments);
     
-    const segmentAnalyses = audioSegments.map(segment => ({
+    const segmentAnalyses: SegmentAnalysis[] = audioSegments.map(segment => ({
       segment,
-      pitchStress: analyzePitchStress(segment),
-      tremor: analyzeTremor(segment),
-      paceAndPauses: analyzePaceAndPauses(segment),
-      fillers: analyzeFillers(segment),
-      emotionalState: estimateEmotionalState(segment),
+      pitchStress: analyzePitchStress(segment.pitchData, baseline),
+      tremor: analyzeTremor(segment.amplitudeData),
+      paceAndPauses: analyzePaceAndPauses(segment.speechRate, segment.pauseData, baseline),
+      fillers: analyzeFillers(segment.fillerWords, segment.transcription?.split(/\s+/).length || 100, baseline),
+      emotionalState: estimateEmotionalState(segment.pitchData, segment.speechRate, baseline),
       deception: analyzeVoiceDeception(segment, baseline)
     }));
 
     // Aggregate metrics
-    const avgStress = segmentAnalyses.reduce((sum, a) => sum + (a.deception?.overallDeceptionScore || 0), 0) / segmentAnalyses.length;
-    const totalFillers = segmentAnalyses.reduce((sum, a) => sum + (a.fillers?.count || 0), 0);
-    const avgCognitiveLoad = segmentAnalyses.reduce((sum, a) => sum + (a.deception?.cognitiveLoad || 0), 0) / segmentAnalyses.length;
+    const avgStress = segmentAnalyses.reduce((sum, a) => sum + (a.deception.overallRisk || 0), 0) / segmentAnalyses.length;
+    const totalFillers = segmentAnalyses.reduce((sum, a) => sum + a.fillers.length, 0);
+    const avgCognitiveLoad = segmentAnalyses.reduce((sum, a) => sum + (a.deception.cognitiveLoadScore || 0), 0) / segmentAnalyses.length;
 
     return {
       baseline,
@@ -77,13 +88,6 @@ export function VoiceStressPanel({
     if (score >= 0.7) return 'text-red-500';
     if (score >= 0.4) return 'text-orange-500';
     return 'text-green-500';
-  };
-
-  const formatDuration = (ms: number) => {
-    const seconds = Math.floor(ms / 1000);
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   if (!analysis || audioSegments.length === 0) {
@@ -184,7 +188,7 @@ export function VoiceStressPanel({
               <CardContent>
                 <div className="flex items-end gap-1 h-32">
                   {analysis.segments.map((seg, idx) => {
-                    const score = seg.deception?.overallDeceptionScore || 0;
+                    const score = seg.deception.overallRisk || 0;
                     const height = Math.max(10, score * 100);
                     return (
                       <button
@@ -221,9 +225,9 @@ export function VoiceStressPanel({
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
-                    {Array.from(new Set(analysis.segments.map(s => s.emotionalState?.dominantEmotion).filter(Boolean)))
+                    {Array.from(new Set(analysis.segments.map(s => s.emotionalState.primaryEmotion).filter(Boolean)))
                       .map(emotion => {
-                        const count = analysis.segments.filter(s => s.emotionalState?.dominantEmotion === emotion).length;
+                        const count = analysis.segments.filter(s => s.emotionalState.primaryEmotion === emotion).length;
                         return (
                           <Badge key={emotion} variant="outline">
                             {emotion} ({count})
@@ -250,44 +254,41 @@ export function VoiceStressPanel({
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-medium">Segment {idx + 1}</span>
                       <div className="flex items-center gap-2">
-                        <Badge variant={seg.deception?.overallDeceptionScore && seg.deception.overallDeceptionScore > 0.6 ? 'destructive' : 'secondary'}>
-                          {((seg.deception?.overallDeceptionScore || 0) * 100).toFixed(0)}% stress
+                        <Badge variant={seg.deception.overallRisk > 0.6 ? 'destructive' : 'secondary'}>
+                          {((seg.deception.overallRisk || 0) * 100).toFixed(0)}% stress
                         </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {formatDuration(seg.segment.duration || 0)}
-                        </span>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-4 gap-2 text-xs">
                       <div className="bg-muted/30 p-2 rounded">
                         <p className="text-muted-foreground">Pitch Stress</p>
-                        <p className="font-mono">{((seg.pitchStress?.stressScore || 0) * 100).toFixed(0)}%</p>
+                        <p className="font-mono">{seg.pitchStress.length} markers</p>
                       </div>
                       <div className="bg-muted/30 p-2 rounded">
                         <p className="text-muted-foreground">Tremor</p>
-                        <p className="font-mono">{((seg.tremor?.intensity || 0) * 100).toFixed(0)}%</p>
+                        <p className="font-mono">{seg.tremor.length} markers</p>
                       </div>
                       <div className="bg-muted/30 p-2 rounded">
                         <p className="text-muted-foreground">Pace</p>
-                        <p className="font-mono">{seg.paceAndPauses?.wordsPerMinute?.toFixed(0) || 0} wpm</p>
+                        <p className="font-mono">{seg.segment.speechRate?.toFixed(0) || 0} wpm</p>
                       </div>
                       <div className="bg-muted/30 p-2 rounded">
                         <p className="text-muted-foreground">Fillers</p>
-                        <p className="font-mono">{seg.fillers?.count || 0}</p>
+                        <p className="font-mono">{seg.fillers.length}</p>
                       </div>
                     </div>
 
-                    {seg.deception?.indicators && seg.deception.indicators.length > 0 && (
+                    {seg.deception.stressIndicators && seg.deception.stressIndicators.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1">
-                        {seg.deception.indicators.slice(0, 3).map((indicator, i) => (
+                        {seg.deception.stressIndicators.slice(0, 3).map((indicator, i) => (
                           <Badge key={i} variant="destructive" className="text-xs">
                             {indicator.type}
                           </Badge>
                         ))}
-                        {seg.deception.indicators.length > 3 && (
+                        {seg.deception.stressIndicators.length > 3 && (
                           <Badge variant="outline" className="text-xs">
-                            +{seg.deception.indicators.length - 3} more
+                            +{seg.deception.stressIndicators.length - 3} more
                           </Badge>
                         )}
                       </div>
@@ -310,7 +311,7 @@ export function VoiceStressPanel({
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div className="bg-muted/30 p-2 rounded">
                         <p className="text-muted-foreground">Mean Pitch</p>
-                        <p className="font-mono">{analysis.baseline.meanPitch?.toFixed(1) || 0} Hz</p>
+                        <p className="font-mono">{analysis.baseline.averagePitch?.toFixed(1) || 0} Hz</p>
                       </div>
                       <div className="bg-muted/30 p-2 rounded">
                         <p className="text-muted-foreground">Pitch Variance</p>
@@ -323,27 +324,14 @@ export function VoiceStressPanel({
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div className="bg-muted/30 p-2 rounded">
                         <p className="text-muted-foreground">Normal Pace</p>
-                        <p className="font-mono">{analysis.baseline.normalPace?.toFixed(0) || 0} wpm</p>
+                        <p className="font-mono">{analysis.baseline.speechRate?.toFixed(0) || 0} wpm</p>
                       </div>
                       <div className="bg-muted/30 p-2 rounded">
-                        <p className="text-muted-foreground">Pause Pattern</p>
-                        <p className="font-mono">{analysis.baseline.averagePauseDuration?.toFixed(0) || 0} ms</p>
+                        <p className="text-muted-foreground">Pause Frequency</p>
+                        <p className="font-mono">{analysis.baseline.pauseFrequency?.toFixed(1) || 0}/min</p>
                       </div>
                     </div>
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Baseline Quality</p>
-                  <div className="flex items-center gap-4">
-                    <Progress value={(analysis.baseline.confidence || 0) * 100} className="flex-1" />
-                    <span className="font-mono text-sm">
-                      {((analysis.baseline.confidence || 0) * 100).toFixed(0)}%
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Based on {analysis.baseline.sampleCount || 0} samples
-                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -353,7 +341,7 @@ export function VoiceStressPanel({
             <ScrollArea className="h-[400px]">
               <div className="space-y-4">
                 {analysis.segments
-                  .filter(seg => seg.deception?.indicators && seg.deception.indicators.length > 0)
+                  .filter(seg => seg.deception.stressIndicators && seg.deception.stressIndicators.length > 0)
                   .map((seg, idx) => (
                     <Card key={idx}>
                       <CardHeader className="pb-2">
@@ -362,21 +350,21 @@ export function VoiceStressPanel({
                             Segment {analysis.segments.indexOf(seg) + 1}
                           </CardTitle>
                           <Badge variant="destructive">
-                            {((seg.deception?.overallDeceptionScore || 0) * 100).toFixed(0)}% deception score
+                            {((seg.deception.overallRisk || 0) * 100).toFixed(0)}% deception risk
                           </Badge>
                         </div>
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-2">
-                          {seg.deception?.indicators.map((indicator, i) => (
+                          {seg.deception.stressIndicators.map((indicator, i) => (
                             <div key={i} className="flex items-start gap-3 p-2 bg-muted/30 rounded">
                               <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5" />
                               <div>
                                 <p className="font-medium text-sm">{indicator.type}</p>
                                 <p className="text-xs text-muted-foreground">{indicator.description}</p>
                                 <div className="flex items-center gap-2 mt-1">
-                                  <Progress value={indicator.severity * 100} className="w-20 h-1" />
-                                  <span className="text-xs">{(indicator.severity * 100).toFixed(0)}% severity</span>
+                                  <Progress value={indicator.deceptionCorrelation * 100} className="w-20 h-1" />
+                                  <span className="text-xs">{(indicator.deceptionCorrelation * 100).toFixed(0)}% correlation</span>
                                 </div>
                               </div>
                             </div>
@@ -386,7 +374,7 @@ export function VoiceStressPanel({
                     </Card>
                   ))}
 
-                {analysis.segments.every(seg => !seg.deception?.indicators || seg.deception.indicators.length === 0) && (
+                {analysis.segments.every(seg => !seg.deception.stressIndicators || seg.deception.stressIndicators.length === 0) && (
                   <Alert>
                     <TrendingDown className="h-4 w-4" />
                     <AlertDescription>
