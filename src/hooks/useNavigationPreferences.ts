@@ -22,14 +22,14 @@ export interface QuickAccessItem {
 }
 
 const defaultPreferences: NavigationPreferences = {
-  collapsed_groups: [],
+  collapsed_groups: ['analysis', 'security', 'system'], // Collapse less-used groups by default
   pinned_items: [],
   hidden_items: [],
   group_order: ['command', 'intelligence', 'relationships', 'assets', 'analysis', 'security', 'system'],
   color_overrides: {},
-  layout_mode: 'comfortable',
+  layout_mode: 'compact', // Use compact mode by default for cleaner UI
   show_badges: true,
-  show_descriptions: true,
+  show_descriptions: false, // Hide descriptions by default for cleaner nav
 };
 
 export function useNavigationPreferences() {

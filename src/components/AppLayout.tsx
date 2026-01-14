@@ -11,7 +11,7 @@ import { OfflineIndicator } from '@/components/OfflineIndicator';
 import { QuickCaptureButton } from '@/components/mobile/QuickCaptureButton';
 import { PushNotificationBanner } from '@/components/mobile/PushNotificationBanner';
 import { InstallPromptBanner } from '@/components/mobile/InstallPromptBanner';
-import { ProactiveAlertBanner } from '@/components/intelligence/ProactiveAlertBanner';
+// ProactiveAlertBanner removed - alerts now routed through NotificationCenter
 import { NotificationCenter } from '@/components/navigation/NotificationCenter';
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
 import { useOfflineData } from '@/hooks/useOfflineData';
@@ -37,7 +37,7 @@ export function AppLayout({ children, title, showQuickCapture = false, capturePr
   const navigate = useNavigate();
   const location = useLocation();
   const { pendingCount, syncPendingChanges, cacheContacts } = useOfflineData();
-  const showAlerts = location.pathname === '/dashboard' || location.pathname === '/';
+  
 
   // Cache contacts on mount for offline access
   useEffect(() => {
@@ -69,23 +69,21 @@ export function AppLayout({ children, title, showQuickCapture = false, capturePr
       <div className="min-h-screen-mobile flex w-full">
         <AppSidebar />
         <SidebarInset className="flex flex-col flex-1">
-          {/* Header with enhanced styling */}
-          <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border/50 bg-background/80 backdrop-blur-sm px-3 sm:px-4 safe-area-pt samsung-safe-top sticky top-0 z-40">
-            {/* Show sidebar trigger on all screens */}
-            <SidebarTrigger className="-ml-1 touch-target-lg flex items-center justify-center" />
-            <Separator orientation="vertical" className="mr-2 h-4 hidden sm:block" />
+          {/* Header with clean layout */}
+          <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border/40 bg-background/95 backdrop-blur-sm px-4 safe-area-pt samsung-safe-top sticky top-0 z-40">
+            <SidebarTrigger className="-ml-1 touch-target-lg" />
+            <Separator orientation="vertical" className="h-5 hidden sm:block" />
             {title && (
-              <h1 className="text-base sm:text-lg font-semibold truncate max-w-[160px] sm:max-w-none text-foreground">
+              <h1 className="text-lg font-semibold truncate flex-1 min-w-0">
                 {title}
               </h1>
             )}
-            <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+            <div className="flex items-center gap-2 ml-auto shrink-0">
               <GlobalSearch />
               <NotificationCenter />
             </div>
           </header>
           <OfflineIndicator pendingChanges={pendingCount} onSync={syncPendingChanges} />
-          {showAlerts && <div className="px-4 sm:px-6 pt-4"><ProactiveAlertBanner /></div>}
           {/* Main content with proper padding for bottom nav */}
           <main className="flex-1 overflow-auto scroll-smooth-touch scrollbar-hide p-4 sm:p-6 pb-28 md:pb-6 safe-area-pb samsung-safe-bottom">
             <Breadcrumbs />
