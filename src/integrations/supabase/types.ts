@@ -215,6 +215,140 @@ export type Database = {
           },
         ]
       }
+      aerial_captures: {
+        Row: {
+          aerial_mission_id: string
+          altitude_meters: number | null
+          analysis: Json | null
+          capture_type: string
+          captured_at: string | null
+          detected_objects: Json | null
+          gimbal_pitch_degrees: number | null
+          heading_degrees: number | null
+          id: string
+          location: Json | null
+          media_url: string | null
+          thumbnail_url: string | null
+          user_id: string
+        }
+        Insert: {
+          aerial_mission_id: string
+          altitude_meters?: number | null
+          analysis?: Json | null
+          capture_type: string
+          captured_at?: string | null
+          detected_objects?: Json | null
+          gimbal_pitch_degrees?: number | null
+          heading_degrees?: number | null
+          id?: string
+          location?: Json | null
+          media_url?: string | null
+          thumbnail_url?: string | null
+          user_id: string
+        }
+        Update: {
+          aerial_mission_id?: string
+          altitude_meters?: number | null
+          analysis?: Json | null
+          capture_type?: string
+          captured_at?: string | null
+          detected_objects?: Json | null
+          gimbal_pitch_degrees?: number | null
+          heading_degrees?: number | null
+          id?: string
+          location?: Json | null
+          media_url?: string | null
+          thumbnail_url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aerial_captures_aerial_mission_id_fkey"
+            columns: ["aerial_mission_id"]
+            isOneToOne: false
+            referencedRelation: "aerial_missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aerial_missions: {
+        Row: {
+          altitude_meters: number | null
+          camera_settings: Json | null
+          completed_at: string | null
+          created_at: string | null
+          drone_device_id: string | null
+          flight_duration_seconds: number | null
+          flight_mode: string | null
+          flight_path: Json | null
+          id: string
+          mission_id: string | null
+          speed_mps: number | null
+          started_at: string | null
+          status: string | null
+          telemetry_log: Json | null
+          total_distance_meters: number | null
+          user_id: string
+          waypoints: Json
+          weather_conditions: Json | null
+        }
+        Insert: {
+          altitude_meters?: number | null
+          camera_settings?: Json | null
+          completed_at?: string | null
+          created_at?: string | null
+          drone_device_id?: string | null
+          flight_duration_seconds?: number | null
+          flight_mode?: string | null
+          flight_path?: Json | null
+          id?: string
+          mission_id?: string | null
+          speed_mps?: number | null
+          started_at?: string | null
+          status?: string | null
+          telemetry_log?: Json | null
+          total_distance_meters?: number | null
+          user_id: string
+          waypoints?: Json
+          weather_conditions?: Json | null
+        }
+        Update: {
+          altitude_meters?: number | null
+          camera_settings?: Json | null
+          completed_at?: string | null
+          created_at?: string | null
+          drone_device_id?: string | null
+          flight_duration_seconds?: number | null
+          flight_mode?: string | null
+          flight_path?: Json | null
+          id?: string
+          mission_id?: string | null
+          speed_mps?: number | null
+          started_at?: string | null
+          status?: string | null
+          telemetry_log?: Json | null
+          total_distance_meters?: number | null
+          user_id?: string
+          waypoints?: Json
+          weather_conditions?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aerial_missions_drone_device_id_fkey"
+            columns: ["drone_device_id"]
+            isOneToOne: false
+            referencedRelation: "hardware_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aerial_missions_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_analyses: {
         Row: {
           analysis_type: string
@@ -10492,6 +10626,188 @@ export type Database = {
         }
         Relationships: []
       }
+      hardware_commands: {
+        Row: {
+          acknowledged_at: string | null
+          command_data: Json
+          command_type: string
+          completed_at: string | null
+          created_at: string | null
+          device_id: string
+          error_message: string | null
+          expires_at: string | null
+          id: string
+          max_retries: number | null
+          mission_id: string | null
+          priority: number | null
+          response: Json | null
+          retry_count: number | null
+          sent_at: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          command_data: Json
+          command_type: string
+          completed_at?: string | null
+          created_at?: string | null
+          device_id: string
+          error_message?: string | null
+          expires_at?: string | null
+          id?: string
+          max_retries?: number | null
+          mission_id?: string | null
+          priority?: number | null
+          response?: Json | null
+          retry_count?: number | null
+          sent_at?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          command_data?: Json
+          command_type?: string
+          completed_at?: string | null
+          created_at?: string | null
+          device_id?: string
+          error_message?: string | null
+          expires_at?: string | null
+          id?: string
+          max_retries?: number | null
+          mission_id?: string | null
+          priority?: number | null
+          response?: Json | null
+          retry_count?: number | null
+          sent_at?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hardware_commands_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "hardware_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hardware_commands_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hardware_devices: {
+        Row: {
+          battery_level: number | null
+          capabilities: Json | null
+          configuration: Json | null
+          created_at: string | null
+          device_id: string
+          device_model: string | null
+          device_name: string | null
+          device_type: string
+          firmware_version: string | null
+          id: string
+          is_online: boolean | null
+          last_seen_at: string | null
+          location: Json | null
+          location_name: string | null
+          metadata: Json | null
+          signal_strength: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          battery_level?: number | null
+          capabilities?: Json | null
+          configuration?: Json | null
+          created_at?: string | null
+          device_id: string
+          device_model?: string | null
+          device_name?: string | null
+          device_type: string
+          firmware_version?: string | null
+          id?: string
+          is_online?: boolean | null
+          last_seen_at?: string | null
+          location?: Json | null
+          location_name?: string | null
+          metadata?: Json | null
+          signal_strength?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          battery_level?: number | null
+          capabilities?: Json | null
+          configuration?: Json | null
+          created_at?: string | null
+          device_id?: string
+          device_model?: string | null
+          device_name?: string | null
+          device_type?: string
+          firmware_version?: string | null
+          id?: string
+          is_online?: boolean | null
+          last_seen_at?: string | null
+          location?: Json | null
+          location_name?: string | null
+          metadata?: Json | null
+          signal_strength?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      hardware_telemetry: {
+        Row: {
+          data: Json
+          device_id: string
+          id: string
+          location: Json | null
+          priority: string | null
+          processed: boolean | null
+          recorded_at: string | null
+          telemetry_type: string
+          user_id: string
+        }
+        Insert: {
+          data: Json
+          device_id: string
+          id?: string
+          location?: Json | null
+          priority?: string | null
+          processed?: boolean | null
+          recorded_at?: string | null
+          telemetry_type: string
+          user_id: string
+        }
+        Update: {
+          data?: Json
+          device_id?: string
+          id?: string
+          location?: Json | null
+          priority?: string | null
+          processed?: boolean | null
+          recorded_at?: string | null
+          telemetry_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hardware_telemetry_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "hardware_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       immutable_audit_logs: {
         Row: {
           action_type: string
@@ -11388,6 +11704,100 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      intelligence_missions: {
+        Row: {
+          automation_rules: Json | null
+          completed_at: string | null
+          created_at: string | null
+          devices_assigned: string[] | null
+          findings: Json | null
+          id: string
+          mission_name: string
+          mission_type: string
+          parameters: Json | null
+          priority: string | null
+          scheduled_start: string | null
+          started_at: string | null
+          status: string | null
+          summary: string | null
+          target_location: Json | null
+          target_location_name: string | null
+          target_profile_id: string | null
+          target_radius_meters: number | null
+          threat_level: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          automation_rules?: Json | null
+          completed_at?: string | null
+          created_at?: string | null
+          devices_assigned?: string[] | null
+          findings?: Json | null
+          id?: string
+          mission_name: string
+          mission_type: string
+          parameters?: Json | null
+          priority?: string | null
+          scheduled_start?: string | null
+          started_at?: string | null
+          status?: string | null
+          summary?: string | null
+          target_location?: Json | null
+          target_location_name?: string | null
+          target_profile_id?: string | null
+          target_radius_meters?: number | null
+          threat_level?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          automation_rules?: Json | null
+          completed_at?: string | null
+          created_at?: string | null
+          devices_assigned?: string[] | null
+          findings?: Json | null
+          id?: string
+          mission_name?: string
+          mission_type?: string
+          parameters?: Json | null
+          priority?: string | null
+          scheduled_start?: string | null
+          started_at?: string | null
+          status?: string | null
+          summary?: string | null
+          target_location?: Json | null
+          target_location_name?: string | null
+          target_profile_id?: string | null
+          target_radius_meters?: number | null
+          threat_level?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intelligence_missions_target_profile_id_fkey"
+            columns: ["target_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "intelligence_missions_target_profile_id_fkey"
+            columns: ["target_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "intelligence_missions_target_profile_id_fkey"
+            columns: ["target_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       intelligence_queue: {
         Row: {
@@ -13030,6 +13440,66 @@ export type Database = {
           },
         ]
       }
+      metal_detection_sweeps: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          detection_points: Json | null
+          device_id: string | null
+          findings_summary: Json | null
+          id: string
+          location: Json | null
+          location_name: string | null
+          mission_id: string | null
+          started_at: string | null
+          sweep_area: Json | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          detection_points?: Json | null
+          device_id?: string | null
+          findings_summary?: Json | null
+          id?: string
+          location?: Json | null
+          location_name?: string | null
+          mission_id?: string | null
+          started_at?: string | null
+          sweep_area?: Json | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          detection_points?: Json | null
+          device_id?: string | null
+          findings_summary?: Json | null
+          id?: string
+          location?: Json | null
+          location_name?: string | null
+          mission_id?: string | null
+          started_at?: string | null
+          sweep_area?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metal_detection_sweeps_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "hardware_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metal_detection_sweeps_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       methodology_outcomes: {
         Row: {
           action_id: string | null
@@ -13135,6 +13605,63 @@ export type Database = {
             columns: ["strategy_id"]
             isOneToOne: false
             referencedRelation: "influence_strategies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mission_events: {
+        Row: {
+          acknowledged: boolean | null
+          acknowledged_at: string | null
+          created_at: string | null
+          device_id: string | null
+          event_data: Json | null
+          event_type: string
+          id: string
+          location: Json | null
+          mission_id: string
+          severity: string | null
+          user_id: string
+        }
+        Insert: {
+          acknowledged?: boolean | null
+          acknowledged_at?: string | null
+          created_at?: string | null
+          device_id?: string | null
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          location?: Json | null
+          mission_id: string
+          severity?: string | null
+          user_id: string
+        }
+        Update: {
+          acknowledged?: boolean | null
+          acknowledged_at?: string | null
+          created_at?: string | null
+          device_id?: string | null
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          location?: Json | null
+          mission_id?: string
+          severity?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_events_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "hardware_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mission_events_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_missions"
             referencedColumns: ["id"]
           },
         ]
@@ -15762,6 +16289,108 @@ export type Database = {
         }
         Relationships: []
       }
+      rf_signal_captures: {
+        Row: {
+          analysis: Json | null
+          associated_profile_id: string | null
+          bandwidth_hz: number | null
+          captured_at: string | null
+          decoded_data: Json | null
+          device_fingerprint: Json | null
+          device_id: string | null
+          frequency_hz: number | null
+          id: string
+          location: Json | null
+          location_name: string | null
+          mission_id: string | null
+          modulation: string | null
+          protocol: string | null
+          raw_data_url: string | null
+          signal_strength_dbm: number | null
+          signal_type: string
+          threat_classification: string | null
+          user_id: string
+        }
+        Insert: {
+          analysis?: Json | null
+          associated_profile_id?: string | null
+          bandwidth_hz?: number | null
+          captured_at?: string | null
+          decoded_data?: Json | null
+          device_fingerprint?: Json | null
+          device_id?: string | null
+          frequency_hz?: number | null
+          id?: string
+          location?: Json | null
+          location_name?: string | null
+          mission_id?: string | null
+          modulation?: string | null
+          protocol?: string | null
+          raw_data_url?: string | null
+          signal_strength_dbm?: number | null
+          signal_type: string
+          threat_classification?: string | null
+          user_id: string
+        }
+        Update: {
+          analysis?: Json | null
+          associated_profile_id?: string | null
+          bandwidth_hz?: number | null
+          captured_at?: string | null
+          decoded_data?: Json | null
+          device_fingerprint?: Json | null
+          device_id?: string | null
+          frequency_hz?: number | null
+          id?: string
+          location?: Json | null
+          location_name?: string | null
+          mission_id?: string | null
+          modulation?: string | null
+          protocol?: string | null
+          raw_data_url?: string | null
+          signal_strength_dbm?: number | null
+          signal_type?: string
+          threat_classification?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rf_signal_captures_associated_profile_id_fkey"
+            columns: ["associated_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "rf_signal_captures_associated_profile_id_fkey"
+            columns: ["associated_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "rf_signal_captures_associated_profile_id_fkey"
+            columns: ["associated_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rf_signal_captures_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "hardware_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rf_signal_captures_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saga_transactions: {
         Row: {
           audit_log: Json | null
@@ -16236,6 +16865,134 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      sensor_network_nodes: {
+        Row: {
+          alert_rules: Json | null
+          battery_level: number | null
+          created_at: string | null
+          hardware_device_id: string | null
+          id: string
+          is_active: boolean | null
+          last_reading_at: string | null
+          location: Json | null
+          location_description: string | null
+          node_address: string
+          node_name: string | null
+          node_type: string | null
+          sensors: Json | null
+          signal_strength: number | null
+          solar_voltage: number | null
+          updated_at: string | null
+          user_id: string
+          zone_name: string | null
+        }
+        Insert: {
+          alert_rules?: Json | null
+          battery_level?: number | null
+          created_at?: string | null
+          hardware_device_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_reading_at?: string | null
+          location?: Json | null
+          location_description?: string | null
+          node_address: string
+          node_name?: string | null
+          node_type?: string | null
+          sensors?: Json | null
+          signal_strength?: number | null
+          solar_voltage?: number | null
+          updated_at?: string | null
+          user_id: string
+          zone_name?: string | null
+        }
+        Update: {
+          alert_rules?: Json | null
+          battery_level?: number | null
+          created_at?: string | null
+          hardware_device_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_reading_at?: string | null
+          location?: Json | null
+          location_description?: string | null
+          node_address?: string
+          node_name?: string | null
+          node_type?: string | null
+          sensors?: Json | null
+          signal_strength?: number | null
+          solar_voltage?: number | null
+          updated_at?: string | null
+          user_id?: string
+          zone_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sensor_network_nodes_hardware_device_id_fkey"
+            columns: ["hardware_device_id"]
+            isOneToOne: false
+            referencedRelation: "hardware_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sensor_readings: {
+        Row: {
+          alert_triggered: boolean | null
+          anomaly_detected: boolean | null
+          anomaly_type: string | null
+          id: string
+          mission_id: string | null
+          node_id: string
+          recorded_at: string | null
+          sensor_type: string
+          unit: string | null
+          user_id: string
+          value: number
+        }
+        Insert: {
+          alert_triggered?: boolean | null
+          anomaly_detected?: boolean | null
+          anomaly_type?: string | null
+          id?: string
+          mission_id?: string | null
+          node_id: string
+          recorded_at?: string | null
+          sensor_type: string
+          unit?: string | null
+          user_id: string
+          value: number
+        }
+        Update: {
+          alert_triggered?: boolean | null
+          anomaly_detected?: boolean | null
+          anomaly_type?: string | null
+          id?: string
+          mission_id?: string | null
+          node_id?: string
+          recorded_at?: string | null
+          sensor_type?: string
+          unit?: string | null
+          user_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sensor_readings_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sensor_readings_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "sensor_network_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shared_contacts: {
         Row: {
@@ -17397,6 +18154,105 @@ export type Database = {
           },
         ]
       }
+      thermal_captures: {
+        Row: {
+          ambient_temperature_celsius: number | null
+          analysis: Json | null
+          associated_profile_id: string | null
+          captured_at: string | null
+          detected_signatures: Json | null
+          device_id: string | null
+          heat_anomalies: Json | null
+          id: string
+          location: Json | null
+          location_name: string | null
+          max_temperature_celsius: number | null
+          min_temperature_celsius: number | null
+          mission_id: string | null
+          occupancy_count: number | null
+          overlay_image_url: string | null
+          processed_image_url: string | null
+          raw_thermal_url: string | null
+          user_id: string
+        }
+        Insert: {
+          ambient_temperature_celsius?: number | null
+          analysis?: Json | null
+          associated_profile_id?: string | null
+          captured_at?: string | null
+          detected_signatures?: Json | null
+          device_id?: string | null
+          heat_anomalies?: Json | null
+          id?: string
+          location?: Json | null
+          location_name?: string | null
+          max_temperature_celsius?: number | null
+          min_temperature_celsius?: number | null
+          mission_id?: string | null
+          occupancy_count?: number | null
+          overlay_image_url?: string | null
+          processed_image_url?: string | null
+          raw_thermal_url?: string | null
+          user_id: string
+        }
+        Update: {
+          ambient_temperature_celsius?: number | null
+          analysis?: Json | null
+          associated_profile_id?: string | null
+          captured_at?: string | null
+          detected_signatures?: Json | null
+          device_id?: string | null
+          heat_anomalies?: Json | null
+          id?: string
+          location?: Json | null
+          location_name?: string | null
+          max_temperature_celsius?: number | null
+          min_temperature_celsius?: number | null
+          mission_id?: string | null
+          occupancy_count?: number | null
+          overlay_image_url?: string | null
+          processed_image_url?: string | null
+          raw_thermal_url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thermal_captures_associated_profile_id_fkey"
+            columns: ["associated_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "thermal_captures_associated_profile_id_fkey"
+            columns: ["associated_profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "thermal_captures_associated_profile_id_fkey"
+            columns: ["associated_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thermal_captures_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "hardware_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thermal_captures_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       threat_assessments: {
         Row: {
           assessment_type: string
@@ -17602,6 +18458,83 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tscm_sweeps: {
+        Row: {
+          acoustic_findings: Json | null
+          completed_at: string | null
+          created_at: string | null
+          devices_used: string[] | null
+          id: string
+          location: Json | null
+          location_bounds: Json | null
+          location_name: string | null
+          mission_id: string | null
+          overall_findings: Json | null
+          recommendations: Json | null
+          rf_findings: Json | null
+          started_at: string | null
+          sweep_duration_minutes: number | null
+          sweep_name: string | null
+          sweep_type: string
+          thermal_findings: Json | null
+          threat_level: string | null
+          user_id: string
+          visual_findings: Json | null
+        }
+        Insert: {
+          acoustic_findings?: Json | null
+          completed_at?: string | null
+          created_at?: string | null
+          devices_used?: string[] | null
+          id?: string
+          location?: Json | null
+          location_bounds?: Json | null
+          location_name?: string | null
+          mission_id?: string | null
+          overall_findings?: Json | null
+          recommendations?: Json | null
+          rf_findings?: Json | null
+          started_at?: string | null
+          sweep_duration_minutes?: number | null
+          sweep_name?: string | null
+          sweep_type: string
+          thermal_findings?: Json | null
+          threat_level?: string | null
+          user_id: string
+          visual_findings?: Json | null
+        }
+        Update: {
+          acoustic_findings?: Json | null
+          completed_at?: string | null
+          created_at?: string | null
+          devices_used?: string[] | null
+          id?: string
+          location?: Json | null
+          location_bounds?: Json | null
+          location_name?: string | null
+          mission_id?: string | null
+          overall_findings?: Json | null
+          recommendations?: Json | null
+          rf_findings?: Json | null
+          started_at?: string | null
+          sweep_duration_minutes?: number | null
+          sweep_name?: string | null
+          sweep_type?: string
+          thermal_findings?: Json | null
+          threat_level?: string | null
+          user_id?: string
+          visual_findings?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tscm_sweeps_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_missions"
             referencedColumns: ["id"]
           },
         ]
