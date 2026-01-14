@@ -6,3 +6,6 @@ export { MobileIntelActions } from './MobileIntelActions';
 export { MobileEnrichmentPanel } from './MobileEnrichmentPanel';
 export { FloatingQuickActions } from './FloatingQuickActions';
 export { PullToRefresh } from './PullToRefresh';
+
+// Biometric Fusion
+export { MobileBiometricFusion } from './MobileBiometricFusion';

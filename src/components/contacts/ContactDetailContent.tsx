@@ -76,6 +76,16 @@ const ContactEnrichment = lazy(() => import('@/components/contacts/ContactEnrich
 const ContactCommentsPanel = lazy(() => import('@/components/collaboration/ContactCommentsPanel').then(m => ({ default: m.ContactCommentsPanel })));
 const PreferencePredictionsPanel = lazy(() => import('@/components/intelligence/PreferencePredictionsPanel').then(m => ({ default: m.PreferencePredictionsPanel })));
 
+// Psychology & Deception Intelligence
+const DarkPsychologyDashboard = lazy(() => import('@/components/intelligence/DarkPsychologyDashboard').then(m => ({ default: m.DarkPsychologyDashboard })));
+const DeceptionDetectionConsole = lazy(() => import('@/components/intelligence/DeceptionDetectionConsole').then(m => ({ default: m.DeceptionDetectionConsole })));
+const MicroExpressionTimeline = lazy(() => import('@/components/intelligence/MicroExpressionTimeline').then(m => ({ default: m.MicroExpressionTimeline })));
+const VoiceStressPanel = lazy(() => import('@/components/intelligence/VoiceStressPanel').then(m => ({ default: m.VoiceStressPanel })));
+const InfluencePlaybookPanel = lazy(() => import('@/components/intelligence/InfluencePlaybookPanel').then(m => ({ default: m.InfluencePlaybookPanel })));
+
+// Keystroke Enrollment
+const KeystrokeEnrollment = lazy(() => import('@/components/contacts/enrollment/KeystrokeEnrollment').then(m => ({ default: m.KeystrokeEnrollment })));
+
 type Profile = Tables<'profiles'>;
 
 interface ContactDetailContentProps {
@@ -243,6 +253,23 @@ export function ContactDetailContent({
         return <ContactEnrichment profileId={contact.id} profileName={contactName} linkedinUrl={contact.linkedin_url} />;
       case 'team-notes':
         return <ContactCommentsPanel profileId={contact.id} profileName={contactName} />;
+      case 'psychology':
+        return (
+          <div className="space-y-6">
+            <DarkPsychologyDashboard profileId={contact.id} profileName={contactName} />
+            <InfluencePlaybookPanel profileId={contact.id} profileName={contactName} />
+          </div>
+        );
+      case 'deception':
+        return (
+          <div className="space-y-6">
+            <DeceptionDetectionConsole profileId={contact.id} profileName={contactName} />
+            <MicroExpressionTimeline events={[]} />
+            <VoiceStressPanel audioSegments={[]} />
+          </div>
+        );
+      case 'keystroke-enrollment':
+        return <KeystrokeEnrollment profileId={contact.id} profileName={contactName} />;
       default:
         return null;
     }
