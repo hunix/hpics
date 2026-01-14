@@ -3549,13 +3549,19 @@ export type Database = {
           facial_unique_identifiers: Json | null
           fingerprint_data: Json | null
           fingerprint_samples_count: number | null
+          gait_confidence: number | null
           gait_patterns: Json | null
+          gait_profile_id: string | null
+          gait_samples_count: number | null
           handwriting_confidence: number | null
           handwriting_features: Json | null
           handwriting_last_updated: string | null
           handwriting_samples_count: number | null
           id: string
           identity_confidence: number | null
+          keystroke_confidence: number | null
+          keystroke_profile_id: string | null
+          keystroke_samples_count: number | null
           profile_id: string
           signature_confidence: number | null
           signature_features: Json | null
@@ -3592,13 +3598,19 @@ export type Database = {
           facial_unique_identifiers?: Json | null
           fingerprint_data?: Json | null
           fingerprint_samples_count?: number | null
+          gait_confidence?: number | null
           gait_patterns?: Json | null
+          gait_profile_id?: string | null
+          gait_samples_count?: number | null
           handwriting_confidence?: number | null
           handwriting_features?: Json | null
           handwriting_last_updated?: string | null
           handwriting_samples_count?: number | null
           id?: string
           identity_confidence?: number | null
+          keystroke_confidence?: number | null
+          keystroke_profile_id?: string | null
+          keystroke_samples_count?: number | null
           profile_id: string
           signature_confidence?: number | null
           signature_features?: Json | null
@@ -3635,13 +3647,19 @@ export type Database = {
           facial_unique_identifiers?: Json | null
           fingerprint_data?: Json | null
           fingerprint_samples_count?: number | null
+          gait_confidence?: number | null
           gait_patterns?: Json | null
+          gait_profile_id?: string | null
+          gait_samples_count?: number | null
           handwriting_confidence?: number | null
           handwriting_features?: Json | null
           handwriting_last_updated?: string | null
           handwriting_samples_count?: number | null
           id?: string
           identity_confidence?: number | null
+          keystroke_confidence?: number | null
+          keystroke_profile_id?: string | null
+          keystroke_samples_count?: number | null
           profile_id?: string
           signature_confidence?: number | null
           signature_features?: Json | null
@@ -3660,6 +3678,20 @@ export type Database = {
           voice_speaker_profile?: Json | null
         }
         Relationships: [
+          {
+            foreignKeyName: "contact_biometrics_gait_profile_id_fkey"
+            columns: ["gait_profile_id"]
+            isOneToOne: false
+            referencedRelation: "gait_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_biometrics_keystroke_profile_id_fkey"
+            columns: ["keystroke_profile_id"]
+            isOneToOne: false
+            referencedRelation: "keystroke_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contact_biometrics_profile_id_fkey"
             columns: ["profile_id"]
@@ -9996,6 +10028,70 @@ export type Database = {
           },
         ]
       }
+      gait_profiles: {
+        Row: {
+          anomalies: Json | null
+          created_at: string
+          feature_vector: number[] | null
+          features: Json
+          id: string
+          profile_id: string
+          quality_score: number | null
+          total_steps: number | null
+          updated_at: string
+          user_id: string
+          walking_duration_ms: number | null
+        }
+        Insert: {
+          anomalies?: Json | null
+          created_at?: string
+          feature_vector?: number[] | null
+          features?: Json
+          id?: string
+          profile_id: string
+          quality_score?: number | null
+          total_steps?: number | null
+          updated_at?: string
+          user_id: string
+          walking_duration_ms?: number | null
+        }
+        Update: {
+          anomalies?: Json | null
+          created_at?: string
+          feature_vector?: number[] | null
+          features?: Json
+          id?: string
+          profile_id?: string
+          quality_score?: number | null
+          total_steps?: number | null
+          updated_at?: string
+          user_id?: string
+          walking_duration_ms?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gait_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "gait_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "gait_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       generated_reports: {
         Row: {
           created_at: string
@@ -11716,6 +11812,70 @@ export type Database = {
         }
         Relationships: []
       }
+      keystroke_profiles: {
+        Row: {
+          created_at: string
+          feature_vector: number[] | null
+          features: Json
+          id: string
+          profile_id: string
+          quality_score: number | null
+          sample_text: string | null
+          total_characters: number | null
+          total_duration_ms: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feature_vector?: number[] | null
+          features?: Json
+          id?: string
+          profile_id: string
+          quality_score?: number | null
+          sample_text?: string | null
+          total_characters?: number | null
+          total_duration_ms?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feature_vector?: number[] | null
+          features?: Json
+          id?: string
+          profile_id?: string
+          quality_score?: number | null
+          sample_text?: string | null
+          total_characters?: number | null
+          total_duration_ms?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "keystroke_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "keystroke_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "keystroke_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       keyword_detections: {
         Row: {
           context_text: string | null
@@ -11985,6 +12145,45 @@ export type Database = {
           last_health_check?: string | null
           model_type?: string
           name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      local_ml_cache: {
+        Row: {
+          cache_size_bytes: number | null
+          cache_status: string | null
+          created_at: string
+          id: string
+          last_used_at: string | null
+          model_name: string
+          model_version: string | null
+          performance_metrics: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cache_size_bytes?: number | null
+          cache_status?: string | null
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          model_name: string
+          model_version?: string | null
+          performance_metrics?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cache_size_bytes?: number | null
+          cache_status?: string | null
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          model_name?: string
+          model_version?: string | null
+          performance_metrics?: Json | null
           updated_at?: string
           user_id?: string
         }
@@ -14922,6 +15121,82 @@ export type Database = {
           was_decrypted?: boolean | null
         }
         Relationships: []
+      }
+      psychology_assessments: {
+        Row: {
+          assessment_type: string
+          cognitive_biases: Json | null
+          confidence_score: number | null
+          created_at: string
+          dark_triad_scores: Json | null
+          exploitation_playbook: Json | null
+          id: string
+          influence_resistance: Json | null
+          influence_susceptibility: Json | null
+          profile_id: string
+          risk_level: string | null
+          source_data: Json | null
+          updated_at: string
+          user_id: string
+          vulnerability_profile: Json | null
+        }
+        Insert: {
+          assessment_type?: string
+          cognitive_biases?: Json | null
+          confidence_score?: number | null
+          created_at?: string
+          dark_triad_scores?: Json | null
+          exploitation_playbook?: Json | null
+          id?: string
+          influence_resistance?: Json | null
+          influence_susceptibility?: Json | null
+          profile_id: string
+          risk_level?: string | null
+          source_data?: Json | null
+          updated_at?: string
+          user_id: string
+          vulnerability_profile?: Json | null
+        }
+        Update: {
+          assessment_type?: string
+          cognitive_biases?: Json | null
+          confidence_score?: number | null
+          created_at?: string
+          dark_triad_scores?: Json | null
+          exploitation_playbook?: Json | null
+          id?: string
+          influence_resistance?: Json | null
+          influence_susceptibility?: Json | null
+          profile_id?: string
+          risk_level?: string | null
+          source_data?: Json | null
+          updated_at?: string
+          user_id?: string
+          vulnerability_profile?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "psychology_assessments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "psychology_assessments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "psychology_assessments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       push_subscriptions: {
         Row: {
