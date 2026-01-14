@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { 
   Activity, 
   Thermometer, 
@@ -30,40 +29,34 @@ const sensorIcons: Record<string, any> = {
 
 export function SensorDashboard() {
   const { 
-    getNetworkStatus, 
-    getReadings, 
+    nodes,
+    activeNodes,
+    inactiveNodes,
+    nodesByZone,
+    zoneStatus,
+    readings,
+    realtimeReadings,
+    isLoading,
     registerNode,
     isRegistering,
+    refetchNodes,
   } = useSensorNetwork();
 
-  const [networkStatus, setNetworkStatus] = useState<any>(null);
-  const [readings, setReadings] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchData = async () => {
+  const handleRefresh = async () => {
     setRefreshing(true);
-    const status = await getNetworkStatus();
-    if (status) {
-      setNetworkStatus(status);
-    }
-    const sensorReadings = await getReadings();
-    if (sensorReadings) {
-      setReadings(sensorReadings);
-    }
+    await refetchNodes();
     setRefreshing(false);
   };
-
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 30000); // Refresh every 30s
-    return () => clearInterval(interval);
-  }, []);
 
   const getBatteryColor = (level: number) => {
     if (level > 60) return 'text-green-500';
     if (level > 30) return 'text-yellow-500';
     return 'text-red-500';
   };
+
+  const allReadings = [...realtimeReadings, ...readings].slice(0, 20);
 
   return (
     <div className="space-y-6">
@@ -74,11 +67,11 @@ export function SensorDashboard() {
           <p className="text-muted-foreground">Distributed IoT sensor monitoring</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={fetchData} disabled={refreshing}>
+          <Button variant="outline" onClick={handleRefresh} disabled={refreshing || isLoading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button>
+          <Button disabled={isRegistering}>
             <Plus className="h-4 w-4 mr-2" />
             Add Sensor
           </Button>
@@ -86,40 +79,38 @@ export function SensorDashboard() {
       </div>
 
       {/* Network Overview */}
-      {networkStatus && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">Total Nodes</p>
-              <p className="text-2xl font-bold">{networkStatus.total_nodes}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">Online</p>
-              <p className="text-2xl font-bold text-green-500">{networkStatus.online_nodes}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">Offline</p>
-              <p className="text-2xl font-bold text-red-500">{networkStatus.offline_nodes}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">Active Alerts</p>
-              <p className="text-2xl font-bold text-orange-500">{networkStatus.alerts_active}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">Mesh Health</p>
-              <p className="text-2xl font-bold">{Math.round(networkStatus.mesh_health * 100)}%</p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Total Nodes</p>
+            <p className="text-2xl font-bold">{nodes.length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Online</p>
+            <p className="text-2xl font-bold text-green-500">{activeNodes.length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Offline</p>
+            <p className="text-2xl font-bold text-red-500">{inactiveNodes.length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Zones</p>
+            <p className="text-2xl font-bold">{Object.keys(nodesByZone).length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Recent Readings</p>
+            <p className="text-2xl font-bold">{allReadings.length}</p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Sensor Nodes Grid */}
       <Card>
@@ -130,48 +121,60 @@ export function SensorDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {networkStatus?.nodes?.map((node: any) => {
-              const Icon = sensorIcons[node.type] || Activity;
-              return (
-                <Card key={node.id} className={node.status === 'offline' ? 'opacity-60' : ''}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
-                          node.status === 'online' ? 'bg-green-500/10' : 'bg-red-500/10'
-                        }`}>
-                          <Icon className={`h-4 w-4 ${
-                            node.status === 'online' ? 'text-green-500' : 'text-red-500'
-                          }`} />
+          {nodes.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {nodes.map((node) => {
+                const Icon = sensorIcons[node.sensors?.[0]?.type] || Activity;
+                const isActive = activeNodes.some(n => n.id === node.id);
+                return (
+                  <Card key={node.id} className={!isActive ? 'opacity-60' : ''}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
+                            isActive ? 'bg-green-500/10' : 'bg-red-500/10'
+                          }`}>
+                            <Icon className={`h-4 w-4 ${
+                              isActive ? 'text-green-500' : 'text-red-500'
+                            }`} />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{node.node_name || node.id.slice(0, 8)}</p>
+                            <p className="text-xs text-muted-foreground">{node.zone_name || 'Unassigned'}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-sm">{node.name}</p>
-                          <p className="text-xs text-muted-foreground">{node.type}</p>
-                        </div>
+                        <Badge variant={isActive ? 'default' : 'secondary'} className="text-xs">
+                          {isActive ? 'online' : 'offline'}
+                        </Badge>
                       </div>
-                      <Badge variant={node.status === 'online' ? 'default' : 'secondary'} className="text-xs">
-                        {node.status}
-                      </Badge>
-                    </div>
 
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1">
-                        <Battery className={`h-3 w-3 ${getBatteryColor(node.battery)}`} />
-                        <span className="text-xs">{node.battery}%</span>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          <Battery className={`h-3 w-3 ${getBatteryColor(node.battery_level || 0)}`} />
+                          <span className="text-xs">{node.battery_level || 0}%</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Wifi className={`h-3 w-3 ${isActive ? 'text-green-500' : 'text-muted-foreground'}`} />
+                        </div>
+                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                          <Settings className="h-3 w-3" />
+                        </Button>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Wifi className={`h-3 w-3 ${node.status === 'online' ? 'text-green-500' : 'text-muted-foreground'}`} />
-                      </div>
-                      <Button variant="ghost" size="icon" className="h-6 w-6">
-                        <Settings className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Activity className="h-12 w-12 mx-auto mb-4 opacity-30" />
+              <p>No sensor nodes registered yet.</p>
+              <Button className="mt-4" onClick={() => registerNode({ node_name: 'New Sensor' })}>
+                <Plus className="h-4 w-4 mr-2" />
+                Register First Node
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -185,23 +188,24 @@ export function SensorDashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {readings.map((reading, index) => {
+            {allReadings.map((reading, index) => {
               const Icon = sensorIcons[reading.sensor_type] || Activity;
+              const hasAlert = (reading as any).alert;
               return (
                 <div
-                  key={index}
+                  key={reading.id || index}
                   className={`flex items-center justify-between p-3 rounded-lg bg-muted/50 ${
-                    reading.alert ? 'border border-red-500/50 bg-red-500/5' : ''
+                    hasAlert ? 'border border-red-500/50 bg-red-500/5' : ''
                   }`}
                 >
                   <div className="flex items-center gap-3">
                     <Icon className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="font-medium text-sm capitalize">
-                        {reading.sensor_type} - {reading.node_id}
+                        {reading.sensor_type} - {reading.node_id.slice(0, 8)}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {new Date(reading.timestamp).toLocaleTimeString()}
+                        {new Date(reading.recorded_at).toLocaleTimeString()}
                       </p>
                     </div>
                   </div>
@@ -214,7 +218,7 @@ export function SensorDashboard() {
                         {reading.unit && <span className="text-xs text-muted-foreground ml-1">{reading.unit}</span>}
                       </p>
                     </div>
-                    {reading.alert && (
+                    {hasAlert && (
                       <AlertCircle className="h-5 w-5 text-red-500" />
                     )}
                   </div>
@@ -222,7 +226,7 @@ export function SensorDashboard() {
               );
             })}
 
-            {readings.length === 0 && (
+            {allReadings.length === 0 && (
               <p className="text-center text-muted-foreground py-8">
                 No recent readings. Sensors will report data periodically.
               </p>

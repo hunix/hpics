@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
 import { 
   Radio, 
   Waves, 
@@ -19,53 +18,46 @@ import { useSDRIntelligence } from '@/hooks/useSDRIntelligence';
 
 export function SDRPanel() {
   const { 
-    startScan, 
-    analyzeSignal, 
-    detectAnomalies, 
-    sweepFrequencies,
+    recentCaptures,
+    hostileCaptures,
+    suspiciousCaptures,
+    startScan,
+    isStartingScan,
+    stopScanning,
     isScanning,
-    isAnalyzing,
+    analyzeSignal,
+    detectFrequencyHopping,
+    knownFrequencies,
   } = useSDRIntelligence();
 
-  const [scanActive, setScanActive] = useState(false);
   const [frequencyRange, setFrequencyRange] = useState({ start: 400, end: 500 });
   const [analysisResult, setAnalysisResult] = useState<any>(null);
-  const [anomalies, setAnomalies] = useState<any[]>([]);
-  const [sweepResults, setSweepResults] = useState<any>(null);
 
-  const handleStartScan = async () => {
-    setScanActive(true);
-    await startScan({
+  const handleStartScan = () => {
+    startScan({
       device_id: 'sdr-001',
-      frequency_range: frequencyRange,
+      start_frequency_hz: frequencyRange.start * 1_000_000,
+      end_frequency_hz: frequencyRange.end * 1_000_000,
+      step_hz: 1_000_000,
+      dwell_time_ms: 50,
     });
   };
 
   const handleStopScan = () => {
-    setScanActive(false);
+    stopScanning();
   };
 
-  const handleDetectAnomalies = async () => {
-    const result = await detectAnomalies();
-    if (result) {
-      setAnomalies(result);
+  const handleDetectHopping = async () => {
+    if (recentCaptures.length > 0) {
+      const result = await detectFrequencyHopping(recentCaptures, 1000);
+      if (result) {
+        setAnalysisResult(result);
+      }
     }
   };
 
-  const handleSweep = async () => {
-    const result = await sweepFrequencies({
-      start_freq: frequencyRange.start,
-      end_freq: frequencyRange.end,
-      step_size: 1,
-      dwell_time_ms: 50,
-    });
-    if (result) {
-      setSweepResults(result);
-    }
-  };
-
-  const handleQuickAnalyze = async (freq: number) => {
-    const result = await analyzeSignal({
+  const handleQuickAnalyze = async (captureId: string, freq: number) => {
+    const result = await analyzeSignal(captureId, {
       frequency: freq,
       power: -60 + Math.random() * 30,
       bandwidth: 20,
@@ -95,16 +87,16 @@ export function SDRPanel() {
           <p className="text-muted-foreground">Spectrum monitoring and signal analysis</p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant={scanActive ? 'default' : 'secondary'}>
-            {scanActive ? 'SCANNING' : 'IDLE'}
+          <Badge variant={isScanning ? 'default' : 'secondary'}>
+            {isScanning ? 'SCANNING' : 'IDLE'}
           </Badge>
-          {scanActive ? (
+          {isScanning ? (
             <Button onClick={handleStopScan} variant="destructive" size="sm">
               <Pause className="h-4 w-4 mr-2" />
               Stop
             </Button>
           ) : (
-            <Button onClick={handleStartScan} size="sm">
+            <Button onClick={handleStartScan} size="sm" disabled={isStartingScan}>
               <Play className="h-4 w-4 mr-2" />
               Start Scan
             </Button>
@@ -154,13 +146,13 @@ export function SDRPanel() {
           </div>
 
           <div className="flex gap-2">
-            <Button onClick={handleSweep} className="flex-1">
+            <Button onClick={handleStartScan} className="flex-1" disabled={isStartingScan}>
               <Search className="h-4 w-4 mr-2" />
               Sweep Range
             </Button>
-            <Button onClick={handleDetectAnomalies} variant="outline" className="flex-1">
+            <Button onClick={handleDetectHopping} variant="outline" className="flex-1">
               <AlertTriangle className="h-4 w-4 mr-2" />
-              Detect Anomalies
+              Detect Hopping
             </Button>
           </div>
         </CardContent>
@@ -179,17 +171,17 @@ export function SDRPanel() {
         </CardHeader>
         <CardContent>
           <div className="h-48 bg-muted/30 rounded-lg flex items-center justify-center border border-dashed">
-            {sweepResults ? (
+            {recentCaptures.length > 0 ? (
               <div className="w-full h-full p-4">
                 <div className="flex items-end h-full gap-0.5">
-                  {sweepResults.results?.slice(0, 100).map((point: any, i: number) => (
+                  {recentCaptures.slice(0, 100).map((capture, i) => (
                     <div
-                      key={i}
-                      className={`flex-1 ${point.peak_detected ? 'bg-red-500' : 'bg-primary/60'}`}
+                      key={capture.id || i}
+                      className={`flex-1 ${capture.threat_classification === 'hostile' ? 'bg-red-500' : capture.threat_classification === 'suspicious' ? 'bg-yellow-500' : 'bg-primary/60'}`}
                       style={{ 
-                        height: `${Math.max(5, (point.power + 110) * 1.5)}%`,
+                        height: `${Math.max(5, ((capture.signal_strength_dbm || -100) + 110) * 1.5)}%`,
                       }}
-                      title={`${point.frequency} MHz: ${point.power.toFixed(1)} dBm`}
+                      title={`${(capture.frequency_hz || 0) / 1_000_000} MHz: ${capture.signal_strength_dbm?.toFixed(1)} dBm`}
                     />
                   ))}
                 </div>
@@ -204,40 +196,42 @@ export function SDRPanel() {
         </CardContent>
       </Card>
 
-      {/* Anomalies */}
-      {anomalies.length > 0 && (
+      {/* Hostile/Suspicious Captures */}
+      {(hostileCaptures.length > 0 || suspiciousCaptures.length > 0) && (
         <Card className="border-red-500/50">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2 text-red-500">
               <AlertTriangle className="h-5 w-5" />
-              Detected Anomalies
+              Detected Threats ({hostileCaptures.length + suspiciousCaptures.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {anomalies.map((anomaly, index) => (
+              {[...hostileCaptures, ...suspiciousCaptures].map((capture) => (
                 <div
-                  key={index}
-                  className="p-4 rounded-lg bg-red-500/10 border border-red-500/30"
+                  key={capture.id}
+                  className={`p-4 rounded-lg border ${capture.threat_classification === 'hostile' ? 'bg-red-500/10 border-red-500/30' : 'bg-yellow-500/10 border-yellow-500/30'}`}
                 >
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="font-medium">{anomaly.type.replace('_', ' ').toUpperCase()}</p>
+                      <p className="font-medium">{capture.signal_type || 'Unknown Signal'}</p>
                       <p className="text-sm text-muted-foreground mt-1">
-                        {anomaly.description}
+                        {capture.modulation || 'Unknown modulation'}
                       </p>
                       <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                        <span>Freq: {anomaly.frequency} MHz</span>
-                        <span>Power: {anomaly.power} dBm</span>
+                        <span>Freq: {((capture.frequency_hz || 0) / 1_000_000).toFixed(2)} MHz</span>
+                        <span>Power: {capture.signal_strength_dbm} dBm</span>
                       </div>
                     </div>
-                    <Badge variant="destructive">{anomaly.threat_level}</Badge>
+                    <Badge variant={capture.threat_classification === 'hostile' ? 'destructive' : 'default'}>
+                      {capture.threat_classification}
+                    </Badge>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
                     className="mt-2"
-                    onClick={() => handleQuickAnalyze(anomaly.frequency)}
+                    onClick={() => handleQuickAnalyze(capture.id, (capture.frequency_hz || 0) / 1_000_000)}
                   >
                     <Zap className="h-3 w-3 mr-1" />
                     Analyze
@@ -259,15 +253,15 @@ export function SDRPanel() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Frequency</p>
-                <p className="font-medium">{analysisResult.frequency} MHz</p>
+                <p className="font-medium">{analysisResult.frequency || 'N/A'} MHz</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Classification</p>
-                <p className="font-medium">{analysisResult.classification}</p>
+                <p className="font-medium">{analysisResult.classification || 'N/A'}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Protocol</p>
-                <p className="font-medium">{analysisResult.protocol}</p>
+                <p className="font-medium">{analysisResult.protocol || 'N/A'}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Threat Level</p>
@@ -275,7 +269,7 @@ export function SDRPanel() {
                   analysisResult.threat_level === 'low' ? 'secondary' :
                   analysisResult.threat_level === 'medium' ? 'default' : 'destructive'
                 }>
-                  {analysisResult.threat_level}
+                  {analysisResult.threat_level || 'unknown'}
                 </Badge>
               </div>
             </div>
