@@ -6,7 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Footprints, Play, Square, Activity, AlertTriangle,
-  CheckCircle2, Smartphone, TrendingUp, Zap
+  CheckCircle2, Smartphone, Zap
 } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { gaitAnalyzer } from '@/lib/biometrics/gaitAnalyzer';
 import type { MotionSample, GaitProfile } from '@/lib/biometrics/gaitAnalyzer';
+import type { Json } from '@/integrations/supabase/types';
 
 interface GaitCapturePanelProps {
   profileId: string;
@@ -153,12 +154,12 @@ export function GaitCapturePanel({ profileId, profileName, onCapture }: GaitCapt
         .insert([{
           user_id: user.id,
           profile_id: profileId,
-          features: profile.features as unknown as Record<string, unknown>,
+          features: JSON.parse(JSON.stringify(profile.features)) as Json,
           feature_vector: profile.featureVector,
           total_steps: profile.totalSteps,
           walking_duration_ms: profile.walkingDuration,
           quality_score: profile.qualityScore,
-          anomalies: profile.anomalies as unknown as Record<string, unknown>[]
+          anomalies: JSON.parse(JSON.stringify(profile.anomalies)) as Json
         }]);
 
       // Update contact biometrics

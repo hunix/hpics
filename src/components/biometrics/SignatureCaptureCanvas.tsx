@@ -2,16 +2,16 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
-  Hand, Trash2, Save, RotateCcw, Zap, 
+  Hand, Trash2, Save, RotateCcw,
   CheckCircle2, AlertTriangle, Activity
 } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import type { Json } from '@/integrations/supabase/types';
 
 interface SignatureCaptureCanvasProps {
   profileId: string;
@@ -78,7 +78,7 @@ export function SignatureCaptureCanvas({ profileId, profileName, onCapture }: Si
         await supabase
           .from('contact_biometrics')
           .update({
-            signature_features: signatureData.features as unknown as Record<string, unknown>,
+            signature_features: JSON.parse(JSON.stringify(signatureData.features)) as Json,
             signature_samples_count: (existing.signature_samples_count || 0) + 1,
             signature_confidence: calculateConfidence(capturedSignatures.length + 1),
             updated_at: new Date().toISOString()
@@ -90,7 +90,7 @@ export function SignatureCaptureCanvas({ profileId, profileName, onCapture }: Si
           .insert([{
             user_id: user.id,
             profile_id: profileId,
-            signature_features: signatureData.features as unknown as Record<string, unknown>,
+            signature_features: JSON.parse(JSON.stringify(signatureData.features)) as Json,
             signature_samples_count: 1,
             signature_confidence: 0.3
           }]);
@@ -103,7 +103,7 @@ export function SignatureCaptureCanvas({ profileId, profileName, onCapture }: Si
           user_id: user.id,
           profile_id: profileId,
           biometric_type: 'signature',
-          features: signatureData as unknown as Record<string, unknown>,
+          features: JSON.parse(JSON.stringify(signatureData)) as Json,
           quality_score: quality === 'excellent' ? 0.95 : quality === 'good' ? 0.8 : quality === 'fair' ? 0.6 : 0.4,
           source_type: 'canvas_capture',
           status: 'processed'
