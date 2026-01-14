@@ -63,6 +63,7 @@ const InvestmentIntelligence = lazyWithRetry(() => import("./pages/InvestmentInt
 const PsychologyIntelligence = lazyWithRetry(() => import("./pages/PsychologyIntelligence"));
 const DeceptionAnalysis = lazyWithRetry(() => import("./pages/DeceptionAnalysis"));
 const BiometricHub = lazyWithRetry(() => import("./pages/BiometricHub"));
+const HardwareCommand = lazyWithRetry(() => import("./pages/HardwareCommand"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
