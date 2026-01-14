@@ -422,12 +422,12 @@ export function MobileBiometricFusion({
                       </div>
                       <div className="text-center p-2 bg-background rounded">
                         <p className="text-xs text-muted-foreground">Cadence</p>
-                        <p className="font-bold">{gaitProfile.features.cadence.toFixed(1)}</p>
+                        <p className="font-bold">{gaitProfile.features.averageCadence.toFixed(1)}</p>
                         <p className="text-xs text-muted-foreground">steps/min</p>
                       </div>
                       <div className="text-center p-2 bg-background rounded">
-                        <p className="text-xs text-muted-foreground">Symmetry</p>
-                        <p className="font-bold">{(gaitProfile.features.symmetryScore * 100).toFixed(0)}%</p>
+                        <p className="text-xs text-muted-foreground">Stability</p>
+                        <p className="font-bold">{(gaitProfile.features.walkingStability * 100).toFixed(0)}%</p>
                       </div>
                       <div className="text-center p-2 bg-background rounded">
                         <p className="text-xs text-muted-foreground">Quality</p>
@@ -444,12 +444,12 @@ export function MobileBiometricFusion({
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Step Length Variance</span>
-                      <span className="font-mono">{gaitProfile.features.stepLengthVariance.toFixed(3)}</span>
+                      <span className="text-muted-foreground">Step Regularity</span>
+                      <span className="font-mono">{(gaitProfile.features.stepRegularity * 100).toFixed(1)}%</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Step Duration Mean</span>
-                      <span className="font-mono">{gaitProfile.features.stepDurationMean.toFixed(0)}ms</span>
+                      <span className="text-muted-foreground">Avg Stride Time</span>
+                      <span className="font-mono">{gaitProfile.features.averageStrideTime.toFixed(0)}ms</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Vertical Oscillation</span>
