@@ -11,8 +11,18 @@ export * from '../personality/oceanExtractor';
 export * from '../influence/principlePlaybookGenerator';
 export * from '../influence/optimalTimingEngine';
 
-// Deception Detection
-export * from '../deception/deceptionAnalyzer';
+// Deception Detection (exclude MicroExpression to avoid conflict with biometrics)
+export { 
+  analyzeLinguisticDeception,
+  analyzeFacialDeception,
+  analyzeVocalDeception,
+  type DeceptionIndicator,
+  type DeceptionAnalysisResult,
+  type VoiceStressMarker,
+  type LinguisticMarker,
+  type CrossModalConflict,
+  type DeceptionTimelineEvent
+} from '../deception/deceptionAnalyzer';
 
 // Financial Intelligence
 export * from '../finance/wealthEstimator';

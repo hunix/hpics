@@ -26,3 +26,7 @@ export { MicroExpressionTimeline } from './MicroExpressionTimeline';
 export { VoiceStressPanel } from './VoiceStressPanel';
 export { InfluencePlaybookPanel } from './InfluencePlaybookPanel';
 export { LocalMLDashboard } from './LocalMLDashboard';
+
+// AGIS Phase 10: Supremacy
+export { SupremacyDashboard } from './SupremacyDashboard';
+export { SituationRoom } from './SituationRoom';
