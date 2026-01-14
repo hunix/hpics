@@ -62,3 +62,29 @@ export {
   type EmotionShift,
   type EmotionTimeline
 } from '../emotionRecorder';
+
+// Signature Biometrics
+export {
+  signatureAnalyzer,
+  type SignaturePoint,
+  type SignatureBiometrics,
+  type SignatureComparison
+} from './signatureAnalyzer';
+
+// Gait Analysis
+export {
+  gaitAnalyzer,
+  type MotionSample,
+  type GaitProfile,
+  type GaitComparison,
+  type GaitAnomaly
+} from './gaitAnalyzer';
+
+// Keystroke Dynamics
+export {
+  keystrokeDynamicsAnalyzer,
+  createKeystrokeAnalyzer,
+  type KeyEvent,
+  type KeystrokeProfile,
+  type KeystrokeComparison
+} from './keystrokeDynamics';
