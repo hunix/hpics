@@ -6,12 +6,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
 import { 
   Eye, AlertTriangle, Clock, TrendingUp, 
-  Smile, Frown, Meh, Angry, Heart
+  Smile, Frown, Meh, Angry
 } from 'lucide-react';
 import {
   type MicroExpressionEvent,
-  type EmotionBaseline,
-  type DeceptionIndicator,
+  type EmotionType,
   buildEmotionBaseline,
   detectBaselineDeviations,
   generateMicroExpressionReport
@@ -69,7 +68,7 @@ export function MicroExpressionTimeline({
   const filteredEvents = useMemo(() => {
     switch (filter) {
       case 'deception':
-        return events.filter(e => e.deceptionIndicators && e.deceptionIndicators.length > 0);
+        return events.filter(e => e.deceptionRisk > 0.5 || !e.isAuthentic);
       case 'high-confidence':
         return events.filter(e => e.confidence >= 0.8);
       default:
@@ -90,6 +89,21 @@ export function MicroExpressionTimeline({
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Calculate emotion distribution from baseline
+  const emotionDistribution = useMemo(() => {
+    if (!analysis?.baseline) return [];
+    
+    const distribution: { emotion: EmotionType; percentage: number }[] = [];
+    analysis.baseline.forEach((value, emotion) => {
+      distribution.push({
+        emotion,
+        percentage: value.frequency / events.length
+      });
+    });
+    
+    return distribution.sort((a, b) => b.percentage - a.percentage).slice(0, 4);
+  }, [analysis, events.length]);
 
   return (
     <Card>
@@ -156,7 +170,7 @@ export function MicroExpressionTimeline({
           <div className="relative h-6 bg-muted/30 rounded-full overflow-hidden">
             {filteredEvents.map((event, idx) => {
               const position = (event.timestamp / videoDuration) * 100;
-              const hasDeception = event.deceptionIndicators && event.deceptionIndicators.length > 0;
+              const hasDeception = event.deceptionRisk > 0.5 || !event.isAuthentic;
               return (
                 <button
                   key={idx}
@@ -173,7 +187,7 @@ export function MicroExpressionTimeline({
         </div>
 
         {/* Baseline Summary */}
-        {analysis && (
+        {analysis && emotionDistribution.length > 0 && (
           <Card className="bg-muted/30">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-3">
@@ -181,20 +195,13 @@ export function MicroExpressionTimeline({
                 <span className="font-medium">Baseline Analysis</span>
               </div>
               <div className="grid grid-cols-4 gap-4">
-                {Object.entries(analysis.baseline.dominantEmotions)
-                  .sort(([, a], [, b]) => b - a)
-                  .slice(0, 4)
-                  .map(([emotion, percentage]) => (
-                    <div key={emotion} className="text-center">
-                      {emotionIcons[emotion]}
-                      <p className="text-xs text-muted-foreground capitalize mt-1">{emotion}</p>
-                      <p className="font-mono text-sm">{(percentage * 100).toFixed(0)}%</p>
-                    </div>
-                  ))}
-              </div>
-              <div className="mt-3 flex items-center gap-4 text-sm">
-                <span>Avg Expression Duration: <strong>{analysis.baseline.averageExpressionDuration.toFixed(0)}ms</strong></span>
-                <span>Transition Frequency: <strong>{analysis.baseline.transitionFrequency.toFixed(2)}/s</strong></span>
+                {emotionDistribution.map(({ emotion, percentage }) => (
+                  <div key={emotion} className="text-center">
+                    {emotionIcons[emotion]}
+                    <p className="text-xs text-muted-foreground capitalize mt-1">{emotion}</p>
+                    <p className="font-mono text-sm">{(percentage * 100).toFixed(0)}%</p>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -226,22 +233,25 @@ export function MicroExpressionTimeline({
                     <Badge variant="outline">
                       {(event.confidence * 100).toFixed(0)}%
                     </Badge>
-                    {event.deceptionIndicators && event.deceptionIndicators.length > 0 && (
+                    {(event.deceptionRisk > 0.5 || !event.isAuthentic) && (
                       <Badge variant="destructive" className="text-xs">
-                        {event.deceptionIndicators.length} flags
+                        Flagged
                       </Badge>
                     )}
                   </div>
                 </div>
 
-                {/* Deception Indicators */}
-                {event.deceptionIndicators && event.deceptionIndicators.length > 0 && (
+                {/* Deception Risk */}
+                {event.deceptionRisk > 0.3 && (
                   <div className="mt-2 flex flex-wrap gap-1">
-                    {event.deceptionIndicators.map((indicator, i) => (
-                      <Badge key={i} variant="secondary" className="text-xs">
-                        {indicator.type}: {indicator.description}
+                    <Badge variant="secondary" className="text-xs">
+                      Deception Risk: {(event.deceptionRisk * 100).toFixed(0)}%
+                    </Badge>
+                    {!event.isAuthentic && (
+                      <Badge variant="secondary" className="text-xs">
+                        Non-authentic
                       </Badge>
-                    ))}
+                    )}
                   </div>
                 )}
 
@@ -250,7 +260,7 @@ export function MicroExpressionTimeline({
                   <div className="mt-2 flex flex-wrap gap-1">
                     {event.actionUnits.slice(0, 5).map((au, i) => (
                       <span key={i} className="text-xs bg-muted px-1.5 py-0.5 rounded">
-                        AU{au.id} ({(au.intensity * 100).toFixed(0)}%)
+                        {au.id} ({(au.intensity * 100).toFixed(0)}%)
                       </span>
                     ))}
                     {event.actionUnits.length > 5 && (
@@ -275,16 +285,16 @@ export function MicroExpressionTimeline({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-muted-foreground">Total Deception Indicators</p>
-                  <p className="font-bold text-lg">{analysis.report.totalDeceptionIndicators}</p>
+                  <p className="font-bold text-lg">{analysis.report.deceptionIndicators.length}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Baseline Deviations</p>
-                  <p className="font-bold text-lg">{analysis.report.baselineDeviations}</p>
+                  <p className="text-muted-foreground">Authenticity Rate</p>
+                  <p className="font-bold text-lg">{(analysis.report.summary.authenticityRate * 100).toFixed(0)}%</p>
                 </div>
               </div>
               <div>
-                <p className="text-muted-foreground">Overall Assessment</p>
-                <p className="font-medium">{analysis.report.overallAssessment}</p>
+                <p className="text-muted-foreground">Dominant Emotion</p>
+                <p className="font-medium capitalize">{analysis.report.summary.dominantEmotion}</p>
               </div>
             </CardContent>
           </Card>

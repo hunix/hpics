@@ -10,7 +10,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { KeystrokeDynamicsAnalyzer, type KeyEvent, type KeystrokeProfile } from '@/lib/biometrics/keystrokeDynamics';
+import { keystrokeDynamicsAnalyzer } from '@/lib/biometrics/keystrokeDynamics';
+import type { KeyEvent, KeystrokeProfile } from '@/lib/biometrics/keystrokeDynamics';
 import type { Json } from '@/integrations/supabase/types';
 
 interface KeystrokeEnrollmentProps {
@@ -21,13 +22,32 @@ interface KeystrokeEnrollmentProps {
 
 const PHRASES = ["The quick brown fox jumps over the lazy dog.", "Pack my box with five dozen liquor jugs."];
 
+// Create a fresh analyzer for each enrollment session
+class KeystrokeEnrollmentAnalyzer {
+  private events: KeyEvent[] = [];
+  
+  processKeyEvent(event: KeyEvent) {
+    this.events.push(event);
+    keystrokeDynamicsAnalyzer.processKeyEvent(event);
+  }
+  
+  analyze() {
+    return keystrokeDynamicsAnalyzer.analyze();
+  }
+  
+  clear() {
+    this.events = [];
+    keystrokeDynamicsAnalyzer.clear();
+  }
+}
+
 export function KeystrokeEnrollment({ profileId, profileName, onEnrollmentComplete }: KeystrokeEnrollmentProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [inputValue, setInputValue] = useState('');
   const [isCapturing, setIsCapturing] = useState(false);
   const [profile, setProfile] = useState<KeystrokeProfile | null>(null);
-  const analyzerRef = useRef(new KeystrokeDynamicsAnalyzer());
+  const analyzerRef = useRef(new KeystrokeEnrollmentAnalyzer());
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const targetPhrase = PHRASES[0];
@@ -42,19 +62,43 @@ export function KeystrokeEnrollment({ profileId, profileName, onEnrollmentComple
     analyzerRef.current.processKeyEvent({ key: e.key, code: e.code, timestamp: performance.now(), type: 'keyup' });
   }, [isCapturing]);
 
-  const startCapture = () => { setIsCapturing(true); setInputValue(''); analyzerRef.current = new KeystrokeDynamicsAnalyzer(); inputRef.current?.focus(); };
+  const startCapture = () => { 
+    setIsCapturing(true); 
+    setInputValue(''); 
+    analyzerRef.current = new KeystrokeEnrollmentAnalyzer();
+    inputRef.current?.focus(); 
+  };
+  
   const completeSample = () => {
     const p = analyzerRef.current.analyze();
-    if (p) { setProfile(p); setIsCapturing(false); toast.success('Profile generated!'); }
+    if (p) { 
+      setProfile(p); 
+      setIsCapturing(false); 
+      toast.success('Profile generated!'); 
+    }
   };
 
   const saveMutation = useMutation({
     mutationFn: async (kp: KeystrokeProfile) => {
       if (!user) throw new Error('Not authenticated');
-      await supabase.from('keystroke_profiles').insert({ user_id: user.id, profile_id: profileId, features: kp.features as unknown as Json, feature_vector: kp.featureVector, sample_text: kp.sampleText, total_characters: kp.totalCharacters, total_duration_ms: kp.totalDuration, quality_score: kp.qualityScore });
+      await supabase.from('keystroke_profiles').insert({ 
+        user_id: user.id, 
+        profile_id: profileId, 
+        features: kp.features as unknown as Json, 
+        feature_vector: kp.featureVector, 
+        sample_text: kp.sampleText, 
+        total_characters: kp.totalCharacters, 
+        total_duration_ms: kp.totalDuration, 
+        quality_score: kp.qualityScore 
+      });
       return kp;
     },
-    onSuccess: (p) => { toast.success('Saved!'); queryClient.invalidateQueries({ queryKey: ['keystroke-profile'] }); onEnrollmentComplete?.(p); setProfile(null); },
+    onSuccess: (p) => { 
+      toast.success('Saved!'); 
+      queryClient.invalidateQueries({ queryKey: ['keystroke-profile'] }); 
+      onEnrollmentComplete?.(p); 
+      setProfile(null); 
+    },
     onError: () => toast.error('Failed to save')
   });
 

@@ -9,7 +9,7 @@ import {
   Cpu, Download, CheckCircle2, AlertTriangle, 
   Loader2, HardDrive, Wifi, WifiOff, RefreshCw, Trash2
 } from 'lucide-react';
-import { useModelCache, modelCacheManager } from '@/lib/modelCacheManager';
+import { modelCacheManager } from '@/lib/modelCacheManager';
 import { offlineMLService, type MLModelStatus } from '@/lib/offlineMLService';
 import { toast } from 'sonner';
 
@@ -17,10 +17,16 @@ interface LocalMLDashboardProps {
   onModelReady?: (modelName: string) => void;
 }
 
+interface CacheStats {
+  totalCached: number;
+  totalSize: number;
+  models: Array<{ name: string; size: number; cachedAt: number }>;
+}
+
 export function LocalMLDashboard({ onModelReady }: LocalMLDashboardProps) {
-  const { cacheStatus, loadModel, clearCache } = useModelCache();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [modelStatuses, setModelStatuses] = useState<Record<string, MLModelStatus>>({});
+  const [modelStatus, setModelStatus] = useState<MLModelStatus | null>(null);
+  const [cacheStats, setCacheStats] = useState<CacheStats | null>(null);
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState('models');
 
@@ -69,22 +75,27 @@ export function LocalMLDashboard({ onModelReady }: LocalMLDashboardProps) {
     };
   }, []);
 
-  // Check model status on mount
+  // Load cache stats on mount
   useEffect(() => {
-    const checkStatus = async () => {
-      const status = await offlineMLService.getStatus();
-      setModelStatuses(status);
+    const loadStats = async () => {
+      const stats = await modelCacheManager.getStats();
+      setCacheStats(stats);
     };
-    checkStatus();
+    loadStats();
   }, []);
 
   const handleLoadModel = async (modelId: string) => {
     setIsLoading(prev => ({ ...prev, [modelId]: true }));
     
     try {
-      await loadModel(modelId);
-      const status = await offlineMLService.getStatus();
-      setModelStatuses(status);
+      if (modelId === 'face-detection' || modelId === 'face-recognition') {
+        await offlineMLService.loadFaceApiModels();
+      } else if (modelId === 'blazeface') {
+        await offlineMLService.loadBlazeFace();
+      }
+      
+      const stats = await modelCacheManager.getStats();
+      setCacheStats(stats);
       toast.success(`${modelId} model loaded successfully`);
       onModelReady?.(modelId);
     } catch (error) {
@@ -97,9 +108,9 @@ export function LocalMLDashboard({ onModelReady }: LocalMLDashboardProps) {
 
   const handleClearCache = async () => {
     try {
-      await clearCache();
-      const status = await offlineMLService.getStatus();
-      setModelStatuses(status);
+      await modelCacheManager.clearCache();
+      const stats = await modelCacheManager.getStats();
+      setCacheStats(stats);
       toast.success('Model cache cleared');
     } catch (error) {
       toast.error('Failed to clear cache');
@@ -108,12 +119,9 @@ export function LocalMLDashboard({ onModelReady }: LocalMLDashboardProps) {
   };
 
   const getModelStatus = (modelId: string): 'loaded' | 'cached' | 'available' | 'error' => {
-    const status = modelStatuses[modelId];
-    if (!status) return 'available';
-    if (status.error) return 'error';
-    if (status.loaded) return 'loaded';
-    if (status.cached) return 'cached';
-    return 'available';
+    if (!cacheStats) return 'available';
+    const isCached = cacheStats.models.some(m => m.name.includes(modelId));
+    return isCached ? 'cached' : 'available';
   };
 
   const getStatusBadge = (status: 'loaded' | 'cached' | 'available' | 'error') => {
@@ -129,9 +137,7 @@ export function LocalMLDashboard({ onModelReady }: LocalMLDashboardProps) {
     }
   };
 
-  const totalCacheSize = Object.values(cacheStatus).reduce(
-    (sum, status) => sum + (status.size || 0), 0
-  );
+  const totalCacheSize = cacheStats?.totalSize || 0;
 
   return (
     <Card>
@@ -287,21 +293,19 @@ export function LocalMLDashboard({ onModelReady }: LocalMLDashboardProps) {
 
             {/* Cache Status per Model */}
             <div className="space-y-2">
-              {Object.entries(cacheStatus).map(([modelId, status]) => (
-                <div key={modelId} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+              {cacheStats?.models.map((model) => (
+                <div key={model.name} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                   <div>
-                    <p className="font-medium">{modelId}</p>
+                    <p className="font-medium">{model.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      Last updated: {status.lastUpdated ? new Date(status.lastUpdated).toLocaleDateString() : 'Never'}
+                      Last updated: {new Date(model.cachedAt).toLocaleDateString()}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-mono">
-                      {status.size ? `${(status.size / 1024 / 1024).toFixed(2)} MB` : '-'}
+                      {(model.size / 1024 / 1024).toFixed(2)} MB
                     </span>
-                    {status.cached && (
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    )}
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
                   </div>
                 </div>
               ))}
