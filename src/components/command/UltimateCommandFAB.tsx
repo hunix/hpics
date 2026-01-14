@@ -3,13 +3,24 @@
  * Floating action button for quick access to command center
  */
 
-import { useState } from 'react';
+/**
+ * Ultimate Command FAB
+ * Floating action button for quick access to command center
+ */
+
+import { useState, forwardRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '@/components/ui/button';
+import { Button, ButtonProps } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
-import { Crown, Target, Shield, Brain, X } from 'lucide-react';
+import { Crown, Target, Shield, Brain, X, LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+// Forward ref button for AnimatePresence compatibility
+const MotionButton = forwardRef<HTMLButtonElement, ButtonProps & { className?: string }>(
+  (props, ref) => <Button ref={ref} {...props} />
+);
+MotionButton.displayName = 'MotionButton';
 
 const QUICK_ACTIONS = [
   { id: 'power', icon: Crown, label: 'Power Matrix', tab: 'power', color: 'text-amber-500' },
@@ -53,14 +64,14 @@ export function UltimateCommandFAB() {
             >
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
+                  <MotionButton
                     size="icon"
                     variant="secondary"
                     className="h-10 w-10 rounded-full shadow-lg border bg-card hover:bg-muted"
                     onClick={() => handleQuickAction(action.tab)}
                   >
                     <action.icon className={cn('h-4 w-4', action.color)} />
-                  </Button>
+                  </MotionButton>
                 </TooltipTrigger>
                 <TooltipContent side="left" className="font-medium">
                   {action.label}
