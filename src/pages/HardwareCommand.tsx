@@ -15,6 +15,8 @@ import {
   Shield,
   Plus,
   RefreshCw,
+  Waves,
+  Activity,
 } from 'lucide-react';
 import { DeviceGrid } from '@/components/hardware/DeviceGrid';
 import { MissionControl } from '@/components/hardware/MissionControl';
@@ -23,6 +25,8 @@ import { TelemetryFeed } from '@/components/hardware/TelemetryFeed';
 import { RegisterDeviceDialog } from '@/components/hardware/RegisterDeviceDialog';
 import { AerialOpsPanel } from '@/components/hardware/AerialOpsPanel';
 import { TSCMPanel } from '@/components/hardware/TSCMPanel';
+import { SDRPanel } from '@/components/hardware/SDRPanel';
+import { SensorDashboard } from '@/components/hardware/SensorDashboard';
 
 export default function HardwareCommand() {
   const navigate = useNavigate();
@@ -123,6 +127,14 @@ export default function HardwareCommand() {
               <Shield className="h-4 w-4" />
               TSCM
             </TabsTrigger>
+            <TabsTrigger value="sdr" className="gap-2">
+              <Waves className="h-4 w-4" />
+              SDR
+            </TabsTrigger>
+            <TabsTrigger value="sensors" className="gap-2">
+              <Activity className="h-4 w-4" />
+              Sensors
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="devices">
@@ -147,6 +159,14 @@ export default function HardwareCommand() {
 
           <TabsContent value="tscm">
             <TSCMPanel />
+          </TabsContent>
+
+          <TabsContent value="sdr">
+            <SDRPanel />
+          </TabsContent>
+
+          <TabsContent value="sensors">
+            <SensorDashboard />
           </TabsContent>
         </Tabs>
       </main>
