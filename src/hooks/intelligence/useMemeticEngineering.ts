@@ -5,17 +5,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { 
-  calculateSIRDynamics, 
   calculateR0, 
   evaluateMemeticFitness,
   predictCampaignTrajectory,
-  type Meme,
-  type MemeticCampaign 
 } from '@/lib/warfare/memeticPropagationEngine';
-
-import type { Tables } from '@/integrations/supabase/types';
-
-type MemeticCampaignRecord = Tables<'memetic_campaigns'>;
 
 export function useMemeticEngineering() {
   const { user } = useAuth();
@@ -34,7 +27,7 @@ export function useMemeticEngineering() {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as MemeticCampaignRecord[];
+      return data;
     },
     enabled: !!user?.id,
   });
@@ -67,35 +60,30 @@ export function useMemeticEngineering() {
   // Create a new memetic campaign
   const createCampaignMutation = useMutation({
     mutationFn: async (params: {
-      memeContent: Meme;
-      targetProfiles: string[];
-      propagationModel: 'SIR' | 'SEIR' | 'complex_contagion';
-      targetPopulation: number;
+      campaignName: string;
+      coreNarrative: string;
+      memeContent: Record<string, unknown>;
+      targetProfiles?: string[];
+      susceptiblePopulation?: number;
     }) => {
       if (!user?.id) throw new Error('Not authenticated');
       
-      // Calculate initial parameters
-      const fitness = evaluateMemeticFitness(params.memeContent);
-      const infectionRate = fitness * 0.3; // Base infection rate scaled by fitness
+      const insertData = {
+        user_id: user.id,
+        campaign_name: params.campaignName,
+        core_narrative: params.coreNarrative,
+        meme_content: params.memeContent,
+        target_profiles: params.targetProfiles || [],
+        susceptible_population: params.susceptiblePopulation || 1000,
+        infection_rate: 0.15,
+        recovery_rate: 0.1,
+        current_reach: 0,
+        status: 'planning',
+      };
       
       const { data, error } = await supabase
         .from('memetic_campaigns')
-        .insert({
-          user_id: user.id,
-          target_profiles: params.targetProfiles,
-          meme_content: params.memeContent as unknown as Record<string, unknown>,
-          propagation_model: params.propagationModel,
-          infection_rate: infectionRate,
-          recovery_rate: 0.1,
-          current_reach: 0,
-          target_population: params.targetPopulation,
-          status: 'planning',
-          metrics: {
-            fitness,
-            r0: calculateR0(infectionRate, 0.1),
-            projectedPeak: 0,
-          },
-        })
+        .insert(insertData as never)
         .select()
         .single();
       
@@ -113,15 +101,15 @@ export function useMemeticEngineering() {
 
   // Simulate campaign trajectory
   const simulateTrajectory = (
-    campaign: MemeticCampaignRecord,
+    campaign: { susceptible_population?: number | null; infection_rate?: number | null; recovery_rate?: number | null; current_reach?: number | null },
     days: number = 30
   ) => {
-    if (!campaign.target_population || !campaign.infection_rate) return [];
+    if (!campaign.susceptible_population || !campaign.infection_rate) return [];
     
     const r0 = calculateR0(campaign.infection_rate, campaign.recovery_rate || 0.1);
     return predictCampaignTrajectory(
       campaign.current_reach || 1,
-      campaign.target_population,
+      campaign.susceptible_population,
       r0,
       days
     );
