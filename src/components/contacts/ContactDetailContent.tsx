@@ -86,6 +86,14 @@ const InfluencePlaybookPanel = lazy(() => import('@/components/intelligence/Infl
 // Keystroke Enrollment
 const KeystrokeEnrollment = lazy(() => import('@/components/contacts/enrollment/KeystrokeEnrollment').then(m => ({ default: m.KeystrokeEnrollment })));
 
+// AGIS Phase 2 Panels
+const AttachmentVulnerabilityPanel = lazy(() => import('@/components/intelligence/AttachmentVulnerabilityPanel').then(m => ({ default: m.AttachmentVulnerabilityPanel })));
+const ChronotypePanel = lazy(() => import('@/components/intelligence/ChronotypePanel').then(m => ({ default: m.ChronotypePanel })));
+const TacticalNegotiationPanel = lazy(() => import('@/components/intelligence/TacticalNegotiationPanel').then(m => ({ default: m.TacticalNegotiationPanel })));
+const LifeTrajectoryPanel = lazy(() => import('@/components/intelligence/LifeTrajectoryPanel').then(m => ({ default: m.LifeTrajectoryPanel })));
+const BehavioralEconomicsPanel = lazy(() => import('@/components/intelligence/BehavioralEconomicsPanel').then(m => ({ default: m.BehavioralEconomicsPanel })));
+const FamilySystemsPanel = lazy(() => import('@/components/intelligence/FamilySystemsPanel').then(m => ({ default: m.FamilySystemsPanel })));
+
 type Profile = Tables<'profiles'>;
 
 interface ContactDetailContentProps {
@@ -270,6 +278,19 @@ export function ContactDetailContent({
         );
       case 'keystroke-enrollment':
         return <KeystrokeEnrollment profileId={contact.id} profileName={contactName} />;
+      // AGIS Phase 2 Sections
+      case 'agis-attachment':
+        return <AttachmentVulnerabilityPanel profileId={contact.id} />;
+      case 'agis-chronotype':
+        return <ChronotypePanel profileId={contact.id} />;
+      case 'agis-negotiation':
+        return <TacticalNegotiationPanel profileId={contact.id} />;
+      case 'agis-trajectory':
+        return <LifeTrajectoryPanel profileId={contact.id} />;
+      case 'agis-economics':
+        return <BehavioralEconomicsPanel profileId={contact.id} />;
+      case 'agis-family':
+        return <FamilySystemsPanel profileId={contact.id} />;
       default:
         return null;
     }

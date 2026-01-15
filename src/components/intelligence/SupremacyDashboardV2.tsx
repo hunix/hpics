@@ -22,7 +22,8 @@ import {
   DollarSign,
   Sparkles,
   LayoutGrid,
-  Users
+  Users,
+  Play
 } from 'lucide-react';
 import { TacticalNegotiationPanel } from './TacticalNegotiationPanel';
 import { AttachmentVulnerabilityPanel } from './AttachmentVulnerabilityPanel';
@@ -33,12 +34,14 @@ import { BehavioralEconomicsPanel } from './BehavioralEconomicsPanel';
 import { MemoryReconsolidationPanel } from './MemoryReconsolidationPanel';
 import { ChoiceArchitecturePanel } from './ChoiceArchitecturePanel';
 import { FamilySystemsPanel } from './FamilySystemsPanel';
+import { MissionControlConsole } from './MissionControlConsole';
 
 interface SupremacyDashboardV2Props {
   profileId?: string;
 }
 
 const CAPABILITY_DOMAINS = [
+  { id: 'control', label: 'Control', icon: Play, color: 'text-violet-500', description: 'Mission' },
   { id: 'negotiation', label: 'Negotiation', icon: Target, color: 'text-red-500', description: 'FBI tactics' },
   { id: 'attachment', label: 'Attachment', icon: Heart, color: 'text-pink-500', description: 'Vulnerability' },
   { id: 'chronotype', label: 'Chronotype', icon: Clock, color: 'text-blue-500', description: 'Timing' },
@@ -68,12 +71,12 @@ export function SupremacyDashboardV2({ profileId }: SupremacyDashboardV2Props) {
         </div>
         <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/30">
           <Zap className="h-3 w-3 mr-1" />
-          9 Capability Domains
+          10 Capability Domains
         </Badge>
       </div>
 
       {/* Capability Grid - Responsive */}
-      <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
+      <div className="grid grid-cols-5 sm:grid-cols-5 lg:grid-cols-10 gap-2">
         {CAPABILITY_DOMAINS.map((domain) => (
           <Card 
             key={domain.id}
@@ -96,6 +99,10 @@ export function SupremacyDashboardV2({ profileId }: SupremacyDashboardV2Props) {
             <Eye className="h-3 w-3" />
             Overview
           </TabsTrigger>
+          <TabsTrigger value="control" className="flex items-center gap-1 text-xs">
+            <Play className="h-3 w-3" />
+            Control
+          </TabsTrigger>
           <TabsTrigger value="negotiation" className="text-xs">Negotiation</TabsTrigger>
           <TabsTrigger value="attachment" className="text-xs">Attachment</TabsTrigger>
           <TabsTrigger value="chronotype" className="text-xs">Chronotype</TabsTrigger>
@@ -109,6 +116,10 @@ export function SupremacyDashboardV2({ profileId }: SupremacyDashboardV2Props) {
 
         <TabsContent value="overview" className="space-y-6 mt-6">
           <OverviewPanel profileId={profileId} />
+        </TabsContent>
+
+        <TabsContent value="control" className="mt-6">
+          <MissionControlConsole profileId={profileId} />
         </TabsContent>
 
         <TabsContent value="negotiation" className="mt-6">

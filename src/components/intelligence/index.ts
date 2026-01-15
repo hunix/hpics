@@ -33,6 +33,7 @@ export { SituationRoom } from './SituationRoom';
 
 // AGIS Phase 2: Absolute Superiority
 export { SupremacyDashboardV2 } from './SupremacyDashboardV2';
+export { MissionControlConsole } from './MissionControlConsole';
 export { TacticalNegotiationPanel } from './TacticalNegotiationPanel';
 export { AttachmentVulnerabilityPanel } from './AttachmentVulnerabilityPanel';
 export { ChronotypePanel } from './ChronotypePanel';
