@@ -3,7 +3,7 @@ import {
   Upload, Settings, Network, CalendarDays, Video, Scan, BarChart3, FileBarChart, 
   UsersRound, Download, Shield, Waypoints, Sparkles, ShieldAlert, Activity, 
   Layers, Cpu, DollarSign, Home, Briefcase, Eye, AlertTriangle, Lock,
-  Zap, Compass, Smartphone, Crown, Swords,
+  Zap, Compass, Smartphone, Crown, Swords, Orbit,
   type LucideIcon
 } from 'lucide-react';
 import type { AppRole, ClearanceLevel } from '@/hooks/useClearance';
@@ -209,6 +209,17 @@ export const navigationItems: NavItem[] = [
     category: 'intelligence',
     requiredRole: 'analyst',
     keywords: ['omniscient', 'agis', 'phase 5', 'autonomous', 'network', 'warfare', 'counter', 'intelligence', 'predictive'],
+  },
+  {
+    id: 'transcendent-command',
+    title: 'Transcendent Command',
+    url: '/transcendent-command',
+    icon: Orbit,
+    badge: 'new',
+    description: 'AGIS Phase 6 - Reality engineering, quantum influence, temporal ops',
+    category: 'intelligence',
+    requiredRole: 'analyst',
+    keywords: ['transcendent', 'agis', 'phase 6', 'reality', 'quantum', 'temporal', 'identity', 'collective', 'meta'],
   },
   
   // Relationships
