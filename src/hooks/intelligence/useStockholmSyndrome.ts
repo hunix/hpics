@@ -68,7 +68,7 @@ export function useStockholmSyndrome(profileId?: string) {
         .select('*')
         .eq('profile_id', profileId)
         .eq('user_id', user.id)
-        .maybeSingle() as Promise<{ data: Record<string, unknown> | null; error: unknown }>);
+        .maybeSingle() as unknown as Promise<{ data: Record<string, unknown> | null; error: unknown }>);
 
       const emotionalScore = (dependency?.emotional_dependency as number) || 0;
       const attachmentScore = (dependency?.attachment_dependency as number) || 0;

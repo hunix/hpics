@@ -61,7 +61,7 @@ export function useCultTactics(profileId?: string) {
         .select('*')
         .eq('profile_id', profileId)
         .eq('user_id', user.id)
-        .maybeSingle() as Promise<{ data: Record<string, unknown> | null; error: unknown }>);
+        .maybeSingle() as unknown as Promise<{ data: Record<string, unknown> | null; error: unknown }>);
 
       const baseScore = (cultData?.total_bite_score as number) || 20;
       const behaviorControl = (cultData?.behavior_control_score as number) || baseScore * 0.9;
