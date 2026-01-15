@@ -48,15 +48,15 @@ export function useElicitationSession(profileId?: string) {
     queryFn: async () => {
       if (!user?.id) return [];
       
-      let query = supabase
+      const baseQuery = supabase
         .from('elicitation_sessions')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
       
-      if (profileId) {
-        query = query.eq('target_profile_id', profileId);
-      }
+      const query = profileId 
+        ? baseQuery.eq('profile_id', profileId)
+        : baseQuery;
       
       const { data, error } = await query;
       if (error) throw error;
@@ -74,12 +74,12 @@ export function useElicitationSession(profileId?: string) {
         .from('elicitation_sessions')
         .insert({
           user_id: user.id,
-          target_profile_id: profileId,
-          session_status: 'active',
+          profile_id: profileId,
+          session_type: 'active',
           techniques_used: techniques,
-          conversation_transcript: [] as any,
-          technique_effectiveness: {} as any,
-          extracted_intelligence: [] as any,
+          conversation_transcript: [],
+          technique_effectiveness: {},
+          extracted_intelligence: [],
           conversation_notes: objective,
         })
         .select()
@@ -185,7 +185,7 @@ export function useElicitationSession(profileId?: string) {
       const { error } = await supabase
         .from('elicitation_sessions')
         .update({
-          session_status: 'completed',
+          session_type: 'completed',
           updated_at: new Date().toISOString(),
         })
         .eq('id', sessionId);
