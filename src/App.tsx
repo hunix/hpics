@@ -66,6 +66,7 @@ const BiometricHub = lazyWithRetry(() => import("./pages/BiometricHub"));
 const HardwareCommand = lazyWithRetry(() => import("./pages/HardwareCommand"));
 const Supremacy = lazyWithRetry(() => import("./pages/Supremacy"));
 const SupremacyV2 = lazyWithRetry(() => import("./pages/SupremacyV2Page"));
+const CognitiveWarfare = lazyWithRetry(() => import("./pages/CognitiveWarfarePage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
