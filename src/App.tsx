@@ -142,6 +142,7 @@ const App = () => (
                         <Route path="/hardware-command" element={<HardwareCommand />} />
                         <Route path="/supremacy" element={<Supremacy />} />
                         <Route path="/supremacy-v2" element={<SupremacyV2 />} />
+                        <Route path="/cognitive-warfare" element={<CognitiveWarfare />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                       </Suspense>
