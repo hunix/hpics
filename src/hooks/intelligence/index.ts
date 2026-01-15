@@ -53,3 +53,10 @@ export { usePushNotifications } from './usePushNotifications';
 export type { NotificationPreference, CriticalAlert } from './usePushNotifications';
 export { useBiometricPsychFusion } from './useBiometricPsychFusion';
 export type { FusionProfile } from './useBiometricPsychFusion';
+
+// AGIS Phase 4 Hooks - Dominion (Dark Psychology & Absolute Control)
+export { useTraumaExploitation } from './useTraumaExploitation';
+export { useAddictionProtocol } from './useAddictionProtocol';
+export { useCoerciveControl } from './useCoerciveControl';
+export { useBreakingPointPrediction } from './useBreakingPointPrediction';
+export { useDependencyTracking } from './useDependencyTracking';

@@ -188,6 +188,17 @@ export const navigationItems: NavItem[] = [
     requiredRole: 'analyst',
     keywords: ['cognitive', 'warfare', 'agis', 'phase 3', 'memetic', 'mice', 'semantic', 'betrayal', 'sacred'],
   },
+  {
+    id: 'dominion-command',
+    title: 'Dominion Command',
+    url: '/dominion',
+    icon: AlertTriangle,
+    badge: 'new',
+    description: 'AGIS Phase 4 - Dark psychology & absolute control',
+    category: 'intelligence',
+    requiredRole: 'analyst',
+    keywords: ['dominion', 'agis', 'phase 4', 'dark', 'psychology', 'trauma', 'addiction', 'coercive', 'control'],
+  },
   
   // Relationships
   {
