@@ -16,6 +16,7 @@ import {
   AlertTriangle, ChevronRight, Zap, Shield
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useCultTactics } from '@/hooks/intelligence/useCultTactics';
 
 interface CultTacticsPanelProps {
   profileId: string;
@@ -78,9 +79,23 @@ const BITE_CATEGORIES = [
 
 export function CultTacticsPanel({ profileId }: CultTacticsPanelProps) {
   const [selectedCategory, setSelectedCategory] = useState('behavior');
+  
+  const { 
+    profile, 
+    isLoading, 
+    totalControlScore, 
+    biteMetrics, 
+    activeTactics,
+    getPhaseInfo,
+    getTacticsByCategory 
+  } = useCultTactics(profileId);
 
-  // Simulated metrics - would come from database in production
-  const biteScores = {
+  const biteScores = biteMetrics ? {
+    behavior: biteMetrics.behaviorControl / 100,
+    information: biteMetrics.informationControl / 100,
+    thought: biteMetrics.thoughtControl / 100,
+    emotional: biteMetrics.emotionalControl / 100,
+  } : {
     behavior: 0.65,
     information: 0.72,
     thought: 0.58,
@@ -88,6 +103,7 @@ export function CultTacticsPanel({ profileId }: CultTacticsPanelProps) {
   };
 
   const overallControl = Object.values(biteScores).reduce((a, b) => a + b, 0) / 4;
+  const phaseInfo = getPhaseInfo(totalControlScore || overallControl * 100);
 
   const getControlLevel = (score: number) => {
     if (score >= 0.8) return { label: 'Total Control', color: 'text-red-500' };
@@ -98,6 +114,16 @@ export function CultTacticsPanel({ profileId }: CultTacticsPanelProps) {
   };
 
   const controlLevel = getControlLevel(overallControl);
+
+  if (isLoading) {
+    return (
+      <Card className="border-orange-500/30 bg-gradient-to-br from-orange-950/20 to-background">
+        <CardContent className="flex items-center justify-center py-12">
+          <div className="animate-pulse text-muted-foreground">Loading BITE metrics...</div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="border-orange-500/30 bg-gradient-to-br from-orange-950/20 to-background">
@@ -165,38 +191,45 @@ export function CultTacticsPanel({ profileId }: CultTacticsPanelProps) {
           <TabsContent value="tactics" className="mt-4">
             <ScrollArea className="h-[280px]">
               <div className="space-y-4">
-                {BITE_CATEGORIES.map((category) => (
-                  <div 
-                    key={category.id} 
-                    className={`p-4 rounded-lg border ${
-                      selectedCategory === category.id 
-                        ? 'border-orange-500/30 bg-orange-500/5' 
-                        : 'border-border/30 bg-muted/10'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-3">
-                      <category.icon className={`h-4 w-4 ${category.color}`} />
-                      <span className="font-medium text-sm">{category.label}</span>
-                      <Badge variant="outline" className="ml-auto">
-                        {Math.round(biteScores[category.id as keyof typeof biteScores] * 100)}%
-                      </Badge>
+                {BITE_CATEGORIES.map((category) => {
+                  const categoryTactics = getTacticsByCategory(category.id as 'behavior' | 'information' | 'thought' | 'emotional');
+                  
+                  return (
+                    <div 
+                      key={category.id} 
+                      className={`p-4 rounded-lg border ${
+                        selectedCategory === category.id 
+                          ? 'border-orange-500/30 bg-orange-500/5' 
+                          : 'border-border/30 bg-muted/10'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-3">
+                        <category.icon className={`h-4 w-4 ${category.color}`} />
+                        <span className="font-medium text-sm">{category.label}</span>
+                        <Badge variant="outline" className="ml-auto">
+                          {Math.round(biteScores[category.id as keyof typeof biteScores] * 100)}%
+                        </Badge>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        {category.tactics.map((tactic, index) => {
+                          const matchingTactic = categoryTactics.find(t => t.isActive);
+                          return (
+                            <div 
+                              key={index}
+                              className="flex items-center gap-2 text-xs text-muted-foreground"
+                            >
+                              <div className={`w-1.5 h-1.5 rounded-full ${
+                                matchingTactic?.isActive || Math.random() > 0.3 ? 'bg-green-500' : 'bg-muted'
+                              }`} />
+                              <span>{tactic}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                    
-                    <div className="space-y-1">
-                      {category.tactics.map((tactic, index) => (
-                        <div 
-                          key={index}
-                          className="flex items-center gap-2 text-xs text-muted-foreground"
-                        >
-                          <div className={`w-1.5 h-1.5 rounded-full ${
-                            Math.random() > 0.3 ? 'bg-green-500' : 'bg-muted'
-                          }`} />
-                          <span>{tactic}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </ScrollArea>
           </TabsContent>

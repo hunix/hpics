@@ -3,7 +3,7 @@
  * AGIS Phase 4 - Connects to cross-domain-correlator and unified-data-fusion
  */
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
