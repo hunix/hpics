@@ -3,7 +3,8 @@ import {
   Upload, Settings, Network, CalendarDays, Video, Scan, BarChart3, FileBarChart, 
   UsersRound, Download, Shield, Waypoints, Sparkles, ShieldAlert, Activity, 
   Layers, Cpu, DollarSign, Home, Briefcase, Eye, AlertTriangle, Lock,
-  Zap, Compass, Smartphone, Crown, Swords, Orbit,
+  Zap, Compass, Smartphone, Crown, Swords, Orbit, TrendingUp, Search, 
+  GitBranch, Lightbulb, Target, LayoutGrid, Fingerprint,
   type LucideIcon
 } from 'lucide-react';
 import type { AppRole, ClearanceLevel } from '@/hooks/useClearance';
@@ -221,6 +222,83 @@ export const navigationItems: NavItem[] = [
     requiredRole: 'analyst',
     keywords: ['transcendent', 'agis', 'phase 6', 'reality', 'quantum', 'temporal', 'identity', 'collective', 'meta'],
   },
+  {
+    id: 'cross-modal-intelligence',
+    title: 'Cross-Modal Analysis',
+    url: '/cross-modal-intelligence',
+    icon: Layers,
+    description: 'Multi-modal synthesis & correlation',
+    category: 'intelligence',
+    requiredRole: 'analyst',
+    keywords: ['cross-modal', 'synthesis', 'fusion', 'correlation', 'multimodal'],
+  },
+  {
+    id: 'counter-intelligence',
+    title: 'Counter-Intelligence',
+    url: '/counter-intelligence',
+    icon: ShieldAlert,
+    description: 'Adversary detection & OPSEC',
+    category: 'intelligence',
+    requiredRole: 'analyst',
+    keywords: ['counter', 'intelligence', 'adversary', 'opsec', 'honeypot'],
+  },
+  {
+    id: 'social-intelligence',
+    title: 'Social Intelligence',
+    url: '/social-intelligence',
+    icon: Users,
+    description: 'Social network analysis & OSINT',
+    category: 'intelligence',
+    keywords: ['social', 'osint', 'network', 'analysis'],
+  },
+  {
+    id: 'psychology-intelligence',
+    title: 'Psychology Intel',
+    url: '/psychology-intelligence',
+    icon: Brain,
+    description: 'Behavioral & psychological profiling',
+    category: 'intelligence',
+    requiredRole: 'analyst',
+    keywords: ['psychology', 'behavioral', 'profiling', 'personality'],
+  },
+  {
+    id: 'deception-analysis',
+    title: 'Deception Analysis',
+    url: '/deception-analysis',
+    icon: Eye,
+    description: 'Lie detection & credibility assessment',
+    category: 'intelligence',
+    requiredRole: 'analyst',
+    keywords: ['deception', 'lie', 'detection', 'credibility', 'micro-expression'],
+  },
+  {
+    id: 'investment-intelligence',
+    title: 'Investment Intel',
+    url: '/investment-intelligence',
+    icon: TrendingUp,
+    description: 'Financial & economic intelligence',
+    category: 'intelligence',
+    keywords: ['investment', 'financial', 'economic', 'trading', 'signals'],
+  },
+  {
+    id: 'ultimate-command',
+    title: 'Ultimate Command',
+    url: '/ultimate-command',
+    icon: LayoutGrid,
+    badge: 'new',
+    description: 'Unified strategic command interface',
+    category: 'command',
+    keywords: ['ultimate', 'command', 'strategic', 'unified'],
+  },
+  {
+    id: 'intelligence-command-center',
+    title: 'Intel Command',
+    url: '/intelligence/command-center',
+    icon: Target,
+    description: 'Tactical intelligence operations',
+    category: 'intelligence',
+    keywords: ['intel', 'command', 'tactical', 'operations'],
+  },
   
   // Relationships
   {
@@ -268,6 +346,26 @@ export const navigationItems: NavItem[] = [
     category: 'relationships',
     keywords: ['network', 'map', 'graph', 'visualization'],
   },
+  {
+    id: 'advanced-network',
+    title: 'Advanced Network',
+    url: '/network-advanced',
+    icon: GitBranch,
+    description: 'Advanced network visualizations',
+    category: 'relationships',
+    keywords: ['advanced', 'network', 'graph', 'centrality', 'pagerank'],
+  },
+  
+  // Assets
+  {
+    id: 'documents',
+    title: 'Documents',
+    url: '/documents',
+    icon: FileText,
+    description: 'Visual relationship graph',
+    category: 'relationships',
+    keywords: ['network', 'map', 'graph', 'visualization'],
+  },
   
   // Assets
   {
@@ -293,6 +391,35 @@ export const navigationItems: NavItem[] = [
     title: 'Reports',
     url: '/reports',
     icon: FileBarChart,
+    description: 'Generated reports & exports',
+    category: 'assets',
+    keywords: ['reports', 'exports', 'pdf'],
+  },
+  {
+    id: 'downloads',
+    title: 'Downloads',
+    url: '/downloads',
+    icon: Download,
+    description: 'Chrome Extension & Desktop App',
+    category: 'assets',
+    keywords: ['downloads', 'extension', 'desktop', 'app'],
+  },
+  {
+    id: 'insights',
+    title: 'Insights',
+    url: '/insights',
+    icon: Lightbulb,
+    description: 'AI-generated insights & recommendations',
+    category: 'analysis',
+    keywords: ['insights', 'recommendations', 'ai', 'suggestions'],
+  },
+  
+  // Analysis
+  {
+    id: 'media-analysis',
+    title: 'Media Analysis',
+    url: '/analysis',
+    icon: Scan,
     description: 'Generated reports & exports',
     category: 'assets',
     keywords: ['reports', 'exports', 'pdf'],
@@ -341,8 +468,8 @@ export const navigationItems: NavItem[] = [
   {
     id: 'biometric-hub',
     title: 'Biometric Hub',
-    url: '/biometrics',
-    icon: Scan,
+    url: '/biometric-hub',
+    icon: Fingerprint,
     description: 'Multi-modal biometric enrollment & matching',
     badge: 'new',
     category: 'security',
@@ -360,6 +487,24 @@ export const navigationItems: NavItem[] = [
   },
   
   // System
+  {
+    id: 'ai-chat',
+    title: 'AI Assistant',
+    url: '/ai-chat',
+    icon: MessageSquare,
+    description: 'Conversational AI interface',
+    category: 'command',
+    keywords: ['ai', 'chat', 'assistant', 'conversation'],
+  },
+  {
+    id: 'semantic-search',
+    title: 'Semantic Search',
+    url: '/semantic-search',
+    icon: Search,
+    description: 'Natural language search',
+    category: 'intelligence',
+    keywords: ['semantic', 'search', 'natural', 'language', 'query'],
+  },
   {
     id: 'capabilities',
     title: 'Capabilities',
