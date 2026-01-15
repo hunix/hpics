@@ -43,3 +43,10 @@ export { BehavioralEconomicsPanel } from './BehavioralEconomicsPanel';
 export { MemoryReconsolidationPanel } from './MemoryReconsolidationPanel';
 export { ChoiceArchitecturePanel } from './ChoiceArchitecturePanel';
 export { FamilySystemsPanel } from './FamilySystemsPanel';
+
+// Task Progress Components
+export { TaskProgressPanel } from './TaskProgressPanel';
+export type { Task, TaskStatus, TaskNote } from './TaskProgressPanel';
+
+// Phase 5: Omniscient Command
+export * from './phase5';

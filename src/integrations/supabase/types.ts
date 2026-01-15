@@ -2290,6 +2290,79 @@ export type Database = {
           },
         ]
       }
+      belief_architectures: {
+        Row: {
+          belief_dependencies: Json | null
+          core_beliefs: Json | null
+          created_at: string
+          id: string
+          last_major_shift: string | null
+          peripheral_beliefs: Json | null
+          profile_id: string | null
+          protection_mechanisms: Json | null
+          stability_score: number | null
+          supporting_beliefs: Json | null
+          update_triggers: Json | null
+          updated_at: string
+          user_id: string
+          vulnerability_map: Json | null
+        }
+        Insert: {
+          belief_dependencies?: Json | null
+          core_beliefs?: Json | null
+          created_at?: string
+          id?: string
+          last_major_shift?: string | null
+          peripheral_beliefs?: Json | null
+          profile_id?: string | null
+          protection_mechanisms?: Json | null
+          stability_score?: number | null
+          supporting_beliefs?: Json | null
+          update_triggers?: Json | null
+          updated_at?: string
+          user_id: string
+          vulnerability_map?: Json | null
+        }
+        Update: {
+          belief_dependencies?: Json | null
+          core_beliefs?: Json | null
+          created_at?: string
+          id?: string
+          last_major_shift?: string | null
+          peripheral_beliefs?: Json | null
+          profile_id?: string | null
+          protection_mechanisms?: Json | null
+          stability_score?: number | null
+          supporting_beliefs?: Json | null
+          update_triggers?: Json | null
+          updated_at?: string
+          user_id?: string
+          vulnerability_map?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "belief_architectures_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "belief_architectures_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "belief_architectures_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       betrayal_predictions: {
         Row: {
           created_at: string | null
@@ -3943,6 +4016,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      collective_fields: {
+        Row: {
+          coherence_level: number | null
+          collective_beliefs: Json | null
+          created_at: string
+          field_dynamics: Json | null
+          field_evolution_trajectory: Json | null
+          field_name: string
+          field_strength: number | null
+          field_type: string
+          group_shadow: Json | null
+          id: string
+          intervention_points: Json | null
+          member_profiles: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          coherence_level?: number | null
+          collective_beliefs?: Json | null
+          created_at?: string
+          field_dynamics?: Json | null
+          field_evolution_trajectory?: Json | null
+          field_name: string
+          field_strength?: number | null
+          field_type: string
+          group_shadow?: Json | null
+          id?: string
+          intervention_points?: Json | null
+          member_profiles?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          coherence_level?: number | null
+          collective_beliefs?: Json | null
+          created_at?: string
+          field_dynamics?: Json | null
+          field_evolution_trajectory?: Json | null
+          field_name?: string
+          field_strength?: number | null
+          field_type?: string
+          group_shadow?: Json | null
+          id?: string
+          intervention_points?: Json | null
+          member_profiles?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       communications: {
         Row: {
@@ -9600,6 +9724,54 @@ export type Database = {
         }
         Relationships: []
       }
+      dimensional_operations: {
+        Row: {
+          created_at: string
+          cross_dimensional_effects: Json | null
+          current_coordinates: Json | null
+          dimension_weights: Json | null
+          dimensions: Json | null
+          id: string
+          is_active: boolean | null
+          operation_name: string
+          optimization_target: Json | null
+          path_calculation: Json | null
+          target_coordinates: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          cross_dimensional_effects?: Json | null
+          current_coordinates?: Json | null
+          dimension_weights?: Json | null
+          dimensions?: Json | null
+          id?: string
+          is_active?: boolean | null
+          operation_name: string
+          optimization_target?: Json | null
+          path_calculation?: Json | null
+          target_coordinates?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          cross_dimensional_effects?: Json | null
+          current_coordinates?: Json | null
+          dimension_weights?: Json | null
+          dimensions?: Json | null
+          id?: string
+          is_active?: boolean | null
+          operation_name?: string
+          optimization_target?: Json | null
+          path_calculation?: Json | null
+          target_coordinates?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       document_analysis_jobs: {
         Row: {
           actual_cost_cents: number | null
@@ -12896,6 +13068,76 @@ export type Database = {
             columns: ["device_id"]
             isOneToOne: false
             referencedRelation: "hardware_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      identity_blueprints: {
+        Row: {
+          anchor_experiences: Json | null
+          aspirational_identity: Json | null
+          created_at: string
+          current_identity: Json | null
+          id: string
+          identity_conflicts: Json | null
+          integration_opportunities: Json | null
+          malleability_score: number | null
+          profile_id: string | null
+          rejected_identity: Json | null
+          shadow_identity: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          anchor_experiences?: Json | null
+          aspirational_identity?: Json | null
+          created_at?: string
+          current_identity?: Json | null
+          id?: string
+          identity_conflicts?: Json | null
+          integration_opportunities?: Json | null
+          malleability_score?: number | null
+          profile_id?: string | null
+          rejected_identity?: Json | null
+          shadow_identity?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          anchor_experiences?: Json | null
+          aspirational_identity?: Json | null
+          created_at?: string
+          current_identity?: Json | null
+          id?: string
+          identity_conflicts?: Json | null
+          integration_opportunities?: Json | null
+          malleability_score?: number | null
+          profile_id?: string | null
+          rejected_identity?: Json | null
+          shadow_identity?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "identity_blueprints_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "identity_blueprints_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "identity_blueprints_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -16358,6 +16600,51 @@ export type Database = {
           },
         ]
       }
+      meta_patterns: {
+        Row: {
+          abstraction_level: number | null
+          constituent_patterns: Json | null
+          discovered_at: string
+          discovery_method: string | null
+          id: string
+          last_validated_at: string | null
+          manifestation_contexts: Json | null
+          manipulation_leverage: number | null
+          pattern_name: string
+          prediction_power: number | null
+          user_id: string
+          validation_evidence: Json | null
+        }
+        Insert: {
+          abstraction_level?: number | null
+          constituent_patterns?: Json | null
+          discovered_at?: string
+          discovery_method?: string | null
+          id?: string
+          last_validated_at?: string | null
+          manifestation_contexts?: Json | null
+          manipulation_leverage?: number | null
+          pattern_name: string
+          prediction_power?: number | null
+          user_id: string
+          validation_evidence?: Json | null
+        }
+        Update: {
+          abstraction_level?: number | null
+          constituent_patterns?: Json | null
+          discovered_at?: string
+          discovery_method?: string | null
+          id?: string
+          last_validated_at?: string | null
+          manifestation_contexts?: Json | null
+          manipulation_leverage?: number | null
+          pattern_name?: string
+          prediction_power?: number | null
+          user_id?: string
+          validation_evidence?: Json | null
+        }
+        Relationships: []
+      }
       metal_detection_sweeps: {
         Row: {
           completed_at: string | null
@@ -16666,6 +16953,127 @@ export type Database = {
           },
         ]
       }
+      moment_captures: {
+        Row: {
+          capture_context: Json | null
+          captured_at: string
+          decay_rate: number | null
+          emotional_state_snapshot: Json | null
+          expires_at: string | null
+          id: string
+          leverage_outcome: Json | null
+          leverage_potential: number | null
+          moment_type: string
+          optimal_action_window: Json | null
+          profile_id: string | null
+          suggested_interventions: Json | null
+          user_id: string
+          was_leveraged: boolean | null
+        }
+        Insert: {
+          capture_context?: Json | null
+          captured_at?: string
+          decay_rate?: number | null
+          emotional_state_snapshot?: Json | null
+          expires_at?: string | null
+          id?: string
+          leverage_outcome?: Json | null
+          leverage_potential?: number | null
+          moment_type: string
+          optimal_action_window?: Json | null
+          profile_id?: string | null
+          suggested_interventions?: Json | null
+          user_id: string
+          was_leveraged?: boolean | null
+        }
+        Update: {
+          capture_context?: Json | null
+          captured_at?: string
+          decay_rate?: number | null
+          emotional_state_snapshot?: Json | null
+          expires_at?: string | null
+          id?: string
+          leverage_outcome?: Json | null
+          leverage_potential?: number | null
+          moment_type?: string
+          optimal_action_window?: Json | null
+          profile_id?: string | null
+          suggested_interventions?: Json | null
+          user_id?: string
+          was_leveraged?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moment_captures_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "moment_captures_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "moment_captures_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      morphic_patterns: {
+        Row: {
+          affected_profiles: Json | null
+          amplification_opportunities: Json | null
+          decay_rate: number | null
+          disruption_methods: Json | null
+          first_detected_at: string
+          id: string
+          last_observed_at: string
+          originating_profiles: Json | null
+          pattern_name: string
+          pattern_type: string
+          propagation_mechanism: Json | null
+          resonance_strength: number | null
+          user_id: string
+        }
+        Insert: {
+          affected_profiles?: Json | null
+          amplification_opportunities?: Json | null
+          decay_rate?: number | null
+          disruption_methods?: Json | null
+          first_detected_at?: string
+          id?: string
+          last_observed_at?: string
+          originating_profiles?: Json | null
+          pattern_name: string
+          pattern_type: string
+          propagation_mechanism?: Json | null
+          resonance_strength?: number | null
+          user_id: string
+        }
+        Update: {
+          affected_profiles?: Json | null
+          amplification_opportunities?: Json | null
+          decay_rate?: number | null
+          disruption_methods?: Json | null
+          first_detected_at?: string
+          id?: string
+          last_observed_at?: string
+          originating_profiles?: Json | null
+          pattern_name?: string
+          pattern_type?: string
+          propagation_mechanism?: Json | null
+          resonance_strength?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       mosaic_metadata_sessions: {
         Row: {
           actual_cost_cents: number | null
@@ -16906,6 +17314,73 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      narrative_identities: {
+        Row: {
+          created_at: string
+          id: string
+          life_narrative: Json | null
+          narrative_gaps: Json | null
+          narrative_momentum: number | null
+          narrative_themes: Json | null
+          profile_id: string | null
+          protagonist_archetype: string | null
+          reframe_opportunities: Json | null
+          story_phase: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          life_narrative?: Json | null
+          narrative_gaps?: Json | null
+          narrative_momentum?: number | null
+          narrative_themes?: Json | null
+          profile_id?: string | null
+          protagonist_archetype?: string | null
+          reframe_opportunities?: Json | null
+          story_phase?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          life_narrative?: Json | null
+          narrative_gaps?: Json | null
+          narrative_momentum?: number | null
+          narrative_themes?: Json | null
+          profile_id?: string | null
+          protagonist_archetype?: string | null
+          reframe_opportunities?: Json | null
+          story_phase?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "narrative_identities_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "narrative_identities_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "narrative_identities_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       narrative_simulations: {
         Row: {
@@ -19530,6 +20005,76 @@ export type Database = {
         }
         Relationships: []
       }
+      quantum_states: {
+        Row: {
+          coherence_duration: unknown
+          collapsed_at: string | null
+          collapsed_state: Json | null
+          created_at: string
+          decoherence_factors: Json | null
+          entangled_profiles: Json | null
+          id: string
+          measurement_strategy: Json | null
+          observation_effects: Json | null
+          probability_amplitudes: Json | null
+          profile_id: string | null
+          superposition_states: Json | null
+          user_id: string
+        }
+        Insert: {
+          coherence_duration?: unknown
+          collapsed_at?: string | null
+          collapsed_state?: Json | null
+          created_at?: string
+          decoherence_factors?: Json | null
+          entangled_profiles?: Json | null
+          id?: string
+          measurement_strategy?: Json | null
+          observation_effects?: Json | null
+          probability_amplitudes?: Json | null
+          profile_id?: string | null
+          superposition_states?: Json | null
+          user_id: string
+        }
+        Update: {
+          coherence_duration?: unknown
+          collapsed_at?: string | null
+          collapsed_state?: Json | null
+          created_at?: string
+          decoherence_factors?: Json | null
+          entangled_profiles?: Json | null
+          id?: string
+          measurement_strategy?: Json | null
+          observation_effects?: Json | null
+          probability_amplitudes?: Json | null
+          profile_id?: string | null
+          superposition_states?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quantum_states_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "quantum_states_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "quantum_states_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       query_cache: {
         Row: {
           cache_key: string
@@ -19631,6 +20176,85 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      reality_frameworks: {
+        Row: {
+          anchor_points: Json | null
+          breakthrough_triggers: Json | null
+          cognitive_load_score: number | null
+          created_at: string
+          current_reality_map: Json | null
+          framework_name: string
+          framework_type: string
+          id: string
+          is_active: boolean | null
+          profile_id: string | null
+          progress_percentage: number | null
+          resistance_patterns: Json | null
+          target_reality_map: Json | null
+          transition_strategy: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          anchor_points?: Json | null
+          breakthrough_triggers?: Json | null
+          cognitive_load_score?: number | null
+          created_at?: string
+          current_reality_map?: Json | null
+          framework_name: string
+          framework_type?: string
+          id?: string
+          is_active?: boolean | null
+          profile_id?: string | null
+          progress_percentage?: number | null
+          resistance_patterns?: Json | null
+          target_reality_map?: Json | null
+          transition_strategy?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          anchor_points?: Json | null
+          breakthrough_triggers?: Json | null
+          cognitive_load_score?: number | null
+          created_at?: string
+          current_reality_map?: Json | null
+          framework_name?: string
+          framework_type?: string
+          id?: string
+          is_active?: boolean | null
+          profile_id?: string | null
+          progress_percentage?: number | null
+          resistance_patterns?: Json | null
+          target_reality_map?: Json | null
+          transition_strategy?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reality_frameworks_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "reality_frameworks_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "reality_frameworks_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       relationship_goals: {
         Row: {
@@ -22195,6 +22819,60 @@ export type Database = {
           },
         ]
       }
+      temporal_orchestrations: {
+        Row: {
+          contingency_branches: Json | null
+          created_at: string
+          current_position: Json | null
+          estimated_completion: string | null
+          id: string
+          is_active: boolean | null
+          orchestration_name: string
+          orchestration_type: string
+          synchronization_points: Json | null
+          target_profiles: Json | null
+          timeline_definition: Json | null
+          trajectory_confidence: number | null
+          updated_at: string
+          user_id: string
+          velocity_metrics: Json | null
+        }
+        Insert: {
+          contingency_branches?: Json | null
+          created_at?: string
+          current_position?: Json | null
+          estimated_completion?: string | null
+          id?: string
+          is_active?: boolean | null
+          orchestration_name: string
+          orchestration_type?: string
+          synchronization_points?: Json | null
+          target_profiles?: Json | null
+          timeline_definition?: Json | null
+          trajectory_confidence?: number | null
+          updated_at?: string
+          user_id: string
+          velocity_metrics?: Json | null
+        }
+        Update: {
+          contingency_branches?: Json | null
+          created_at?: string
+          current_position?: Json | null
+          estimated_completion?: string | null
+          id?: string
+          is_active?: boolean | null
+          orchestration_name?: string
+          orchestration_type?: string
+          synchronization_points?: Json | null
+          target_profiles?: Json | null
+          timeline_definition?: Json | null
+          trajectory_confidence?: number | null
+          updated_at?: string
+          user_id?: string
+          velocity_metrics?: Json | null
+        }
+        Relationships: []
+      }
       thermal_captures: {
         Row: {
           ambient_temperature_celsius: number | null
@@ -22578,6 +23256,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      transcendence_operations: {
+        Row: {
+          breakthrough_moments: Json | null
+          completed_at: string | null
+          completion_percentage: number | null
+          current_state: Json | null
+          id: string
+          initial_state: Json | null
+          is_active: boolean | null
+          lessons_learned: Json | null
+          operation_scope: string
+          operation_type: string
+          resistance_encountered: Json | null
+          started_at: string
+          success_metrics: Json | null
+          target_entities: Json | null
+          target_state: Json | null
+          transformation_vector: Json | null
+          user_id: string
+        }
+        Insert: {
+          breakthrough_moments?: Json | null
+          completed_at?: string | null
+          completion_percentage?: number | null
+          current_state?: Json | null
+          id?: string
+          initial_state?: Json | null
+          is_active?: boolean | null
+          lessons_learned?: Json | null
+          operation_scope: string
+          operation_type: string
+          resistance_encountered?: Json | null
+          started_at?: string
+          success_metrics?: Json | null
+          target_entities?: Json | null
+          target_state?: Json | null
+          transformation_vector?: Json | null
+          user_id: string
+        }
+        Update: {
+          breakthrough_moments?: Json | null
+          completed_at?: string | null
+          completion_percentage?: number | null
+          current_state?: Json | null
+          id?: string
+          initial_state?: Json | null
+          is_active?: boolean | null
+          lessons_learned?: Json | null
+          operation_scope?: string
+          operation_type?: string
+          resistance_encountered?: Json | null
+          started_at?: string
+          success_metrics?: Json | null
+          target_entities?: Json | null
+          target_state?: Json | null
+          transformation_vector?: Json | null
+          user_id?: string
+        }
+        Relationships: []
       }
       trauma_exploitation_windows: {
         Row: {
