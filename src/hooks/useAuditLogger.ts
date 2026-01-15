@@ -113,15 +113,15 @@ export function useAuditLogger() {
 
     if (!user?.id) return null;
 
-    const { data } = await supabase
+    const { data } = await (supabase
       .from('immutable_audit_logs')
-      .select('metadata')
+      .select('action_details')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(1)
-      .maybeSingle();
+      .maybeSingle() as unknown as Promise<{ data: Record<string, unknown> | null }>);
 
-    const hash = (data?.metadata as Record<string, unknown>)?.entry_hash as string | null;
+    const hash = (data?.action_details as Record<string, unknown>)?.entry_hash as string | null;
     lastHashRef.current = hash;
     return hash;
   }, [user?.id]);
@@ -265,11 +265,11 @@ export function useAuditLogger() {
       return { valid: false, totalEntries: 0, validEntries: 0 };
     }
 
-    const { data } = await supabase
+    const { data } = await (supabase
       .from('immutable_audit_logs')
-      .select('id, metadata, created_at')
+      .select('id, action_details, created_at')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: true }) as unknown as Promise<{ data: Record<string, unknown>[] | null }>);
 
     if (!data || data.length === 0) {
       return { valid: true, totalEntries: 0, validEntries: 0 };
@@ -280,16 +280,16 @@ export function useAuditLogger() {
 
     for (let i = 0; i < data.length; i++) {
       const entry = data[i];
-      const metadata = entry.metadata as Record<string, unknown> | null;
-      const entryHash = metadata?.entry_hash as string | undefined;
-      const previousHash = metadata?.previous_hash as string | null | undefined;
-      const prevMetadata = i > 0 ? (data[i - 1].metadata as Record<string, unknown> | null) : null;
-      const expectedPreviousHash = i === 0 ? null : prevMetadata?.entry_hash as string | undefined;
+      const actionDetails = entry.action_details as Record<string, unknown> | null;
+      const entryHash = actionDetails?.entry_hash as string | undefined;
+      const previousHash = actionDetails?.previous_hash as string | null | undefined;
+      const prevDetails = i > 0 ? (data[i - 1].action_details as Record<string, unknown> | null) : null;
+      const expectedPreviousHash = i === 0 ? null : prevDetails?.entry_hash as string | undefined;
 
       if (previousHash === expectedPreviousHash) {
         validEntries++;
       } else if (!brokenAt) {
-        brokenAt = entry.id;
+        brokenAt = entry.id as string;
       }
     }
 
