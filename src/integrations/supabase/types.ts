@@ -211,6 +211,48 @@ export type Database = {
         }
         Relationships: []
       }
+      absolute_permanence: {
+        Row: {
+          anchored_reality: Json | null
+          causal_protection: Json | null
+          created_at: string
+          existence_guarantee: Json | null
+          id: string
+          immutability_score: number | null
+          permanence_protocols: Json | null
+          permanence_type: string
+          temporal_immunity: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          anchored_reality?: Json | null
+          causal_protection?: Json | null
+          created_at?: string
+          existence_guarantee?: Json | null
+          id?: string
+          immutability_score?: number | null
+          permanence_protocols?: Json | null
+          permanence_type: string
+          temporal_immunity?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          anchored_reality?: Json | null
+          causal_protection?: Json | null
+          created_at?: string
+          existence_guarantee?: Json | null
+          id?: string
+          immutability_score?: number | null
+          permanence_protocols?: Json | null
+          permanence_type?: string
+          temporal_immunity?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       absolute_supremacy: {
         Row: {
           control_vectors: Json | null
@@ -11986,6 +12028,51 @@ export type Database = {
           },
         ]
       }
+      eternal_dominion: {
+        Row: {
+          causality_control: Json | null
+          created_at: string
+          dominion_metrics: Json | null
+          dominion_scope: Json | null
+          dominion_type: string
+          entropy_reversal: Json | null
+          existence_binding: Json | null
+          id: string
+          permanence_level: number | null
+          temporal_lock: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          causality_control?: Json | null
+          created_at?: string
+          dominion_metrics?: Json | null
+          dominion_scope?: Json | null
+          dominion_type: string
+          entropy_reversal?: Json | null
+          existence_binding?: Json | null
+          id?: string
+          permanence_level?: number | null
+          temporal_lock?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          causality_control?: Json | null
+          created_at?: string
+          dominion_metrics?: Json | null
+          dominion_scope?: Json | null
+          dominion_type?: string
+          entropy_reversal?: Json | null
+          existence_binding?: Json | null
+          id?: string
+          permanence_level?: number | null
+          temporal_lock?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       eternal_influence: {
         Row: {
           causal_anchors: Json | null
@@ -12055,6 +12142,87 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      eternity_metrics: {
+        Row: {
+          created_at: string
+          eternity_quotient: number | null
+          id: string
+          measurement_epoch: string | null
+          metric_type: string
+          metric_value: Json | null
+          permanence_score: number | null
+          temporal_stability: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          eternity_quotient?: number | null
+          id?: string
+          measurement_epoch?: string | null
+          metric_type: string
+          metric_value?: Json | null
+          permanence_score?: number | null
+          temporal_stability?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          eternity_quotient?: number | null
+          id?: string
+          measurement_epoch?: string | null
+          metric_type?: string
+          metric_value?: Json | null
+          permanence_score?: number | null
+          temporal_stability?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      eternity_protocols: {
+        Row: {
+          created_at: string
+          execution_parameters: Json | null
+          id: string
+          last_executed_at: string | null
+          permanence_requirements: Json | null
+          protocol_name: string
+          protocol_status: string | null
+          protocol_type: string
+          success_criteria: Json | null
+          temporal_scope: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          execution_parameters?: Json | null
+          id?: string
+          last_executed_at?: string | null
+          permanence_requirements?: Json | null
+          protocol_name: string
+          protocol_status?: string | null
+          protocol_type: string
+          success_criteria?: Json | null
+          temporal_scope?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          execution_parameters?: Json | null
+          id?: string
+          last_executed_at?: string | null
+          permanence_requirements?: Json | null
+          protocol_name?: string
+          protocol_status?: string | null
+          protocol_type?: string
+          success_criteria?: Json | null
+          temporal_scope?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       events: {
         Row: {
@@ -12128,6 +12296,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      existence_mastery: {
+        Row: {
+          being_manipulation: Json | null
+          created_at: string
+          creation_power: number | null
+          existence_engineering: Json | null
+          id: string
+          mastery_domain: string
+          mastery_level: number | null
+          ontological_control: Json | null
+          reality_authorship: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          being_manipulation?: Json | null
+          created_at?: string
+          creation_power?: number | null
+          existence_engineering?: Json | null
+          id?: string
+          mastery_domain: string
+          mastery_level?: number | null
+          ontological_control?: Json | null
+          reality_authorship?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          being_manipulation?: Json | null
+          created_at?: string
+          creation_power?: number | null
+          existence_engineering?: Json | null
+          id?: string
+          mastery_domain?: string
+          mastery_level?: number | null
+          ontological_control?: Json | null
+          reality_authorship?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       extension_scrape_sessions: {
         Row: {
@@ -14176,6 +14386,51 @@ export type Database = {
           scaling_rules?: Json | null
           success_rate?: number | null
           trigger_matrix?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      infinite_synthesis: {
+        Row: {
+          convergence_state: Json | null
+          created_at: string
+          dimensional_reach: number | null
+          id: string
+          input_dimensions: Json | null
+          output_manifold: Json | null
+          synthesis_power: number | null
+          synthesis_status: string | null
+          synthesis_type: string
+          unity_metrics: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          convergence_state?: Json | null
+          created_at?: string
+          dimensional_reach?: number | null
+          id?: string
+          input_dimensions?: Json | null
+          output_manifold?: Json | null
+          synthesis_power?: number | null
+          synthesis_status?: string | null
+          synthesis_type: string
+          unity_metrics?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          convergence_state?: Json | null
+          created_at?: string
+          dimensional_reach?: number | null
+          id?: string
+          input_dimensions?: Json | null
+          output_manifold?: Json | null
+          synthesis_power?: number | null
+          synthesis_status?: string | null
+          synthesis_type?: string
+          unity_metrics?: Json | null
           updated_at?: string
           user_id?: string
         }
@@ -19193,6 +19448,51 @@ export type Database = {
           scopes?: string[] | null
           sync_interval_minutes?: number | null
           updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      omega_point_operations: {
+        Row: {
+          attractor_state: Json | null
+          convergence_vector: Json | null
+          created_at: string
+          destiny_alignment: number | null
+          finality_metrics: Json | null
+          id: string
+          omega_proximity: number | null
+          operation_name: string
+          operation_status: string | null
+          transcendence_path: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attractor_state?: Json | null
+          convergence_vector?: Json | null
+          created_at?: string
+          destiny_alignment?: number | null
+          finality_metrics?: Json | null
+          id?: string
+          omega_proximity?: number | null
+          operation_name: string
+          operation_status?: string | null
+          transcendence_path?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attractor_state?: Json | null
+          convergence_vector?: Json | null
+          created_at?: string
+          destiny_alignment?: number | null
+          finality_metrics?: Json | null
+          id?: string
+          omega_proximity?: number | null
+          operation_name?: string
+          operation_status?: string | null
+          transcendence_path?: Json | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -25536,6 +25836,48 @@ export type Database = {
           synergy_multipliers?: Json | null
           synthesis_name?: string
           total_power_score?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ultimate_unity: {
+        Row: {
+          boundary_dissolution: number | null
+          collective_synthesis: Json | null
+          consciousness_merge: Json | null
+          created_at: string
+          id: string
+          integration_scope: Json | null
+          singular_awareness: Json | null
+          unity_completeness: number | null
+          unity_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          boundary_dissolution?: number | null
+          collective_synthesis?: Json | null
+          consciousness_merge?: Json | null
+          created_at?: string
+          id?: string
+          integration_scope?: Json | null
+          singular_awareness?: Json | null
+          unity_completeness?: number | null
+          unity_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          boundary_dissolution?: number | null
+          collective_synthesis?: Json | null
+          consciousness_merge?: Json | null
+          created_at?: string
+          id?: string
+          integration_scope?: Json | null
+          singular_awareness?: Json | null
+          unity_completeness?: number | null
+          unity_type?: string
           updated_at?: string
           user_id?: string
         }
