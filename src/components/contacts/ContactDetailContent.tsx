@@ -94,6 +94,15 @@ const LifeTrajectoryPanel = lazy(() => import('@/components/intelligence/LifeTra
 const BehavioralEconomicsPanel = lazy(() => import('@/components/intelligence/BehavioralEconomicsPanel').then(m => ({ default: m.BehavioralEconomicsPanel })));
 const FamilySystemsPanel = lazy(() => import('@/components/intelligence/FamilySystemsPanel').then(m => ({ default: m.FamilySystemsPanel })));
 
+// AGIS Phase 3 Panels
+const SemanticWarfarePanel = lazy(() => import('@/components/intelligence/warfare/SemanticWarfarePanel').then(m => ({ default: m.SemanticWarfarePanel })));
+const MICERecruitmentPanel = lazy(() => import('@/components/intelligence/warfare/MICERecruitmentPanel').then(m => ({ default: m.MICERecruitmentPanel })));
+const BetrayalRiskPanel = lazy(() => import('@/components/intelligence/warfare/BetrayalRiskPanel').then(m => ({ default: m.BetrayalRiskPanel })));
+const SacredValuesPanel = lazy(() => import('@/components/intelligence/warfare/SacredValuesPanel').then(m => ({ default: m.SacredValuesPanel })));
+const MemeticEngineeringPanel = lazy(() => import('@/components/intelligence/warfare/MemeticEngineeringPanel').then(m => ({ default: m.MemeticEngineeringPanel })));
+const SyntheticConsensusPanel = lazy(() => import('@/components/intelligence/warfare/SyntheticConsensusPanel').then(m => ({ default: m.SyntheticConsensusPanel })));
+const ElicitationPanel = lazy(() => import('@/components/intelligence/warfare/ElicitationPanel').then(m => ({ default: m.ElicitationPanel })));
+
 type Profile = Tables<'profiles'>;
 
 interface ContactDetailContentProps {
@@ -291,6 +300,21 @@ export function ContactDetailContent({
         return <BehavioralEconomicsPanel profileId={contact.id} />;
       case 'agis-family':
         return <FamilySystemsPanel profileId={contact.id} />;
+      // AGIS Phase 3 Sections
+      case 'agis-semantic-warfare':
+        return <SemanticWarfarePanel profileId={contact.id} />;
+      case 'agis-mice-recruitment':
+        return <MICERecruitmentPanel profileId={contact.id} />;
+      case 'agis-betrayal-risk':
+        return <BetrayalRiskPanel profileId={contact.id} />;
+      case 'agis-sacred-values':
+        return <SacredValuesPanel profileId={contact.id} />;
+      case 'agis-memetic':
+        return <MemeticEngineeringPanel profileId={contact.id} />;
+      case 'agis-consensus':
+        return <SyntheticConsensusPanel profileId={contact.id} />;
+      case 'agis-elicitation':
+        return <ElicitationPanel profileId={contact.id} profileName={contactName} />;
       default:
         return null;
     }

@@ -130,9 +130,9 @@ const ELICITATION_TECHNIQUES = [
     difficulty: 'easy',
     description: 'Repeat key words or phrases to encourage elaboration.',
     examples: [
-      "Restructuring..." (pause),
-      "A difficult situation..." (wait),
-      "Significant changes..." (nod expectantly)
+      '"Restructuring..." (pause)',
+      '"A difficult situation..." (wait)',
+      '"Significant changes..." (nod expectantly)'
     ],
     effectiveness: 0.65,
     detectability: 0.10,

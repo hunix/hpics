@@ -114,9 +114,9 @@ export function CognitiveWarfareAlerts() {
 
     // MICE vulnerability alerts
     if (alertSettings.miceAlerts && allAssessments) {
-      allAssessments
-        .filter((a: { money_vulnerability?: number | null }) => (a.money_vulnerability || 0) >= 0.7)
-        .forEach((assessment: { id: string; money_vulnerability?: number | null; profiles?: { full_name?: string; id?: string } | null; updated_at: string }) => {
+      (allAssessments as any[])
+        .filter((a) => (a.money_vulnerability || 0) >= 0.7)
+        .forEach((assessment) => {
           const profile = assessment.profiles;
           newAlerts.push({
             id: `mice-${assessment.id}`,
@@ -126,7 +126,7 @@ export function CognitiveWarfareAlerts() {
             description: `${profile?.full_name || 'Unknown'} shows high vulnerability to recruitment approaches`,
             profileId: profile?.id,
             profileName: profile?.full_name,
-            timestamp: new Date(assessment.updated_at),
+            timestamp: new Date(assessment.updated_at || Date.now()),
             dismissed: false,
           });
         });
@@ -134,17 +134,17 @@ export function CognitiveWarfareAlerts() {
 
     // Sacred values alerts
     if (alertSettings.sacredAlerts && criticalValues) {
-      criticalValues.forEach((value: { id: string; domain?: string; profiles?: { full_name?: string; id?: string } | null; updated_at: string }) => {
+      (criticalValues as any[]).forEach((value) => {
         const profile = value.profiles;
         newAlerts.push({
           id: `sacred-${value.id}`,
           type: 'sacred',
           severity: 'medium',
           title: 'Critical Sacred Value Identified',
-          description: `${profile?.full_name || 'Unknown'}: ${value.domain} is a protected value`,
+          description: `${profile?.full_name || 'Unknown'}: ${value.domain || 'Unknown domain'} is a protected value`,
           profileId: profile?.id,
           profileName: profile?.full_name,
-          timestamp: new Date(value.updated_at),
+          timestamp: new Date(value.updated_at || Date.now()),
           dismissed: false,
         });
       });
