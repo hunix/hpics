@@ -44,7 +44,7 @@ export function TrustNetworkGraph({ profileId, contacts = [] }: TrustNetworkGrap
   const [nodes, setNodes] = useState<TrustNode[]>([]);
   const [links, setLinks] = useState<TrustLink[]>([]);
 
-  const { predictions } = useBetrayalPrediction(profileId);
+  const { allPredictions } = useBetrayalPrediction(profileId);
 
   // Generate demo network based on contacts or default
   useEffect(() => {

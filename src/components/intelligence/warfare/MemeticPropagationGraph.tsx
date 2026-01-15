@@ -45,7 +45,8 @@ export function MemeticPropagationGraph({ campaignId, profileId }: MemeticPropag
   const [links, setLinks] = useState<PropagationLink[]>([]);
   const animationRef = useRef<number>();
   
-  const { campaigns, activeCampaign } = useMemeticEngineering(profileId);
+  const { campaigns } = useMemeticEngineering(profileId);
+  const activeCampaign = campaigns?.find(c => c.id === campaignId) || campaigns?.[0];
 
   // Initialize demo network
   useEffect(() => {
