@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, MessageSquare, TrendingUp, Eye, Plus, Play } from 'lucide-react';
+import { Users, MessageSquare, Eye, Plus } from 'lucide-react';
 import { useSyntheticConsensus } from '@/hooks/intelligence/useSyntheticConsensus';
 
 interface SyntheticConsensusPanelProps {
@@ -19,39 +19,40 @@ export function SyntheticConsensusPanel({ profileId }: SyntheticConsensusPanelPr
     isLoading,
     createCampaign,
     isCreating,
-    generateContent,
+    generateStrategy,
     isGenerating,
+    calculateConsensusGap,
   } = useSyntheticConsensus();
 
   const [campaignName, setCampaignName] = useState('');
-  const [targetNarrative, setTargetNarrative] = useState('');
-  const [platformTargets, setPlatformTargets] = useState<string[]>([]);
+  const [consensusNarrative, setConsensusNarrative] = useState('');
+  const [targetAudience, setTargetAudience] = useState<string[]>([]);
 
-  const platforms = ['Twitter/X', 'Reddit', 'Facebook', 'LinkedIn', 'TikTok', 'YouTube'];
+  const audienceOptions = ['General Public', 'Industry Leaders', 'Policy Makers', 'Media', 'Academia', 'Youth'];
 
   const handleCreateCampaign = () => {
-    if (!campaignName.trim() || !targetNarrative.trim()) return;
+    if (!campaignName.trim() || !consensusNarrative.trim()) return;
     
     createCampaign({
-      campaignName,
-      targetNarrative,
-      platformTargets,
+      name: campaignName,
+      consensusNarrative,
+      targetAudience,
     });
     
     setCampaignName('');
-    setTargetNarrative('');
-    setPlatformTargets([]);
+    setConsensusNarrative('');
+    setTargetAudience([]);
   };
 
-  const togglePlatform = (platform: string) => {
-    setPlatformTargets(prev => 
-      prev.includes(platform) 
-        ? prev.filter(p => p !== platform)
-        : [...prev, platform]
+  const toggleAudience = (audience: string) => {
+    setTargetAudience(prev => 
+      prev.includes(audience) 
+        ? prev.filter(a => a !== audience)
+        : [...prev, audience]
     );
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | null) => {
     switch (status) {
       case 'active': return 'bg-emerald-500/20 text-emerald-400';
       case 'saturated': return 'bg-violet-500/20 text-violet-400';
@@ -100,56 +101,46 @@ export function SyntheticConsensusPanel({ profileId }: SyntheticConsensusPanelPr
                         <div>
                           <h4 className="font-semibold">{campaign.campaign_name}</h4>
                           <p className="text-sm text-muted-foreground line-clamp-2">
-                            {campaign.target_narrative}
+                            {campaign.consensus_narrative}
                           </p>
                         </div>
-                        <Badge className={getStatusColor(campaign.status || 'planning')}>
-                          {campaign.status}
+                        <Badge className={getStatusColor(campaign.status)}>
+                          {campaign.status || 'planning'}
                         </Badge>
                       </div>
 
                       <div className="flex flex-wrap gap-1 mb-3">
-                        {(campaign.platform_targets as string[] || []).map((platform) => (
-                          <Badge key={platform} variant="outline" className="text-xs">
-                            {platform}
+                        {(campaign.astroturf_networks || []).map((network) => (
+                          <Badge key={network} variant="outline" className="text-xs">
+                            {network}
                           </Badge>
                         ))}
                       </div>
 
-                      <div className="grid grid-cols-3 gap-4 text-center mb-3">
+                      <div className="grid grid-cols-2 gap-4 text-center mb-3">
                         <div>
-                          <p className="text-lg font-bold">{campaign.persona_count || 0}</p>
-                          <p className="text-xs text-muted-foreground">Personas</p>
+                          <p className="text-lg font-bold">{campaign.perceived_consensus_level || 0}%</p>
+                          <p className="text-xs text-muted-foreground">Perceived</p>
                         </div>
                         <div>
-                          <p className="text-lg font-bold">{campaign.content_generated || 0}</p>
-                          <p className="text-xs text-muted-foreground">Content</p>
-                        </div>
-                        <div>
-                          <p className="text-lg font-bold">{campaign.engagement_count || 0}</p>
-                          <p className="text-xs text-muted-foreground">Engagements</p>
+                          <p className="text-lg font-bold">{campaign.actual_consensus_level || 0}%</p>
+                          <p className="text-xs text-muted-foreground">Actual</p>
                         </div>
                       </div>
 
                       <div className="space-y-2">
                         <div className="flex justify-between text-xs">
-                          <span>Perceived Consensus</span>
-                          <span>{Math.round((campaign.perceived_consensus || 0) * 100)}%</span>
+                          <span>Consensus Gap</span>
+                          <span>{calculateConsensusGap(campaign)}%</span>
                         </div>
-                        <Progress value={(campaign.perceived_consensus || 0) * 100} className="h-2" />
+                        <Progress 
+                          value={Math.abs(calculateConsensusGap(campaign))} 
+                          className="h-2" 
+                        />
                       </div>
 
-                      <div className="flex gap-2 mt-3">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="flex-1"
-                          onClick={() => generateContent({ campaignId: campaign.id, count: 5 })}
-                          disabled={isGenerating}
-                        >
-                          <MessageSquare className="h-4 w-4 mr-2" />
-                          Generate Content
-                        </Button>
+                      <div className="mt-3 text-xs text-muted-foreground">
+                        <span>Effectiveness: {campaign.effectiveness_score || 0}%</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -170,26 +161,26 @@ export function SyntheticConsensusPanel({ profileId }: SyntheticConsensusPanelPr
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">Target Narrative</label>
+                <label className="text-sm font-medium mb-2 block">Consensus Narrative</label>
                 <Textarea
                   placeholder="The consensus you want to manufacture..."
-                  value={targetNarrative}
-                  onChange={(e) => setTargetNarrative(e.target.value)}
+                  value={consensusNarrative}
+                  onChange={(e) => setConsensusNarrative(e.target.value)}
                   rows={3}
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">Platform Targets</label>
+                <label className="text-sm font-medium mb-2 block">Target Audience</label>
                 <div className="flex flex-wrap gap-2">
-                  {platforms.map((platform) => (
+                  {audienceOptions.map((audience) => (
                     <Badge
-                      key={platform}
-                      variant={platformTargets.includes(platform) ? 'default' : 'outline'}
+                      key={audience}
+                      variant={targetAudience.includes(audience) ? 'default' : 'outline'}
                       className="cursor-pointer"
-                      onClick={() => togglePlatform(platform)}
+                      onClick={() => toggleAudience(audience)}
                     >
-                      {platform}
+                      {audience}
                     </Badge>
                   ))}
                 </div>
@@ -197,7 +188,7 @@ export function SyntheticConsensusPanel({ profileId }: SyntheticConsensusPanelPr
 
               <Button 
                 onClick={handleCreateCampaign} 
-                disabled={isCreating || !campaignName.trim() || !targetNarrative.trim()}
+                disabled={isCreating || !campaignName.trim() || !consensusNarrative.trim()}
                 className="w-full"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -210,24 +201,22 @@ export function SyntheticConsensusPanel({ profileId }: SyntheticConsensusPanelPr
         <div className="grid grid-cols-3 gap-4 mt-6 pt-4 border-t border-border/50">
           <div className="text-center">
             <Users className="h-5 w-5 mx-auto mb-1 text-blue-400" />
-            <p className="text-2xl font-bold">
-              {campaigns.reduce((acc, c) => acc + (c.persona_count || 0), 0)}
-            </p>
-            <p className="text-xs text-muted-foreground">Total Personas</p>
+            <p className="text-2xl font-bold">{campaigns.filter(c => c.status === 'active').length}</p>
+            <p className="text-xs text-muted-foreground">Active</p>
           </div>
           <div className="text-center">
             <MessageSquare className="h-5 w-5 mx-auto mb-1 text-violet-400" />
             <p className="text-2xl font-bold">
-              {campaigns.reduce((acc, c) => acc + (c.content_generated || 0), 0)}
+              {campaigns.reduce((acc, c) => acc + (c.astroturf_networks?.length || 0), 0)}
             </p>
-            <p className="text-xs text-muted-foreground">Content Pieces</p>
+            <p className="text-xs text-muted-foreground">Networks</p>
           </div>
           <div className="text-center">
             <Eye className="h-5 w-5 mx-auto mb-1 text-emerald-400" />
             <p className="text-2xl font-bold">
-              {Math.round(campaigns.reduce((acc, c) => acc + (c.perceived_consensus || 0), 0) / Math.max(campaigns.length, 1) * 100)}%
+              {Math.round(campaigns.reduce((acc, c) => acc + (c.perceived_consensus_level || 0), 0) / Math.max(campaigns.length, 1))}%
             </p>
-            <p className="text-xs text-muted-foreground">Avg Consensus</p>
+            <p className="text-xs text-muted-foreground">Avg Perception</p>
           </div>
         </div>
       </CardContent>

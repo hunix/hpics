@@ -19,29 +19,33 @@ export function SemanticWarfarePanel({ profileId }: SemanticWarfarePanelProps) {
     isLoading, 
     createOperation, 
     isCreating,
-    analyzeFrameShift 
-  } = useSemanticWarfare(profileId);
+    analyzeTerm,
+    isAnalyzing,
+  } = useSemanticWarfare();
 
   const [newTerm, setNewTerm] = useState('');
+  const [currentDefinition, setCurrentDefinition] = useState('');
   const [targetDefinition, setTargetDefinition] = useState('');
-  const [opposingDefinition, setOpposingDefinition] = useState('');
+  const [operationName, setOperationName] = useState('');
 
   const handleCreateOperation = () => {
     if (!newTerm.trim() || !targetDefinition.trim()) return;
     
     createOperation({
+      operationName: operationName || `Reframe: ${newTerm}`,
       targetTerm: newTerm,
+      currentDefinition: currentDefinition || 'Current public understanding',
       targetDefinition,
-      opposingDefinition,
-      operationType: 'reframe',
+      framingStrategy: 'reframe',
     });
     
     setNewTerm('');
+    setCurrentDefinition('');
     setTargetDefinition('');
-    setOpposingDefinition('');
+    setOperationName('');
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | null) => {
     switch (status) {
       case 'active': return 'bg-emerald-500/20 text-emerald-400';
       case 'planning': return 'bg-amber-500/20 text-amber-400';
@@ -88,35 +92,31 @@ export function SemanticWarfarePanel({ profileId }: SemanticWarfarePanelProps) {
                       <div className="flex items-start justify-between mb-3">
                         <div>
                           <h4 className="font-semibold text-lg">"{op.target_term}"</h4>
-                          <p className="text-sm text-muted-foreground">{op.operation_type}</p>
+                          <p className="text-sm text-muted-foreground">{op.operation_name}</p>
                         </div>
-                        <Badge className={getStatusColor(op.status || 'planning')}>
-                          {op.status}
+                        <Badge className={getStatusColor(op.status)}>
+                          {op.status || 'planning'}
                         </Badge>
                       </div>
                       
                       <div className="grid grid-cols-2 gap-4 mb-3">
                         <div>
+                          <p className="text-xs text-muted-foreground mb-1">Current Definition</p>
+                          <p className="text-sm">{op.current_definition}</p>
+                        </div>
+                        <div>
                           <p className="text-xs text-muted-foreground mb-1">Target Definition</p>
                           <p className="text-sm">{op.target_definition}</p>
                         </div>
-                        {op.opposing_definition && (
-                          <div>
-                            <p className="text-xs text-muted-foreground mb-1">Opposing Definition</p>
-                            <p className="text-sm">{op.opposing_definition}</p>
-                          </div>
-                        )}
                       </div>
 
-                      {op.adoption_rate !== null && (
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-xs">
-                            <span>Adoption Rate</span>
-                            <span>{Math.round((op.adoption_rate || 0) * 100)}%</span>
-                          </div>
-                          <Progress value={(op.adoption_rate || 0) * 100} className="h-2" />
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span>Shift Progress</span>
+                          <span>{op.shift_progress || 0}%</span>
                         </div>
-                      )}
+                        <Progress value={op.shift_progress || 0} className="h-2" />
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
@@ -127,6 +127,15 @@ export function SemanticWarfarePanel({ profileId }: SemanticWarfarePanelProps) {
           <TabsContent value="create" className="space-y-4">
             <div className="space-y-4">
               <div>
+                <label className="text-sm font-medium mb-2 block">Operation Name</label>
+                <Input
+                  placeholder="e.g., Project Clarity"
+                  value={operationName}
+                  onChange={(e) => setOperationName(e.target.value)}
+                />
+              </div>
+
+              <div>
                 <label className="text-sm font-medium mb-2 block">Target Term</label>
                 <Input
                   placeholder="e.g., 'freedom', 'security', 'progress'"
@@ -136,21 +145,21 @@ export function SemanticWarfarePanel({ profileId }: SemanticWarfarePanelProps) {
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">Your Target Definition</label>
+                <label className="text-sm font-medium mb-2 block">Current Definition</label>
                 <Textarea
-                  placeholder="How you want this term to be understood..."
-                  value={targetDefinition}
-                  onChange={(e) => setTargetDefinition(e.target.value)}
-                  rows={3}
+                  placeholder="How this term is currently understood..."
+                  value={currentDefinition}
+                  onChange={(e) => setCurrentDefinition(e.target.value)}
+                  rows={2}
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">Opposing Definition (Optional)</label>
+                <label className="text-sm font-medium mb-2 block">Target Definition</label>
                 <Textarea
-                  placeholder="The definition you're competing against..."
-                  value={opposingDefinition}
-                  onChange={(e) => setOpposingDefinition(e.target.value)}
+                  placeholder="How you want this term to be understood..."
+                  value={targetDefinition}
+                  onChange={(e) => setTargetDefinition(e.target.value)}
                   rows={3}
                 />
               </div>
@@ -176,9 +185,9 @@ export function SemanticWarfarePanel({ profileId }: SemanticWarfarePanelProps) {
           <div className="text-center">
             <Zap className="h-5 w-5 mx-auto mb-1 text-amber-400" />
             <p className="text-2xl font-bold">
-              {Math.round(operations.reduce((acc, o) => acc + (o.adoption_rate || 0), 0) / Math.max(operations.length, 1) * 100)}%
+              {Math.round(operations.reduce((acc, o) => acc + (o.shift_progress || 0), 0) / Math.max(operations.length, 1))}%
             </p>
-            <p className="text-xs text-muted-foreground">Avg Adoption</p>
+            <p className="text-xs text-muted-foreground">Avg Progress</p>
           </div>
           <div className="text-center">
             <TrendingUp className="h-5 w-5 mx-auto mb-1 text-emerald-400" />
