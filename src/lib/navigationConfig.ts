@@ -245,6 +245,17 @@ export const navigationItems: NavItem[] = [
     keywords: ['absolute', 'convergence', 'agis', 'phase 8', 'reality', 'predictive', 'consciousness', 'omnipotence'],
   },
   {
+    id: 'infinite-dominion',
+    title: 'Infinite Dominion',
+    url: '/infinite-dominion',
+    icon: Infinity,
+    badge: 'new',
+    description: 'AGIS Phase 9 - Infinite awareness, omnipresent control, ultimate mastery',
+    category: 'intelligence',
+    requiredRole: 'analyst',
+    keywords: ['infinite', 'dominion', 'agis', 'phase 9', 'awareness', 'control', 'mastery', 'transcendent'],
+  },
+  {
     id: 'cross-modal-intelligence',
     title: 'Cross-Modal Analysis',
     url: '/cross-modal-intelligence',
