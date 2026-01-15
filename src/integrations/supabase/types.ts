@@ -12485,6 +12485,73 @@ export type Database = {
           },
         ]
       }
+      identity_destabilization_logs: {
+        Row: {
+          created_at: string | null
+          delivery_context: Json | null
+          deployed_at: string | null
+          effectiveness_score: number | null
+          id: string
+          intensity_level: string | null
+          profile_id: string | null
+          response_observed: string | null
+          script_content: string | null
+          technique_type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          delivery_context?: Json | null
+          deployed_at?: string | null
+          effectiveness_score?: number | null
+          id?: string
+          intensity_level?: string | null
+          profile_id?: string | null
+          response_observed?: string | null
+          script_content?: string | null
+          technique_type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          delivery_context?: Json | null
+          deployed_at?: string | null
+          effectiveness_score?: number | null
+          id?: string
+          intensity_level?: string | null
+          profile_id?: string | null
+          response_observed?: string | null
+          script_content?: string | null
+          technique_type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "identity_destabilization_logs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "identity_destabilization_logs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "identity_destabilization_logs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       immutable_audit_logs: {
         Row: {
           action_type: string
