@@ -207,9 +207,21 @@ export function useTacticalNegotiation() {
         profileId: s.profile_id || '',
         negotiationType: s.session_type || 'general',
         status: (s.outcome === 'completed' ? 'completed' : 'active') as NegotiationSession['status'],
-        strategy: { sessionId: s.id, profileId: s.profile_id || '', negotiationType: s.session_type || '', overallStrategy: '', phases: [], tactics: [], concessions: [], deadlines: [], batna: '', walkAwayPoint: '', aspirationPoint: '' } as NegotiationStrategy,
+        strategy: {
+          sessionId: s.id,
+          profileId: s.profile_id || '',
+          negotiationType: s.session_type || '',
+          overallStrategy: '',
+          tactics: [],
+          openingMove: '',
+          concessionStrategy: '',
+          walkAwayPoint: '',
+          bestAlternative: '',
+          psychologicalProfile: { negotiationStyle: '', pressurePoints: [], decisionMakingPattern: '', timePreference: '' },
+          riskAssessment: { level: 'medium' as const, factors: [], mitigation: [] }
+        },
         notes: [],
-        outcome: s.outcome ? { success: s.success_score ? s.success_score > 0.5 : false, result: s.outcome, lessonsLearned: (s.lessons_learned as string[]) || [] } : undefined,
+        outcome: s.outcome ? { success: (s.success_score || 0) > 0.5, result: s.outcome, lessonsLearned: (s.lessons_learned as string[]) || [] } : undefined,
         createdAt: new Date(s.created_at || new Date()),
         updatedAt: new Date(s.updated_at || new Date())
       }));
