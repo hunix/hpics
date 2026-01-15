@@ -109,3 +109,15 @@ export { useUniversalOmniscience } from './useUniversalOmniscience';
 export { useRealityManipulation } from './useRealityManipulation';
 export { useAbsoluteSupremacy } from './useAbsoluteSupremacy';
 export { useUltimateTranscendence } from './useUltimateTranscendence';
+
+// AGIS Phase 11 Hooks - Omniversal Sovereignty
+export { useOmniversalAwareness } from './useOmniversalAwareness';
+export { useEternalInfluence } from './useEternalInfluence';
+export { usePrimordialSynthesis } from './usePrimordialSynthesis';
+export { useOmniversalSovereignty } from './useOmniversalSovereignty';
+
+// AGIS Phase 12 Hooks - Absolute Eternity
+export { useEternalDominion } from './useEternalDominion';
+export { useInfiniteSynthesis } from './useInfiniteSynthesis';
+export { useOmegaPoint } from './useOmegaPoint';
+export { useAbsoluteEternity } from './useAbsoluteEternity';
