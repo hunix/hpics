@@ -223,6 +223,17 @@ export const navigationItems: NavItem[] = [
     keywords: ['transcendent', 'agis', 'phase 6', 'reality', 'quantum', 'temporal', 'identity', 'collective', 'meta'],
   },
   {
+    id: 'singularity-command',
+    title: 'Singularity Command',
+    url: '/singularity-command',
+    icon: GitBranch,
+    badge: 'new',
+    description: 'AGIS Phase 7 - Meta-learning, cross-phase orchestration, emergence',
+    category: 'intelligence',
+    requiredRole: 'analyst',
+    keywords: ['singularity', 'agis', 'phase 7', 'meta', 'learning', 'emergence', 'convergence', 'unified'],
+  },
+  {
     id: 'cross-modal-intelligence',
     title: 'Cross-Modal Analysis',
     url: '/cross-modal-intelligence',
