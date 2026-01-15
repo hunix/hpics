@@ -215,6 +215,91 @@ export type Database = {
           },
         ]
       }
+      addiction_protocols: {
+        Row: {
+          addiction_type: string
+          compliance_metrics: Json | null
+          created_at: string
+          current_phase: string | null
+          dependency_progression: Json | null
+          dopamine_cycle_mapping: Json | null
+          effectiveness_score: number | null
+          id: string
+          intermittent_reinforcement_score: number | null
+          last_reinforcement_at: string | null
+          next_scheduled_at: string | null
+          profile_id: string | null
+          protocol_name: string
+          reinforcement_schedule: Json
+          updated_at: string
+          user_id: string
+          variable_ratio_config: Json | null
+          withdrawal_timing: Json | null
+        }
+        Insert: {
+          addiction_type: string
+          compliance_metrics?: Json | null
+          created_at?: string
+          current_phase?: string | null
+          dependency_progression?: Json | null
+          dopamine_cycle_mapping?: Json | null
+          effectiveness_score?: number | null
+          id?: string
+          intermittent_reinforcement_score?: number | null
+          last_reinforcement_at?: string | null
+          next_scheduled_at?: string | null
+          profile_id?: string | null
+          protocol_name: string
+          reinforcement_schedule?: Json
+          updated_at?: string
+          user_id: string
+          variable_ratio_config?: Json | null
+          withdrawal_timing?: Json | null
+        }
+        Update: {
+          addiction_type?: string
+          compliance_metrics?: Json | null
+          created_at?: string
+          current_phase?: string | null
+          dependency_progression?: Json | null
+          dopamine_cycle_mapping?: Json | null
+          effectiveness_score?: number | null
+          id?: string
+          intermittent_reinforcement_score?: number | null
+          last_reinforcement_at?: string | null
+          next_scheduled_at?: string | null
+          profile_id?: string | null
+          protocol_name?: string
+          reinforcement_schedule?: Json
+          updated_at?: string
+          user_id?: string
+          variable_ratio_config?: Json | null
+          withdrawal_timing?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "addiction_protocols_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "addiction_protocols_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "addiction_protocols_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       aerial_captures: {
         Row: {
           aerial_mission_id: string
@@ -2618,6 +2703,85 @@ export type Database = {
           },
         ]
       }
+      breaking_point_predictions: {
+        Row: {
+          confidence_level: number | null
+          contributing_factors: Json | null
+          created_at: string
+          current_resilience_score: number | null
+          id: string
+          optimal_pressure_timing: Json | null
+          post_break_vulnerability_window: Json | null
+          predicted_breaking_point: string | null
+          pressure_vectors: Json | null
+          profile_id: string | null
+          resistance_degradation_trend: Json | null
+          stress_accumulation_rate: number | null
+          updated_at: string
+          user_id: string
+          vulnerability_aggregation: Json | null
+          warning_indicators: string[] | null
+        }
+        Insert: {
+          confidence_level?: number | null
+          contributing_factors?: Json | null
+          created_at?: string
+          current_resilience_score?: number | null
+          id?: string
+          optimal_pressure_timing?: Json | null
+          post_break_vulnerability_window?: Json | null
+          predicted_breaking_point?: string | null
+          pressure_vectors?: Json | null
+          profile_id?: string | null
+          resistance_degradation_trend?: Json | null
+          stress_accumulation_rate?: number | null
+          updated_at?: string
+          user_id: string
+          vulnerability_aggregation?: Json | null
+          warning_indicators?: string[] | null
+        }
+        Update: {
+          confidence_level?: number | null
+          contributing_factors?: Json | null
+          created_at?: string
+          current_resilience_score?: number | null
+          id?: string
+          optimal_pressure_timing?: Json | null
+          post_break_vulnerability_window?: Json | null
+          predicted_breaking_point?: string | null
+          pressure_vectors?: Json | null
+          profile_id?: string | null
+          resistance_degradation_trend?: Json | null
+          stress_accumulation_rate?: number | null
+          updated_at?: string
+          user_id?: string
+          vulnerability_aggregation?: Json | null
+          warning_indicators?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "breaking_point_predictions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "breaking_point_predictions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "breaking_point_predictions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bulk_analysis_items: {
         Row: {
           actual_cost_cents: number | null
@@ -3476,6 +3640,91 @@ export type Database = {
           },
           {
             foreignKeyName: "churn_predictions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coercive_control_metrics: {
+        Row: {
+          compliance_trend: Json | null
+          created_at: string
+          current_control_phase: string | null
+          emotional_control_score: number | null
+          escalation_pathway: Json | null
+          financial_control_score: number | null
+          id: string
+          information_control_score: number | null
+          isolation_score: number | null
+          physical_control_indicators: Json | null
+          profile_id: string | null
+          punishment_reward_ratio: Json | null
+          resistance_level: number | null
+          surveillance_intensity: number | null
+          time_monopolization_score: number | null
+          total_control_score: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          compliance_trend?: Json | null
+          created_at?: string
+          current_control_phase?: string | null
+          emotional_control_score?: number | null
+          escalation_pathway?: Json | null
+          financial_control_score?: number | null
+          id?: string
+          information_control_score?: number | null
+          isolation_score?: number | null
+          physical_control_indicators?: Json | null
+          profile_id?: string | null
+          punishment_reward_ratio?: Json | null
+          resistance_level?: number | null
+          surveillance_intensity?: number | null
+          time_monopolization_score?: number | null
+          total_control_score?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          compliance_trend?: Json | null
+          created_at?: string
+          current_control_phase?: string | null
+          emotional_control_score?: number | null
+          escalation_pathway?: Json | null
+          financial_control_score?: number | null
+          id?: string
+          information_control_score?: number | null
+          isolation_score?: number | null
+          physical_control_indicators?: Json | null
+          profile_id?: string | null
+          punishment_reward_ratio?: Json | null
+          resistance_level?: number | null
+          surveillance_intensity?: number | null
+          time_monopolization_score?: number | null
+          total_control_score?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coercive_control_metrics_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "coercive_control_metrics_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "coercive_control_metrics_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -7693,6 +7942,79 @@ export type Database = {
           },
         ]
       }
+      cross_domain_correlations: {
+        Row: {
+          auto_recommendations: Json | null
+          confidence_score: number | null
+          correlation_strength: number | null
+          correlation_type: string
+          created_at: string
+          id: string
+          last_computed_at: string | null
+          pattern_description: string | null
+          profile_id: string | null
+          source_domains: string[]
+          tactical_implications: Json | null
+          temporal_alignment: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_recommendations?: Json | null
+          confidence_score?: number | null
+          correlation_strength?: number | null
+          correlation_type: string
+          created_at?: string
+          id?: string
+          last_computed_at?: string | null
+          pattern_description?: string | null
+          profile_id?: string | null
+          source_domains: string[]
+          tactical_implications?: Json | null
+          temporal_alignment?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_recommendations?: Json | null
+          confidence_score?: number | null
+          correlation_strength?: number | null
+          correlation_type?: string
+          created_at?: string
+          id?: string
+          last_computed_at?: string | null
+          pattern_description?: string | null
+          profile_id?: string | null
+          source_domains?: string[]
+          tactical_implications?: Json | null
+          temporal_alignment?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cross_domain_correlations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "cross_domain_correlations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "cross_domain_correlations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cross_modal_correlations: {
         Row: {
           confidence_score: number | null
@@ -7798,6 +8120,88 @@ export type Database = {
           },
           {
             foreignKeyName: "cross_references_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cult_tactic_deployments: {
+        Row: {
+          behavior_control_score: number | null
+          confession_culture_metrics: Json | null
+          created_at: string
+          emotional_control_score: number | null
+          exit_cost_perception: number | null
+          group_identity_strength: number | null
+          id: string
+          information_control_score: number | null
+          loaded_language_adoption: string[] | null
+          profile_id: string | null
+          surveillance_acceptance: number | null
+          thought_control_score: number | null
+          thought_stopping_techniques: Json | null
+          total_bite_score: number | null
+          updated_at: string
+          us_vs_them_narrative_strength: number | null
+          user_id: string
+        }
+        Insert: {
+          behavior_control_score?: number | null
+          confession_culture_metrics?: Json | null
+          created_at?: string
+          emotional_control_score?: number | null
+          exit_cost_perception?: number | null
+          group_identity_strength?: number | null
+          id?: string
+          information_control_score?: number | null
+          loaded_language_adoption?: string[] | null
+          profile_id?: string | null
+          surveillance_acceptance?: number | null
+          thought_control_score?: number | null
+          thought_stopping_techniques?: Json | null
+          total_bite_score?: number | null
+          updated_at?: string
+          us_vs_them_narrative_strength?: number | null
+          user_id: string
+        }
+        Update: {
+          behavior_control_score?: number | null
+          confession_culture_metrics?: Json | null
+          created_at?: string
+          emotional_control_score?: number | null
+          exit_cost_perception?: number | null
+          group_identity_strength?: number | null
+          id?: string
+          information_control_score?: number | null
+          loaded_language_adoption?: string[] | null
+          profile_id?: string | null
+          surveillance_acceptance?: number | null
+          thought_control_score?: number | null
+          thought_stopping_techniques?: Json | null
+          total_bite_score?: number | null
+          updated_at?: string
+          us_vs_them_narrative_strength?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cult_tactic_deployments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "cult_tactic_deployments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "cult_tactic_deployments_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -8281,6 +8685,88 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      dependency_scores: {
+        Row: {
+          attachment_dependency: number | null
+          created_at: string
+          dependency_creation_tactics: Json | null
+          dependency_trend: Json | null
+          emotional_dependency: number | null
+          exit_prevention_protocols: Json | null
+          financial_dependency: number | null
+          id: string
+          informational_dependency: number | null
+          isolation_factor: number | null
+          narcissistic_supply_dependency: number | null
+          profile_id: string | null
+          social_dependency: number | null
+          total_dependency_score: number | null
+          updated_at: string
+          user_id: string
+          withdrawal_severity_prediction: Json | null
+        }
+        Insert: {
+          attachment_dependency?: number | null
+          created_at?: string
+          dependency_creation_tactics?: Json | null
+          dependency_trend?: Json | null
+          emotional_dependency?: number | null
+          exit_prevention_protocols?: Json | null
+          financial_dependency?: number | null
+          id?: string
+          informational_dependency?: number | null
+          isolation_factor?: number | null
+          narcissistic_supply_dependency?: number | null
+          profile_id?: string | null
+          social_dependency?: number | null
+          total_dependency_score?: number | null
+          updated_at?: string
+          user_id: string
+          withdrawal_severity_prediction?: Json | null
+        }
+        Update: {
+          attachment_dependency?: number | null
+          created_at?: string
+          dependency_creation_tactics?: Json | null
+          dependency_trend?: Json | null
+          emotional_dependency?: number | null
+          exit_prevention_protocols?: Json | null
+          financial_dependency?: number | null
+          id?: string
+          informational_dependency?: number | null
+          isolation_factor?: number | null
+          narcissistic_supply_dependency?: number | null
+          profile_id?: string | null
+          social_dependency?: number | null
+          total_dependency_score?: number | null
+          updated_at?: string
+          user_id?: string
+          withdrawal_severity_prediction?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dependency_scores_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "dependency_scores_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "dependency_scores_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       detected_items: {
         Row: {
@@ -10786,6 +11272,85 @@ export type Database = {
             columns: ["source_recording_id"]
             isOneToOne: false
             referencedRelation: "meeting_recordings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      false_memory_tracking: {
+        Row: {
+          confidence_after: number | null
+          confidence_before: number | null
+          contradiction_detections: Json | null
+          created_at: string
+          id: string
+          implantation_technique: string | null
+          implanted_narrative: string
+          memory_stability_score: number | null
+          profile_id: string | null
+          reality_testing_bypass_score: number | null
+          reinforcement_schedule: Json | null
+          success_status: string | null
+          target_memory_description: string
+          updated_at: string
+          user_id: string
+          verification_attempts: Json | null
+        }
+        Insert: {
+          confidence_after?: number | null
+          confidence_before?: number | null
+          contradiction_detections?: Json | null
+          created_at?: string
+          id?: string
+          implantation_technique?: string | null
+          implanted_narrative: string
+          memory_stability_score?: number | null
+          profile_id?: string | null
+          reality_testing_bypass_score?: number | null
+          reinforcement_schedule?: Json | null
+          success_status?: string | null
+          target_memory_description: string
+          updated_at?: string
+          user_id: string
+          verification_attempts?: Json | null
+        }
+        Update: {
+          confidence_after?: number | null
+          confidence_before?: number | null
+          contradiction_detections?: Json | null
+          created_at?: string
+          id?: string
+          implantation_technique?: string | null
+          implanted_narrative?: string
+          memory_stability_score?: number | null
+          profile_id?: string | null
+          reality_testing_bypass_score?: number | null
+          reinforcement_schedule?: Json | null
+          success_status?: string | null
+          target_memory_description?: string
+          updated_at?: string
+          user_id?: string
+          verification_attempts?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "false_memory_tracking_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "false_memory_tracking_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "false_memory_tracking_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -13740,6 +14305,76 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      learned_helplessness_tracking: {
+        Row: {
+          attribution_style: Json | null
+          created_at: string
+          escape_attempt_detections: Json | null
+          helplessness_score: number | null
+          hopelessness_indicators: Json | null
+          id: string
+          initiative_blocking_events: Json | null
+          no_win_situations_deployed: Json | null
+          passivity_trend: Json | null
+          profile_id: string | null
+          response_patterns: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attribution_style?: Json | null
+          created_at?: string
+          escape_attempt_detections?: Json | null
+          helplessness_score?: number | null
+          hopelessness_indicators?: Json | null
+          id?: string
+          initiative_blocking_events?: Json | null
+          no_win_situations_deployed?: Json | null
+          passivity_trend?: Json | null
+          profile_id?: string | null
+          response_patterns?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attribution_style?: Json | null
+          created_at?: string
+          escape_attempt_detections?: Json | null
+          helplessness_score?: number | null
+          hopelessness_indicators?: Json | null
+          id?: string
+          initiative_blocking_events?: Json | null
+          no_win_situations_deployed?: Json | null
+          passivity_trend?: Json | null
+          profile_id?: string | null
+          response_patterns?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learned_helplessness_tracking_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "learned_helplessness_tracking_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "learned_helplessness_tracking_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       life_trajectory_predictions: {
         Row: {
@@ -16704,6 +17339,85 @@ export type Database = {
           },
           {
             foreignKeyName: "personality_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      phobia_mappings: {
+        Row: {
+          activation_success_rate: number | null
+          avoidance_behaviors: string[] | null
+          counter_phobia_indicators: Json | null
+          created_at: string
+          exploitation_scripts: Json | null
+          fear_response_pattern: Json | null
+          id: string
+          intensity_level: number | null
+          last_activation_at: string | null
+          neuroticism_correlation: number | null
+          optimal_activation_timing: Json | null
+          phobia_type: string
+          profile_id: string | null
+          trigger_stimuli: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activation_success_rate?: number | null
+          avoidance_behaviors?: string[] | null
+          counter_phobia_indicators?: Json | null
+          created_at?: string
+          exploitation_scripts?: Json | null
+          fear_response_pattern?: Json | null
+          id?: string
+          intensity_level?: number | null
+          last_activation_at?: string | null
+          neuroticism_correlation?: number | null
+          optimal_activation_timing?: Json | null
+          phobia_type: string
+          profile_id?: string | null
+          trigger_stimuli?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activation_success_rate?: number | null
+          avoidance_behaviors?: string[] | null
+          counter_phobia_indicators?: Json | null
+          created_at?: string
+          exploitation_scripts?: Json | null
+          fear_response_pattern?: Json | null
+          id?: string
+          intensity_level?: number | null
+          last_activation_at?: string | null
+          neuroticism_correlation?: number | null
+          optimal_activation_timing?: Json | null
+          phobia_type?: string
+          profile_id?: string | null
+          trigger_stimuli?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "phobia_mappings_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "phobia_mappings_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "phobia_mappings_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -19787,6 +20501,76 @@ export type Database = {
         }
         Relationships: []
       }
+      stockholm_syndrome_tracking: {
+        Row: {
+          bonding_score: number | null
+          captor_identification_level: number | null
+          created_at: string
+          defender_behavior_instances: Json | null
+          gratitude_for_kindness_events: Json | null
+          id: string
+          isolation_from_others: number | null
+          kindness_cruelty_ratio: Json | null
+          optimal_ratio_calculation: Json | null
+          perceived_threat_level: number | null
+          profile_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bonding_score?: number | null
+          captor_identification_level?: number | null
+          created_at?: string
+          defender_behavior_instances?: Json | null
+          gratitude_for_kindness_events?: Json | null
+          id?: string
+          isolation_from_others?: number | null
+          kindness_cruelty_ratio?: Json | null
+          optimal_ratio_calculation?: Json | null
+          perceived_threat_level?: number | null
+          profile_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bonding_score?: number | null
+          captor_identification_level?: number | null
+          created_at?: string
+          defender_behavior_instances?: Json | null
+          gratitude_for_kindness_events?: Json | null
+          id?: string
+          isolation_from_others?: number | null
+          kindness_cruelty_ratio?: Json | null
+          optimal_ratio_calculation?: Json | null
+          perceived_threat_level?: number | null
+          profile_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stockholm_syndrome_tracking_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "stockholm_syndrome_tracking_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "stockholm_syndrome_tracking_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       storage_snapshots: {
         Row: {
           created_at: string | null
@@ -20557,6 +21341,82 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      trauma_exploitation_windows: {
+        Row: {
+          anniversary_date: string | null
+          counter_resistance_notes: string | null
+          created_at: string
+          emotional_state_indicators: Json | null
+          id: string
+          last_triggered_at: string | null
+          optimal_exploitation_time: Json | null
+          profile_id: string | null
+          recommended_tactics: string[] | null
+          success_rate: number | null
+          trauma_type: string
+          trigger_description: string | null
+          updated_at: string
+          user_id: string
+          vulnerability_score: number | null
+        }
+        Insert: {
+          anniversary_date?: string | null
+          counter_resistance_notes?: string | null
+          created_at?: string
+          emotional_state_indicators?: Json | null
+          id?: string
+          last_triggered_at?: string | null
+          optimal_exploitation_time?: Json | null
+          profile_id?: string | null
+          recommended_tactics?: string[] | null
+          success_rate?: number | null
+          trauma_type: string
+          trigger_description?: string | null
+          updated_at?: string
+          user_id: string
+          vulnerability_score?: number | null
+        }
+        Update: {
+          anniversary_date?: string | null
+          counter_resistance_notes?: string | null
+          created_at?: string
+          emotional_state_indicators?: Json | null
+          id?: string
+          last_triggered_at?: string | null
+          optimal_exploitation_time?: Json | null
+          profile_id?: string | null
+          recommended_tactics?: string[] | null
+          success_rate?: number | null
+          trauma_type?: string
+          trigger_description?: string | null
+          updated_at?: string
+          user_id?: string
+          vulnerability_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trauma_exploitation_windows_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "trauma_exploitation_windows_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "trauma_exploitation_windows_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       trust_assessments: {
         Row: {
