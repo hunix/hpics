@@ -103,6 +103,15 @@ const MemeticEngineeringPanel = lazy(() => import('@/components/intelligence/war
 const SyntheticConsensusPanel = lazy(() => import('@/components/intelligence/warfare/SyntheticConsensusPanel').then(m => ({ default: m.SyntheticConsensusPanel })));
 const ElicitationPanel = lazy(() => import('@/components/intelligence/warfare/ElicitationPanel').then(m => ({ default: m.ElicitationPanel })));
 
+// AGIS Phase 4 Panels - Dominion
+const UniversalDataFusionHub = lazy(() => import('@/components/intelligence/dominion/UniversalDataFusionHub').then(m => ({ default: m.UniversalDataFusionHub })));
+const TraumaExploitationPanel = lazy(() => import('@/components/intelligence/dominion/TraumaExploitationPanel').then(m => ({ default: m.TraumaExploitationPanel })));
+const AddictionFormationPanel = lazy(() => import('@/components/intelligence/dominion/AddictionFormationPanel').then(m => ({ default: m.AddictionFormationPanel })));
+const CoerciveControlPanel = lazy(() => import('@/components/intelligence/dominion/CoerciveControlPanel').then(m => ({ default: m.CoerciveControlPanel })));
+const BreakingPointCalculator = lazy(() => import('@/components/intelligence/dominion/BreakingPointCalculator').then(m => ({ default: m.BreakingPointCalculator })));
+const LearnedHelplessnessPanel = lazy(() => import('@/components/intelligence/dominion/LearnedHelplessnessPanel').then(m => ({ default: m.LearnedHelplessnessPanel })));
+const IdentityDestabilizationPanel = lazy(() => import('@/components/intelligence/dominion/IdentityDestabilizationPanel').then(m => ({ default: m.IdentityDestabilizationPanel })));
+
 type Profile = Tables<'profiles'>;
 
 interface ContactDetailContentProps {
@@ -315,6 +324,26 @@ export function ContactDetailContent({
         return <SyntheticConsensusPanel profileId={contact.id} />;
       case 'agis-elicitation':
         return <ElicitationPanel profileId={contact.id} profileName={contactName} />;
+      // AGIS Phase 4 Sections - Dominion
+      case 'agis-fusion':
+        return <UniversalDataFusionHub profileId={contact.id} />;
+      case 'agis-trauma':
+        return <TraumaExploitationPanel profileId={contact.id} />;
+      case 'agis-addiction':
+        return <AddictionFormationPanel profileId={contact.id} />;
+      case 'agis-coercive':
+        return <CoerciveControlPanel profileId={contact.id} />;
+      case 'agis-breaking-point':
+        return <BreakingPointCalculator profileId={contact.id} />;
+      case 'agis-helplessness':
+        return <LearnedHelplessnessPanel profileId={contact.id} />;
+      case 'agis-identity':
+        return <IdentityDestabilizationPanel profileId={contact.id} />;
+      case 'agis-stockholm':
+      case 'agis-cult':
+      case 'agis-dependency':
+        // These panels are pending implementation
+        return <UniversalDataFusionHub profileId={contact.id} />;
       default:
         return null;
     }
