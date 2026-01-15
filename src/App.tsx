@@ -73,6 +73,7 @@ const TranscendentCommandCenter = lazyWithRetry(() => import("./pages/Transcende
 const SingularityCommandCenter = lazyWithRetry(() => import("./pages/SingularityCommandCenter"));
 const AbsoluteConvergenceCenter = lazyWithRetry(() => import("./pages/AbsoluteConvergenceCenter"));
 const InfiniteDominionCenter = lazyWithRetry(() => import("./pages/InfiniteDominionCenter"));
+const UltimateTranscendenceCenter = lazyWithRetry(() => import("./pages/UltimateTranscendenceCenter"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -155,6 +156,7 @@ const App = () => (
                         <Route path="/singularity-command" element={<SingularityCommandCenter />} />
                         <Route path="/absolute-convergence" element={<AbsoluteConvergenceCenter />} />
                         <Route path="/infinite-dominion" element={<InfiniteDominionCenter />} />
+                        <Route path="/ultimate-transcendence" element={<UltimateTranscendenceCenter />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                       </Suspense>
