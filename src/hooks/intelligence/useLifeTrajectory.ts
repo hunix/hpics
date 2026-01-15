@@ -171,10 +171,52 @@ export function useLifeTrajectory() {
   }, [predictions]);
 
   const loadPrediction = useCallback(async (profileId: string): Promise<LifeTrajectoryPrediction | null> => {
-    // Life trajectory predictions are generated on-demand via edge function
-    // No persistent storage - return null to trigger fresh prediction
-    return null;
-  }, []);
+    if (!user) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from('life_trajectory_predictions')
+        .select('*')
+        .eq('profile_id', profileId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!data) return null;
+
+      // Derive trajectory direction from overall scores
+      const careerData = data.career_trajectory as any;
+      const financialData = data.financial_trajectory as any;
+      const healthData = data.health_trajectory as any;
+      
+      let trajectoryDirection: LifeTrajectoryPrediction['trajectoryDirection'] = 'stable';
+      const trends = [careerData?.trend, financialData?.trend, healthData?.trend].filter(Boolean);
+      if (trends.includes('growth') || trends.includes('improving')) trajectoryDirection = 'ascending';
+      if (trends.includes('decline') || trends.includes('declining')) trajectoryDirection = 'descending';
+
+      const prediction: LifeTrajectoryPrediction = {
+        profileId: data.profile_id || profileId,
+        trajectoryDirection,
+        stabilityScore: data.confidence_score || 0.5,
+        predictedEvents: (data.life_events_sequence as any[]) || [],
+        crisisWarnings: (data.crisis_early_warnings as any[]) || [],
+        vulnerabilityWindows: (data.vulnerability_windows as any[]) || [],
+        inflectionPoints: (data.predicted_outcomes as any[]) || [],
+        relationshipForecast: (data.relationship_trajectory as any) || { currentStrength: 0.5, projectedStrength: 0.5, riskFactors: [], opportunities: [] },
+        economicForecast: financialData || { trend: 'stable', confidence: 0.5, keyFactors: [] },
+        wellbeingForecast: healthData || { trend: 'stable', riskFactors: [], interventionOpportunities: [] },
+        confidence: data.confidence_score || 0.7,
+        validUntil: new Date(data.valid_until || new Date()),
+        analyzedAt: new Date(data.created_at || new Date())
+      };
+
+      setPredictions(prev => new Map(prev).set(profileId, prediction));
+      return prediction;
+    } catch (error) {
+      console.error('Error loading prediction:', error);
+      return null;
+    }
+  }, [user]);
 
   return {
     isAnalyzing,

@@ -204,14 +204,14 @@ export function useTacticalNegotiation() {
 
       const loadedSessions: NegotiationSession[] = (data || []).map(s => ({
         id: s.id,
-        profileId: s.profile_id,
-        negotiationType: s.session_type,
-        status: s.status as NegotiationSession['status'],
-        strategy: s.strategy_data as NegotiationStrategy,
-        notes: s.notes || [],
-        outcome: s.outcome_data as NegotiationSession['outcome'],
-        createdAt: new Date(s.created_at),
-        updatedAt: new Date(s.updated_at)
+        profileId: s.profile_id || '',
+        negotiationType: s.session_type || 'general',
+        status: (s.outcome === 'completed' ? 'completed' : 'active') as NegotiationSession['status'],
+        strategy: { sessionId: s.id, profileId: s.profile_id || '', negotiationType: s.session_type || '', overallStrategy: '', phases: [], tactics: [], concessions: [], deadlines: [], batna: '', walkAwayPoint: '', aspirationPoint: '' } as NegotiationStrategy,
+        notes: [],
+        outcome: s.outcome ? { success: s.success_score ? s.success_score > 0.5 : false, result: s.outcome, lessonsLearned: (s.lessons_learned as string[]) || [] } : undefined,
+        createdAt: new Date(s.created_at || new Date()),
+        updatedAt: new Date(s.updated_at || new Date())
       }));
 
       setSessions(loadedSessions);
