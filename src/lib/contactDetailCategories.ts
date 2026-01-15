@@ -4,7 +4,7 @@ import {
   Clock, Sparkles, Mail, Calendar, Eye, Shield, Globe, TrendingUp, Triangle, Search, 
   Activity, GitCompare, Fingerprint, Share2, Package, UserX, ScanText,
   Heart, Gift, Target, Users, GraduationCap, Wallet, Link2, Milestone, 
-  Settings2, StickyNote, BookOpen, DollarSign
+  Settings2, StickyNote, BookOpen, DollarSign, Swords, AlertTriangle, Dna, Zap, MessageSquarePlus
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -23,7 +23,9 @@ export type SectionId =
   | 'detected-items' | 'unknown-persons' | 'doc-intelligence'
   | 'voice-insights' | 'document-insights' | 'content-relationships' | 'keyword-watchlist'
   | 'psychology' | 'deception' | 'keystroke-enrollment'
-  | 'agis-attachment' | 'agis-chronotype' | 'agis-negotiation' | 'agis-trajectory' | 'agis-economics' | 'agis-family';
+  | 'agis-attachment' | 'agis-chronotype' | 'agis-negotiation' | 'agis-trajectory' | 'agis-economics' | 'agis-family'
+  // AGIS Phase 3 Sections
+  | 'agis-semantic-warfare' | 'agis-mice-recruitment' | 'agis-betrayal-risk' | 'agis-sacred-values' | 'agis-memetic' | 'agis-consensus' | 'agis-elicitation';
 
 export type CategoryId = 'profile' | 'intelligence' | 'communication' | 'media' | 'connections';
 
@@ -108,6 +110,14 @@ export const categories: Category[] = [
       { id: 'agis-trajectory', label: 'Life Trajectory', icon: TrendingUp, keywords: ['forecast', 'prediction', 'future'] },
       { id: 'agis-economics', label: 'Economic Psychology', icon: DollarSign, keywords: ['biases', 'anchoring', 'scarcity'] },
       { id: 'agis-family', label: 'Family Systems', icon: Users, keywords: ['dynamics', 'roles', 'triangulation'] },
+      // AGIS Phase 3 Sections - Cognitive Warfare
+      { id: 'agis-semantic-warfare', label: 'Semantic Warfare', icon: Swords, keywords: ['terms', 'framing', 'overton'] },
+      { id: 'agis-mice-recruitment', label: 'MICE Vulnerability', icon: DollarSign, keywords: ['money', 'ideology', 'compromise', 'ego'] },
+      { id: 'agis-betrayal-risk', label: 'Betrayal Risk', icon: AlertTriangle, keywords: ['defection', 'trust', 'gottman'] },
+      { id: 'agis-sacred-values', label: 'Sacred Values', icon: Shield, keywords: ['beliefs', 'morals', 'taboos'] },
+      { id: 'agis-memetic', label: 'Memetic Profile', icon: Dna, keywords: ['memes', 'virality', 'propagation'] },
+      { id: 'agis-consensus', label: 'Consensus Ops', icon: Users, keywords: ['astroturf', 'social proof'] },
+      { id: 'agis-elicitation', label: 'Elicitation Intel', icon: MessageSquarePlus, keywords: ['fbi', 'extraction', 'conversation'] },
     ]
   },
   {
