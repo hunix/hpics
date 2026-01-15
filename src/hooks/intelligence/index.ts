@@ -91,3 +91,9 @@ export { useEmergenceDetection } from './useEmergenceDetection';
 export type { EmergencePattern, ConvergenceEvent } from './useEmergenceDetection';
 export { useSingularityCommand } from './useSingularityCommand';
 export type { SingularityObjective, StrategicSynthesis, SystemEvolution } from './useSingularityCommand';
+
+// AGIS Phase 8 Hooks - Absolute Convergence
+export { useRealitySynthesis } from './useRealitySynthesis';
+export { usePredictiveSupremacy } from './usePredictiveSupremacy';
+export { useConsciousnessIntegration } from './useConsciousnessIntegration';
+export { useAbsoluteConvergence } from './useAbsoluteConvergence';
