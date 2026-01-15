@@ -109,6 +109,60 @@ export type Database = {
         }
         Relationships: []
       }
+      absolute_objectives: {
+        Row: {
+          blockers: Json | null
+          created_at: string
+          current_progress: number | null
+          dependencies: Json | null
+          estimated_completion: string | null
+          id: string
+          objective_name: string
+          objective_type: string
+          priority_score: number | null
+          resources_required: Json | null
+          status: string | null
+          sub_objectives: Json | null
+          target_state: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          blockers?: Json | null
+          created_at?: string
+          current_progress?: number | null
+          dependencies?: Json | null
+          estimated_completion?: string | null
+          id?: string
+          objective_name: string
+          objective_type: string
+          priority_score?: number | null
+          resources_required?: Json | null
+          status?: string | null
+          sub_objectives?: Json | null
+          target_state?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          blockers?: Json | null
+          created_at?: string
+          current_progress?: number | null
+          dependencies?: Json | null
+          estimated_completion?: string | null
+          id?: string
+          objective_name?: string
+          objective_type?: string
+          priority_score?: number | null
+          resources_required?: Json | null
+          status?: string | null
+          sub_objectives?: Json | null
+          target_state?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       action_recommendations: {
         Row: {
           action_script: string | null
@@ -4430,6 +4484,48 @@ export type Database = {
           },
         ]
       }
+      consciousness_integration: {
+        Row: {
+          coherence_score: number | null
+          created_at: string
+          enhancement_metrics: Json | null
+          human_input_stream: Json | null
+          id: string
+          integration_type: string
+          latency_ms: number | null
+          machine_analysis: Json | null
+          session_duration_seconds: number | null
+          synthesis_output: Json | null
+          user_id: string
+        }
+        Insert: {
+          coherence_score?: number | null
+          created_at?: string
+          enhancement_metrics?: Json | null
+          human_input_stream?: Json | null
+          id?: string
+          integration_type: string
+          latency_ms?: number | null
+          machine_analysis?: Json | null
+          session_duration_seconds?: number | null
+          synthesis_output?: Json | null
+          user_id: string
+        }
+        Update: {
+          coherence_score?: number | null
+          created_at?: string
+          enhancement_metrics?: Json | null
+          human_input_stream?: Json | null
+          id?: string
+          integration_type?: string
+          latency_ms?: number | null
+          machine_analysis?: Json | null
+          session_duration_seconds?: number | null
+          synthesis_output?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       contact_activity_feed: {
         Row: {
           activity_subtype: string | null
@@ -7637,6 +7733,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      convergence_protocols: {
+        Row: {
+          convergence_rules: Json | null
+          created_at: string
+          execution_count: number | null
+          execution_sequence: Json | null
+          id: string
+          is_active: boolean | null
+          last_executed_at: string | null
+          priority: number | null
+          protocol_name: string
+          protocol_type: string
+          success_rate: number | null
+          trigger_conditions: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          convergence_rules?: Json | null
+          created_at?: string
+          execution_count?: number | null
+          execution_sequence?: Json | null
+          id?: string
+          is_active?: boolean | null
+          last_executed_at?: string | null
+          priority?: number | null
+          protocol_name: string
+          protocol_type: string
+          success_rate?: number | null
+          trigger_conditions?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          convergence_rules?: Json | null
+          created_at?: string
+          execution_count?: number | null
+          execution_sequence?: Json | null
+          id?: string
+          is_active?: boolean | null
+          last_executed_at?: string | null
+          priority?: number | null
+          protocol_name?: string
+          protocol_type?: string
+          success_rate?: number | null
+          trigger_conditions?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       conversation_analyses: {
         Row: {
@@ -18548,6 +18695,54 @@ export type Database = {
         }
         Relationships: []
       }
+      omniscient_awareness: {
+        Row: {
+          awareness_domain: string
+          awareness_scope: Json | null
+          blind_spots: Json | null
+          coverage_percentage: number | null
+          created_at: string
+          id: string
+          last_scan_at: string | null
+          opportunity_detection: Json | null
+          pattern_recognition: Json | null
+          real_time_feeds: Json | null
+          threat_detection: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          awareness_domain: string
+          awareness_scope?: Json | null
+          blind_spots?: Json | null
+          coverage_percentage?: number | null
+          created_at?: string
+          id?: string
+          last_scan_at?: string | null
+          opportunity_detection?: Json | null
+          pattern_recognition?: Json | null
+          real_time_feeds?: Json | null
+          threat_detection?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          awareness_domain?: string
+          awareness_scope?: Json | null
+          blind_spots?: Json | null
+          coverage_percentage?: number | null
+          created_at?: string
+          id?: string
+          last_scan_at?: string | null
+          opportunity_detection?: Json | null
+          pattern_recognition?: Json | null
+          real_time_feeds?: Json | null
+          threat_detection?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       opportunity_windows: {
         Row: {
           auto_action_config: Json | null
@@ -19388,6 +19583,79 @@ export type Database = {
           weak_ties?: Json | null
         }
         Relationships: []
+      }
+      predictive_supremacy: {
+        Row: {
+          accuracy_history: Json | null
+          actual_outcome: Json | null
+          causal_chain: Json | null
+          confidence_interval: Json | null
+          created_at: string
+          id: string
+          intervention_points: Json | null
+          prediction_domain: string
+          prediction_type: string
+          probability_distribution: Json | null
+          profile_id: string | null
+          time_horizon_hours: number | null
+          user_id: string
+          validated_at: string | null
+        }
+        Insert: {
+          accuracy_history?: Json | null
+          actual_outcome?: Json | null
+          causal_chain?: Json | null
+          confidence_interval?: Json | null
+          created_at?: string
+          id?: string
+          intervention_points?: Json | null
+          prediction_domain: string
+          prediction_type: string
+          probability_distribution?: Json | null
+          profile_id?: string | null
+          time_horizon_hours?: number | null
+          user_id: string
+          validated_at?: string | null
+        }
+        Update: {
+          accuracy_history?: Json | null
+          actual_outcome?: Json | null
+          causal_chain?: Json | null
+          confidence_interval?: Json | null
+          created_at?: string
+          id?: string
+          intervention_points?: Json | null
+          prediction_domain?: string
+          prediction_type?: string
+          probability_distribution?: Json | null
+          profile_id?: string | null
+          time_horizon_hours?: number | null
+          user_id?: string
+          validated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "predictive_supremacy_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "predictive_supremacy_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "predictive_supremacy_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       proactive_actions: {
         Row: {
@@ -20518,6 +20786,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      reality_synthesis: {
+        Row: {
+          causal_depth: number | null
+          confidence_score: number | null
+          created_at: string
+          id: string
+          input_sources: Json | null
+          reality_model: Json | null
+          spatial_accuracy: number | null
+          synthesis_timestamp: string | null
+          synthesis_type: string
+          temporal_accuracy: number | null
+          updated_at: string
+          user_id: string
+          validity_window: Json | null
+        }
+        Insert: {
+          causal_depth?: number | null
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          input_sources?: Json | null
+          reality_model?: Json | null
+          spatial_accuracy?: number | null
+          synthesis_timestamp?: string | null
+          synthesis_type: string
+          temporal_accuracy?: number | null
+          updated_at?: string
+          user_id: string
+          validity_window?: Json | null
+        }
+        Update: {
+          causal_depth?: number | null
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          input_sources?: Json | null
+          reality_model?: Json | null
+          spatial_accuracy?: number | null
+          synthesis_timestamp?: string | null
+          synthesis_type?: string
+          temporal_accuracy?: number | null
+          updated_at?: string
+          user_id?: string
+          validity_window?: Json | null
+        }
+        Relationships: []
       }
       relationship_goals: {
         Row: {
@@ -22636,6 +22952,57 @@ export type Database = {
         }
         Relationships: []
       }
+      strategic_omnipotence: {
+        Row: {
+          contingency_branches: Json | null
+          created_at: string
+          execution_timeline: Json | null
+          id: string
+          objective_hierarchy: Json | null
+          outcome: Json | null
+          power_projection: Json | null
+          resource_allocation: Json | null
+          risk_assessment: Json | null
+          status: string | null
+          strategy_name: string
+          success_probability: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contingency_branches?: Json | null
+          created_at?: string
+          execution_timeline?: Json | null
+          id?: string
+          objective_hierarchy?: Json | null
+          outcome?: Json | null
+          power_projection?: Json | null
+          resource_allocation?: Json | null
+          risk_assessment?: Json | null
+          status?: string | null
+          strategy_name: string
+          success_probability?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contingency_branches?: Json | null
+          created_at?: string
+          execution_timeline?: Json | null
+          id?: string
+          objective_hierarchy?: Json | null
+          outcome?: Json | null
+          power_projection?: Json | null
+          resource_allocation?: Json | null
+          risk_assessment?: Json | null
+          status?: string | null
+          strategy_name?: string
+          success_probability?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       strategic_synthesis: {
         Row: {
           alternative_strategies: Json | null
@@ -23992,6 +24359,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      unified_control_matrix: {
+        Row: {
+          constraint_violations: Json | null
+          control_nodes: Json | null
+          created_at: string
+          efficiency_score: number | null
+          feedback_loops: Json | null
+          id: string
+          influence_vectors: Json | null
+          is_active: boolean | null
+          last_optimization_at: string | null
+          matrix_name: string
+          optimization_targets: Json | null
+          system_state: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          constraint_violations?: Json | null
+          control_nodes?: Json | null
+          created_at?: string
+          efficiency_score?: number | null
+          feedback_loops?: Json | null
+          id?: string
+          influence_vectors?: Json | null
+          is_active?: boolean | null
+          last_optimization_at?: string | null
+          matrix_name: string
+          optimization_targets?: Json | null
+          system_state?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          constraint_violations?: Json | null
+          control_nodes?: Json | null
+          created_at?: string
+          efficiency_score?: number | null
+          feedback_loops?: Json | null
+          id?: string
+          influence_vectors?: Json | null
+          is_active?: boolean | null
+          last_optimization_at?: string | null
+          matrix_name?: string
+          optimization_targets?: Json | null
+          system_state?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       unified_intelligence_feed: {
         Row: {

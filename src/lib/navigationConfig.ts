@@ -234,6 +234,17 @@ export const navigationItems: NavItem[] = [
     keywords: ['singularity', 'agis', 'phase 7', 'meta', 'learning', 'emergence', 'convergence', 'unified'],
   },
   {
+    id: 'absolute-convergence',
+    title: 'Absolute Convergence',
+    url: '/absolute-convergence',
+    icon: Orbit,
+    badge: 'new',
+    description: 'AGIS Phase 8 - Reality synthesis, predictive supremacy, consciousness integration',
+    category: 'intelligence',
+    requiredRole: 'analyst',
+    keywords: ['absolute', 'convergence', 'agis', 'phase 8', 'reality', 'predictive', 'consciousness', 'omnipotence'],
+  },
+  {
     id: 'cross-modal-intelligence',
     title: 'Cross-Modal Analysis',
     url: '/cross-modal-intelligence',
