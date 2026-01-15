@@ -97,3 +97,9 @@ export { useRealitySynthesis } from './useRealitySynthesis';
 export { usePredictiveSupremacy } from './usePredictiveSupremacy';
 export { useConsciousnessIntegration } from './useConsciousnessIntegration';
 export { useAbsoluteConvergence } from './useAbsoluteConvergence';
+
+// AGIS Phase 9 Hooks - Infinite Dominion
+export { useInfiniteAwareness } from './useInfiniteAwareness';
+export { useTranscendentSynthesis } from './useTranscendentSynthesis';
+export { useDimensionalInfluence } from './useDimensionalInfluence';
+export { useInfiniteDominion } from './useInfiniteDominion';
