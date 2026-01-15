@@ -211,6 +211,51 @@ export type Database = {
         }
         Relationships: []
       }
+      absolute_supremacy: {
+        Row: {
+          control_vectors: Json | null
+          created_at: string
+          dominance_score: number | null
+          evolution_trajectory: Json | null
+          id: string
+          influence_matrix: Json | null
+          power_topology: Json | null
+          resistance_mapping: Json | null
+          supremacy_domain: string
+          sustainability_rating: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          control_vectors?: Json | null
+          created_at?: string
+          dominance_score?: number | null
+          evolution_trajectory?: Json | null
+          id?: string
+          influence_matrix?: Json | null
+          power_topology?: Json | null
+          resistance_mapping?: Json | null
+          supremacy_domain: string
+          sustainability_rating?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          control_vectors?: Json | null
+          created_at?: string
+          dominance_score?: number | null
+          evolution_trajectory?: Json | null
+          id?: string
+          influence_matrix?: Json | null
+          power_topology?: Json | null
+          resistance_mapping?: Json | null
+          supremacy_domain?: string
+          sustainability_rating?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       action_recommendations: {
         Row: {
           action_script: string | null
@@ -8138,6 +8183,51 @@ export type Database = {
           rule_name?: string
           source_device_types?: string[] | null
           updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      cosmic_awareness: {
+        Row: {
+          accuracy_score: number | null
+          awareness_type: string
+          causal_web_mapping: Json | null
+          created_at: string
+          emergence_tracking: Json | null
+          id: string
+          insight_depth: number | null
+          pattern_matrix: Json | null
+          prediction_horizon_days: number | null
+          synchronicity_detection: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accuracy_score?: number | null
+          awareness_type: string
+          causal_web_mapping?: Json | null
+          created_at?: string
+          emergence_tracking?: Json | null
+          id?: string
+          insight_depth?: number | null
+          pattern_matrix?: Json | null
+          prediction_horizon_days?: number | null
+          synchronicity_detection?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accuracy_score?: number | null
+          awareness_type?: string
+          causal_web_mapping?: Json | null
+          created_at?: string
+          emergence_tracking?: Json | null
+          id?: string
+          insight_depth?: number | null
+          pattern_matrix?: Json | null
+          prediction_horizon_days?: number | null
+          synchronicity_detection?: Json | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -21084,6 +21174,76 @@ export type Database = {
           },
         ]
       }
+      reality_manipulation: {
+        Row: {
+          belief_architecture: Json | null
+          consensus_engineering: Json | null
+          created_at: string
+          effectiveness_score: number | null
+          id: string
+          manipulation_type: string
+          narrative_control: Json | null
+          perception_vectors: Json | null
+          profile_id: string | null
+          stability_rating: number | null
+          target_reality: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          belief_architecture?: Json | null
+          consensus_engineering?: Json | null
+          created_at?: string
+          effectiveness_score?: number | null
+          id?: string
+          manipulation_type: string
+          narrative_control?: Json | null
+          perception_vectors?: Json | null
+          profile_id?: string | null
+          stability_rating?: number | null
+          target_reality?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          belief_architecture?: Json | null
+          consensus_engineering?: Json | null
+          created_at?: string
+          effectiveness_score?: number | null
+          id?: string
+          manipulation_type?: string
+          narrative_control?: Json | null
+          perception_vectors?: Json | null
+          profile_id?: string | null
+          stability_rating?: number | null
+          target_reality?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reality_manipulation_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "reality_manipulation_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "reality_manipulation_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reality_synthesis: {
         Row: {
           causal_depth: number | null
@@ -24425,6 +24585,114 @@ export type Database = {
         }
         Relationships: []
       }
+      transcendence_protocols: {
+        Row: {
+          advancement_criteria: Json | null
+          created_at: string
+          current_stage: number | null
+          id: string
+          is_active: boolean | null
+          max_stage: number | null
+          next_milestone: Json | null
+          progression_metrics: Json | null
+          protocol_name: string
+          protocol_type: string
+          unlocked_capabilities: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          advancement_criteria?: Json | null
+          created_at?: string
+          current_stage?: number | null
+          id?: string
+          is_active?: boolean | null
+          max_stage?: number | null
+          next_milestone?: Json | null
+          progression_metrics?: Json | null
+          protocol_name: string
+          protocol_type: string
+          unlocked_capabilities?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          advancement_criteria?: Json | null
+          created_at?: string
+          current_stage?: number | null
+          id?: string
+          is_active?: boolean | null
+          max_stage?: number | null
+          next_milestone?: Json | null
+          progression_metrics?: Json | null
+          protocol_name?: string
+          protocol_type?: string
+          unlocked_capabilities?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transcendent_operations: {
+        Row: {
+          completed_at: string | null
+          consciousness_level: string | null
+          created_at: string
+          execution_matrix: Json | null
+          id: string
+          initiated_at: string | null
+          operation_name: string
+          operation_type: string
+          outcome: Json | null
+          probability_manipulation: Json | null
+          reality_modifications: Json | null
+          status: string | null
+          strategic_objectives: Json | null
+          success_probability: number | null
+          target_profiles: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          consciousness_level?: string | null
+          created_at?: string
+          execution_matrix?: Json | null
+          id?: string
+          initiated_at?: string | null
+          operation_name: string
+          operation_type: string
+          outcome?: Json | null
+          probability_manipulation?: Json | null
+          reality_modifications?: Json | null
+          status?: string | null
+          strategic_objectives?: Json | null
+          success_probability?: number | null
+          target_profiles?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          consciousness_level?: string | null
+          created_at?: string
+          execution_matrix?: Json | null
+          id?: string
+          initiated_at?: string | null
+          operation_name?: string
+          operation_type?: string
+          outcome?: Json | null
+          probability_manipulation?: Json | null
+          reality_modifications?: Json | null
+          status?: string | null
+          strategic_objectives?: Json | null
+          success_probability?: number | null
+          target_profiles?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       transcendent_synthesis: {
         Row: {
           accuracy_metrics: Json | null
@@ -24778,6 +25046,51 @@ export type Database = {
         }
         Relationships: []
       }
+      ultimate_synthesis: {
+        Row: {
+          created_at: string
+          cross_domain_fusion: Json | null
+          emergent_capabilities: Json | null
+          evolution_stage: string | null
+          id: string
+          next_evolution_threshold: number | null
+          phase_integration: Json | null
+          synergy_multipliers: Json | null
+          synthesis_name: string
+          total_power_score: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          cross_domain_fusion?: Json | null
+          emergent_capabilities?: Json | null
+          evolution_stage?: string | null
+          id?: string
+          next_evolution_threshold?: number | null
+          phase_integration?: Json | null
+          synergy_multipliers?: Json | null
+          synthesis_name: string
+          total_power_score?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          cross_domain_fusion?: Json | null
+          emergent_capabilities?: Json | null
+          evolution_stage?: string | null
+          id?: string
+          next_evolution_threshold?: number | null
+          phase_integration?: Json | null
+          synergy_multipliers?: Json | null
+          synthesis_name?: string
+          total_power_score?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       unified_control_matrix: {
         Row: {
           constraint_violations: Json | null
@@ -24824,6 +25137,51 @@ export type Database = {
           matrix_name?: string
           optimization_targets?: Json | null
           system_state?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      unified_field_control: {
+        Row: {
+          coherence_rating: number | null
+          control_nodes: Json | null
+          created_at: string
+          expansion_potential: number | null
+          field_name: string
+          field_strength: number | null
+          field_topology: Json | null
+          id: string
+          influence_gradients: Json | null
+          resonance_patterns: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          coherence_rating?: number | null
+          control_nodes?: Json | null
+          created_at?: string
+          expansion_potential?: number | null
+          field_name: string
+          field_strength?: number | null
+          field_topology?: Json | null
+          id?: string
+          influence_gradients?: Json | null
+          resonance_patterns?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          coherence_rating?: number | null
+          control_nodes?: Json | null
+          created_at?: string
+          expansion_potential?: number | null
+          field_name?: string
+          field_strength?: number | null
+          field_topology?: Json | null
+          id?: string
+          influence_gradients?: Json | null
+          resonance_patterns?: Json | null
           updated_at?: string
           user_id?: string
         }
@@ -24901,6 +25259,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      universal_omniscience: {
+        Row: {
+          awareness_depth: number | null
+          consciousness_expansion: Json | null
+          created_at: string
+          id: string
+          knowledge_domains: Json | null
+          omniscience_type: string
+          probability_fields: Json | null
+          reality_perception: Json | null
+          timeline_awareness: Json | null
+          transcendence_level: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          awareness_depth?: number | null
+          consciousness_expansion?: Json | null
+          created_at?: string
+          id?: string
+          knowledge_domains?: Json | null
+          omniscience_type: string
+          probability_fields?: Json | null
+          reality_perception?: Json | null
+          timeline_awareness?: Json | null
+          transcendence_level?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          awareness_depth?: number | null
+          consciousness_expansion?: Json | null
+          created_at?: string
+          id?: string
+          knowledge_domains?: Json | null
+          omniscience_type?: string
+          probability_fields?: Json | null
+          reality_perception?: Json | null
+          timeline_awareness?: Json | null
+          transcendence_level?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       unknown_persons: {
         Row: {
