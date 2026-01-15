@@ -166,6 +166,17 @@ export const navigationItems: NavItem[] = [
     requiredRole: 'analyst',
     keywords: ['network', 'connections', 'graph', 'ml'],
   },
+  {
+    id: 'supremacy-command',
+    title: 'Supremacy Command',
+    url: '/supremacy-v2',
+    icon: Crown,
+    badge: 'new',
+    description: 'AGIS Phase 2 - Absolute Superiority',
+    category: 'intelligence',
+    requiredRole: 'analyst',
+    keywords: ['supremacy', 'agis', 'phase 2', 'tactical', 'negotiation', 'attachment', 'chronotype'],
+  },
   
   // Relationships
   {

@@ -30,3 +30,15 @@ export { LocalMLDashboard } from './LocalMLDashboard';
 // AGIS Phase 10: Supremacy
 export { SupremacyDashboard } from './SupremacyDashboard';
 export { SituationRoom } from './SituationRoom';
+
+// AGIS Phase 2: Absolute Superiority
+export { SupremacyDashboardV2 } from './SupremacyDashboardV2';
+export { TacticalNegotiationPanel } from './TacticalNegotiationPanel';
+export { AttachmentVulnerabilityPanel } from './AttachmentVulnerabilityPanel';
+export { ChronotypePanel } from './ChronotypePanel';
+export { LifeTrajectoryPanel } from './LifeTrajectoryPanel';
+export { NetworkBrokeragePanel } from './NetworkBrokeragePanel';
+export { BehavioralEconomicsPanel } from './BehavioralEconomicsPanel';
+export { MemoryReconsolidationPanel } from './MemoryReconsolidationPanel';
+export { ChoiceArchitecturePanel } from './ChoiceArchitecturePanel';
+export { FamilySystemsPanel } from './FamilySystemsPanel';

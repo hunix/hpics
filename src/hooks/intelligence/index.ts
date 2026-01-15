@@ -21,3 +21,13 @@ export type { LifeEvent, CrisisWarning, VulnerabilityWindow, LifeTrajectoryPredi
 
 export { useNetworkBrokerage } from './useNetworkBrokerage';
 export type { StructuralHole, BrokerageOpportunity, NetworkPosition } from './useNetworkBrokerage';
+
+// New AGIS Phase 2 Hooks
+export { useMemoryReconsolidation } from './useMemoryReconsolidation';
+export type { MemoryIntervention } from './useMemoryReconsolidation';
+
+export { useChoiceArchitecture } from './useChoiceArchitecture';
+export type { NudgeTechnique, ChoiceArchitectureResult, NudgeCampaign } from './useChoiceArchitecture';
+
+export { useFamilySystems } from './useFamilySystems';
+export type { FamilyRole, FamilySystemAnalysis } from './useFamilySystems';
