@@ -60,3 +60,8 @@ export { useAddictionProtocol } from './useAddictionProtocol';
 export { useCoerciveControl } from './useCoerciveControl';
 export { useBreakingPointPrediction } from './useBreakingPointPrediction';
 export { useDependencyTracking } from './useDependencyTracking';
+export { useLearnedHelplessness } from './useLearnedHelplessness';
+export { useIdentityDestabilization } from './useIdentityDestabilization';
+export { useStockholmSyndrome } from './useStockholmSyndrome';
+export { useCultTactics } from './useCultTactics';
+export { usePhobiaExploitation } from './usePhobiaExploitation';
