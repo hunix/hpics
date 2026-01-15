@@ -51,3 +51,5 @@ export { useIntelligenceHistory } from './useIntelligenceHistory';
 export type { IntelligenceSnapshot, TimeRange } from './useIntelligenceHistory';
 export { usePushNotifications } from './usePushNotifications';
 export type { NotificationPreference, CriticalAlert } from './usePushNotifications';
+export { useBiometricPsychFusion } from './useBiometricPsychFusion';
+export type { FusionProfile } from './useBiometricPsychFusion';

@@ -45,7 +45,7 @@ export function MemeticPropagationGraph({ campaignId, profileId }: MemeticPropag
   const [links, setLinks] = useState<PropagationLink[]>([]);
   const animationRef = useRef<number>();
   
-  const { campaigns } = useMemeticEngineering(profileId);
+  const { campaigns } = useMemeticEngineering();
   const activeCampaign = campaigns?.find(c => c.id === campaignId) || campaigns?.[0];
 
   // Initialize demo network
@@ -292,10 +292,12 @@ export function MemeticPropagationGraph({ campaignId, profileId }: MemeticPropag
     recovered: nodes.filter(n => n.state === 'recovered').length,
   };
 
-  const r0 = activeCampaign?.propagation_metrics?.r0 || 
-    (stats.infected + stats.recovered > 1 ? 
-      ((stats.infected + stats.recovered - 1) / Math.max(1, stats.recovered)).toFixed(2) : 
-      '0.00');
+  // Calculate R0 from campaign data or derive from simulation stats
+  const r0 = activeCampaign?.infection_rate && activeCampaign?.recovery_rate 
+    ? (activeCampaign.infection_rate / activeCampaign.recovery_rate).toFixed(2)
+    : (stats.infected + stats.recovered > 1 ? 
+        ((stats.infected + stats.recovered - 1) / Math.max(1, stats.recovered)).toFixed(2) : 
+        '0.00');
 
   return (
     <Card>
@@ -367,12 +369,12 @@ export function MemeticPropagationGraph({ campaignId, profileId }: MemeticPropag
           <div className="p-3 rounded-lg bg-muted/30 border">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="h-4 w-4 text-primary" />
-              <span className="font-medium">{activeCampaign.meme_name}</span>
+              <span className="font-medium">{activeCampaign.campaign_name}</span>
             </div>
-            <p className="text-sm text-muted-foreground">{activeCampaign.core_message}</p>
+            <p className="text-sm text-muted-foreground">{activeCampaign.core_narrative}</p>
             <div className="flex items-center gap-4 mt-2">
-              <Badge variant="outline">Fitness: {(activeCampaign.propagation_metrics?.fitness_score * 100 || 0).toFixed(0)}%</Badge>
-              <Badge variant="outline">Mutation Rate: {(activeCampaign.propagation_metrics?.mutation_rate * 100 || 0).toFixed(1)}%</Badge>
+              <Badge variant="outline">Reach: {activeCampaign.current_reach?.toLocaleString() || 0}</Badge>
+              <Badge variant="outline">Infection Rate: {((activeCampaign.infection_rate || 0) * 100).toFixed(1)}%</Badge>
             </div>
           </div>
         )}
