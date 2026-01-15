@@ -398,3 +398,24 @@ verify_jwt = false
 
 [functions.aggregate-social-intelligence]
 verify_jwt = false
+
+[functions.autonomous-campaign-executor]
+verify_jwt = false
+
+[functions.network-cascade-modeler]
+verify_jwt = false
+
+[functions.influence-propagation-engine]
+verify_jwt = false
+
+[functions.threat-actor-profiler]
+verify_jwt = false
+
+[functions.predictive-opportunity-scanner]
+verify_jwt = false
+
+[functions.trajectory-intercept-engine]
+verify_jwt = false
+
+[functions.omniscient-orchestrator]
+verify_jwt = false
