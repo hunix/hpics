@@ -65,3 +65,19 @@ export { useIdentityDestabilization } from './useIdentityDestabilization';
 export { useStockholmSyndrome } from './useStockholmSyndrome';
 export { useCultTactics } from './useCultTactics';
 export { usePhobiaExploitation } from './usePhobiaExploitation';
+
+// AGIS Phase 5 Hooks - Omniscient Command
+export { useAutonomousOperations } from './useAutonomousOperations';
+export { useNetworkWarfare } from './useNetworkWarfare';
+export { useCounterIntelligence } from './useCounterIntelligence';
+export { usePredictiveIntervention } from './usePredictiveIntervention';
+
+// AGIS Phase 6 Hooks - Transcendent Operations
+export { useRealityEngineering } from './useRealityEngineering';
+export type { RealityFramework, BeliefArchitecture, IdentityBlueprint } from './useRealityEngineering';
+export { useTemporalOrchestration } from './useTemporalOrchestration';
+export type { TemporalOrchestration, MomentCapture } from './useTemporalOrchestration';
+export { useQuantumInfluence } from './useQuantumInfluence';
+export type { QuantumState, DimensionalOperation, CollectiveField } from './useQuantumInfluence';
+export { useTranscendentOperations } from './useTranscendentOperations';
+export type { TranscendenceOperation, MetaPattern } from './useTranscendentOperations';
