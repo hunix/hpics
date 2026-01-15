@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -31,9 +31,9 @@ export interface CriticalAlert {
 
 export function usePushNotifications() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [isSupported, setIsSupported] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     setIsSupported('Notification' in window && 'serviceWorker' in navigator);
@@ -42,7 +42,7 @@ export function usePushNotifications() {
     }
   }, []);
 
-  const { data: preferences, isLoading } = useQuery({
+  const { data: preferences, isLoading, refetch } = useQuery({
     queryKey: ['notification-preferences', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -70,42 +70,68 @@ export function usePushNotifications() {
       }
       toast.error('Permission denied');
       return false;
-    } catch (error) {
+    } catch {
       toast.error('Failed to request permission');
       return false;
     }
   }, [isSupported]);
 
-  const updatePreference = useMutation({
-    mutationFn: async (params: { alertType: string; enabled: boolean; threshold?: number; channels?: string[] }) => {
-      if (!user?.id) throw new Error('Not authenticated');
+  const updatePreference = useCallback(async (params: { 
+    alertType: string; 
+    enabled: boolean; 
+    threshold?: number; 
+    channels?: string[] 
+  }) => {
+    if (!user?.id) {
+      toast.error('Not authenticated');
+      return;
+    }
+    
+    setIsUpdating(true);
+    try {
       const { alertType, enabled, threshold, channels } = params;
 
-      const { data: existing } = await supabase
-        .from('notification_preferences')
+      const { data: existing } = await (supabase
+        .from('notification_preferences') as any)
         .select('id')
         .eq('user_id', user.id)
         .eq('alert_type', alertType)
-        .single();
+        .maybeSingle();
 
       if (existing) {
-        const { error } = await supabase
-          .from('notification_preferences')
-          .update({ is_enabled: enabled, threshold_value: threshold, channels, updated_at: new Date().toISOString() })
+        const updateData: Record<string, unknown> = { 
+          is_enabled: enabled, 
+          updated_at: new Date().toISOString() 
+        };
+        if (threshold !== undefined) updateData.threshold_value = threshold;
+        if (channels !== undefined) updateData.channels = channels;
+        
+        await (supabase
+          .from('notification_preferences') as any)
+          .update(updateData)
           .eq('id', existing.id);
-        if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from('notification_preferences')
-          .insert({ user_id: user.id, alert_type: alertType, is_enabled: enabled, threshold_value: threshold || 70, channels: channels || ['in_app'] });
-        if (error) throw error;
+        const insertData: Record<string, unknown> = { 
+          user_id: user.id, 
+          alert_type: alertType, 
+          is_enabled: enabled, 
+          threshold_value: threshold || 70, 
+          channels: channels || ['in_app'] 
+        };
+        
+        await (supabase
+          .from('notification_preferences') as any)
+          .insert(insertData);
       }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notification-preferences'] });
+      
+      await refetch();
       toast.success('Preference updated');
-    },
-  });
+    } catch {
+      toast.error('Failed to update preference');
+    } finally {
+      setIsUpdating(false);
+    }
+  }, [user?.id, refetch]);
 
   const sendNotification = useCallback((alert: CriticalAlert) => {
     if (permission !== 'granted' || !isSupported) return;
@@ -151,8 +177,8 @@ export function usePushNotifications() {
     preferences,
     isLoading,
     requestPermission,
-    updatePreference: updatePreference.mutate,
+    updatePreference,
     sendNotification,
-    isUpdating: updatePreference.isPending,
+    isUpdating,
   };
 }
