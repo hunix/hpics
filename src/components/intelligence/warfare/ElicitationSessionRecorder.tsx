@@ -187,11 +187,11 @@ export function ElicitationSessionRecorder({ profileId }: ElicitationSessionReco
 
           <TabsContent value="history" className="mt-4">
             <ScrollArea className="h-64">
-              {sessions?.filter(s => s.session_status === 'completed').length === 0 ? (
+              {sessions?.filter(s => s.status === 'completed').length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">No completed sessions.</p>
               ) : (
                 <div className="space-y-2">
-                  {sessions?.filter(s => s.session_status === 'completed').map((session) => (
+                  {sessions?.filter(s => s.status === 'completed').map((session) => (
                     <div key={session.id} className="p-3 rounded-lg border hover:bg-muted/30 cursor-pointer" onClick={() => setActiveSessionId(session.id)}>
                       <div className="flex items-center justify-between">
                         <span className="font-medium text-sm">{session.conversation_notes || 'Session'}</span>
