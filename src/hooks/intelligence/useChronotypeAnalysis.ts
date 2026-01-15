@@ -177,16 +177,24 @@ export function useChronotypeAnalysis() {
         throw error;
       }
 
+      const complianceData = data.compliance_windows as any;
+      const optimalContactTimes = (data.optimal_persuasion_times as any) || 
+        data.cognitive_peak_hours?.map((h: number) => ({ purpose: 'general', startHour: h, endHour: h + 2 })) || [];
+      
+      const isOwl = data.chronotype?.includes('owl');
+      const bedtime = isOwl ? '00:00' : '23:00';
+      const wakeTime = isOwl ? '08:00' : '07:00';
+
       const profile: ChronotypeProfile = {
-        profileId: data.profile_id,
+        profileId: data.profile_id || profileId,
         chronotype: data.chronotype as ChronotypeType,
-        confidence: 0.85,
+        confidence: data.morningness_eveningness_score || 0.85,
         cognitivePeaks: data.cognitive_peak_hours?.map((h: number) => ({ type: 'analytical' as const, startHour: h, endHour: h + 2, intensity: 0.8 })) || [],
-        complianceWindows: (data.compliance_windows as any) || [],
+        complianceWindows: complianceData?.primary ? [complianceData.primary] : [],
         energyPattern: [],
-        optimalContactTimes: (data.optimal_contact_windows as any) || [],
-        sleepPattern: { typicalBedtime: data.sleep_midpoint ? `${Math.floor(Number(data.sleep_midpoint) - 4)}:00` : '23:00', typicalWakeTime: data.sleep_midpoint ? `${Math.floor(Number(data.sleep_midpoint) + 4)}:00` : '07:00', sleepQuality: 0.7 },
-        analyzedAt: new Date(data.updated_at)
+        optimalContactTimes,
+        sleepPattern: { typicalBedtime: bedtime, typicalWakeTime: wakeTime, sleepQuality: 0.7 },
+        analyzedAt: new Date(data.updated_at || new Date())
       };
 
       setProfiles(prev => new Map(prev).set(profileId, profile));

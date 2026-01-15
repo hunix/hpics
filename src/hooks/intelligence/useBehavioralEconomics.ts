@@ -246,26 +246,26 @@ export function useBehavioralEconomics() {
       }
 
       const profile: FinancialPsychologyProfile = {
-        profileId: data.profile_id,
-        riskTolerance: (data.risk_profile as any) || 'moderate',
+        profileId: data.profile_id || profileId,
+        riskTolerance: 'moderate',
         lossAversion: data.loss_aversion_score || 2.25,
         biases: {
           endowmentEffect: data.endowment_effect_susceptibility || 0,
-          sunkCostFallacy: data.sunk_cost_susceptibility || 0,
+          sunkCostFallacy: data.sunk_cost_fallacy_susceptibility || 0,
           mentalAccounting: 0.5,
           hyperbolicDiscounting: data.hyperbolic_discounting_rate || 0,
-          statusQuoBias: data.status_quo_bias || 0,
+          statusQuoBias: 0.5,
           anchoringBias: data.anchoring_susceptibility || 0,
           confirmationBias: 0.5,
           availabilityHeuristic: 0.5,
           representativenessHeuristic: 0.5
         },
         decisionPatterns: (data.mental_accounting_patterns as any) || [],
-        spendingProfile: (data.spending_triggers as any) || [],
+        spendingProfile: (data.negotiation_patterns as any) || [],
         negotiationVulnerabilities: [],
         framingStrategies: [],
-        confidence: 0.85,
-        analyzedAt: new Date(data.updated_at)
+        confidence: data.payment_pain_sensitivity || 0.85,
+        analyzedAt: new Date(data.updated_at || new Date())
       };
 
       setProfiles(prev => new Map(prev).set(profileId, profile));

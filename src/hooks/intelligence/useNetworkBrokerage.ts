@@ -221,21 +221,23 @@ export function useNetworkBrokerage() {
         throw error;
       }
 
+      const bridgeOpps = (data.bridge_opportunities as any[]) || [];
+
       const position: NetworkPosition = {
-        profileId: data.profile_id,
+        profileId: data.profile_id || profileId,
         constraint: data.constraint_score || 0,
         efficiency: 0.5,
-        effectiveSize: data.network_efficiency || 0,
+        effectiveSize: data.structural_holes_bridged || 0,
         hierarchy: 0.5,
         betweennessCentrality: data.betweenness_centrality || 0,
         closenessCentrality: 0.5,
         eigenvectorCentrality: 0.5,
         brokerageScores: { coordinator: data.brokerage_score || 0, gatekeeper: 0, representative: 0, consultant: 0, liaison: 0 },
-        structuralHoles: (data.structural_holes as any) || [],
-        opportunities: (data.bridge_opportunities as any) || [],
+        structuralHoles: [],
+        opportunities: bridgeOpps,
         positionAssessment: { role: 'Broker', influence: data.brokerage_score || 0, vulnerability: 0.3, recommendations: [] },
-        tertiusGaudensOpportunities: [],
-        analyzedAt: new Date(data.updated_at)
+        tertiusGaudensOpportunities: (data.tertius_gaudens_positions as any[]) || [],
+        analyzedAt: new Date(data.updated_at || new Date())
       };
 
       setPositions(prev => new Map(prev).set(profileId, position));
