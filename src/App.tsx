@@ -67,6 +67,7 @@ const HardwareCommand = lazyWithRetry(() => import("./pages/HardwareCommand"));
 const Supremacy = lazyWithRetry(() => import("./pages/Supremacy"));
 const SupremacyV2 = lazyWithRetry(() => import("./pages/SupremacyV2Page"));
 const CognitiveWarfare = lazyWithRetry(() => import("./pages/CognitiveWarfarePage"));
+const DominionPage = lazyWithRetry(() => import("./pages/DominionPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -143,6 +144,7 @@ const App = () => (
                         <Route path="/supremacy" element={<Supremacy />} />
                         <Route path="/supremacy-v2" element={<SupremacyV2 />} />
                         <Route path="/cognitive-warfare" element={<CognitiveWarfare />} />
+                        <Route path="/dominion" element={<DominionPage />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                       </Suspense>

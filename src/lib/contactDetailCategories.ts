@@ -4,7 +4,8 @@ import {
   Clock, Sparkles, Mail, Calendar, Eye, Shield, Globe, TrendingUp, Triangle, Search, 
   Activity, GitCompare, Fingerprint, Share2, Package, UserX, ScanText,
   Heart, Gift, Target, Users, GraduationCap, Wallet, Link2, Milestone, 
-  Settings2, StickyNote, BookOpen, DollarSign, Swords, AlertTriangle, Dna, Zap, MessageSquarePlus
+  Settings2, StickyNote, BookOpen, DollarSign, Swords, AlertTriangle, Dna, Zap, MessageSquarePlus,
+  Skull, Syringe, Lock, UserMinus, Layers
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -25,7 +26,9 @@ export type SectionId =
   | 'psychology' | 'deception' | 'keystroke-enrollment'
   | 'agis-attachment' | 'agis-chronotype' | 'agis-negotiation' | 'agis-trajectory' | 'agis-economics' | 'agis-family'
   // AGIS Phase 3 Sections
-  | 'agis-semantic-warfare' | 'agis-mice-recruitment' | 'agis-betrayal-risk' | 'agis-sacred-values' | 'agis-memetic' | 'agis-consensus' | 'agis-elicitation';
+  | 'agis-semantic-warfare' | 'agis-mice-recruitment' | 'agis-betrayal-risk' | 'agis-sacred-values' | 'agis-memetic' | 'agis-consensus' | 'agis-elicitation'
+  // AGIS Phase 4 Sections - Dominion
+  | 'agis-trauma' | 'agis-addiction' | 'agis-coercive' | 'agis-breaking-point' | 'agis-helplessness' | 'agis-identity' | 'agis-stockholm' | 'agis-cult' | 'agis-dependency' | 'agis-fusion';
 
 export type CategoryId = 'profile' | 'intelligence' | 'communication' | 'media' | 'connections';
 
@@ -118,6 +121,17 @@ export const categories: Category[] = [
       { id: 'agis-memetic', label: 'Memetic Profile', icon: Dna, keywords: ['memes', 'virality', 'propagation'] },
       { id: 'agis-consensus', label: 'Consensus Ops', icon: Users, keywords: ['astroturf', 'social proof'] },
       { id: 'agis-elicitation', label: 'Elicitation Intel', icon: MessageSquarePlus, keywords: ['fbi', 'extraction', 'conversation'] },
+      // AGIS Phase 4 Sections - Dominion (Dark Psychology)
+      { id: 'agis-fusion', label: 'Data Fusion Hub', icon: Layers, keywords: ['universal', 'integration', 'cross-domain'] },
+      { id: 'agis-trauma', label: 'Trauma Exploitation', icon: Skull, keywords: ['anniversary', 'loss', 'vulnerability'] },
+      { id: 'agis-addiction', label: 'Addiction Formation', icon: Syringe, keywords: ['reinforcement', 'dopamine', 'dependency'] },
+      { id: 'agis-coercive', label: 'Coercive Control', icon: Lock, keywords: ['isolation', 'monitoring', 'rules'] },
+      { id: 'agis-breaking-point', label: 'Breaking Point', icon: Target, keywords: ['pressure', 'limit', 'collapse'] },
+      { id: 'agis-helplessness', label: 'Learned Helplessness', icon: UserMinus, keywords: ['agency', 'defeat', 'passive'] },
+      { id: 'agis-identity', label: 'Identity Destabilization', icon: Brain, keywords: ['gaslighting', 'reality', 'confusion'] },
+      { id: 'agis-stockholm', label: 'Stockholm Syndrome', icon: Heart, keywords: ['bond', 'captor', 'attachment'] },
+      { id: 'agis-cult', label: 'Cult Tactics', icon: Users, keywords: ['BITE', 'thought control', 'milieu'] },
+      { id: 'agis-dependency', label: 'Dependency Orchestration', icon: Zap, keywords: ['multi-vector', 'exit prevention'] },
     ]
   },
   {
