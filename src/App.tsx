@@ -70,6 +70,7 @@ const CognitiveWarfare = lazyWithRetry(() => import("./pages/CognitiveWarfarePag
 const DominionPage = lazyWithRetry(() => import("./pages/DominionPage"));
 const OmniscientCommandCenter = lazyWithRetry(() => import("./pages/OmniscientCommandCenter"));
 const TranscendentCommandCenter = lazyWithRetry(() => import("./pages/TranscendentCommandCenter"));
+const SingularityCommandCenter = lazyWithRetry(() => import("./pages/SingularityCommandCenter"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -149,6 +150,7 @@ const App = () => (
                         <Route path="/dominion" element={<DominionPage />} />
                         <Route path="/omniscient-command" element={<OmniscientCommandCenter />} />
                         <Route path="/transcendent-command" element={<TranscendentCommandCenter />} />
+                        <Route path="/singularity-command" element={<SingularityCommandCenter />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                       </Suspense>

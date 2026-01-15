@@ -81,3 +81,13 @@ export { useQuantumInfluence } from './useQuantumInfluence';
 export type { QuantumState, DimensionalOperation, CollectiveField } from './useQuantumInfluence';
 export { useTranscendentOperations } from './useTranscendentOperations';
 export type { TranscendenceOperation, MetaPattern } from './useTranscendentOperations';
+
+// AGIS Phase 7 Hooks - Unified Singularity
+export { useMetaLearning } from './useMetaLearning';
+export type { MetaLearningModel } from './useMetaLearning';
+export { useCrossPhaseOperations } from './useCrossPhaseOperations';
+export type { CrossPhaseOperation } from './useCrossPhaseOperations';
+export { useEmergenceDetection } from './useEmergenceDetection';
+export type { EmergencePattern, ConvergenceEvent } from './useEmergenceDetection';
+export { useSingularityCommand } from './useSingularityCommand';
+export type { SingularityObjective, StrategicSynthesis, SystemEvolution } from './useSingularityCommand';
