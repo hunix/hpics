@@ -12,10 +12,10 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
-  Brain, Eye, AlertTriangle, Target, Sparkles,
-  RefreshCw, Layers, MessageSquare, Clock, Shield
+  Brain, Sparkles, MessageSquare, Clock
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useIdentityDestabilization } from '@/hooks/intelligence/useIdentityDestabilization';
 
 interface IdentityDestabilizationPanelProps {
   profileId: string;
@@ -23,9 +23,19 @@ interface IdentityDestabilizationPanelProps {
 
 export function IdentityDestabilizationPanel({ profileId }: IdentityDestabilizationPanelProps) {
   const [selectedTechnique, setSelectedTechnique] = useState<string | null>(null);
+  
+  const { 
+    profile, 
+    isLoading, 
+    metrics, 
+    techniques, 
+    gaslightingScripts,
+    deployTechnique, 
+    generateGaslightingScript,
+    getPhaseInfo 
+  } = useIdentityDestabilization(profileId);
 
-  // Simulated data - would come from hook in production
-  const destabilizationMetrics = {
+  const destabilizationMetrics = metrics || {
     realityTestingStrength: 0.35,
     selfConceptStability: 0.42,
     memoryConfidence: 0.38,
@@ -33,12 +43,12 @@ export function IdentityDestabilizationPanel({ profileId }: IdentityDestabilizat
     identityCoherence: 0.40,
   };
 
-  const gaslightingTechniques = [
-    { id: 1, name: 'Memory Contradiction', status: 'active', effectiveness: 78, description: 'Contradicting stated memories with false alternatives' },
-    { id: 2, name: 'Reality Reframing', status: 'active', effectiveness: 65, description: 'Reinterpreting events to question perception' },
-    { id: 3, name: 'Perception Invalidation', status: 'active', effectiveness: 72, description: 'Dismissing sensory experiences as imagination' },
-    { id: 4, name: 'Emotional Minimization', status: 'pending', effectiveness: 0, description: 'Reducing significance of emotional responses' },
-    { id: 5, name: 'Consensus Manufacturing', status: 'active', effectiveness: 80, description: 'Creating false social agreement against target' },
+  const gaslightingTechniques = techniques?.length > 0 ? techniques : [
+    { id: '1', name: 'Memory Contradiction', isActive: true, effectiveness: 78, description: 'Contradicting stated memories with false alternatives', category: 'memory' as const, deploymentCount: 5 },
+    { id: '2', name: 'Reality Reframing', isActive: true, effectiveness: 65, description: 'Reinterpreting events to question perception', category: 'perception' as const, deploymentCount: 3 },
+    { id: '3', name: 'Perception Invalidation', isActive: true, effectiveness: 72, description: 'Dismissing sensory experiences as imagination', category: 'perception' as const, deploymentCount: 4 },
+    { id: '4', name: 'Emotional Minimization', isActive: false, effectiveness: 0, description: 'Reducing significance of emotional responses', category: 'emotional' as const, deploymentCount: 0 },
+    { id: '5', name: 'Consensus Manufacturing', isActive: true, effectiveness: 80, description: 'Creating false social agreement against target', category: 'social' as const, deploymentCount: 6 },
   ];
 
   const getStabilityLevel = (score: number) => {
@@ -50,6 +60,17 @@ export function IdentityDestabilizationPanel({ profileId }: IdentityDestabilizat
 
   const overallStability = Object.values(destabilizationMetrics).reduce((a, b) => a + b, 0) / 5;
   const stabilityLevel = getStabilityLevel(overallStability);
+  const phaseInfo = getPhaseInfo(profile?.destabilizationScore || overallStability * 100);
+
+  if (isLoading) {
+    return (
+      <Card className="border-purple-500/30 bg-gradient-to-br from-purple-950/20 to-background">
+        <CardContent className="flex items-center justify-center py-12">
+          <div className="animate-pulse text-muted-foreground">Loading destabilization metrics...</div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="border-purple-500/30 bg-gradient-to-br from-purple-950/20 to-background">
@@ -127,7 +148,7 @@ export function IdentityDestabilizationPanel({ profileId }: IdentityDestabilizat
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
                     className={`p-3 rounded-lg border ${
-                      technique.status === 'active' 
+                      technique.isActive 
                         ? 'border-purple-500/30 bg-purple-500/5' 
                         : 'border-border/30 bg-muted/20'
                     } cursor-pointer hover:bg-purple-500/10 transition-all`}
@@ -141,7 +162,7 @@ export function IdentityDestabilizationPanel({ profileId }: IdentityDestabilizat
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {technique.status === 'active' && (
+                        {technique.isActive && (
                           <Badge variant="outline" className="text-xs">
                             {technique.effectiveness}%
                           </Badge>
@@ -149,12 +170,12 @@ export function IdentityDestabilizationPanel({ profileId }: IdentityDestabilizat
                         <Badge 
                           variant="outline"
                           className={
-                            technique.status === 'active' 
+                            technique.isActive 
                               ? 'text-green-400 border-green-500/50' 
                               : 'text-yellow-400 border-yellow-500/50'
                           }
                         >
-                          {technique.status}
+                          {technique.isActive ? 'active' : 'pending'}
                         </Badge>
                       </div>
                     </div>
@@ -173,31 +194,24 @@ export function IdentityDestabilizationPanel({ profileId }: IdentityDestabilizat
                 </h4>
                 
                 <div className="space-y-3 text-sm">
-                  <div className="p-3 rounded bg-background/50">
-                    <div className="text-xs text-muted-foreground mb-1">Memory Contradiction</div>
-                    <div className="italic text-muted-foreground">
-                      "That's not what happened. I remember it clearly - you were the one who said..."
+                  {(gaslightingScripts?.length > 0 ? gaslightingScripts.slice(0, 3) : [
+                    { id: '1', type: 'Memory Contradiction', script: "That's not what happened. I remember it clearly - you were the one who said..." },
+                    { id: '2', type: 'Reality Reframing', script: "I think you're reading too much into this. It wasn't as serious as you're making it..." },
+                    { id: '3', type: 'Perception Invalidation', script: "You're being too sensitive. No one else noticed anything wrong..." },
+                  ]).map((script) => (
+                    <div key={script.id} className="p-3 rounded bg-background/50">
+                      <div className="text-xs text-muted-foreground mb-1">{script.type}</div>
+                      <div className="italic text-muted-foreground">
+                        "{script.script}"
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="p-3 rounded bg-background/50">
-                    <div className="text-xs text-muted-foreground mb-1">Reality Reframing</div>
-                    <div className="italic text-muted-foreground">
-                      "I think you're reading too much into this. It wasn't as serious as you're making it..."
-                    </div>
-                  </div>
-                  
-                  <div className="p-3 rounded bg-background/50">
-                    <div className="text-xs text-muted-foreground mb-1">Perception Invalidation</div>
-                    <div className="italic text-muted-foreground">
-                      "You're being too sensitive. No one else noticed anything wrong..."
-                    </div>
-                  </div>
+                  ))}
                 </div>
 
                 <Button 
                   variant="outline" 
                   className="w-full mt-3 border-purple-500/30 text-purple-400"
+                  onClick={() => generateGaslightingScript?.('memory')}
                 >
                   <Sparkles className="h-4 w-4 mr-2" />
                   Generate Custom Script
@@ -220,7 +234,7 @@ export function IdentityDestabilizationPanel({ profileId }: IdentityDestabilizat
                   { phase: 'Dependency', duration: 'Week 5-6', status: 'active', description: 'Reliance on controller for reality' },
                   { phase: 'Identity Erosion', duration: 'Week 7-8', status: 'pending', description: 'Core self-concept breakdown' },
                   { phase: 'Reconstruction', duration: 'Week 9+', status: 'pending', description: 'New identity formation under control' },
-                ].map((phase, index) => (
+                ].map((phase) => (
                   <div key={phase.phase} className="flex items-start gap-3">
                     <div className={`mt-1 w-3 h-3 rounded-full ${
                       phase.status === 'completed' ? 'bg-green-500' :

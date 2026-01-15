@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Skull, Syringe, Lock, Brain, Target, UserMinus, Heart, Users, Layers, Zap } from 'lucide-react';
+import { Skull, Syringe, Lock, Brain, Target, UserMinus, Heart, Users, Layers, Zap, Ghost } from 'lucide-react';
 
 import { TraumaExploitationPanel } from '@/components/intelligence/dominion/TraumaExploitationPanel';
 import { AddictionFormationPanel } from '@/components/intelligence/dominion/AddictionFormationPanel';
@@ -18,10 +18,12 @@ import { StockholmSyndromeMonitor } from '@/components/intelligence/dominion/Sto
 import { CultTacticsPanel } from '@/components/intelligence/dominion/CultTacticsPanel';
 import { DependencyOrchestratorPanel } from '@/components/intelligence/dominion/DependencyOrchestratorPanel';
 import { UniversalDataFusionHub } from '@/components/intelligence/dominion/UniversalDataFusionHub';
+import { PhobiaExploitationPanel } from '@/components/intelligence/dominion/PhobiaExploitationPanel';
 
 const dominionTabs = [
   { id: 'fusion', label: 'Data Fusion Hub', icon: Layers, description: 'Universal intelligence integration' },
   { id: 'trauma', label: 'Trauma Exploitation', icon: Skull, description: 'Anniversary & loss timing vectors' },
+  { id: 'phobia', label: 'Phobia Exploitation', icon: Ghost, description: 'Fear mapping & activation' },
   { id: 'addiction', label: 'Addiction Formation', icon: Syringe, description: 'Variable-ratio reinforcement protocols' },
   { id: 'coercive', label: 'Coercive Control', icon: Lock, description: '6-category control tactics' },
   { id: 'breaking', label: 'Breaking Point', icon: Target, description: '15 pressure vector analysis' },
@@ -88,6 +90,10 @@ export default function DominionPage() {
 
           <TabsContent value="trauma" className="mt-0">
             <TraumaExploitationPanel profileId={testProfileId} />
+          </TabsContent>
+
+          <TabsContent value="phobia" className="mt-0">
+            <PhobiaExploitationPanel profileId={testProfileId} />
           </TabsContent>
 
           <TabsContent value="addiction" className="mt-0">

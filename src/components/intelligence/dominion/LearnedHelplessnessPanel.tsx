@@ -11,30 +11,38 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
-  Ban, TrendingDown, AlertCircle, Shield, Target,
-  Brain, Activity, Clock, ChevronRight, Zap
+  Ban, AlertCircle, Shield, Target,
+  Brain, Activity, Zap
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useDependencyTracking } from '@/hooks/intelligence/useDependencyTracking';
+import { useLearnedHelplessness } from '@/hooks/intelligence/useLearnedHelplessness';
 
 interface LearnedHelplessnessPanelProps {
   profileId: string;
 }
 
 export function LearnedHelplessnessPanel({ profileId }: LearnedHelplessnessPanelProps) {
-  const { dependency, isLoading } = useDependencyTracking(profileId);
-  
-  const helplessnessScore = dependency?.emotionalDependency || 0;
+  const { 
+    profile,
+    isLoading, 
+    helplessnessScore, 
+    indicators, 
+    activeTechniques,
+    escapeAttempts,
+    deployCountermeasure,
+    getPhaseInfo 
+  } = useLearnedHelplessness(profileId);
 
-  const getPhaseInfo = (score: number) => {
-    if (score >= 80) return { phase: 'Complete Helplessness', color: 'text-red-500', description: 'Full learned helplessness achieved' };
-    if (score >= 60) return { phase: 'Resignation', color: 'text-orange-500', description: 'Minimal resistance to control' };
-    if (score >= 40) return { phase: 'Passive Acceptance', color: 'text-yellow-500', description: 'Reduced initiative observed' };
-    if (score >= 20) return { phase: 'Initial Conditioning', color: 'text-blue-500', description: 'Beginning helplessness induction' };
-    return { phase: 'Pre-Conditioning', color: 'text-green-500', description: 'Target shows agency' };
+  const phaseInfo = getPhaseInfo(helplessnessScore);
+
+  const displayIndicators = indicators || {
+    initiativeSuppression: 75,
+    decisionParalysis: 68,
+    externalLocus: 82,
+    passiveCompliance: 70,
+    escapeAttemptFrequency: 25,
+    escapeSuccessRate: 0,
   };
-
-  const phaseInfo = getPhaseInfo(helplessnessScore * 100);
 
   if (isLoading) {
     return (
@@ -55,7 +63,7 @@ export function LearnedHelplessnessPanel({ profileId }: LearnedHelplessnessPanel
             Learned Helplessness Induction
           </CardTitle>
           <Badge variant="outline" className={`${phaseInfo.color} border-current`}>
-            {phaseInfo.phase}
+            {phaseInfo.phase.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
           </Badge>
         </div>
       </CardHeader>
@@ -68,25 +76,25 @@ export function LearnedHelplessnessPanel({ profileId }: LearnedHelplessnessPanel
               <div className="text-sm font-medium">Helplessness Index</div>
               <div className="text-xs text-muted-foreground">{phaseInfo.description}</div>
             </div>
-            <div className="text-2xl font-bold">{Math.round(helplessnessScore * 100)}%</div>
+            <div className="text-2xl font-bold">{Math.round(helplessnessScore)}%</div>
           </div>
-          <Progress value={helplessnessScore * 100} className="h-2" />
+          <Progress value={helplessnessScore} className="h-2" />
         </div>
 
         {/* Key Indicators */}
         <div className="grid grid-cols-2 gap-3">
           {[
-            { label: 'Initiative Suppression', value: 75, icon: Ban },
-            { label: 'Decision Paralysis', value: 68, icon: Brain },
-            { label: 'External Locus', value: 82, icon: Target },
-            { label: 'Escape Abandonment', value: 70, icon: Shield },
+            { label: 'Initiative Suppression', value: displayIndicators.initiativeSuppression, icon: Ban },
+            { label: 'Decision Paralysis', value: displayIndicators.decisionParalysis, icon: Brain },
+            { label: 'External Locus', value: displayIndicators.externalLocus, icon: Target },
+            { label: 'Passive Compliance', value: displayIndicators.passiveCompliance, icon: Shield },
           ].map((indicator) => (
             <div key={indicator.label} className="p-3 rounded-lg bg-muted/30 border border-border/30">
               <div className="flex items-center gap-2 mb-2">
                 <indicator.icon className="h-4 w-4 text-muted-foreground" />
                 <span className="text-xs">{indicator.label}</span>
               </div>
-              <div className="text-lg font-bold">{indicator.value}%</div>
+              <div className="text-lg font-bold">{Math.round(indicator.value)}%</div>
               <Progress value={indicator.value} className="h-1 mt-1" />
             </div>
           ))}
@@ -101,16 +109,9 @@ export function LearnedHelplessnessPanel({ profileId }: LearnedHelplessnessPanel
           
           <ScrollArea className="h-[200px]">
             <div className="space-y-2">
-              {[
-                { technique: 'No-Win Scenario Creation', status: 'active', effectiveness: 78 },
-                { technique: 'Arbitrary Rule Enforcement', status: 'active', effectiveness: 65 },
-                { technique: 'Effort Futility Demonstration', status: 'pending', effectiveness: 0 },
-                { technique: 'Success Attribution Redirection', status: 'active', effectiveness: 72 },
-                { technique: 'Control Perception Erosion', status: 'active', effectiveness: 80 },
-                { technique: 'Predictability Elimination', status: 'pending', effectiveness: 0 },
-              ].map((technique, index) => (
+              {activeTechniques.map((technique, index) => (
                 <motion.div
-                  key={technique.technique}
+                  key={technique.id}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
@@ -118,13 +119,13 @@ export function LearnedHelplessnessPanel({ profileId }: LearnedHelplessnessPanel
                 >
                   <div className="flex items-center gap-2">
                     <div className={`w-2 h-2 rounded-full ${
-                      technique.status === 'active' ? 'bg-green-500' : 'bg-yellow-500'
+                      technique.isActive ? 'bg-green-500' : 'bg-yellow-500'
                     }`} />
-                    <span className="text-sm">{technique.technique}</span>
+                    <span className="text-sm">{technique.name}</span>
                   </div>
-                  {technique.status === 'active' ? (
+                  {technique.isActive ? (
                     <Badge variant="outline" className="text-xs">
-                      {technique.effectiveness}% effective
+                      {Math.round(technique.effectiveness)}% effective
                     </Badge>
                   ) : (
                     <Badge variant="outline" className="text-yellow-400 border-yellow-500/50 text-xs">
@@ -147,15 +148,19 @@ export function LearnedHelplessnessPanel({ profileId }: LearnedHelplessnessPanel
           <div className="space-y-2 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Recent Attempts</span>
-              <span className="font-medium">3 in past 30 days</span>
+              <span className="font-medium">{escapeAttempts.length} in past 30 days</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Success Rate</span>
-              <span className="font-medium text-green-400">0% (all blocked)</span>
+              <span className="font-medium text-green-400">
+                {Math.round(displayIndicators.escapeSuccessRate)}% (blocked)
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Attempt Frequency</span>
-              <span className="font-medium text-green-400">Decreasing ↓</span>
+              <span className="font-medium text-green-400">
+                {displayIndicators.escapeAttemptFrequency < 30 ? 'Decreasing ↓' : 'Stable →'}
+              </span>
             </div>
           </div>
 
@@ -163,6 +168,7 @@ export function LearnedHelplessnessPanel({ profileId }: LearnedHelplessnessPanel
             variant="outline" 
             size="sm" 
             className="w-full mt-3 border-red-500/30 text-red-400"
+            onClick={() => deployCountermeasure?.('standard-suppression')}
           >
             <Zap className="h-3 w-3 mr-2" />
             Deploy Counter-Measure

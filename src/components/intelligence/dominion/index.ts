@@ -10,3 +10,4 @@ export { StockholmSyndromeMonitor } from './StockholmSyndromeMonitor';
 export { CultTacticsPanel } from './CultTacticsPanel';
 export { DependencyOrchestratorPanel } from './DependencyOrchestratorPanel';
 export { UniversalDataFusionHub } from './UniversalDataFusionHub';
+export { PhobiaExploitationPanel } from './PhobiaExploitationPanel';
