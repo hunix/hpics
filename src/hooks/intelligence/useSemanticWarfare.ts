@@ -4,7 +4,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import type { FramingStrategy } from '@/lib/warfare/semanticWarfareEngine';
 import type { Tables } from '@/integrations/supabase/types';
 
 type SemanticOperationRecord = Tables<'semantic_operations'>;
@@ -26,7 +25,7 @@ export function useSemanticWarfare() {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as SemanticOperationRecord[];
+      return data;
     },
     enabled: !!user?.id,
   });
@@ -59,10 +58,11 @@ export function useSemanticWarfare() {
   // Create a new semantic operation
   const createOperationMutation = useMutation({
     mutationFn: async (params: {
+      operationName: string;
       targetTerm: string;
       currentDefinition: string;
       targetDefinition: string;
-      strategies?: FramingStrategy[];
+      framingStrategy?: string;
     }) => {
       if (!user?.id) throw new Error('Not authenticated');
       
@@ -70,13 +70,14 @@ export function useSemanticWarfare() {
         .from('semantic_operations')
         .insert({
           user_id: user.id,
+          operation_name: params.operationName,
           target_term: params.targetTerm,
           current_definition: params.currentDefinition,
           target_definition: params.targetDefinition,
+          framing_strategy: params.framingStrategy || 'reframe',
           overton_position: 0,
           shift_progress: 0,
           status: 'planning',
-          strategies: params.strategies || [],
         })
         .select()
         .single();

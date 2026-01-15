@@ -9,14 +9,7 @@ import {
   generateManipulationVectors,
   calculateMoralFoundations,
   MORAL_FOUNDATIONS,
-  type SacredValue,
-  type SacredValuesProfile,
-  type MoralFoundationScores,
 } from '@/lib/warfare/sacredValuesMapper';
-
-import type { Tables } from '@/integrations/supabase/types';
-
-type SacredValuesRecord = Tables<'sacred_values'>;
 
 export function useSacredValues(profileId?: string) {
   const { user } = useAuth();
@@ -36,7 +29,7 @@ export function useSacredValues(profileId?: string) {
         .order('protection_level', { ascending: false });
       
       if (error) throw error;
-      return data as SacredValuesRecord[];
+      return data;
     },
     enabled: !!user?.id && !!profileId,
   });
@@ -96,24 +89,25 @@ export function useSacredValues(profileId?: string) {
     mutationFn: async (params: {
       profileId: string;
       domain: string;
-      description: string;
       protectionLevel: number;
-      triggerPhrases?: string[];
+      violationTriggers?: string[];
     }) => {
       if (!user?.id) throw new Error('Not authenticated');
       
+      const insertData = {
+        user_id: user.id,
+        profile_id: params.profileId,
+        value_domain: params.domain,
+        protection_level: params.protectionLevel,
+        tribal_associations: [],
+        violation_triggers: params.violationTriggers || [],
+        emotional_intensity: params.protectionLevel,
+        identity_centrality: params.protectionLevel * 0.8,
+      };
+      
       const { data, error } = await supabase
         .from('sacred_values')
-        .insert({
-          user_id: user.id,
-          profile_id: params.profileId,
-          value_domain: params.domain,
-          value_description: params.description,
-          protection_level: params.protectionLevel,
-          trigger_phrases: params.triggerPhrases || [],
-          tribal_associations: [],
-          exploitation_risk: params.protectionLevel > 0.8 ? 'high' : params.protectionLevel > 0.5 ? 'medium' : 'low',
-        })
+        .insert(insertData as never)
         .select()
         .single();
       
@@ -135,7 +129,7 @@ export function useSacredValues(profileId?: string) {
     if (!acc[domain]) acc[domain] = [];
     acc[domain].push(value);
     return acc;
-  }, {} as Record<string, SacredValuesRecord[]>);
+  }, {} as Record<string, typeof valuesQuery.data>);
 
   // Get highest protection values
   const criticalValues = (valuesQuery.data || [])

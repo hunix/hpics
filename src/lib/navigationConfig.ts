@@ -3,7 +3,7 @@ import {
   Upload, Settings, Network, CalendarDays, Video, Scan, BarChart3, FileBarChart, 
   UsersRound, Download, Shield, Waypoints, Sparkles, ShieldAlert, Activity, 
   Layers, Cpu, DollarSign, Home, Briefcase, Eye, AlertTriangle, Lock,
-  Zap, Compass, Smartphone, Crown,
+  Zap, Compass, Smartphone, Crown, Swords,
   type LucideIcon
 } from 'lucide-react';
 import type { AppRole, ClearanceLevel } from '@/hooks/useClearance';
@@ -176,6 +176,17 @@ export const navigationItems: NavItem[] = [
     category: 'intelligence',
     requiredRole: 'analyst',
     keywords: ['supremacy', 'agis', 'phase 2', 'tactical', 'negotiation', 'attachment', 'chronotype'],
+  },
+  {
+    id: 'cognitive-warfare',
+    title: 'Cognitive Warfare',
+    url: '/cognitive-warfare',
+    icon: Swords,
+    badge: 'new',
+    description: 'AGIS Phase 3 - Semantic warfare, memetics, MICE analysis',
+    category: 'intelligence',
+    requiredRole: 'analyst',
+    keywords: ['cognitive', 'warfare', 'agis', 'phase 3', 'memetic', 'mice', 'semantic', 'betrayal', 'sacred'],
   },
   
   // Relationships

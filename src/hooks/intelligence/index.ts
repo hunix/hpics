@@ -1,9 +1,9 @@
 /**
  * Intelligence Hooks Index
- * AGIS Phase 2 - Absolute Superiority Enhancement Suite
+ * AGIS Phase 2 & 3 - Absolute Superiority & Dominion Enhancement Suite
  */
 
-// Core Intelligence Hooks
+// Core Intelligence Hooks (Phase 2)
 export { useTacticalNegotiation } from './useTacticalNegotiation';
 export type { NegotiationTactic, NegotiationStrategy, NegotiationSession } from './useTacticalNegotiation';
 
@@ -22,7 +22,6 @@ export type { LifeEvent, CrisisWarning, VulnerabilityWindow, LifeTrajectoryPredi
 export { useNetworkBrokerage } from './useNetworkBrokerage';
 export type { StructuralHole, BrokerageOpportunity, NetworkPosition } from './useNetworkBrokerage';
 
-// New AGIS Phase 2 Hooks
 export { useMemoryReconsolidation } from './useMemoryReconsolidation';
 export type { MemoryIntervention } from './useMemoryReconsolidation';
 
@@ -34,3 +33,11 @@ export type { FamilyRole, FamilySystemAnalysis } from './useFamilySystems';
 
 export { useMissionControl } from './useMissionControl';
 export type { ActiveOperation } from './useMissionControl';
+
+// AGIS Phase 3 Hooks - Cognitive Warfare & Absolute Dominion
+export { useSemanticWarfare } from './useSemanticWarfare';
+export { useMemeticEngineering } from './useMemeticEngineering';
+export { useMICEAnalysis } from './useMICEAnalysis';
+export { useBetrayalPrediction } from './useBetrayalPrediction';
+export { useSacredValues } from './useSacredValues';
+export { useSyntheticConsensus } from './useSyntheticConsensus';
