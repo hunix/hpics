@@ -4,7 +4,7 @@ import {
   Clock, Sparkles, Mail, Calendar, Eye, Shield, Globe, TrendingUp, Triangle, Search, 
   Activity, GitCompare, Fingerprint, Share2, Package, UserX, ScanText,
   Heart, Gift, Target, Users, GraduationCap, Wallet, Link2, Milestone, 
-  Settings2, StickyNote, BookOpen
+  Settings2, StickyNote, BookOpen, DollarSign
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -22,7 +22,8 @@ export type SectionId =
   | 'team-notes'
   | 'detected-items' | 'unknown-persons' | 'doc-intelligence'
   | 'voice-insights' | 'document-insights' | 'content-relationships' | 'keyword-watchlist'
-  | 'psychology' | 'deception' | 'keystroke-enrollment';
+  | 'psychology' | 'deception' | 'keystroke-enrollment'
+  | 'agis-attachment' | 'agis-chronotype' | 'agis-negotiation' | 'agis-trajectory' | 'agis-economics' | 'agis-family';
 
 export type CategoryId = 'profile' | 'intelligence' | 'communication' | 'media' | 'connections';
 
@@ -100,6 +101,13 @@ export const categories: Category[] = [
       { id: 'psychology', label: 'Dark Psychology', icon: Brain, keywords: ['dark triad', 'manipulation', 'influence'] },
       { id: 'deception', label: 'Deception Detection', icon: Eye, keywords: ['lie', 'stress', 'micro-expression'] },
       { id: 'keystroke-enrollment', label: 'Keystroke Biometric', icon: Fingerprint, keywords: ['typing', 'dynamics'] },
+      // AGIS Phase 2 Sections
+      { id: 'agis-attachment', label: 'Attachment Style', icon: Heart, keywords: ['attachment', 'vulnerability', 'bonding'] },
+      { id: 'agis-chronotype', label: 'Chronotype', icon: Clock, keywords: ['timing', 'circadian', 'optimal'] },
+      { id: 'agis-negotiation', label: 'Negotiation Intel', icon: Target, keywords: ['tactics', 'strategy', 'fbi'] },
+      { id: 'agis-trajectory', label: 'Life Trajectory', icon: TrendingUp, keywords: ['forecast', 'prediction', 'future'] },
+      { id: 'agis-economics', label: 'Economic Psychology', icon: DollarSign, keywords: ['biases', 'anchoring', 'scarcity'] },
+      { id: 'agis-family', label: 'Family Systems', icon: Users, keywords: ['dynamics', 'roles', 'triangulation'] },
     ]
   },
   {

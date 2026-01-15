@@ -31,3 +31,6 @@ export type { NudgeTechnique, ChoiceArchitectureResult, NudgeCampaign } from './
 
 export { useFamilySystems } from './useFamilySystems';
 export type { FamilyRole, FamilySystemAnalysis } from './useFamilySystems';
+
+export { useMissionControl } from './useMissionControl';
+export type { ActiveOperation } from './useMissionControl';
