@@ -256,6 +256,17 @@ export const navigationItems: NavItem[] = [
     keywords: ['infinite', 'dominion', 'agis', 'phase 9', 'awareness', 'control', 'mastery', 'transcendent'],
   },
   {
+    id: 'ultimate-transcendence',
+    title: 'Ultimate Transcendence',
+    url: '/ultimate-transcendence',
+    icon: Atom,
+    badge: 'new',
+    description: 'AGIS Phase 10 - Universal omniscience, reality manipulation, absolute supremacy',
+    category: 'intelligence',
+    requiredRole: 'analyst',
+    keywords: ['ultimate', 'transcendence', 'agis', 'phase 10', 'omniscience', 'reality', 'supremacy', 'cosmic'],
+  },
+  {
     id: 'cross-modal-intelligence',
     title: 'Cross-Modal Analysis',
     url: '/cross-modal-intelligence',

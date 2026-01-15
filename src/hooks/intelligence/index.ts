@@ -103,3 +103,9 @@ export { useInfiniteAwareness } from './useInfiniteAwareness';
 export { useTranscendentSynthesis } from './useTranscendentSynthesis';
 export { useDimensionalInfluence } from './useDimensionalInfluence';
 export { useInfiniteDominion } from './useInfiniteDominion';
+
+// AGIS Phase 10 Hooks - Ultimate Transcendence
+export { useUniversalOmniscience } from './useUniversalOmniscience';
+export { useRealityManipulation } from './useRealityManipulation';
+export { useAbsoluteSupremacy } from './useAbsoluteSupremacy';
+export { useUltimateTranscendence } from './useUltimateTranscendence';
