@@ -65,6 +65,7 @@ const DeceptionAnalysis = lazyWithRetry(() => import("./pages/DeceptionAnalysis"
 const BiometricHub = lazyWithRetry(() => import("./pages/BiometricHub"));
 const HardwareCommand = lazyWithRetry(() => import("./pages/HardwareCommand"));
 const Supremacy = lazyWithRetry(() => import("./pages/Supremacy"));
+const SupremacyV2 = lazyWithRetry(() => import("./pages/SupremacyV2Page"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -139,6 +140,7 @@ const App = () => (
                         <Route path="/biometric-hub" element={<BiometricHub />} />
                         <Route path="/hardware-command" element={<HardwareCommand />} />
                         <Route path="/supremacy" element={<Supremacy />} />
+                        <Route path="/supremacy-v2" element={<SupremacyV2 />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                       </Suspense>
