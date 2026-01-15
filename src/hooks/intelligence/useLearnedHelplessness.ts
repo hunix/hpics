@@ -69,7 +69,7 @@ export function useLearnedHelplessness(profileId?: string) {
         .select('*')
         .eq('profile_id', profileId)
         .eq('user_id', user.id)
-        .maybeSingle() as Promise<{ data: Record<string, unknown> | null; error: unknown }>);
+        .maybeSingle() as unknown as Promise<{ data: Record<string, unknown> | null; error: unknown }>);
 
       if (!dependency) return null;
 
