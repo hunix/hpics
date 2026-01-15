@@ -199,6 +199,17 @@ export const navigationItems: NavItem[] = [
     requiredRole: 'analyst',
     keywords: ['dominion', 'agis', 'phase 4', 'dark', 'psychology', 'trauma', 'addiction', 'coercive', 'control'],
   },
+  {
+    id: 'omniscient-command',
+    title: 'Omniscient Command',
+    url: '/omniscient-command',
+    icon: Eye,
+    badge: 'new',
+    description: 'AGIS Phase 5 - Autonomous ops, network warfare, counter-intel',
+    category: 'intelligence',
+    requiredRole: 'analyst',
+    keywords: ['omniscient', 'agis', 'phase 5', 'autonomous', 'network', 'warfare', 'counter', 'intelligence', 'predictive'],
+  },
   
   // Relationships
   {
