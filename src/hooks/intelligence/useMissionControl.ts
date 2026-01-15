@@ -141,23 +141,6 @@ export function useMissionControl(profileId?: string) {
     fetchOperations();
   }, [fetchOperations]);
 
-  const mapStatus = (status: string | null): ActiveOperation['status'] => {
-    switch (status?.toLowerCase()) {
-      case 'active':
-      case 'in_progress':
-        return 'active';
-      case 'paused':
-        return 'paused';
-      case 'pending':
-      case 'planned':
-        return 'pending';
-      case 'completed':
-      case 'done':
-        return 'completed';
-      default:
-        return 'pending';
-    }
-  };
 
   const pauseOperation = async (id: string, type: ActiveOperation['type']): Promise<boolean> => {
     try {
