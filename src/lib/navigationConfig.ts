@@ -4,7 +4,7 @@ import {
   UsersRound, Download, Shield, Waypoints, Sparkles, ShieldAlert, Activity, 
   Layers, Cpu, DollarSign, Home, Briefcase, Eye, AlertTriangle, Lock,
   Zap, Compass, Smartphone, Crown, Swords, Orbit, TrendingUp, Search, 
-  GitBranch, Lightbulb, Target, LayoutGrid, Fingerprint,
+  GitBranch, Lightbulb, Target, LayoutGrid, Fingerprint, CircleDot, Atom,
   type LucideIcon
 } from 'lucide-react';
 import type { AppRole, ClearanceLevel } from '@/hooks/useClearance';
@@ -248,7 +248,7 @@ export const navigationItems: NavItem[] = [
     id: 'infinite-dominion',
     title: 'Infinite Dominion',
     url: '/infinite-dominion',
-    icon: Infinity,
+    icon: CircleDot,
     badge: 'new',
     description: 'AGIS Phase 9 - Infinite awareness, omnipresent control, ultimate mastery',
     category: 'intelligence',
