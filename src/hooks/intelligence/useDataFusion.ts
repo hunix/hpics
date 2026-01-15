@@ -86,6 +86,18 @@ export function useDataFusion(profileId?: string) {
       }
 
       // Fetch actual data counts from multiple tables in parallel
+      const results = await Promise.all([
+        supabase.from('voice_signatures').select('*', { count: 'exact', head: true }).eq('profile_id', profileId) as unknown as Promise<{ count: number | null }>,
+        supabase.from('media').select('*', { count: 'exact', head: true }).eq('profile_id', profileId) as unknown as Promise<{ count: number | null }>,
+        supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('profile_id', profileId) as unknown as Promise<{ count: number | null }>,
+        supabase.from('psychology_assessments').select('*', { count: 'exact', head: true }).eq('profile_id', profileId) as unknown as Promise<{ count: number | null }>,
+        supabase.from('mice_assessments').select('*', { count: 'exact', head: true }).eq('profile_id', profileId) as unknown as Promise<{ count: number | null }>,
+        supabase.from('betrayal_predictions').select('*', { count: 'exact', head: true }).eq('profile_id', profileId) as unknown as Promise<{ count: number | null }>,
+        supabase.from('behavioral_predictions').select('*', { count: 'exact', head: true }).eq('profile_id', profileId) as unknown as Promise<{ count: number | null }>,
+        supabase.from('contact_relationships').select('*', { count: 'exact', head: true }).eq('from_profile_id', profileId) as unknown as Promise<{ count: number | null }>,
+        supabase.from('cross_domain_correlations').select('*').eq('profile_id', profileId).eq('user_id', user.id).limit(50) as unknown as Promise<{ data: Record<string, unknown>[] | null }>,
+      ]);
+
       const [
         { count: voiceCount },
         { count: mediaCount },
@@ -96,17 +108,17 @@ export function useDataFusion(profileId?: string) {
         { count: locationCount },
         { count: relationshipCount },
         { data: correlations },
-      ] = await Promise.all([
-        supabase.from('voice_signatures').select('*', { count: 'exact', head: true }).eq('profile_id', profileId),
-        supabase.from('media').select('*', { count: 'exact', head: true }).eq('profile_id', profileId),
-        supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('profile_id', profileId),
-        supabase.from('psychology_assessments').select('*', { count: 'exact', head: true }).eq('profile_id', profileId),
-        supabase.from('mice_assessments').select('*', { count: 'exact', head: true }).eq('profile_id', profileId),
-        supabase.from('betrayal_predictions').select('*', { count: 'exact', head: true }).eq('profile_id', profileId),
-        supabase.from('location_history').select('*', { count: 'exact', head: true }).eq('profile_id', profileId),
-        supabase.from('contact_relationships').select('*', { count: 'exact', head: true }).eq('profile_id', profileId),
-        supabase.from('cross_domain_correlations').select('*').eq('profile_id', profileId).eq('user_id', user.id).limit(50),
-      ]);
+      ] = results as [
+        { count: number | null },
+        { count: number | null },
+        { count: number | null },
+        { count: number | null },
+        { count: number | null },
+        { count: number | null },
+        { count: number | null },
+        { count: number | null },
+        { data: Record<string, unknown>[] | null },
+      ];
 
       // Build data sources with actual counts
       const dataSources: DataSource[] = DEFAULT_DATA_SOURCES.map(source => {
