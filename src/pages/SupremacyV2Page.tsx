@@ -4,6 +4,7 @@
  */
 
 import { useSearchParams } from 'react-router-dom';
+import { AppLayout } from '@/components/AppLayout';
 import { SupremacyDashboardV2 } from '@/components/intelligence/SupremacyDashboardV2';
 
 export default function SupremacyV2Page() {
@@ -11,8 +12,8 @@ export default function SupremacyV2Page() {
   const profileId = searchParams.get('profile') || undefined;
 
   return (
-    <div className="container mx-auto p-6">
+    <AppLayout title="Supremacy Command">
       <SupremacyDashboardV2 profileId={profileId} />
-    </div>
+    </AppLayout>
   );
 }
