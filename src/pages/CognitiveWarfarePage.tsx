@@ -10,7 +10,10 @@ import {
   Heart, 
   Sparkles,
   Shield,
-  Brain
+  Brain,
+  MessageSquarePlus,
+  Target,
+  Bell
 } from 'lucide-react';
 import {
   SemanticWarfarePanel,
@@ -19,7 +22,10 @@ import {
   SacredValuesPanel,
   MemeticEngineeringPanel,
   SyntheticConsensusPanel,
+  ElicitationPanel,
 } from '@/components/intelligence/warfare';
+import { CognitiveWarfareAlerts } from '@/components/intelligence/CognitiveWarfareAlerts';
+import { MissionControlCognitiveWarfare } from '@/components/intelligence/MissionControlCognitiveWarfare';
 
 export default function CognitiveWarfarePage() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -73,6 +79,30 @@ export default function CognitiveWarfarePage() {
       bgColor: 'bg-blue-500/20',
       description: 'Manufactured agreement campaigns',
     },
+    {
+      id: 'elicitation',
+      name: 'Elicitation',
+      icon: MessageSquarePlus,
+      color: 'text-emerald-400',
+      bgColor: 'bg-emerald-500/20',
+      description: 'FBI conversational extraction',
+    },
+    {
+      id: 'mission',
+      name: 'Mission Control',
+      icon: Target,
+      color: 'text-orange-400',
+      bgColor: 'bg-orange-500/20',
+      description: 'Unified campaign command',
+    },
+    {
+      id: 'alerts',
+      name: 'Intel Alerts',
+      icon: Bell,
+      color: 'text-cyan-400',
+      bgColor: 'bg-cyan-500/20',
+      description: 'Real-time threat monitoring',
+    },
   ];
 
   return (
@@ -92,13 +122,13 @@ export default function CognitiveWarfarePage() {
         </div>
         <Badge variant="outline" className="border-violet-500/50 px-3 py-1">
           <Brain className="h-4 w-4 mr-2" />
-          6 Active Modules
+          9 Active Modules
         </Badge>
       </div>
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7 h-auto p-1">
+        <TabsList className="grid w-full grid-cols-5 lg:grid-cols-10 h-auto p-1">
           <TabsTrigger value="overview" className="py-2">Overview</TabsTrigger>
           {modules.map((module) => (
             <TabsTrigger key={module.id} value={module.id} className="py-2">
@@ -188,6 +218,18 @@ export default function CognitiveWarfarePage() {
 
         <TabsContent value="consensus">
           <SyntheticConsensusPanel />
+        </TabsContent>
+
+        <TabsContent value="elicitation">
+          <ElicitationPanel />
+        </TabsContent>
+
+        <TabsContent value="mission">
+          <MissionControlCognitiveWarfare />
+        </TabsContent>
+
+        <TabsContent value="alerts">
+          <CognitiveWarfareAlerts />
         </TabsContent>
       </Tabs>
     </div>

@@ -4,3 +4,4 @@ export { BetrayalRiskPanel } from './BetrayalRiskPanel';
 export { SacredValuesPanel } from './SacredValuesPanel';
 export { MemeticEngineeringPanel } from './MemeticEngineeringPanel';
 export { SyntheticConsensusPanel } from './SyntheticConsensusPanel';
+export { ElicitationPanel } from './ElicitationPanel';
