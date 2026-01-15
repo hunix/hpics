@@ -41,3 +41,13 @@ export { useMICEAnalysis } from './useMICEAnalysis';
 export { useBetrayalPrediction } from './useBetrayalPrediction';
 export { useSacredValues } from './useSacredValues';
 export { useSyntheticConsensus } from './useSyntheticConsensus';
+
+// AGIS Enhancement Suite Hooks
+export { useElicitationSession } from './useElicitationSession';
+export type { TranscriptEntry, ElicitationSession } from './useElicitationSession';
+export { useCampaignOrchestrator } from './useCampaignOrchestrator';
+export type { CampaignChain, ChainTrigger, ChainAction } from './useCampaignOrchestrator';
+export { useIntelligenceHistory } from './useIntelligenceHistory';
+export type { IntelligenceSnapshot, MetricTrend } from './useIntelligenceHistory';
+export { usePushNotifications } from './usePushNotifications';
+export type { NotificationPreference, CriticalAlert } from './usePushNotifications';
