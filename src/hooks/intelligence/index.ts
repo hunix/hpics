@@ -1,0 +1,23 @@
+/**
+ * Intelligence Hooks Index
+ * AGIS Phase 2 - Absolute Superiority Enhancement Suite
+ */
+
+// Core Intelligence Hooks
+export { useTacticalNegotiation } from './useTacticalNegotiation';
+export type { NegotiationTactic, NegotiationStrategy, NegotiationSession } from './useTacticalNegotiation';
+
+export { useAttachmentAnalysis } from './useAttachmentAnalysis';
+export type { AttachmentStyle, AttachmentProfile } from './useAttachmentAnalysis';
+
+export { useChronotypeAnalysis } from './useChronotypeAnalysis';
+export type { ChronotypeType, ChronotypeProfile } from './useChronotypeAnalysis';
+
+export { useBehavioralEconomics } from './useBehavioralEconomics';
+export type { CognitiveBias, FinancialPsychologyProfile, AnchorRecommendation } from './useBehavioralEconomics';
+
+export { useLifeTrajectory } from './useLifeTrajectory';
+export type { LifeEvent, CrisisWarning, VulnerabilityWindow, LifeTrajectoryPrediction } from './useLifeTrajectory';
+
+export { useNetworkBrokerage } from './useNetworkBrokerage';
+export type { StructuralHole, BrokerageOpportunity, NetworkPosition } from './useNetworkBrokerage';
