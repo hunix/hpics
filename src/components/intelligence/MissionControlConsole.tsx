@@ -3,7 +3,7 @@
  * Unified tactical operations center for AGIS Phase 2 campaigns
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,15 +14,12 @@ import {
   Play, 
   Pause, 
   CheckCircle2, 
-  AlertTriangle,
   Target,
   Brain,
-  Users,
   Clock,
   Zap,
   Activity,
   LayoutGrid,
-  TrendingUp,
   RefreshCw
 } from 'lucide-react';
 import { useMissionControl, type ActiveOperation } from '@/hooks/intelligence/useMissionControl';

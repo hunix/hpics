@@ -162,7 +162,7 @@ export function SupremacyDashboardV2({ profileId }: SupremacyDashboardV2Props) {
   );
 }
 
-function OverviewPanel({ profileId }: { profileId?: string }) {
+function OverviewPanel(_props: { profileId?: string }) {
   const stats = [
     { label: 'Active Analyses', value: '24', change: '+3', icon: Brain },
     { label: 'Vulnerability Windows', value: '7', change: 'Active', icon: Shield },
