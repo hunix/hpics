@@ -8232,6 +8232,54 @@ export type Database = {
         }
         Relationships: []
       }
+      cosmic_orchestration: {
+        Row: {
+          cascade_effects: Json | null
+          coherence_score: number | null
+          created_at: string | null
+          harmony_metrics: Json | null
+          id: string
+          orchestration_complexity: number | null
+          orchestration_name: string
+          orchestration_scope: string
+          orchestration_status: string | null
+          participant_matrix: Json | null
+          synchronization_protocols: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          cascade_effects?: Json | null
+          coherence_score?: number | null
+          created_at?: string | null
+          harmony_metrics?: Json | null
+          id?: string
+          orchestration_complexity?: number | null
+          orchestration_name: string
+          orchestration_scope: string
+          orchestration_status?: string | null
+          participant_matrix?: Json | null
+          synchronization_protocols?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          cascade_effects?: Json | null
+          coherence_score?: number | null
+          created_at?: string | null
+          harmony_metrics?: Json | null
+          id?: string
+          orchestration_complexity?: number | null
+          orchestration_name?: string
+          orchestration_scope?: string
+          orchestration_status?: string | null
+          participant_matrix?: Json | null
+          synchronization_protocols?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       cost_anomaly_alerts: {
         Row: {
           anomaly_type: string
@@ -10257,6 +10305,51 @@ export type Database = {
         }
         Relationships: []
       }
+      dimensional_sovereignty: {
+        Row: {
+          boundary_definitions: Json | null
+          control_vectors: Json | null
+          created_at: string | null
+          dimension_identifier: string
+          expansion_potential: number | null
+          id: string
+          inter_dimensional_links: Json | null
+          sovereignty_level: number | null
+          sovereignty_status: string | null
+          stability_metrics: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          boundary_definitions?: Json | null
+          control_vectors?: Json | null
+          created_at?: string | null
+          dimension_identifier: string
+          expansion_potential?: number | null
+          id?: string
+          inter_dimensional_links?: Json | null
+          sovereignty_level?: number | null
+          sovereignty_status?: string | null
+          stability_metrics?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          boundary_definitions?: Json | null
+          control_vectors?: Json | null
+          created_at?: string | null
+          dimension_identifier?: string
+          expansion_potential?: number | null
+          id?: string
+          inter_dimensional_links?: Json | null
+          sovereignty_level?: number | null
+          sovereignty_status?: string | null
+          stability_metrics?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       document_analysis_jobs: {
         Row: {
           actual_cost_cents: number | null
@@ -11889,6 +11982,76 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "autonomous_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      eternal_influence: {
+        Row: {
+          causal_anchors: Json | null
+          created_at: string | null
+          decay_resistance: number | null
+          id: string
+          influence_propagation: Json | null
+          influence_status: string | null
+          influence_type: string
+          permanence_score: number | null
+          profile_id: string | null
+          self_reinforcement_loops: Json | null
+          temporal_persistence: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          causal_anchors?: Json | null
+          created_at?: string | null
+          decay_resistance?: number | null
+          id?: string
+          influence_propagation?: Json | null
+          influence_status?: string | null
+          influence_type: string
+          permanence_score?: number | null
+          profile_id?: string | null
+          self_reinforcement_loops?: Json | null
+          temporal_persistence?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          causal_anchors?: Json | null
+          created_at?: string | null
+          decay_resistance?: number | null
+          id?: string
+          influence_propagation?: Json | null
+          influence_status?: string | null
+          influence_type?: string
+          permanence_score?: number | null
+          profile_id?: string | null
+          self_reinforcement_loops?: Json | null
+          temporal_persistence?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eternal_influence_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "eternal_influence_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "eternal_influence_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -19130,6 +19293,124 @@ export type Database = {
         }
         Relationships: []
       }
+      omniversal_awareness: {
+        Row: {
+          awareness_depth: number | null
+          awareness_type: string
+          causal_mapping: Json | null
+          created_at: string | null
+          dimensional_scope: Json | null
+          id: string
+          perception_matrix: Json | null
+          profile_id: string | null
+          reality_threads: Json | null
+          synchronization_status: string | null
+          temporal_visibility: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          awareness_depth?: number | null
+          awareness_type: string
+          causal_mapping?: Json | null
+          created_at?: string | null
+          dimensional_scope?: Json | null
+          id?: string
+          perception_matrix?: Json | null
+          profile_id?: string | null
+          reality_threads?: Json | null
+          synchronization_status?: string | null
+          temporal_visibility?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          awareness_depth?: number | null
+          awareness_type?: string
+          causal_mapping?: Json | null
+          created_at?: string | null
+          dimensional_scope?: Json | null
+          id?: string
+          perception_matrix?: Json | null
+          profile_id?: string | null
+          reality_threads?: Json | null
+          synchronization_status?: string | null
+          temporal_visibility?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "omniversal_awareness_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "omniversal_awareness_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "omniversal_awareness_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      omniversal_objectives: {
+        Row: {
+          completion_percentage: number | null
+          created_at: string | null
+          dimensional_targets: Json | null
+          id: string
+          objective_name: string
+          objective_scope: string
+          objective_status: string | null
+          priority_score: number | null
+          progress_metrics: Json | null
+          resource_allocation: Json | null
+          success_criteria: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completion_percentage?: number | null
+          created_at?: string | null
+          dimensional_targets?: Json | null
+          id?: string
+          objective_name: string
+          objective_scope: string
+          objective_status?: string | null
+          priority_score?: number | null
+          progress_metrics?: Json | null
+          resource_allocation?: Json | null
+          success_criteria?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completion_percentage?: number | null
+          created_at?: string | null
+          dimensional_targets?: Json | null
+          id?: string
+          objective_name?: string
+          objective_scope?: string
+          objective_status?: string | null
+          priority_score?: number | null
+          progress_metrics?: Json | null
+          resource_allocation?: Json | null
+          success_criteria?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       opportunity_windows: {
         Row: {
           auto_action_config: Json | null
@@ -20043,6 +20324,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      primordial_synthesis: {
+        Row: {
+          annihilation_protocols: Json | null
+          created_at: string | null
+          creation_patterns: Json | null
+          energy_balance: Json | null
+          fundamental_forces: Json | null
+          id: string
+          stability_coefficient: number | null
+          synthesis_formulas: Json | null
+          synthesis_mastery: number | null
+          synthesis_status: string | null
+          synthesis_type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          annihilation_protocols?: Json | null
+          created_at?: string | null
+          creation_patterns?: Json | null
+          energy_balance?: Json | null
+          fundamental_forces?: Json | null
+          id?: string
+          stability_coefficient?: number | null
+          synthesis_formulas?: Json | null
+          synthesis_mastery?: number | null
+          synthesis_status?: string | null
+          synthesis_type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          annihilation_protocols?: Json | null
+          created_at?: string | null
+          creation_patterns?: Json | null
+          energy_balance?: Json | null
+          fundamental_forces?: Json | null
+          id?: string
+          stability_coefficient?: number | null
+          synthesis_formulas?: Json | null
+          synthesis_mastery?: number | null
+          synthesis_status?: string | null
+          synthesis_type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       proactive_actions: {
         Row: {
@@ -23293,6 +23622,127 @@ export type Database = {
           original_filename?: string | null
           original_mime_type?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sovereignty_operations: {
+        Row: {
+          created_at: string | null
+          effectiveness_score: number | null
+          execution_timeline: Json | null
+          id: string
+          operation_name: string
+          operation_status: string | null
+          operation_type: string
+          outcome_projections: Json | null
+          profile_id: string | null
+          resource_deployment: Json | null
+          risk_assessment: Json | null
+          target_dimensions: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          effectiveness_score?: number | null
+          execution_timeline?: Json | null
+          id?: string
+          operation_name: string
+          operation_status?: string | null
+          operation_type: string
+          outcome_projections?: Json | null
+          profile_id?: string | null
+          resource_deployment?: Json | null
+          risk_assessment?: Json | null
+          target_dimensions?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          effectiveness_score?: number | null
+          execution_timeline?: Json | null
+          id?: string
+          operation_name?: string
+          operation_status?: string | null
+          operation_type?: string
+          outcome_projections?: Json | null
+          profile_id?: string | null
+          resource_deployment?: Json | null
+          risk_assessment?: Json | null
+          target_dimensions?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sovereignty_operations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "sovereignty_operations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "sovereignty_operations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sovereignty_protocols: {
+        Row: {
+          authority_matrix: Json | null
+          consolidation_progress: number | null
+          created_at: string | null
+          enforcement_mechanisms: Json | null
+          id: string
+          jurisdiction_scope: Json | null
+          legitimacy_score: number | null
+          protocol_name: string
+          protocol_status: string | null
+          resistance_threshold: number | null
+          sovereignty_domain: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          authority_matrix?: Json | null
+          consolidation_progress?: number | null
+          created_at?: string | null
+          enforcement_mechanisms?: Json | null
+          id?: string
+          jurisdiction_scope?: Json | null
+          legitimacy_score?: number | null
+          protocol_name: string
+          protocol_status?: string | null
+          resistance_threshold?: number | null
+          sovereignty_domain: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          authority_matrix?: Json | null
+          consolidation_progress?: number | null
+          created_at?: string | null
+          enforcement_mechanisms?: Json | null
+          id?: string
+          jurisdiction_scope?: Json | null
+          legitimacy_score?: number | null
+          protocol_name?: string
+          protocol_status?: string | null
+          resistance_threshold?: number | null
+          sovereignty_domain?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
