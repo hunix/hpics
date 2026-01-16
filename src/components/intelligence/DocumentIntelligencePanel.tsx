@@ -134,15 +134,19 @@ export function DocumentIntelligencePanel({ profileId }: DocumentIntelligencePan
     enabled: !!user,
   });
 
-  // Fetch profiles for linking
+  // Fetch profiles for linking - active contacts, favorites first, then recent
   const { data: profiles } = useQuery({
-    queryKey: ['profiles-for-doc-linking'],
+    queryKey: ['profiles-for-doc-linking', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, avatar_url')
+        .select('id, first_name, last_name, avatar_url, is_favorite, updated_at')
         .eq('user_id', user!.id)
-        .order('first_name');
+        .eq('is_active', true)
+        .order('is_favorite', { ascending: false })
+        .order('updated_at', { ascending: false, nullsFirst: false })
+        .order('first_name')
+        .limit(200);
       if (error) throw error;
       return (data || []).map(p => ({ ...p, full_name: `${p.first_name || ''} ${p.last_name || ''}`.trim() }));
     },

@@ -56,7 +56,7 @@ export function QuickContactLinker({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Fetch initial contacts (favorites + recent)
+  // Fetch initial contacts (active only, favorites + recent first)
   useEffect(() => {
     if (!user) return;
 
@@ -66,8 +66,9 @@ export function QuickContactLinker({
         .from('profiles')
         .select('id, first_name, last_name, avatar_url, organization, is_favorite')
         .eq('user_id', user.id)
+        .eq('is_active', true)
         .order('is_favorite', { ascending: false })
-        .order('updated_at', { ascending: false })
+        .order('updated_at', { ascending: false, nullsFirst: false })
         .limit(10);
       
       setContacts(data || []);

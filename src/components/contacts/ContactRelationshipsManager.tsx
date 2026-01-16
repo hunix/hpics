@@ -114,10 +114,10 @@ export function ContactRelationshipsManager({ profileId, contactName }: ContactR
       while (true) {
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, first_name, last_name, avatar_url')
+          .select('id, first_name, last_name, avatar_url, is_favorite, updated_at')
           .eq('user_id', user!.id)
           .neq('id', profileId)
-          .order('first_name')
+          .eq('is_active', true) // Only show active contacts
           .range(page * pageSize, (page + 1) * pageSize - 1);
         
         if (error) throw error;
@@ -127,7 +127,15 @@ export function ContactRelationshipsManager({ profileId, contactName }: ContactR
         if (data.length < pageSize) break;
         page++;
       }
-      return allProfiles;
+      // Sort: favorites first, then by most recent, then alphabetically
+      return allProfiles.sort((a: any, b: any) => {
+        if (a.is_favorite && !b.is_favorite) return -1;
+        if (!a.is_favorite && b.is_favorite) return 1;
+        const aDate = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+        const bDate = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+        if (aDate !== bDate) return bDate - aDate;
+        return (a.first_name || '').localeCompare(b.first_name || '');
+      });
     },
     enabled: !!user,
   });

@@ -46,13 +46,13 @@ export function VirtualizedContactSelect({
   const [search, setSearch] = useState('');
   const parentRef = useRef<HTMLDivElement>(null);
 
-  // Fetch ALL contacts using recursive pagination
+  // Fetch active contacts with favorites first, then recent - using recursive pagination
   const { data: contacts = [], isLoading } = useQuery({
     queryKey: ['all-contacts-select', user?.id],
     queryFn: async () => {
       if (!user) return [];
       
-      const allContacts: Contact[] = [];
+      const allContacts: (Contact & { is_favorite?: boolean; is_active?: boolean; updated_at?: string })[] = [];
       const pageSize = 1000;
       let page = 0;
       let hasMore = true;
@@ -63,9 +63,9 @@ export function VirtualizedContactSelect({
 
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, first_name, last_name, avatar_url, organization')
+          .select('id, first_name, last_name, avatar_url, organization, is_favorite, is_active, updated_at')
           .eq('user_id', user.id)
-          .order('first_name')
+          .eq('is_active', true) // Only fetch active contacts
           .range(start, end);
 
         if (error) throw error;
@@ -79,7 +79,20 @@ export function VirtualizedContactSelect({
         }
       }
 
-      return allContacts;
+      // Sort: favorites first, then by most recently updated, then alphabetically
+      return allContacts.sort((a, b) => {
+        // Favorites first
+        if (a.is_favorite && !b.is_favorite) return -1;
+        if (!a.is_favorite && b.is_favorite) return 1;
+        
+        // Then by most recent update
+        const aDate = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+        const bDate = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+        if (aDate !== bDate) return bDate - aDate;
+        
+        // Finally alphabetically
+        return (a.first_name || '').localeCompare(b.first_name || '');
+      });
     },
     enabled: !!user && open,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes

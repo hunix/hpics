@@ -20,8 +20,13 @@ export default function CrossModalIntelligencePage() {
     queryFn: async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name')
-        .order('first_name');
+        .select('id, first_name, last_name, is_favorite, updated_at')
+        .eq('user_id', user!.id)
+        .eq('is_active', true)
+        .order('is_favorite', { ascending: false })
+        .order('updated_at', { ascending: false, nullsFirst: false })
+        .order('first_name')
+        .limit(200);
       return data ?? [];
     },
     enabled: !!user,
