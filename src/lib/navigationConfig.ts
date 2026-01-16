@@ -289,6 +289,17 @@ export const navigationItems: NavItem[] = [
     keywords: ['absolute', 'eternity', 'agis', 'phase 12', 'eternal', 'dominion', 'omega', 'infinity'],
   },
   {
+    id: 'absolute-infinity',
+    title: 'Absolute Infinity',
+    url: '/absolute-infinity',
+    icon: Sparkles,
+    badge: 'new',
+    description: 'AGIS Phase 13 - Infinite recursion, self-perpetuation, boundless transcendence',
+    category: 'intelligence',
+    requiredRole: 'analyst',
+    keywords: ['absolute', 'infinity', 'agis', 'phase 13', 'recursion', 'perpetuation', 'boundless', 'singularity'],
+  },
+  {
     id: 'cross-modal-intelligence',
     title: 'Cross-Modal Analysis',
     url: '/cross-modal-intelligence',

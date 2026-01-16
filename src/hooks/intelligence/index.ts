@@ -121,3 +121,9 @@ export { useEternalDominion } from './useEternalDominion';
 export { useInfiniteSynthesis } from './useInfiniteSynthesis';
 export { useOmegaPoint } from './useOmegaPoint';
 export { useAbsoluteEternity } from './useAbsoluteEternity';
+
+// AGIS Phase 13 Hooks - Absolute Infinity
+export { useInfiniteRecursion } from './useInfiniteRecursion';
+export { useBeyondBoundaries } from './useBeyondBoundaries';
+export { useSelfPerpetuation } from './useSelfPerpetuation';
+export { useAbsoluteInfinity } from './useAbsoluteInfinity';

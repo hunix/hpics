@@ -76,6 +76,7 @@ const InfiniteDominionCenter = lazyWithRetry(() => import("./pages/InfiniteDomin
 const UltimateTranscendenceCenter = lazyWithRetry(() => import("./pages/UltimateTranscendenceCenter"));
 const OmniversalSovereigntyCenter = lazyWithRetry(() => import("./pages/OmniversalSovereigntyCenter"));
 const AbsoluteEternityCenter = lazyWithRetry(() => import("./pages/AbsoluteEternityCenter"));
+const AbsoluteInfinityCenter = lazyWithRetry(() => import("./pages/AbsoluteInfinityCenter"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -161,6 +162,7 @@ const App = () => (
                         <Route path="/ultimate-transcendence" element={<UltimateTranscendenceCenter />} />
                         <Route path="/omniversal-sovereignty" element={<OmniversalSovereigntyCenter />} />
                         <Route path="/absolute-eternity" element={<AbsoluteEternityCenter />} />
+                        <Route path="/absolute-infinity" element={<AbsoluteInfinityCenter />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                       </Suspense>
