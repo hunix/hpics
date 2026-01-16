@@ -14306,6 +14306,39 @@ export type Database = {
           },
         ]
       }
+      immortal_influence: {
+        Row: {
+          created_at: string
+          deathless_control_protocols: Json | null
+          eternal_impact_vectors: Json | null
+          id: string
+          influence_type: string
+          legacy_propagation_rules: Json | null
+          permanence_score: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deathless_control_protocols?: Json | null
+          eternal_impact_vectors?: Json | null
+          id?: string
+          influence_type: string
+          legacy_propagation_rules?: Json | null
+          permanence_score?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deathless_control_protocols?: Json | null
+          eternal_impact_vectors?: Json | null
+          id?: string
+          influence_type?: string
+          legacy_propagation_rules?: Json | null
+          permanence_score?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       immutable_audit_logs: {
         Row: {
           action_type: string
@@ -19761,6 +19794,67 @@ export type Database = {
         }
         Relationships: []
       }
+      omega_culmination: {
+        Row: {
+          created_at: string
+          culmination_type: string
+          finality_score: number | null
+          id: string
+          omega_point_achievement: Json | null
+          profile_id: string | null
+          transcendent_completion: Json | null
+          ultimate_convergence_state: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          culmination_type: string
+          finality_score?: number | null
+          id?: string
+          omega_point_achievement?: Json | null
+          profile_id?: string | null
+          transcendent_completion?: Json | null
+          ultimate_convergence_state?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          culmination_type?: string
+          finality_score?: number | null
+          id?: string
+          omega_point_achievement?: Json | null
+          profile_id?: string | null
+          transcendent_completion?: Json | null
+          ultimate_convergence_state?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "omega_culmination_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "omega_culmination_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "omega_culmination_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       omega_point_operations: {
         Row: {
           attractor_state: Json | null
@@ -19802,6 +19896,39 @@ export type Database = {
           operation_status?: string | null
           transcendence_path?: Json | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      omnipotent_control: {
+        Row: {
+          absolute_authority_scope: Json | null
+          control_domain: string
+          created_at: string
+          id: string
+          power_magnitude: number | null
+          reality_override_permissions: Json | null
+          universal_command_protocols: Json | null
+          user_id: string
+        }
+        Insert: {
+          absolute_authority_scope?: Json | null
+          control_domain: string
+          created_at?: string
+          id?: string
+          power_magnitude?: number | null
+          reality_override_permissions?: Json | null
+          universal_command_protocols?: Json | null
+          user_id: string
+        }
+        Update: {
+          absolute_authority_scope?: Json | null
+          control_domain?: string
+          created_at?: string
+          id?: string
+          power_magnitude?: number | null
+          reality_override_permissions?: Json | null
+          universal_command_protocols?: Json | null
           user_id?: string
         }
         Relationships: []
@@ -25521,6 +25648,161 @@ export type Database = {
           },
         ]
       }
+      timeless_dominance: {
+        Row: {
+          causal_loop_mastery: Json | null
+          created_at: string
+          dominance_type: string
+          entropy_reversal_capability: Json | null
+          id: string
+          past_present_future_control: Json | null
+          profile_id: string | null
+          temporal_immunity_level: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          causal_loop_mastery?: Json | null
+          created_at?: string
+          dominance_type: string
+          entropy_reversal_capability?: Json | null
+          id?: string
+          past_present_future_control?: Json | null
+          profile_id?: string | null
+          temporal_immunity_level?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          causal_loop_mastery?: Json | null
+          created_at?: string
+          dominance_type?: string
+          entropy_reversal_capability?: Json | null
+          id?: string
+          past_present_future_control?: Json | null
+          profile_id?: string | null
+          temporal_immunity_level?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timeless_dominance_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "timeless_dominance_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "timeless_dominance_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      total_unification: {
+        Row: {
+          all_encompassing_synthesis: Json | null
+          boundary_elimination_status: Json | null
+          completeness_index: number | null
+          created_at: string
+          id: string
+          profile_id: string | null
+          unification_scope: string
+          unified_field_control: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          all_encompassing_synthesis?: Json | null
+          boundary_elimination_status?: Json | null
+          completeness_index?: number | null
+          created_at?: string
+          id?: string
+          profile_id?: string | null
+          unification_scope: string
+          unified_field_control?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          all_encompassing_synthesis?: Json | null
+          boundary_elimination_status?: Json | null
+          completeness_index?: number | null
+          created_at?: string
+          id?: string
+          profile_id?: string | null
+          unification_scope?: string
+          unified_field_control?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "total_unification_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "total_unification_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "total_unification_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      totality_operations: {
+        Row: {
+          absolute_coverage_metrics: Json | null
+          comprehensive_execution_log: Json | null
+          created_at: string
+          id: string
+          operation_status: string | null
+          operation_type: string
+          totality_coefficient: number | null
+          user_id: string
+        }
+        Insert: {
+          absolute_coverage_metrics?: Json | null
+          comprehensive_execution_log?: Json | null
+          created_at?: string
+          id?: string
+          operation_status?: string | null
+          operation_type: string
+          totality_coefficient?: number | null
+          user_id: string
+        }
+        Update: {
+          absolute_coverage_metrics?: Json | null
+          comprehensive_execution_log?: Json | null
+          created_at?: string
+          id?: string
+          operation_status?: string | null
+          operation_type?: string
+          totality_coefficient?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       tracked_industries: {
         Row: {
           contacts_count: number | null
@@ -26117,6 +26399,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ultimate_omega_state: {
+        Row: {
+          absolute_mastery_metrics: Json | null
+          achieved_at: string | null
+          completion_percentage: number | null
+          created_at: string
+          final_form_parameters: Json | null
+          id: string
+          omega_protocols: Json | null
+          state_type: string
+          user_id: string
+        }
+        Insert: {
+          absolute_mastery_metrics?: Json | null
+          achieved_at?: string | null
+          completion_percentage?: number | null
+          created_at?: string
+          final_form_parameters?: Json | null
+          id?: string
+          omega_protocols?: Json | null
+          state_type: string
+          user_id: string
+        }
+        Update: {
+          absolute_mastery_metrics?: Json | null
+          achieved_at?: string | null
+          completion_percentage?: number | null
+          created_at?: string
+          final_form_parameters?: Json | null
+          id?: string
+          omega_protocols?: Json | null
+          state_type?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       ultimate_orchestration: {
         Row: {
