@@ -749,6 +749,301 @@ export type Database = {
           },
         ]
       }
+      agis_analytics: {
+        Row: {
+          id: string
+          metric_metadata: Json | null
+          metric_type: string
+          metric_value: number
+          phase: number
+          recorded_at: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          metric_metadata?: Json | null
+          metric_type: string
+          metric_value: number
+          phase: number
+          recorded_at?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          metric_metadata?: Json | null
+          metric_type?: string
+          metric_value?: number
+          phase?: number
+          recorded_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      agis_cascade_events: {
+        Row: {
+          affected_phases: number[] | null
+          cascade_path: Json | null
+          completed_at: string | null
+          created_at: string | null
+          execution_log: Json | null
+          id: string
+          outcome_status: string | null
+          started_at: string | null
+          trigger_event_type: string
+          trigger_phase: number
+          trigger_source_id: string | null
+          user_id: string
+        }
+        Insert: {
+          affected_phases?: number[] | null
+          cascade_path?: Json | null
+          completed_at?: string | null
+          created_at?: string | null
+          execution_log?: Json | null
+          id?: string
+          outcome_status?: string | null
+          started_at?: string | null
+          trigger_event_type: string
+          trigger_phase: number
+          trigger_source_id?: string | null
+          user_id: string
+        }
+        Update: {
+          affected_phases?: number[] | null
+          cascade_path?: Json | null
+          completed_at?: string | null
+          created_at?: string | null
+          execution_log?: Json | null
+          id?: string
+          outcome_status?: string | null
+          started_at?: string | null
+          trigger_event_type?: string
+          trigger_phase?: number
+          trigger_source_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      agis_cascade_rules: {
+        Row: {
+          action_params: Json | null
+          cooldown_minutes: number | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          last_triggered_at: string | null
+          priority: number | null
+          rule_name: string
+          source_phase: number
+          source_table: string
+          target_action: string
+          target_phase: number
+          trigger_condition: Json
+          trigger_count: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          action_params?: Json | null
+          cooldown_minutes?: number | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_triggered_at?: string | null
+          priority?: number | null
+          rule_name: string
+          source_phase: number
+          source_table: string
+          target_action: string
+          target_phase: number
+          trigger_condition: Json
+          trigger_count?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          action_params?: Json | null
+          cooldown_minutes?: number | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_triggered_at?: string | null
+          priority?: number | null
+          rule_name?: string
+          source_phase?: number
+          source_table?: string
+          target_action?: string
+          target_phase?: number
+          trigger_condition?: Json
+          trigger_count?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      agis_global_state: {
+        Row: {
+          active_objectives: Json | null
+          created_at: string | null
+          cross_phase_correlations: Json | null
+          id: string
+          last_synthesis_at: string | null
+          phase_health_scores: Json | null
+          success_rate: number | null
+          system_readiness_score: number | null
+          total_operations_count: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          active_objectives?: Json | null
+          created_at?: string | null
+          cross_phase_correlations?: Json | null
+          id?: string
+          last_synthesis_at?: string | null
+          phase_health_scores?: Json | null
+          success_rate?: number | null
+          system_readiness_score?: number | null
+          total_operations_count?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          active_objectives?: Json | null
+          created_at?: string | null
+          cross_phase_correlations?: Json | null
+          id?: string
+          last_synthesis_at?: string | null
+          phase_health_scores?: Json | null
+          success_rate?: number | null
+          system_readiness_score?: number | null
+          total_operations_count?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      agis_objective_tracking: {
+        Row: {
+          achieved_outcomes: Json | null
+          blockers: Json | null
+          completed_at: string | null
+          completion_percentage: number | null
+          created_at: string | null
+          current_phase: number
+          id: string
+          is_active: boolean | null
+          objective_name: string
+          objective_type: string | null
+          phase_progression: Json | null
+          profile_id: string | null
+          starting_phase: number
+          target_outcome: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          achieved_outcomes?: Json | null
+          blockers?: Json | null
+          completed_at?: string | null
+          completion_percentage?: number | null
+          created_at?: string | null
+          current_phase: number
+          id?: string
+          is_active?: boolean | null
+          objective_name: string
+          objective_type?: string | null
+          phase_progression?: Json | null
+          profile_id?: string | null
+          starting_phase: number
+          target_outcome?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          achieved_outcomes?: Json | null
+          blockers?: Json | null
+          completed_at?: string | null
+          completion_percentage?: number | null
+          created_at?: string | null
+          current_phase?: number
+          id?: string
+          is_active?: boolean | null
+          objective_name?: string
+          objective_type?: string | null
+          phase_progression?: Json | null
+          profile_id?: string | null
+          starting_phase?: number
+          target_outcome?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agis_objective_tracking_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "agis_objective_tracking_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "agis_objective_tracking_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agis_phase_synergies: {
+        Row: {
+          created_at: string | null
+          id: string
+          interaction_count: number | null
+          last_interaction_at: string | null
+          phase_a: number
+          phase_b: number
+          successful_cascades: number | null
+          synergy_score: number | null
+          synergy_type: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          interaction_count?: number | null
+          last_interaction_at?: string | null
+          phase_a: number
+          phase_b: number
+          successful_cascades?: number | null
+          synergy_score?: number | null
+          synergy_type?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          interaction_count?: number | null
+          last_interaction_at?: string | null
+          phase_a?: number
+          phase_b?: number
+          successful_cascades?: number | null
+          synergy_score?: number | null
+          synergy_type?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_analyses: {
         Row: {
           analysis_type: string
