@@ -4,7 +4,7 @@ import { Brain, RefreshCw, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import AppLayout from '@/components/AppLayout';
+import { AppLayout } from '@/components/AppLayout';
 import { useAGISGlobalState } from '@/hooks/intelligence/useAGISGlobalState';
 import { useAGISCascade } from '@/hooks/intelligence/useAGISCascade';
 import { useAGISAnalytics } from '@/hooks/intelligence/useAGISAnalytics';

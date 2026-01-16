@@ -355,6 +355,17 @@ export const navigationItems: NavItem[] = [
     keywords: ['ultimate', 'omega', 'agis', 'phase 18', 'culmination', 'final', 'convergence'],
   },
   {
+    id: 'agis-command',
+    title: 'AGIS Command',
+    url: '/agis-command',
+    icon: Zap,
+    badge: 'new',
+    description: 'AGIS Phase 19 - Unified Supremacy & Master Orchestration',
+    category: 'command',
+    requiredRole: 'analyst',
+    keywords: ['agis', 'phase 19', 'unified', 'supremacy', 'orchestration', 'command', 'global'],
+  },
+  {
     id: 'cross-modal-intelligence',
     title: 'Cross-Modal Analysis',
     url: '/cross-modal-intelligence',

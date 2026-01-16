@@ -142,3 +142,8 @@ export { useAbsoluteTotality } from './useAbsoluteTotality';
 
 // AGIS Phase 18 Hooks - Ultimate Omega
 export { useUltimateOmega } from './useUltimateOmega';
+
+// AGIS Phase 19 Hooks - Unified Supremacy (Master Orchestration Layer)
+export { useAGISGlobalState } from './useAGISGlobalState';
+export { useAGISCascade } from './useAGISCascade';
+export { useAGISAnalytics } from './useAGISAnalytics';
