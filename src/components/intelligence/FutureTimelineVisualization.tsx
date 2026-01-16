@@ -17,7 +17,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import { useFutureTimeline } from "@/hooks/intelligence/useFutureTimeline";
-import { format, addMonths } from "date-fns";
+import { format } from "date-fns";
 
 interface FutureTimelineVisualizationProps {
   profileId?: string;
@@ -27,9 +27,17 @@ export function FutureTimelineVisualization({ profileId }: FutureTimelineVisuali
   const [selectedTimeframe, setSelectedTimeframe] = useState<"6m" | "12m" | "24m">("12m");
   const { 
     predictions, 
-    decisionWindows, 
-    isLoading, 
-    generatePredictions 
+    decisionWindows,
+    predictionModels,
+    isLoading,
+    isGenerating,
+    generatePredictions,
+    recordIntervention,
+    highProbabilityEvents,
+    urgentWindows,
+    avgModelAccuracy,
+    totalPredictions,
+    activeWindows
   } = useFutureTimeline(profileId);
 
   const timeframeMonths = { "6m": 6, "12m": 12, "24m": 24 };
@@ -51,6 +59,12 @@ export function FutureTimelineVisualization({ profileId }: FutureTimelineVisuali
     return "text-red-500";
   };
 
+  const handleGeneratePredictions = () => {
+    if (profileId) {
+      generatePredictions({ profileId, horizonMonths: timeframeMonths[selectedTimeframe] });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -67,7 +81,7 @@ export function FutureTimelineVisualization({ profileId }: FutureTimelineVisuali
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Tabs value={selectedTimeframe} onValueChange={(v) => setSelectedTimeframe(v as any)}>
+          <Tabs value={selectedTimeframe} onValueChange={(v) => setSelectedTimeframe(v as "6m" | "12m" | "24m")}>
             <TabsList>
               <TabsTrigger value="6m">6 Months</TabsTrigger>
               <TabsTrigger value="12m">12 Months</TabsTrigger>
@@ -77,17 +91,17 @@ export function FutureTimelineVisualization({ profileId }: FutureTimelineVisuali
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => generatePredictions(timeframeMonths[selectedTimeframe])}
-            disabled={isLoading}
+            onClick={handleGeneratePredictions}
+            disabled={isLoading || isGenerating || !profileId}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 mr-2 ${isGenerating ? 'animate-spin' : ''}`} />
             Generate
           </Button>
         </div>
       </div>
 
       {/* Decision Windows Alert */}
-      {decisionWindows.filter(w => w.urgency === 'critical').length > 0 && (
+      {decisionWindows.filter(w => w.priority === 'critical').length > 0 && (
         <Card className="border-red-500/50 bg-red-500/5">
           <CardContent className="py-4">
             <div className="flex items-center gap-3">
@@ -95,7 +109,7 @@ export function FutureTimelineVisualization({ profileId }: FutureTimelineVisuali
               <div>
                 <p className="font-medium text-red-500">Critical Decision Windows Active</p>
                 <p className="text-sm text-muted-foreground">
-                  {decisionWindows.filter(w => w.urgency === 'critical').length} contacts are in 
+                  {decisionWindows.filter(w => w.priority === 'critical').length} contacts are in 
                   high-influence moments right now
                 </p>
               </div>
@@ -127,37 +141,39 @@ export function FutureTimelineVisualization({ profileId }: FutureTimelineVisuali
                   </div>
                 ) : (
                   predictions
-                    .sort((a, b) => new Date(a.predicted_date).getTime() - new Date(b.predicted_date).getTime())
-                    .map((prediction, index) => (
+                    .sort((a, b) => new Date(a.predictedDate).getTime() - new Date(b.predictedDate).getTime())
+                    .map((prediction) => (
                       <div key={prediction.id} className="relative">
                         <div className="absolute -left-[25px] p-1 rounded-full bg-background border-2 border-primary">
-                          {getEventIcon(prediction.event_type)}
+                          {getEventIcon(prediction.eventType)}
                         </div>
                         <div className="ml-4 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
                           <div className="flex items-start justify-between">
                             <div>
                               <div className="flex items-center gap-2 mb-1">
                                 <Badge variant="outline" className="text-xs">
-                                  {format(new Date(prediction.predicted_date), "MMM yyyy")}
+                                  {format(new Date(prediction.predictedDate), "MMM yyyy")}
                                 </Badge>
                                 <Badge className="text-xs capitalize">
-                                  {prediction.event_type.replace("_", " ")}
+                                  {prediction.eventType.replace("_", " ")}
                                 </Badge>
                               </div>
-                              <p className="font-medium">{prediction.description}</p>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {prediction.reasoning}
-                              </p>
+                              <p className="font-medium">{prediction.eventDescription}</p>
+                              {prediction.contributingFactors && (
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  {prediction.contributingFactors.slice(0, 2).join(', ')}
+                                </p>
+                              )}
                             </div>
                             <div className="text-right">
-                              <p className={`text-lg font-bold ${getProbabilityColor(prediction.probability)}`}>
-                                {Math.round(prediction.probability * 100)}%
+                              <p className={`text-lg font-bold ${getProbabilityColor(prediction.probabilityScore || 0)}`}>
+                                {Math.round((prediction.probabilityScore || 0) * 100)}%
                               </p>
                               <p className="text-xs text-muted-foreground">probability</p>
                             </div>
                           </div>
                           <div className="mt-3 flex items-center gap-2">
-                            <Progress value={prediction.probability * 100} className="flex-1" />
+                            <Progress value={(prediction.probabilityScore || 0) * 100} className="flex-1" />
                             <Button variant="ghost" size="sm">
                               <ChevronRight className="h-4 w-4" />
                             </Button>
@@ -192,35 +208,44 @@ export function FutureTimelineVisualization({ profileId }: FutureTimelineVisuali
                     <div 
                       key={window.id}
                       className={`p-4 rounded-lg border ${
-                        window.urgency === 'critical' 
+                        window.priority === 'critical' 
                           ? 'border-red-500/50 bg-red-500/5' 
-                          : window.urgency === 'high'
+                          : window.priority === 'high'
                           ? 'border-orange-500/50 bg-orange-500/5'
                           : 'border-muted bg-muted/30'
                       }`}
                     >
                       <div className="flex items-start justify-between mb-2">
                         <Badge 
-                          variant={window.urgency === 'critical' ? 'destructive' : 'outline'}
+                          variant={window.priority === 'critical' ? 'destructive' : 'outline'}
                           className="capitalize"
                         >
-                          {window.urgency}
+                          {window.priority || 'normal'}
                         </Badge>
                         <span className="text-sm text-muted-foreground">
-                          {format(new Date(window.window_start), "MMM d")} - 
-                          {format(new Date(window.window_end), "MMM d")}
+                          {window.optimalTiming?.start && format(new Date(window.optimalTiming.start), "MMM d")}
+                          {window.optimalTiming?.end && ` - ${format(new Date(window.optimalTiming.end), "MMM d")}`}
                         </span>
                       </div>
-                      <p className="font-medium text-sm mb-2">{window.window_type.replace("_", " ")}</p>
+                      <p className="font-medium text-sm mb-2">{window.windowType.replace("_", " ")}</p>
                       <p className="text-xs text-muted-foreground mb-3">
-                        {window.context?.description || "Optimal moment for intervention"}
+                        {window.description || "Optimal moment for intervention"}
                       </p>
                       <div className="flex items-center justify-between">
                         <div className="text-xs">
                           <span className="text-muted-foreground">Influence: </span>
-                          <span className="font-medium">{Math.round(window.influence_multiplier * 100)}%</span>
+                          <span className="font-medium">{Math.round((window.influenceMultiplier || 1) * 100)}%</span>
                         </div>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => recordIntervention({
+                            decisionWindowId: window.id,
+                            interventionType: 'action_taken',
+                            actionTaken: 'User initiated intervention',
+                            expectedOutcome: { status: 'pending' }
+                          })}
+                        >
                           Plan Action
                         </Button>
                       </div>
@@ -238,7 +263,7 @@ export function FutureTimelineVisualization({ profileId }: FutureTimelineVisuali
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-3xl font-bold text-primary">{predictions.length}</p>
+              <p className="text-3xl font-bold text-primary">{totalPredictions}</p>
               <p className="text-sm text-muted-foreground">Predicted Events</p>
             </div>
           </CardContent>
@@ -246,7 +271,7 @@ export function FutureTimelineVisualization({ profileId }: FutureTimelineVisuali
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-3xl font-bold text-orange-500">{decisionWindows.length}</p>
+              <p className="text-3xl font-bold text-orange-500">{activeWindows}</p>
               <p className="text-sm text-muted-foreground">Decision Windows</p>
             </div>
           </CardContent>
@@ -255,21 +280,17 @@ export function FutureTimelineVisualization({ profileId }: FutureTimelineVisuali
           <CardContent className="pt-6">
             <div className="text-center">
               <p className="text-3xl font-bold text-green-500">
-                {predictions.length > 0 
-                  ? Math.round(predictions.reduce((acc, p) => acc + p.probability, 0) / predictions.length * 100)
-                  : 0}%
+                {Math.round(avgModelAccuracy * 100)}%
               </p>
-              <p className="text-sm text-muted-foreground">Avg Confidence</p>
+              <p className="text-sm text-muted-foreground">Model Accuracy</p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-3xl font-bold text-red-500">
-                {decisionWindows.filter(w => w.urgency === 'critical').length}
-              </p>
-              <p className="text-sm text-muted-foreground">Critical Windows</p>
+              <p className="text-3xl font-bold text-red-500">{urgentWindows}</p>
+              <p className="text-sm text-muted-foreground">Urgent Windows</p>
             </div>
           </CardContent>
         </Card>
