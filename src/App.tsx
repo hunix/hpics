@@ -82,6 +82,7 @@ const CosmicOmnipotenceCenter = lazyWithRetry(() => import("./pages/CosmicOmnipo
 const EternalSupremacyCenter = lazyWithRetry(() => import("./pages/EternalSupremacyCenter"));
 const AbsoluteTotalityCenter = lazyWithRetry(() => import("./pages/AbsoluteTotalityCenter"));
 const UltimateOmegaCenter = lazyWithRetry(() => import("./pages/UltimateOmegaCenter"));
+const AGISCommandCenter = lazyWithRetry(() => import("./pages/AGISCommandCenter"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -173,6 +174,7 @@ const App = () => (
                         <Route path="/eternal-supremacy" element={<EternalSupremacyCenter />} />
                         <Route path="/absolute-totality" element={<AbsoluteTotalityCenter />} />
                         <Route path="/ultimate-omega" element={<UltimateOmegaCenter />} />
+                        <Route path="/agis-command" element={<AGISCommandCenter />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                       </Suspense>
