@@ -9,7 +9,7 @@ export function useUltimateOmega(profileId?: string) {
   const { data: culminations, isLoading: culminationsLoading } = useQuery({
     queryKey: ['omega-culmination', profileId],
     queryFn: async () => {
-      let query = supabase.from('omega_culmination').select('*').order('created_at', { ascending: false });
+      let query = (supabase as any).from('omega_culmination').select('*').order('created_at', { ascending: false });
       if (profileId) query = query.eq('profile_id', profileId);
       const { data, error } = await query;
       if (error) throw error;
@@ -21,7 +21,7 @@ export function useUltimateOmega(profileId?: string) {
   const { data: omegaStates, isLoading: statesLoading } = useQuery({
     queryKey: ['ultimate-omega-state'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('ultimate_omega_state').select('*').order('created_at', { ascending: false });
+      const { data, error } = await (supabase as any).from('ultimate_omega_state').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -30,12 +30,12 @@ export function useUltimateOmega(profileId?: string) {
 
   const achieveCulmination = useMutation({
     mutationFn: async (input: { culmination_type: string; finality_score?: number }) => {
-      const { data, error } = await supabase.from('omega_culmination').insert({
+      const { data, error } = await (supabase as any).from('omega_culmination').insert({
         user_id: user!.id,
         culmination_type: input.culmination_type,
         finality_score: input.finality_score || 0,
         profile_id: profileId,
-      } as never).select().single();
+      }).select().single();
       if (error) throw error;
       return data;
     },
@@ -44,12 +44,12 @@ export function useUltimateOmega(profileId?: string) {
 
   const attainOmegaState = useMutation({
     mutationFn: async (input: { state_type: string; completion_percentage?: number }) => {
-      const { data, error } = await supabase.from('ultimate_omega_state').insert({
+      const { data, error } = await (supabase as any).from('ultimate_omega_state').insert({
         user_id: user!.id,
         state_type: input.state_type,
         completion_percentage: input.completion_percentage || 0,
         achieved_at: input.completion_percentage === 100 ? new Date().toISOString() : null,
-      } as never).select().single();
+      }).select().single();
       if (error) throw error;
       return data;
     },

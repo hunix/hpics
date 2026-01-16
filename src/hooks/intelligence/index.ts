@@ -127,3 +127,18 @@ export { useInfiniteRecursion } from './useInfiniteRecursion';
 export { useBeyondBoundaries } from './useBeyondBoundaries';
 export { useSelfPerpetuation } from './useSelfPerpetuation';
 export { useAbsoluteInfinity } from './useAbsoluteInfinity';
+
+// AGIS Phase 14 Hooks - Primordial Genesis
+export { usePrimordialGenesis } from './usePrimordialGenesis';
+
+// AGIS Phase 15 Hooks - Cosmic Omnipotence
+export { useCosmicOmnipotence } from './useCosmicOmnipotence';
+
+// AGIS Phase 16 Hooks - Eternal Supremacy
+export { useEternalSupremacy } from './useEternalSupremacy';
+
+// AGIS Phase 17 Hooks - Absolute Totality
+export { useAbsoluteTotality } from './useAbsoluteTotality';
+
+// AGIS Phase 18 Hooks - Ultimate Omega
+export { useUltimateOmega } from './useUltimateOmega';

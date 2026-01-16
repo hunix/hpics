@@ -77,6 +77,11 @@ const UltimateTranscendenceCenter = lazyWithRetry(() => import("./pages/Ultimate
 const OmniversalSovereigntyCenter = lazyWithRetry(() => import("./pages/OmniversalSovereigntyCenter"));
 const AbsoluteEternityCenter = lazyWithRetry(() => import("./pages/AbsoluteEternityCenter"));
 const AbsoluteInfinityCenter = lazyWithRetry(() => import("./pages/AbsoluteInfinityCenter"));
+const PrimordialGenesisCenter = lazyWithRetry(() => import("./pages/PrimordialGenesisCenter"));
+const CosmicOmnipotenceCenter = lazyWithRetry(() => import("./pages/CosmicOmnipotenceCenter"));
+const EternalSupremacyCenter = lazyWithRetry(() => import("./pages/EternalSupremacyCenter"));
+const AbsoluteTotalityCenter = lazyWithRetry(() => import("./pages/AbsoluteTotalityCenter"));
+const UltimateOmegaCenter = lazyWithRetry(() => import("./pages/UltimateOmegaCenter"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -163,6 +168,11 @@ const App = () => (
                         <Route path="/omniversal-sovereignty" element={<OmniversalSovereigntyCenter />} />
                         <Route path="/absolute-eternity" element={<AbsoluteEternityCenter />} />
                         <Route path="/absolute-infinity" element={<AbsoluteInfinityCenter />} />
+                        <Route path="/primordial-genesis" element={<PrimordialGenesisCenter />} />
+                        <Route path="/cosmic-omnipotence" element={<CosmicOmnipotenceCenter />} />
+                        <Route path="/eternal-supremacy" element={<EternalSupremacyCenter />} />
+                        <Route path="/absolute-totality" element={<AbsoluteTotalityCenter />} />
+                        <Route path="/ultimate-omega" element={<UltimateOmegaCenter />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                       </Suspense>

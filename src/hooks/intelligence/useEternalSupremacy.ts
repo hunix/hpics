@@ -9,7 +9,7 @@ export function useEternalSupremacy(profileId?: string) {
   const { data: dominance, isLoading: dominanceLoading } = useQuery({
     queryKey: ['timeless-dominance', profileId],
     queryFn: async () => {
-      let query = supabase.from('timeless_dominance').select('*').order('created_at', { ascending: false });
+      let query = (supabase as any).from('timeless_dominance').select('*').order('created_at', { ascending: false });
       if (profileId) query = query.eq('profile_id', profileId);
       const { data, error } = await query;
       if (error) throw error;
@@ -21,7 +21,7 @@ export function useEternalSupremacy(profileId?: string) {
   const { data: influence, isLoading: influenceLoading } = useQuery({
     queryKey: ['immortal-influence'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('immortal_influence').select('*').order('created_at', { ascending: false });
+      const { data, error } = await (supabase as any).from('immortal_influence').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -30,12 +30,12 @@ export function useEternalSupremacy(profileId?: string) {
 
   const establishDominance = useMutation({
     mutationFn: async (input: { dominance_type: string; temporal_immunity_level?: number }) => {
-      const { data, error } = await supabase.from('timeless_dominance').insert({
+      const { data, error } = await (supabase as any).from('timeless_dominance').insert({
         user_id: user!.id,
         dominance_type: input.dominance_type,
         temporal_immunity_level: input.temporal_immunity_level || 1,
         profile_id: profileId,
-      } as never).select().single();
+      }).select().single();
       if (error) throw error;
       return data;
     },
@@ -44,11 +44,11 @@ export function useEternalSupremacy(profileId?: string) {
 
   const createInfluence = useMutation({
     mutationFn: async (input: { influence_type: string; permanence_score?: number }) => {
-      const { data, error } = await supabase.from('immortal_influence').insert({
+      const { data, error } = await (supabase as any).from('immortal_influence').insert({
         user_id: user!.id,
         influence_type: input.influence_type,
         permanence_score: input.permanence_score || 0,
-      } as never).select().single();
+      }).select().single();
       if (error) throw error;
       return data;
     },
