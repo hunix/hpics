@@ -147,3 +147,4 @@ export { useUltimateOmega } from './useUltimateOmega';
 export { useAGISGlobalState } from './useAGISGlobalState';
 export { useAGISCascade } from './useAGISCascade';
 export { useAGISAnalytics } from './useAGISAnalytics';
+export { useAGISPhaseMiddleware } from './useAGISPhaseMiddleware';
