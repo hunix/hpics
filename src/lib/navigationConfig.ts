@@ -366,6 +366,17 @@ export const navigationItems: NavItem[] = [
     keywords: ['agis', 'phase 19', 'unified', 'supremacy', 'orchestration', 'command', 'global'],
   },
   {
+    id: 'agis-analytics',
+    title: 'AGIS Analytics',
+    url: '/agis-analytics',
+    icon: BarChart3,
+    badge: 'new',
+    description: 'Cross-phase performance metrics and operational insights',
+    category: 'analysis',
+    requiredRole: 'analyst',
+    keywords: ['agis', 'analytics', 'metrics', 'performance', 'phase', 'operations'],
+  },
+  {
     id: 'cross-modal-intelligence',
     title: 'Cross-Modal Analysis',
     url: '/cross-modal-intelligence',
