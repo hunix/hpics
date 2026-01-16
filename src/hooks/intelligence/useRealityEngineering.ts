@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useAGISPhaseMiddleware } from './useAGISPhaseMiddleware';
 
 export interface RealityFramework {
   id: string;
@@ -50,6 +51,7 @@ export interface IdentityBlueprint {
 export function useRealityEngineering() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const phaseMiddleware = useAGISPhaseMiddleware();
 
   const { data: frameworks = [], isLoading: frameworksLoading } = useQuery({
     queryKey: ['reality-frameworks', user?.id],
@@ -122,7 +124,11 @@ export function useRealityEngineering() {
       } as never);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['reality-frameworks'] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reality-frameworks'] });
+      // Track Phase 6 operation
+      phaseMiddleware.recordSuccess(6, 'reality_framework_created');
+    }
   });
 
   const updateProgress = useMutation({
@@ -133,7 +139,11 @@ export function useRealityEngineering() {
         .eq('id', frameworkId);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['reality-frameworks'] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reality-frameworks'] });
+      // Track Phase 6 progress update
+      phaseMiddleware.recordSuccess(6, 'reality_framework_progress_updated');
+    }
   });
 
   const stats = useMemo(() => ({

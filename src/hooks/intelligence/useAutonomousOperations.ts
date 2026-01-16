@@ -7,6 +7,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useAGISPhaseMiddleware } from './useAGISPhaseMiddleware';
 
 export interface AutonomousCampaign {
   id: string;
@@ -62,6 +63,7 @@ export interface OutcomeLearning {
 export function useAutonomousOperations(profileId?: string) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const phaseMiddleware = useAGISPhaseMiddleware();
 
   const campaignsQuery = useQuery({
     queryKey: ['autonomous-campaigns', profileId],
@@ -165,6 +167,8 @@ export function useAutonomousOperations(profileId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['autonomous-campaigns'] });
+      // Track Phase 5 operation
+      phaseMiddleware.recordSuccess(5, 'autonomous_campaign_created');
     },
   });
 
@@ -216,6 +220,8 @@ export function useAutonomousOperations(profileId?: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['autonomous-campaigns'] });
       queryClient.invalidateQueries({ queryKey: ['agent-executions'] });
+      // Track Phase 5 action execution
+      phaseMiddleware.recordSuccess(5, 'autonomous_action_executed');
     },
   });
 

@@ -7,6 +7,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useAGISPhaseMiddleware } from './useAGISPhaseMiddleware';
 
 export interface InfluenceCascade {
   id: string;
@@ -62,6 +63,7 @@ export interface MultiTargetCampaign {
 export function useNetworkWarfare() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const phaseMiddleware = useAGISPhaseMiddleware();
 
   const cascadesQuery = useQuery({
     queryKey: ['influence-cascades'],
@@ -186,6 +188,8 @@ export function useNetworkWarfare() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['influence-cascades'] });
+      // Track Phase 5 cascade launch
+      phaseMiddleware.recordSuccess(5, 'influence_cascade_launched');
     },
   });
 
@@ -211,6 +215,8 @@ export function useNetworkWarfare() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['network-operations'] });
+      // Track Phase 5 network operation
+      phaseMiddleware.recordSuccess(5, 'network_operation_started');
     },
   });
 

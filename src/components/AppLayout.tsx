@@ -15,6 +15,7 @@ import { InstallPromptBanner } from '@/components/mobile/InstallPromptBanner';
 import { NotificationCenter } from '@/components/navigation/NotificationCenter';
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
 import { useOfflineData } from '@/hooks/useOfflineData';
+import { FloatingCascadeAlerts } from '@/components/intelligence/phase19/FloatingCascadeAlerts';
 
 // Lazy load heavy components
 const FloatingAIAssistant = lazy(() => 
@@ -106,6 +107,9 @@ export function AppLayout({ children, title, showQuickCapture = false, capturePr
         <Suspense fallback={null}>
           <UltimateCommandFAB />
         </Suspense>
+        
+        {/* AGIS Cascade Alerts */}
+        <FloatingCascadeAlerts />
       </div>
     </SidebarProvider>
   );

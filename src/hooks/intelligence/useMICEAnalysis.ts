@@ -13,6 +13,7 @@ import {
   type CompromiseMaterial,
   type EgoNeeds,
 } from '@/lib/warfare/miceAnalyzer';
+import { useAGISPhaseMiddleware } from './useAGISPhaseMiddleware';
 
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -21,6 +22,7 @@ type MICEAssessmentRecord = Tables<'mice_assessments'>;
 export function useMICEAnalysis(profileId?: string) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const phaseMiddleware = useAGISPhaseMiddleware();
 
   // Fetch MICE assessment for a profile
   const assessmentQuery = useQuery({
@@ -87,9 +89,13 @@ export function useMICEAnalysis(profileId?: string) {
       queryClient.invalidateQueries({ queryKey: ['mice-assessment'] });
       queryClient.invalidateQueries({ queryKey: ['mice-assessments'] });
       toast.success('MICE analysis complete');
+      // Track successful Phase 3 operation
+      phaseMiddleware.recordSuccess(3, 'mice_analysis_complete');
     },
     onError: (error) => {
       toast.error(`MICE analysis failed: ${error.message}`);
+      // Track failed Phase 3 operation
+      phaseMiddleware.recordFailure(3, 'mice_analysis_failed');
     },
   });
 
