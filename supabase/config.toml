@@ -339,6 +339,21 @@ verify_jwt = false
 [functions.counter-intelligence-monitor]
 verify_jwt = false
 
+[functions.future-timeline-engine]
+verify_jwt = false
+
+[functions.campaign-evolution-engine]
+verify_jwt = false
+
+[functions.dark-web-monitor]
+verify_jwt = false
+
+[functions.microexpression-analyzer]
+verify_jwt = false
+
+[functions.narrative-control-engine]
+verify_jwt = false
+
 [functions.enhanced-deception-detector]
 verify_jwt = false
 
