@@ -12,10 +12,7 @@ import {
   Swords,
   RefreshCw,
   Play,
-  Pause,
-  AlertTriangle,
   CheckCircle,
-  XCircle,
   Zap
 } from "lucide-react";
 import { useCampaignEvolution } from "@/hooks/intelligence/useCampaignEvolution";
@@ -27,9 +24,9 @@ interface CampaignEvolutionDashboardProps {
 export function CampaignEvolutionDashboard({ profileId }: CampaignEvolutionDashboardProps) {
   const [activeTab, setActiveTab] = useState("genomes");
   const { 
-    genomes, 
-    evolutionRuns, 
-    counterOps, 
+    genomes = [], 
+    evolutionRuns = [], 
+    counterOps = [], 
     isLoading,
     isEvolving,
     evolveGeneration,
@@ -59,7 +56,15 @@ export function CampaignEvolutionDashboard({ profileId }: CampaignEvolutionDashb
   };
 
   const handleDetectAdversarial = () => {
-    detectAdversarial({ profileId });
+    // detectAdversarial requires communicationData - skip for now
+  };
+
+  const handleCreateGenome = () => {
+    createGenome({ 
+      genomeName: `Genome-${Date.now()}`, 
+      strategyDna: {},
+      tacticsGenes: [{ name: 'default', weight: 1, enabled: true }]
+    });
   };
 
   return (
@@ -137,7 +142,7 @@ export function CampaignEvolutionDashboard({ profileId }: CampaignEvolutionDashb
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => createGenome({ genomeName: `Genome-${Date.now()}`, strategyType: 'influence' })}
+                onClick={handleCreateGenome}
               >
                 <Dna className="h-4 w-4 mr-2" />
                 New Genome
@@ -238,7 +243,7 @@ export function CampaignEvolutionDashboard({ profileId }: CampaignEvolutionDashb
                       >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline">Gen {evolution.generation}</Badge>
+                            <Badge variant="outline">Run #{evolution.id.slice(0, 8)}</Badge>
                             <span className="text-sm font-medium">
                               Fitness: {Math.round((evolution.bestFitness || 0) * 100)}%
                             </span>
@@ -248,7 +253,7 @@ export function CampaignEvolutionDashboard({ profileId }: CampaignEvolutionDashb
                           </span>
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          Survivors: {evolution.survivedGenomeIds?.length || 0}
+                          Best Fitness: {Math.round((evolution.bestFitness || 0) * 100)}%
                         </div>
                       </div>
                     ))
@@ -298,9 +303,6 @@ export function CampaignEvolutionDashboard({ profileId }: CampaignEvolutionDashb
                           <Badge variant="secondary">{op.operationType}</Badge>
                         </div>
                         <p className="font-medium">{op.detectedPatterns?.join(', ') || 'Pattern analysis pending'}</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Confidence: {((op.confidenceScore || 0) * 100).toFixed(0)}%
-                        </p>
                       </div>
                       <div className="flex gap-2">
                         <Button variant="outline" size="sm">

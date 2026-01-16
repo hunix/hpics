@@ -28,9 +28,9 @@ export function DarkWebIntelligenceCenter({ profileId }: DarkWebIntelligenceCent
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("mentions");
   const { 
-    mentions, 
-    exposures, 
-    threats, 
+    mentions = [], 
+    exposures = [], 
+    threats = [], 
     isLoading,
     isScanning,
     scanDarkWeb,
@@ -102,7 +102,7 @@ export function DarkWebIntelligenceCenter({ profileId }: DarkWebIntelligenceCent
       </div>
 
       {/* Critical Alerts */}
-      {exposures.filter(c => c.riskLevel === 'critical').length > 0 && (
+      {typeof criticalMentions === 'number' && criticalMentions > 0 && (
         <Card className="border-red-500/50 bg-red-500/5">
           <CardContent className="py-4">
             <div className="flex items-center gap-3">
@@ -110,8 +110,7 @@ export function DarkWebIntelligenceCenter({ profileId }: DarkWebIntelligenceCent
               <div>
                 <p className="font-medium text-red-500">Critical Credential Exposure</p>
                 <p className="text-sm text-muted-foreground">
-                  {exposures.filter(c => c.riskLevel === 'critical').length} credentials found 
-                  in recent dark web breaches
+                  {criticalMentions} critical mentions found in recent dark web breaches
                 </p>
               </div>
               <Button variant="destructive" size="sm" className="ml-auto">
@@ -165,7 +164,7 @@ export function DarkWebIntelligenceCenter({ profileId }: DarkWebIntelligenceCent
                     mentions.map((mention) => (
                       <div 
                         key={mention.id}
-                        className={`p-4 rounded-lg border ${getSeverityColor(mention.riskLevel || 'low')}`}
+                        className={`p-4 rounded-lg border ${getSeverityColor(mention.riskScore >= 80 ? 'critical' : mention.riskScore >= 50 ? 'high' : 'medium')}`}
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex items-center gap-2">
@@ -173,23 +172,18 @@ export function DarkWebIntelligenceCenter({ profileId }: DarkWebIntelligenceCent
                               {mention.sourceType}
                             </Badge>
                             <Badge className={`capitalize ${
-                              mention.riskLevel === 'critical' ? 'bg-red-500' :
-                              mention.riskLevel === 'high' ? 'bg-orange-500' :
-                              mention.riskLevel === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
+                              mention.riskScore >= 80 ? 'bg-red-500' :
+                              mention.riskScore >= 50 ? 'bg-orange-500' :
+                              mention.riskScore >= 30 ? 'bg-yellow-500' : 'bg-blue-500'
                             }`}>
-                              {mention.riskLevel || 'low'}
+                              Risk: {mention.riskScore}%
                             </Badge>
                           </div>
                           <span className="text-xs text-muted-foreground">
-                            {mention.createdAt && new Date(mention.createdAt).toLocaleDateString()}
+                            {mention.discoveredAt && new Date(mention.discoveredAt).toLocaleDateString()}
                           </span>
                         </div>
-                        <p className="font-medium">{mention.mentionContext}</p>
-                        {mention.sourceUrl && (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Source: {mention.sourceUrl}
-                          </p>
-                        )}
+                        <p className="font-medium">{mention.searchTerm}</p>
                         <div className="flex items-center gap-2 mt-3">
                           <Button variant="outline" size="sm">
                             <ExternalLink className="h-4 w-4 mr-2" />
@@ -231,23 +225,25 @@ export function DarkWebIntelligenceCenter({ profileId }: DarkWebIntelligenceCent
                     exposures.map((cred) => (
                       <div 
                         key={cred.id}
-                        className={`p-4 rounded-lg border ${getSeverityColor(cred.riskLevel || 'medium')}`}
+                        className={`p-4 rounded-lg border ${getSeverityColor(cred.riskLevel >= 80 ? 'critical' : 'high')}`}
                       >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
                             <Unlock className="h-5 w-5 text-red-500" />
-                            <span className="font-medium">{cred.credentialType}</span>
+                            <span className="font-medium">
+                              {cred.credentialTypes?.join(', ') || 'Unknown'}
+                            </span>
                           </div>
                           <Badge className={`capitalize ${
-                            cred.riskLevel === 'critical' ? 'bg-red-500' : 'bg-orange-500'
+                            cred.riskLevel >= 80 ? 'bg-red-500' : 'bg-orange-500'
                           }`}>
-                            {cred.riskLevel || 'medium'}
+                            Risk: {cred.riskLevel}%
                           </Badge>
                         </div>
                         <div className="grid grid-cols-2 gap-4 text-sm mt-3">
                           <div>
                             <span className="text-muted-foreground">Exposed: </span>
-                            <span className="font-mono">{cred.exposedValue ? '••••••••' : 'Unknown'}</span>
+                            <span className="font-mono">••••••••</span>
                           </div>
                           <div>
                             <span className="text-muted-foreground">Breach: </span>
@@ -316,7 +312,7 @@ export function DarkWebIntelligenceCenter({ profileId }: DarkWebIntelligenceCent
                               <Badge className="capitalize">{threat.threatLevel}</Badge>
                             </div>
                             <p className="text-sm text-muted-foreground">
-                              {threat.indicators?.join(', ') || 'No specific indicators'}
+                              {threat.threatType} detected
                             </p>
                           </div>
                           <div className="text-right">
@@ -363,7 +359,7 @@ export function DarkWebIntelligenceCenter({ profileId }: DarkWebIntelligenceCent
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-3xl font-bold text-orange-500">{highThreats}</p>
+              <p className="text-3xl font-bold text-orange-500">{typeof highThreats === 'number' ? highThreats : 0}</p>
               <p className="text-sm text-muted-foreground">Active Threats</p>
             </div>
           </CardContent>
@@ -372,7 +368,7 @@ export function DarkWebIntelligenceCenter({ profileId }: DarkWebIntelligenceCent
           <CardContent className="pt-6">
             <div className="text-center">
               <p className="text-3xl font-bold text-green-500">
-                {unresolvedExposures === 0 ? '✓' : '⚠'}
+                {typeof unresolvedExposures === 'number' && unresolvedExposures === 0 ? '✓' : '⚠'}
               </p>
               <p className="text-sm text-muted-foreground">Security Status</p>
             </div>

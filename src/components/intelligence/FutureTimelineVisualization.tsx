@@ -26,9 +26,9 @@ interface FutureTimelineVisualizationProps {
 export function FutureTimelineVisualization({ profileId }: FutureTimelineVisualizationProps) {
   const [selectedTimeframe, setSelectedTimeframe] = useState<"6m" | "12m" | "24m">("12m");
   const { 
-    predictions, 
-    decisionWindows,
-    predictionModels,
+    predictions = [], 
+    decisionWindows = [],
+    models = [],
     isLoading,
     isGenerating,
     generatePredictions,
@@ -101,7 +101,7 @@ export function FutureTimelineVisualization({ profileId }: FutureTimelineVisuali
       </div>
 
       {/* Decision Windows Alert */}
-      {decisionWindows.filter(w => w.priority === 'critical').length > 0 && (
+      {urgentWindows.length > 0 && (
         <Card className="border-red-500/50 bg-red-500/5">
           <CardContent className="py-4">
             <div className="flex items-center gap-3">
@@ -109,8 +109,7 @@ export function FutureTimelineVisualization({ profileId }: FutureTimelineVisuali
               <div>
                 <p className="font-medium text-red-500">Critical Decision Windows Active</p>
                 <p className="text-sm text-muted-foreground">
-                  {decisionWindows.filter(w => w.priority === 'critical').length} contacts are in 
-                  high-influence moments right now
+                  {urgentWindows.length} contacts are in high-influence moments right now
                 </p>
               </div>
               <Button variant="destructive" size="sm" className="ml-auto">
@@ -141,27 +140,33 @@ export function FutureTimelineVisualization({ profileId }: FutureTimelineVisuali
                   </div>
                 ) : (
                   predictions
-                    .sort((a, b) => new Date(a.predictedDate).getTime() - new Date(b.predictedDate).getTime())
+                    .sort((a, b) => {
+                      const dateA = a.predictedDateRange?.start || '';
+                      const dateB = b.predictedDateRange?.start || '';
+                      return new Date(dateA).getTime() - new Date(dateB).getTime();
+                    })
                     .map((prediction) => (
                       <div key={prediction.id} className="relative">
                         <div className="absolute -left-[25px] p-1 rounded-full bg-background border-2 border-primary">
-                          {getEventIcon(prediction.eventType)}
+                          {getEventIcon(prediction.predictionType)}
                         </div>
                         <div className="ml-4 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
                           <div className="flex items-start justify-between">
                             <div>
                               <div className="flex items-center gap-2 mb-1">
                                 <Badge variant="outline" className="text-xs">
-                                  {format(new Date(prediction.predictedDate), "MMM yyyy")}
+                                  {prediction.predictedDateRange?.start 
+                                    ? format(new Date(prediction.predictedDateRange.start), "MMM yyyy")
+                                    : 'TBD'}
                                 </Badge>
                                 <Badge className="text-xs capitalize">
-                                  {prediction.eventType.replace("_", " ")}
+                                  {prediction.predictionType.replace("_", " ")}
                                 </Badge>
                               </div>
-                              <p className="font-medium">{prediction.eventDescription}</p>
-                              {prediction.contributingFactors && (
+                              <p className="font-medium">{prediction.predictedEvent}</p>
+                              {prediction.influencingFactors && prediction.influencingFactors.length > 0 && (
                                 <p className="text-sm text-muted-foreground mt-1">
-                                  {prediction.contributingFactors.slice(0, 2).join(', ')}
+                                  {prediction.influencingFactors.slice(0, 2).map(f => f.factor).join(', ')}
                                 </p>
                               )}
                             </div>
@@ -208,33 +213,33 @@ export function FutureTimelineVisualization({ profileId }: FutureTimelineVisuali
                     <div 
                       key={window.id}
                       className={`p-4 rounded-lg border ${
-                        window.priority === 'critical' 
+                        window.urgencyScore >= 0.8 
                           ? 'border-red-500/50 bg-red-500/5' 
-                          : window.priority === 'high'
+                          : window.urgencyScore >= 0.6
                           ? 'border-orange-500/50 bg-orange-500/5'
                           : 'border-muted bg-muted/30'
                       }`}
                     >
                       <div className="flex items-start justify-between mb-2">
                         <Badge 
-                          variant={window.priority === 'critical' ? 'destructive' : 'outline'}
+                          variant={window.urgencyScore >= 0.8 ? 'destructive' : 'outline'}
                           className="capitalize"
                         >
-                          {window.priority || 'normal'}
+                          {window.urgencyScore >= 0.8 ? 'critical' : window.urgencyScore >= 0.6 ? 'high' : 'normal'}
                         </Badge>
                         <span className="text-sm text-muted-foreground">
-                          {window.optimalTiming?.start && format(new Date(window.optimalTiming.start), "MMM d")}
-                          {window.optimalTiming?.end && ` - ${format(new Date(window.optimalTiming.end), "MMM d")}`}
+                          {window.startsAt && format(new Date(window.startsAt), "MMM d")}
+                          {window.endsAt && ` - ${format(new Date(window.endsAt), "MMM d")}`}
                         </span>
                       </div>
-                      <p className="font-medium text-sm mb-2">{window.windowType.replace("_", " ")}</p>
+                      <p className="font-medium text-sm mb-2">{window.windowName || window.windowType.replace("_", " ")}</p>
                       <p className="text-xs text-muted-foreground mb-3">
-                        {window.description || "Optimal moment for intervention"}
+                        {window.recommendedActions?.[0]?.reasoning || "Optimal moment for intervention"}
                       </p>
                       <div className="flex items-center justify-between">
                         <div className="text-xs">
                           <span className="text-muted-foreground">Influence: </span>
-                          <span className="font-medium">{Math.round((window.influenceMultiplier || 1) * 100)}%</span>
+                          <span className="font-medium">{Math.round((window.influencePotential || 0) * 100)}%</span>
                         </div>
                         <Button 
                           variant="outline" 
@@ -289,7 +294,7 @@ export function FutureTimelineVisualization({ profileId }: FutureTimelineVisuali
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-3xl font-bold text-red-500">{urgentWindows}</p>
+              <p className="text-3xl font-bold text-red-500">{urgentWindows.length}</p>
               <p className="text-sm text-muted-foreground">Urgent Windows</p>
             </div>
           </CardContent>
