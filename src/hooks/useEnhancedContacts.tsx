@@ -104,7 +104,7 @@ export function useEnhancedContacts({
   });
 }
 
-// Hook to get active contact counts
+// Hook to get active contact counts using server-side aggregation (no 1000 row limit)
 export function useActiveContactCounts() {
   const { user } = useAuth();
 
@@ -113,17 +113,18 @@ export function useActiveContactCounts() {
     queryFn: async () => {
       if (!user?.id) throw new Error('No user');
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('is_active', { count: 'exact' })
-        .eq('user_id', user.id);
+      const { data, error } = await supabase.rpc('get_contact_counts', {
+        p_user_id: user.id,
+      });
 
       if (error) throw error;
 
-      const active = data?.filter(p => p.is_active).length ?? 0;
-      const total = data?.length ?? 0;
-
-      return { active, inactive: total - active, total };
+      const result = data?.[0] || { active_count: 0, inactive_count: 0, total_count: 0 };
+      return { 
+        active: Number(result.active_count) || 0, 
+        inactive: Number(result.inactive_count) || 0, 
+        total: Number(result.total_count) || 0 
+      };
     },
     enabled: !!user?.id,
     staleTime: 60000,
