@@ -164,7 +164,7 @@ export function DarkWebIntelligenceCenter({ profileId }: DarkWebIntelligenceCent
                     mentions.map((mention) => (
                       <div 
                         key={mention.id}
-                        className={`p-4 rounded-lg border ${getSeverityColor(mention.riskScore >= 80 ? 'critical' : mention.riskScore >= 50 ? 'high' : 'medium')}`}
+                        className={`p-4 rounded-lg border ${getSeverityColor(mention.threatScore >= 0.8 ? 'critical' : mention.threatScore >= 0.5 ? 'high' : 'medium')}`}
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex items-center gap-2">
@@ -172,18 +172,21 @@ export function DarkWebIntelligenceCenter({ profileId }: DarkWebIntelligenceCent
                               {mention.sourceType}
                             </Badge>
                             <Badge className={`capitalize ${
-                              mention.riskScore >= 80 ? 'bg-red-500' :
-                              mention.riskScore >= 50 ? 'bg-orange-500' :
-                              mention.riskScore >= 30 ? 'bg-yellow-500' : 'bg-blue-500'
+                              mention.threatScore >= 0.8 ? 'bg-red-500' :
+                              mention.threatScore >= 0.5 ? 'bg-orange-500' :
+                              mention.threatScore >= 0.3 ? 'bg-yellow-500' : 'bg-blue-500'
                             }`}>
-                              Risk: {mention.riskScore}%
+                              Threat: {Math.round(mention.threatScore * 100)}%
                             </Badge>
                           </div>
                           <span className="text-xs text-muted-foreground">
-                            {mention.discoveredAt && new Date(mention.discoveredAt).toLocaleDateString()}
+                            {mention.firstSeenAt && new Date(mention.firstSeenAt).toLocaleDateString()}
                           </span>
                         </div>
-                        <p className="font-medium">{mention.searchTerm}</p>
+                        <p className="font-medium">{mention.mentionSource}</p>
+                        {mention.contentSnippet && (
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{mention.contentSnippet}</p>
+                        )}
                         <div className="flex items-center gap-2 mt-3">
                           <Button variant="outline" size="sm">
                             <ExternalLink className="h-4 w-4 mr-2" />
@@ -225,7 +228,7 @@ export function DarkWebIntelligenceCenter({ profileId }: DarkWebIntelligenceCent
                     exposures.map((cred) => (
                       <div 
                         key={cred.id}
-                        className={`p-4 rounded-lg border ${getSeverityColor(cred.riskLevel >= 80 ? 'critical' : 'high')}`}
+                        className={`p-4 rounded-lg border ${getSeverityColor(cred.exposureSeverity === 'critical' ? 'critical' : 'high')}`}
                       >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
@@ -235,9 +238,9 @@ export function DarkWebIntelligenceCenter({ profileId }: DarkWebIntelligenceCent
                             </span>
                           </div>
                           <Badge className={`capitalize ${
-                            cred.riskLevel >= 80 ? 'bg-red-500' : 'bg-orange-500'
+                            cred.exposureSeverity === 'critical' ? 'bg-red-500' : 'bg-orange-500'
                           }`}>
-                            Risk: {cred.riskLevel}%
+                            {cred.exposureSeverity?.toUpperCase()}
                           </Badge>
                         </div>
                         <div className="grid grid-cols-2 gap-4 text-sm mt-3">

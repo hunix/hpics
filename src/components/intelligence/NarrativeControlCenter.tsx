@@ -5,8 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { 
   MessageSquare, 
   Globe,
@@ -29,17 +27,18 @@ interface NarrativeControlCenterProps {
 
 export function NarrativeControlCenter({ profileId }: NarrativeControlCenterProps) {
   const [activeTab, setActiveTab] = useState("campaigns");
-  const [newCampaignName, setNewCampaignName] = useState("");
-  const [newNarrative, setNewNarrative] = useState("");
   
   const { 
-    campaigns, 
-    nodes, 
-    perceptionData, 
+    campaigns = [], 
+    nodes = [], 
+    perceptionData = [], 
     isLoading, 
     createCampaign,
     deployCampaign,
-    pauseCampaign
+    activeCampaigns,
+    totalReach,
+    avgSentimentShift,
+    activeNodes,
   } = useNarrativeControl(profileId);
 
   const getStatusColor = (status: string) => {
@@ -52,17 +51,11 @@ export function NarrativeControlCenter({ profileId }: NarrativeControlCenterProp
     }
   };
 
-  const getPenetrationColor = (rate: number) => {
-    if (rate >= 0.7) return "text-green-500";
-    if (rate >= 0.4) return "text-yellow-500";
-    return "text-orange-500";
+  const getSentimentColor = (shift: number) => {
+    if (shift >= 0.3) return "text-green-500";
+    if (shift >= 0) return "text-yellow-500";
+    return "text-red-500";
   };
-
-  const activeCampaigns = campaigns.filter(c => c.status === 'active');
-  const totalReach = campaigns.reduce((acc, c) => acc + (c.reach_count || 0), 0);
-  const avgPenetration = campaigns.length > 0 
-    ? campaigns.reduce((acc, c) => acc + (c.penetration_rate || 0), 0) / campaigns.length 
-    : 0;
 
   return (
     <div className="space-y-6">
@@ -91,7 +84,7 @@ export function NarrativeControlCenter({ profileId }: NarrativeControlCenterProp
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-3xl font-bold text-indigo-500">{activeCampaigns.length}</p>
+                <p className="text-3xl font-bold text-indigo-500">{activeCampaigns?.length || 0}</p>
                 <p className="text-sm text-muted-foreground">Active Campaigns</p>
               </div>
               <Radio className="h-8 w-8 text-indigo-500/30" />
@@ -102,7 +95,7 @@ export function NarrativeControlCenter({ profileId }: NarrativeControlCenterProp
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-3xl font-bold text-blue-500">{totalReach.toLocaleString()}</p>
+                <p className="text-3xl font-bold text-blue-500">{totalReach?.toLocaleString() || 0}</p>
                 <p className="text-sm text-muted-foreground">Total Reach</p>
               </div>
               <Users className="h-8 w-8 text-blue-500/30" />
@@ -113,10 +106,10 @@ export function NarrativeControlCenter({ profileId }: NarrativeControlCenterProp
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className={`text-3xl font-bold ${getPenetrationColor(avgPenetration)}`}>
-                  {Math.round(avgPenetration * 100)}%
+                <p className={`text-3xl font-bold ${getSentimentColor(avgSentimentShift || 0)}`}>
+                  {avgSentimentShift > 0 ? '+' : ''}{(avgSentimentShift || 0).toFixed(1)}%
                 </p>
-                <p className="text-sm text-muted-foreground">Avg Penetration</p>
+                <p className="text-sm text-muted-foreground">Avg Sentiment Shift</p>
               </div>
               <Target className="h-8 w-8 text-green-500/30" />
             </div>
@@ -126,7 +119,7 @@ export function NarrativeControlCenter({ profileId }: NarrativeControlCenterProp
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-3xl font-bold text-purple-500">{nodes.length}</p>
+                <p className="text-3xl font-bold text-purple-500">{activeNodes || 0}</p>
                 <p className="text-sm text-muted-foreground">Narrative Nodes</p>
               </div>
               <Share2 className="h-8 w-8 text-purple-500/30" />
@@ -170,7 +163,7 @@ export function NarrativeControlCenter({ profileId }: NarrativeControlCenterProp
                 <Card key={campaign.id} className="hover:border-primary/50 transition-colors">
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-base">{campaign.campaign_name}</CardTitle>
+                      <CardTitle className="text-base">{campaign.campaignName}</CardTitle>
                       <Badge className={`${getStatusColor(campaign.status || 'draft')} text-white capitalize`}>
                         {campaign.status}
                       </Badge>
@@ -179,34 +172,34 @@ export function NarrativeControlCenter({ profileId }: NarrativeControlCenterProp
                   <CardContent>
                     <div className="space-y-4">
                       <p className="text-sm text-muted-foreground line-clamp-2">
-                        {campaign.target_narrative}
+                        {campaign.targetNarrative}
                       </p>
                       
                       <div>
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm text-muted-foreground">Penetration Rate</span>
-                          <span className={`font-medium ${getPenetrationColor(campaign.penetration_rate || 0)}`}>
-                            {Math.round((campaign.penetration_rate || 0) * 100)}%
+                          <span className="text-sm text-muted-foreground">Sentiment Shift</span>
+                          <span className={`font-medium ${getSentimentColor(campaign.sentimentShift || 0)}`}>
+                            {campaign.sentimentShift > 0 ? '+' : ''}{(campaign.sentimentShift || 0).toFixed(1)}%
                           </span>
                         </div>
-                        <Progress value={(campaign.penetration_rate || 0) * 100} />
+                        <Progress value={Math.min(Math.abs(campaign.sentimentShift || 0) * 10, 100)} />
                       </div>
                       
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div>
                           <span className="text-muted-foreground">Reach:</span>
-                          <span className="ml-1 font-medium">{(campaign.reach_count || 0).toLocaleString()}</span>
+                          <span className="ml-1 font-medium">{(campaign.currentReach || 0).toLocaleString()}</span>
                         </div>
                         <div>
-                          <span className="text-muted-foreground">Engagement:</span>
-                          <span className="ml-1 font-medium">{(campaign.engagement_count || 0).toLocaleString()}</span>
+                          <span className="text-muted-foreground">Channels:</span>
+                          <span className="ml-1 font-medium">{campaign.deploymentChannels?.length || 0}</span>
                         </div>
                       </div>
 
                       <div className="flex flex-wrap gap-1">
-                        {(campaign.platforms as string[] || []).map((platform, i) => (
+                        {(campaign.deploymentChannels || []).slice(0, 3).map((channel, i) => (
                           <Badge key={i} variant="secondary" className="text-xs capitalize">
-                            {platform}
+                            {channel.channel}
                           </Badge>
                         ))}
                       </div>
@@ -217,7 +210,6 @@ export function NarrativeControlCenter({ profileId }: NarrativeControlCenterProp
                             variant="outline" 
                             size="sm" 
                             className="flex-1"
-                            onClick={() => pauseCampaign(campaign.id)}
                           >
                             <Pause className="h-4 w-4 mr-2" />
                             Pause
@@ -227,7 +219,7 @@ export function NarrativeControlCenter({ profileId }: NarrativeControlCenterProp
                             variant="default" 
                             size="sm" 
                             className="flex-1"
-                            onClick={() => deployCampaign(campaign.id)}
+                            onClick={() => deployCampaign({ campaignId: campaign.id })}
                           >
                             <Play className="h-4 w-4 mr-2" />
                             Deploy
@@ -269,20 +261,18 @@ export function NarrativeControlCenter({ profileId }: NarrativeControlCenterProp
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline">{node.node_type}</Badge>
+                            <Badge variant="outline">{node.nodeType}</Badge>
                             <Badge variant="secondary">{node.platform}</Badge>
                           </div>
-                          <Badge className={`${getStatusColor(node.status || 'pending')} text-white`}>
-                            {node.status}
+                          <Badge className={`${node.isActive ? 'bg-green-500' : 'bg-gray-500'} text-white`}>
+                            {node.isActive ? 'Active' : 'Inactive'}
                           </Badge>
                         </div>
                         <p className="text-sm">{node.content}</p>
                         <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
-                          <span>Reach: {(node.reach || 0).toLocaleString()}</span>
-                          <span>Engagement: {(node.engagement || 0).toLocaleString()}</span>
-                          {node.scheduled_at && (
-                            <span>Scheduled: {new Date(node.scheduled_at).toLocaleDateString()}</span>
-                          )}
+                          <span>Amplification: {Math.round(node.amplificationScore * 100)}%</span>
+                          <span>Authenticity: {Math.round(node.authenticityRating * 100)}%</span>
+                          <span>Created: {new Date(node.createdAt).toLocaleDateString()}</span>
                         </div>
                       </div>
                     ))
@@ -317,34 +307,35 @@ export function NarrativeControlCenter({ profileId }: NarrativeControlCenterProp
                           className="p-4 rounded-lg border bg-muted/30"
                         >
                           <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium">{data.metric_type}</span>
+                            <span className="font-medium">{data.perceptionDimension}</span>
                             <div className="flex items-center gap-1">
-                              {(data.sentiment_score || 0) >= 0 ? (
+                              {(data.currentValue - data.baselineValue) >= 0 ? (
                                 <TrendingUp className="h-4 w-4 text-green-500" />
                               ) : (
                                 <TrendingDown className="h-4 w-4 text-red-500" />
                               )}
                               <span className={`font-medium ${
-                                (data.sentiment_score || 0) >= 0 ? 'text-green-500' : 'text-red-500'
+                                (data.currentValue - data.baselineValue) >= 0 ? 'text-green-500' : 'text-red-500'
                               }`}>
-                                {data.sentiment_score > 0 ? '+' : ''}{Math.round((data.sentiment_score || 0) * 100)}%
+                                {(data.currentValue - data.baselineValue) > 0 ? '+' : ''}
+                                {Math.round((data.currentValue - data.baselineValue) * 100)}%
                               </span>
                             </div>
                           </div>
                           <div className="space-y-2">
                             <div>
                               <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">Visibility</span>
-                                <span>{Math.round((data.visibility_score || 0) * 100)}%</span>
+                                <span className="text-muted-foreground">Current Value</span>
+                                <span>{Math.round(data.currentValue * 100)}%</span>
                               </div>
-                              <Progress value={(data.visibility_score || 0) * 100} className="h-1" />
+                              <Progress value={data.currentValue * 100} className="h-1" />
                             </div>
                             <div>
                               <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">Influence</span>
-                                <span>{Math.round((data.influence_score || 0) * 100)}%</span>
+                                <span className="text-muted-foreground">Target Value</span>
+                                <span>{Math.round(data.targetValue * 100)}%</span>
                               </div>
-                              <Progress value={(data.influence_score || 0) * 100} className="h-1" />
+                              <Progress value={data.targetValue * 100} className="h-1" />
                             </div>
                           </div>
                         </div>
