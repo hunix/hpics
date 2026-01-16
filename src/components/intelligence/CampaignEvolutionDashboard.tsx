@@ -28,12 +28,18 @@ export function CampaignEvolutionDashboard({ profileId }: CampaignEvolutionDashb
   const [activeTab, setActiveTab] = useState("genomes");
   const { 
     genomes, 
-    evolutions, 
+    evolutionRuns, 
     counterOps, 
-    isLoading, 
-    evolveGenome,
-    detectCounterOps 
-  } = useCampaignEvolution(profileId);
+    isLoading,
+    isEvolving,
+    evolveGeneration,
+    createGenome,
+    detectAdversarial,
+    eliteGenomes,
+    avgFitness,
+    activeThreats,
+    latestGeneration
+  } = useCampaignEvolution();
 
   const getFitnessColor = (fitness: number) => {
     if (fitness >= 0.8) return "text-green-500";
@@ -42,14 +48,18 @@ export function CampaignEvolutionDashboard({ profileId }: CampaignEvolutionDashb
     return "text-red-500";
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "active": return <Play className="h-4 w-4 text-green-500" />;
-      case "paused": return <Pause className="h-4 w-4 text-yellow-500" />;
-      case "evolved": return <CheckCircle className="h-4 w-4 text-blue-500" />;
-      case "terminated": return <XCircle className="h-4 w-4 text-red-500" />;
-      default: return <RefreshCw className="h-4 w-4" />;
-    }
+  const getStatusIcon = (generation: number) => {
+    if (generation > 5) return <CheckCircle className="h-4 w-4 text-blue-500" />;
+    if (generation > 2) return <Play className="h-4 w-4 text-green-500" />;
+    return <RefreshCw className="h-4 w-4" />;
+  };
+
+  const handleEvolve = () => {
+    evolveGeneration({ selectionPressure: 0.7, mutationRate: 0.15 });
+  };
+
+  const handleDetectAdversarial = () => {
+    detectAdversarial({ profileId });
   };
 
   return (
@@ -71,7 +81,7 @@ export function CampaignEvolutionDashboard({ profileId }: CampaignEvolutionDashb
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => detectCounterOps()}
+            onClick={handleDetectAdversarial}
             disabled={isLoading}
           >
             <Shield className="h-4 w-4 mr-2" />
@@ -81,7 +91,7 @@ export function CampaignEvolutionDashboard({ profileId }: CampaignEvolutionDashb
       </div>
 
       {/* Counter-Ops Alert */}
-      {counterOps.filter(op => op.threat_level === 'critical').length > 0 && (
+      {counterOps.filter(op => op.threatLevel === 'critical').length > 0 && (
         <Card className="border-red-500/50 bg-red-500/5">
           <CardContent className="py-4">
             <div className="flex items-center gap-3">
@@ -89,7 +99,7 @@ export function CampaignEvolutionDashboard({ profileId }: CampaignEvolutionDashb
               <div>
                 <p className="font-medium text-red-500">Active Counter-Operations Detected</p>
                 <p className="text-sm text-muted-foreground">
-                  {counterOps.filter(op => op.threat_level === 'critical').length} adversarial 
+                  {counterOps.filter(op => op.threatLevel === 'critical').length} adversarial 
                   campaigns targeting your influence operations
                 </p>
               </div>
@@ -121,6 +131,31 @@ export function CampaignEvolutionDashboard({ profileId }: CampaignEvolutionDashb
         </TabsList>
 
         <TabsContent value="genomes" className="mt-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold">Active Genomes</h3>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => createGenome({ genomeName: `Genome-${Date.now()}`, strategyType: 'influence' })}
+              >
+                <Dna className="h-4 w-4 mr-2" />
+                New Genome
+              </Button>
+              <Button 
+                size="sm"
+                onClick={handleEvolve}
+                disabled={isEvolving}
+              >
+                {isEvolving ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Zap className="h-4 w-4 mr-2" />
+                )}
+                Evolve Generation
+              </Button>
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {genomes.length === 0 ? (
               <Card className="col-span-full">
@@ -135,8 +170,8 @@ export function CampaignEvolutionDashboard({ profileId }: CampaignEvolutionDashb
                 <Card key={genome.id} className="hover:border-primary/50 transition-colors">
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-base">{genome.genome_name}</CardTitle>
-                      {getStatusIcon(genome.status || 'active')}
+                      <CardTitle className="text-base">{genome.genomeName}</CardTitle>
+                      {getStatusIcon(genome.generation || 1)}
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -144,47 +179,36 @@ export function CampaignEvolutionDashboard({ profileId }: CampaignEvolutionDashb
                       <div>
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-sm text-muted-foreground">Fitness Score</span>
-                          <span className={`font-bold ${getFitnessColor(genome.fitness_score)}`}>
-                            {Math.round(genome.fitness_score * 100)}%
+                          <span className={`font-bold ${getFitnessColor(genome.fitnessScore || 0)}`}>
+                            {Math.round((genome.fitnessScore || 0) * 100)}%
                           </span>
                         </div>
-                        <Progress value={genome.fitness_score * 100} />
+                        <Progress value={(genome.fitnessScore || 0) * 100} />
                       </div>
                       
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div>
                           <span className="text-muted-foreground">Generation:</span>
-                          <span className="ml-1 font-medium">{genome.generation}</span>
+                          <span className="ml-1 font-medium">{genome.generation || 1}</span>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Mutations:</span>
-                          <span className="ml-1 font-medium">{genome.mutation_count}</span>
+                          <span className="ml-1 font-medium">{genome.mutationHistory?.length || 0}</span>
                         </div>
                       </div>
 
                       <div className="flex flex-wrap gap-1">
-                        {(genome.active_traits as string[] || []).slice(0, 3).map((trait, i) => (
+                        {genome.channelWeights && Object.keys(genome.channelWeights).slice(0, 3).map((trait, i) => (
                           <Badge key={i} variant="secondary" className="text-xs">
                             {trait}
                           </Badge>
                         ))}
-                        {(genome.active_traits as string[] || []).length > 3 && (
+                        {genome.channelWeights && Object.keys(genome.channelWeights).length > 3 && (
                           <Badge variant="outline" className="text-xs">
-                            +{(genome.active_traits as string[]).length - 3}
+                            +{Object.keys(genome.channelWeights).length - 3}
                           </Badge>
                         )}
                       </div>
-
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full"
-                        onClick={() => evolveGenome(genome.id)}
-                        disabled={isLoading}
-                      >
-                        <Zap className="h-4 w-4 mr-2" />
-                        Evolve to Gen {genome.generation + 1}
-                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -201,13 +225,13 @@ export function CampaignEvolutionDashboard({ profileId }: CampaignEvolutionDashb
             <CardContent>
               <ScrollArea className="h-[400px]">
                 <div className="space-y-4">
-                  {evolutions.length === 0 ? (
+                  {evolutionRuns.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                       <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
                       <p>No evolution history yet</p>
                     </div>
                   ) : (
-                    evolutions.map((evolution) => (
+                    evolutionRuns.map((evolution) => (
                       <div 
                         key={evolution.id}
                         className="p-4 rounded-lg bg-muted/30 border"
@@ -216,22 +240,16 @@ export function CampaignEvolutionDashboard({ profileId }: CampaignEvolutionDashb
                           <div className="flex items-center gap-2">
                             <Badge variant="outline">Gen {evolution.generation}</Badge>
                             <span className="text-sm font-medium">
-                              Fitness: {Math.round(evolution.fitness_score * 100)}%
+                              Fitness: {Math.round((evolution.bestFitness || 0) * 100)}%
                             </span>
                           </div>
                           <span className="text-xs text-muted-foreground">
-                            {evolution.evolved_at && new Date(evolution.evolved_at).toLocaleDateString()}
+                            {evolution.createdAt && new Date(evolution.createdAt).toLocaleDateString()}
                           </span>
                         </div>
-                        {evolution.winning_traits && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {(evolution.winning_traits as string[]).map((trait, i) => (
-                              <Badge key={i} className="text-xs bg-green-500/20 text-green-500">
-                                ✓ {trait}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
+                        <div className="text-sm text-muted-foreground">
+                          Survivors: {evolution.survivedGenomeIds?.length || 0}
+                        </div>
                       </div>
                     ))
                   )}
@@ -256,9 +274,9 @@ export function CampaignEvolutionDashboard({ profileId }: CampaignEvolutionDashb
                 <Card 
                   key={op.id}
                   className={`${
-                    op.threat_level === 'critical' 
+                    op.threatLevel === 'critical' 
                       ? 'border-red-500/50' 
-                      : op.threat_level === 'high'
+                      : op.threatLevel === 'high'
                       ? 'border-orange-500/50'
                       : 'border-yellow-500/50'
                   }`}
@@ -268,20 +286,20 @@ export function CampaignEvolutionDashboard({ profileId }: CampaignEvolutionDashb
                       <div>
                         <div className="flex items-center gap-2 mb-2">
                           <Swords className={`h-5 w-5 ${
-                            op.threat_level === 'critical' ? 'text-red-500' : 
-                            op.threat_level === 'high' ? 'text-orange-500' : 'text-yellow-500'
+                            op.threatLevel === 'critical' ? 'text-red-500' : 
+                            op.threatLevel === 'high' ? 'text-orange-500' : 'text-yellow-500'
                           }`} />
                           <Badge 
-                            variant={op.threat_level === 'critical' ? 'destructive' : 'outline'}
+                            variant={op.threatLevel === 'critical' ? 'destructive' : 'outline'}
                             className="capitalize"
                           >
-                            {op.threat_level} Threat
+                            {op.threatLevel} Threat
                           </Badge>
-                          <Badge variant="secondary">{op.operation_type}</Badge>
+                          <Badge variant="secondary">{op.operationType}</Badge>
                         </div>
-                        <p className="font-medium">{op.description}</p>
+                        <p className="font-medium">{op.detectedPatterns?.join(', ') || 'Pattern analysis pending'}</p>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Source: {op.source_identifier || 'Unknown'}
+                          Confidence: {((op.confidenceScore || 0) * 100).toFixed(0)}%
                         </p>
                       </div>
                       <div className="flex gap-2">
@@ -314,10 +332,8 @@ export function CampaignEvolutionDashboard({ profileId }: CampaignEvolutionDashb
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-3xl font-bold text-blue-500">
-                {genomes.reduce((acc, g) => acc + g.generation, 0)}
-              </p>
-              <p className="text-sm text-muted-foreground">Total Generations</p>
+              <p className="text-3xl font-bold text-blue-500">{latestGeneration}</p>
+              <p className="text-sm text-muted-foreground">Latest Generation</p>
             </div>
           </CardContent>
         </Card>
@@ -325,9 +341,7 @@ export function CampaignEvolutionDashboard({ profileId }: CampaignEvolutionDashb
           <CardContent className="pt-6">
             <div className="text-center">
               <p className="text-3xl font-bold text-green-500">
-                {genomes.length > 0 
-                  ? Math.round(genomes.reduce((acc, g) => acc + g.fitness_score, 0) / genomes.length * 100)
-                  : 0}%
+                {Math.round(avgFitness * 100)}%
               </p>
               <p className="text-sm text-muted-foreground">Avg Fitness</p>
             </div>
@@ -336,8 +350,8 @@ export function CampaignEvolutionDashboard({ profileId }: CampaignEvolutionDashb
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-3xl font-bold text-red-500">{counterOps.length}</p>
-              <p className="text-sm text-muted-foreground">Counter-Ops</p>
+              <p className="text-3xl font-bold text-red-500">{activeThreats}</p>
+              <p className="text-sm text-muted-foreground">Active Threats</p>
             </div>
           </CardContent>
         </Card>
