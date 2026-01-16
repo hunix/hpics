@@ -11,6 +11,7 @@ import {
   GOTTMAN_HORSEMEN,
   type BetrayalProfile,
 } from '@/lib/warfare/betrayalPredictor';
+import { useAGISPhaseMiddleware } from './useAGISPhaseMiddleware';
 
 interface BetrayalPredictionRecord {
   id: string;
@@ -35,6 +36,7 @@ interface BetrayalPredictionRecord {
 export function useBetrayalPrediction(profileId?: string) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const phaseMiddleware = useAGISPhaseMiddleware();
 
   // Fetch prediction for a profile
   const predictionQuery = useQuery({
@@ -112,9 +114,13 @@ export function useBetrayalPrediction(profileId?: string) {
       queryClient.invalidateQueries({ queryKey: ['betrayal-prediction'] });
       queryClient.invalidateQueries({ queryKey: ['betrayal-predictions'] });
       toast.success('Betrayal analysis complete');
+      // Track successful Phase 3 operation
+      phaseMiddleware.recordSuccess(3, 'betrayal_prediction_complete');
     },
     onError: (error) => {
       toast.error(`Analysis failed: ${error.message}`);
+      // Track failed Phase 3 operation
+      phaseMiddleware.recordFailure(3, 'betrayal_prediction_failed');
     },
   });
 

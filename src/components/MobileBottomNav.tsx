@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Users, Camera, Sparkles, MoreHorizontal } from 'lucide-react';
+import { Home, Users, Camera, Sparkles, MoreHorizontal, Command } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hapticFeedback } from '@/lib/nativeFeatures';
 import { navigationItems, categoryConfig } from '@/lib/navigationConfig';
 import { useClearance } from '@/hooks/useClearance';
+import { Badge } from '@/components/ui/badge';
 import {
   Sheet,
   SheetContent,
@@ -167,6 +168,65 @@ export function MobileBottomNav() {
             </SheetHeader>
             <ScrollArea className="h-[calc(100%-80px)]">
               <div className="space-y-6 pb-8">
+                {/* AGIS Quick Access Section */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-2 h-2 rounded-full bg-gradient-to-r from-violet-500 to-indigo-500" />
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Command
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    <button
+                      onClick={() => handleNavigation('/agis-command')}
+                      className={cn(
+                        'flex flex-col items-center gap-2 p-3 rounded-xl transition-all touch-target',
+                        'hover:bg-accent active:scale-95',
+                        isActive('/agis-command') && 'bg-accent border border-violet-500/30'
+                      )}
+                    >
+                      <div className={cn(
+                        'flex items-center justify-center w-11 h-11 rounded-xl',
+                        isActive('/agis-command')
+                          ? 'bg-gradient-to-br from-violet-500 to-indigo-600 shadow-md'
+                          : 'bg-muted/70'
+                      )}>
+                        <Command className={cn('h-5 w-5', isActive('/agis-command') ? 'text-white' : 'text-violet-500')} />
+                      </div>
+                      <span className={cn(
+                        'text-xs font-medium text-center line-clamp-1',
+                        isActive('/agis-command') ? 'text-foreground' : 'text-muted-foreground'
+                      )}>
+                        AGIS Command
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => handleNavigation('/agis-analytics')}
+                      className={cn(
+                        'flex flex-col items-center gap-2 p-3 rounded-xl transition-all touch-target',
+                        'hover:bg-accent active:scale-95',
+                        isActive('/agis-analytics') && 'bg-accent border border-violet-500/30'
+                      )}
+                    >
+                      <div className={cn(
+                        'flex items-center justify-center w-11 h-11 rounded-xl',
+                        isActive('/agis-analytics')
+                          ? 'bg-gradient-to-br from-violet-500 to-indigo-600 shadow-md'
+                          : 'bg-muted/70'
+                      )}>
+                        <Sparkles className={cn('h-5 w-5', isActive('/agis-analytics') ? 'text-white' : 'text-violet-500')} />
+                      </div>
+                      <span className={cn(
+                        'text-xs font-medium text-center line-clamp-1',
+                        isActive('/agis-analytics') ? 'text-foreground' : 'text-muted-foreground'
+                      )}>
+                        Analytics
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Existing category groups */}
                 {Object.entries(groupedItems).map(([category, items]) => {
                   const config = categoryConfig[category as keyof typeof categoryConfig];
                   if (!config) return null;

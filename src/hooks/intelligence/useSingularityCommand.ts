@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { useAGISPhaseMiddleware } from './useAGISPhaseMiddleware';
 
 export interface SingularityObjective {
   id: string;
@@ -53,6 +54,7 @@ export interface SystemEvolution {
 export function useSingularityCommand() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const phaseMiddleware = useAGISPhaseMiddleware();
 
   const objectivesQuery = useQuery({
     queryKey: ['singularity-objectives', user?.id],
@@ -166,6 +168,8 @@ export function useSingularityCommand() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['singularity-objectives'] });
       toast.success('Singularity objective created');
+      // Track Phase 7 operation
+      phaseMiddleware.recordSuccess(7, 'singularity_objective_created');
     },
   });
 

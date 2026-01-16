@@ -9,7 +9,7 @@ import { motion } from 'framer-motion';
 import { 
   Users, Star, Calendar, AlertTriangle, 
   MessageSquare, Brain, Plus, Camera, Mic,
-  ChevronRight, TrendingUp, Clock, Zap
+  ChevronRight, TrendingUp, Clock, Zap, Command
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,10 +23,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { hapticFeedback } from '@/lib/nativeFeatures';
 import { ClickableContactChip } from '@/components/contacts/ClickableContactChip';
 import { differenceInDays, format } from 'date-fns';
+import { MobileAGISCommandCard } from '@/components/mobile/agis/MobileAGISCommandCard';
+import { useAGISGlobalState } from '@/hooks/intelligence/useAGISGlobalState';
 
 export function MobileDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { globalState } = useAGISGlobalState();
+  const phaseHealthScores = globalState?.phaseHealthScores || {};
 
   // Fetch dashboard stats
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -179,6 +183,16 @@ export function MobileDashboard() {
           </Button>
         </div>
       </div>
+
+      {/* AGIS Command Card */}
+      {Object.keys(phaseHealthScores).length > 0 && (
+        <div className="px-4 py-2">
+          <MobileAGISCommandCard 
+            phaseHealthScores={phaseHealthScores}
+            onPhaseSelect={(phase) => navigate('/agis-command')}
+          />
+        </div>
+      )}
 
       {/* Needs Attention */}
       {(needsAttention?.length ?? 0) > 0 && (
