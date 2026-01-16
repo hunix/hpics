@@ -516,17 +516,6 @@ export const navigationItems: NavItem[] = [
     title: 'Documents',
     url: '/documents',
     icon: FileText,
-    description: 'Visual relationship graph',
-    category: 'relationships',
-    keywords: ['network', 'map', 'graph', 'visualization'],
-  },
-  
-  // Assets
-  {
-    id: 'documents',
-    title: 'Documents',
-    url: '/documents',
-    icon: FileText,
     description: 'Files & documentation',
     category: 'assets',
     keywords: ['documents', 'files', 'docs'],
@@ -566,17 +555,6 @@ export const navigationItems: NavItem[] = [
     description: 'AI-generated insights & recommendations',
     category: 'analysis',
     keywords: ['insights', 'recommendations', 'ai', 'suggestions'],
-  },
-  
-  // Analysis
-  {
-    id: 'media-analysis',
-    title: 'Media Analysis',
-    url: '/analysis',
-    icon: Scan,
-    description: 'Generated reports & exports',
-    category: 'assets',
-    keywords: ['reports', 'exports', 'pdf'],
   },
   
   // Analysis

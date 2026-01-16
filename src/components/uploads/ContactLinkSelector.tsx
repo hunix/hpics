@@ -40,15 +40,28 @@ export function ContactLinkSelector({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
-      let query = (supabase as any)
+      // Build query: show active contacts by default, sorted by favorites then recent
+      let query = supabase
         .from('profiles')
-        .select('id, first_name, last_name, avatar_url')
+        .select('id, first_name, last_name, avatar_url, is_favorite, is_active, updated_at')
         .eq('user_id', user.id)
+        .eq('is_active', true) // Only show active contacts by default
+        .order('is_favorite', { ascending: false })
+        .order('updated_at', { ascending: false, nullsFirst: false })
         .order('first_name', { ascending: true })
         .limit(50);
 
+      // If user is searching, also search inactive contacts
       if (searchQuery) {
-        query = query.or(`first_name.ilike.%${searchQuery}%,last_name.ilike.%${searchQuery}%`);
+        query = supabase
+          .from('profiles')
+          .select('id, first_name, last_name, avatar_url, is_favorite, is_active, updated_at')
+          .eq('user_id', user.id)
+          .or(`first_name.ilike.%${searchQuery}%,last_name.ilike.%${searchQuery}%`)
+          .order('is_active', { ascending: false }) // Active first
+          .order('is_favorite', { ascending: false })
+          .order('updated_at', { ascending: false, nullsFirst: false })
+          .limit(50);
       }
 
       const { data, error } = await query;
