@@ -393,36 +393,29 @@ export function usePersistentBulkSession({
         timeoutPromise
       ]);
 
-      // Upload mosaic to storage temporarily
-      setProcessingStatus("Uploading mosaic for analysis...");
-      const mosaicPath = `temp-mosaics/${activeSession.id}/${mosaic.mosaicId}.jpg`;
-      const { error: uploadError } = await supabase.storage
-        .from("media")
-        .upload(mosaicPath, mosaic.imageBlob, { contentType: 'image/jpeg', upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      // Get signed URL for mosaic
-      const { data: mosaicSignedData } = await supabase.storage
-        .from("media")
-        .createSignedUrl(mosaicPath, 3600);
-
-      if (!mosaicSignedData?.signedUrl) throw new Error("Failed to get mosaic URL");
-
-      // Call the mosaic analysis edge function
+      // Call the mosaic analysis edge function with base64 data URL directly
+      // This bypasses storage RLS issues by not uploading to temp storage
       setProcessingStatus(`Analyzing ${mediaItems.length} images via mosaic...`);
       const startTime = Date.now();
+
+      console.log('[BulkSession] Sending mosaic to edge function:', {
+        mosaicId: mosaic.mosaicId,
+        cellCount: mosaic.cells.length,
+        gridCols: mosaic.gridCols,
+        gridRows: mosaic.gridRows,
+        imageDataUrlLength: mosaic.imageDataUrl?.length || 0,
+      });
 
       const { data: analysisResult, error: analysisError } = await supabase.functions.invoke(
         "generate-media-metadata-mosaic",
         {
           body: {
-            mosaicUrl: mosaicSignedData.signedUrl,
+            mosaicImageUrl: mosaic.imageDataUrl, // Send base64 data URL directly
             mosaicId: mosaic.mosaicId,
             cells: mosaic.cells,
+            gridCols: mosaic.gridCols,
+            gridRows: mosaic.gridRows,
             model: 'google/gemini-2.5-flash',
-            analysisModes: activeSession.analysisModes,
-            context: activeSession.analysisContext,
           },
         }
       );
@@ -455,9 +448,6 @@ export function usePersistentBulkSession({
           p_is_failed: false,
         });
       }
-
-      // Clean up temp mosaic
-      await supabase.storage.from("media").remove([mosaicPath]);
 
       return { processed: batchToProcess.length, cost: costCents };
     } catch (error) {
