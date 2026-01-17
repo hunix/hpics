@@ -20,11 +20,11 @@ export const METADATA_MODEL_SPECS: Record<string, MetadataMosaicSpec> = {
     maxImages: 100, // 10x10 grid
   },
   'google/gemini-2.5-flash': {
-    maxWidth: 3072,
-    maxHeight: 3072,
-    minCellWidth: 384,
-    minCellHeight: 384,
-    maxImages: 64, // 8x8 grid
+    maxWidth: 2048,
+    maxHeight: 2048,
+    minCellWidth: 320,
+    minCellHeight: 320,
+    maxImages: 36, // 6x6 grid - reduced to keep payload under edge function limits
   },
   'google/gemini-2.5-flash-lite': {
     maxWidth: 2048,
@@ -283,13 +283,13 @@ export async function generateMetadataMosaic(
     }
   }
   
-  // Convert to data URL and blob
-  const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+  // Convert to data URL and blob with reduced quality to keep payload under edge function limits
+  const imageDataUrl = canvas.toDataURL('image/jpeg', 0.75);
   const imageBlob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
       (blob) => blob ? resolve(blob) : reject(new Error('Failed to create blob')),
       'image/jpeg',
-      0.85
+      0.75
     );
   });
   

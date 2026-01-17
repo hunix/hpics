@@ -431,14 +431,46 @@ export function usePersistentBulkSession({
       });
 
       // With background processing, the edge function returns immediately with status: 'processing'
-      // The actual results will be updated directly in the database by the background task
+      // Poll for completion before moving to next batch
       if (analysisResult?.status === 'processing') {
-        // Items are being processed in background - don't wait for completion here
-        // The background task will update bulk_analysis_items directly when done
-        console.log('[BulkSession] Mosaic processing in background, items will be updated automatically');
+        console.log('[BulkSession] Mosaic submitted for background processing, polling for completion...');
         
-        // Return without marking as complete - the background process handles that
-        return { processed: batchToProcess.length, cost: 0 };
+        const POLL_INTERVAL = 3000; // 3 seconds
+        const POLL_TIMEOUT = 180000; // 3 minutes max
+        const pollStart = Date.now();
+        
+        while (Date.now() - pollStart < POLL_TIMEOUT) {
+          await new Promise(r => setTimeout(r, POLL_INTERVAL));
+          
+          // Check if all items in this batch are completed or failed
+          const { data: itemStatuses } = await supabase
+            .from('bulk_analysis_items')
+            .select('status')
+            .in('id', itemIds);
+          
+          const allDone = itemStatuses?.every(i => 
+            i.status === 'completed' || i.status === 'failed'
+          );
+          
+          if (allDone) {
+            console.log('[BulkSession] Background mosaic processing completed');
+            const completedCount = itemStatuses?.filter(i => i.status === 'completed').length || 0;
+            return { processed: completedCount, cost: 0 };
+          }
+          
+          const elapsed = Math.round((Date.now() - pollStart) / 1000);
+          setProcessingStatus(`Waiting for mosaic processing... ${elapsed}s`);
+        }
+        
+        // Timeout reached - check final status
+        console.warn('[BulkSession] Mosaic polling timed out after 3 minutes');
+        const { data: finalStatuses } = await supabase
+          .from('bulk_analysis_items')
+          .select('status')
+          .in('id', itemIds);
+        
+        const completedCount = finalStatuses?.filter(i => i.status === 'completed').length || 0;
+        return { processed: completedCount, cost: 0 };
       }
 
       // Fallback for legacy synchronous response
@@ -624,6 +656,19 @@ export function usePersistentBulkSession({
         console.log('[BulkSession] Reset', stuckItems.length, 'stuck items to pending');
       }
 
+      // Reset pending items that have error messages (failed but not retried)
+      const { data: failedPendingItems } = await supabase
+        .from("bulk_analysis_items")
+        .update({ status: "pending", error_message: null })
+        .eq("session_id", activeSession.id)
+        .eq("status", "pending")
+        .not("error_message", "is", null)
+        .select("id");
+
+      if (failedPendingItems && failedPendingItems.length > 0) {
+        console.log('[BulkSession] Reset', failedPendingItems.length, 'failed pending items for retry');
+      }
+
       // Get all pending items
       const { data: allPendingItems } = await supabase
         .from("bulk_analysis_items")
@@ -650,7 +695,7 @@ export function usePersistentBulkSession({
 
       if (shouldUseMosaic) {
         // Process images in batches using mosaic
-        const BATCH_SIZE = 64; // Max images per mosaic
+        const BATCH_SIZE = 32; // Reduced to keep payload under edge function limits (~6MB)
         setProcessingStatus(`Processing ${imageItems.length} images with mosaic optimization...`);
 
         for (let i = 0; i < imageItems.length; i += BATCH_SIZE) {
