@@ -1,7 +1,8 @@
 // AGIS Phase Configuration - Single Source of Truth
 import { 
   Brain, Shield, Target, Eye, Zap, Sparkles, Atom, Infinity,
-  Crown, Globe, Star, Sun, Moon, Flame, Diamond, Orbit, Waves, CircleDot
+  Crown, Globe, Star, Sun, Moon, Flame, Diamond, Orbit, Waves, CircleDot,
+  Network
 } from 'lucide-react';
 
 export interface PhaseConfig {
@@ -257,6 +258,32 @@ export const PHASE_CONFIGS: Record<number, PhaseConfig> = {
     healthThresholds: { critical: 25, degraded: 50, stable: 75, optimal: 90 },
     dependencies: [16, 17],
     capabilities: ['omega_culmination', 'ultimate_omega_state'],
+  },
+  19: {
+    id: 19,
+    name: 'Unified Supremacy',
+    shortName: 'Supremacy',
+    description: 'Master orchestration and cross-phase cascade control',
+    icon: Zap,
+    color: 'hsl(220 80% 55%)',
+    bgColor: 'hsl(220 80% 55% / 0.1)',
+    borderColor: 'hsl(220 80% 55% / 0.3)',
+    healthThresholds: { critical: 25, degraded: 50, stable: 75, optimal: 90 },
+    dependencies: [17, 18],
+    capabilities: ['cascade_orchestration', 'global_command', 'phase_unification'],
+  },
+  20: {
+    id: 20,
+    name: 'Transcendent Consciousness',
+    shortName: 'Transcend',
+    description: 'Quantum cognition, collective unconscious, and omega convergence',
+    icon: Brain,
+    color: 'hsl(280 80% 55%)',
+    bgColor: 'hsl(280 80% 55% / 0.1)',
+    borderColor: 'hsl(280 80% 55% / 0.3)',
+    healthThresholds: { critical: 25, degraded: 50, stable: 75, optimal: 90 },
+    dependencies: [18, 19],
+    capabilities: ['quantum_cognition', 'morphic_resonance', 'collective_unconscious', 'synchronicity', 'precognitive_patterns', 'egregore_cultivation', 'mass_formation', 'akashic_records', 'psychic_resonance', 'reality_consensus', 'karmic_patterns', 'omega_convergence'],
   },
 };
 
