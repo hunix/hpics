@@ -1,8 +1,8 @@
 // App Version Management for Cache Busting
 // This version should be incremented with each significant update
 
-export const APP_VERSION = '2.5.0';
-export const BUILD_TIMESTAMP = '2025-01-17T12:00:00Z';
+export const APP_VERSION = '2.6.0';
+export const BUILD_TIMESTAMP = '2026-01-17T21:00:00Z';
 
 // Version check utilities
 export function getStoredVersion(): string | null {
