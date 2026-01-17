@@ -30388,28 +30388,6 @@ export type Database = {
         Returns: Json
       }
       refresh_contact_storage_stats: { Args: never; Returns: undefined }
-      search_contacts_v2: {
-        Args: {
-          p_is_favorite?: boolean
-          p_limit?: number
-          p_offset?: number
-          p_relationship_type?: string
-          p_search_query?: string
-          p_user_id: string
-        }
-        Returns: {
-          avatar_url: string
-          first_name: string
-          id: string
-          is_favorite: boolean
-          job_title: string
-          last_name: string
-          organization: string
-          relationship_type: string
-          tags: string[]
-          total_count: number
-        }[]
-      }
       search_contacts_v5: {
         Args: {
           p_first_letter?: string

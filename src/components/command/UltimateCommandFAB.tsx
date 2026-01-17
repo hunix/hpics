@@ -3,24 +3,13 @@
  * Floating action button for quick access to command center
  */
 
-/**
- * Ultimate Command FAB
- * Floating action button for quick access to command center
- */
-
-import { useState, forwardRef } from 'react';
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Button, ButtonProps } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
-import { Crown, Target, Shield, Brain, X, LucideIcon } from 'lucide-react';
+import { Crown, Target, Shield, Brain, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-// Forward ref button for AnimatePresence compatibility
-const MotionButton = forwardRef<HTMLButtonElement, ButtonProps & { className?: string }>(
-  (props, ref) => <Button ref={ref} {...props} />
-);
-MotionButton.displayName = 'MotionButton';
 
 const QUICK_ACTIONS = [
   { id: 'power', icon: Crown, label: 'Power Matrix', tab: 'power', color: 'text-amber-500' },
@@ -54,31 +43,34 @@ export function UltimateCommandFAB() {
     <TooltipProvider>
       <div className="fixed bottom-24 right-4 z-50 flex flex-col-reverse items-center gap-2 md:bottom-6 md:right-24">
         <AnimatePresence>
-          {isExpanded && QUICK_ACTIONS.map((action, index) => (
-            <motion.div
-              key={action.id}
-              initial={{ opacity: 0, scale: 0, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0, y: 20 }}
-              transition={{ delay: index * 0.05 }}
-            >
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <MotionButton
-                    size="icon"
-                    variant="secondary"
-                    className="h-10 w-10 rounded-full shadow-lg border bg-card hover:bg-muted"
-                    onClick={() => handleQuickAction(action.tab)}
-                  >
-                    <action.icon className={cn('h-4 w-4', action.color)} />
-                  </MotionButton>
-                </TooltipTrigger>
-                <TooltipContent side="left" className="font-medium">
-                  {action.label}
-                </TooltipContent>
-              </Tooltip>
-            </motion.div>
-          ))}
+          {isExpanded && QUICK_ACTIONS.map((action, index) => {
+            const IconComponent = action.icon;
+            return (
+              <motion.div
+                key={action.id}
+                initial={{ opacity: 0, scale: 0, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0, y: 20 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      className="h-10 w-10 rounded-full shadow-lg border bg-card hover:bg-muted"
+                      onClick={() => handleQuickAction(action.tab)}
+                    >
+                      <IconComponent className={cn('h-4 w-4', action.color)} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" className="font-medium">
+                    {action.label}
+                  </TooltipContent>
+                </Tooltip>
+              </motion.div>
+            );
+          })}
         </AnimatePresence>
 
         {/* Main FAB */}
@@ -99,29 +91,11 @@ export function UltimateCommandFAB() {
                 )}
                 onClick={handleMainClick}
               >
-                <AnimatePresence mode="wait">
-                  {isExpanded ? (
-                    <motion.div
-                      key="close"
-                      initial={{ rotate: -90, opacity: 0 }}
-                      animate={{ rotate: 0, opacity: 1 }}
-                      exit={{ rotate: 90, opacity: 0 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      <X className="h-6 w-6 text-white" />
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="crown"
-                      initial={{ rotate: 90, opacity: 0 }}
-                      animate={{ rotate: 0, opacity: 1 }}
-                      exit={{ rotate: -90, opacity: 0 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      <Crown className="h-6 w-6 text-white" />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {isExpanded ? (
+                  <X className="h-6 w-6 text-white" />
+                ) : (
+                  <Crown className="h-6 w-6 text-white" />
+                )}
               </Button>
             </TooltipTrigger>
             <TooltipContent side="left" className="font-medium">
