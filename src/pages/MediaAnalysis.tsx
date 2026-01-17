@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
@@ -36,6 +36,7 @@ import { ProcessingStrategySelector } from "@/components/analysis/ProcessingStra
 import { usePersistentBulkSession, type ProcessingStrategy } from "@/hooks/usePersistentBulkSession";
 import { estimateBulkCost } from "@/lib/bulkAnalysisPrioritization";
 import { useMutation } from "@tanstack/react-query";
+import { getSignedUrls } from "@/hooks/useSignedUrl";
 
 const mediaTypeConfig = {
   image: { icon: Image, label: 'Images', color: 'text-blue-500' },
@@ -60,6 +61,7 @@ export default function MediaAnalysis() {
   const [maxBudget, setMaxBudget] = useState<number | undefined>(undefined);
   const [recoveredSession, setRecoveredSession] = useState<ReturnType<typeof usePersistentBulkSession>['session']>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isPreparingUrls, setIsPreparingUrls] = useState(false);
 
   // Online/offline detection
   useEffect(() => {
@@ -229,15 +231,53 @@ export default function MediaAnalysis() {
       return;
     }
 
+    console.log('[MediaAnalysis] Starting bulk analysis with', selectedItems.length, 'items');
+
+    // Fetch signed URLs for items with storagePath
+    setIsPreparingUrls(true);
+    let itemsWithUrls = selectedItems;
+    
+    try {
+      const mediaPathsToSign = selectedItems
+        .filter(item => item.storagePath && !item.isDocument)
+        .map(item => item.storagePath!);
+      
+      const documentPathsToSign = selectedItems
+        .filter(item => item.storagePath && item.isDocument)
+        .map(item => item.storagePath!);
+
+      const [mediaUrls, documentUrls] = await Promise.all([
+        mediaPathsToSign.length > 0 ? getSignedUrls('media', mediaPathsToSign) : Promise.resolve(new Map<string, string>()),
+        documentPathsToSign.length > 0 ? getSignedUrls('documents', documentPathsToSign) : Promise.resolve(new Map<string, string>()),
+      ]);
+
+      // Map signed URLs back to items
+      itemsWithUrls = selectedItems.map(item => {
+        if (!item.storagePath) return item;
+        const urlMap = item.isDocument ? documentUrls : mediaUrls;
+        const signedUrl = urlMap.get(item.storagePath);
+        return signedUrl ? { ...item, url: signedUrl } : item;
+      });
+
+      console.log('[MediaAnalysis] Resolved', mediaUrls.size + documentUrls.size, 'signed URLs');
+    } catch (error) {
+      console.error('[MediaAnalysis] Error fetching signed URLs:', error);
+      toast.error('Failed to prepare files. Please try again.');
+      setIsPreparingUrls(false);
+      return;
+    }
+    
+    setIsPreparingUrls(false);
+
     const session = await bulkSession.initSession(
-      selectedItems.map(item => ({
+      itemsWithUrls.map(item => ({
         id: item.id,
         mediaId: item.isDocument ? undefined : item.id,
         documentId: item.isDocument ? item.id : undefined,
         profileId: selectedContact,
         mediaType: item.type,
         url: item.url,
-        storagePath: undefined,
+        storagePath: item.storagePath,
         name: item.name,
         size: item.size,
         createdAt: item.created_at,
@@ -555,9 +595,14 @@ export default function MediaAnalysis() {
                         className="w-full h-12"
                         size="lg"
                         onClick={handleStartBulkAnalysis}
-                        disabled={bulkSession.isLoading}
+                        disabled={bulkSession.isLoading || isPreparingUrls}
                       >
-                        {bulkSession.isLoading ? (
+                        {isPreparingUrls ? (
+                          <>
+                            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                            Preparing files...
+                          </>
+                        ) : bulkSession.isLoading ? (
                           <>
                             <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                             Creating Session...

@@ -146,7 +146,8 @@ export function MediaTypeBrowserMultiSelect({
     return mediaFiles?.filter(f => selectedIds.includes(f.id)) || [];
   }, [mediaFiles, selectedIds]);
 
-  const handleToggle = useCallback(async (item: MediaItem) => {
+  // Instant toggle - no URL fetching, deferred to analysis time
+  const handleToggle = useCallback((item: MediaItem) => {
     const isSelected = selectedIds.includes(item.id);
     
     if (isSelected) {
@@ -155,33 +156,16 @@ export function MediaTypeBrowserMultiSelect({
       if (selectedIds.length >= maxSelection) {
         return; // Max selection reached
       }
-      
-      // Get signed URL
-      const bucket = item.isDocument ? 'documents' : 'media';
-      let signedUrl = item.url;
-      
-      if (item.storagePath) {
-        const { data } = await supabase.storage.from(bucket).createSignedUrl(item.storagePath, 3600);
-        signedUrl = data?.signedUrl || item.url;
-      }
-      
-      onSelectionChange([...selectedItems, { ...item, url: signedUrl }]);
+      // Pass item with storagePath - URL will be resolved at analysis time
+      onSelectionChange([...selectedItems, item]);
     }
   }, [selectedIds, selectedItems, maxSelection, onSelectionChange]);
 
-  const selectAll = async () => {
+  // Instant select all - no URL fetching
+  const selectAll = () => {
     const toSelect = filteredFiles.slice(0, maxSelection);
-    const bucket = mediaType === 'document' ? 'documents' : 'media';
-    
-    const withUrls = await Promise.all(toSelect.map(async (item) => {
-      if (item.storagePath) {
-        const { data } = await supabase.storage.from(bucket).createSignedUrl(item.storagePath, 3600);
-        return { ...item, url: data?.signedUrl || item.url };
-      }
-      return item;
-    }));
-    
-    onSelectionChange(withUrls);
+    console.log('[MediaBrowser] selectAll:', toSelect.length, 'items');
+    onSelectionChange(toSelect);
   };
 
   const clearSelection = () => {
