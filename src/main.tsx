@@ -8,11 +8,13 @@ import {
   getStoredVersion, 
   setStoredVersion, 
   clearAllCaches,
-  isVersionMismatch 
 } from "@/lib/appVersion";
 
 // Initialize chunk error handler for deployment resilience
 initChunkErrorHandler();
+
+// Versions that had known issues and need forced cache clear
+const FORCE_CLEAR_VERSIONS = ['2.5.0', '2.4.0', '2.3.0', '2.2.0', '2.1.0', '2.0.0'];
 
 // Version-based cache busting for PWA/Native apps
 const initVersionCheck = async () => {
@@ -21,10 +23,30 @@ const initVersionCheck = async () => {
   
   console.log(`[AppVersion] Current: ${APP_VERSION}, Stored: ${storedVersion}, Native: ${isNative}`);
   
-  // If version mismatch detected, clear caches and reload
-  if (storedVersion && storedVersion !== APP_VERSION) {
-    console.log('[AppVersion] Version mismatch detected, clearing caches...');
+  // Force clear if coming from a problematic version
+  const shouldForceClear = storedVersion && FORCE_CLEAR_VERSIONS.includes(storedVersion);
+  
+  // If version mismatch or force clear needed
+  if (storedVersion && (storedVersion !== APP_VERSION || shouldForceClear)) {
+    console.log('[AppVersion] Version mismatch or force clear detected, clearing all caches...');
     await clearAllCaches();
+    
+    // For native apps, also aggressively clear storage
+    if (isNative) {
+      try {
+        // Clear session storage
+        sessionStorage.clear();
+        // Clear specific app caches from localStorage (keep auth)
+        const keysToRemove = Object.keys(localStorage).filter(
+          key => !key.startsWith('sb-') && key !== 'app_version'
+        );
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        console.log(`[AppVersion] Native: Cleared ${keysToRemove.length} localStorage keys`);
+      } catch (e) {
+        console.warn('[AppVersion] Failed to clear storage:', e);
+      }
+    }
+    
     setStoredVersion(APP_VERSION);
     window.location.reload();
     return false; // Don't render yet, reloading

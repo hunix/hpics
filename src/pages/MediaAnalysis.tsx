@@ -93,6 +93,25 @@ export default function MediaAnalysis() {
         const existingSession = await bulkSession.checkExistingSession();
         if (existingSession) {
           console.log('[MediaAnalysis] Found existing session:', existingSession.id, 'status:', existingSession.status);
+          
+          // Double-check session actually exists and isn't stale/cancelled in DB
+          const { data: freshCheck, error: fetchError } = await supabase
+            .from('bulk_analysis_sessions')
+            .select('status, completed_at')
+            .eq('id', existingSession.id)
+            .single();
+          
+          if (fetchError || !freshCheck) {
+            console.log('[MediaAnalysis] Session not found in DB, ignoring');
+            return;
+          }
+          
+          // Ignore cancelled or completed sessions
+          if (freshCheck.status === 'cancelled' || freshCheck.status === 'completed') {
+            console.log('[MediaAnalysis] Session is cancelled/completed, ignoring');
+            return;
+          }
+          
           setIsBulkMode(true);
           
           if (existingSession.status === 'running') {
