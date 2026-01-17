@@ -21,7 +21,7 @@ serve(async (req) => {
     // Fetch Google Calendar configs with auto-sync enabled
     const { data: googleConfigs, error: googleError } = await supabase
       .from("google_calendar_config")
-      .select("user_id, last_synced_at, sync_interval_minutes, auto_sync_enabled")
+      .select("user_id, last_sync_at, sync_interval_minutes, auto_sync_enabled")
       .eq("auto_sync_enabled", true);
 
     if (googleError) {
@@ -48,7 +48,7 @@ serve(async (req) => {
 
     // Process Google Calendar syncs
     for (const config of googleConfigs || []) {
-      const lastSync = config.last_synced_at ? new Date(config.last_synced_at) : new Date(0);
+      const lastSync = config.last_sync_at ? new Date(config.last_sync_at) : new Date(0);
       const intervalMs = (config.sync_interval_minutes || 60) * 60 * 1000;
       
       if (now.getTime() - lastSync.getTime() >= intervalMs) {

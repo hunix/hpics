@@ -42,39 +42,35 @@ export function UltimateCommandFAB() {
   return (
     <TooltipProvider>
       <div className="fixed bottom-24 right-4 z-50 flex flex-col-reverse items-center gap-2 md:bottom-6 md:right-24">
-        <AnimatePresence mode="wait">
-          {isExpanded && (
-            <>
-              {QUICK_ACTIONS.map((action, index) => {
-                const IconComponent = action.icon;
-                return (
-                  <motion.div
-                    key={action.id}
-                    initial={{ opacity: 0, scale: 0, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0, y: 20 }}
-                    transition={{ delay: index * 0.05 }}
-                  >
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          size="icon"
-                          variant="secondary"
-                          className="h-10 w-10 rounded-full shadow-lg border bg-card hover:bg-muted"
-                          onClick={() => handleQuickAction(action.tab)}
-                        >
-                          <IconComponent className={cn('h-4 w-4', action.color)} />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="left" className="font-medium">
-                        {action.label}
-                      </TooltipContent>
-                    </Tooltip>
-                  </motion.div>
-                );
-              })}
-            </>
-          )}
+        <AnimatePresence>
+          {isExpanded && QUICK_ACTIONS.map((action, index) => {
+            const IconComponent = action.icon;
+            return (
+              <motion.div
+                key={action.id}
+                initial={{ opacity: 0, scale: 0, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0, y: 20 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      className="h-10 w-10 rounded-full shadow-lg border bg-card hover:bg-muted"
+                      onClick={() => handleQuickAction(action.tab)}
+                    >
+                      <IconComponent className={cn('h-4 w-4', action.color)} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" className="font-medium">
+                    {action.label}
+                  </TooltipContent>
+                </Tooltip>
+              </motion.div>
+            );
+          })}
         </AnimatePresence>
 
         {/* Main FAB */}
