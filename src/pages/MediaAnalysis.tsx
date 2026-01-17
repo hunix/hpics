@@ -283,6 +283,7 @@ export default function MediaAnalysis() {
   return (
     <AppLayout>
       <div className="container max-w-7xl py-6 space-y-6">
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">
@@ -295,14 +296,14 @@ export default function MediaAnalysis() {
           </div>
           
           {/* Bulk Mode Toggle */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-muted/50">
             <Switch 
               id="bulk-mode" 
               checked={isBulkMode} 
               onCheckedChange={handleBulkModeToggle}
               disabled={showBulkProgress}
             />
-            <Label htmlFor="bulk-mode" className="flex items-center gap-2 cursor-pointer">
+            <Label htmlFor="bulk-mode" className="flex items-center gap-2 cursor-pointer font-medium">
               <ListChecks className="h-4 w-4" />
               Bulk Mode
             </Label>
@@ -332,20 +333,21 @@ export default function MediaAnalysis() {
           />
         )}
 
+        {/* Main Content - 2 Column Layout */}
         <div className="grid grid-cols-12 gap-6">
-          {/* Left Panel - Configuration */}
-          <div className="col-span-4 space-y-4">
+          {/* Left Sidebar - Configuration */}
+          <div className="col-span-3 space-y-4">
             {/* Contact Selection */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Select Contact</CardTitle>
+                <CardTitle className="text-sm font-medium">Contact</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0">
                 <ContactPicker
                   contacts={contacts || []}
                   selectedId={selectedContact}
                   onSelect={setSelectedContact}
-                  placeholder="Search contacts..."
+                  placeholder="Select contact..."
                 />
               </CardContent>
             </Card>
@@ -353,23 +355,23 @@ export default function MediaAnalysis() {
             {/* Media Type Tabs */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Media Type</CardTitle>
+                <CardTitle className="text-sm font-medium">Media Type</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-4 gap-2">
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-2 gap-2">
                   {(Object.keys(mediaTypeConfig) as MediaType[]).map((type) => {
                     const config = mediaTypeConfig[type];
-                    const Icon = config.icon;
+                    const TypeIcon = config.icon;
                     return (
                       <Button
                         key={type}
                         variant={mediaType === type ? "default" : "outline"}
-                        className="flex flex-col h-16 gap-1"
+                        className="flex items-center gap-2 h-10 justify-start"
                         onClick={() => handleMediaTypeChange(type)}
                         disabled={showBulkProgress}
                       >
-                        <Icon className={cn("h-5 w-5", mediaType !== type && config.color)} />
-                        <span className="text-xs">{config.label}</span>
+                        <TypeIcon className={cn("h-4 w-4", mediaType !== type && config.color)} />
+                        <span className="text-sm">{config.label}</span>
                       </Button>
                     );
                   })}
@@ -377,28 +379,76 @@ export default function MediaAnalysis() {
               </CardContent>
             </Card>
 
-            {/* Media Browser */}
-            {selectedContact && (
+            {/* Context Configuration */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Context & Depth</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <AnalysisContextSelector
+                  context={context}
+                  onContextChange={setContext}
+                  depth={depth}
+                  onDepthChange={setDepth}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Budget Input for Bulk Mode */}
+            {isBulkMode && !showBulkProgress && (
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <MediaIcon className={cn("h-4 w-4", mediaTypeConfig[mediaType].color)} />
-                    Select {mediaTypeConfig[mediaType].label}
-                    {isBulkMode && (
-                      <Badge variant="secondary" className="ml-auto">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <DollarSign className="h-4 w-4" />
+                    Budget Limit
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="space-y-2">
+                    <Input
+                      type="number"
+                      placeholder="No limit (cents)"
+                      value={maxBudget || ''}
+                      onChange={(e) => setMaxBudget(e.target.value ? parseInt(e.target.value) : undefined)}
+                      className="h-9"
+                    />
+                    {maxBudget && (
+                      <p className="text-xs text-muted-foreground">
+                        ${(maxBudget / 100).toFixed(2)} max spend
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Main Content Area */}
+          <div className="col-span-9 space-y-4">
+            {/* Media Browser - Much Larger */}
+            {selectedContact ? (
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <MediaIcon className={cn("h-4 w-4", mediaTypeConfig[mediaType].color)} />
+                      {isBulkMode ? 'Select Files' : 'Choose File'}
+                    </CardTitle>
+                    {isBulkMode && selectedItems.length > 0 && (
+                      <Badge variant="default">
                         {selectedItems.length} selected
                       </Badge>
                     )}
-                  </CardTitle>
+                  </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-0">
                   {isBulkMode ? (
                     <MediaTypeBrowserMultiSelect
                       profileId={selectedContact}
                       mediaType={mediaType}
                       selectedIds={selectedItems.map(i => i.id)}
                       onSelectionChange={setSelectedItems}
-                      maxSelection={50}
+                      maxSelection={500}
                     />
                   ) : (
                     <MediaTypeBrowser
@@ -413,199 +463,189 @@ export default function MediaAnalysis() {
                   )}
                 </CardContent>
               </Card>
+            ) : (
+              <Card>
+                <CardContent className="py-16">
+                  <div className="flex flex-col items-center justify-center text-center text-muted-foreground">
+                    <Brain className="h-16 w-16 mb-4 opacity-30" />
+                    <p className="font-medium text-lg">Select a contact to begin</p>
+                    <p className="text-sm mt-1">Choose a contact from the sidebar to view and analyze their media files</p>
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
-            {/* Context Configuration */}
+            {/* Analysis Modes - Horizontal Compact */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Analysis Context</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <AnalysisContextSelector
-                  context={context}
-                  onContextChange={setContext}
-                  depth={depth}
-                  onDepthChange={setDepth}
-                />
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Middle Panel - Analysis Modes */}
-          <div className="col-span-4 space-y-4">
-            <Card className="h-full">
-              <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm">Analysis Modes</CardTitle>
+                  <CardTitle className="text-sm font-medium">Analysis Modes</CardTitle>
                   <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={selectAllModes}>
-                      Select All
+                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={selectAllModes}>
+                      All
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={clearModes}>
-                      Clear
+                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={clearModes}>
+                      None
                     </Button>
                   </div>
                 </div>
-                <CardDescription>
-                  Select which analyses to run on your {mediaType}
-                </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
+              <CardContent className="pt-0">
+                <div className="flex flex-wrap gap-2">
                   {availableModes.map((mode) => {
                     const isSelected = selectedModes.includes(mode.key);
                     return (
-                      <div
+                      <Badge
                         key={mode.key}
+                        variant={isSelected ? "default" : "outline"}
                         className={cn(
-                          "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all",
-                          isSelected ? "border-primary bg-primary/5" : "hover:bg-accent"
+                          "cursor-pointer py-1.5 px-3 text-sm transition-all",
+                          isSelected ? "bg-primary hover:bg-primary/90" : "hover:bg-accent"
                         )}
                         onClick={() => toggleMode(mode.key)}
                       >
-                        <div className={cn(
-                          "h-5 w-5 rounded border flex items-center justify-center mt-0.5",
-                          isSelected ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground"
-                        )}>
-                          {isSelected && <Check className="h-3 w-3" />}
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-medium text-sm">{mode.name}</h4>
-                          <p className="text-xs text-muted-foreground">{mode.description}</p>
-                        </div>
-                      </div>
+                        {isSelected && <Check className="h-3 w-3 mr-1.5" />}
+                        {mode.name}
+                      </Badge>
                     );
                   })}
                 </div>
+                {selectedModes.length > 0 && (
+                  <p className="text-xs text-muted-foreground mt-3">
+                    {selectedModes.length} mode{selectedModes.length !== 1 ? 's' : ''} selected
+                  </p>
+                )}
+              </CardContent>
+            </Card>
 
-                {/* Cost Estimator for Bulk Mode */}
-                {isBulkMode && costEstimate && !showBulkProgress && (
-                  <div className="mt-4 space-y-3">
+            {/* Cost Estimate & Action Button Row */}
+            <div className="flex items-stretch gap-4">
+              {/* Cost Estimator */}
+              {isBulkMode && costEstimate && !showBulkProgress && (
+                <Card className="flex-1">
+                  <CardContent className="py-4">
                     <BulkCostEstimator 
                       estimate={costEstimate}
                       maxBudget={maxBudget}
                     />
-                    
-                    {/* Budget Input */}
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      <Label htmlFor="max-budget" className="text-sm whitespace-nowrap">
-                        Max Budget (¢):
-                      </Label>
-                      <Input
-                        id="max-budget"
-                        type="number"
-                        placeholder="No limit"
-                        value={maxBudget || ''}
-                        onChange={(e) => setMaxBudget(e.target.value ? parseInt(e.target.value) : undefined)}
-                        className="h-8 w-24"
-                      />
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Action Button */}
+              <Card className={cn("flex items-center justify-center", !costEstimate && "flex-1")}>
+                <CardContent className="py-4 px-6 w-full">
+                  {isBulkMode ? (
+                    selectedItems.length > 0 && selectedModes.length > 0 && !showBulkProgress ? (
+                      <Button
+                        className="w-full h-12"
+                        size="lg"
+                        onClick={handleStartBulkAnalysis}
+                        disabled={bulkSession.isLoading}
+                      >
+                        {bulkSession.isLoading ? (
+                          <>
+                            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                            Creating Session...
+                          </>
+                        ) : (
+                          <>
+                            <Play className="h-5 w-5 mr-2" />
+                            Start Bulk Analysis ({selectedItems.length} files)
+                          </>
+                        )}
+                      </Button>
+                    ) : (
+                      <div className="text-center py-2 text-muted-foreground">
+                        <p className="text-sm">
+                          {!selectedItems.length && !selectedModes.length
+                            ? 'Select files and analysis modes'
+                            : !selectedItems.length
+                              ? 'Select files to analyze'
+                              : 'Select analysis modes'}
+                        </p>
+                      </div>
+                    )
+                  ) : (
+                    selectedMedia && selectedModes.length > 0 ? (
+                      <Button
+                        className="w-full h-12"
+                        size="lg"
+                        onClick={() => analysisMutation.mutate()}
+                        disabled={analysisMutation.isPending}
+                      >
+                        {analysisMutation.isPending ? (
+                          <>
+                            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                            Analyzing...
+                          </>
+                        ) : (
+                          <>
+                            <Play className="h-5 w-5 mr-2" />
+                            Analyze {mediaTypeConfig[mediaType].label.slice(0, -1)} ({selectedModes.length} modes)
+                          </>
+                        )}
+                      </Button>
+                    ) : (
+                      <div className="text-center py-2 text-muted-foreground">
+                        <p className="text-sm">
+                          {!selectedMedia && !selectedModes.length
+                            ? 'Select a file and analysis modes'
+                            : !selectedMedia
+                              ? 'Select a file to analyze'
+                              : 'Select analysis modes'}
+                        </p>
+                      </div>
+                    )
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Results Panel */}
+            {(analysisResults?.results || (isBulkMode && showBulkProgress)) && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium">Analysis Results</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  {analysisResults?.results ? (
+                    <MediaAnalysisResults
+                      results={analysisResults.results}
+                      mediaType={mediaType}
+                      processingTime={analysisResults.processing_time_ms}
+                      estimatedCost={analysisResults.estimated_cost_cents}
+                    />
+                  ) : isBulkMode && showBulkProgress ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
+                      <AlertCircle className="h-10 w-10 mb-3 opacity-50" />
+                      <p className="font-medium">Bulk analysis in progress</p>
+                      <p className="text-sm mt-1">
+                        Results are saved automatically to each file
+                      </p>
                     </div>
-                  </div>
-                )}
-
-                {/* Action Button */}
-                {isBulkMode ? (
-                  selectedItems.length > 0 && selectedModes.length > 0 && !showBulkProgress && (
-                    <Button
-                      className="w-full mt-4"
-                      size="lg"
-                      onClick={handleStartBulkAnalysis}
-                      disabled={bulkSession.isLoading}
-                    >
-                      {bulkSession.isLoading ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Creating Session...
-                        </>
-                      ) : (
-                        <>
-                          <Play className="h-4 w-4 mr-2" />
-                          Start Bulk Analysis ({selectedItems.length} files)
-                        </>
-                      )}
-                    </Button>
-                  )
-                ) : (
-                  selectedMedia && selectedModes.length > 0 && (
-                    <Button
-                      className="w-full mt-4"
-                      size="lg"
-                      onClick={() => analysisMutation.mutate()}
-                      disabled={analysisMutation.isPending}
-                    >
-                      {analysisMutation.isPending ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Analyzing...
-                        </>
-                      ) : (
-                        <>
-                          <Play className="h-4 w-4 mr-2" />
-                          Run Analysis ({selectedModes.length} modes)
-                        </>
-                      )}
-                    </Button>
-                  )
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Right Panel - Results */}
-          <div className="col-span-4 space-y-4">
-            <Card className="h-full">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Analysis Results</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {analysisResults?.results ? (
-                  <MediaAnalysisResults
-                    results={analysisResults.results}
-                    mediaType={mediaType}
-                    processingTime={analysisResults.processing_time_ms}
-                    estimatedCost={analysisResults.estimated_cost_cents}
-                  />
-                ) : isBulkMode && showBulkProgress ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
-                    <AlertCircle className="h-12 w-12 mb-4 opacity-50" />
-                    <p className="font-medium">Bulk analysis in progress</p>
-                    <p className="text-sm mt-1">
-                      Results are saved automatically to each file
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
-                    <Brain className="h-12 w-12 mb-4 opacity-50" />
-                    <p className="font-medium">No analysis results yet</p>
-                    <p className="text-sm mt-1">
-                      {isBulkMode 
-                        ? 'Select files and analysis modes, then click "Start Bulk Analysis"'
-                        : 'Select media and analysis modes, then click "Run Analysis"'
-                      }
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  ) : null}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
 
         {/* Recent Analyses */}
         {recentAnalyses && recentAnalyses.length > 0 && (
           <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Recent Analyses</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium">Recent Analyses</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-5 gap-4">
-                {recentAnalyses.map((analysis: any) => {
-                  const Icon = mediaTypeConfig[analysis.media_type as MediaType]?.icon || FileText;
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-6 gap-3">
+                {recentAnalyses.slice(0, 6).map((analysis: any) => {
+                  const AnalysisIcon = mediaTypeConfig[analysis.media_type as MediaType]?.icon || FileText;
                   return (
-                    <Card key={analysis.id} className="cursor-pointer hover:bg-accent">
+                    <Card key={analysis.id} className="cursor-pointer hover:bg-accent transition-colors">
                       <CardContent className="p-3">
                         <div className="flex items-center gap-2 mb-2">
-                          <Icon className="h-4 w-4" />
+                          <AnalysisIcon className="h-4 w-4" />
                           <span className="text-xs font-medium capitalize">{analysis.media_type}</span>
                         </div>
                         <div className="flex flex-wrap gap-1">
