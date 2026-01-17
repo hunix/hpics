@@ -87,6 +87,8 @@ const AGISAnalytics = lazyWithRetry(() => import("./pages/AGISAnalytics"));
 const TranscendentConsciousnessCenter = lazyWithRetry(() => import("./pages/TranscendentConsciousnessCenter"));
 const UniversalOmniscienceCenter = lazyWithRetry(() => import("./pages/UniversalOmniscienceCenter"));
 const AbsoluteGenesisCenter = lazyWithRetry(() => import("./pages/AbsoluteGenesisCenter"));
+const AICostDashboard = lazyWithRetry(() => import("./pages/AICostDashboard"));
+const CrossModalAnalysis = lazyWithRetry(() => import("./pages/CrossModalAnalysis"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -183,6 +185,8 @@ const App = () => (
                         <Route path="/transcendent-consciousness" element={<TranscendentConsciousnessCenter />} />
                         <Route path="/universal-omniscience" element={<UniversalOmniscienceCenter />} />
                         <Route path="/absolute-genesis" element={<AbsoluteGenesisCenter />} />
+                        <Route path="/ai-cost-dashboard" element={<AICostDashboard />} />
+                        <Route path="/cross-modal-analysis" element={<CrossModalAnalysis />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                       </Suspense>
