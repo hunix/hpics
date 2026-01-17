@@ -234,6 +234,24 @@ async function processInBackground(
   try {
     console.log(`[Background] Starting mosaic ${mosaicId} processing with ${cells.length} cells`);
     
+    // Validate mosaic image before sending to AI
+    if (!mosaicImageUrl || mosaicImageUrl.length < 1000) {
+      const errMsg = `Invalid mosaic image: too short (${mosaicImageUrl?.length || 0} chars)`;
+      console.error(`[Background] ${errMsg}`);
+      throw new Error(errMsg);
+    }
+
+    if (mosaicImageUrl.startsWith('data:')) {
+      const match = mosaicImageUrl.match(/^data:image\/(png|jpeg|jpg|webp);base64,(.+)$/);
+      if (!match) {
+        console.error(`[Background] Invalid base64 format - doesn't match expected pattern`);
+        throw new Error('Invalid base64 image format');
+      }
+      console.log(`[Background] Valid base64 image, format: ${match[1]}, base64 length: ${match[2].length}`);
+    } else {
+      console.log(`[Background] Using URL-based image: ${mosaicImageUrl.substring(0, 100)}...`);
+    }
+    
     // Build messages for AI
     const messages = [
       { role: "system", content: MOSAIC_SYSTEM_PROMPT },
@@ -296,12 +314,52 @@ async function processInBackground(
       return;
     }
 
+    // Diagnostic logging for AI response
+    console.log(`[Background] AI Response diagnostics:`, {
+      hasContent: !!aiResponse.content,
+      contentLength: aiResponse.content?.length || 0,
+      inputTokens: aiResponse.inputTokens,
+      outputTokens: aiResponse.outputTokens,
+      hasToolCalls: !!aiResponse.toolCalls,
+      toolCallsCount: aiResponse.toolCalls?.length || 0,
+      model: aiResponse.model,
+    });
+
+    // Try to extract from tool calls first, then fall back to content
+    let extractionResult;
     const toolCall = aiResponse.toolCalls?.[0];
-    if (!toolCall?.function?.arguments) {
-      throw new Error('No extraction results from AI');
+
+    if (toolCall?.function?.arguments) {
+      // Standard tool call response
+      console.log(`[Background] Parsing from tool call arguments`);
+      extractionResult = JSON.parse(toolCall.function.arguments);
+    } else if (aiResponse.content && aiResponse.content.length > 10) {
+      // Some models return structured content directly
+      console.log(`[Background] Attempting to parse from content (length: ${aiResponse.content.length})`);
+      try {
+        let jsonContent = aiResponse.content;
+        // Remove markdown code blocks if present
+        if (jsonContent.includes('```')) {
+          const match = jsonContent.match(/```(?:json)?\s*([\s\S]*?)```/);
+          if (match) jsonContent = match[1].trim();
+        }
+        extractionResult = JSON.parse(jsonContent);
+        console.log(`[Background] Successfully parsed from content`);
+      } catch (parseError) {
+        console.error(`[Background] Failed to parse content as JSON:`, parseError);
+        throw new Error(`AI returned unparseable content: ${aiResponse.content.substring(0, 200)}`);
+      }
+    } else {
+      // Empty response - log full details for debugging
+      console.error(`[Background] Empty AI response:`, JSON.stringify({
+        content: aiResponse.content,
+        toolCalls: aiResponse.toolCalls,
+        inputTokens: aiResponse.inputTokens,
+        outputTokens: aiResponse.outputTokens,
+      }));
+      throw new Error(`AI returned empty response (${aiResponse.inputTokens} input, ${aiResponse.outputTokens} output tokens). Check if image is valid.`);
     }
 
-    const extractionResult = JSON.parse(toolCall.function.arguments);
     const cellResults = extractionResult.cells || [];
 
     console.log(`[Background] Extracted data for ${cellResults.length} cells`);
