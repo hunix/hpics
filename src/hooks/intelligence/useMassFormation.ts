@@ -41,17 +41,17 @@ export function useMassFormation() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return (data || []).map(row => ({
-        id: row.id,
-        userId: row.user_id,
-        indicatorType: row.indicator_type,
-        intensity: row.intensity || 0,
-        affectedPopulation: row.affected_population || '',
-        triggerConditions: row.trigger_conditions || [],
-        propagationVectors: row.propagation_vectors as Record<string, unknown>[] || [],
-        tippingPointProximity: row.tipping_point_proximity || 0,
-        interventionOpportunities: row.intervention_opportunities || [],
-        createdAt: row.created_at
+      return (data || []).map((row: Record<string, unknown>) => ({
+        id: row.id as string,
+        userId: row.user_id as string,
+        indicatorType: (row.focal_object || 'general') as string,
+        intensity: (row.anxiety_index || row.free_floating_frustration || 0) as number,
+        affectedPopulation: (row.population_segment || 'network') as string,
+        triggerConditions: [] as string[],
+        propagationVectors: [] as Record<string, unknown>[],
+        tippingPointProximity: (row.tipping_point_probability || 0) as number,
+        interventionOpportunities: [] as string[],
+        createdAt: row.created_at as string
       })) as MassFormationIndicator[];
     },
     enabled: !!user,
@@ -64,19 +64,19 @@ export function useMassFormation() {
         .from('narrative_crystallization')
         .select('*')
         .eq('user_id', user!.id)
-        .order('crystallization_level', { ascending: false });
+        .order('totalitarian_potential', { ascending: false });
 
       if (error) throw error;
-      return (data || []).map(row => ({
-        id: row.id,
-        userId: row.user_id,
-        narrativeCore: row.narrative_core,
-        crystallizationLevel: row.crystallization_level || 0,
-        adherentEstimate: row.adherent_estimate || 0,
-        resistanceFactors: row.resistance_factors || [],
-        amplificationChannels: row.amplification_channels || [],
-        decayRate: row.decay_rate || 0,
-        createdAt: row.created_at
+      return (data || []).map((row: Record<string, unknown>) => ({
+        id: row.id as string,
+        userId: row.user_id as string,
+        narrativeCore: (row.narrative || '') as string,
+        crystallizationLevel: 0 as number,
+        adherentEstimate: (row.adherent_count || 0) as number,
+        resistanceFactors: [] as string[],
+        amplificationChannels: [] as string[],
+        decayRate: 0 as number,
+        createdAt: row.created_at as string
       })) as NarrativeCrystallization[];
     },
     enabled: !!user,

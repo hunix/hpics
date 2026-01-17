@@ -45,16 +45,11 @@ export function useAkashicRecords(profileId?: string) {
   const { data: implicitKnowledge, isLoading: knowledgeLoading } = useQuery({
     queryKey: ['implicit-knowledge', profileId],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from('implicit_knowledge')
         .select('*')
         .order('confidence_score', { ascending: false });
 
-      if (profileId) {
-        query = query.eq('profile_id', profileId);
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
       return (data || []).map((row: Record<string, unknown>) => ({
         id: row.id as string,
@@ -74,26 +69,21 @@ export function useAkashicRecords(profileId?: string) {
   const { data: ancestralPatterns, isLoading: patternsLoading } = useQuery({
     queryKey: ['ancestral-patterns', profileId],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from('ancestral_patterns')
         .select('*')
-        .order('strength', { ascending: false });
+        .order('inheritance_strength', { ascending: false });
 
-      if (profileId) {
-        query = query.eq('profile_id', profileId);
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
       return (data || []).map((row: Record<string, unknown>) => ({
         id: row.id as string,
         userId: row.user_id as string,
         profileId: row.profile_id as string,
         patternType: (row.pattern_type || '') as string,
-        patternDescription: (row.pattern_description || row.pattern_name || '') as string,
-        manifestations: (row.manifestations || []) as string[],
-        strength: (row.strength || row.inheritance_strength || 0) as number,
-        transformationPotential: (row.transformation_potential || row.breaking_potential || 0) as number,
+        patternDescription: (row.pattern_name || '') as string,
+        manifestations: [] as string[],
+        strength: (row.inheritance_strength || 0) as number,
+        transformationPotential: (row.breaking_potential || 0) as number,
         createdAt: row.created_at as string
       })) as AncestralPattern[];
     },
@@ -103,26 +93,21 @@ export function useAkashicRecords(profileId?: string) {
   const { data: hiddenConnections, isLoading: connectionsLoading } = useQuery({
     queryKey: ['hidden-connections', profileId],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from('hidden_connections')
         .select('*')
-        .order('exploitability_score', { ascending: false });
+        .order('significance_score', { ascending: false });
 
-      if (profileId) {
-        query = query.eq('profile_id', profileId);
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
       return (data || []).map((row: Record<string, unknown>) => ({
         id: row.id as string,
         userId: row.user_id as string,
-        profileId: (row.profile_id || '') as string,
+        profileId: '' as string,
         connectionType: (row.connection_type || '') as string,
-        connectedEntities: (row.connected_entities || [row.entity_a_id, row.entity_b_id].filter(Boolean)) as string[],
-        connectionDescription: (row.connection_description || '') as string,
-        strength: (row.strength || row.significance_score || 0) as number,
-        exploitabilityScore: (row.exploitability_score || 0) as number,
+        connectedEntities: [row.entity_a_id, row.entity_b_id].filter(Boolean) as string[],
+        connectionDescription: '' as string,
+        strength: (row.significance_score || 0) as number,
+        exploitabilityScore: (row.significance_score || 0) as number,
         createdAt: row.created_at as string
       })) as HiddenConnection[];
     },

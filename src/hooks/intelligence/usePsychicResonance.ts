@@ -51,7 +51,7 @@ export function usePsychicResonance(profileId?: string) {
       let query = supabase
         .from('resonance_connections')
         .select('*')
-        .order('resonance_strength', { ascending: false });
+        .order('connection_strength', { ascending: false });
 
       if (profileId) {
         query = query.or(`source_profile_id.eq.${profileId},target_profile_id.eq.${profileId}`);
@@ -59,17 +59,17 @@ export function usePsychicResonance(profileId?: string) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []).map(row => ({
-        id: row.id,
-        userId: row.user_id,
-        sourceProfileId: row.source_profile_id,
-        targetProfileId: row.target_profile_id,
-        resonanceType: row.resonance_type,
-        resonanceStrength: row.resonance_strength || 0,
-        bidirectional: row.bidirectional || false,
-        dominantFrequency: row.dominant_frequency || '',
-        vulnerabilityExposure: row.vulnerability_exposure || 0,
-        createdAt: row.created_at
+      return (data || []).map((row: Record<string, unknown>) => ({
+        id: row.id as string,
+        userId: row.user_id as string,
+        sourceProfileId: row.source_profile_id as string,
+        targetProfileId: row.target_profile_id as string,
+        resonanceType: (row.resonance_type || '') as string,
+        resonanceStrength: (row.connection_strength || 0) as number,
+        bidirectional: (row.bidirectional || false) as boolean,
+        dominantFrequency: '' as string,
+        vulnerabilityExposure: 0 as number,
+        createdAt: row.created_at as string
       })) as ResonanceConnection[];
     },
     enabled: !!user,
@@ -81,7 +81,7 @@ export function usePsychicResonance(profileId?: string) {
       let query = supabase
         .from('empathic_vulnerabilities')
         .select('*')
-        .order('severity', { ascending: false });
+        .order('overwhelm_threshold', { ascending: true });
 
       if (profileId) {
         query = query.eq('profile_id', profileId);
@@ -89,17 +89,17 @@ export function usePsychicResonance(profileId?: string) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []).map(row => ({
-        id: row.id,
-        userId: row.user_id,
-        profileId: row.profile_id,
-        vulnerabilityType: row.vulnerability_type,
-        description: row.description || '',
-        severity: row.severity || 0,
-        triggers: row.triggers || [],
-        exploitationVectors: row.exploitation_vectors || [],
-        healingPotential: row.healing_potential || 0,
-        createdAt: row.created_at
+      return (data || []).map((row: Record<string, unknown>) => ({
+        id: row.id as string,
+        userId: row.user_id as string,
+        profileId: row.profile_id as string,
+        vulnerabilityType: (row.vulnerability_type || '') as string,
+        description: '' as string,
+        severity: (row.absorption_rate || 0) as number,
+        triggers: [] as string[],
+        exploitationVectors: [] as string[],
+        healingPotential: (row.protective_capacity || 0) as number,
+        createdAt: row.created_at as string
       })) as EmpathicVulnerability[];
     },
     enabled: !!user,
@@ -111,25 +111,25 @@ export function usePsychicResonance(profileId?: string) {
       let query = supabase
         .from('emotional_cascades')
         .select('*')
-        .order('amplitude', { ascending: false });
+        .order('amplification_factor', { ascending: false });
 
       if (profileId) {
-        query = query.eq('profile_id', profileId);
+        query = query.eq('origin_profile_id', profileId);
       }
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []).map(row => ({
-        id: row.id,
-        userId: row.user_id,
-        profileId: row.profile_id,
-        cascadeType: row.cascade_type,
-        originPoint: row.origin_point || '',
-        propagationPath: row.propagation_path || [],
-        amplitude: row.amplitude || 0,
-        estimatedDuration: row.estimated_duration || '',
-        interventionPoints: row.intervention_points || [],
-        createdAt: row.created_at
+      return (data || []).map((row: Record<string, unknown>) => ({
+        id: row.id as string,
+        userId: row.user_id as string,
+        profileId: row.origin_profile_id as string,
+        cascadeType: (row.emotion_type || '') as string,
+        originPoint: (row.origin_profile_id || '') as string,
+        propagationPath: (row.cascade_path || []) as string[],
+        amplitude: (row.amplification_factor || 0) as number,
+        estimatedDuration: '' as string,
+        interventionPoints: [] as string[],
+        createdAt: row.initiated_at as string
       })) as EmotionalCascade[];
     },
     enabled: !!user,

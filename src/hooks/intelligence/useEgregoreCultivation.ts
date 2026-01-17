@@ -41,7 +41,6 @@ export function useEgregoreCultivation() {
         .eq('user_id', user!.id)
         .order('created_at', { ascending: false });
 
-      const { data, error } = await query;
       if (error) throw error;
       return (data || []).map((row: Record<string, unknown>) => ({
         id: row.id as string,
@@ -67,19 +66,19 @@ export function useEgregoreCultivation() {
         .from('egregore_cultivation')
         .select('*')
         .eq('user_id', user!.id)
-        .order('created_at', { ascending: false });
+        .order('executed_at', { ascending: false });
 
       if (error) throw error;
-      return (data || []).map(row => ({
-        id: row.id,
-        userId: row.user_id,
-        egregoreId: row.egregore_id,
-        cultivationType: row.cultivation_type,
-        cultivationStrength: row.cultivation_strength || 0,
-        growthProtocols: row.growth_protocols as Record<string, unknown>[] || [],
-        targetOutcomes: row.target_outcomes || [],
-        progressMetrics: row.progress_metrics as Record<string, unknown> || {},
-        createdAt: row.created_at
+      return (data || []).map((row: Record<string, unknown>) => ({
+        id: row.id as string,
+        userId: row.user_id as string,
+        egregoreId: row.egregore_id as string,
+        cultivationType: (row.action_type || row.cultivation_action || '') as string,
+        cultivationStrength: (row.effectiveness_score || row.energy_input || 0) as number,
+        growthProtocols: [] as Record<string, unknown>[],
+        targetOutcomes: [] as string[],
+        progressMetrics: (row.actual_outcome || row.expected_outcome || {}) as Record<string, unknown>,
+        createdAt: (row.executed_at || '') as string
       })) as EgregoreCultivation[];
     },
     enabled: !!user,

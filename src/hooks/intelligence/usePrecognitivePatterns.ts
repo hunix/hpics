@@ -44,16 +44,16 @@ export function usePrecognitivePatterns(profileId?: string) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []).map(row => ({
-        id: row.id,
-        userId: row.user_id,
-        profileId: row.profile_id,
-        signatureType: row.signature_type,
-        patternDescription: row.pattern_description || '',
-        temporalOffset: row.temporal_offset || '',
-        confidenceScore: row.confidence_score || 0,
-        historicalAccuracy: row.historical_accuracy || 0,
-        createdAt: row.created_at
+      return (data || []).map((row: Record<string, unknown>) => ({
+        id: row.id as string,
+        userId: row.user_id as string,
+        profileId: row.profile_id as string,
+        signatureType: (row.target_event || '') as string,
+        patternDescription: '' as string,
+        temporalOffset: `${row.lead_time_hours || 0}h` as string,
+        confidenceScore: (row.confidence || 0) as number,
+        historicalAccuracy: (row.validated ? 1 : 0) as number,
+        createdAt: row.created_at as string
       })) as PrecursorSignature[];
     },
     enabled: !!user,
@@ -65,7 +65,7 @@ export function usePrecognitivePatterns(profileId?: string) {
       let query = supabase
         .from('timeline_probabilities')
         .select('*')
-        .order('probability_score', { ascending: false });
+        .order('probability_amplitude', { ascending: false });
 
       if (profileId) {
         query = query.eq('profile_id', profileId);
@@ -73,16 +73,16 @@ export function usePrecognitivePatterns(profileId?: string) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []).map(row => ({
-        id: row.id,
-        userId: row.user_id,
-        profileId: row.profile_id,
-        eventType: row.event_type,
-        probabilityScore: row.probability_score || 0,
-        timeframe: row.timeframe || '',
-        precursorChain: row.precursor_chain || [],
-        interventionWindows: row.intervention_windows as Record<string, unknown>[] || [],
-        createdAt: row.created_at
+      return (data || []).map((row: Record<string, unknown>) => ({
+        id: row.id as string,
+        userId: row.user_id as string,
+        profileId: row.profile_id as string,
+        eventType: (row.timeline_description || '') as string,
+        probabilityScore: (row.probability_amplitude || row.malleability_score || 0) as number,
+        timeframe: '' as string,
+        precursorChain: [] as string[],
+        interventionWindows: (row.intervention_leverage_points || []) as Record<string, unknown>[],
+        createdAt: row.created_at as string
       })) as TimelineProbability[];
     },
     enabled: !!user,

@@ -28,16 +28,16 @@ export function useMorphicResonance() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return (data || []).map(row => ({
-        id: row.id,
-        userId: row.user_id,
-        fieldType: row.field_type,
-        fieldStrength: row.field_strength || 0,
-        resonancePatterns: row.resonance_patterns as Record<string, unknown>[] || [],
-        influencedBehaviors: row.influenced_behaviors || [],
-        fieldRadius: row.field_radius || 0,
-        harmonicFrequency: row.harmonic_frequency || '',
-        createdAt: row.created_at
+      return (data || []).map((row: Record<string, unknown>) => ({
+        id: row.id as string,
+        userId: row.user_id as string,
+        fieldType: (row.field_type || '') as string,
+        fieldStrength: (row.resonance_strength || row.stability_index || 0) as number,
+        resonancePatterns: (row.memory_patterns || []) as Record<string, unknown>[],
+        influencedBehaviors: (row.carrier_profiles || []) as string[],
+        fieldRadius: 0 as number,
+        harmonicFrequency: (row.field_signature || '') as string,
+        createdAt: row.created_at as string
       })) as MorphicField[];
     },
     enabled: !!user,

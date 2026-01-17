@@ -51,7 +51,7 @@ export function useKarmicPatterns(profileId?: string) {
       let query = supabase
         .from('karmic_cycles')
         .select('*')
-        .order('intensity', { ascending: false });
+        .order('cycle_duration_days', { ascending: false });
 
       if (profileId) {
         query = query.eq('profile_id', profileId);
@@ -59,17 +59,17 @@ export function useKarmicPatterns(profileId?: string) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []).map(row => ({
-        id: row.id,
-        userId: row.user_id,
-        profileId: row.profile_id,
-        cycleType: row.cycle_type,
-        cyclePhase: row.cycle_phase || 'active',
-        intensity: row.intensity || 0,
-        lessonThemes: row.lesson_themes || [],
-        completionProgress: row.completion_progress || 0,
-        breakthroughConditions: row.breakthrough_conditions || [],
-        createdAt: row.created_at
+      return (data || []).map((row: Record<string, unknown>) => ({
+        id: row.id as string,
+        userId: row.user_id as string,
+        profileId: row.profile_id as string,
+        cycleType: (row.cycle_type || '') as string,
+        cyclePhase: (row.current_phase || 'active') as string,
+        intensity: (row.repetition_count || 0) as number,
+        lessonThemes: (row.lesson_themes || []) as string[],
+        completionProgress: (row.progress_percentage || 0) as number,
+        breakthroughConditions: [] as string[],
+        createdAt: row.created_at as string
       })) as KarmicCycle[];
     },
     enabled: !!user,
@@ -81,7 +81,7 @@ export function useKarmicPatterns(profileId?: string) {
       let query = supabase
         .from('karmic_debts')
         .select('*')
-        .order('severity', { ascending: false });
+        .order('debt_magnitude', { ascending: false });
 
       if (profileId) {
         query = query.eq('profile_id', profileId);
@@ -89,17 +89,17 @@ export function useKarmicPatterns(profileId?: string) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []).map(row => ({
-        id: row.id,
-        userId: row.user_id,
-        profileId: row.profile_id,
-        debtType: row.debt_type,
-        debtDescription: row.debt_description || '',
-        severity: row.severity || 0,
-        originPattern: row.origin_pattern || '',
-        resolutionPath: row.resolution_path || [],
-        repaymentProgress: row.repayment_progress || 0,
-        createdAt: row.created_at
+      return (data || []).map((row: Record<string, unknown>) => ({
+        id: row.id as string,
+        userId: row.user_id as string,
+        profileId: row.profile_id as string,
+        debtType: (row.debt_type || '') as string,
+        debtDescription: (row.debt_description || '') as string,
+        severity: (row.debt_magnitude || 0) as number,
+        originPattern: (row.origin_pattern || row.origin_context || '') as string,
+        resolutionPath: (row.resolution_path || []) as string[],
+        repaymentProgress: (row.repayment_progress || 0) as number,
+        createdAt: row.created_at as string
       })) as KarmicDebt[];
     },
     enabled: !!user,
@@ -111,7 +111,7 @@ export function useKarmicPatterns(profileId?: string) {
       let query = supabase
         .from('karmic_opportunities')
         .select('*')
-        .order('potential_gain', { ascending: false });
+        .order('alignment_score', { ascending: false });
 
       if (profileId) {
         query = query.eq('profile_id', profileId);
@@ -119,17 +119,17 @@ export function useKarmicPatterns(profileId?: string) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []).map(row => ({
-        id: row.id,
-        userId: row.user_id,
-        profileId: row.profile_id,
-        opportunityType: row.opportunity_type,
-        description: row.description || '',
-        potentialGain: row.potential_gain || 0,
-        alignmentRequirements: row.alignment_requirements || [],
-        windowOfOpportunity: row.window_of_opportunity || '',
-        captureStrategies: row.capture_strategies || [],
-        createdAt: row.created_at
+      return (data || []).map((row: Record<string, unknown>) => ({
+        id: row.id as string,
+        userId: row.user_id as string,
+        profileId: row.profile_id as string,
+        opportunityType: (row.opportunity_type || '') as string,
+        description: (row.opportunity_description || '') as string,
+        potentialGain: (row.alignment_score || 0) as number,
+        alignmentRequirements: (row.alignment_requirements || []) as string[],
+        windowOfOpportunity: (row.window_of_opportunity || row.optimal_timing || '') as string,
+        captureStrategies: (row.capture_strategies || []) as string[],
+        createdAt: row.created_at as string
       })) as KarmicOpportunity[];
     },
     enabled: !!user,
