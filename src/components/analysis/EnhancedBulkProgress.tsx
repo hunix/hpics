@@ -60,6 +60,9 @@ export function EnhancedBulkProgress({
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   // Calculate progress from actual item statuses (more reliable than session counters)
+  // CRITICAL: Handle cases where items array might be empty but session counters are accurate
+  const hasItemsLoaded = session.items.length > 0;
+  
   const completedItems = useMemo(() => 
     session.items.filter((item) => item.status === "completed"),
     [session.items]
@@ -75,12 +78,28 @@ export function EnhancedBulkProgress({
     [session.items]
   );
 
-  // Use item-derived counts (primary) with session counters as fallback
-  const completedCount = completedItems.length || session.completedItems;
-  const failedCount = failedItems.length || session.failedItems;
-  const skippedCount = skippedItems.length || session.skippedItems;
+  const runningItems = useMemo(() => 
+    session.items.filter((item) => item.status === "running"),
+    [session.items]
+  );
+
+  // SMART PROGRESS: Use item-derived counts when items are loaded, 
+  // otherwise fall back to session counters (which backend updates directly)
+  const completedCount = hasItemsLoaded 
+    ? completedItems.length 
+    : session.completedItems;
+  const failedCount = hasItemsLoaded 
+    ? failedItems.length 
+    : session.failedItems;
+  const skippedCount = hasItemsLoaded 
+    ? skippedItems.length 
+    : session.skippedItems;
+  
   const processed = completedCount + failedCount + skippedCount;
   const progress = session.totalItems > 0 ? (processed / session.totalItems) * 100 : 0;
+
+  // Indicate if progress is being derived from session counters (items not yet loaded)
+  const isProgressFromCounters = !hasItemsLoaded && processed > 0;
 
   const currentItem = useMemo(() => 
     session.items.find((item) => item.status === "running"),
@@ -189,10 +208,29 @@ export function EnhancedBulkProgress({
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">
               {processed} of {session.totalItems} processed
+              {runningItems.length > 0 && (
+                <span className="ml-2 text-primary">
+                  ({runningItems.length} in progress)
+                </span>
+              )}
             </span>
             <span className="font-medium">{Math.round(progress)}%</span>
           </div>
           <Progress value={progress} className="h-2" />
+          
+          {/* Progress loading indicator */}
+          {session.status === "running" && !hasItemsLoaded && processed === 0 && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>Initializing analysis pipeline...</span>
+            </div>
+          )}
+          
+          {isProgressFromCounters && (
+            <div className="text-xs text-muted-foreground italic">
+              Progress synced from backend
+            </div>
+          )}
           
           {/* Stats row */}
           <div className="flex items-center justify-between text-xs text-muted-foreground">

@@ -100,6 +100,7 @@ export function usePersistentBulkSession({
   const profileIds = propProfileIds || (profileId ? [profileId] : []);
 
   // Subscribe to realtime updates
+  // CRITICAL FIX: Preserve items array during session updates, upsert items in item updates
   useEffect(() => {
     if (!session?.id) return;
 
@@ -114,7 +115,13 @@ export function usePersistentBulkSession({
           filter: `id=eq.${session.id}`,
         },
         (payload) => {
-          setSession((prev) => prev ? { ...prev, ...mapDbSession(payload.new) } : null);
+          console.log('[BulkSession] Realtime session update:', payload.new);
+          setSession((prev) => {
+            if (!prev) return null;
+            // CRITICAL: Preserve the items array - mapDbSession sets items:[] by default
+            const mappedUpdates = mapDbSession(payload.new);
+            return { ...prev, ...mappedUpdates, items: prev.items };
+          });
         }
       )
       .on(
@@ -126,13 +133,25 @@ export function usePersistentBulkSession({
           filter: `session_id=eq.${session.id}`,
         },
         (payload) => {
+          console.log('[BulkSession] Realtime item update:', { id: payload.new.id, status: payload.new.status });
           setSession((prev) => {
             if (!prev) return null;
             const updatedItem = mapDbItem(payload.new);
-            const items = prev.items.map((item) =>
-              item.id === updatedItem.id ? updatedItem : item
-            );
-            return { ...prev, items };
+            
+            // UPSERT: Check if item exists, if not append it
+            const existingIndex = prev.items.findIndex((item) => item.id === updatedItem.id);
+            let newItems: BulkAnalysisItem[];
+            
+            if (existingIndex >= 0) {
+              // Replace existing item
+              newItems = [...prev.items];
+              newItems[existingIndex] = updatedItem;
+            } else {
+              // Append new item (upsert behavior)
+              newItems = [...prev.items, updatedItem].sort((a, b) => a.queuePosition - b.queuePosition);
+            }
+            
+            return { ...prev, items: newItems };
           });
         }
       )
