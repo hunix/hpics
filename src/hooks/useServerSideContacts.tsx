@@ -37,11 +37,18 @@ export function useServerSideContacts({
     queryFn: async ({ pageParam = 0 }) => {
       if (!user?.id) throw new Error('No user');
 
-      const { data, error } = await supabase.rpc('search_contacts_v2', {
+      // Use search_contacts_v5 which is the current canonical function
+      const { data, error } = await supabase.rpc('search_contacts_v5', {
         p_user_id: user.id,
         p_search_query: searchQuery || null,
         p_relationship_type: relationshipFilter || null,
-        p_is_favorite: favoriteFilter || null,
+        p_relationship_subtype: null,
+        p_tag: null,
+        p_is_favorite: favoriteFilter ?? null,
+        p_is_active: null,
+        p_first_letter: null,
+        p_sort_by: 'name',
+        p_sort_order: 'asc',
         p_limit: pageSize,
         p_offset: pageParam * pageSize,
       });
@@ -80,11 +87,18 @@ export function usePaginatedContacts({
     queryFn: async () => {
       if (!user?.id) throw new Error('No user');
 
-      const { data, error } = await supabase.rpc('search_contacts_v2', {
+      // Use search_contacts_v5 which is the current canonical function
+      const { data, error } = await supabase.rpc('search_contacts_v5', {
         p_user_id: user.id,
         p_search_query: searchQuery || null,
         p_relationship_type: relationshipFilter || null,
-        p_is_favorite: favoriteFilter || null,
+        p_relationship_subtype: null,
+        p_tag: null,
+        p_is_favorite: favoriteFilter ?? null,
+        p_is_active: null,
+        p_first_letter: null,
+        p_sort_by: 'name',
+        p_sort_order: 'asc',
         p_limit: pageSize,
         p_offset: page * pageSize,
       });
