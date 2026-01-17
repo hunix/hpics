@@ -173,6 +173,70 @@ export type Database = {
           },
         ]
       }
+      absolute_knowledge: {
+        Row: {
+          created_at: string
+          derivation_chain: Json[] | null
+          id: string
+          knowledge_depth: number | null
+          knowledge_payload: Json | null
+          knowledge_type: string
+          profile_id: string | null
+          truth_coefficient: number | null
+          universal_applicability: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          derivation_chain?: Json[] | null
+          id?: string
+          knowledge_depth?: number | null
+          knowledge_payload?: Json | null
+          knowledge_type: string
+          profile_id?: string | null
+          truth_coefficient?: number | null
+          universal_applicability?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          derivation_chain?: Json[] | null
+          id?: string
+          knowledge_depth?: number | null
+          knowledge_payload?: Json | null
+          knowledge_type?: string
+          profile_id?: string | null
+          truth_coefficient?: number | null
+          universal_applicability?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "absolute_knowledge_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "absolute_knowledge_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "absolute_knowledge_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       absolute_mastery: {
         Row: {
           challenges_overcome: Json | null
@@ -16091,6 +16155,67 @@ export type Database = {
         }
         Relationships: []
       }
+      infinite_perception: {
+        Row: {
+          created_at: string
+          extrasensory_map: Json | null
+          id: string
+          perception_history: Json[] | null
+          perception_intensity: number | null
+          perception_mode: string
+          profile_id: string | null
+          sensory_dimensions: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          extrasensory_map?: Json | null
+          id?: string
+          perception_history?: Json[] | null
+          perception_intensity?: number | null
+          perception_mode: string
+          profile_id?: string | null
+          sensory_dimensions?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          extrasensory_map?: Json | null
+          id?: string
+          perception_history?: Json[] | null
+          perception_intensity?: number | null
+          perception_mode?: string
+          profile_id?: string | null
+          sensory_dimensions?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "infinite_perception_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "infinite_perception_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "infinite_perception_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       infinite_protocols: {
         Row: {
           avg_execution_time_ms: number | null
@@ -19953,6 +20078,70 @@ export type Database = {
           },
         ]
       }
+      meta_dimensional_synthesis: {
+        Row: {
+          created_at: string
+          cross_dimensional_map: Json | null
+          dimensional_layers: number | null
+          id: string
+          profile_id: string | null
+          synthesis_coherence: number | null
+          synthesis_outcomes: Json | null
+          synthesis_type: string
+          temporal_binding: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          cross_dimensional_map?: Json | null
+          dimensional_layers?: number | null
+          id?: string
+          profile_id?: string | null
+          synthesis_coherence?: number | null
+          synthesis_outcomes?: Json | null
+          synthesis_type: string
+          temporal_binding?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          cross_dimensional_map?: Json | null
+          dimensional_layers?: number | null
+          id?: string
+          profile_id?: string | null
+          synthesis_coherence?: number | null
+          synthesis_outcomes?: Json | null
+          synthesis_type?: string
+          temporal_binding?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_dimensional_synthesis_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "meta_dimensional_synthesis_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "meta_dimensional_synthesis_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meta_existence: {
         Row: {
           absolute_meta_score: number | null
@@ -22307,6 +22496,67 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      omniscient_synthesis: {
+        Row: {
+          created_at: string
+          id: string
+          knowledge_domains: Json[] | null
+          omniscience_metrics: Json | null
+          profile_id: string | null
+          synthesis_pattern: string
+          synthesis_power: number | null
+          universal_integration: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          knowledge_domains?: Json[] | null
+          omniscience_metrics?: Json | null
+          profile_id?: string | null
+          synthesis_pattern: string
+          synthesis_power?: number | null
+          universal_integration?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          knowledge_domains?: Json[] | null
+          omniscience_metrics?: Json | null
+          profile_id?: string | null
+          synthesis_pattern?: string
+          synthesis_power?: number | null
+          universal_integration?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "omniscient_synthesis_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "omniscient_synthesis_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "omniscient_synthesis_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       omniversal_awareness: {
         Row: {
@@ -24719,6 +24969,67 @@ export type Database = {
             columns: ["consensus_bubble_id"]
             isOneToOne: false
             referencedRelation: "consensus_bubbles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reality_comprehension: {
+        Row: {
+          comprehension_index: number | null
+          comprehension_scope: string
+          created_at: string
+          framework_model: Json | null
+          id: string
+          paradox_resolution: Json | null
+          profile_id: string | null
+          reality_layers: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comprehension_index?: number | null
+          comprehension_scope: string
+          created_at?: string
+          framework_model?: Json | null
+          id?: string
+          paradox_resolution?: Json | null
+          profile_id?: string | null
+          reality_layers?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comprehension_index?: number | null
+          comprehension_scope?: string
+          created_at?: string
+          framework_model?: Json | null
+          id?: string
+          paradox_resolution?: Json | null
+          profile_id?: string | null
+          reality_layers?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reality_comprehension_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "reality_comprehension_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "reality_comprehension_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -30201,6 +30512,70 @@ export type Database = {
           },
           {
             foreignKeyName: "unified_intelligence_feed_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      universal_awareness: {
+        Row: {
+          awareness_matrix: Json | null
+          awareness_type: string
+          consciousness_links: Json[] | null
+          created_at: string
+          dimensional_scope: Json | null
+          id: string
+          omniscient_index: number | null
+          perception_depth: number | null
+          profile_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          awareness_matrix?: Json | null
+          awareness_type: string
+          consciousness_links?: Json[] | null
+          created_at?: string
+          dimensional_scope?: Json | null
+          id?: string
+          omniscient_index?: number | null
+          perception_depth?: number | null
+          profile_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          awareness_matrix?: Json | null
+          awareness_type?: string
+          consciousness_links?: Json[] | null
+          created_at?: string
+          dimensional_scope?: Json | null
+          id?: string
+          omniscient_index?: number | null
+          perception_depth?: number | null
+          profile_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "universal_awareness_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "universal_awareness_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "universal_awareness_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"

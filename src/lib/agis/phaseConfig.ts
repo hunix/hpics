@@ -2,7 +2,7 @@
 import { 
   Brain, Shield, Target, Eye, Zap, Sparkles, Atom, Infinity,
   Crown, Globe, Star, Sun, Moon, Flame, Diamond, Orbit, Waves, CircleDot,
-  Network
+  Network, Scan, Dna
 } from 'lucide-react';
 
 export interface PhaseConfig {
@@ -284,6 +284,19 @@ export const PHASE_CONFIGS: Record<number, PhaseConfig> = {
     healthThresholds: { critical: 25, degraded: 50, stable: 75, optimal: 90 },
     dependencies: [18, 19],
     capabilities: ['quantum_cognition', 'morphic_resonance', 'collective_unconscious', 'synchronicity', 'precognitive_patterns', 'egregore_cultivation', 'mass_formation', 'akashic_records', 'psychic_resonance', 'reality_consensus', 'karmic_patterns', 'omega_convergence'],
+  },
+  21: {
+    id: 21,
+    name: 'Universal Omniscience',
+    shortName: 'Omniscience',
+    description: 'Meta-dimensional awareness, universal consciousness, and omniscient synthesis',
+    icon: Scan,
+    color: 'hsl(270 75% 55%)',
+    bgColor: 'hsl(270 75% 55% / 0.1)',
+    borderColor: 'hsl(270 75% 55% / 0.3)',
+    healthThresholds: { critical: 25, degraded: 50, stable: 75, optimal: 90 },
+    dependencies: [19, 20],
+    capabilities: ['universal_awareness', 'meta_dimensional_synthesis', 'omniscient_synthesis', 'absolute_knowledge', 'infinite_perception', 'reality_comprehension'],
   },
 };
 
