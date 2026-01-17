@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, User } from 'lucide-react';
+import { Plus, User, AlertCircle, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { ContactDialog } from '@/components/contacts/ContactDialog';
 import { ContactsToolbar, ViewMode, SortOption } from '@/components/contacts/ContactsToolbar';
@@ -92,6 +92,8 @@ export default function Contacts() {
   const {
     data,
     isLoading,
+    isError,
+    error,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -235,6 +237,24 @@ export default function Contacts() {
   };
 
   const renderContactsView = () => {
+    if (isError) {
+      return (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Failed to load contacts</h3>
+            <p className="text-muted-foreground text-center mb-4 max-w-md">
+              {(error as Error)?.message || 'An unexpected error occurred while loading your contacts.'}
+            </p>
+            <Button onClick={() => window.location.reload()} variant="outline">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      );
+    }
+
     if (isLoading) {
       return (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
