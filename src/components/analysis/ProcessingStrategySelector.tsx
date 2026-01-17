@@ -2,10 +2,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Zap, Grid3X3, Sparkles, TrendingDown } from "lucide-react";
+import { Zap, Grid3X3, Sparkles, TrendingDown, Copy, Layers } from "lucide-react";
 import { getMosaicPreviewInfo } from "@/lib/metadataMosaic";
 
-export type ProcessingStrategy = "individual" | "mosaic" | "hybrid";
+export type ProcessingStrategy = "individual" | "mosaic" | "hybrid" | "deduplicated";
 
 interface ProcessingStrategySelectorProps {
   strategy: ProcessingStrategy;
@@ -102,6 +102,36 @@ export function ProcessingStrategySelector({
               </Label>
             </div>
           )}
+
+          {/* Deduplicated */}
+          <div className="flex items-start space-x-3">
+            <RadioGroupItem 
+              value="deduplicated" 
+              id="deduplicated" 
+              disabled={imageCount < 10}
+              className="mt-1" 
+            />
+            <Label 
+              htmlFor="deduplicated" 
+              className={`flex-1 cursor-pointer ${imageCount < 10 ? 'opacity-50' : ''}`}
+            >
+              <div className="flex items-center gap-2">
+                <Copy className="h-4 w-4 text-blue-500" />
+                <span className="font-medium">Smart Dedupe</span>
+                <Badge variant="secondary" className="text-xs bg-blue-500/10 text-blue-600">
+                  <Layers className="h-3 w-3 mr-1" />
+                  Skip dupes
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {imageCount >= 10 ? (
+                  <>Detect similar images, analyze only unique ones</>
+                ) : (
+                  'Requires 10+ images'
+                )}
+              </p>
+            </Label>
+          </div>
         </RadioGroup>
 
         {/* Preview info */}
