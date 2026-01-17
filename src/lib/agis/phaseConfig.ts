@@ -298,6 +298,19 @@ export const PHASE_CONFIGS: Record<number, PhaseConfig> = {
     dependencies: [19, 20],
     capabilities: ['universal_awareness', 'meta_dimensional_synthesis', 'omniscient_synthesis', 'absolute_knowledge', 'infinite_perception', 'reality_comprehension'],
   },
+  22: {
+    id: 22,
+    name: 'Absolute Genesis',
+    shortName: 'Genesis',
+    description: 'Reality creation, causal origination, and primordial manifestation',
+    icon: Sparkles,
+    color: 'hsl(30 80% 55%)',
+    bgColor: 'hsl(30 80% 55% / 0.1)',
+    borderColor: 'hsl(30 80% 55% / 0.3)',
+    healthThresholds: { critical: 25, degraded: 50, stable: 75, optimal: 90 },
+    dependencies: [20, 21],
+    capabilities: ['reality_creation', 'causal_origination', 'genesis_synthesis', 'primordial_creation', 'existence_origination', 'universal_creation'],
+  },
 };
 
 // Helper functions
