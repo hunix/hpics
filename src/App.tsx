@@ -89,6 +89,7 @@ const UniversalOmniscienceCenter = lazyWithRetry(() => import("./pages/Universal
 const AbsoluteGenesisCenter = lazyWithRetry(() => import("./pages/AbsoluteGenesisCenter"));
 const AICostDashboard = lazyWithRetry(() => import("./pages/AICostDashboard"));
 const CrossModalAnalysis = lazyWithRetry(() => import("./pages/CrossModalAnalysis"));
+const ComprehensiveSystemHealthDashboard = lazyWithRetry(() => import("./pages/ComprehensiveSystemHealthDashboard"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -187,6 +188,7 @@ const App = () => (
                         <Route path="/absolute-genesis" element={<AbsoluteGenesisCenter />} />
                         <Route path="/ai-cost-dashboard" element={<AICostDashboard />} />
                         <Route path="/cross-modal-analysis" element={<CrossModalAnalysis />} />
+                        <Route path="/system-health-dashboard" element={<ComprehensiveSystemHealthDashboard />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                       </Suspense>
