@@ -62,6 +62,7 @@ export default function MediaAnalysis() {
   const [recoveredSession, setRecoveredSession] = useState<ReturnType<typeof usePersistentBulkSession>['session']>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isPreparingUrls, setIsPreparingUrls] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
 
   // Online/offline detection
   useEffect(() => {
@@ -83,13 +84,31 @@ export default function MediaAnalysis() {
     analysisDepth: depth,
   });
 
-  // Check for existing session on mount
+  // Check for existing session on mount - auto-resume running sessions
   useEffect(() => {
     const checkSession = async () => {
-      const existingSession = await bulkSession.checkExistingSession();
-      if (existingSession) {
-        setRecoveredSession(existingSession);
-        setIsBulkMode(true);
+      setIsCheckingSession(true);
+      try {
+        const existingSession = await bulkSession.checkExistingSession();
+        if (existingSession) {
+          console.log('[MediaAnalysis] Found existing session:', existingSession.id, 'status:', existingSession.status);
+          setIsBulkMode(true);
+          
+          if (existingSession.status === 'running') {
+            // Auto-restore and resume running sessions immediately
+            console.log('[MediaAnalysis] Auto-resuming running session');
+            bulkSession.restoreSession(existingSession);
+            // Small delay to ensure state is set before resuming
+            setTimeout(() => bulkSession.resume(), 100);
+          } else if (existingSession.status === 'paused' || existingSession.status === 'pending') {
+            // Show recovery dialog for paused/pending sessions
+            setRecoveredSession(existingSession);
+          }
+        }
+      } catch (error) {
+        console.error('[MediaAnalysis] Error checking session:', error);
+      } finally {
+        setIsCheckingSession(false);
       }
     };
     checkSession();
