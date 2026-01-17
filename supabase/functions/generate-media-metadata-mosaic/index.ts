@@ -25,9 +25,50 @@ interface MosaicRequest {
   cells: CellInfo[];
   mosaicId: string;
   model?: string;
-  sessionId?: string;
+  sessionId?: string; // bulk_analysis_sessions ID for direct counter updates
+  bulkSessionId?: string; // alias for sessionId (bulk_analysis_sessions)
   gridCols: number;
   gridRows: number;
+}
+
+// Helper to increment bulk_analysis_sessions counters directly
+async function incrementSessionProgress(
+  supabase: ReturnType<typeof createClient>,
+  bulkSessionId: string,
+  completedCount: number,
+  failedCount: number,
+  costCents: number
+) {
+  if (!bulkSessionId) return;
+  
+  try {
+    // Get current session counters
+    const { data: currentSession } = await supabase
+      .from('bulk_analysis_sessions')
+      .select('completed_items, failed_items, current_cost_cents')
+      .eq('id', bulkSessionId)
+      .single();
+    
+    if (currentSession) {
+      const newCompleted = (currentSession.completed_items || 0) + completedCount;
+      const newFailed = (currentSession.failed_items || 0) + failedCount;
+      const newCost = (currentSession.current_cost_cents || 0) + costCents;
+      
+      await supabase
+        .from('bulk_analysis_sessions')
+        .update({
+          completed_items: newCompleted,
+          failed_items: newFailed,
+          current_cost_cents: newCost,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', bulkSessionId);
+      
+      console.log(`[Background] Updated bulk_analysis_sessions ${bulkSessionId}: completed=${newCompleted}, failed=${newFailed}, cost=${newCost}`);
+    }
+  } catch (error) {
+    console.error(`[Background] Failed to increment session progress:`, error);
+  }
 }
 
 // Comprehensive extraction tool for mosaic analysis
@@ -227,10 +268,14 @@ async function processInBackground(
   cells: CellInfo[],
   model: string,
   sessionId: string | undefined,
+  bulkSessionId: string | undefined, // bulk_analysis_sessions ID for counter updates
   gridCols: number,
   gridRows: number
 ) {
   const startTime = Date.now();
+  let successfulItems = 0;
+  let failedItemsCount = 0;
+  let totalCostCents = 0;
   
   try {
     console.log(`[Background] Starting mosaic ${mosaicId} processing with ${cells.length} cells`);
@@ -466,8 +511,11 @@ async function processInBackground(
 
       if (itemUpdateError) {
         console.error(`[Background] Failed to update bulk_analysis_items for media ${mediaId}:`, itemUpdateError.message, itemUpdateError.code);
+        failedItemsCount++;
       } else {
         console.log(`[Background] Updated bulk_analysis_items for ${cellInfo.bulkItemId ? `id=${cellInfo.bulkItemId}` : `media=${mediaId}`} to completed`);
+        successfulItems++;
+        totalCostCents += costPerCell;
       }
 
       // Save detected items
@@ -583,8 +631,14 @@ async function processInBackground(
         .eq('id', sessionId);
     }
 
+    // CRITICAL: Update bulk_analysis_sessions counters DIRECTLY
+    // This ensures UI progress updates even if realtime is slow
+    if (bulkSessionId && (successfulItems > 0 || failedItemsCount > 0)) {
+      await incrementSessionProgress(supabase, bulkSessionId, successfulItems, failedItemsCount, totalCostCents);
+    }
+
     const duration = Date.now() - startTime;
-    console.log(`[Background] Mosaic ${mosaicId} complete in ${duration}ms: ${itemsDetected} items, ${facesDetected} faces, ${documentsDetected} documents`);
+    console.log(`[Background] Mosaic ${mosaicId} complete in ${duration}ms: ${successfulItems} completed, ${failedItemsCount} failed, ${itemsDetected} items, ${facesDetected} faces, ${documentsDetected} documents`);
 
   } catch (error) {
     console.error('[Background] Mosaic processing error:', error);
@@ -721,6 +775,9 @@ serve(async (req) => {
 
     // Start background processing using EdgeRuntime.waitUntil
     // This returns immediately to prevent HTTP timeout while processing continues
+    // sessionId here is the bulk_analysis_sessions ID (passed from client as sessionId)
+    const bulkSessionId = sessionId; // The client sends bulk_analysis_sessions.id as sessionId
+    
     (globalThis as any).EdgeRuntime?.waitUntil?.(
       processInBackground(
         supabase,
@@ -729,7 +786,8 @@ serve(async (req) => {
         mosaicImageUrl,
         cells,
         model,
-        sessionId,
+        undefined, // mosaic_metadata_sessions ID (not used here)
+        bulkSessionId, // bulk_analysis_sessions ID for counter updates
         effectiveGridCols,
         effectiveGridRows
       )
