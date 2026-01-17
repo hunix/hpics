@@ -700,6 +700,16 @@ export const navigationItems: NavItem[] = [
     keywords: ['health', 'status', 'monitoring'],
   },
   {
+    id: 'system-health-dashboard',
+    title: 'System Health Dashboard',
+    url: '/system-health-dashboard',
+    icon: Activity,
+    description: 'Comprehensive monitoring of all 22 AGIS phases & infrastructure',
+    badge: 'new',
+    category: 'system',
+    keywords: ['health', 'monitoring', 'agis', 'phases', 'database', 'edge functions'],
+  },
+  {
     id: 'ai-costs',
     title: 'AI Cost Center',
     url: '/ai-costs',
