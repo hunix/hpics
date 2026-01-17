@@ -4706,6 +4706,67 @@ export type Database = {
           },
         ]
       }
+      causal_origination: {
+        Row: {
+          causal_depth: number | null
+          cause_chain: Json[] | null
+          created_at: string
+          effect_propagation: Json | null
+          id: string
+          origination_power: number | null
+          origination_type: string
+          profile_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          causal_depth?: number | null
+          cause_chain?: Json[] | null
+          created_at?: string
+          effect_propagation?: Json | null
+          id?: string
+          origination_power?: number | null
+          origination_type: string
+          profile_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          causal_depth?: number | null
+          cause_chain?: Json[] | null
+          created_at?: string
+          effect_propagation?: Json | null
+          id?: string
+          origination_power?: number | null
+          origination_type?: string
+          profile_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "causal_origination_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "causal_origination_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "causal_origination_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       certifications: {
         Row: {
           created_at: string
@@ -13942,6 +14003,64 @@ export type Database = {
         }
         Relationships: []
       }
+      existence_origination: {
+        Row: {
+          created_at: string
+          existence_anchors: Json[] | null
+          existence_coefficient: number | null
+          id: string
+          origination_framework: Json | null
+          origination_scope: string
+          profile_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          existence_anchors?: Json[] | null
+          existence_coefficient?: number | null
+          id?: string
+          origination_framework?: Json | null
+          origination_scope: string
+          profile_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          existence_anchors?: Json[] | null
+          existence_coefficient?: number | null
+          id?: string
+          origination_framework?: Json | null
+          origination_scope?: string
+          profile_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "existence_origination_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "existence_origination_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "existence_origination_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       extension_scrape_sessions: {
         Row: {
           comments_captured: number | null
@@ -15071,6 +15190,64 @@ export type Database = {
             columns: ["schedule_id"]
             isOneToOne: false
             referencedRelation: "reports_schedule"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      genesis_synthesis: {
+        Row: {
+          created_at: string
+          element_fusion: Json | null
+          id: string
+          profile_id: string | null
+          synthesis_intensity: number | null
+          synthesis_mode: string
+          synthesis_output: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          element_fusion?: Json | null
+          id?: string
+          profile_id?: string | null
+          synthesis_intensity?: number | null
+          synthesis_mode: string
+          synthesis_output?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          element_fusion?: Json | null
+          id?: string
+          profile_id?: string | null
+          synthesis_intensity?: number | null
+          synthesis_mode?: string
+          synthesis_output?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "genesis_synthesis_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "genesis_synthesis_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "genesis_synthesis_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -23827,6 +24004,64 @@ export type Database = {
           },
         ]
       }
+      primordial_creation: {
+        Row: {
+          created_at: string
+          creation_domain: string
+          creation_matrix: Json | null
+          id: string
+          manifestation_log: Json[] | null
+          primordial_power: number | null
+          profile_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          creation_domain: string
+          creation_matrix?: Json | null
+          id?: string
+          manifestation_log?: Json[] | null
+          primordial_power?: number | null
+          profile_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          creation_domain?: string
+          creation_matrix?: Json | null
+          id?: string
+          manifestation_log?: Json[] | null
+          primordial_power?: number | null
+          profile_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "primordial_creation_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "primordial_creation_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "primordial_creation_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       primordial_synthesis: {
         Row: {
           annihilation_protocols: Json | null
@@ -25027,6 +25262,67 @@ export type Database = {
           },
           {
             foreignKeyName: "reality_comprehension_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reality_creation: {
+        Row: {
+          created_at: string
+          creation_status: string | null
+          creation_type: string
+          id: string
+          manifestation_power: number | null
+          materialization_progress: number | null
+          profile_id: string | null
+          reality_blueprint: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          creation_status?: string | null
+          creation_type: string
+          id?: string
+          manifestation_power?: number | null
+          materialization_progress?: number | null
+          profile_id?: string | null
+          reality_blueprint?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          creation_status?: string | null
+          creation_type?: string
+          id?: string
+          manifestation_power?: number | null
+          materialization_progress?: number | null
+          profile_id?: string | null
+          reality_blueprint?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reality_creation_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "reality_creation_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "reality_creation_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -30576,6 +30872,64 @@ export type Database = {
           },
           {
             foreignKeyName: "universal_awareness_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      universal_creation: {
+        Row: {
+          created_at: string
+          creation_level: string
+          creation_spectrum: Json | null
+          id: string
+          profile_id: string | null
+          universal_integration: Json | null
+          universal_power: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          creation_level: string
+          creation_spectrum?: Json | null
+          id?: string
+          profile_id?: string | null
+          universal_integration?: Json | null
+          universal_power?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          creation_level?: string
+          creation_spectrum?: Json | null
+          id?: string
+          profile_id?: string | null
+          universal_integration?: Json | null
+          universal_power?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "universal_creation_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "universal_creation_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "universal_creation_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
