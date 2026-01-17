@@ -250,10 +250,9 @@ export default function MediaAnalysis() {
     );
 
     if (session) {
-      // Start after a short delay to ensure state is initialized
-      setTimeout(() => {
-        bulkSession.start();
-      }, 100);
+      // Start immediately with the returned session, avoiding React state timing issues
+      console.log('[MediaAnalysis] Session created, starting immediately:', session.id);
+      await bulkSession.start(session);
     }
   };
 

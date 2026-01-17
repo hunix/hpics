@@ -313,20 +313,34 @@ export function usePersistentBulkSession({
     [profileIds, analysisModes, analysisContext, analysisDepth, toast]
   );
 
-  // Start processing
-  const start = useCallback(async () => {
-    if (!session) return;
-    if (isRunningRef.current) return;
+  // Start processing - accepts optional session override to avoid React state timing issues
+  const start = useCallback(async (sessionOverride?: BulkSession) => {
+    const activeSession = sessionOverride || session;
+    
+    if (!activeSession) {
+      console.warn('[BulkSession] start() called but no session available');
+      return;
+    }
+    if (isRunningRef.current) {
+      console.log('[BulkSession] Already running, skipping start');
+      return;
+    }
 
+    console.log('[BulkSession] Starting processing for session:', activeSession.id);
     isRunningRef.current = true;
     abortControllerRef.current = new AbortController();
+    
+    // If we got sessionOverride, also update the React state
+    if (sessionOverride && (!session || session.id !== sessionOverride.id)) {
+      setSession(sessionOverride);
+    }
 
     try {
       // Update session status
       await supabase
         .from("bulk_analysis_sessions")
         .update({ status: "running", started_at: new Date().toISOString() })
-        .eq("id", session.id);
+        .eq("id", activeSession.id);
 
       setSession((prev) => prev ? { ...prev, status: "running" } : null);
 
@@ -336,31 +350,36 @@ export function usePersistentBulkSession({
         const { data: nextItems } = await supabase
           .from("bulk_analysis_items")
           .select("*")
-          .eq("session_id", session.id)
+          .eq("session_id", activeSession.id)
           .eq("status", "pending")
           .order("priority_score", { ascending: false })
           .order("queue_position", { ascending: true })
           .limit(1);
 
+        console.log('[BulkSession] Next pending items:', nextItems?.length || 0);
+
         if (!nextItems || nextItems.length === 0) {
           // No more items, complete session
-          await completeSession();
+          console.log('[BulkSession] No more items, completing session');
+          await completeSession(activeSession);
           break;
         }
 
         const item = nextItems[0];
+        console.log('[BulkSession] Processing item:', item.id, item.file_name);
 
         // Process the item
-        await processItem(item.id);
+        await processItem(item.id, activeSession);
 
         // Check if we should continue
         const { data: currentSession } = await supabase
           .from("bulk_analysis_sessions")
           .select("status, current_cost_cents, max_cost_cents, stop_on_budget_exceeded")
-          .eq("id", session.id)
+          .eq("id", activeSession.id)
           .single();
 
         if (currentSession?.status === "paused" || currentSession?.status === "cancelled") {
+          console.log('[BulkSession] Session paused or cancelled, stopping');
           break;
         }
 
@@ -379,14 +398,18 @@ export function usePersistentBulkSession({
           break;
         }
       }
+    } catch (error) {
+      console.error('[BulkSession] Error during processing:', error);
     } finally {
       isRunningRef.current = false;
+      console.log('[BulkSession] Processing loop ended');
     }
   }, [session, toast]);
 
   // Process a single item
-  const processItem = useCallback(async (itemId: string) => {
-    if (!session) return;
+  const processItem = useCallback(async (itemId: string, sessionOverride?: BulkSession) => {
+    const activeSession = sessionOverride || session;
+    if (!activeSession) return;
 
     try {
       // Mark as running
@@ -419,6 +442,8 @@ export function usePersistentBulkSession({
       const startTime = Date.now();
 
       // Call analysis function
+      console.log('[BulkSession] Calling analyze-media-deep for:', item.file_name);
+      
       const { data: analysisResult, error: analysisError } = await supabase.functions.invoke(
         "analyze-media-deep",
         {
@@ -426,9 +451,9 @@ export function usePersistentBulkSession({
             mediaUrl,
             mediaType: item.media_type,
             profileId: item.profile_id,
-            modes: session.analysisModes,
-            context: session.analysisContext,
-            depth: session.analysisDepth,
+            modes: activeSession.analysisModes,
+            context: activeSession.analysisContext,
+            depth: activeSession.analysisDepth,
             mediaId: item.media_id,
             documentId: item.document_id,
           },
@@ -437,8 +462,12 @@ export function usePersistentBulkSession({
 
       const processingTimeMs = Date.now() - startTime;
 
-      if (analysisError) throw analysisError;
+      if (analysisError) {
+        console.error('[BulkSession] Analysis error:', analysisError);
+        throw analysisError;
+      }
 
+      console.log('[BulkSession] Analysis completed for:', item.file_name, analysisResult);
       const costCents = analysisResult?.costCents || 1;
 
       // Update item as completed
@@ -456,7 +485,7 @@ export function usePersistentBulkSession({
 
       // Update session progress
       await supabase.rpc("increment_bulk_session_progress", {
-        p_session_id: session.id,
+        p_session_id: activeSession.id,
         p_cost_cents: costCents,
         p_is_completed: true,
         p_is_failed: false,
@@ -486,7 +515,7 @@ export function usePersistentBulkSession({
 
       if (!shouldRetry) {
         await supabase.rpc("increment_bulk_session_progress", {
-          p_session_id: session.id,
+          p_session_id: activeSession.id,
           p_cost_cents: 0,
           p_is_completed: false,
           p_is_failed: true,
@@ -523,26 +552,27 @@ export function usePersistentBulkSession({
   }, [session, start]);
 
   // Complete session
-  const completeSession = useCallback(async () => {
-    if (!session) return;
+  const completeSession = useCallback(async (sessionOverride?: BulkSession) => {
+    const activeSession = sessionOverride || session;
+    if (!activeSession) return;
 
     await supabase
       .from("bulk_analysis_sessions")
       .update({ status: "completed", completed_at: new Date().toISOString() })
-      .eq("id", session.id);
+      .eq("id", activeSession.id);
 
     setSession((prev) => prev ? { ...prev, status: "completed" } : null);
 
     // Trigger aggregation if enabled
-    if (session.autoAggregate) {
+    if (activeSession.autoAggregate) {
       supabase.functions
-        .invoke("aggregate-bulk-results", { body: { sessionId: session.id } })
+        .invoke("aggregate-bulk-results", { body: { sessionId: activeSession.id } })
         .catch((err) => console.error("Aggregation failed:", err));
     }
 
     toast({
       title: "Analysis complete",
-      description: `Analyzed ${session.completedItems} items`,
+      description: `Analyzed ${activeSession.completedItems} items`,
     });
   }, [session, toast]);
 
