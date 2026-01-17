@@ -420,11 +420,29 @@ export function usePersistentBulkSession({
         }
       );
 
-      const processingTimeMs = Date.now() - startTime;
-
       if (analysisError) throw analysisError;
 
-      console.log('[BulkSession] Mosaic analysis completed:', analysisResult);
+      const processingTimeMs = Date.now() - startTime;
+      console.log('[BulkSession] Mosaic submitted for background processing:', { 
+        processingTimeMs,
+        status: analysisResult?.status,
+        mosaicId: analysisResult?.mosaicId,
+        cellCount: analysisResult?.cellCount 
+      });
+
+      // With background processing, the edge function returns immediately with status: 'processing'
+      // The actual results will be updated directly in the database by the background task
+      if (analysisResult?.status === 'processing') {
+        // Items are being processed in background - don't wait for completion here
+        // The background task will update bulk_analysis_items directly when done
+        console.log('[BulkSession] Mosaic processing in background, items will be updated automatically');
+        
+        // Return without marking as complete - the background process handles that
+        return { processed: batchToProcess.length, cost: 0 };
+      }
+
+      // Fallback for legacy synchronous response
+      console.log('[BulkSession] Mosaic completed synchronously:', analysisResult);
       const costCents = analysisResult?.costCents || Math.ceil(batchToProcess.length * 0.15);
 
       // Mark all items as completed
