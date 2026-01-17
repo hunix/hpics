@@ -3,10 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { prioritizeItems, estimateBulkCost, type CostEstimate } from "@/lib/bulkAnalysisPrioritization";
 import { generateMetadataMosaic, getMosaicPreviewInfo, type MediaItem as MosaicMediaItem } from "@/lib/metadataMosaic";
+import { deduplicateImages } from "@/lib/imageHashingService";
+import type { MosaicFailureState } from "@/components/analysis/MosaicFailureDialog";
 
 export type BulkSessionStatus = "idle" | "pending" | "queued" | "running" | "paused" | "completed" | "failed" | "cancelled";
 export type BulkItemStatus = "pending" | "queued" | "running" | "completed" | "failed" | "skipped";
-export type ProcessingStrategy = "individual" | "mosaic" | "hybrid";
+export type ProcessingStrategy = "individual" | "mosaic" | "hybrid" | "deduplicated";
 
 export interface BulkAnalysisItem {
   id: string;
@@ -90,8 +92,10 @@ export function usePersistentBulkSession({
   const [costEstimate, setCostEstimate] = useState<CostEstimate | null>(null);
   const [processingStrategy, setProcessingStrategy] = useState<ProcessingStrategy>("hybrid");
   const [processingStatus, setProcessingStatus] = useState<string>("");
+  const [mosaicFailure, setMosaicFailure] = useState<MosaicFailureState | null>(null);
   const isRunningRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const pendingMosaicBatchRef = useRef<Array<{ id: string; media_url?: string; media_id?: string; profile_id: string; file_name?: string }> | null>(null);
 
   const profileIds = propProfileIds || (profileId ? [profileId] : []);
 
@@ -317,16 +321,23 @@ export function usePersistentBulkSession({
     [profileIds, analysisModes, analysisContext, analysisDepth, toast]
   );
 
-  // Process a batch of images using mosaic approach with timeout
+  // Mosaic retry configuration
+  const MOSAIC_MAX_RETRIES = 3;
+  const MOSAIC_RETRY_DELAY_MS = 2000;
+  const MOSAIC_TIMEOUT_MS = 120000; // 2 minutes
+
+  // Process a batch of images using mosaic approach with smart retry
   const processBatchWithMosaic = useCallback(async (
     items: Array<{ id: string; media_url?: string; media_id?: string; profile_id: string; file_name?: string }>,
-    activeSession: BulkSession
-  ) => {
-    console.log('[BulkSession] Processing batch with mosaic:', items.length, 'images');
-    setProcessingStatus(`Generating mosaic for ${items.length} images...`);
+    activeSession: BulkSession,
+    retryAttempt = 0,
+    reducedBatchSize?: number
+  ): Promise<{ processed: number; cost: number }> => {
+    const batchToProcess = reducedBatchSize ? items.slice(0, reducedBatchSize) : items;
+    console.log('[BulkSession] Processing batch with mosaic:', batchToProcess.length, 'images, attempt:', retryAttempt + 1);
+    setProcessingStatus(`Generating mosaic for ${batchToProcess.length} images... (attempt ${retryAttempt + 1}/${MOSAIC_MAX_RETRIES})`);
 
-    const MOSAIC_TIMEOUT_MS = 120000; // 2 minutes timeout
-    const itemIds = items.map(i => i.id);
+    const itemIds = batchToProcess.map(i => i.id);
 
     try {
       // Mark all items as running
@@ -337,7 +348,7 @@ export function usePersistentBulkSession({
 
       // Get signed URLs for all items
       const mediaItems: MosaicMediaItem[] = [];
-      for (const item of items) {
+      for (const item of batchToProcess) {
         let url = item.media_url;
         if (!url && item.media_id) {
           // Try to get from media table
@@ -421,7 +432,7 @@ export function usePersistentBulkSession({
       if (analysisError) throw analysisError;
 
       console.log('[BulkSession] Mosaic analysis completed:', analysisResult);
-      const costCents = analysisResult?.costCents || Math.ceil(items.length * 0.15); // Estimate ~$0.0015/image via mosaic
+      const costCents = analysisResult?.costCents || Math.ceil(batchToProcess.length * 0.15);
 
       // Mark all items as completed
       await supabase
@@ -429,17 +440,17 @@ export function usePersistentBulkSession({
         .update({
           status: "completed",
           completed_at: new Date().toISOString(),
-          processing_time_ms: Math.round(processingTimeMs / items.length),
-          actual_cost_cents: Math.ceil(costCents / items.length),
+          processing_time_ms: Math.round(processingTimeMs / batchToProcess.length),
+          actual_cost_cents: Math.ceil(costCents / batchToProcess.length),
           result: { mosaicProcessed: true, mosaicId: mosaic.mosaicId },
         })
         .in("id", itemIds);
 
       // Update session progress for all items at once
-      for (let i = 0; i < items.length; i++) {
+      for (let i = 0; i < batchToProcess.length; i++) {
         await supabase.rpc("increment_bulk_session_progress", {
           p_session_id: activeSession.id,
-          p_cost_cents: i === 0 ? costCents : 0, // Only add cost once
+          p_cost_cents: i === 0 ? costCents : 0,
           p_is_completed: true,
           p_is_failed: false,
         });
@@ -448,19 +459,114 @@ export function usePersistentBulkSession({
       // Clean up temp mosaic
       await supabase.storage.from("media").remove([mosaicPath]);
 
-      return { processed: items.length, cost: costCents };
+      return { processed: batchToProcess.length, cost: costCents };
     } catch (error) {
-      console.error('[BulkSession] Mosaic processing error:', error);
-      setProcessingStatus("Mosaic failed, resetting items for retry...");
+      console.error('[BulkSession] Mosaic processing error (attempt', retryAttempt + 1, '):', error);
       
-      // Reset items back to pending on failure so they can be retried
+      // Reset items back to pending
       await supabase
         .from("bulk_analysis_items")
-        .update({ status: "pending", started_at: null, error_message: error instanceof Error ? error.message : "Mosaic failed" })
+        .update({ 
+          status: "pending", 
+          started_at: null, 
+          error_message: error instanceof Error ? error.message : "Mosaic failed" 
+        })
         .in("id", itemIds);
+
+      // Check if we should retry
+      if (retryAttempt < MOSAIC_MAX_RETRIES - 1) {
+        setProcessingStatus(`Mosaic failed, retrying in ${MOSAIC_RETRY_DELAY_MS / 1000}s...`);
+        await new Promise(r => setTimeout(r, MOSAIC_RETRY_DELAY_MS * (retryAttempt + 1)));
+        
+        // Reduce batch size on retry if it's large
+        const newBatchSize = batchToProcess.length > 32 ? 32 : 
+                            batchToProcess.length > 16 ? 16 : undefined;
+        
+        return processBatchWithMosaic(items, activeSession, retryAttempt + 1, newBatchSize);
+      }
+
+      // All retries exhausted - trigger user intervention
+      console.log('[BulkSession] All retries exhausted, requesting user intervention');
+      pendingMosaicBatchRef.current = items;
       
-      throw error;
+      // Pause processing and show dialog
+      isRunningRef.current = false;
+      
+      setMosaicFailure({
+        isOpen: true,
+        error: error instanceof Error ? error.message : "Unknown mosaic error",
+        failedBatchSize: batchToProcess.length,
+        remainingImages: items.length,
+        retryCount: MOSAIC_MAX_RETRIES,
+        maxRetries: MOSAIC_MAX_RETRIES,
+      });
+
+      throw new Error("MOSAIC_INTERVENTION_REQUIRED");
     }
+  }, []);
+
+  // Handle user choosing to retry mosaic
+  const handleMosaicRetry = useCallback(async () => {
+    if (!pendingMosaicBatchRef.current || !session) return;
+    
+    setMosaicFailure(null);
+    isRunningRef.current = true;
+    
+    try {
+      await processBatchWithMosaic(pendingMosaicBatchRef.current, session, 0);
+      pendingMosaicBatchRef.current = null;
+      // Continue processing
+      await start(session, processingStrategy);
+    } catch (error) {
+      // If it's another intervention request, the dialog will show again
+      if (error instanceof Error && error.message !== "MOSAIC_INTERVENTION_REQUIRED") {
+        console.error("Retry failed:", error);
+      }
+    }
+  }, [session, processingStrategy]);
+
+  // Handle user choosing smaller batches
+  const handleMosaicRetrySmaller = useCallback(async () => {
+    if (!pendingMosaicBatchRef.current || !session) return;
+    
+    setMosaicFailure(null);
+    isRunningRef.current = true;
+    
+    try {
+      // Process in smaller batches of 16
+      await processBatchWithMosaic(pendingMosaicBatchRef.current.slice(0, 16), session, 0);
+      pendingMosaicBatchRef.current = null;
+      // Continue processing
+      await start(session, processingStrategy);
+    } catch (error) {
+      if (error instanceof Error && error.message !== "MOSAIC_INTERVENTION_REQUIRED") {
+        console.error("Smaller batch retry failed:", error);
+      }
+    }
+  }, [session, processingStrategy]);
+
+  // Handle user choosing to switch to individual processing
+  const handleMosaicSwitchIndividual = useCallback(async () => {
+    if (!session) return;
+    
+    setMosaicFailure(null);
+    pendingMosaicBatchRef.current = null;
+    setProcessingStrategy("individual");
+    isRunningRef.current = true;
+    
+    toast({
+      title: "Switched to individual processing",
+      description: "Processing will continue with one image at a time",
+    });
+    
+    await start(session, "individual");
+  }, [session, toast]);
+
+  // Handle user choosing to abort
+  const handleMosaicAbort = useCallback(async () => {
+    setMosaicFailure(null);
+    pendingMosaicBatchRef.current = null;
+    await cancel();
   }, []);
 
   // Start processing - accepts optional session override to avoid React state timing issues
@@ -548,7 +654,12 @@ export function usePersistentBulkSession({
           try {
             await processBatchWithMosaic(batch, activeSession);
           } catch (mosaicError) {
-            console.error('[BulkSession] Mosaic batch failed, processing individually:', mosaicError);
+            // Check if user intervention is required
+            if (mosaicError instanceof Error && mosaicError.message === "MOSAIC_INTERVENTION_REQUIRED") {
+              console.log('[BulkSession] Waiting for user intervention');
+              return; // Exit the processing loop, user will decide
+            }
+            console.error('[BulkSession] Mosaic batch failed unexpectedly:', mosaicError);
             // Fall back to individual processing for this batch
             for (const item of batch) {
               if (!isRunningRef.current) break;
@@ -883,6 +994,7 @@ export function usePersistentBulkSession({
     processingStrategy,
     setProcessingStrategy,
     processingStatus,
+    mosaicFailure,
     checkExistingSession,
     initSession,
     start,
@@ -894,6 +1006,10 @@ export function usePersistentBulkSession({
     retryAllFailed,
     restoreSession,
     clearSession,
+    handleMosaicRetry,
+    handleMosaicRetrySmaller,
+    handleMosaicSwitchIndividual,
+    handleMosaicAbort,
   };
 }
 
