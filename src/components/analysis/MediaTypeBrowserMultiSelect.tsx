@@ -64,7 +64,7 @@ export function MediaTypeBrowserMultiSelect({
     isLoading,
   } = useInfiniteQuery({
     queryKey: ['media-browser-multi-infinite', profileId, mediaType],
-    queryFn: async ({ pageParam = 0 }) => {
+    queryFn: async ({ pageParam = 0 }): Promise<{ items: MediaItem[]; nextPage: number | undefined }> => {
       const from = pageParam * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
@@ -76,18 +76,19 @@ export function MediaTypeBrowserMultiSelect({
           .order('created_at', { ascending: false })
           .range(from, to);
         if (error) throw error;
+        const items: MediaItem[] = data?.map(d => ({
+          id: d.id,
+          url: d.file_url || '',
+          storagePath: d.storage_path || undefined,
+          name: d.title || 'Untitled document',
+          size: d.file_size,
+          mime_type: d.mime_type,
+          created_at: d.created_at,
+          type: 'document' as MediaType,
+          isDocument: true,
+        })) || [];
         return {
-          items: data?.map(d => ({
-            id: d.id,
-            url: d.file_url || '',
-            storagePath: d.storage_path,
-            name: d.title || 'Untitled document',
-            size: d.file_size,
-            mime_type: d.mime_type,
-            created_at: d.created_at,
-            type: 'document' as const,
-            isDocument: true,
-          })) || [],
+          items,
           nextPage: data?.length === PAGE_SIZE ? pageParam + 1 : undefined,
         };
       } else {
@@ -105,18 +106,19 @@ export function MediaTypeBrowserMultiSelect({
           .order('created_at', { ascending: false })
           .range(from, to);
         if (error) throw error;
+        const items: MediaItem[] = data?.map(m => ({
+          id: m.id,
+          url: m.file_url || '',
+          storagePath: m.storage_path || undefined,
+          name: m.caption || `${mediaType} file`,
+          size: m.file_size,
+          mime_type: m.mime_type,
+          created_at: m.created_at,
+          type: mediaType,
+          isDocument: false,
+        })) || [];
         return {
-          items: data?.map(m => ({
-            id: m.id,
-            url: m.file_url || '',
-            storagePath: m.storage_path || undefined,
-            name: m.caption || `${mediaType} file`,
-            size: m.file_size,
-            mime_type: m.mime_type,
-            created_at: m.created_at,
-            type: mediaType,
-            isDocument: false,
-          })) || [],
+          items,
           nextPage: data?.length === PAGE_SIZE ? pageParam + 1 : undefined,
         };
       }
