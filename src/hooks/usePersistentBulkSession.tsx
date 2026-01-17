@@ -228,8 +228,15 @@ export function usePersistentBulkSession({
         setCostEstimate(estimate);
 
         // Create session in database
+        // Get current user for user_id
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          throw new Error('Not authenticated');
+        }
+        
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const sessionData: any = {
+          user_id: user.id, // Explicitly set user_id to fix RLS
           name: options?.name || `Bulk Analysis - ${new Date().toLocaleDateString()}`,
           status: "pending",
           scope_type: profileIds.length > 1 ? "multiple_contacts" : "single_contact",

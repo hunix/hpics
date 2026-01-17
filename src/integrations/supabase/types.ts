@@ -4090,7 +4090,7 @@ export type Database = {
           total_items?: number | null
           trigger_deep_analysis?: boolean | null
           updated_at?: string | null
-          user_id: string
+          user_id?: string
         }
         Update: {
           aggregation_result?: Json | null
