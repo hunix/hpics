@@ -589,17 +589,28 @@ async function processInBackground(
   } catch (error) {
     console.error('[Background] Mosaic processing error:', error);
     
-    // Mark all items in batch as failed
+    // Mark all items in batch as failed - use bulkItemId for direct targeting
     for (const cell of cells) {
-      await supabase
-        .from('bulk_analysis_items')
-        .update({ 
-          status: 'failed', 
-          error_message: error instanceof Error ? error.message : 'Unknown error',
-          completed_at: new Date().toISOString()
-        })
-        .eq('media_id', cell.mediaId)
-        .eq('user_id', userId);
+      if (cell.bulkItemId) {
+        await supabase
+          .from('bulk_analysis_items')
+          .update({ 
+            status: 'failed', 
+            error_message: error instanceof Error ? error.message : 'Unknown error',
+            completed_at: new Date().toISOString()
+          })
+          .eq('id', cell.bulkItemId);
+      } else {
+        // Fallback: use media_id only (no user_id column exists)
+        await supabase
+          .from('bulk_analysis_items')
+          .update({ 
+            status: 'failed', 
+            error_message: error instanceof Error ? error.message : 'Unknown error',
+            completed_at: new Date().toISOString()
+          })
+          .eq('media_id', cell.mediaId);
+      }
     }
 
     if (sessionId) {
@@ -692,13 +703,20 @@ serve(async (req) => {
         .eq('id', sessionId);
     }
 
-    // Mark all items as running
+    // Mark all items as running - use bulkItemId for direct targeting
     for (const cell of cells) {
-      await supabase
-        .from('bulk_analysis_items')
-        .update({ status: 'running', started_at: new Date().toISOString() })
-        .eq('media_id', cell.mediaId)
-        .eq('user_id', userId);
+      if (cell.bulkItemId) {
+        await supabase
+          .from('bulk_analysis_items')
+          .update({ status: 'running', started_at: new Date().toISOString() })
+          .eq('id', cell.bulkItemId);
+      } else {
+        // Fallback: use media_id only (no user_id column exists)
+        await supabase
+          .from('bulk_analysis_items')
+          .update({ status: 'running', started_at: new Date().toISOString() })
+          .eq('media_id', cell.mediaId);
+      }
     }
 
     // Start background processing using EdgeRuntime.waitUntil

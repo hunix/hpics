@@ -59,11 +59,9 @@ export function EnhancedBulkProgress({
   const [showAllItems, setShowAllItems] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
-  const processed = session.completedItems + session.failedItems + session.skippedItems;
-  const progress = session.totalItems > 0 ? (processed / session.totalItems) * 100 : 0;
-
-  const currentItem = useMemo(() => 
-    session.items.find((item) => item.status === "running"),
+  // Calculate progress from actual item statuses (more reliable than session counters)
+  const completedItems = useMemo(() => 
+    session.items.filter((item) => item.status === "completed"),
     [session.items]
   );
 
@@ -72,8 +70,20 @@ export function EnhancedBulkProgress({
     [session.items]
   );
 
-  const completedItems = useMemo(() => 
-    session.items.filter((item) => item.status === "completed"),
+  const skippedItems = useMemo(() => 
+    session.items.filter((item) => item.status === "skipped"),
+    [session.items]
+  );
+
+  // Use item-derived counts (primary) with session counters as fallback
+  const completedCount = completedItems.length || session.completedItems;
+  const failedCount = failedItems.length || session.failedItems;
+  const skippedCount = skippedItems.length || session.skippedItems;
+  const processed = completedCount + failedCount + skippedCount;
+  const progress = session.totalItems > 0 ? (processed / session.totalItems) * 100 : 0;
+
+  const currentItem = useMemo(() => 
+    session.items.find((item) => item.status === "running"),
     [session.items]
   );
 
@@ -189,18 +199,18 @@ export function EnhancedBulkProgress({
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-1">
                 <CheckCircle2 className="h-3 w-3 text-green-500" />
-                {session.completedItems} completed
+                {completedCount} completed
               </span>
-              {session.failedItems > 0 && (
+              {failedCount > 0 && (
                 <span className="flex items-center gap-1">
                   <XCircle className="h-3 w-3 text-destructive" />
-                  {session.failedItems} failed
+                  {failedCount} failed
                 </span>
               )}
-              {session.skippedItems > 0 && (
+              {skippedCount > 0 && (
                 <span className="flex items-center gap-1">
                   <SkipForward className="h-3 w-3 text-amber-500" />
-                  {session.skippedItems} skipped
+                  {skippedCount} skipped
                 </span>
               )}
             </div>
@@ -371,7 +381,7 @@ export function EnhancedBulkProgress({
               <span className="font-medium text-sm">Analysis Complete</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              {(session.aggregationResult as { totalItemsAnalyzed?: number }).totalItemsAnalyzed || session.completedItems} items analyzed across{" "}
+              {(session.aggregationResult as { totalItemsAnalyzed?: number }).totalItemsAnalyzed || completedCount} items analyzed across{" "}
               {(session.aggregationResult as { contactCount?: number }).contactCount || 1} contact(s)
             </p>
           </div>
