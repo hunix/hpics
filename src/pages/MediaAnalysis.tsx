@@ -34,6 +34,7 @@ import { BulkCostEstimator } from "@/components/analysis/BulkCostEstimator";
 import { BulkSessionRecovery } from "@/components/analysis/BulkSessionRecovery";
 import { ProcessingStrategySelector } from "@/components/analysis/ProcessingStrategySelector";
 import { usePersistentBulkSession, type ProcessingStrategy } from "@/hooks/usePersistentBulkSession";
+import { MosaicFailureDialog } from "@/components/analysis/MosaicFailureDialog";
 import { estimateBulkCost } from "@/lib/bulkAnalysisPrioritization";
 import { useMutation } from "@tanstack/react-query";
 import { getSignedUrls } from "@/hooks/useSignedUrl";
@@ -752,6 +753,17 @@ export default function MediaAnalysis() {
           </Card>
         )}
       </div>
+
+      {/* Mosaic Failure Dialog */}
+      {bulkSession.mosaicFailure && (
+        <MosaicFailureDialog
+          state={bulkSession.mosaicFailure}
+          onRetry={bulkSession.handleMosaicRetry}
+          onRetrySmaller={bulkSession.handleMosaicRetrySmaller}
+          onSwitchIndividual={bulkSession.handleMosaicSwitchIndividual}
+          onAbort={bulkSession.handleMosaicAbort}
+        />
+      )}
     </AppLayout>
   );
 }
