@@ -161,24 +161,33 @@ serve(async (req) => {
     }
 
     // Also create/update extracted_documents record for backwards compatibility
+    // Fixed: Using correct column names that match the actual schema
     if (analysis.document_type) {
-      await supabase.from('extracted_documents').upsert({
+      const { error: docError } = await supabase.from('extracted_documents').upsert({
         user_id: user.id,
         media_id: mediaId,
         profile_id: profileId,
         document_type: analysis.document_type,
         document_subtype: analysis.document_subtype,
-        extracted_text: analysis.raw_text,
-        extracted_fields: analysis.structured_data,
-        confidence: analysis.classification_confidence || 0.7,
-        dates_detected: analysis.dates,
-        contact_info_detected: analysis.contact_info,
-        currency_amounts: analysis.amounts,
-        action_required: analysis.reminders?.length > 0,
-        suggested_actions: analysis.reminders,
+        raw_text: analysis.raw_text,  // Fixed: was extracted_text
+        structured_data: {  // Fixed: was extracted_fields, now includes nested data
+          ...analysis.structured_data,
+          dates_detected: analysis.dates,
+          currency_amounts: analysis.amounts,
+          action_required: analysis.reminders?.length > 0,
+          suggested_actions: analysis.reminders,
+        },
+        extracted_contact_info: analysis.contact_info,  // Fixed: was contact_info_detected
+        match_confidence: analysis.classification_confidence || 0.7,  // Fixed: was confidence
+        ai_model_used: model,
+        linked_status: profileId ? 'auto_linked' : 'pending',
       }, {
         onConflict: 'media_id',
       });
+
+      if (docError) {
+        console.error('Failed to upsert extracted_documents:', docError.message, docError.code);
+      }
     }
 
     // Create content relationships if contacts are identified
