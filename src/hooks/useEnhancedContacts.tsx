@@ -71,7 +71,7 @@ export function useEnhancedContacts({
     queryFn: async ({ pageParam = 0 }) => {
       if (!user?.id) throw new Error('No user');
 
-      const { data, error } = await supabase.rpc('search_contacts_v4', {
+      const { data, error } = await (supabase.rpc as Function)('search_contacts_v5', {
         p_user_id: user.id,
         p_search_query: searchQuery || null,
         p_relationship_type: relationshipFilter || null,
