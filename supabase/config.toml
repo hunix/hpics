@@ -464,3 +464,12 @@ verify_jwt = false
 
 [functions.geospatial-supremacy-engine]
 verify_jwt = false
+
+[functions.precognitive-pattern-engine]
+verify_jwt = false
+
+[functions.akashic-query-engine]
+verify_jwt = false
+
+[functions.psychic-resonance-mapper]
+verify_jwt = false
