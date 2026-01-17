@@ -371,6 +371,7 @@ export function usePersistentBulkSession({
             id: item.media_id || item.id,
             url,
             profileId: item.profile_id,
+            bulkItemId: item.id, // Pass bulk_analysis_items.id for direct updates
           });
         }
       }
