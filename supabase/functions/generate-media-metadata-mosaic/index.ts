@@ -356,15 +356,15 @@ async function processInBackground(
         console.error(`[Background] Failed to update media ${mediaId}:`, mediaUpdateError.message, mediaUpdateError.code);
       }
 
-      // Update bulk_analysis_items for this media
+      // Update bulk_analysis_items for this media - use correct column names!
       const costPerCell = Math.ceil((aiResponse.costCents || 0) / cells.length);
-      await supabase
+      const { error: itemUpdateError } = await supabase
         .from('bulk_analysis_items')
         .update({
           status: 'completed',
-          cost_cents: costPerCell,
+          actual_cost_cents: costPerCell,  // Fixed: was cost_cents
           completed_at: new Date().toISOString(),
-          result_summary: { 
+          result: {  // Fixed: was result_summary
             items: cellResult.detected_items?.length || 0,
             faces: cellResult.faces?.length || 0,
             documents: cellResult.documents?.length || 0
@@ -372,6 +372,12 @@ async function processInBackground(
         })
         .eq('media_id', mediaId)
         .eq('user_id', userId);
+
+      if (itemUpdateError) {
+        console.error(`[Background] Failed to update bulk_analysis_items for media ${mediaId}:`, itemUpdateError.message, itemUpdateError.code);
+      } else {
+        console.log(`[Background] Updated bulk_analysis_items for media ${mediaId} to completed`);
+      }
 
       // Save detected items
       if (cellResult.detected_items?.length > 0) {
