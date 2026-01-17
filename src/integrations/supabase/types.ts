@@ -30247,6 +30247,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      is_workspace_admin: {
+        Args: { uid: string; ws_id: string }
+        Returns: boolean
+      }
       keyword_search_documents: {
         Args: {
           match_count?: number
