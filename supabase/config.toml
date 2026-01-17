@@ -434,3 +434,33 @@ verify_jwt = false
 
 [functions.omniscient-orchestrator]
 verify_jwt = false
+
+[functions.quantum-cognition-engine]
+verify_jwt = false
+
+[functions.morphic-resonance-detector]
+verify_jwt = false
+
+[functions.collective-unconscious-miner]
+verify_jwt = false
+
+[functions.synchronicity-engine]
+verify_jwt = false
+
+[functions.egregore-cultivation-engine]
+verify_jwt = false
+
+[functions.mass-formation-analyzer]
+verify_jwt = false
+
+[functions.reality-consensus-engine]
+verify_jwt = false
+
+[functions.karmic-pattern-calculator]
+verify_jwt = false
+
+[functions.omega-point-tracker]
+verify_jwt = false
+
+[functions.geospatial-supremacy-engine]
+verify_jwt = false
