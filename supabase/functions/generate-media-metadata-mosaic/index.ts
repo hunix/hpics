@@ -217,6 +217,306 @@ Be extremely thorough. Even small items matter for intelligence purposes.
 Extract actual text from any visible documents, signs, or labels.
 Note distinctive features of faces for potential identification.`;
 
+// Background processing function
+async function processInBackground(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  mosaicId: string,
+  mosaicImageUrl: string,
+  cells: CellInfo[],
+  model: string,
+  sessionId: string | undefined,
+  gridCols: number,
+  gridRows: number
+) {
+  const startTime = Date.now();
+  
+  try {
+    console.log(`[Background] Starting mosaic ${mosaicId} processing with ${cells.length} cells`);
+    
+    // Build messages for AI
+    const messages = [
+      { role: "system", content: MOSAIC_SYSTEM_PROMPT },
+      {
+        role: "user",
+        content: [
+          { type: "text", text: `${MOSAIC_USER_PROMPT}\n\nThis mosaic has ${gridCols} columns and ${gridRows} rows, containing ${cells.length} images. Cells are numbered 1-${cells.length}.` },
+          { type: "image_url", image_url: { url: mosaicImageUrl } }
+        ]
+      }
+    ];
+
+    // Call AI for mosaic analysis
+    let aiResponse;
+    try {
+      aiResponse = await callAI({
+        model,
+        messages: messages as any,
+        userId,
+        functionName: 'generate-media-metadata-mosaic',
+        enforceBudget: true,
+        tools: [MOSAIC_EXTRACTION_TOOL],
+        toolChoice: { type: "function", function: { name: "extract_mosaic_intelligence" } },
+      });
+    } catch (aiError) {
+      console.error('[Background] AI API error:', aiError);
+      
+      let errorMessage = 'AI API error';
+      
+      if (aiError instanceof RateLimitError) {
+        errorMessage = 'Rate limit exceeded. Please try again later.';
+      } else if (aiError instanceof CreditsExhaustedError) {
+        errorMessage = 'AI credits exhausted.';
+      } else if (aiError instanceof BudgetExceededError) {
+        errorMessage = 'AI budget limit exceeded.';
+      } else if (aiError instanceof Error) {
+        errorMessage = aiError.message;
+      }
+
+      // Mark all items in batch as failed
+      for (const cell of cells) {
+        await supabase
+          .from('bulk_analysis_items')
+          .update({ 
+            status: 'failed', 
+            error_message: errorMessage,
+            completed_at: new Date().toISOString()
+          })
+          .eq('media_id', cell.mediaId)
+          .eq('user_id', userId);
+      }
+
+      if (sessionId) {
+        await supabase
+          .from('mosaic_metadata_sessions')
+          .update({ status: 'failed', error_message: errorMessage })
+          .eq('id', sessionId);
+      }
+      
+      return;
+    }
+
+    const toolCall = aiResponse.toolCalls?.[0];
+    if (!toolCall?.function?.arguments) {
+      throw new Error('No extraction results from AI');
+    }
+
+    const extractionResult = JSON.parse(toolCall.function.arguments);
+    const cellResults = extractionResult.cells || [];
+
+    console.log(`[Background] Extracted data for ${cellResults.length} cells`);
+
+    // Process each cell result
+    let itemsDetected = 0;
+    let facesDetected = 0;
+    let documentsDetected = 0;
+    let autoLinkedCount = 0;
+
+    for (const cellResult of cellResults) {
+      const cellIndex = cellResult.cell_number - 1; // Convert to 0-indexed
+      const cellInfo = cells[cellIndex];
+      
+      if (!cellInfo) {
+        console.warn(`[Background] No cell info for cell number ${cellResult.cell_number}`);
+        continue;
+      }
+
+      const mediaId = cellInfo.mediaId;
+      const profileId = cellInfo.profileId;
+
+      // Update media with AI metadata
+      const metadata = {
+        ai_description: cellResult.description,
+        ai_summary_short: cellResult.summary,
+        tags: cellResult.tags,
+        scene_type: cellResult.scene_type,
+        location_analysis: cellResult.location_hints,
+        intelligence: cellResult.intelligence,
+        content_flags: {
+          is_sensitive: cellResult.is_sensitive,
+          sensitivity_reason: cellResult.sensitivity_reason,
+          contains_minors: cellResult.contains_minors,
+        },
+        image_quality: { overall: cellResult.image_quality },
+        mosaic_processed: true,
+        mosaic_id: mosaicId,
+      };
+
+      const { error: mediaUpdateError } = await supabase
+        .from('media')
+        .update({
+          ai_metadata: metadata,
+          ai_metadata_generated_at: new Date().toISOString(),
+          ai_model_used: model,
+          ai_generation_status: 'completed',
+        })
+        .eq('id', mediaId);
+      
+      if (mediaUpdateError) {
+        console.error(`[Background] Failed to update media ${mediaId}:`, mediaUpdateError.message, mediaUpdateError.code);
+      }
+
+      // Update bulk_analysis_items for this media
+      const costPerCell = Math.ceil((aiResponse.costCents || 0) / cells.length);
+      await supabase
+        .from('bulk_analysis_items')
+        .update({
+          status: 'completed',
+          cost_cents: costPerCell,
+          completed_at: new Date().toISOString(),
+          result_summary: { 
+            items: cellResult.detected_items?.length || 0,
+            faces: cellResult.faces?.length || 0,
+            documents: cellResult.documents?.length || 0
+          }
+        })
+        .eq('media_id', mediaId)
+        .eq('user_id', userId);
+
+      // Save detected items
+      if (cellResult.detected_items?.length > 0) {
+        for (const item of cellResult.detected_items) {
+          itemsDetected++;
+          const { error: itemError } = await supabase.from('detected_items').insert({
+            user_id: userId,
+            media_id: mediaId,
+            profile_id: profileId,
+            category: item.category,
+            item_type: item.item_type,
+            name: item.name,
+            brand: item.brand,
+            model: item.model,
+            description: item.description,
+            specifications: {
+              color: item.color,
+              estimated_value: item.estimated_value,
+              ...item.specifications,
+            },
+            confidence: item.confidence,
+            ai_model_used: model,
+            source_mosaic_id: mosaicId,
+            linked_status: profileId ? 'auto_linked' : 'pending',
+            linked_at: profileId ? new Date().toISOString() : null,
+          });
+          
+          if (itemError) {
+            console.error(`[Background] Failed to insert detected_item:`, itemError.message, itemError.code);
+          } else if (profileId) {
+            autoLinkedCount++;
+          }
+        }
+      }
+
+      // Save detected faces as unknown persons (for matching/tagging)
+      if (cellResult.faces?.length > 0) {
+        for (const face of cellResult.faces) {
+          facesDetected++;
+          
+          const { error: faceError } = await supabase.from('unknown_persons').insert({
+            user_id: userId,
+            media_id: mediaId,
+            face_region: { position: face.position_in_cell },
+            facial_features: {
+              distinctive_features: face.distinctive_features,
+              accessories: face.accessories,
+              facial_hair: face.facial_hair,
+              expression: face.expression,
+              emotion: face.emotion,
+              eye_contact: face.eye_contact,
+              clothing_visible: face.clothing_visible,
+            },
+            estimated_age_range: face.estimated_age_range,
+            estimated_gender: face.estimated_gender,
+            suggested_profiles: [],
+            status: 'unidentified',
+            ai_model_used: model,
+            source_mosaic_id: mosaicId,
+          });
+          
+          if (faceError) {
+            console.error(`[Background] Failed to insert unknown_person:`, faceError.message, faceError.code);
+          }
+        }
+      }
+
+      // Save extracted documents - FIX: use match_confidence instead of confidence
+      if (cellResult.documents?.length > 0) {
+        for (const doc of cellResult.documents) {
+          documentsDetected++;
+          const { error: docError } = await supabase.from('extracted_documents').insert({
+            user_id: userId,
+            media_id: mediaId,
+            profile_id: profileId,
+            document_type: doc.document_type,
+            document_subtype: doc.document_subtype,
+            raw_text: doc.raw_text,
+            structured_data: doc.structured_data,
+            extracted_contact_info: doc.contact_info,
+            match_confidence: doc.confidence, // FIXED: was 'confidence', schema uses 'match_confidence'
+            ai_model_used: model,
+            source_mosaic_id: mosaicId,
+            linked_status: profileId ? 'auto_linked' : 'pending',
+          });
+          
+          if (docError) {
+            console.error(`[Background] Failed to insert extracted_document for media ${mediaId}:`, docError.message, docError.code);
+          } else if (profileId) {
+            autoLinkedCount++;
+          }
+        }
+      }
+    }
+
+    // Update session with results
+    if (sessionId) {
+      await supabase
+        .from('mosaic_metadata_sessions')
+        .update({
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          processed_images: cells.length,
+          processed_mosaics: 1,
+          items_detected: itemsDetected,
+          faces_detected: facesDetected,
+          documents_detected: documentsDetected,
+          auto_linked_count: autoLinkedCount,
+          pending_review_count: facesDetected + (itemsDetected - autoLinkedCount) + (documentsDetected - autoLinkedCount),
+          actual_cost_cents: aiResponse.costCents || 0,
+        })
+        .eq('id', sessionId);
+    }
+
+    const duration = Date.now() - startTime;
+    console.log(`[Background] Mosaic ${mosaicId} complete in ${duration}ms: ${itemsDetected} items, ${facesDetected} faces, ${documentsDetected} documents`);
+
+  } catch (error) {
+    console.error('[Background] Mosaic processing error:', error);
+    
+    // Mark all items in batch as failed
+    for (const cell of cells) {
+      await supabase
+        .from('bulk_analysis_items')
+        .update({ 
+          status: 'failed', 
+          error_message: error instanceof Error ? error.message : 'Unknown error',
+          completed_at: new Date().toISOString()
+        })
+        .eq('media_id', cell.mediaId)
+        .eq('user_id', userId);
+    }
+
+    if (sessionId) {
+      await supabase
+        .from('mosaic_metadata_sessions')
+        .update({ 
+          status: 'failed', 
+          error_message: error instanceof Error ? error.message : 'Unknown error' 
+        })
+        .eq('id', sessionId);
+    }
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -254,7 +554,38 @@ serve(async (req) => {
     const body: MosaicRequest = await req.json();
     const { mosaicImageUrl, cells, mosaicId, model = 'google/gemini-2.5-flash', sessionId, gridCols, gridRows } = body;
 
-    console.log(`Processing mosaic ${mosaicId} with ${cells.length} cells using ${model}`);
+    // Validate required parameters
+    if (!mosaicImageUrl) {
+      return new Response(JSON.stringify({ error: 'Missing mosaicImageUrl' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!cells || cells.length === 0) {
+      return new Response(JSON.stringify({ error: 'Missing or empty cells array' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Compute grid dimensions if not provided
+    const effectiveGridCols = gridCols || Math.ceil(Math.sqrt(cells.length));
+    const effectiveGridRows = gridRows || Math.ceil(cells.length / effectiveGridCols);
+
+    const isBase64 = mosaicImageUrl.startsWith('data:');
+    const payloadSizeKB = Math.round(mosaicImageUrl.length / 1024);
+    
+    console.log(`[Mosaic] Received request:`, {
+      mosaicId,
+      cellCount: cells.length,
+      gridCols: effectiveGridCols,
+      gridRows: effectiveGridRows,
+      model,
+      sessionId: sessionId || 'none',
+      imageType: isBase64 ? 'base64' : 'url',
+      payloadSizeKB: isBase64 ? payloadSizeKB : 'N/A',
+    });
 
     // Update session status if provided
     if (sessionId) {
@@ -264,254 +595,43 @@ serve(async (req) => {
         .eq('id', sessionId);
     }
 
-    // Build messages for AI
-    const messages = [
-      { role: "system", content: MOSAIC_SYSTEM_PROMPT },
-      {
-        role: "user",
-        content: [
-          { type: "text", text: `${MOSAIC_USER_PROMPT}\n\nThis mosaic has ${gridCols} columns and ${gridRows} rows, containing ${cells.length} images. Cells are numbered 1-${cells.length}.` },
-          { type: "image_url", image_url: { url: mosaicImageUrl } }
-        ]
-      }
-    ];
-
-    // Call AI for mosaic analysis
-    let aiResponse;
-    try {
-      aiResponse = await callAI({
-        model,
-        messages: messages as any,
-        userId,
-        functionName: 'generate-media-metadata-mosaic',
-        enforceBudget: true,
-        tools: [MOSAIC_EXTRACTION_TOOL],
-        toolChoice: { type: "function", function: { name: "extract_mosaic_intelligence" } },
-      });
-    } catch (aiError) {
-      console.error('AI API error:', aiError);
-      
-      let errorMessage = 'AI API error';
-      let statusCode = 500;
-      
-      if (aiError instanceof RateLimitError) {
-        errorMessage = 'Rate limit exceeded. Please try again later.';
-        statusCode = 429;
-      } else if (aiError instanceof CreditsExhaustedError) {
-        errorMessage = 'AI credits exhausted.';
-        statusCode = 402;
-      } else if (aiError instanceof BudgetExceededError) {
-        errorMessage = 'AI budget limit exceeded.';
-        statusCode = 402;
-      } else if (aiError instanceof Error) {
-        errorMessage = aiError.message;
-      }
-
-      if (sessionId) {
-        await supabase
-          .from('mosaic_metadata_sessions')
-          .update({ status: 'failed', error_message: errorMessage })
-          .eq('id', sessionId);
-      }
-      
-      return new Response(JSON.stringify({ error: errorMessage }), {
-        status: statusCode,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const toolCall = aiResponse.toolCalls?.[0];
-    if (!toolCall?.function?.arguments) {
-      throw new Error('No extraction results from AI');
-    }
-
-    const extractionResult = JSON.parse(toolCall.function.arguments);
-    const cellResults = extractionResult.cells || [];
-
-    console.log(`Extracted data for ${cellResults.length} cells`);
-
-    // Process each cell result
-    let itemsDetected = 0;
-    let facesDetected = 0;
-    let documentsDetected = 0;
-    let autoLinkedCount = 0;
-
-    for (const cellResult of cellResults) {
-      const cellIndex = cellResult.cell_number - 1; // Convert to 0-indexed
-      const cellInfo = cells[cellIndex];
-      
-      if (!cellInfo) {
-        console.warn(`No cell info for cell number ${cellResult.cell_number}`);
-        continue;
-      }
-
-      const mediaId = cellInfo.mediaId;
-      const profileId = cellInfo.profileId;
-
-      // Update media with AI metadata
-      const metadata = {
-        ai_description: cellResult.description,
-        ai_summary_short: cellResult.summary,
-        tags: cellResult.tags,
-        scene_type: cellResult.scene_type,
-        location_analysis: cellResult.location_hints,
-        intelligence: cellResult.intelligence,
-        content_flags: {
-          is_sensitive: cellResult.is_sensitive,
-          sensitivity_reason: cellResult.sensitivity_reason,
-          contains_minors: cellResult.contains_minors,
-        },
-        image_quality: { overall: cellResult.image_quality },
-        mosaic_processed: true,
-        mosaic_id: mosaicId,
-      };
-
-      const { error: mediaUpdateError } = await supabase
-        .from('media')
-        .update({
-          ai_metadata: metadata,
-          ai_metadata_generated_at: new Date().toISOString(),
-          ai_model_used: model,
-          ai_generation_status: 'completed',
-        })
-        .eq('id', mediaId);
-      
-      if (mediaUpdateError) {
-        console.error(`Failed to update media ${mediaId}:`, mediaUpdateError.message, mediaUpdateError.code);
-      }
-
-      // Save detected items
-      if (cellResult.detected_items?.length > 0) {
-        for (const item of cellResult.detected_items) {
-          itemsDetected++;
-          const { error: itemError } = await supabase.from('detected_items').insert({
-            user_id: userId,
-            media_id: mediaId,
-            profile_id: profileId,
-            category: item.category,
-            item_type: item.item_type,
-            name: item.name,
-            brand: item.brand,
-            model: item.model,
-            description: item.description,
-            specifications: {
-              color: item.color,
-              estimated_value: item.estimated_value,
-              ...item.specifications,
-            },
-            confidence: item.confidence,
-            ai_model_used: model,
-            source_mosaic_id: mosaicId,
-            linked_status: profileId ? 'auto_linked' : 'pending',
-            linked_at: profileId ? new Date().toISOString() : null,
-          });
-          
-          if (itemError) {
-            console.error(`Failed to insert detected_item:`, itemError.message, itemError.code);
-          } else if (profileId) {
-            autoLinkedCount++;
-          }
-        }
-      }
-
-      // Save detected faces as unknown persons (for matching/tagging)
-      if (cellResult.faces?.length > 0) {
-        for (const face of cellResult.faces) {
-          facesDetected++;
-          
-          const { error: faceError } = await supabase.from('unknown_persons').insert({
-            user_id: userId,
-            media_id: mediaId,
-            face_region: { position: face.position_in_cell },
-            facial_features: {
-              distinctive_features: face.distinctive_features,
-              accessories: face.accessories,
-              facial_hair: face.facial_hair,
-              expression: face.expression,
-              emotion: face.emotion,
-              eye_contact: face.eye_contact,
-              clothing_visible: face.clothing_visible,
-            },
-            estimated_age_range: face.estimated_age_range,
-            estimated_gender: face.estimated_gender,
-            suggested_profiles: [],
-            status: 'unidentified',
-            ai_model_used: model,
-            source_mosaic_id: mosaicId,
-          });
-          
-          if (faceError) {
-            console.error(`Failed to insert unknown_person:`, faceError.message, faceError.code);
-          }
-        }
-      }
-
-      // Save extracted documents
-      if (cellResult.documents?.length > 0) {
-        for (const doc of cellResult.documents) {
-          documentsDetected++;
-          const { error: docError } = await supabase.from('extracted_documents').insert({
-            user_id: userId,
-            media_id: mediaId,
-            profile_id: profileId,
-            document_type: doc.document_type,
-            document_subtype: doc.document_subtype,
-            raw_text: doc.raw_text,
-            structured_data: doc.structured_data,
-            extracted_contact_info: doc.contact_info,
-            confidence: doc.confidence,
-            ai_model_used: model,
-            source_mosaic_id: mosaicId,
-            linked_status: profileId ? 'auto_linked' : 'pending',
-          });
-          
-          if (docError) {
-            console.error(`Failed to insert extracted_document for media ${mediaId}:`, docError.message, docError.code);
-          } else if (profileId) {
-            autoLinkedCount++;
-          }
-        }
-      }
-    }
-
-    // Update session with results
-    if (sessionId) {
+    // Mark all items as running
+    for (const cell of cells) {
       await supabase
-        .from('mosaic_metadata_sessions')
-        .update({
-          status: 'completed',
-          completed_at: new Date().toISOString(),
-          processed_images: cells.length,
-          processed_mosaics: 1,
-          items_detected: itemsDetected,
-          faces_detected: facesDetected,
-          documents_detected: documentsDetected,
-          auto_linked_count: autoLinkedCount,
-          pending_review_count: facesDetected + (itemsDetected - autoLinkedCount) + (documentsDetected - autoLinkedCount),
-          actual_cost_cents: aiResponse.costCents || 0,
-        })
-        .eq('id', sessionId);
+        .from('bulk_analysis_items')
+        .update({ status: 'running', started_at: new Date().toISOString() })
+        .eq('media_id', cell.mediaId)
+        .eq('user_id', userId);
     }
 
-    console.log(`Mosaic ${mosaicId} complete: ${itemsDetected} items, ${facesDetected} faces, ${documentsDetected} documents`);
+    // Start background processing using EdgeRuntime.waitUntil
+    // This returns immediately to prevent HTTP timeout while processing continues
+    (globalThis as any).EdgeRuntime?.waitUntil?.(
+      processInBackground(
+        supabase,
+        userId,
+        mosaicId,
+        mosaicImageUrl,
+        cells,
+        model,
+        sessionId,
+        effectiveGridCols,
+        effectiveGridRows
+      )
+    );
 
+    // Return immediate response - client should poll for completion
     return new Response(JSON.stringify({
-      success: true,
+      status: 'processing',
       mosaicId,
-      cellsProcessed: cellResults.length,
-      itemsDetected,
-      facesDetected,
-      documentsDetected,
-      autoLinkedCount,
-      costCents: aiResponse.costCents || 0,
-      inputTokens: aiResponse.inputTokens || 0,
-      outputTokens: aiResponse.outputTokens || 0,
+      cellCount: cells.length,
+      message: 'Mosaic analysis started. Items will be updated as processing completes.',
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Mosaic processing error:', error);
+    console.error('[Mosaic] Request handling error:', error);
     return new Response(JSON.stringify({ 
       error: error instanceof Error ? error.message : 'Unknown error' 
     }), {
