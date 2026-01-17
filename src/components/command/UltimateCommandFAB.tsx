@@ -52,7 +52,7 @@ export function UltimateCommandFAB() {
 
   return (
     <TooltipProvider>
-      <div className="fixed bottom-24 right-4 z-50 flex flex-col-reverse items-center gap-2 md:bottom-6">
+      <div className="fixed bottom-24 right-4 z-50 flex flex-col-reverse items-center gap-2 md:bottom-6 md:right-24">
         <AnimatePresence>
           {isExpanded && QUICK_ACTIONS.map((action, index) => (
             <motion.div
