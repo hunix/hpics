@@ -32,7 +32,8 @@ import { MediaAnalysisResults } from "@/components/analysis/MediaAnalysisResults
 import { EnhancedBulkProgress } from "@/components/analysis/EnhancedBulkProgress";
 import { BulkCostEstimator } from "@/components/analysis/BulkCostEstimator";
 import { BulkSessionRecovery } from "@/components/analysis/BulkSessionRecovery";
-import { usePersistentBulkSession } from "@/hooks/usePersistentBulkSession";
+import { ProcessingStrategySelector } from "@/components/analysis/ProcessingStrategySelector";
+import { usePersistentBulkSession, type ProcessingStrategy } from "@/hooks/usePersistentBulkSession";
 import { estimateBulkCost } from "@/lib/bulkAnalysisPrioritization";
 import { useMutation } from "@tanstack/react-query";
 
@@ -250,11 +251,14 @@ export default function MediaAnalysis() {
     );
 
     if (session) {
-      // Start immediately with the returned session, avoiding React state timing issues
-      console.log('[MediaAnalysis] Session created, starting immediately:', session.id);
-      await bulkSession.start(session);
+      // Start immediately with the returned session and current strategy
+      console.log('[MediaAnalysis] Session created, starting with strategy:', bulkSession.processingStrategy);
+      await bulkSession.start(session, bulkSession.processingStrategy);
     }
   };
+
+  // Calculate image count for strategy selector
+  const imageCount = selectedItems.filter(i => i.type === 'image').length;
 
   const handleRecoveryResume = () => {
     if (recoveredSession) {
@@ -419,6 +423,17 @@ export default function MediaAnalysis() {
                   </div>
                 </CardContent>
               </Card>
+            )}
+
+            {/* Processing Strategy Selector */}
+            {isBulkMode && !showBulkProgress && selectedItems.length >= 4 && (
+              <ProcessingStrategySelector
+                strategy={bulkSession.processingStrategy}
+                onStrategyChange={bulkSession.setProcessingStrategy}
+                imageCount={imageCount}
+                totalItemCount={selectedItems.length}
+                disabled={showBulkProgress}
+              />
             )}
           </div>
 
