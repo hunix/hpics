@@ -11,6 +11,7 @@ interface CellInfo {
   index: number;
   mediaId: string;
   profileId?: string;
+  bulkItemId?: string; // ID from bulk_analysis_items for direct updates
   x: number;
   y: number;
   width: number;
@@ -291,17 +292,28 @@ async function processInBackground(
         errorMessage = aiError.message;
       }
 
-      // Mark all items in batch as failed
+      // Mark all items in batch as failed - use bulkItemId for direct targeting
       for (const cell of cells) {
-        await supabase
-          .from('bulk_analysis_items')
-          .update({ 
-            status: 'failed', 
-            error_message: errorMessage,
-            completed_at: new Date().toISOString()
-          })
-          .eq('media_id', cell.mediaId)
-          .eq('user_id', userId);
+        if (cell.bulkItemId) {
+          await supabase
+            .from('bulk_analysis_items')
+            .update({ 
+              status: 'failed', 
+              error_message: errorMessage,
+              completed_at: new Date().toISOString()
+            })
+            .eq('id', cell.bulkItemId);
+        } else {
+          // Fallback: use media_id if bulkItemId not available
+          await supabase
+            .from('bulk_analysis_items')
+            .update({ 
+              status: 'failed', 
+              error_message: errorMessage,
+              completed_at: new Date().toISOString()
+            })
+            .eq('media_id', cell.mediaId);
+        }
       }
 
       if (sessionId) {
@@ -414,27 +426,48 @@ async function processInBackground(
         console.error(`[Background] Failed to update media ${mediaId}:`, mediaUpdateError.message, mediaUpdateError.code);
       }
 
-      // Update bulk_analysis_items for this media - use correct column names!
+      // Update bulk_analysis_items for this media - use bulkItemId for direct targeting
       const costPerCell = Math.ceil((aiResponse.costCents || 0) / cells.length);
-      const { error: itemUpdateError } = await supabase
-        .from('bulk_analysis_items')
-        .update({
-          status: 'completed',
-          actual_cost_cents: costPerCell,  // Fixed: was cost_cents
-          completed_at: new Date().toISOString(),
-          result: {  // Fixed: was result_summary
-            items: cellResult.detected_items?.length || 0,
-            faces: cellResult.faces?.length || 0,
-            documents: cellResult.documents?.length || 0
-          }
-        })
-        .eq('media_id', mediaId)
-        .eq('user_id', userId);
+      
+      let itemUpdateError;
+      if (cellInfo.bulkItemId) {
+        // Use bulkItemId for direct targeting (preferred)
+        const result = await supabase
+          .from('bulk_analysis_items')
+          .update({
+            status: 'completed',
+            actual_cost_cents: costPerCell,
+            completed_at: new Date().toISOString(),
+            result: {
+              items: cellResult.detected_items?.length || 0,
+              faces: cellResult.faces?.length || 0,
+              documents: cellResult.documents?.length || 0
+            }
+          })
+          .eq('id', cellInfo.bulkItemId);
+        itemUpdateError = result.error;
+      } else {
+        // Fallback: use media_id if bulkItemId not available
+        const result = await supabase
+          .from('bulk_analysis_items')
+          .update({
+            status: 'completed',
+            actual_cost_cents: costPerCell,
+            completed_at: new Date().toISOString(),
+            result: {
+              items: cellResult.detected_items?.length || 0,
+              faces: cellResult.faces?.length || 0,
+              documents: cellResult.documents?.length || 0
+            }
+          })
+          .eq('media_id', mediaId);
+        itemUpdateError = result.error;
+      }
 
       if (itemUpdateError) {
         console.error(`[Background] Failed to update bulk_analysis_items for media ${mediaId}:`, itemUpdateError.message, itemUpdateError.code);
       } else {
-        console.log(`[Background] Updated bulk_analysis_items for media ${mediaId} to completed`);
+        console.log(`[Background] Updated bulk_analysis_items for ${cellInfo.bulkItemId ? `id=${cellInfo.bulkItemId}` : `media=${mediaId}`} to completed`);
       }
 
       // Save detected items

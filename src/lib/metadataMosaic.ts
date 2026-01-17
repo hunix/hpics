@@ -70,12 +70,14 @@ export interface MediaItem {
   height?: number;
   profileId?: string;
   mimeType?: string;
+  bulkItemId?: string; // ID from bulk_analysis_items for direct updates
 }
 
 export interface MosaicCellInfo {
   index: number;
   mediaId: string;
   profileId?: string;
+  bulkItemId?: string; // ID from bulk_analysis_items for direct updates
   x: number;
   y: number;
   width: number;
@@ -251,6 +253,7 @@ export async function generateMetadataMosaic(
         index: i,
         mediaId: item.id,
         profileId: item.profileId,
+        bulkItemId: item.bulkItemId,
         x,
         y,
         width: calc.cellWidth,
@@ -273,6 +276,7 @@ export async function generateMetadataMosaic(
         index: i,
         mediaId: item.id,
         profileId: item.profileId,
+        bulkItemId: item.bulkItemId,
         x,
         y,
         width: calc.cellWidth,
