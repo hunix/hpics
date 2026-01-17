@@ -166,6 +166,35 @@ export function usePersistentBulkSession({
         const mappedSession = mapDbSession(dbSession);
         mappedSession.items = (items || []).map(mapDbItem);
         
+        // Reconcile session counters from actual item statuses
+        const actualCompleted = mappedSession.items.filter(i => i.status === 'completed').length;
+        const actualFailed = mappedSession.items.filter(i => i.status === 'failed').length;
+        const actualSkipped = mappedSession.items.filter(i => i.status === 'skipped').length;
+        
+        if (actualCompleted !== mappedSession.completedItems || 
+            actualFailed !== mappedSession.failedItems ||
+            actualSkipped !== mappedSession.skippedItems) {
+          console.log('[BulkSession] Reconciling session counters on restore:', {
+            sessionCounters: { completed: mappedSession.completedItems, failed: mappedSession.failedItems, skipped: mappedSession.skippedItems },
+            actualCounts: { completed: actualCompleted, failed: actualFailed, skipped: actualSkipped }
+          });
+          
+          // Update session counters in database to match actual item statuses
+          await supabase
+            .from("bulk_analysis_sessions")
+            .update({
+              completed_items: actualCompleted,
+              failed_items: actualFailed,
+              skipped_items: actualSkipped,
+            })
+            .eq("id", dbSession.id);
+          
+          // Update local state
+          mappedSession.completedItems = actualCompleted;
+          mappedSession.failedItems = actualFailed;
+          mappedSession.skippedItems = actualSkipped;
+        }
+        
         return mappedSession;
       }
       return null;
@@ -417,6 +446,7 @@ export function usePersistentBulkSession({
             gridCols: mosaic.gridCols,
             gridRows: mosaic.gridRows,
             model: 'google/gemini-2.5-flash',
+            sessionId: activeSession.id, // Include session ID for logging/diagnostics
           },
         }
       );
@@ -456,6 +486,27 @@ export function usePersistentBulkSession({
           if (allDone) {
             console.log('[BulkSession] Background mosaic processing completed');
             const completedCount = itemStatuses?.filter(i => i.status === 'completed').length || 0;
+            const failedCount = itemStatuses?.filter(i => i.status === 'failed').length || 0;
+            
+            // Reconcile session counters - increment for each completed/failed item
+            console.log('[BulkSession] Reconciling session counters:', { completedCount, failedCount });
+            for (let i = 0; i < completedCount; i++) {
+              await supabase.rpc("increment_bulk_session_progress", {
+                p_session_id: activeSession.id,
+                p_cost_cents: 0,
+                p_is_completed: true,
+                p_is_failed: false,
+              });
+            }
+            for (let i = 0; i < failedCount; i++) {
+              await supabase.rpc("increment_bulk_session_progress", {
+                p_session_id: activeSession.id,
+                p_cost_cents: 0,
+                p_is_completed: false,
+                p_is_failed: true,
+              });
+            }
+            
             return { processed: completedCount, cost: 0 };
           }
           
@@ -470,7 +521,26 @@ export function usePersistentBulkSession({
           .select('status')
           .in('id', itemIds);
         
+        // Reconcile whatever completed before timeout
         const completedCount = finalStatuses?.filter(i => i.status === 'completed').length || 0;
+        const failedCount = finalStatuses?.filter(i => i.status === 'failed').length || 0;
+        for (let i = 0; i < completedCount; i++) {
+          await supabase.rpc("increment_bulk_session_progress", {
+            p_session_id: activeSession.id,
+            p_cost_cents: 0,
+            p_is_completed: true,
+            p_is_failed: false,
+          });
+        }
+        for (let i = 0; i < failedCount; i++) {
+          await supabase.rpc("increment_bulk_session_progress", {
+            p_session_id: activeSession.id,
+            p_cost_cents: 0,
+            p_is_completed: false,
+            p_is_failed: true,
+          });
+        }
+        
         return { processed: completedCount, cost: 0 };
       }
 
