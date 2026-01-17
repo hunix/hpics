@@ -11,7 +11,8 @@ import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Sun, Bell, Mail, Loader2, Smartphone } from 'lucide-react';
+import { Moon, Sun, Bell, Mail, Loader2, Smartphone, RefreshCw, Trash2 } from 'lucide-react';
+import { APP_VERSION, BUILD_TIMESTAMP, forceAppUpdate, clearAllCaches } from '@/lib/appVersion';
 import { SettingsLayout } from '@/components/settings/SettingsLayout';
 import { AnalyticsExport } from '@/components/analytics/AnalyticsExport';
 import { PushNotifications } from '@/components/settings/PushNotifications';
@@ -192,6 +193,54 @@ export default function Settings() {
                 <div className="p-4 bg-muted/50 rounded-lg"><h4 className="font-medium">Android</h4><p className="text-sm text-muted-foreground">Tap menu → Add to Home screen</p></div>
               </CardContent>
             </Card>
+            
+            {/* Cache Management Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><RefreshCw className="h-5 w-5" />App Updates & Cache</CardTitle>
+                <CardDescription>Manage app version and cached data</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <div>
+                    <p className="font-medium">Current Version</p>
+                    <p className="text-sm text-muted-foreground">v{APP_VERSION}</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(BUILD_TIMESTAMP).toLocaleDateString()}
+                  </p>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={async () => {
+                      await clearAllCaches();
+                      toast({ title: 'Cache cleared', description: 'All cached data has been removed.' });
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Clear Cache
+                  </Button>
+                  <Button 
+                    className="flex-1"
+                    onClick={async () => {
+                      toast({ title: 'Updating...', description: 'Checking for updates and reloading.' });
+                      await forceAppUpdate();
+                    }}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Force Update
+                  </Button>
+                </div>
+                
+                <p className="text-xs text-muted-foreground text-center">
+                  Use "Force Update" if you're seeing an old UI or missing features
+                </p>
+              </CardContent>
+            </Card>
+            
             <OfflineSyncPanel />
             <PushNotifications vapidPublicKey={vapidPublicKey} />
           </div>
