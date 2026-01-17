@@ -33,17 +33,17 @@ export function useQuantumCognition(profileId?: string) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []).map(row => ({
-        id: row.id,
-        userId: row.user_id,
-        profileId: row.profile_id,
-        superpositionStates: row.superposition_states as Record<string, unknown>[] || [],
-        collapseProbability: row.collapse_probability || 0,
-        interferencePatterns: row.interference_patterns as Record<string, unknown> || {},
-        entanglementPartners: row.entanglement_partners || [],
-        quantumSignature: row.quantum_signature || '',
-        analysisType: row.analysis_type || 'superposition',
-        createdAt: row.created_at
+      return (data || []).map((row: Record<string, unknown>) => ({
+        id: row.id as string,
+        userId: row.user_id as string,
+        profileId: row.profile_id as string,
+        superpositionStates: (row.superposition_states || []) as Record<string, unknown>[],
+        collapseProbability: (row.collapse_probability || 0) as number,
+        interferencePatterns: (row.interference_patterns || {}) as Record<string, unknown>,
+        entanglementPartners: (row.entanglement_partners || []) as string[],
+        quantumSignature: (row.quantum_signature || '') as string,
+        analysisType: 'superposition' as string,
+        createdAt: row.created_at as string
       })) as CognitiveSuperposition[];
     },
     enabled: !!user,
@@ -52,24 +52,13 @@ export function useQuantumCognition(profileId?: string) {
   const analyzeQuantumState = useMutation({
     mutationFn: async (input: { profileId: string; analysisType: 'superposition' | 'entanglement' | 'interference' | 'collapse_prediction' }) => {
       const { data, error } = await supabase.functions.invoke('quantum-cognition-engine', {
-        body: {
-          userId: user!.id,
-          profileId: input.profileId,
-          analysisType: input.analysisType
-        }
+        body: { userId: user!.id, profileId: input.profileId, analysisType: input.analysisType }
       });
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cognitive-superpositions'] });
-    }
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['cognitive-superpositions'] }); }
   });
 
-  return {
-    superpositions,
-    isLoading,
-    analyzeQuantumState: analyzeQuantumState.mutateAsync,
-    isAnalyzing: analyzeQuantumState.isPending
-  };
+  return { superpositions, isLoading, analyzeQuantumState: analyzeQuantumState.mutateAsync, isAnalyzing: analyzeQuantumState.isPending };
 }

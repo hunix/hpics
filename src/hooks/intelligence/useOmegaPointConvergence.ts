@@ -51,15 +51,15 @@ export function useOmegaPointConvergence() {
         .order('convergence_contribution', { ascending: false });
 
       if (error) throw error;
-      return (data || []).map(row => ({
-        id: row.id,
-        userId: row.user_id,
-        metricType: row.metric_type,
-        currentValue: row.current_value || 0,
-        trajectoryVector: row.trajectory_vector as Record<string, unknown> || {},
-        convergenceContribution: row.convergence_contribution || 0,
-        accelerationFactor: row.acceleration_factor || 0,
-        createdAt: row.created_at
+      return (data || []).map((row: Record<string, unknown>) => ({
+        id: row.id as string,
+        userId: row.user_id as string,
+        metricType: (row.metric_type || '') as string,
+        currentValue: (row.current_value || 0) as number,
+        trajectoryVector: { trajectory: row.trajectory } as Record<string, unknown>,
+        convergenceContribution: (row.convergence_contribution || 0) as number,
+        accelerationFactor: 0 as number,
+        createdAt: row.created_at as string
       })) as ConvergenceMetric[];
     },
     enabled: !!user,
@@ -72,20 +72,20 @@ export function useOmegaPointConvergence() {
         .from('phase_transition_indicators')
         .select('*')
         .eq('user_id', user!.id)
-        .order('transition_probability', { ascending: false });
+        .order('critical_mass_percentage', { ascending: false });
 
       if (error) throw error;
-      return (data || []).map(row => ({
-        id: row.id,
-        userId: row.user_id,
-        transitionType: row.transition_type,
-        currentPhase: row.current_phase || '',
-        nextPhase: row.next_phase || '',
-        transitionProbability: row.transition_probability || 0,
-        catalystConditions: row.catalyst_conditions || [],
-        barrierFactors: row.barrier_factors || [],
-        estimatedTimeframe: row.estimated_timeframe || '',
-        createdAt: row.created_at
+      return (data || []).map((row: Record<string, unknown>) => ({
+        id: row.id as string,
+        userId: row.user_id as string,
+        transitionType: (row.transition_name || '') as string,
+        currentPhase: (row.current_phase || '') as string,
+        nextPhase: '' as string,
+        transitionProbability: (row.critical_mass_percentage || 0) as number,
+        catalystConditions: [] as string[],
+        barrierFactors: [] as string[],
+        estimatedTimeframe: (row.estimated_transition_date || '') as string,
+        createdAt: row.created_at as string
       })) as PhaseTransitionIndicator[];
     },
     enabled: !!user,
@@ -100,19 +100,21 @@ export function useOmegaPointConvergence() {
         .eq('user_id', user!.id)
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) throw error;
       if (!data) return null;
+      
+      const row = data as Record<string, unknown>;
       return {
-        id: data.id,
-        userId: data.user_id,
-        proximityScore: data.proximity_score || 0,
-        dimensionalAlignment: data.dimensional_alignment as Record<string, number> || {},
-        convergenceVelocity: data.convergence_velocity || 0,
-        singularityFactors: data.singularity_factors || [],
-        transcendenceReadiness: data.transcendence_readiness || 0,
-        createdAt: data.created_at
+        id: row.id as string,
+        userId: row.user_id as string,
+        proximityScore: (row.proximity_score || 0) as number,
+        dimensionalAlignment: (row.dimensional_alignment || {}) as Record<string, number>,
+        convergenceVelocity: (row.convergence_velocity || 0) as number,
+        singularityFactors: (row.singularity_factors || []) as string[],
+        transcendenceReadiness: (row.transcendence_readiness || 0) as number,
+        createdAt: row.created_at as string
       } as OmegaProximity;
     },
     enabled: !!user,
