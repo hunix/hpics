@@ -317,7 +317,7 @@ export function usePersistentBulkSession({
     [profileIds, analysisModes, analysisContext, analysisDepth, toast]
   );
 
-  // Process a batch of images using mosaic approach
+  // Process a batch of images using mosaic approach with timeout
   const processBatchWithMosaic = useCallback(async (
     items: Array<{ id: string; media_url?: string; media_id?: string; profile_id: string; file_name?: string }>,
     activeSession: BulkSession
@@ -325,9 +325,11 @@ export function usePersistentBulkSession({
     console.log('[BulkSession] Processing batch with mosaic:', items.length, 'images');
     setProcessingStatus(`Generating mosaic for ${items.length} images...`);
 
+    const MOSAIC_TIMEOUT_MS = 120000; // 2 minutes timeout
+    const itemIds = items.map(i => i.id);
+
     try {
       // Mark all items as running
-      const itemIds = items.map(i => i.id);
       await supabase
         .from("bulk_analysis_items")
         .update({ status: "running", started_at: new Date().toISOString() })
@@ -366,11 +368,19 @@ export function usePersistentBulkSession({
         throw new Error("No valid media URLs found");
       }
 
-      // Generate mosaic client-side
+      // Generate mosaic client-side with timeout
       setProcessingStatus(`Creating mosaic grid (${mediaItems.length} images)...`);
-      const mosaic = await generateMetadataMosaic(mediaItems, 'google/gemini-2.5-flash', (progress, current) => {
-        setProcessingStatus(current);
+      
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Mosaic generation timed out after 2 minutes')), MOSAIC_TIMEOUT_MS);
       });
+
+      const mosaic = await Promise.race([
+        generateMetadataMosaic(mediaItems, 'google/gemini-2.5-flash', (progress, current) => {
+          setProcessingStatus(current);
+        }),
+        timeoutPromise
+      ]);
 
       // Upload mosaic to storage temporarily
       setProcessingStatus("Uploading mosaic for analysis...");
@@ -441,8 +451,14 @@ export function usePersistentBulkSession({
       return { processed: items.length, cost: costCents };
     } catch (error) {
       console.error('[BulkSession] Mosaic processing error:', error);
-      // Fall back to individual processing on mosaic failure
-      setProcessingStatus("Mosaic failed, falling back to individual processing...");
+      setProcessingStatus("Mosaic failed, resetting items for retry...");
+      
+      // Reset items back to pending on failure so they can be retried
+      await supabase
+        .from("bulk_analysis_items")
+        .update({ status: "pending", started_at: null, error_message: error instanceof Error ? error.message : "Mosaic failed" })
+        .in("id", itemIds);
+      
       throw error;
     }
   }, []);
@@ -479,6 +495,20 @@ export function usePersistentBulkSession({
         .eq("id", activeSession.id);
 
       setSession((prev) => prev ? { ...prev, status: "running" } : null);
+
+      // Reset any items stuck at "running" for too long (> 5 minutes)
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { data: stuckItems } = await supabase
+        .from("bulk_analysis_items")
+        .update({ status: "pending", started_at: null, error_message: "Reset: was stuck in running state" })
+        .eq("session_id", activeSession.id)
+        .eq("status", "running")
+        .lt("started_at", fiveMinutesAgo)
+        .select("id");
+      
+      if (stuckItems && stuckItems.length > 0) {
+        console.log('[BulkSession] Reset', stuckItems.length, 'stuck items to pending');
+      }
 
       // Get all pending items
       const { data: allPendingItems } = await supabase
