@@ -84,6 +84,7 @@ const AbsoluteTotalityCenter = lazyWithRetry(() => import("./pages/AbsoluteTotal
 const UltimateOmegaCenter = lazyWithRetry(() => import("./pages/UltimateOmegaCenter"));
 const AGISCommandCenter = lazyWithRetry(() => import("./pages/AGISCommandCenter"));
 const AGISAnalytics = lazyWithRetry(() => import("./pages/AGISAnalytics"));
+const TranscendentConsciousnessCenter = lazyWithRetry(() => import("./pages/TranscendentConsciousnessCenter"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -177,6 +178,7 @@ const App = () => (
                         <Route path="/ultimate-omega" element={<UltimateOmegaCenter />} />
                         <Route path="/agis-command" element={<AGISCommandCenter />} />
                         <Route path="/agis-analytics" element={<AGISAnalytics />} />
+                        <Route path="/transcendent-consciousness" element={<TranscendentConsciousnessCenter />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                       </Suspense>

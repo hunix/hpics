@@ -366,6 +366,17 @@ export const navigationItems: NavItem[] = [
     keywords: ['agis', 'phase 19', 'unified', 'supremacy', 'orchestration', 'command', 'global'],
   },
   {
+    id: 'transcendent-consciousness',
+    title: 'Transcendent Consciousness',
+    url: '/transcendent-consciousness',
+    icon: Brain,
+    badge: 'new',
+    description: 'AGIS Phase 20 - Quantum Cognition & Collective Intelligence',
+    category: 'intelligence',
+    requiredRole: 'analyst',
+    keywords: ['agis', 'phase 20', 'transcendent', 'consciousness', 'quantum', 'collective', 'egregore', 'psychic'],
+  },
+  {
     id: 'agis-analytics',
     title: 'AGIS Analytics',
     url: '/agis-analytics',
