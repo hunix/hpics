@@ -2,9 +2,11 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { prioritizeItems, estimateBulkCost, type CostEstimate } from "@/lib/bulkAnalysisPrioritization";
+import { generateMetadataMosaic, getMosaicPreviewInfo, type MediaItem as MosaicMediaItem } from "@/lib/metadataMosaic";
 
 export type BulkSessionStatus = "idle" | "pending" | "queued" | "running" | "paused" | "completed" | "failed" | "cancelled";
 export type BulkItemStatus = "pending" | "queued" | "running" | "completed" | "failed" | "skipped";
+export type ProcessingStrategy = "individual" | "mosaic" | "hybrid";
 
 export interface BulkAnalysisItem {
   id: string;
@@ -86,6 +88,8 @@ export function usePersistentBulkSession({
   const [session, setSession] = useState<BulkSession | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [costEstimate, setCostEstimate] = useState<CostEstimate | null>(null);
+  const [processingStrategy, setProcessingStrategy] = useState<ProcessingStrategy>("hybrid");
+  const [processingStatus, setProcessingStatus] = useState<string>("");
   const isRunningRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -313,9 +317,140 @@ export function usePersistentBulkSession({
     [profileIds, analysisModes, analysisContext, analysisDepth, toast]
   );
 
+  // Process a batch of images using mosaic approach
+  const processBatchWithMosaic = useCallback(async (
+    items: Array<{ id: string; media_url?: string; media_id?: string; profile_id: string; file_name?: string }>,
+    activeSession: BulkSession
+  ) => {
+    console.log('[BulkSession] Processing batch with mosaic:', items.length, 'images');
+    setProcessingStatus(`Generating mosaic for ${items.length} images...`);
+
+    try {
+      // Mark all items as running
+      const itemIds = items.map(i => i.id);
+      await supabase
+        .from("bulk_analysis_items")
+        .update({ status: "running", started_at: new Date().toISOString() })
+        .in("id", itemIds);
+
+      // Get signed URLs for all items
+      const mediaItems: MosaicMediaItem[] = [];
+      for (const item of items) {
+        let url = item.media_url;
+        if (!url && item.media_id) {
+          // Try to get from media table
+          const { data: mediaData } = await supabase
+            .from("media")
+            .select("storage_path")
+            .eq("id", item.media_id)
+            .single();
+          
+          if (mediaData?.storage_path) {
+            const { data: signedData } = await supabase.storage
+              .from("media")
+              .createSignedUrl(mediaData.storage_path, 3600);
+            url = signedData?.signedUrl;
+          }
+        }
+        
+        if (url) {
+          mediaItems.push({
+            id: item.media_id || item.id,
+            url,
+            profileId: item.profile_id,
+          });
+        }
+      }
+
+      if (mediaItems.length === 0) {
+        throw new Error("No valid media URLs found");
+      }
+
+      // Generate mosaic client-side
+      setProcessingStatus(`Creating mosaic grid (${mediaItems.length} images)...`);
+      const mosaic = await generateMetadataMosaic(mediaItems, 'google/gemini-2.5-flash', (progress, current) => {
+        setProcessingStatus(current);
+      });
+
+      // Upload mosaic to storage temporarily
+      setProcessingStatus("Uploading mosaic for analysis...");
+      const mosaicPath = `temp-mosaics/${activeSession.id}/${mosaic.mosaicId}.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from("media")
+        .upload(mosaicPath, mosaic.imageBlob, { contentType: 'image/jpeg', upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get signed URL for mosaic
+      const { data: mosaicSignedData } = await supabase.storage
+        .from("media")
+        .createSignedUrl(mosaicPath, 3600);
+
+      if (!mosaicSignedData?.signedUrl) throw new Error("Failed to get mosaic URL");
+
+      // Call the mosaic analysis edge function
+      setProcessingStatus(`Analyzing ${mediaItems.length} images via mosaic...`);
+      const startTime = Date.now();
+
+      const { data: analysisResult, error: analysisError } = await supabase.functions.invoke(
+        "generate-media-metadata-mosaic",
+        {
+          body: {
+            mosaicUrl: mosaicSignedData.signedUrl,
+            mosaicId: mosaic.mosaicId,
+            cells: mosaic.cells,
+            model: 'google/gemini-2.5-flash',
+            analysisModes: activeSession.analysisModes,
+            context: activeSession.analysisContext,
+          },
+        }
+      );
+
+      const processingTimeMs = Date.now() - startTime;
+
+      if (analysisError) throw analysisError;
+
+      console.log('[BulkSession] Mosaic analysis completed:', analysisResult);
+      const costCents = analysisResult?.costCents || Math.ceil(items.length * 0.15); // Estimate ~$0.0015/image via mosaic
+
+      // Mark all items as completed
+      await supabase
+        .from("bulk_analysis_items")
+        .update({
+          status: "completed",
+          completed_at: new Date().toISOString(),
+          processing_time_ms: Math.round(processingTimeMs / items.length),
+          actual_cost_cents: Math.ceil(costCents / items.length),
+          result: { mosaicProcessed: true, mosaicId: mosaic.mosaicId },
+        })
+        .in("id", itemIds);
+
+      // Update session progress for all items at once
+      for (let i = 0; i < items.length; i++) {
+        await supabase.rpc("increment_bulk_session_progress", {
+          p_session_id: activeSession.id,
+          p_cost_cents: i === 0 ? costCents : 0, // Only add cost once
+          p_is_completed: true,
+          p_is_failed: false,
+        });
+      }
+
+      // Clean up temp mosaic
+      await supabase.storage.from("media").remove([mosaicPath]);
+
+      return { processed: items.length, cost: costCents };
+    } catch (error) {
+      console.error('[BulkSession] Mosaic processing error:', error);
+      // Fall back to individual processing on mosaic failure
+      setProcessingStatus("Mosaic failed, falling back to individual processing...");
+      throw error;
+    }
+  }, []);
+
   // Start processing - accepts optional session override to avoid React state timing issues
-  const start = useCallback(async (sessionOverride?: BulkSession) => {
+  const start = useCallback(async (sessionOverride?: BulkSession, strategyOverride?: ProcessingStrategy) => {
     const activeSession = sessionOverride || session;
+    const strategy = strategyOverride || processingStrategy;
     
     if (!activeSession) {
       console.warn('[BulkSession] start() called but no session available');
@@ -326,9 +461,10 @@ export function usePersistentBulkSession({
       return;
     }
 
-    console.log('[BulkSession] Starting processing for session:', activeSession.id);
+    console.log('[BulkSession] Starting processing for session:', activeSession.id, 'strategy:', strategy);
     isRunningRef.current = true;
     abortControllerRef.current = new AbortController();
+    setProcessingStatus("Initializing...");
     
     // If we got sessionOverride, also update the React state
     if (sessionOverride && (!session || session.id !== sessionOverride.id)) {
@@ -344,67 +480,129 @@ export function usePersistentBulkSession({
 
       setSession((prev) => prev ? { ...prev, status: "running" } : null);
 
-      // Process items one by one
-      while (isRunningRef.current) {
-        // Get next pending item
-        const { data: nextItems } = await supabase
-          .from("bulk_analysis_items")
-          .select("*")
-          .eq("session_id", activeSession.id)
-          .eq("status", "pending")
-          .order("priority_score", { ascending: false })
-          .order("queue_position", { ascending: true })
-          .limit(1);
+      // Get all pending items
+      const { data: allPendingItems } = await supabase
+        .from("bulk_analysis_items")
+        .select("*")
+        .eq("session_id", activeSession.id)
+        .eq("status", "pending")
+        .order("priority_score", { ascending: false })
+        .order("queue_position", { ascending: true });
 
-        console.log('[BulkSession] Next pending items:', nextItems?.length || 0);
+      if (!allPendingItems || allPendingItems.length === 0) {
+        console.log('[BulkSession] No pending items, completing session');
+        await completeSession(activeSession);
+        return;
+      }
 
-        if (!nextItems || nextItems.length === 0) {
-          // No more items, complete session
-          console.log('[BulkSession] No more items, completing session');
-          await completeSession(activeSession);
-          break;
-        }
+      console.log('[BulkSession] Total pending items:', allPendingItems.length);
 
-        const item = nextItems[0];
-        console.log('[BulkSession] Processing item:', item.id, item.file_name);
+      // Separate images from other media types
+      const imageItems = allPendingItems.filter(i => i.media_type === 'image');
+      const otherItems = allPendingItems.filter(i => i.media_type !== 'image');
 
-        // Process the item
-        await processItem(item.id, activeSession);
+      // Determine if we should use mosaic
+      const shouldUseMosaic = (strategy === 'mosaic' || strategy === 'hybrid') && imageItems.length >= 4;
 
-        // Check if we should continue
-        const { data: currentSession } = await supabase
-          .from("bulk_analysis_sessions")
-          .select("status, current_cost_cents, max_cost_cents, stop_on_budget_exceeded")
-          .eq("id", activeSession.id)
-          .single();
+      if (shouldUseMosaic) {
+        // Process images in batches using mosaic
+        const BATCH_SIZE = 64; // Max images per mosaic
+        setProcessingStatus(`Processing ${imageItems.length} images with mosaic optimization...`);
 
-        if (currentSession?.status === "paused" || currentSession?.status === "cancelled") {
-          console.log('[BulkSession] Session paused or cancelled, stopping');
-          break;
-        }
+        for (let i = 0; i < imageItems.length; i += BATCH_SIZE) {
+          if (!isRunningRef.current) break;
 
-        // Check budget
-        if (
-          currentSession?.max_cost_cents &&
-          currentSession.stop_on_budget_exceeded &&
-          currentSession.current_cost_cents >= currentSession.max_cost_cents
-        ) {
-          await pause();
-          toast({
-            title: "Budget limit reached",
-            description: "Session paused due to budget constraints",
-            variant: "destructive",
-          });
-          break;
+          const batch = imageItems.slice(i, i + BATCH_SIZE);
+          console.log('[BulkSession] Processing mosaic batch:', i / BATCH_SIZE + 1, 'of', Math.ceil(imageItems.length / BATCH_SIZE));
+          
+          try {
+            await processBatchWithMosaic(batch, activeSession);
+          } catch (mosaicError) {
+            console.error('[BulkSession] Mosaic batch failed, processing individually:', mosaicError);
+            // Fall back to individual processing for this batch
+            for (const item of batch) {
+              if (!isRunningRef.current) break;
+              await processItem(item.id, activeSession);
+            }
+          }
+
+          // Check session status
+          const { data: currentSession } = await supabase
+            .from("bulk_analysis_sessions")
+            .select("status")
+            .eq("id", activeSession.id)
+            .single();
+
+          if (currentSession?.status === "paused" || currentSession?.status === "cancelled") {
+            break;
+          }
         }
       }
+
+      // Process non-image items (or all items if not using mosaic) individually
+      const itemsToProcessIndividually = shouldUseMosaic ? otherItems : allPendingItems;
+      
+      if (itemsToProcessIndividually.length > 0 && isRunningRef.current) {
+        setProcessingStatus(`Processing ${itemsToProcessIndividually.length} items individually...`);
+        
+        for (const item of itemsToProcessIndividually) {
+          if (!isRunningRef.current) break;
+
+          console.log('[BulkSession] Processing item individually:', item.id, item.file_name);
+          setProcessingStatus(`Processing: ${item.file_name || item.id}`);
+
+          await processItem(item.id, activeSession);
+
+          // Check if we should continue
+          const { data: currentSession } = await supabase
+            .from("bulk_analysis_sessions")
+            .select("status, current_cost_cents, max_cost_cents, stop_on_budget_exceeded")
+            .eq("id", activeSession.id)
+            .single();
+
+          if (currentSession?.status === "paused" || currentSession?.status === "cancelled") {
+            console.log('[BulkSession] Session paused or cancelled, stopping');
+            break;
+          }
+
+          // Check budget
+          if (
+            currentSession?.max_cost_cents &&
+            currentSession.stop_on_budget_exceeded &&
+            currentSession.current_cost_cents >= currentSession.max_cost_cents
+          ) {
+            await pause();
+            toast({
+              title: "Budget limit reached",
+              description: "Session paused due to budget constraints",
+              variant: "destructive",
+            });
+            break;
+          }
+        }
+      }
+
+      // Check if all items are done
+      const { data: remainingItems } = await supabase
+        .from("bulk_analysis_items")
+        .select("id")
+        .eq("session_id", activeSession.id)
+        .eq("status", "pending")
+        .limit(1);
+
+      if (!remainingItems || remainingItems.length === 0) {
+        await completeSession(activeSession);
+      }
+
     } catch (error) {
       console.error('[BulkSession] Error during processing:', error);
+      setProcessingStatus("Error: " + (error instanceof Error ? error.message : "Unknown error"));
     } finally {
       isRunningRef.current = false;
+      setProcessingStatus("");
       console.log('[BulkSession] Processing loop ended');
     }
-  }, [session, toast]);
+  }, [session, processingStrategy, toast, processBatchWithMosaic]);
 
   // Process a single item
   const processItem = useCallback(async (itemId: string, sessionOverride?: BulkSession) => {
@@ -652,6 +850,9 @@ export function usePersistentBulkSession({
     isLoading,
     costEstimate,
     isRunning: isRunningRef.current,
+    processingStrategy,
+    setProcessingStrategy,
+    processingStatus,
     checkExistingSession,
     initSession,
     start,
