@@ -149,8 +149,8 @@ export default function TranscendentConsciousnessCenter() {
                   quantumCognition.superpositions?.length === 0 ? <p className="text-center py-8 text-muted-foreground">No quantum states.</p> :
                   <div className="grid gap-3">{quantumCognition.superpositions?.slice(0, 8).map(s => (
                     <div key={s.id} className="p-3 rounded-lg border border-violet-500/30 bg-violet-950/20 flex justify-between items-center">
-                      <span className="capitalize">{s.superpositionType}</span>
-                      <Badge variant="outline">Coherence: {s.coherenceLevel}%</Badge>
+                      <span className="capitalize">{s.analysisType}</span>
+                      <Badge variant="outline">Collapse: {Math.round(s.collapseProbability * 100)}%</Badge>
                     </div>
                   ))}</div>
                 }
@@ -214,7 +214,7 @@ export default function TranscendentConsciousnessCenter() {
                   <div className="grid gap-3">{precognitivePatterns.timelines?.slice(0, 8).map(t => (
                     <div key={t.id} className="p-3 rounded-lg border border-indigo-500/30 bg-indigo-950/20 flex justify-between items-center">
                       <span className="capitalize">{t.eventType?.replace(/_/g, ' ')}</span>
-                      <Badge variant="outline">Probability: {t.probability}%</Badge>
+                      <Badge variant="outline">Probability: {Math.round(t.probabilityScore * 100)}%</Badge>
                     </div>
                   ))}</div>
                 }
@@ -230,7 +230,7 @@ export default function TranscendentConsciousnessCenter() {
                   <div className="grid gap-3">{egregoreCultivation.egregores?.slice(0, 8).map(eg => (
                     <div key={eg.id} className="p-3 rounded-lg border border-emerald-500/30 bg-emerald-950/20 flex justify-between items-center">
                       <span className="capitalize">{eg.egregoreType}</span>
-                      <Badge variant="outline">Strength: {eg.collectiveStrength}</Badge>
+                      <Badge variant="outline">Strength: {eg.cohesionStrength}</Badge>
                     </div>
                   ))}</div>
                 }
@@ -278,7 +278,7 @@ export default function TranscendentConsciousnessCenter() {
                   <div className="grid gap-3">{psychicResonance.connections?.slice(0, 8).map(c => (
                     <div key={c.id} className="p-3 rounded-lg border border-rose-500/30 bg-rose-950/20 flex justify-between items-center">
                       <span className="capitalize">{c.resonanceType?.replace(/_/g, ' ')}</span>
-                      <Badge variant="outline">Strength: {c.connectionStrength}</Badge>
+                      <Badge variant="outline">Strength: {c.resonanceStrength}</Badge>
                     </div>
                   ))}</div>
                 }
@@ -293,8 +293,8 @@ export default function TranscendentConsciousnessCenter() {
                 {realityConsensus.bubbles?.length === 0 ? <p className="text-center py-8 text-muted-foreground">No consensus bubbles.</p> :
                   <div className="grid gap-3">{realityConsensus.bubbles?.slice(0, 8).map(b => (
                     <div key={b.id} className="p-3 rounded-lg border border-teal-500/30 bg-teal-950/20 flex justify-between items-center">
-                      <span className="capitalize">{b.bubbleType?.replace(/_/g, ' ')}</span>
-                      <Badge variant="outline">Permeability: {b.permeabilityScore}</Badge>
+                      <span className="capitalize">{b.bubbleName || 'Unnamed'}</span>
+                      <Badge variant="outline">Permeability: {Math.round(b.boundaryPermeability * 100)}%</Badge>
                     </div>
                   ))}</div>
                 }
