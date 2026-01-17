@@ -366,7 +366,7 @@ serve(async (req) => {
         mosaic_id: mosaicId,
       };
 
-      await supabase
+      const { error: mediaUpdateError } = await supabase
         .from('media')
         .update({
           ai_metadata: metadata,
@@ -375,12 +375,16 @@ serve(async (req) => {
           ai_generation_status: 'completed',
         })
         .eq('id', mediaId);
+      
+      if (mediaUpdateError) {
+        console.error(`Failed to update media ${mediaId}:`, mediaUpdateError.message, mediaUpdateError.code);
+      }
 
       // Save detected items
       if (cellResult.detected_items?.length > 0) {
         for (const item of cellResult.detected_items) {
           itemsDetected++;
-          await supabase.from('detected_items').insert({
+          const { error: itemError } = await supabase.from('detected_items').insert({
             user_id: userId,
             media_id: mediaId,
             profile_id: profileId,
@@ -401,7 +405,12 @@ serve(async (req) => {
             linked_status: profileId ? 'auto_linked' : 'pending',
             linked_at: profileId ? new Date().toISOString() : null,
           });
-          if (profileId) autoLinkedCount++;
+          
+          if (itemError) {
+            console.error(`Failed to insert detected_item:`, itemError.message, itemError.code);
+          } else if (profileId) {
+            autoLinkedCount++;
+          }
         }
       }
 
@@ -410,9 +419,7 @@ serve(async (req) => {
         for (const face of cellResult.faces) {
           facesDetected++;
           
-          // Check if this might match a known profile via biometrics
-          // For now, save as unknown for manual review
-          await supabase.from('unknown_persons').insert({
+          const { error: faceError } = await supabase.from('unknown_persons').insert({
             user_id: userId,
             media_id: mediaId,
             face_region: { position: face.position_in_cell },
@@ -432,6 +439,10 @@ serve(async (req) => {
             ai_model_used: model,
             source_mosaic_id: mosaicId,
           });
+          
+          if (faceError) {
+            console.error(`Failed to insert unknown_person:`, faceError.message, faceError.code);
+          }
         }
       }
 
@@ -439,7 +450,7 @@ serve(async (req) => {
       if (cellResult.documents?.length > 0) {
         for (const doc of cellResult.documents) {
           documentsDetected++;
-          await supabase.from('extracted_documents').insert({
+          const { error: docError } = await supabase.from('extracted_documents').insert({
             user_id: userId,
             media_id: mediaId,
             profile_id: profileId,
@@ -453,7 +464,12 @@ serve(async (req) => {
             source_mosaic_id: mosaicId,
             linked_status: profileId ? 'auto_linked' : 'pending',
           });
-          if (profileId) autoLinkedCount++;
+          
+          if (docError) {
+            console.error(`Failed to insert extracted_document for media ${mediaId}:`, docError.message, docError.code);
+          } else if (profileId) {
+            autoLinkedCount++;
+          }
         }
       }
     }
