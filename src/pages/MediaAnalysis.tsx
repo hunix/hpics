@@ -331,8 +331,18 @@ export default function MediaAnalysis() {
 
     if (session) {
       // Start immediately with the returned session and current strategy
-      console.log('[MediaAnalysis] Session created, starting with strategy:', bulkSession.processingStrategy);
-      await bulkSession.start(session, bulkSession.processingStrategy);
+      console.log('[MediaAnalysis] Session created, waiting for state sync...');
+      
+      try {
+        // Small delay to ensure React state is properly updated before starting
+        await new Promise(r => setTimeout(r, 150));
+        
+        console.log('[MediaAnalysis] Starting with strategy:', bulkSession.processingStrategy);
+        await bulkSession.start(session, bulkSession.processingStrategy);
+      } catch (error) {
+        console.error('[MediaAnalysis] Failed to start bulk analysis:', error);
+        toast.error('Failed to start analysis: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      }
     }
   };
 
