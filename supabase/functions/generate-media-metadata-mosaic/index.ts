@@ -33,7 +33,7 @@ interface MosaicRequest {
 
 // Helper to increment bulk_analysis_sessions counters directly
 async function incrementSessionProgress(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   bulkSessionId: string,
   completedCount: number,
   failedCount: number,
@@ -50,9 +50,9 @@ async function incrementSessionProgress(
       .single();
     
     if (currentSession) {
-      const newCompleted = (currentSession.completed_items || 0) + completedCount;
-      const newFailed = (currentSession.failed_items || 0) + failedCount;
-      const newCost = (currentSession.current_cost_cents || 0) + costCents;
+      const newCompleted = ((currentSession as any).completed_items || 0) + completedCount;
+      const newFailed = ((currentSession as any).failed_items || 0) + failedCount;
+      const newCost = ((currentSession as any).current_cost_cents || 0) + costCents;
       
       await supabase
         .from('bulk_analysis_sessions')
@@ -261,7 +261,7 @@ Note distinctive features of faces for potential identification.`;
 
 // Background processing function
 async function processInBackground(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   mosaicId: string,
   mosaicImageUrl: string,
@@ -528,7 +528,7 @@ async function processInBackground(
               .eq('id', mediaId)
               .single();
             
-            const existingModes = currentMedia?.completed_analysis_modes || [];
+            const existingModes = (currentMedia as any)?.completed_analysis_modes || [];
             // For mosaic, we track 'mosaic_metadata' as the completed mode
             const newModes = ['mosaic_metadata'];
             const allModes = [...new Set([...existingModes, ...newModes])];
