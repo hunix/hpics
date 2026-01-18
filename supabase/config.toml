@@ -485,3 +485,6 @@ verify_jwt = false
 
 [functions.aggregate-voice-intelligence]
 verify_jwt = false
+
+[functions.autonomous-intelligence-orchestrator]
+verify_jwt = false
