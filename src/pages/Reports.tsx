@@ -273,14 +273,14 @@ export default function Reports() {
             </div>
           </TabsContent>
 
-          <TabsContent value="dossiers" className="mt-6">
-            <div className="max-w-xl">
+          <TabsContent value="dossiers" className="mt-6 min-h-[600px]">
+            <div className="w-full">
               <PDFDossierGenerator />
             </div>
           </TabsContent>
 
-          <TabsContent value="network" className="mt-6">
-            <div className="max-w-xl">
+          <TabsContent value="network" className="mt-6 min-h-[600px]">
+            <div className="w-full">
               <NetworkMapExport />
             </div>
           </TabsContent>
