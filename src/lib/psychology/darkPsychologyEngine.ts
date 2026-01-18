@@ -10,28 +10,44 @@
 // Core Types
 // ============================================
 
-export interface DarkTriadAssessment {
+// Enhanced to Dark Tetrad (includes Sadism)
+export interface DarkTetradAssessment {
   narcissism: {
     score: number;
     grandiose: number;
     vulnerable: number;
+    communal: number;  // Communal narcissism
     indicators: string[];
   };
   machiavellianism: {
     score: number;
     strategic: number;
     cynical: number;
+    coalition: number; // Coalition manipulation
     indicators: string[];
   };
   psychopathy: {
     score: number;
     primary: number;    // Callousness
     secondary: number;  // Impulsivity
+    fearless: number;   // Fearless dominance
+    indicators: string[];
+  };
+  sadism: {
+    score: number;
+    vicarious: number;  // Enjoys watching suffering
+    direct: number;     // Enjoys causing suffering
+    verbal: number;     // Verbal cruelty
     indicators: string[];
   };
   overallDarkness: number;
-  riskLevel: 'low' | 'moderate' | 'elevated' | 'high' | 'extreme';
+  darkTetradScore: number;
+  riskLevel: 'low' | 'moderate' | 'elevated' | 'high' | 'extreme' | 'critical';
+  dominantTrait: 'narcissism' | 'machiavellianism' | 'psychopathy' | 'sadism' | 'balanced';
 }
+
+// Legacy alias for backward compatibility
+export type DarkTriadAssessment = DarkTetradAssessment;
 
 export interface CognitiveBias {
   id: string;
@@ -656,42 +672,87 @@ export function assessDarkTriad(
     }
   }
   
+  // Sadism indicators (NEW for Dark Tetrad)
+  let sadismScore = 0;
+  const sadismIndicators: string[] = [];
+  
+  const sadismPatterns = [
+    { pattern: /\b(enjoy|love|like) (watching|seeing) (them|him|her|people) (suffer|struggle|fail|hurt)/gi, weight: 4, indicator: 'Vicarious sadism' },
+    { pattern: /\b(deserve|got what|should) (suffer|hurt|pain)/gi, weight: 3, indicator: 'Punitive satisfaction' },
+    { pattern: /\b(crush|destroy|humiliate|devastate)/gi, weight: 2, indicator: 'Destructive language' },
+    { pattern: /\b(make (them|him|her) pay|teach.*lesson)/gi, weight: 3, indicator: 'Revenge gratification' },
+    { pattern: /\b(pathetic|worthless|disgusting)/gi, weight: 2, indicator: 'Degrading language' },
+    { pattern: /\b(squirm|beg|grovel|crawl)/gi, weight: 3, indicator: 'Power-over-suffering imagery' },
+  ];
+  
+  for (const { pattern, weight, indicator } of sadismPatterns) {
+    const matches = allText.match(pattern);
+    if (matches) {
+      sadismScore += weight * matches.length;
+      if (!sadismIndicators.includes(indicator)) {
+        sadismIndicators.push(indicator);
+      }
+    }
+  }
+  
   // Normalize scores (0-100)
   const maxPossible = 30;
   narcissismScore = Math.min(100, (narcissismScore / maxPossible) * 100);
   machiavellianismScore = Math.min(100, (machiavellianismScore / maxPossible) * 100);
   psychopathyScore = Math.min(100, (psychopathyScore / maxPossible) * 100);
+  sadismScore = Math.min(100, (sadismScore / maxPossible) * 100);
   
-  const overallDarkness = (narcissismScore + machiavellianismScore + psychopathyScore) / 3;
+  // Calculate Dark Tetrad composite score
+  const darkTetradScore = (narcissismScore + machiavellianismScore + psychopathyScore + sadismScore) / 4;
+  const overallDarkness = darkTetradScore;
   
-  let riskLevel: DarkTriadAssessment['riskLevel'];
-  if (overallDarkness < 20) riskLevel = 'low';
-  else if (overallDarkness < 40) riskLevel = 'moderate';
-  else if (overallDarkness < 60) riskLevel = 'elevated';
-  else if (overallDarkness < 80) riskLevel = 'high';
-  else riskLevel = 'extreme';
+  // Determine dominant trait
+  const traitScores = { narcissism: narcissismScore, machiavellianism: machiavellianismScore, psychopathy: psychopathyScore, sadism: sadismScore };
+  const maxScore = Math.max(...Object.values(traitScores));
+  const dominantTrait = maxScore < 20 ? 'balanced' : 
+    (Object.entries(traitScores).find(([, score]) => score === maxScore)?.[0] as 'narcissism' | 'machiavellianism' | 'psychopathy' | 'sadism') || 'balanced';
+  
+  let riskLevel: DarkTetradAssessment['riskLevel'];
+  if (overallDarkness < 15) riskLevel = 'low';
+  else if (overallDarkness < 30) riskLevel = 'moderate';
+  else if (overallDarkness < 50) riskLevel = 'elevated';
+  else if (overallDarkness < 70) riskLevel = 'high';
+  else if (overallDarkness < 85) riskLevel = 'extreme';
+  else riskLevel = 'critical';
   
   return {
     narcissism: {
       score: narcissismScore,
-      grandiose: narcissismScore * 0.6,
-      vulnerable: narcissismScore * 0.4,
+      grandiose: narcissismScore * 0.5,
+      vulnerable: narcissismScore * 0.3,
+      communal: narcissismScore * 0.2,
       indicators: narcissismIndicators
     },
     machiavellianism: {
       score: machiavellianismScore,
-      strategic: machiavellianismScore * 0.5,
-      cynical: machiavellianismScore * 0.5,
+      strategic: machiavellianismScore * 0.4,
+      cynical: machiavellianismScore * 0.4,
+      coalition: machiavellianismScore * 0.2,
       indicators: machiavellianismIndicators
     },
     psychopathy: {
       score: psychopathyScore,
-      primary: psychopathyScore * 0.6,
-      secondary: psychopathyScore * 0.4,
+      primary: psychopathyScore * 0.4,
+      secondary: psychopathyScore * 0.3,
+      fearless: psychopathyScore * 0.3,
       indicators: psychopathyIndicators
     },
+    sadism: {
+      score: sadismScore,
+      vicarious: sadismScore * 0.4,
+      direct: sadismScore * 0.35,
+      verbal: sadismScore * 0.25,
+      indicators: sadismIndicators
+    },
     overallDarkness,
-    riskLevel
+    darkTetradScore,
+    riskLevel,
+    dominantTrait
   };
 }
 
