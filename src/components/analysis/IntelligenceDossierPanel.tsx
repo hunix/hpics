@@ -31,7 +31,7 @@ import { cn } from '@/lib/utils';
 
 interface IntelligenceDossierPanelProps {
   profileId: string;
-  profileName: string;
+  profileName?: string;
   className?: string;
 }
 
