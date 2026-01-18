@@ -82,76 +82,97 @@ export function NetworkMapExport() {
   useEffect(() => {
     if (!networkData || !svgRef.current) return;
 
-    const svg = d3.select(svgRef.current);
-    svg.selectAll('*').remove();
+    try {
+      const svg = d3.select(svgRef.current);
+      svg.selectAll('*').remove();
 
-    const width = 600;
-    const height = 400;
+      const width = 600;
+      const height = 400;
 
-    svg.attr('viewBox', `0 0 ${width} ${height}`);
+      svg.attr('viewBox', `0 0 ${width} ${height}`);
 
-    // Color scale for groups
-    const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+      // Color scale for groups
+      const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
 
-    // Create simulation
-    const simulation = d3.forceSimulation(networkData.nodes as any)
-      .force('link', d3.forceLink(networkData.links).id((d: any) => d.id).distance(80))
-      .force('charge', d3.forceManyBody().strength(-200))
-      .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide().radius(30));
+      // Filter links to only include valid node references (prevents D3 crash)
+      const nodeIds = new Set(networkData.nodes.map(n => n.id));
+      const validLinks = networkData.links.filter(link => 
+        nodeIds.has(link.source as string) && nodeIds.has(link.target as string)
+      );
 
-    // Draw links
-    const link = svg.append('g')
-      .selectAll('line')
-      .data(networkData.links)
-      .join('line')
-      .attr('stroke', '#999')
-      .attr('stroke-opacity', 0.6)
-      .attr('stroke-width', (d: any) => Math.sqrt(d.strength) * 2);
+      if (networkData.nodes.length === 0) {
+        console.log('[NetworkMapExport] No nodes to render');
+        return;
+      }
 
-    // Draw nodes
-    const node = svg.append('g')
-      .selectAll('g')
-      .data(networkData.nodes)
-      .join('g')
-      .call(d3.drag<any, any>()
-        .on('start', (event, d: any) => {
-          if (!event.active) simulation.alphaTarget(0.3).restart();
-          d.fx = d.x;
-          d.fy = d.y;
-        })
-        .on('drag', (event, d: any) => {
-          d.fx = event.x;
-          d.fy = event.y;
-        })
-        .on('end', (event, d: any) => {
-          if (!event.active) simulation.alphaTarget(0);
-          d.fx = null;
-          d.fy = null;
-        }) as any);
+      // Create simulation with validated links
+      const simulation = d3.forceSimulation(networkData.nodes as any)
+        .force('link', d3.forceLink(validLinks).id((d: any) => d.id).distance(80))
+        .force('charge', d3.forceManyBody().strength(-200))
+        .force('center', d3.forceCenter(width / 2, height / 2))
+        .force('collision', d3.forceCollide().radius(30));
 
-    node.append('circle')
-      .attr('r', (d: any) => d.size)
-      .attr('fill', (d: any) => colorScale(d.group))
-      .attr('stroke', '#fff')
-      .attr('stroke-width', 2);
+      // Draw links with validated data
+      const link = svg.append('g')
+        .selectAll('line')
+        .data(validLinks)
+        .join('line')
+        .attr('stroke', '#999')
+        .attr('stroke-opacity', 0.6)
+        .attr('stroke-width', (d: any) => Math.sqrt(d.strength) * 2);
 
-    node.append('text')
-      .text((d: any) => d.name.length > 12 ? d.name.substring(0, 12) + '...' : d.name)
-      .attr('x', 12)
-      .attr('y', 4)
-      .attr('font-size', '10px')
-      .attr('fill', '#333');
+      // Draw nodes
+      const node = svg.append('g')
+        .selectAll('g')
+        .data(networkData.nodes)
+        .join('g')
+        .call(d3.drag<any, any>()
+          .on('start', (event, d: any) => {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+          })
+          .on('drag', (event, d: any) => {
+            d.fx = event.x;
+            d.fy = event.y;
+          })
+          .on('end', (event, d: any) => {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+          }) as any);
 
-    simulation.on('tick', () => {
-      link
-        .attr('x1', (d: any) => d.source.x)
-        .attr('y1', (d: any) => d.source.y)
-        .attr('x2', (d: any) => d.target.x)
-        .attr('y2', (d: any) => d.target.y);
+      node.append('circle')
+        .attr('r', (d: any) => d.size)
+        .attr('fill', (d: any) => colorScale(d.group))
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 2);
 
-      node.attr('transform', (d: any) => `translate(${d.x},${d.y})`);
-    });
+      node.append('text')
+        .text((d: any) => d.name.length > 12 ? d.name.substring(0, 12) + '...' : d.name)
+        .attr('x', 12)
+        .attr('y', 4)
+        .attr('font-size', '10px')
+        .attr('fill', '#333');
+
+      simulation.on('tick', () => {
+        link
+          .attr('x1', (d: any) => d.source.x)
+          .attr('y1', (d: any) => d.source.y)
+          .attr('x2', (d: any) => d.target.x)
+          .attr('y2', (d: any) => d.target.y);
+
+        node.attr('transform', (d: any) => `translate(${d.x},${d.y})`);
+      });
+
+      // Cleanup on unmount
+      return () => {
+        simulation.stop();
+      };
+    } catch (error) {
+      console.error('[NetworkMapExport] D3 rendering error:', error);
+      // Don't crash the component - graceful degradation
+    }
   }, [networkData, layout]);
 
   const exportMap = async () => {

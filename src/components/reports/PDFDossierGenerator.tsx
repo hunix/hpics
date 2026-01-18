@@ -1,15 +1,14 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { FileText, Download, Loader2, User, Calendar, TrendingUp, Shield, Network } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import { format } from 'date-fns';
+import { ScalableContactSearch } from '@/components/contacts/ScalableContactSearch';
 
 interface PDFDossierGeneratorProps {
   profileId?: string;
@@ -23,11 +22,16 @@ interface DossierSection {
   enabled: boolean;
 }
 
+interface SelectedContact {
+  id: string;
+  first_name: string;
+  last_name: string | null;
+}
+
 export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGeneratorProps) {
-  const { user } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
-  const [selectedProfile, setSelectedProfile] = useState(profileId || '');
-  const [profiles, setProfiles] = useState<{ id: string; name: string }[]>([]);
+  const [selectedProfile, setSelectedProfile] = useState<string | null>(profileId || null);
+  const [selectedContactName, setSelectedContactName] = useState<string>(profileName || '');
   const [sections, setSections] = useState<DossierSection[]>([
     { id: 'overview', label: 'Contact Overview', icon: User, enabled: true },
     { id: 'timeline', label: 'Interaction Timeline', icon: Calendar, enabled: true },
@@ -36,24 +40,14 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
     { id: 'network', label: 'Network Position', icon: Network, enabled: false },
   ]);
 
-  // Load profiles if no profileId provided
-  useState(() => {
-    if (!profileId && user) {
-      supabase
-        .from('profiles')
-        .select('id, first_name, last_name')
-        .eq('user_id', user.id)
-        .order('first_name')
-        .then(({ data }) => {
-          if (data) {
-            setProfiles(data.map(p => ({ 
-              id: p.id, 
-              name: `${p.first_name} ${p.last_name || ''}`.trim() 
-            })));
-          }
-        });
+  const handleContactSelect = useCallback((id: string | null, contact?: { first_name: string; last_name: string | null }) => {
+    setSelectedProfile(id);
+    if (contact) {
+      setSelectedContactName(`${contact.first_name} ${contact.last_name || ''}`.trim());
+    } else {
+      setSelectedContactName('');
     }
-  });
+  }, []);
 
   const toggleSection = (sectionId: string) => {
     setSections(sections.map(s => 
@@ -283,16 +277,11 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         {!profileId && (
           <div className="space-y-2">
             <Label>Select Contact</Label>
-            <Select value={selectedProfile} onValueChange={setSelectedProfile}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a contact..." />
-              </SelectTrigger>
-              <SelectContent>
-                {profiles.map(p => (
-                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ScalableContactSearch
+              selectedId={selectedProfile}
+              onSelect={handleContactSelect}
+              placeholder="Search and select a contact..."
+            />
           </div>
         )}
 
