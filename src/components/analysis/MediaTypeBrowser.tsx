@@ -41,7 +41,7 @@ export function MediaTypeBrowser({
           .select('id, file_url, title, file_size, mime_type, created_at')
           .eq('profile_id', profileId)
           .order('created_at', { ascending: false })
-          .limit(50);
+          .limit(200);
         if (error) throw error;
         return data?.map(d => ({
           id: d.id,
@@ -65,7 +65,7 @@ export function MediaTypeBrowser({
           .eq('profile_id', profileId)
           .ilike('mime_type', `${mimeFilter}%`)
           .order('created_at', { ascending: false })
-          .limit(50);
+          .limit(200);
         if (error) throw error;
         return data?.map(m => ({
           id: m.id,

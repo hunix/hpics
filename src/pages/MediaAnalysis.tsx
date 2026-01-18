@@ -334,10 +334,10 @@ export default function MediaAnalysis() {
       console.log('[MediaAnalysis] Session created, waiting for state sync...');
       
       try {
-        // Small delay to ensure React state is properly updated before starting
-        await new Promise(r => setTimeout(r, 150));
+        // Longer delay to ensure React state is properly synced
+        await new Promise(r => setTimeout(r, 300));
         
-        console.log('[MediaAnalysis] Starting with strategy:', bulkSession.processingStrategy);
+        console.log('[MediaAnalysis] Starting with strategy:', bulkSession.processingStrategy, 'Session ID:', session.id);
         await bulkSession.start(session, bulkSession.processingStrategy);
       } catch (error) {
         console.error('[MediaAnalysis] Failed to start bulk analysis:', error);
@@ -515,7 +515,7 @@ export default function MediaAnalysis() {
             )}
 
             {/* Processing Strategy Selector */}
-            {isBulkMode && !showBulkProgress && selectedItems.length >= 4 && (
+            {isBulkMode && !showBulkProgress && (
               <ProcessingStrategySelector
                 strategy={bulkSession.processingStrategy}
                 onStrategyChange={bulkSession.setProcessingStrategy}
