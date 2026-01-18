@@ -162,6 +162,50 @@ export function usePersistentBulkSession({
     };
   }, [session?.id]);
 
+  // Fallback polling: if session is running/pending but items array is empty, fetch items from DB
+  useEffect(() => {
+    if (!session?.id || session.items.length > 0) return;
+    if (session.status !== 'running' && session.status !== 'pending') return;
+    
+    console.log('[BulkSession] Items array empty, starting poll to fetch items');
+    
+    const pollInterval = setInterval(async () => {
+      const { data: items, error } = await supabase
+        .from('bulk_analysis_items')
+        .select('*')
+        .eq('session_id', session.id)
+        .order('queue_position', { ascending: true });
+      
+      if (error) {
+        console.error('[BulkSession] Failed to poll items:', error);
+        return;
+      }
+      
+      if (items && items.length > 0) {
+        console.log('[BulkSession] Polled', items.length, 'items from DB');
+        setSession(prev => prev ? { ...prev, items: items.map(mapDbItem) } : null);
+        clearInterval(pollInterval);
+      }
+    }, 3000); // Poll every 3 seconds
+    
+    // Also do an immediate fetch
+    (async () => {
+      const { data: items } = await supabase
+        .from('bulk_analysis_items')
+        .select('*')
+        .eq('session_id', session.id)
+        .order('queue_position', { ascending: true });
+      
+      if (items && items.length > 0) {
+        console.log('[BulkSession] Immediate fetch got', items.length, 'items');
+        setSession(prev => prev ? { ...prev, items: items.map(mapDbItem) } : null);
+        clearInterval(pollInterval);
+      }
+    })();
+    
+    return () => clearInterval(pollInterval);
+  }, [session?.id, session?.items?.length, session?.status]);
+
   // Check for existing active sessions on mount
   const checkExistingSession = useCallback(async () => {
     try {
@@ -707,6 +751,11 @@ export function usePersistentBulkSession({
     
     if (!activeSession) {
       console.warn('[BulkSession] start() called but no session available');
+      toast({
+        title: "Cannot start analysis",
+        description: "No session available. Please try again.",
+        variant: "destructive",
+      });
       return;
     }
     if (isRunningRef.current) {
@@ -725,11 +774,25 @@ export function usePersistentBulkSession({
     }
 
     try {
-      // Update session status
-      await supabase
+      // Update session status to running
+      console.log('[BulkSession] Updating session status to running...');
+      const { error: updateError } = await supabase
         .from("bulk_analysis_sessions")
         .update({ status: "running", started_at: new Date().toISOString() })
         .eq("id", activeSession.id);
+      
+      if (updateError) {
+        console.error('[BulkSession] Failed to update session status:', updateError);
+        toast({
+          title: "Failed to start session",
+          description: updateError.message,
+          variant: "destructive",
+        });
+        isRunningRef.current = false;
+        return;
+      }
+      
+      console.log('[BulkSession] Session status updated to running');
 
       setSession((prev) => prev ? { ...prev, status: "running" } : null);
 

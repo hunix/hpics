@@ -218,11 +218,15 @@ export function EnhancedBulkProgress({
           </div>
           <Progress value={progress} className="h-2" />
           
-          {/* Progress loading indicator */}
-          {session.status === "running" && !hasItemsLoaded && processed === 0 && (
+          {/* Progress loading indicator for initialization */}
+          {(session.status === "running" || session.status === "pending") && !hasItemsLoaded && processed === 0 && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Loader2 className="h-3 w-3 animate-spin" />
-              <span>Initializing analysis pipeline...</span>
+              <span>
+                {session.status === "pending" 
+                  ? `Preparing ${session.totalItems} items for analysis...`
+                  : "Initializing analysis pipeline..."}
+              </span>
             </div>
           )}
           
