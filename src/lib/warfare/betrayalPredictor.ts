@@ -1,5 +1,5 @@
-// Betrayal Likelihood Predictor - Trust network modeling with defection risk assessment
-// Based on Gottman Four Horsemen and trust decay research
+// Enhanced Betrayal Likelihood Predictor - Trust network modeling with 180-day trajectory analysis
+// Based on Gottman Four Horsemen, trust decay research, and predictive modeling
 
 export interface BetrayalProfile {
   profileId: string;
@@ -11,23 +11,46 @@ export interface BetrayalProfile {
   riskMitigation: RiskMitigation[];
   timeline: string;
   confidenceScore: number;
+  // Enhanced fields
+  trustTrajectory: TrustTrajectoryPoint[];
+  criticalThreshold: number; // Point of no return
+  recoveryPotential: number; // 0-1
+  nextCrisisWindow: CrisisWindow | null;
+}
+
+export interface TrustTrajectoryPoint {
+  date: string;
+  trustScore: number;
+  defectionRisk: number;
+  significantEvents: string[];
+  trendDirection: 'improving' | 'stable' | 'declining' | 'critical';
+}
+
+export interface CrisisWindow {
+  predictedStart: string;
+  predictedEnd: string;
+  probability: number;
+  triggers: string[];
+  recommendedActions: string[];
 }
 
 export interface LoyaltyIndicator {
-  type: 'investment' | 'reciprocity' | 'identity' | 'dependency' | 'fear';
+  type: 'investment' | 'reciprocity' | 'identity' | 'dependency' | 'fear' | 'shared_secrets' | 'mutual_threats';
   description: string;
   strength: number;
   trend: 'increasing' | 'stable' | 'decreasing';
   lastObserved: string;
+  halfLife: number; // Days until strength halves without reinforcement
 }
 
 export interface WarningSignal {
-  category: 'gottman' | 'behavioral' | 'communication' | 'financial' | 'social';
+  category: 'gottman' | 'behavioral' | 'communication' | 'financial' | 'social' | 'digital' | 'network';
   signal: string;
   severity: number;
   frequency: 'rare' | 'occasional' | 'frequent' | 'constant';
   firstObserved: string;
   escalating: boolean;
+  velocityScore: number; // How fast the signal is intensifying
 }
 
 export interface RiskMitigation {
@@ -36,6 +59,8 @@ export interface RiskMitigation {
   cost: 'low' | 'medium' | 'high';
   timeframe: string;
   sideEffects: string[];
+  successProbability: number;
+  prerequisiteConditions: string[];
 }
 
 // Gottman's Four Horsemen of relationship apocalypse
@@ -161,6 +186,7 @@ export function identifyWarningSignals(
       frequency: 'frequent',
       firstObserved: new Date().toISOString(),
       escalating: true,
+      velocityScore: 0.3,
     });
   }
   
@@ -174,6 +200,7 @@ export function identifyWarningSignals(
       frequency: frequencyDrop > 0.5 ? 'constant' : 'frequent',
       firstObserved: new Date().toISOString(),
       escalating: true,
+      velocityScore: frequencyDrop * 0.5,
     });
   }
   
@@ -186,6 +213,7 @@ export function identifyWarningSignals(
       frequency: 'occasional',
       firstObserved: new Date().toISOString(),
       escalating: true,
+      velocityScore: 0.25,
     });
   }
   
@@ -198,6 +226,7 @@ export function identifyWarningSignals(
       frequency: 'frequent',
       firstObserved: new Date().toISOString(),
       escalating: communicationPatterns.emotionalValence < -0.4,
+      velocityScore: Math.abs(communicationPatterns.emotionalValence) * 0.5,
     });
   }
   
@@ -219,6 +248,8 @@ export function generateMitigationStrategies(
       cost: 'high',
       timeframe: '1-2 weeks',
       sideEffects: ['May appear desperate', 'Could accelerate exit if mishandled'],
+      successProbability: 0.4,
+      prerequisiteConditions: ['Target still engaged', 'Communication channel open'],
     });
   }
   
@@ -229,6 +260,8 @@ export function generateMitigationStrategies(
       cost: 'medium',
       timeframe: '2-4 weeks',
       sideEffects: ['Creates lock-in but may increase resentment'],
+      successProbability: 0.55,
+      prerequisiteConditions: ['Shared interests exist', 'Target receptive to new commitments'],
     });
   }
   
@@ -238,6 +271,8 @@ export function generateMitigationStrategies(
     cost: 'low',
     timeframe: '1-2 weeks',
     sideEffects: ['Minimal risk'],
+    successProbability: 0.65,
+    prerequisiteConditions: ['Basic rapport maintained'],
   });
   
   if (availableLeverage.length > 0) {
@@ -247,8 +282,90 @@ export function generateMitigationStrategies(
       cost: 'medium',
       timeframe: 'Immediate',
       sideEffects: ['May damage trust further', 'Could trigger immediate exit'],
+      successProbability: 0.35,
+      prerequisiteConditions: ['Leverage verified', 'Exit not imminent'],
     });
   }
   
   return strategies;
+}
+
+// Enhanced: Calculate 180-day trust trajectory
+export function calculateTrustTrajectory(
+  historicalData: Array<{
+    date: string;
+    trustScore: number;
+    events: string[];
+  }>
+): TrustTrajectoryPoint[] {
+  const trajectory: TrustTrajectoryPoint[] = [];
+  
+  for (let i = 0; i < historicalData.length; i++) {
+    const current = historicalData[i];
+    const previous = i > 0 ? historicalData[i - 1] : null;
+    
+    let trendDirection: TrustTrajectoryPoint['trendDirection'] = 'stable';
+    if (previous) {
+      const delta = current.trustScore - previous.trustScore;
+      if (delta > 0.05) trendDirection = 'improving';
+      else if (delta < -0.1) trendDirection = 'critical';
+      else if (delta < -0.03) trendDirection = 'declining';
+    }
+    
+    // Calculate defection risk based on trust score
+    const defectionRisk = Math.max(0, Math.min(1, 1 - current.trustScore));
+    
+    trajectory.push({
+      date: current.date,
+      trustScore: current.trustScore,
+      defectionRisk,
+      significantEvents: current.events,
+      trendDirection,
+    });
+  }
+  
+  return trajectory;
+}
+
+// Enhanced: Predict next crisis window
+export function predictCrisisWindow(
+  trajectory: TrustTrajectoryPoint[],
+  knownTriggers: string[]
+): CrisisWindow | null {
+  if (trajectory.length < 7) return null;
+  
+  // Find declining patterns
+  const recentPoints = trajectory.slice(-30);
+  const decliningCount = recentPoints.filter(p => p.trendDirection === 'declining' || p.trendDirection === 'critical').length;
+  
+  if (decliningCount < 5) return null;
+  
+  // Calculate velocity of decline
+  const velocityOfDecline = recentPoints.reduce((acc, p, i) => {
+    if (i === 0) return 0;
+    return acc + (recentPoints[i - 1].trustScore - p.trustScore);
+  }, 0) / recentPoints.length;
+  
+  if (velocityOfDecline < 0.01) return null;
+  
+  // Predict crisis window
+  const daysToThreshold = Math.ceil((recentPoints[recentPoints.length - 1].trustScore - 0.3) / velocityOfDecline);
+  const predictedStart = new Date();
+  predictedStart.setDate(predictedStart.getDate() + Math.max(1, daysToThreshold - 7));
+  
+  const predictedEnd = new Date(predictedStart);
+  predictedEnd.setDate(predictedEnd.getDate() + 14);
+  
+  return {
+    predictedStart: predictedStart.toISOString(),
+    predictedEnd: predictedEnd.toISOString(),
+    probability: Math.min(0.95, decliningCount / 30 + velocityOfDecline * 5),
+    triggers: knownTriggers.length > 0 ? knownTriggers : ['Trust threshold breach', 'Accumulated grievances'],
+    recommendedActions: [
+      'Initiate trust repair protocol',
+      'Increase positive interaction frequency',
+      'Address outstanding grievances',
+      'Reinforce mutual dependencies',
+    ],
+  };
 }
