@@ -473,3 +473,9 @@ verify_jwt = false
 
 [functions.psychic-resonance-mapper]
 verify_jwt = false
+
+[functions.generate-media-metadata-mosaic]
+verify_jwt = false
+
+[functions.process-bulk-session-runner]
+verify_jwt = false

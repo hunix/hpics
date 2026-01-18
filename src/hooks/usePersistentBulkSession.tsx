@@ -567,23 +567,21 @@ export function usePersistentBulkSession({
             const completedCount = itemStatuses?.filter(i => i.status === 'completed').length || 0;
             const failedCount = itemStatuses?.filter(i => i.status === 'failed').length || 0;
             
-            // Reconcile session counters - increment for each completed/failed item
-            console.log('[BulkSession] Reconciling session counters:', { completedCount, failedCount });
-            for (let i = 0; i < completedCount; i++) {
-              await supabase.rpc("increment_bulk_session_progress", {
-                p_session_id: activeSession.id,
-                p_cost_cents: 0,
-                p_is_completed: true,
-                p_is_failed: false,
-              });
-            }
-            for (let i = 0; i < failedCount; i++) {
-              await supabase.rpc("increment_bulk_session_progress", {
-                p_session_id: activeSession.id,
-                p_cost_cents: 0,
-                p_is_completed: false,
-                p_is_failed: true,
-              });
+            // Backend already updates session counters, just refresh from DB
+            console.log('[BulkSession] Background processing completed, refreshing session from DB');
+            const { data: refreshedSession } = await supabase
+              .from('bulk_analysis_sessions')
+              .select('completed_items, failed_items, current_cost_cents')
+              .eq('id', activeSession.id)
+              .single();
+            
+            if (refreshedSession) {
+              setSession(prev => prev ? {
+                ...prev,
+                completedItems: refreshedSession.completed_items || prev.completedItems,
+                failedItems: refreshedSession.failed_items || prev.failedItems,
+                currentCostCents: refreshedSession.current_cost_cents || prev.currentCostCents,
+              } : null);
             }
             
             return { processed: completedCount, cost: 0 };
@@ -600,24 +598,24 @@ export function usePersistentBulkSession({
           .select('status')
           .in('id', itemIds);
         
-        // Reconcile whatever completed before timeout
+        // Backend already updates session counters, just refresh from DB
         const completedCount = finalStatuses?.filter(i => i.status === 'completed').length || 0;
         const failedCount = finalStatuses?.filter(i => i.status === 'failed').length || 0;
-        for (let i = 0; i < completedCount; i++) {
-          await supabase.rpc("increment_bulk_session_progress", {
-            p_session_id: activeSession.id,
-            p_cost_cents: 0,
-            p_is_completed: true,
-            p_is_failed: false,
-          });
-        }
-        for (let i = 0; i < failedCount; i++) {
-          await supabase.rpc("increment_bulk_session_progress", {
-            p_session_id: activeSession.id,
-            p_cost_cents: 0,
-            p_is_completed: false,
-            p_is_failed: true,
-          });
+        console.log('[BulkSession] Polling timed out, refreshing session from DB:', { completedCount, failedCount });
+        
+        const { data: refreshedSession } = await supabase
+          .from('bulk_analysis_sessions')
+          .select('completed_items, failed_items, current_cost_cents')
+          .eq('id', activeSession.id)
+          .single();
+        
+        if (refreshedSession) {
+          setSession(prev => prev ? {
+            ...prev,
+            completedItems: refreshedSession.completed_items || prev.completedItems,
+            failedItems: refreshedSession.failed_items || prev.failedItems,
+            currentCostCents: refreshedSession.current_cost_cents || prev.currentCostCents,
+          } : null);
         }
         
         return { processed: completedCount, cost: 0 };
@@ -1099,18 +1097,71 @@ export function usePersistentBulkSession({
     setSession((prev) => prev ? { ...prev, status: "paused" } : null);
   }, [session]);
 
-  // Resume processing
-  const resume = useCallback(async () => {
-    if (!session) return;
+  // Resume processing - accepts optional session override to avoid React state timing issues
+  const resume = useCallback(async (sessionOverride?: BulkSession) => {
+    const activeSession = sessionOverride || session;
+    if (!activeSession) {
+      console.warn('[BulkSession] resume() called but no session available');
+      return;
+    }
 
+    console.log('[BulkSession] Resuming session:', activeSession.id);
+    
     await supabase
       .from("bulk_analysis_sessions")
       .update({ status: "running", paused_at: null })
-      .eq("id", session.id);
+      .eq("id", activeSession.id);
 
-    setSession((prev) => prev ? { ...prev, status: "running" } : null);
-    await start();
-  }, [session, start]);
+    // If we got sessionOverride, also update the React state
+    if (sessionOverride && (!session || session.id !== sessionOverride.id)) {
+      setSession(sessionOverride);
+    } else {
+      setSession((prev) => prev ? { ...prev, status: "running" } : activeSession);
+    }
+    
+    await start(activeSession, processingStrategy);
+  }, [session, start, processingStrategy]);
+
+  // Continue processing in background via backend runner (browser-independent)
+  const continueInBackground = useCallback(async (sessionOverride?: BulkSession) => {
+    const activeSession = sessionOverride || session;
+    if (!activeSession) {
+      console.warn('[BulkSession] continueInBackground() called but no session available');
+      return;
+    }
+
+    console.log('[BulkSession] Triggering backend runner for session:', activeSession.id);
+    setProcessingStatus("Continuing in background...");
+
+    try {
+      const { data, error } = await supabase.functions.invoke('process-bulk-session-runner', {
+        body: { 
+          sessionId: activeSession.id,
+          action: 'continue'
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Background Processing Started",
+        description: `Processing ${data?.pendingCount || 'remaining'} items in the background. You can close this page.`,
+      });
+      
+      // Update local state to indicate running
+      setSession((prev) => prev ? { ...prev, status: "running" } : activeSession);
+      
+      return data;
+    } catch (error) {
+      console.error('[BulkSession] Failed to start background processing:', error);
+      toast({
+        title: "Failed to start background processing",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  }, [session, toast]);
 
   // Complete session
   const completeSession = useCallback(async (sessionOverride?: BulkSession) => {
@@ -1222,6 +1273,7 @@ export function usePersistentBulkSession({
     start,
     pause,
     resume,
+    continueInBackground,
     cancel,
     skipItem,
     retryItem,
