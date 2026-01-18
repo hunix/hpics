@@ -61,6 +61,7 @@ export function EnhancedBulkProgress({
   const [showAllItems, setShowAllItems] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [failedExpanded, setFailedExpanded] = useState(false);
+  const [showFailureWarning, setShowFailureWarning] = useState(false);
 
   // Calculate progress from actual item statuses (more reliable than session counters)
   // CRITICAL: Handle cases where items array might be empty but session counters are accurate
@@ -144,6 +145,23 @@ export function EnhancedBulkProgress({
     }
   }, [session.status, failedItems.length]);
 
+  // Show warning banner when failure rate exceeds 10% during active processing
+  const failureRate = useMemo(() => {
+    const totalProcessed = completedCount + failedCount;
+    if (totalProcessed === 0) return 0;
+    return (failedCount / totalProcessed) * 100;
+  }, [completedCount, failedCount]);
+
+  useEffect(() => {
+    // Only show warning during active processing with significant sample size
+    const totalProcessed = completedCount + failedCount;
+    if (session.status === "running" && failureRate > 10 && totalProcessed >= 5) {
+      setShowFailureWarning(true);
+    } else if (session.status !== "running" || failureRate <= 5) {
+      setShowFailureWarning(false);
+    }
+  }, [session.status, failureRate, completedCount, failedCount]);
+
   const toggleItemExpanded = (itemId: string) => {
     setExpandedItems((prev) => {
       const next = new Set(prev);
@@ -219,6 +237,28 @@ export function EnhancedBulkProgress({
       </CardHeader>
 
       <CardContent className="space-y-4">
+        {/* Failure Rate Warning Banner */}
+        {showFailureWarning && (
+          <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="h-4 w-4" />
+              <span className="text-sm font-medium">
+                High failure rate detected ({failureRate.toFixed(0)}% of {completedCount + failedCount} processed)
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onCancel}
+                className="text-amber-600 border-amber-500/50 hover:bg-amber-500/10"
+              >
+                Switch Strategy
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Overall progress */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">

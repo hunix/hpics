@@ -234,7 +234,7 @@ Your task is to analyze EACH CELL INDIVIDUALLY and extract:
 2. ALL detected items (vehicles, devices, jewelry, documents, property, clothing, pets, etc.)
 3. ALL faces visible (with detailed characteristics for potential identification)
 4. ANY documents visible (perform OCR and extract structured data)
-5. Intelligence indicators (wealth, profession, interests, relationships)
+5. Intelligence indicators (wealth, profession, interests, relationships) - ALWAYS EXTRACT THESE
 
 IMPORTANT GUIDELINES:
 - Analyze each numbered cell SEPARATELY
@@ -245,6 +245,15 @@ IMPORTANT GUIDELINES:
 - Flag sensitive content appropriately
 - Provide confidence scores for detections
 
+INTELLIGENCE EXTRACTION IS MANDATORY:
+- ALWAYS populate the intelligence object for EVERY cell, even for generic images
+- For wealth_indicators: look for luxury items, travel destinations, dining, vehicles, property, branded items, or infer from context ("no visible luxury items" is acceptable)
+- For profession_cues: look for uniforms, tools, office settings, equipment, badges, or infer from context ("casual setting - no profession visible" is acceptable)
+- For interests_revealed: analyze activities, hobbies, sports, entertainment, reading material, decorations
+- For lifestyle_cues: analyze settings, social contexts, frequency patterns, habits visible
+- For relationship_context: note if people are together, family settings, social gatherings, alone
+- If no clear indicators exist, provide contextual inferences with lower confidence (e.g., "appears to have moderate lifestyle based on environment")
+
 The goal is to build a comprehensive intelligence database from these images.`;
 
 const MOSAIC_USER_PROMPT = `Analyze this mosaic grid of images. Each cell is numbered (1, 2, 3, etc.) in the top-left corner.
@@ -254,7 +263,12 @@ For EACH numbered cell, extract:
 - ALL detected items (vehicles, devices, jewelry, property, clothing, pets, documents, etc.)
 - ALL faces with detailed characteristics
 - ANY documents with OCR text extraction
-- Intelligence indicators (wealth, profession, interests, lifestyle)
+- Intelligence indicators (wealth, profession, interests, lifestyle) - THIS IS REQUIRED FOR EVERY CELL
+
+CRITICAL: You MUST populate the "intelligence" object for every single cell. Even if no obvious wealth/profession cues exist, provide contextual observations:
+- Environment analysis (indoor/outdoor, urban/rural, upscale/modest)
+- Visible lifestyle patterns (activities, social context, habits)
+- Inferred indicators with appropriate confidence levels
 
 Be extremely thorough. Even small items matter for intelligence purposes.
 Extract actual text from any visible documents, signs, or labels.
@@ -415,8 +429,43 @@ async function processInBackground(
         toolCalls: aiResponse.toolCalls,
         inputTokens: aiResponse.inputTokens,
         outputTokens: aiResponse.outputTokens,
+        mosaicImageUrlLength: mosaicImageUrl?.length || 0,
+        cellCount: cells.length,
       }));
-      throw new Error(`AI returned empty response (${aiResponse.inputTokens} input, ${aiResponse.outputTokens} output tokens). Check if image is valid.`);
+      
+      // Store specific error details for debugging
+      const errorDetails = {
+        type: 'empty_ai_response',
+        inputTokens: aiResponse.inputTokens,
+        outputTokens: aiResponse.outputTokens,
+        mosaicSize: mosaicImageUrl?.length || 0,
+        batchSize: cells.length,
+        model: model,
+        timestamp: new Date().toISOString(),
+      };
+      
+      // Mark all items as failed with detailed error info
+      for (const cell of cells) {
+        const errorMessage = `AI returned empty response (${cells.length} images, ${mosaicImageUrl?.length || 0} bytes). Retry with smaller batch recommended.`;
+        if (cell.bulkItemId) {
+          await supabase
+            .from('bulk_analysis_items')
+            .update({ 
+              status: 'failed', 
+              error_message: errorMessage,
+              result: errorDetails,
+              completed_at: new Date().toISOString()
+            })
+            .eq('id', cell.bulkItemId);
+        }
+      }
+      
+      // Update session counters for failed items
+      if (bulkSessionId) {
+        await incrementSessionProgress(supabase, bulkSessionId, 0, cells.length, 0);
+      }
+      
+      throw new Error(`AI returned empty response (${aiResponse.inputTokens} input, ${aiResponse.outputTokens} output tokens, ${cells.length} images). Image may be too large or malformed.`);
     }
 
     const cellResults = extractionResult.cells || [];
