@@ -252,14 +252,19 @@ Provide calibrated response options matching the severity of the offense.`;
     });
 
     // Store the response plan
+    // Type-safe access for AI-generated analysis fields
+    const incidentAnalysis = analysis.incidentAnalysis as { actionSeverityScore?: number } | undefined;
+    const recommendedResponse = analysis.recommendedResponse as { optimalLevel?: string } | undefined;
+    const proportionalResponseOptions = analysis.proportionalResponseOptions as unknown[] | undefined;
+    
     await supabase.from('proportional_responses').insert({
       user_id: user.id,
       profile_id: request.profileId || null,
       incident_type: request.incidentType,
       incident_description: request.incidentDescription,
-      severity_score: analysis.incidentAnalysis?.actionSeverityScore || request.severityEstimate,
-      recommended_response_level: analysis.recommendedResponse?.optimalLevel,
-      response_options: analysis.proportionalResponseOptions || [],
+      severity_score: incidentAnalysis?.actionSeverityScore || request.severityEstimate,
+      recommended_response_level: recommendedResponse?.optimalLevel,
+      response_options: proportionalResponseOptions || [],
       analysis_result: analysis,
       created_at: new Date().toISOString()
     });
