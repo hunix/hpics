@@ -24,6 +24,8 @@ export interface MediaItem {
   type: MediaType;
   isDocument?: boolean;
   thumbnailUrl?: string;
+  completedAnalysisModes?: string[];
+  lastAnalysisAt?: string | null;
 }
 
 interface MediaTypeBrowserMultiSelectProps {
@@ -32,6 +34,8 @@ interface MediaTypeBrowserMultiSelectProps {
   selectedIds: string[];
   onSelectionChange: (items: MediaItem[]) => void;
   maxSelection?: number;
+  requestedModes?: string[];  // Modes user wants to run - used to filter out fully analyzed items
+  hideFullyAnalyzed?: boolean; // If true, hide items where all requestedModes are already completed
 }
 
 const mediaTypeIcons = {
@@ -49,9 +53,12 @@ export function MediaTypeBrowserMultiSelect({
   selectedIds,
   onSelectionChange,
   maxSelection = 500,
+  requestedModes = [],
+  hideFullyAnalyzed = false,
 }: MediaTypeBrowserMultiSelectProps) {
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [showAnalyzedFilter, setShowAnalyzedFilter] = useState<'all' | 'unanalyzed' | 'partial'>(hideFullyAnalyzed ? 'unanalyzed' : 'all');
   const scrollRef = useRef<HTMLDivElement>(null);
   const Icon = mediaTypeIcons[mediaType];
 
@@ -71,7 +78,7 @@ export function MediaTypeBrowserMultiSelect({
       if (mediaType === 'document') {
         const { data, error } = await supabase
           .from('documents')
-          .select('id, file_url, title, file_size, mime_type, created_at, storage_path')
+          .select('id, file_url, title, file_size, mime_type, created_at, storage_path, completed_analysis_modes, last_analysis_at')
           .eq('profile_id', profileId)
           .order('created_at', { ascending: false })
           .range(from, to);
@@ -86,6 +93,8 @@ export function MediaTypeBrowserMultiSelect({
           created_at: d.created_at,
           type: 'document' as MediaType,
           isDocument: true,
+          completedAnalysisModes: d.completed_analysis_modes || [],
+          lastAnalysisAt: d.last_analysis_at,
         })) || [];
         return {
           items,
@@ -100,7 +109,7 @@ export function MediaTypeBrowserMultiSelect({
         
         const { data, error } = await supabase
           .from('media')
-          .select('id, file_url, caption, file_size, mime_type, created_at, storage_path')
+          .select('id, file_url, caption, file_size, mime_type, created_at, storage_path, completed_analysis_modes, last_analysis_at')
           .eq('profile_id', profileId)
           .ilike('mime_type', `${mimeFilter}%`)
           .order('created_at', { ascending: false })
@@ -116,6 +125,8 @@ export function MediaTypeBrowserMultiSelect({
           created_at: m.created_at,
           type: mediaType,
           isDocument: false,
+          completedAnalysisModes: m.completed_analysis_modes || [],
+          lastAnalysisAt: m.last_analysis_at,
         })) || [];
         return {
           items,
@@ -135,12 +146,44 @@ export function MediaTypeBrowserMultiSelect({
 
   const totalLoaded = mediaFiles.length;
 
+  // Helper to check if item is fully analyzed for requested modes
+  const isFullyAnalyzed = useCallback((item: MediaItem): boolean => {
+    if (requestedModes.length === 0) return false;
+    const completed = item.completedAnalysisModes || [];
+    return requestedModes.every(mode => completed.includes(mode));
+  }, [requestedModes]);
+
+  // Helper to get remaining modes for an item
+  const getRemainingModes = useCallback((item: MediaItem): string[] => {
+    if (requestedModes.length === 0) return [];
+    const completed = item.completedAnalysisModes || [];
+    return requestedModes.filter(mode => !completed.includes(mode));
+  }, [requestedModes]);
+
   const filteredFiles = useMemo((): MediaItem[] => {
     if (!mediaFiles) return [];
-    if (!search.trim()) return mediaFiles;
-    const term = search.toLowerCase();
-    return mediaFiles.filter(f => f.name.toLowerCase().includes(term));
-  }, [mediaFiles, search]);
+    let result = mediaFiles;
+    
+    // Filter by search term
+    if (search.trim()) {
+      const term = search.toLowerCase();
+      result = result.filter(f => f.name.toLowerCase().includes(term));
+    }
+    
+    // Filter by analysis status
+    if (showAnalyzedFilter === 'unanalyzed') {
+      // Show only items that have at least one remaining mode to analyze
+      result = result.filter(f => !isFullyAnalyzed(f));
+    } else if (showAnalyzedFilter === 'partial') {
+      // Show only items with some but not all modes completed
+      result = result.filter(f => {
+        const completed = f.completedAnalysisModes || [];
+        return completed.length > 0 && !isFullyAnalyzed(f);
+      });
+    }
+    
+    return result;
+  }, [mediaFiles, search, showAnalyzedFilter, isFullyAnalyzed]);
 
   const selectedItems = useMemo((): MediaItem[] => {
     return mediaFiles?.filter(f => selectedIds.includes(f.id)) || [];

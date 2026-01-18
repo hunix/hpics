@@ -516,6 +516,34 @@ async function processInBackground(
         console.log(`[Background] Updated bulk_analysis_items for ${cellInfo.bulkItemId ? `id=${cellInfo.bulkItemId}` : `media=${mediaId}`} to completed`);
         successfulItems++;
         totalCostCents += costPerCell;
+        
+        // Update completed_analysis_modes on media table to track incremental progress
+        if (mediaId && analysisModes?.length > 0) {
+          const { error: modesUpdateError } = await supabase
+            .from('media')
+            .update({
+              completed_analysis_modes: supabase.rpc('array_cat_unique', {
+                arr1: [],  // Will be combined with existing via SQL
+                arr2: analysisModes
+              }),
+              last_analysis_at: new Date().toISOString()
+            })
+            .eq('id', mediaId);
+          
+          // Fallback: direct update if RPC doesn't exist
+          if (modesUpdateError) {
+            await supabase.rpc('sql', {
+              query: `UPDATE media SET completed_analysis_modes = ARRAY(SELECT DISTINCT unnest(completed_analysis_modes || $1::text[])), last_analysis_at = now() WHERE id = $2`,
+              params: [analysisModes, mediaId]
+            }).catch(() => {
+              // Simple fallback - just set the modes
+              supabase.from('media').update({
+                completed_analysis_modes: analysisModes,
+                last_analysis_at: new Date().toISOString()
+              }).eq('id', mediaId);
+            });
+          }
+        }
       }
 
       // Save detected items
