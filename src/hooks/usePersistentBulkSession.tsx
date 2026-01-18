@@ -219,6 +219,21 @@ export function usePersistentBulkSession({
       if (sessions && sessions.length > 0) {
         const dbSession = sessions[0];
         
+        // Auto-cancel stale pending sessions (pending for > 5 minutes without starting)
+        if (dbSession.status === 'pending' && dbSession.started_at === null) {
+          const createdAt = new Date(dbSession.created_at);
+          const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+          
+          if (createdAt < fiveMinutesAgo) {
+            console.log('[BulkSession] Found stale pending session, auto-cancelling:', dbSession.id);
+            await supabase
+              .from('bulk_analysis_sessions')
+              .update({ status: 'cancelled', completed_at: new Date().toISOString() })
+              .eq('id', dbSession.id);
+            return null; // Don't return the stale session
+          }
+        }
+        
         // Fetch items
         const { data: items } = await supabase
           .from("bulk_analysis_items")
