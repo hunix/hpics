@@ -33,8 +33,9 @@ interface EnhancedBulkProgressProps {
   onCancel: () => void;
   onRetryItem: (itemId: string) => void;
   onSkipItem: (itemId: string) => void;
-  onRetryAllFailed: () => void;
+  onRetryAllFailed: (batchSize?: number) => void;
   onContinueInBackground?: () => void;
+  onSwitchToIndividual?: () => void;
   isOnline?: boolean;
 }
 
@@ -56,12 +57,14 @@ export function EnhancedBulkProgress({
   onSkipItem,
   onRetryAllFailed,
   onContinueInBackground,
+  onSwitchToIndividual,
   isOnline = true,
 }: EnhancedBulkProgressProps) {
   const [showAllItems, setShowAllItems] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [failedExpanded, setFailedExpanded] = useState(false);
   const [showFailureWarning, setShowFailureWarning] = useState(false);
+  const [showRetryOptions, setShowRetryOptions] = useState(false);
 
   // Calculate progress from actual item statuses (more reliable than session counters)
   // CRITICAL: Handle cases where items array might be empty but session counters are accurate
@@ -221,10 +224,20 @@ export function EnhancedBulkProgress({
               </Button>
             )}
             {failedItems.length > 0 && session.status !== "running" && (
-              <Button size="sm" variant="outline" onClick={onRetryAllFailed} disabled={!isOnline}>
-                <RotateCcw className="h-4 w-4 mr-1" />
-                Retry Failed ({failedItems.length})
-              </Button>
+              <div className="flex gap-1">
+                <Button size="sm" variant="outline" onClick={() => onRetryAllFailed()} disabled={!isOnline}>
+                  <RotateCcw className="h-4 w-4 mr-1" />
+                  Retry Failed ({failedItems.length})
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  onClick={() => setShowRetryOptions(!showRetryOptions)}
+                  className="px-2"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </div>
             )}
             {onContinueInBackground && session.status === "running" && runningItems.length === 0 && processed < session.totalItems && (
               <Button size="sm" variant="default" onClick={onContinueInBackground} disabled={!isOnline}>
@@ -237,25 +250,69 @@ export function EnhancedBulkProgress({
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Failure Rate Warning Banner */}
+        {/* Failure Rate Warning Banner with Action Options */}
         {showFailureWarning && (
-          <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-amber-600">
-              <AlertTriangle className="h-4 w-4" />
-              <span className="text-sm font-medium">
-                High failure rate detected ({failureRate.toFixed(0)}% of {completedCount + failedCount} processed)
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
+          <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-amber-600">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="text-sm font-medium">
+                  High failure rate detected ({failureRate.toFixed(0)}% of {completedCount + failedCount} processed)
+                </span>
+              </div>
               <Button
                 size="sm"
-                variant="outline"
-                onClick={onCancel}
-                className="text-amber-600 border-amber-500/50 hover:bg-amber-500/10"
+                variant="ghost"
+                onClick={() => setShowRetryOptions(!showRetryOptions)}
+                className="text-amber-600"
               >
-                Switch Strategy
+                {showRetryOptions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </Button>
             </div>
+            
+            {showRetryOptions && (
+              <div className="flex flex-wrap gap-2 pt-2 border-t border-amber-500/20">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onRetryAllFailed(8)}
+                  className="text-amber-600 border-amber-500/50 hover:bg-amber-500/10"
+                  disabled={!isOnline}
+                >
+                  <RotateCcw className="h-3 w-3 mr-1" />
+                  Retry with 8-image batches
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onRetryAllFailed(4)}
+                  className="text-amber-600 border-amber-500/50 hover:bg-amber-500/10"
+                  disabled={!isOnline}
+                >
+                  <RotateCcw className="h-3 w-3 mr-1" />
+                  Retry with 4-image batches
+                </Button>
+                {onSwitchToIndividual && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={onSwitchToIndividual}
+                    className="text-amber-600 border-amber-500/50 hover:bg-amber-500/10"
+                    disabled={!isOnline}
+                  >
+                    Switch to Individual
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={onCancel}
+                >
+                  <Square className="h-3 w-3 mr-1" />
+                  Stop
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
