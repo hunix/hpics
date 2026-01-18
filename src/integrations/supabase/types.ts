@@ -12248,12 +12248,14 @@ export type Database = {
           ai_metadata: Json | null
           ai_metadata_generated_at: string | null
           ai_model_used: string | null
+          completed_analysis_modes: string[] | null
           created_at: string
           description: string | null
           document_type: Database["public"]["Enums"]["document_type"]
           file_size: number | null
           file_url: string
           id: string
+          last_analysis_at: string | null
           mime_type: string | null
           profile_id: string | null
           storage_path: string | null
@@ -12266,12 +12268,14 @@ export type Database = {
           ai_metadata?: Json | null
           ai_metadata_generated_at?: string | null
           ai_model_used?: string | null
+          completed_analysis_modes?: string[] | null
           created_at?: string
           description?: string | null
           document_type: Database["public"]["Enums"]["document_type"]
           file_size?: number | null
           file_url: string
           id?: string
+          last_analysis_at?: string | null
           mime_type?: string | null
           profile_id?: string | null
           storage_path?: string | null
@@ -12284,12 +12288,14 @@ export type Database = {
           ai_metadata?: Json | null
           ai_metadata_generated_at?: string | null
           ai_model_used?: string | null
+          completed_analysis_modes?: string[] | null
           created_at?: string
           description?: string | null
           document_type?: Database["public"]["Enums"]["document_type"]
           file_size?: number | null
           file_url?: string
           id?: string
+          last_analysis_at?: string | null
           mime_type?: string | null
           profile_id?: string | null
           storage_path?: string | null
@@ -19464,10 +19470,12 @@ export type Database = {
           ai_metadata_generated_at: string | null
           ai_model_used: string | null
           caption: string | null
+          completed_analysis_modes: string[] | null
           created_at: string
           file_size: number | null
           file_url: string
           id: string
+          last_analysis_at: string | null
           mime_type: string | null
           profile_id: string | null
           storage_path: string | null
@@ -19481,10 +19489,12 @@ export type Database = {
           ai_metadata_generated_at?: string | null
           ai_model_used?: string | null
           caption?: string | null
+          completed_analysis_modes?: string[] | null
           created_at?: string
           file_size?: number | null
           file_url: string
           id?: string
+          last_analysis_at?: string | null
           mime_type?: string | null
           profile_id?: string | null
           storage_path?: string | null
@@ -19498,10 +19508,12 @@ export type Database = {
           ai_metadata_generated_at?: string | null
           ai_model_used?: string | null
           caption?: string | null
+          completed_analysis_modes?: string[] | null
           created_at?: string
           file_size?: number | null
           file_url?: string
           id?: string
+          last_analysis_at?: string | null
           mime_type?: string | null
           profile_id?: string | null
           storage_path?: string | null
@@ -32737,6 +32749,10 @@ export type Database = {
           event_id: string
         }[]
       }
+      get_remaining_modes: {
+        Args: { completed_modes: string[]; requested_modes: string[] }
+        Returns: string[]
+      }
       get_shared_organizations: {
         Args: { p_profile_ids: string[]; p_user_id: string }
         Returns: {
@@ -32932,6 +32948,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      modes_all_completed: {
+        Args: { completed_modes: string[]; requested_modes: string[] }
+        Returns: boolean
       }
       owns_profile: {
         Args: { profile_uuid: string; uid: string }
