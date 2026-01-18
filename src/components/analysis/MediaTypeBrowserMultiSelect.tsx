@@ -8,7 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Image, Video, FileAudio, FileText, Check, Search, Grid, List, ChevronDown } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Image, Video, FileAudio, FileText, Check, Search, Grid, List, ChevronDown, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import type { MediaType } from "@/lib/analysisTypes";
@@ -286,10 +287,25 @@ export function MediaTypeBrowserMultiSelect({
           <Button variant="ghost" size="sm" onClick={clearSelection}>
             Clear
           </Button>
+          
+          {/* Analysis Status Filter */}
+          {requestedModes.length > 0 && (
+            <Select value={showAnalyzedFilter} onValueChange={(v) => setShowAnalyzedFilter(v as 'all' | 'unanalyzed' | 'partial')}>
+              <SelectTrigger className="w-[150px] h-8 text-xs">
+                <Filter className="h-3 w-3 mr-1" />
+                <SelectValue placeholder="Filter status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All files</SelectItem>
+                <SelectItem value="unanalyzed">Needs analysis</SelectItem>
+                <SelectItem value="partial">Partially done</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">
-            Showing {totalLoaded} files
+            Showing {filteredFiles.length} of {totalLoaded} files
           </span>
           <Badge variant={selectedIds.length >= maxSelection ? "destructive" : "secondary"}>
             {selectedIds.length} / {maxSelection}
@@ -327,6 +343,14 @@ export function MediaTypeBrowserMultiSelect({
                     onClick={(e) => e.stopPropagation()}
                     onCheckedChange={() => handleToggle(item)}
                   />
+                  {/* Analysis status badge on grid */}
+                  {item.completedAnalysisModes && item.completedAnalysisModes.length > 0 && (
+                    <div className="absolute bottom-1 right-1">
+                      <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4 bg-green-500/90 text-white">
+                        {item.completedAnalysisModes.length}✓
+                      </Badge>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -362,9 +386,22 @@ export function MediaTypeBrowserMultiSelect({
                         )}
                       </div>
                     </div>
-                    {isSelected && (
-                      <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                    )}
+                    {/* Analysis status badges */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {item.completedAnalysisModes && item.completedAnalysisModes.length > 0 && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-green-500/10 text-green-700 border-green-500/30">
+                          {item.completedAnalysisModes.length}✓
+                        </Badge>
+                      )}
+                      {requestedModes.length > 0 && getRemainingModes(item).length > 0 && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
+                          {getRemainingModes(item).length} pending
+                        </Badge>
+                      )}
+                      {isSelected && (
+                        <Check className="h-4 w-4 text-primary" />
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               );

@@ -270,6 +270,7 @@ serve(async (req) => {
       analysis_depth = 'standard',
       model_override,
       modelTier,
+      skip_completed_modes = false,  // Enable incremental mode to skip already-analyzed modes
     } = await req.json();
 
     console.log(`Starting ${media_type} analysis for ${analysis_modes.length} modes`);
@@ -283,8 +284,40 @@ serve(async (req) => {
       throw new Error('Missing media_url');
     }
 
-    // Build analysis prompt based on selected modes
-    const modePrompts = analysis_modes
+    // Incremental mode: filter out already-completed modes
+    let effectiveModes = analysis_modes;
+    let skippedModes: string[] = [];
+
+    if (skip_completed_modes && (media_id || document_id)) {
+      const tableName = document_id ? 'documents' : 'media';
+      const itemId = document_id || media_id;
+      
+      const { data: itemData } = await supabase
+        .from(tableName)
+        .select('completed_analysis_modes')
+        .eq('id', itemId)
+        .single();
+      
+      const completedModes = itemData?.completed_analysis_modes || [];
+      skippedModes = analysis_modes.filter((m: string) => completedModes.includes(m));
+      effectiveModes = analysis_modes.filter((m: string) => !completedModes.includes(m));
+      
+      console.log(`Incremental mode: ${skippedModes.length} modes already done, ${effectiveModes.length} remaining`);
+      
+      if (effectiveModes.length === 0) {
+        return new Response(JSON.stringify({
+          success: true,
+          message: 'All requested modes already completed',
+          skipped_modes: skippedModes,
+          analysis: null,
+          tokensUsed: 0,
+          costCents: 0,
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+    }
+
+    // Build analysis prompt based on effective modes (after filtering)
+    const modePrompts = effectiveModes
       .map((mode: string) => ANALYSIS_PROMPTS[media_type]?.[mode])
       .filter(Boolean);
 
@@ -317,7 +350,7 @@ ANALYSIS MODES REQUESTED:
 ${modePrompts.join('\n\n---\n\n')}
 
 Combine all requested analyses into a single comprehensive JSON response with these top-level keys:
-${analysis_modes.map((m: string) => `- "${m}": { analysis results }`).join('\n')}
+${effectiveModes.map((m: string) => `- "${m}": { analysis results }`).join('\n')}
 - "key_insights": [array of most important findings as strings]
 - "red_flags": [array of concerning findings requiring attention]
 - "yellow_flags": [array of things to monitor]
@@ -400,7 +433,7 @@ Be thorough and extract maximum intelligence.`;
           media_id,
           user_id: userId,
           analysis_type: 'deep_multi_mode',
-          analysis_modes,
+          analysis_modes: effectiveModes,
           analysis_depth,
           result: analysisResult,
           ai_model_used: model,
@@ -409,6 +442,32 @@ Be thorough and extract maximum intelligence.`;
         }, {
           onConflict: 'media_id,analysis_type',
         });
+    }
+
+    // Update completed_analysis_modes on the source table
+    const tableName = document_id ? 'documents' : 'media';
+    const itemId = document_id || media_id;
+
+    if (itemId) {
+      // Fetch current completed modes and merge with newly completed
+      const { data: currentItem } = await supabase
+        .from(tableName)
+        .select('completed_analysis_modes')
+        .eq('id', itemId)
+        .single();
+      
+      const existingModes = currentItem?.completed_analysis_modes || [];
+      const allCompletedModes = [...new Set([...existingModes, ...effectiveModes])];
+      
+      await supabase
+        .from(tableName)
+        .update({
+          completed_analysis_modes: allCompletedModes,
+          last_analysis_at: new Date().toISOString(),
+        })
+        .eq('id', itemId);
+      
+      console.log(`Updated ${tableName}.completed_analysis_modes for ${itemId}: ${allCompletedModes.join(', ')}`);
     }
 
     const processingTimeMs = Date.now() - startTime;

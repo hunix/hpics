@@ -542,6 +542,8 @@ export default function MediaAnalysis() {
                       selectedIds={selectedItems.map(i => i.id)}
                       onSelectionChange={setSelectedItems}
                       maxSelection={500}
+                      requestedModes={selectedModes}
+                      hideFullyAnalyzed={true}
                     />
                   ) : (
                     <MediaTypeBrowser

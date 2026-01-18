@@ -518,30 +518,32 @@ async function processInBackground(
         totalCostCents += costPerCell;
         
         // Update completed_analysis_modes on media table to track incremental progress
-        if (mediaId && analysisModes?.length > 0) {
-          const { error: modesUpdateError } = await supabase
-            .from('media')
-            .update({
-              completed_analysis_modes: supabase.rpc('array_cat_unique', {
-                arr1: [],  // Will be combined with existing via SQL
-                arr2: analysisModes
-              }),
-              last_analysis_at: new Date().toISOString()
-            })
-            .eq('id', mediaId);
-          
-          // Fallback: direct update if RPC doesn't exist
-          if (modesUpdateError) {
-            await supabase.rpc('sql', {
-              query: `UPDATE media SET completed_analysis_modes = ARRAY(SELECT DISTINCT unnest(completed_analysis_modes || $1::text[])), last_analysis_at = now() WHERE id = $2`,
-              params: [analysisModes, mediaId]
-            }).catch(() => {
-              // Simple fallback - just set the modes
-              supabase.from('media').update({
-                completed_analysis_modes: analysisModes,
-                last_analysis_at: new Date().toISOString()
-              }).eq('id', mediaId);
-            });
+        // Use proper array merge to preserve existing modes
+        if (mediaId) {
+          try {
+            // Fetch current modes
+            const { data: currentMedia } = await supabase
+              .from('media')
+              .select('completed_analysis_modes')
+              .eq('id', mediaId)
+              .single();
+            
+            const existingModes = currentMedia?.completed_analysis_modes || [];
+            // For mosaic, we track 'mosaic_metadata' as the completed mode
+            const newModes = ['mosaic_metadata'];
+            const allModes = [...new Set([...existingModes, ...newModes])];
+            
+            await supabase
+              .from('media')
+              .update({
+                completed_analysis_modes: allModes,
+                last_analysis_at: new Date().toISOString(),
+              })
+              .eq('id', mediaId);
+            
+            console.log(`[Background] Updated media.completed_analysis_modes for ${mediaId}: ${allModes.join(', ')}`);
+          } catch (modesError) {
+            console.error(`[Background] Failed to update completed_analysis_modes for ${mediaId}:`, modesError);
           }
         }
       }
