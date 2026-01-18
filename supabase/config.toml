@@ -482,3 +482,6 @@ verify_jwt = false
 
 [functions.generate-intelligence-dossier]
 verify_jwt = false
+
+[functions.aggregate-voice-intelligence]
+verify_jwt = false
