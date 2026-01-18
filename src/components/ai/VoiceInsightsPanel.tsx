@@ -6,11 +6,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Mic, 
-  Brain, 
-  Users, 
-  AlertTriangle, 
+import type {
+  VoiceSpeaker,
+  VoiceTopic,
+  NamedEntities,
+  SentimentTimelinePoint,
+  StressPoint,
+  MoodPattern,
+  ActionItem
+} from '@/types/ai-insights';
+import {
+  Mic,
+  Brain,
+  Users,
+  AlertTriangle,
   TrendingUp,
   Clock,
   Tag,
@@ -78,15 +87,15 @@ export function VoiceInsightsPanel({ profileId, sourceId, insightId }: VoiceInsi
 
   const insight = insights[0];
   const transcription = insight.full_transcription;
-  const speakers = (insight.speakers as any[]) || [];
-  const topics = (insight.topics_discussed as any[]) || [];
-  const entities = insight.named_entities as Record<string, any[]> || {};
-  const sentimentTimeline = (insight.sentiment_timeline as any[]) || [];
-  const stressPoints = (insight.stress_points as any[]) || [];
-  const moodPatterns = (insight.mood_patterns as any[]) || [];
-  const detectedKeywords = (insight.detected_keywords as any[]) || [];
-  const mentionedContacts = (insight.mentioned_contacts as any[]) || [];
-  const actionItems = (insight.action_items as any[]) || [];
+  const speakers = (insight.speakers as VoiceSpeaker[]) || [];
+  const topics = (insight.topics_discussed as VoiceTopic[]) || [];
+  const entities = (insight.named_entities as NamedEntities) || {};
+  const sentimentTimeline = (insight.sentiment_timeline as SentimentTimelinePoint[]) || [];
+  const stressPoints = (insight.stress_points as StressPoint[]) || [];
+  const moodPatterns = (insight.mood_patterns as MoodPattern[]) || [];
+  const detectedKeywords = (insight.detected_keywords as string[]) || [];
+  const mentionedContacts = (insight.mentioned_contacts as string[]) || [];
+  const actionItems = (insight.action_items as ActionItem[]) || [];
 
   return (
     <Card>
@@ -131,9 +140,9 @@ export function VoiceInsightsPanel({ profileId, sourceId, insightId }: VoiceInsi
               {/* Speakers Summary */}
               {speakers.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {speakers.map((speaker: any, idx: number) => (
+                  {speakers.map((speaker, idx) => (
                     <Badge key={idx} variant="secondary">
-                      {speaker.id}: {speaker.word_count} words
+                      {speaker.id}: {speaker.speakingTime || 0} words
                     </Badge>
                   ))}
                 </div>
@@ -151,13 +160,13 @@ export function VoiceInsightsPanel({ profileId, sourceId, insightId }: VoiceInsi
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium">Action Items</h4>
                   <div className="space-y-1">
-                    {actionItems.map((item: any, idx: number) => (
+                    {actionItems.map((item, idx) => (
                       <div key={idx} className="flex items-center gap-2 text-sm p-2 bg-muted rounded">
                         <Clock className="h-3 w-3 text-muted-foreground" />
-                        <span>{item.item}</span>
-                        {item.assignee && (
+                        <span>{item.description}</span>
+                        {item.assignedTo && (
                           <Badge variant="outline" className="ml-auto text-xs">
-                            {item.assignee}
+                            {item.assignedTo}
                           </Badge>
                         )}
                       </div>
@@ -173,15 +182,15 @@ export function VoiceInsightsPanel({ profileId, sourceId, insightId }: VoiceInsi
               {/* Topics */}
               {topics.length > 0 ? (
                 <div className="space-y-2">
-                  {topics.map((topic: any, idx: number) => (
+                  {topics.map((topic, idx) => (
                     <div key={idx} className="p-3 border rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-medium">{topic.topic}</span>
-                        <Badge variant={topic.importance > 7 ? 'default' : 'secondary'}>
-                          Importance: {topic.importance}/10
+                        <Badge variant={(topic.confidence || 0) > 0.7 ? 'default' : 'secondary'}>
+                          Confidence: {Math.round((topic.confidence || 0) * 100)}%
                         </Badge>
                       </div>
-                      <Progress value={topic.importance * 10} className="h-1" />
+                      <Progress value={(topic.confidence || 0) * 100} className="h-1" />
                     </div>
                   ))}
                 </div>
@@ -194,10 +203,10 @@ export function VoiceInsightsPanel({ profileId, sourceId, insightId }: VoiceInsi
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium">Named Entities</h4>
                   <div className="flex flex-wrap gap-2">
-                    {Object.entries(entities).map(([type, items]) => 
-                      (items as any[])?.map((item: any, idx: number) => (
+                    {Object.entries(entities).map(([type, items]) =>
+                      items?.map((item, idx) => (
                         <Badge key={`${type}-${idx}`} variant="outline">
-                          {type}: {typeof item === 'string' ? item : item.name}
+                          {type}: {item}
                         </Badge>
                       ))
                     )}

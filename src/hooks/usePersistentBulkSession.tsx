@@ -5,6 +5,9 @@ import { prioritizeItems, estimateBulkCost, type CostEstimate } from "@/lib/bulk
 import { generateMetadataMosaic, getMosaicPreviewInfo, type MediaItem as MosaicMediaItem } from "@/lib/metadataMosaic";
 import { deduplicateImages } from "@/lib/imageHashingService";
 import type { MosaicFailureState } from "@/components/analysis/MosaicFailureDialog";
+import { createModuleLogger } from "@/lib/logger";
+
+const logger = createModuleLogger('BulkSession');
 
 export type BulkSessionStatus = "idle" | "pending" | "queued" | "running" | "paused" | "completed" | "failed" | "cancelled";
 export type BulkItemStatus = "pending" | "queued" | "running" | "completed" | "failed" | "skipped";
@@ -115,7 +118,7 @@ export function usePersistentBulkSession({
           filter: `id=eq.${session.id}`,
         },
         (payload) => {
-          console.log('[BulkSession] Realtime session update:', payload.new);
+          logger.debug('Realtime session update', { session: payload.new });
           setSession((prev) => {
             if (!prev) return null;
             // CRITICAL: Preserve the items array - mapDbSession sets items:[] by default
@@ -133,15 +136,15 @@ export function usePersistentBulkSession({
           filter: `session_id=eq.${session.id}`,
         },
         (payload) => {
-          console.log('[BulkSession] Realtime item update:', { id: payload.new.id, status: payload.new.status });
+          logger.debug('Realtime item update', { id: payload.new.id, status: payload.new.status });
           setSession((prev) => {
             if (!prev) return null;
             const updatedItem = mapDbItem(payload.new);
-            
+
             // UPSERT: Check if item exists, if not append it
             const existingIndex = prev.items.findIndex((item) => item.id === updatedItem.id);
             let newItems: BulkAnalysisItem[];
-            
+
             if (existingIndex >= 0) {
               // Replace existing item
               newItems = [...prev.items];
@@ -150,7 +153,7 @@ export function usePersistentBulkSession({
               // Append new item (upsert behavior)
               newItems = [...prev.items, updatedItem].sort((a, b) => a.queuePosition - b.queuePosition);
             }
-            
+
             return { ...prev, items: newItems };
           });
         }
@@ -166,28 +169,28 @@ export function usePersistentBulkSession({
   useEffect(() => {
     if (!session?.id || session.items.length > 0) return;
     if (session.status !== 'running' && session.status !== 'pending') return;
-    
-    console.log('[BulkSession] Items array empty, starting poll to fetch items');
-    
+
+    logger.debug('Items array empty, starting poll to fetch items');
+
     const pollInterval = setInterval(async () => {
       const { data: items, error } = await supabase
         .from('bulk_analysis_items')
         .select('*')
         .eq('session_id', session.id)
         .order('queue_position', { ascending: true });
-      
+
       if (error) {
         console.error('[BulkSession] Failed to poll items:', error);
         return;
       }
-      
+
       if (items && items.length > 0) {
-        console.log('[BulkSession] Polled', items.length, 'items from DB');
+        logger.debug('Polled items from DB', { count: items.length });
         setSession(prev => prev ? { ...prev, items: items.map(mapDbItem) } : null);
         clearInterval(pollInterval);
       }
     }, 3000); // Poll every 3 seconds
-    
+
     // Also do an immediate fetch
     (async () => {
       const { data: items } = await supabase
@@ -195,14 +198,14 @@ export function usePersistentBulkSession({
         .select('*')
         .eq('session_id', session.id)
         .order('queue_position', { ascending: true });
-      
+
       if (items && items.length > 0) {
-        console.log('[BulkSession] Immediate fetch got', items.length, 'items');
+        logger.debug('Immediate fetch completed', { count: items.length });
         setSession(prev => prev ? { ...prev, items: items.map(mapDbItem) } : null);
         clearInterval(pollInterval);
       }
     })();
-    
+
     return () => clearInterval(pollInterval);
   }, [session?.id, session?.items?.length, session?.status]);
 
@@ -218,14 +221,14 @@ export function usePersistentBulkSession({
 
       if (sessions && sessions.length > 0) {
         const dbSession = sessions[0];
-        
+
         // Auto-cancel stale pending sessions (pending for > 5 minutes without starting)
         if (dbSession.status === 'pending' && dbSession.started_at === null) {
           const createdAt = new Date(dbSession.created_at);
           const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-          
+
           if (createdAt < fiveMinutesAgo) {
-            console.log('[BulkSession] Found stale pending session, auto-cancelling:', dbSession.id);
+            logger.info('Found stale pending session, auto-cancelling', { sessionId: dbSession.id });
             await supabase
               .from('bulk_analysis_sessions')
               .update({ status: 'cancelled', completed_at: new Date().toISOString() })
@@ -233,7 +236,7 @@ export function usePersistentBulkSession({
             return null; // Don't return the stale session
           }
         }
-        
+
         // Fetch items
         const { data: items } = await supabase
           .from("bulk_analysis_items")
@@ -243,20 +246,20 @@ export function usePersistentBulkSession({
 
         const mappedSession = mapDbSession(dbSession);
         mappedSession.items = (items || []).map(mapDbItem);
-        
+
         // Reconcile session counters from actual item statuses
         const actualCompleted = mappedSession.items.filter(i => i.status === 'completed').length;
         const actualFailed = mappedSession.items.filter(i => i.status === 'failed').length;
         const actualSkipped = mappedSession.items.filter(i => i.status === 'skipped').length;
-        
-        if (actualCompleted !== mappedSession.completedItems || 
-            actualFailed !== mappedSession.failedItems ||
-            actualSkipped !== mappedSession.skippedItems) {
-          console.log('[BulkSession] Reconciling session counters on restore:', {
+
+        if (actualCompleted !== mappedSession.completedItems ||
+          actualFailed !== mappedSession.failedItems ||
+          actualSkipped !== mappedSession.skippedItems) {
+          logger.debug('Reconciling session counters on restore', {
             sessionCounters: { completed: mappedSession.completedItems, failed: mappedSession.failedItems, skipped: mappedSession.skippedItems },
             actualCounts: { completed: actualCompleted, failed: actualFailed, skipped: actualSkipped }
           });
-          
+
           // Update session counters in database to match actual item statuses
           await supabase
             .from("bulk_analysis_sessions")
@@ -266,13 +269,13 @@ export function usePersistentBulkSession({
               skipped_items: actualSkipped,
             })
             .eq("id", dbSession.id);
-          
+
           // Update local state
           mappedSession.completedItems = actualCompleted;
           mappedSession.failedItems = actualFailed;
           mappedSession.skippedItems = actualSkipped;
         }
-        
+
         return mappedSession;
       }
       return null;
@@ -348,7 +351,7 @@ export function usePersistentBulkSession({
         if (!user) {
           throw new Error('Not authenticated');
         }
-        
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const sessionData: any = {
           user_id: user.id, // Explicitly set user_id to fix RLS
@@ -366,7 +369,7 @@ export function usePersistentBulkSession({
           trigger_deep_analysis: options?.triggerDeepAnalysis ?? false,
           scheduled_for: options?.scheduledFor?.toISOString(),
         };
-        
+
         const { data: newSession, error: sessionError } = await supabase
           .from("bulk_analysis_sessions")
           .insert(sessionData)
@@ -404,9 +407,9 @@ export function usePersistentBulkSession({
 
         const mappedSession = mapDbSession(newSession);
         mappedSession.items = (insertedItems || []).map(mapDbItem);
-        
+
         setSession(mappedSession);
-        
+
         toast({
           title: "Session created",
           description: `Ready to analyze ${mediaItems.length} items`,
@@ -441,7 +444,7 @@ export function usePersistentBulkSession({
     reducedBatchSize?: number
   ): Promise<{ processed: number; cost: number }> => {
     const batchToProcess = reducedBatchSize ? items.slice(0, reducedBatchSize) : items;
-    console.log('[BulkSession] Processing batch with mosaic:', batchToProcess.length, 'images, attempt:', retryAttempt + 1);
+    logger.info('Processing batch with mosaic', { imageCount: batchToProcess.length, attempt: retryAttempt + 1 });
     setProcessingStatus(`Generating mosaic for ${batchToProcess.length} images... (attempt ${retryAttempt + 1}/${MOSAIC_MAX_RETRIES})`);
 
     const itemIds = batchToProcess.map(i => i.id);
@@ -464,7 +467,7 @@ export function usePersistentBulkSession({
             .select("storage_path")
             .eq("id", item.media_id)
             .single();
-          
+
           if (mediaData?.storage_path) {
             const { data: signedData } = await supabase.storage
               .from("media")
@@ -472,7 +475,7 @@ export function usePersistentBulkSession({
             url = signedData?.signedUrl;
           }
         }
-        
+
         if (url) {
           mediaItems.push({
             id: item.media_id || item.id,
@@ -489,7 +492,7 @@ export function usePersistentBulkSession({
 
       // Generate mosaic client-side with timeout
       setProcessingStatus(`Creating mosaic grid (${mediaItems.length} images)...`);
-      
+
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error('Mosaic generation timed out after 2 minutes')), MOSAIC_TIMEOUT_MS);
       });
@@ -506,7 +509,7 @@ export function usePersistentBulkSession({
       setProcessingStatus(`Analyzing ${mediaItems.length} images via mosaic...`);
       const startTime = Date.now();
 
-      console.log('[BulkSession] Sending mosaic to edge function:', {
+      logger.debug('Sending mosaic to edge function', {
         mosaicId: mosaic.mosaicId,
         cellCount: mosaic.cells.length,
         gridCols: mosaic.gridCols,
@@ -533,48 +536,48 @@ export function usePersistentBulkSession({
       if (analysisError) throw analysisError;
 
       const processingTimeMs = Date.now() - startTime;
-      console.log('[BulkSession] Mosaic submitted for background processing:', { 
+      logger.info('Mosaic submitted for background processing', {
         processingTimeMs,
         status: analysisResult?.status,
         mosaicId: analysisResult?.mosaicId,
-        cellCount: analysisResult?.cellCount 
+        cellCount: analysisResult?.cellCount
       });
 
       // With background processing, the edge function returns immediately with status: 'processing'
       // Poll for completion before moving to next batch
       if (analysisResult?.status === 'processing') {
-        console.log('[BulkSession] Mosaic submitted for background processing, polling for completion...');
-        
+        logger.info('Mosaic submitted for background processing, polling for completion...');
+
         const POLL_INTERVAL = 3000; // 3 seconds
         const POLL_TIMEOUT = 180000; // 3 minutes max
         const pollStart = Date.now();
-        
+
         while (Date.now() - pollStart < POLL_TIMEOUT) {
           await new Promise(r => setTimeout(r, POLL_INTERVAL));
-          
+
           // Check if all items in this batch are completed or failed
           const { data: itemStatuses } = await supabase
             .from('bulk_analysis_items')
             .select('status')
             .in('id', itemIds);
-          
-          const allDone = itemStatuses?.every(i => 
+
+          const allDone = itemStatuses?.every(i =>
             i.status === 'completed' || i.status === 'failed'
           );
-          
+
           if (allDone) {
-            console.log('[BulkSession] Background mosaic processing completed');
+            logger.info('Background mosaic processing completed');
             const completedCount = itemStatuses?.filter(i => i.status === 'completed').length || 0;
             const failedCount = itemStatuses?.filter(i => i.status === 'failed').length || 0;
-            
+
             // Backend already updates session counters, just refresh from DB
-            console.log('[BulkSession] Background processing completed, refreshing session from DB');
+            logger.debug('Background processing completed, refreshing session from DB');
             const { data: refreshedSession } = await supabase
               .from('bulk_analysis_sessions')
               .select('completed_items, failed_items, current_cost_cents')
               .eq('id', activeSession.id)
               .single();
-            
+
             if (refreshedSession) {
               setSession(prev => prev ? {
                 ...prev,
@@ -583,32 +586,32 @@ export function usePersistentBulkSession({
                 currentCostCents: refreshedSession.current_cost_cents || prev.currentCostCents,
               } : null);
             }
-            
+
             return { processed: completedCount, cost: 0 };
           }
-          
+
           const elapsed = Math.round((Date.now() - pollStart) / 1000);
           setProcessingStatus(`Waiting for mosaic processing... ${elapsed}s`);
         }
-        
+
         // Timeout reached - check final status
         console.warn('[BulkSession] Mosaic polling timed out after 3 minutes');
         const { data: finalStatuses } = await supabase
           .from('bulk_analysis_items')
           .select('status')
           .in('id', itemIds);
-        
+
         // Backend already updates session counters, just refresh from DB
         const completedCount = finalStatuses?.filter(i => i.status === 'completed').length || 0;
         const failedCount = finalStatuses?.filter(i => i.status === 'failed').length || 0;
-        console.log('[BulkSession] Polling timed out, refreshing session from DB:', { completedCount, failedCount });
-        
+        logger.warn('Polling timed out, refreshing session from DB', { completedCount, failedCount });
+
         const { data: refreshedSession } = await supabase
           .from('bulk_analysis_sessions')
           .select('completed_items, failed_items, current_cost_cents')
           .eq('id', activeSession.id)
           .single();
-        
+
         if (refreshedSession) {
           setSession(prev => prev ? {
             ...prev,
@@ -617,12 +620,12 @@ export function usePersistentBulkSession({
             currentCostCents: refreshedSession.current_cost_cents || prev.currentCostCents,
           } : null);
         }
-        
+
         return { processed: completedCount, cost: 0 };
       }
 
       // Fallback for legacy synchronous response
-      console.log('[BulkSession] Mosaic completed synchronously:', analysisResult);
+      logger.info('Mosaic completed synchronously', { result: analysisResult });
       const costCents = analysisResult?.costCents || Math.ceil(batchToProcess.length * 0.15);
 
       // Mark all items as completed
@@ -650,14 +653,14 @@ export function usePersistentBulkSession({
       return { processed: batchToProcess.length, cost: costCents };
     } catch (error) {
       console.error('[BulkSession] Mosaic processing error (attempt', retryAttempt + 1, '):', error);
-      
+
       // Reset items back to pending
       await supabase
         .from("bulk_analysis_items")
-        .update({ 
-          status: "pending", 
-          started_at: null, 
-          error_message: error instanceof Error ? error.message : "Mosaic failed" 
+        .update({
+          status: "pending",
+          started_at: null,
+          error_message: error instanceof Error ? error.message : "Mosaic failed"
         })
         .in("id", itemIds);
 
@@ -665,21 +668,21 @@ export function usePersistentBulkSession({
       if (retryAttempt < MOSAIC_MAX_RETRIES - 1) {
         setProcessingStatus(`Mosaic failed, retrying in ${MOSAIC_RETRY_DELAY_MS / 1000}s...`);
         await new Promise(r => setTimeout(r, MOSAIC_RETRY_DELAY_MS * (retryAttempt + 1)));
-        
+
         // Reduce batch size on retry if it's large
-        const newBatchSize = batchToProcess.length > 32 ? 32 : 
-                            batchToProcess.length > 16 ? 16 : undefined;
-        
+        const newBatchSize = batchToProcess.length > 32 ? 32 :
+          batchToProcess.length > 16 ? 16 : undefined;
+
         return processBatchWithMosaic(items, activeSession, retryAttempt + 1, newBatchSize);
       }
 
       // All retries exhausted - trigger user intervention
-      console.log('[BulkSession] All retries exhausted, requesting user intervention');
+      logger.warn('All retries exhausted, requesting user intervention');
       pendingMosaicBatchRef.current = items;
-      
+
       // Pause processing and show dialog
       isRunningRef.current = false;
-      
+
       setMosaicFailure({
         isOpen: true,
         error: error instanceof Error ? error.message : "Unknown mosaic error",
@@ -696,10 +699,10 @@ export function usePersistentBulkSession({
   // Handle user choosing to retry mosaic
   const handleMosaicRetry = useCallback(async () => {
     if (!pendingMosaicBatchRef.current || !session) return;
-    
+
     setMosaicFailure(null);
     isRunningRef.current = true;
-    
+
     try {
       await processBatchWithMosaic(pendingMosaicBatchRef.current, session, 0);
       pendingMosaicBatchRef.current = null;
@@ -716,10 +719,10 @@ export function usePersistentBulkSession({
   // Handle user choosing smaller batches
   const handleMosaicRetrySmaller = useCallback(async () => {
     if (!pendingMosaicBatchRef.current || !session) return;
-    
+
     setMosaicFailure(null);
     isRunningRef.current = true;
-    
+
     try {
       // Process in smaller batches of 16
       await processBatchWithMosaic(pendingMosaicBatchRef.current.slice(0, 16), session, 0);
@@ -736,17 +739,17 @@ export function usePersistentBulkSession({
   // Handle user choosing to switch to individual processing
   const handleMosaicSwitchIndividual = useCallback(async () => {
     if (!session) return;
-    
+
     setMosaicFailure(null);
     pendingMosaicBatchRef.current = null;
     setProcessingStrategy("individual");
     isRunningRef.current = true;
-    
+
     toast({
       title: "Switched to individual processing",
       description: "Processing will continue with one image at a time",
     });
-    
+
     await start(session, "individual");
   }, [session, toast]);
 
@@ -761,7 +764,7 @@ export function usePersistentBulkSession({
   const start = useCallback(async (sessionOverride?: BulkSession, strategyOverride?: ProcessingStrategy) => {
     const activeSession = sessionOverride || session;
     const strategy = strategyOverride || processingStrategy;
-    
+
     if (!activeSession) {
       console.warn('[BulkSession] start() called but no session available');
       toast({
@@ -772,15 +775,15 @@ export function usePersistentBulkSession({
       return;
     }
     if (isRunningRef.current) {
-      console.log('[BulkSession] Already running, skipping start');
+      logger.debug('Already running, skipping start');
       return;
     }
 
-    console.log('[BulkSession] Starting processing for session:', activeSession.id, 'strategy:', strategy);
+    logger.info('Starting processing for session', { sessionId: activeSession.id, strategy });
     isRunningRef.current = true;
     abortControllerRef.current = new AbortController();
     setProcessingStatus("Initializing...");
-    
+
     // If we got sessionOverride, also update the React state
     if (sessionOverride && (!session || session.id !== sessionOverride.id)) {
       setSession(sessionOverride);
@@ -788,12 +791,12 @@ export function usePersistentBulkSession({
 
     try {
       // Update session status to running
-      console.log('[BulkSession] Updating session status to running...');
+      logger.debug('Updating session status to running...');
       const { error: updateError } = await supabase
         .from("bulk_analysis_sessions")
         .update({ status: "running", started_at: new Date().toISOString() })
         .eq("id", activeSession.id);
-      
+
       if (updateError) {
         console.error('[BulkSession] Failed to update session status:', updateError);
         toast({
@@ -804,8 +807,8 @@ export function usePersistentBulkSession({
         isRunningRef.current = false;
         return;
       }
-      
-      console.log('[BulkSession] Session status updated to running');
+
+      logger.debug('Session status updated to running');
 
       setSession((prev) => prev ? { ...prev, status: "running" } : null);
 
@@ -818,9 +821,9 @@ export function usePersistentBulkSession({
         .eq("status", "running")
         .lt("started_at", fiveMinutesAgo)
         .select("id");
-      
+
       if (stuckItems && stuckItems.length > 0) {
-        console.log('[BulkSession] Reset', stuckItems.length, 'stuck items to pending');
+        logger.info('Reset stuck items to pending', { count: stuckItems.length });
       }
 
       // Reset pending items that have error messages (failed but not retried)
@@ -833,7 +836,7 @@ export function usePersistentBulkSession({
         .select("id");
 
       if (failedPendingItems && failedPendingItems.length > 0) {
-        console.log('[BulkSession] Reset', failedPendingItems.length, 'failed pending items for retry');
+        logger.info('Reset failed pending items for retry', { count: failedPendingItems.length });
       }
 
       // Get all pending items
@@ -846,12 +849,12 @@ export function usePersistentBulkSession({
         .order("queue_position", { ascending: true });
 
       if (!allPendingItems || allPendingItems.length === 0) {
-        console.log('[BulkSession] No pending items, completing session');
+        logger.info('No pending items, completing session');
         await completeSession(activeSession);
         return;
       }
 
-      console.log('[BulkSession] Total pending items:', allPendingItems.length);
+      logger.debug('Total pending items', { count: allPendingItems.length });
 
       // Separate images from other media types
       const imageItems = allPendingItems.filter(i => i.media_type === 'image');
@@ -869,14 +872,14 @@ export function usePersistentBulkSession({
           if (!isRunningRef.current) break;
 
           const batch = imageItems.slice(i, i + BATCH_SIZE);
-          console.log('[BulkSession] Processing mosaic batch:', i / BATCH_SIZE + 1, 'of', Math.ceil(imageItems.length / BATCH_SIZE));
-          
+          logger.info('Processing mosaic batch', { batchNum: i / BATCH_SIZE + 1, totalBatches: Math.ceil(imageItems.length / BATCH_SIZE) });
+
           try {
             await processBatchWithMosaic(batch, activeSession);
           } catch (mosaicError) {
             // Check if user intervention is required
             if (mosaicError instanceof Error && mosaicError.message === "MOSAIC_INTERVENTION_REQUIRED") {
-              console.log('[BulkSession] Waiting for user intervention');
+              logger.warn('Waiting for user intervention');
               return; // Exit the processing loop, user will decide
             }
             console.error('[BulkSession] Mosaic batch failed unexpectedly:', mosaicError);
@@ -902,14 +905,14 @@ export function usePersistentBulkSession({
 
       // Process non-image items (or all items if not using mosaic) individually
       const itemsToProcessIndividually = shouldUseMosaic ? otherItems : allPendingItems;
-      
+
       if (itemsToProcessIndividually.length > 0 && isRunningRef.current) {
         setProcessingStatus(`Processing ${itemsToProcessIndividually.length} items individually...`);
-        
+
         for (const item of itemsToProcessIndividually) {
           if (!isRunningRef.current) break;
 
-          console.log('[BulkSession] Processing item individually:', item.id, item.file_name);
+          logger.debug('Processing item individually', { id: item.id, fileName: item.file_name });
           setProcessingStatus(`Processing: ${item.file_name || item.id}`);
 
           await processItem(item.id, activeSession);
@@ -922,7 +925,7 @@ export function usePersistentBulkSession({
             .single();
 
           if (currentSession?.status === "paused" || currentSession?.status === "cancelled") {
-            console.log('[BulkSession] Session paused or cancelled, stopping');
+            logger.info('Session paused or cancelled, stopping');
             break;
           }
 
@@ -961,7 +964,7 @@ export function usePersistentBulkSession({
     } finally {
       isRunningRef.current = false;
       setProcessingStatus("");
-      console.log('[BulkSession] Processing loop ended');
+      logger.debug('Processing loop ended');
     }
   }, [session, processingStrategy, toast, processBatchWithMosaic]);
 
@@ -1001,8 +1004,8 @@ export function usePersistentBulkSession({
       const startTime = Date.now();
 
       // Call analysis function
-      console.log('[BulkSession] Calling analyze-media-deep for:', item.file_name);
-      
+      logger.debug('Calling analyze-media-deep for', { fileName: item.file_name });
+
       const { data: analysisResult, error: analysisError } = await supabase.functions.invoke(
         "analyze-media-deep",
         {
@@ -1026,7 +1029,7 @@ export function usePersistentBulkSession({
         throw analysisError;
       }
 
-      console.log('[BulkSession] Analysis completed for:', item.file_name, analysisResult);
+      logger.debug('Analysis completed for', { fileName: item.file_name, result: analysisResult });
       const costCents = analysisResult?.costCents || 1;
 
       // Update item as completed
@@ -1105,8 +1108,8 @@ export function usePersistentBulkSession({
       return;
     }
 
-    console.log('[BulkSession] Resuming session:', activeSession.id);
-    
+    logger.info('Resuming session', { sessionId: activeSession.id });
+
     await supabase
       .from("bulk_analysis_sessions")
       .update({ status: "running", paused_at: null })
@@ -1118,7 +1121,7 @@ export function usePersistentBulkSession({
     } else {
       setSession((prev) => prev ? { ...prev, status: "running" } : activeSession);
     }
-    
+
     await start(activeSession, processingStrategy);
   }, [session, start, processingStrategy]);
 
@@ -1130,12 +1133,12 @@ export function usePersistentBulkSession({
       return;
     }
 
-    console.log('[BulkSession] Triggering backend runner for session:', activeSession.id);
+    logger.info('Triggering backend runner for session', { sessionId: activeSession.id });
     setProcessingStatus("Continuing in background...");
 
     try {
       const { data, error } = await supabase.functions.invoke('process-bulk-session-runner', {
-        body: { 
+        body: {
           sessionId: activeSession.id,
           action: 'continue'
         }
@@ -1147,10 +1150,10 @@ export function usePersistentBulkSession({
         title: "Background Processing Started",
         description: `Processing ${data?.pendingCount || 'remaining'} items in the background. You can close this page.`,
       });
-      
+
       // Update local state to indicate running
       setSession((prev) => prev ? { ...prev, status: "running" } : activeSession);
-      
+
       return data;
     } catch (error) {
       console.error('[BulkSession] Failed to start background processing:', error);

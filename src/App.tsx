@@ -15,13 +15,13 @@ import { FullPageLoader } from "@/components/ui/LoadingSpinner";
 import { lazyWithRetry } from "@/lib/chunkErrorHandler";
 import { SessionTimeoutProvider } from "@/components/providers/SessionTimeoutProvider";
 
-// Eagerly loaded core pages
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
-import Contacts from "./pages/Contacts";
-import ContactDetail from "./pages/ContactDetail";
-import NotFound from "./pages/NotFound";
+// ALL pages lazy-loaded for optimal initial bundle size
+const Index = lazyWithRetry(() => import("./pages/Index"));
+const Auth = lazyWithRetry(() => import("./pages/Auth"));
+const Dashboard = lazyWithRetry(() => import("./pages/Dashboard"));
+const Contacts = lazyWithRetry(() => import("./pages/Contacts"));
+const ContactDetail = lazyWithRetry(() => import("./pages/ContactDetail"));
+const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
 
 // Lazy loaded pages with retry for deployment resilience
 const ConversationDetail = lazyWithRetry(() => import("./pages/ConversationDetail"));
@@ -96,8 +96,19 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
       gcTime: 1000 * 60 * 30, // 30 minutes (formerly cacheTime)
-      retry: 1,
-      refetchOnWindowFocus: false,
+      retry: 3, // Retry failed queries up to 3 times
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+      refetchOnWindowFocus: 'always', // Refetch when user returns to tab (better UX)
+      refetchOnReconnect: 'always', // Refetch when network reconnects
+      networkMode: 'offlineFirst', // Support offline-first pattern
+    },
+    mutations: {
+      retry: 2, // Retry failed mutations twice
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+      networkMode: 'offlineFirst',
+      onError: (error) => {
+        console.error('[React Query] Mutation failed:', error);
+      },
     },
   },
 });
@@ -117,80 +128,80 @@ const App = () => (
                   <BrowserRouter>
                     <GlobalShortcutsProvider>
                       <Suspense fallback={<FullPageLoader />}>
-                      <Routes>
-                        <Route path="/" element={<Index />} />
-                        <Route path="/auth" element={<Auth />} />
-                        <Route path="/dashboard" element={<Dashboard />} />
-                        <Route path="/contacts" element={<Contacts />} />
-                        <Route path="/contacts/:id" element={<ContactDetail />} />
-                        <Route path="/contacts/:contactId/conversations/:conversationId" element={<ConversationDetail />} />
-                        <Route path="/communications" element={<Communications />} />
-                        <Route path="/documents" element={<Documents />} />
-                        <Route path="/media" element={<MediaPage />} />
-                        <Route path="/events" element={<Events />} />
-                        <Route path="/insights" element={<Insights />} />
-                        <Route path="/import" element={<Import />} />
-                        <Route path="/settings" element={<Settings />} />
-                        <Route path="/network" element={<Network />} />
-                        <Route path="/calendar" element={<Calendar />} />
-                        <Route path="/video-analysis" element={<VideoAnalysis />} />
-                        <Route path="/analysis" element={<MediaAnalysis />} />
-                        <Route path="/analysis/dashboard" element={<BulkAnalysisDashboard />} />
-                        <Route path="/reports" element={<Reports />} />
-                        <Route path="/team" element={<TeamDashboard />} />
-                        <Route path="/install" element={<Install />} />
-                        <Route path="/downloads" element={<Downloads />} />
-                        <Route path="/security" element={<Security />} />
-                        <Route path="/network-intelligence" element={<NetworkIntelligence />} />
-                        <Route path="/semantic-search" element={<SemanticSearchPage />} />
-                        <Route path="/counter-intelligence" element={<CounterIntelligence />} />
-                        <Route path="/system-health" element={<SystemHealthPage />} />
-                        <Route path="/cross-modal-intelligence" element={<CrossModalIntelligencePage />} />
-                        <Route path="/network-advanced" element={<AdvancedNetworkPage />} />
-                        <Route path="/ai-costs" element={<AICostCenterPage />} />
-                        <Route path="/intelligence" element={<IntelligenceCenter />} />
-                        <Route path="/intelligence/command-center" element={<IntelligenceCommandCenter />} />
-                        <Route path="/ai-chat" element={<AIChat />} />
-                        <Route path="/share-receive" element={<ShareReceive />} />
-                        <Route path="/command-center" element={<CommandCenter />} />
-                        <Route path="/capabilities" element={<CapabilitiesExplorer />} />
-                        <Route path="/mobile/ecosystem" element={<MobileEcosystemPage />} />
-                        <Route path="/ultimate-command" element={<UltimateCommandCenter />} />
-                        <Route path="/social-intelligence" element={<SocialIntelligenceDashboard />} />
-                        <Route path="/superiority" element={<Superiority />} />
-                        <Route path="/investment-intelligence" element={<InvestmentIntelligence />} />
-                        <Route path="/psychology-intelligence" element={<PsychologyIntelligence />} />
-                        <Route path="/deception-analysis" element={<DeceptionAnalysis />} />
-                        <Route path="/biometric-hub" element={<BiometricHub />} />
-                        <Route path="/hardware-command" element={<HardwareCommand />} />
-                        <Route path="/supremacy" element={<Supremacy />} />
-                        <Route path="/supremacy-v2" element={<SupremacyV2 />} />
-                        <Route path="/cognitive-warfare" element={<CognitiveWarfare />} />
-                        <Route path="/dominion" element={<DominionPage />} />
-                        <Route path="/omniscient-command" element={<OmniscientCommandCenter />} />
-                        <Route path="/transcendent-command" element={<TranscendentCommandCenter />} />
-                        <Route path="/singularity-command" element={<SingularityCommandCenter />} />
-                        <Route path="/absolute-convergence" element={<AbsoluteConvergenceCenter />} />
-                        <Route path="/infinite-dominion" element={<InfiniteDominionCenter />} />
-                        <Route path="/ultimate-transcendence" element={<UltimateTranscendenceCenter />} />
-                        <Route path="/omniversal-sovereignty" element={<OmniversalSovereigntyCenter />} />
-                        <Route path="/absolute-eternity" element={<AbsoluteEternityCenter />} />
-                        <Route path="/absolute-infinity" element={<AbsoluteInfinityCenter />} />
-                        <Route path="/primordial-genesis" element={<PrimordialGenesisCenter />} />
-                        <Route path="/cosmic-omnipotence" element={<CosmicOmnipotenceCenter />} />
-                        <Route path="/eternal-supremacy" element={<EternalSupremacyCenter />} />
-                        <Route path="/absolute-totality" element={<AbsoluteTotalityCenter />} />
-                        <Route path="/ultimate-omega" element={<UltimateOmegaCenter />} />
-                        <Route path="/agis-command" element={<AGISCommandCenter />} />
-                        <Route path="/agis-analytics" element={<AGISAnalytics />} />
-                        <Route path="/transcendent-consciousness" element={<TranscendentConsciousnessCenter />} />
-                        <Route path="/universal-omniscience" element={<UniversalOmniscienceCenter />} />
-                        <Route path="/absolute-genesis" element={<AbsoluteGenesisCenter />} />
-                        <Route path="/ai-cost-dashboard" element={<AICostDashboard />} />
-                        <Route path="/cross-modal-analysis" element={<CrossModalAnalysis />} />
-                        <Route path="/system-health-dashboard" element={<ComprehensiveSystemHealthDashboard />} />
-                        <Route path="*" element={<NotFound />} />
-                      </Routes>
+                        <Routes>
+                          <Route path="/" element={<Index />} />
+                          <Route path="/auth" element={<Auth />} />
+                          <Route path="/dashboard" element={<Dashboard />} />
+                          <Route path="/contacts" element={<Contacts />} />
+                          <Route path="/contacts/:id" element={<ContactDetail />} />
+                          <Route path="/contacts/:contactId/conversations/:conversationId" element={<ConversationDetail />} />
+                          <Route path="/communications" element={<Communications />} />
+                          <Route path="/documents" element={<Documents />} />
+                          <Route path="/media" element={<MediaPage />} />
+                          <Route path="/events" element={<Events />} />
+                          <Route path="/insights" element={<Insights />} />
+                          <Route path="/import" element={<Import />} />
+                          <Route path="/settings" element={<Settings />} />
+                          <Route path="/network" element={<Network />} />
+                          <Route path="/calendar" element={<Calendar />} />
+                          <Route path="/video-analysis" element={<VideoAnalysis />} />
+                          <Route path="/analysis" element={<MediaAnalysis />} />
+                          <Route path="/analysis/dashboard" element={<BulkAnalysisDashboard />} />
+                          <Route path="/reports" element={<Reports />} />
+                          <Route path="/team" element={<TeamDashboard />} />
+                          <Route path="/install" element={<Install />} />
+                          <Route path="/downloads" element={<Downloads />} />
+                          <Route path="/security" element={<Security />} />
+                          <Route path="/network-intelligence" element={<NetworkIntelligence />} />
+                          <Route path="/semantic-search" element={<SemanticSearchPage />} />
+                          <Route path="/counter-intelligence" element={<CounterIntelligence />} />
+                          <Route path="/system-health" element={<SystemHealthPage />} />
+                          <Route path="/cross-modal-intelligence" element={<CrossModalIntelligencePage />} />
+                          <Route path="/network-advanced" element={<AdvancedNetworkPage />} />
+                          <Route path="/ai-costs" element={<AICostCenterPage />} />
+                          <Route path="/intelligence" element={<IntelligenceCenter />} />
+                          <Route path="/intelligence/command-center" element={<IntelligenceCommandCenter />} />
+                          <Route path="/ai-chat" element={<AIChat />} />
+                          <Route path="/share-receive" element={<ShareReceive />} />
+                          <Route path="/command-center" element={<CommandCenter />} />
+                          <Route path="/capabilities" element={<CapabilitiesExplorer />} />
+                          <Route path="/mobile/ecosystem" element={<MobileEcosystemPage />} />
+                          <Route path="/ultimate-command" element={<UltimateCommandCenter />} />
+                          <Route path="/social-intelligence" element={<SocialIntelligenceDashboard />} />
+                          <Route path="/superiority" element={<Superiority />} />
+                          <Route path="/investment-intelligence" element={<InvestmentIntelligence />} />
+                          <Route path="/psychology-intelligence" element={<PsychologyIntelligence />} />
+                          <Route path="/deception-analysis" element={<DeceptionAnalysis />} />
+                          <Route path="/biometric-hub" element={<BiometricHub />} />
+                          <Route path="/hardware-command" element={<HardwareCommand />} />
+                          <Route path="/supremacy" element={<Supremacy />} />
+                          <Route path="/supremacy-v2" element={<SupremacyV2 />} />
+                          <Route path="/cognitive-warfare" element={<CognitiveWarfare />} />
+                          <Route path="/dominion" element={<DominionPage />} />
+                          <Route path="/omniscient-command" element={<OmniscientCommandCenter />} />
+                          <Route path="/transcendent-command" element={<TranscendentCommandCenter />} />
+                          <Route path="/singularity-command" element={<SingularityCommandCenter />} />
+                          <Route path="/absolute-convergence" element={<AbsoluteConvergenceCenter />} />
+                          <Route path="/infinite-dominion" element={<InfiniteDominionCenter />} />
+                          <Route path="/ultimate-transcendence" element={<UltimateTranscendenceCenter />} />
+                          <Route path="/omniversal-sovereignty" element={<OmniversalSovereigntyCenter />} />
+                          <Route path="/absolute-eternity" element={<AbsoluteEternityCenter />} />
+                          <Route path="/absolute-infinity" element={<AbsoluteInfinityCenter />} />
+                          <Route path="/primordial-genesis" element={<PrimordialGenesisCenter />} />
+                          <Route path="/cosmic-omnipotence" element={<CosmicOmnipotenceCenter />} />
+                          <Route path="/eternal-supremacy" element={<EternalSupremacyCenter />} />
+                          <Route path="/absolute-totality" element={<AbsoluteTotalityCenter />} />
+                          <Route path="/ultimate-omega" element={<UltimateOmegaCenter />} />
+                          <Route path="/agis-command" element={<AGISCommandCenter />} />
+                          <Route path="/agis-analytics" element={<AGISAnalytics />} />
+                          <Route path="/transcendent-consciousness" element={<TranscendentConsciousnessCenter />} />
+                          <Route path="/universal-omniscience" element={<UniversalOmniscienceCenter />} />
+                          <Route path="/absolute-genesis" element={<AbsoluteGenesisCenter />} />
+                          <Route path="/ai-cost-dashboard" element={<AICostDashboard />} />
+                          <Route path="/cross-modal-analysis" element={<CrossModalAnalysis />} />
+                          <Route path="/system-health-dashboard" element={<ComprehensiveSystemHealthDashboard />} />
+                          <Route path="*" element={<NotFound />} />
+                        </Routes>
                       </Suspense>
                     </GlobalShortcutsProvider>
                   </BrowserRouter>

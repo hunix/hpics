@@ -54,7 +54,7 @@ class CircuitBreaker {
 
   async execute<T>(operation: () => Promise<T>): Promise<T> {
     this.totalRequests++;
-    
+
     if (this.state === 'open') {
       if (this.shouldAttemptReset()) {
         this.transitionTo('half-open');
@@ -106,7 +106,7 @@ class CircuitBreaker {
     this.failures++;
     this.lastFailure = new Date();
     this.failureTimestamps.push(Date.now());
-    
+
     // Clean old timestamps
     const windowStart = Date.now() - this.config.monitoringWindowMs;
     this.failureTimestamps = this.failureTimestamps.filter(t => t > windowStart);
@@ -239,13 +239,16 @@ export const analysisCircuitBreaker = getCircuitBreaker('analysis', {
 /**
  * Decorator for wrapping async functions with circuit breaker protection
  */
-export function withCircuitBreaker<T extends (...args: any[]) => Promise<any>>(
+export function withCircuitBreaker<
+  TArgs extends unknown[] = unknown[],
+  TResult = unknown
+>(
   breakerName: string,
-  fn: T,
+  fn: (...args: TArgs) => Promise<TResult>,
   config?: Partial<CircuitBreakerConfig>
-): T {
+): (...args: TArgs) => Promise<TResult> {
   const breaker = getCircuitBreaker(breakerName, config);
-  return (async (...args: Parameters<T>) => {
+  return async (...args: TArgs) => {
     return breaker.execute(() => fn(...args));
-  }) as T;
+  };
 }

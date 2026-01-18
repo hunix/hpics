@@ -8,10 +8,13 @@ interface RealtimeProviderProps {
 
 export function RealtimeProvider({ children }: RealtimeProviderProps) {
   const { user, loading } = useAuth();
-  
-  // Only initialize realtime subscriptions when user is authenticated
+
+  // FIXED: Actually check authentication state before enabling subscriptions
   // This prevents errors when running queries before auth is ready
-  useRealtimeContacts();
-  
+  const isEnabled = !!user && !loading;
+
+  // Pass enabled flag to realtime hook
+  useRealtimeContacts(isEnabled);
+
   return <>{children}</>;
 }

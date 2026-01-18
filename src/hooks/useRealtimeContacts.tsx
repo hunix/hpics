@@ -3,6 +3,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { createModuleLogger } from '@/lib/logger';
+
+const logger = createModuleLogger('RealtimeContacts');
 
 // Debounce helper
 function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T {
@@ -13,10 +16,10 @@ function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T 
   }) as T;
 }
 
-export function useRealtimeContacts() {
+export function useRealtimeContacts(enabled = true) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  
+
   // Track last processed time for throttling
   const lastProcessedRef = useRef<Record<string, number>>({});
   const THROTTLE_MS = 2000; // 2 second throttle
@@ -25,13 +28,13 @@ export function useRealtimeContacts() {
   const throttledInvalidate = useCallback((keys: string[], table: string) => {
     const now = Date.now();
     const lastProcessed = lastProcessedRef.current[table] || 0;
-    
+
     if (now - lastProcessed < THROTTLE_MS) {
       return; // Skip if within throttle window
     }
-    
+
     lastProcessedRef.current[table] = now;
-    
+
     // Batch invalidations with a small delay to allow grouping
     setTimeout(() => {
       keys.forEach(key => {
@@ -49,7 +52,8 @@ export function useRealtimeContacts() {
   );
 
   useEffect(() => {
-    if (!user) return;
+    // Only subscribe if enabled and user is authenticated
+    if (!enabled || !user) return;
 
     // Subscribe to profiles changes
     const profilesChannel = supabase
@@ -63,8 +67,8 @@ export function useRealtimeContacts() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('Profile change detected:', payload.eventType);
-          
+          logger.debug('Profile change detected', { eventType: payload.eventType });
+
           if (payload.eventType === 'INSERT') {
             debouncedToast('New contact added');
           } else if (payload.eventType === 'UPDATE') {
@@ -75,7 +79,7 @@ export function useRealtimeContacts() {
           } else if (payload.eventType === 'DELETE') {
             debouncedToast('Contact removed');
           }
-          
+
           throttledInvalidate(['contacts', 'dashboard-stats', 'recent-contacts'], 'profiles');
         }
       )
@@ -93,7 +97,7 @@ export function useRealtimeContacts() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('Communication change detected:', payload.eventType);
+          logger.debug('Communication change detected', { eventType: payload.eventType });
           throttledInvalidate(['communications', 'dashboard-stats', 'relationship-scores'], 'communications');
         }
       )
@@ -111,7 +115,7 @@ export function useRealtimeContacts() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('Event change detected:', payload.eventType);
+          logger.debug('Event change detected', { eventType: payload.eventType });
           throttledInvalidate(['events', 'upcoming-events'], 'events');
         }
       )
@@ -129,7 +133,7 @@ export function useRealtimeContacts() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('Score change detected:', payload.eventType);
+          logger.debug('Score change detected', { eventType: payload.eventType });
           throttledInvalidate(['relationship-scores'], 'scores');
         }
       )
@@ -141,5 +145,5 @@ export function useRealtimeContacts() {
       supabase.removeChannel(eventsChannel);
       supabase.removeChannel(scoresChannel);
     };
-  }, [user, queryClient, throttledInvalidate, debouncedToast]);
+  }, [enabled, user, queryClient, throttledInvalidate, debouncedToast]);
 }

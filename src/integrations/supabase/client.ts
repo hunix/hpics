@@ -13,5 +13,20 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-  }
+    detectSessionInUrl: true, // Auto-detect OAuth redirects
+    flowType: 'pkce', // More secure OAuth flow (2025 best practice)
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'hpics-web', // Identify client for analytics
+    },
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10, // Rate limiting for realtime events
+    },
+  },
+  db: {
+    schema: 'public',
+  },
 });

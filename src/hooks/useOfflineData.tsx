@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
+import type { OfflineContact, SyncConflict } from '@/types/offline';
 import {
   saveContactsOffline,
   getOfflineContacts,
@@ -15,15 +17,7 @@ import {
   registerBackgroundSync,
 } from '@/lib/offlineStore';
 
-interface SyncConflict {
-  id: string;
-  table: string;
-  record_id: string;
-  local_data: Record<string, unknown>;
-  server_data: Record<string, unknown>;
-  detected_at: string;
-  resolved: boolean;
-}
+
 
 interface UseOfflineDataReturn {
   isOnline: boolean;
@@ -34,7 +28,7 @@ interface UseOfflineDataReturn {
   cacheConversations: () => Promise<void>;
   cacheAlerts: () => Promise<void>;
   cacheAllData: () => Promise<void>;
-  getOfflineCachedContacts: () => Promise<any[]>;
+  getOfflineCachedContacts: () => Promise<OfflineContact[]>;
   queueMutation: (type: 'create' | 'update' | 'delete', table: string, data: Record<string, unknown>) => Promise<void>;
   syncConflicts: SyncConflict[];
   resolveConflict: (conflictId: string, resolution: 'local' | 'server') => Promise<void>;
@@ -63,17 +57,31 @@ export function useOfflineData(): UseOfflineDataReturn {
 
   // Update pending count and conflicts
   useEffect(() => {
+    let cancelled = false;
+
     const updateStatus = async () => {
-      const count = await getPendingMutationCount();
-      setPendingCount(count);
-      
-      const conflicts = await getSyncConflicts();
-      setSyncConflicts(conflicts);
+      try {
+        const [count, conflicts] = await Promise.all([
+          getPendingMutationCount(),
+          getSyncConflicts()
+        ]);
+
+        if (!cancelled) {
+          setPendingCount(count);
+          setSyncConflicts(conflicts);
+        }
+      } catch (error) {
+        console.error('Failed to update offline status:', error);
+      }
     };
 
     updateStatus();
     const interval = setInterval(updateStatus, 5000);
-    return () => clearInterval(interval);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, []);
 
   // Register for background sync
@@ -86,7 +94,7 @@ export function useOfflineData(): UseOfflineDataReturn {
     if (isOnline && pendingCount > 0) {
       syncPendingChanges();
     }
-  }, [isOnline]);
+  }, [isOnline, pendingCount, syncPendingChanges]);
 
   const cacheContacts = useCallback(async () => {
     if (!user) return;
@@ -208,6 +216,8 @@ export function useOfflineData(): UseOfflineDataReturn {
     if (isSyncing || !isOnline) return;
 
     setIsSyncing(true);
+    const results = { succeeded: 0, failed: 0 };
+
     try {
       const mutations = await getPendingMutations();
 
@@ -229,15 +239,26 @@ export function useOfflineData(): UseOfflineDataReturn {
               }
               break;
           }
+
           await clearPendingMutation(mutation.id);
+          results.succeeded++;
         } catch (error) {
           console.error('Failed to sync mutation:', mutation.id, error);
+          results.failed++;
+          // TODO: Implement incrementMutationRetry to track retry counts
         }
+      }
+
+      // Inform user of results
+      if (results.failed > 0) {
+        toast.error(`Sync incomplete: ${results.failed} items failed. Will retry automatically.`);
+      } else if (results.succeeded > 0) {
+        toast.success(`${results.succeeded} items synced successfully`);
       }
 
       // Refresh cache after sync
       await cacheAllData();
-      
+
       const count = await getPendingMutationCount();
       setPendingCount(count);
     } finally {

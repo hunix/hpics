@@ -1,0 +1,12 @@
+{
+    "name": "hpics-scripts",
+    "version": "1.0.0",
+    "scripts": {
+        "verify-schema": "tsx verify-schema.ts"
+    },
+    "devDependencies": {
+        "glob": "^10.3.10",
+        "tsx": "^4.7.0",
+        "@types/node": "^20.11.0"
+    }
+}
