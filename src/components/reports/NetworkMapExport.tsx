@@ -39,11 +39,12 @@ export function NetworkMapExport() {
     setIsLoading(true);
 
     try {
-      // Fetch profiles
+      // Fetch only active/favorite contacts (not hardware items)
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, relationship_type, organization')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .or('is_active.eq.true,is_favorite.eq.true');
 
       // Fetch relationships
       const { data: relationships } = await supabase
