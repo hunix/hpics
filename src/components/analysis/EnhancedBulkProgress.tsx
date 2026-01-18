@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -60,6 +60,7 @@ export function EnhancedBulkProgress({
 }: EnhancedBulkProgressProps) {
   const [showAllItems, setShowAllItems] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [failedExpanded, setFailedExpanded] = useState(false);
 
   // Calculate progress from actual item statuses (more reliable than session counters)
   // CRITICAL: Handle cases where items array might be empty but session counters are accurate
@@ -135,6 +136,13 @@ export function EnhancedBulkProgress({
     
     return (completedItems.length / elapsedMinutes).toFixed(1);
   }, [session.startedAt, completedItems.length]);
+
+  // Auto-expand failed section when session completes with failures
+  useEffect(() => {
+    if (session.status === "completed" && failedItems.length > 0) {
+      setFailedExpanded(true);
+    }
+  }, [session.status, failedItems.length]);
 
   const toggleItemExpanded = (itemId: string) => {
     setExpandedItems((prev) => {
@@ -308,16 +316,20 @@ export function EnhancedBulkProgress({
           </div>
         )}
 
-        {/* Failed items summary */}
+        {/* Failed items summary - auto-expand when session completes with failures */}
         {failedItems.length > 0 && (
-          <Collapsible>
+          <Collapsible open={failedExpanded} onOpenChange={setFailedExpanded}>
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="w-full justify-between p-2 h-auto">
+              <Button variant="ghost" className="w-full justify-between p-2 h-auto bg-destructive/5 hover:bg-destructive/10">
                 <div className="flex items-center gap-2">
                   <XCircle className="h-4 w-4 text-destructive" />
-                  <span className="text-sm">{failedItems.length} failed items</span>
+                  <span className="text-sm font-medium text-destructive">{failedItems.length} failed items</span>
                 </div>
-                <ChevronDown className="h-4 w-4" />
+                {failedExpanded ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent>
@@ -326,12 +338,19 @@ export function EnhancedBulkProgress({
                   {failedItems.map((item) => (
                     <div
                       key={item.id}
-                      className="flex items-center justify-between p-2 rounded-md border text-sm"
+                      className="flex items-center justify-between p-2 rounded-md border border-destructive/20 bg-destructive/5 text-sm"
                     >
                       <div className="flex-1 min-w-0">
-                        <p className="truncate font-medium">
-                          {item.fileName || `Item ${item.queuePosition + 1}`}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="truncate font-medium">
+                            {item.fileName || `Item ${item.queuePosition + 1}`}
+                          </p>
+                          {item.retryCount >= 3 && (
+                            <Badge variant="destructive" className="text-xs shrink-0">
+                              Persistent failure
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-xs text-destructive truncate">
                           {item.errorMessage || "Unknown error"}
                         </p>
@@ -423,17 +442,36 @@ export function EnhancedBulkProgress({
           </CollapsibleContent>
         </Collapsible>
 
-        {/* Session completed summary */}
-        {session.status === "completed" && session.aggregationResult && (
-          <div className="p-3 rounded-md border bg-green-500/5 border-green-500/20">
+        {/* Session completed summary - different styles based on outcome */}
+        {session.status === "completed" && (
+          <div className={`p-3 rounded-md border ${
+            failedCount > 0 
+              ? "bg-amber-500/10 border-amber-500/30" 
+              : "bg-green-500/10 border-green-500/30"
+          }`}>
             <div className="flex items-center gap-2 mb-2">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
-              <span className="font-medium text-sm">Analysis Complete</span>
+              {failedCount > 0 ? (
+                <>
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  <span className="font-medium text-sm">Analysis Complete with Failures</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  <span className="font-medium text-sm">Analysis Complete</span>
+                </>
+              )}
             </div>
             <p className="text-sm text-muted-foreground">
-              {(session.aggregationResult as { totalItemsAnalyzed?: number }).totalItemsAnalyzed || completedCount} items analyzed across{" "}
-              {(session.aggregationResult as { contactCount?: number }).contactCount || 1} contact(s)
+              {completedCount} items analyzed successfully
+              {failedCount > 0 && <span className="text-amber-600">, {failedCount} failed</span>}
+              {skippedCount > 0 && `, ${skippedCount} skipped`}
             </p>
+            {failedCount > 0 && (
+              <p className="text-xs text-amber-600 mt-2">
+                Click "Retry Failed ({failedCount})" above to attempt processing failed items again
+              </p>
+            )}
           </div>
         )}
       </CardContent>
