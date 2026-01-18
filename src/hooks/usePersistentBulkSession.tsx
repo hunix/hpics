@@ -542,6 +542,7 @@ export function usePersistentBulkSession({
             model: 'google/gemini-2.5-flash',
             sessionId: activeSession.id, // Include session ID for logging/diagnostics
             bulkSessionId: activeSession.id, // For counter updates in background processing
+            analysisModes: activeSession.analysisModes || ['mosaic_metadata'], // Pass actual modes for tracking
           },
         }
       );
