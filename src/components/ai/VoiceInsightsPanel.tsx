@@ -87,15 +87,15 @@ export function VoiceInsightsPanel({ profileId, sourceId, insightId }: VoiceInsi
 
   const insight = insights[0];
   const transcription = insight.full_transcription;
-  const speakers = (insight.speakers as VoiceSpeaker[]) || [];
-  const topics = (insight.topics_discussed as VoiceTopic[]) || [];
-  const entities = (insight.named_entities as NamedEntities) || {};
-  const sentimentTimeline = (insight.sentiment_timeline as SentimentTimelinePoint[]) || [];
-  const stressPoints = (insight.stress_points as StressPoint[]) || [];
-  const moodPatterns = (insight.mood_patterns as MoodPattern[]) || [];
-  const detectedKeywords = (insight.detected_keywords as string[]) || [];
-  const mentionedContacts = (insight.mentioned_contacts as string[]) || [];
-  const actionItems = (insight.action_items as ActionItem[]) || [];
+  const speakers = (insight.speakers as unknown as VoiceSpeaker[]) || [];
+  const topics = (insight.topics_discussed as unknown as VoiceTopic[]) || [];
+  const entities = (insight.named_entities as unknown as NamedEntities) || {};
+  const sentimentTimeline = (insight.sentiment_timeline as unknown as SentimentTimelinePoint[]) || [];
+  const stressPoints = (insight.stress_points as unknown as StressPoint[]) || [];
+  const moodPatterns = (insight.mood_patterns as unknown as MoodPattern[]) || [];
+  const detectedKeywords = (insight.detected_keywords as unknown as string[]) || [];
+  const mentionedContacts = (insight.mentioned_contacts as unknown as string[]) || [];
+  const actionItems = (insight.action_items as unknown as ActionItem[]) || [];
 
   return (
     <Card>

@@ -89,12 +89,8 @@ export function useOfflineData(): UseOfflineDataReturn {
     registerBackgroundSync().catch(console.error);
   }, []);
 
-  // Auto-sync when coming back online
-  useEffect(() => {
-    if (isOnline && pendingCount > 0) {
-      syncPendingChanges();
-    }
-  }, [isOnline, pendingCount, syncPendingChanges]);
+  // Auto-sync when coming back online - moved after syncPendingChanges is defined
+  // See syncPendingChanges useCallback below and the useEffect that uses it
 
   const cacheContacts = useCallback(async () => {
     if (!user) return;
@@ -265,6 +261,14 @@ export function useOfflineData(): UseOfflineDataReturn {
       setIsSyncing(false);
     }
   }, [isOnline, isSyncing, cacheAllData]);
+
+  // Auto-sync when coming back online
+  useEffect(() => {
+    if (isOnline && pendingCount > 0) {
+      syncPendingChanges();
+    }
+  }, [isOnline, pendingCount, syncPendingChanges]);
+
 
   return {
     isOnline,

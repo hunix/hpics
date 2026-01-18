@@ -53,7 +53,7 @@ export interface SyncConflict {
     server_data: Record<string, unknown>;
     detected_at: string;
     resolved: boolean;
-    resolution?: 'local' | 'server';
+    resolution?: 'local' | 'server' | 'merged';
 }
 
 export interface SyncResult {
