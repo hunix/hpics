@@ -479,3 +479,6 @@ verify_jwt = false
 
 [functions.process-bulk-session-runner]
 verify_jwt = false
+
+[functions.generate-intelligence-dossier]
+verify_jwt = false

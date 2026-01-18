@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { 
   Image, 
@@ -21,7 +22,10 @@ import {
   Check,
   ListChecks,
   AlertCircle,
-  DollarSign
+  DollarSign,
+  BarChart3,
+  FileSearch,
+  TrendingUp
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MEDIA_ANALYSIS_MODES, MediaType, AnalysisContext } from "@/lib/analysisTypes";
@@ -35,6 +39,9 @@ import { BulkSessionRecovery } from "@/components/analysis/BulkSessionRecovery";
 import { ProcessingStrategySelector } from "@/components/analysis/ProcessingStrategySelector";
 import { usePersistentBulkSession, type ProcessingStrategy } from "@/hooks/usePersistentBulkSession";
 import { MosaicFailureDialog } from "@/components/analysis/MosaicFailureDialog";
+import { IntelligenceAnalyticsDashboard } from "@/components/analysis/IntelligenceAnalyticsDashboard";
+import { IntelligenceDossierPanel } from "@/components/analysis/IntelligenceDossierPanel";
+import { useAutoAggregateOnCompletion } from "@/hooks/useAutoAggregateOnCompletion";
 import { estimateBulkCost } from "@/lib/bulkAnalysisPrioritization";
 import { useMutation } from "@tanstack/react-query";
 import { getSignedUrls } from "@/hooks/useSignedUrl";
@@ -64,6 +71,7 @@ export default function MediaAnalysis() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isPreparingUrls, setIsPreparingUrls] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [activeTab, setActiveTab] = useState<'analysis' | 'analytics' | 'dossier'>('analysis');
 
   // Online/offline detection
   useEffect(() => {
@@ -83,6 +91,14 @@ export default function MediaAnalysis() {
     analysisModes: selectedModes,
     analysisContext: context,
     analysisDepth: depth,
+  });
+
+  // Auto-aggregate intelligence when bulk analysis completes
+  useAutoAggregateOnCompletion({
+    sessionId: bulkSession.session?.id || null,
+    sessionStatus: bulkSession.session?.status || '',
+    profileId: selectedContact || null,
+    autoAggregate: true
   });
 
   // Check for existing session on mount - auto-resume running sessions
@@ -375,7 +391,7 @@ export default function MediaAnalysis() {
   return (
     <AppLayout>
       <div className="container max-w-7xl py-6 space-y-6">
-        {/* Header */}
+        {/* Header with Tabs */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">
@@ -387,29 +403,78 @@ export default function MediaAnalysis() {
             </p>
           </div>
           
-          {/* Bulk Mode Toggle */}
-          <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-muted/50">
-            <Switch 
-              id="bulk-mode" 
-              checked={isBulkMode} 
-              onCheckedChange={handleBulkModeToggle}
-              disabled={showBulkProgress}
-            />
-            <Label htmlFor="bulk-mode" className="flex items-center gap-2 cursor-pointer font-medium">
-              <ListChecks className="h-4 w-4" />
-              Bulk Mode
-            </Label>
+          <div className="flex items-center gap-4">
+            {/* Tab Navigation */}
+            <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-lg">
+              <Button
+                variant={activeTab === 'analysis' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setActiveTab('analysis')}
+                className="h-8"
+              >
+                <Brain className="h-4 w-4 mr-1.5" />
+                Analysis
+              </Button>
+              <Button
+                variant={activeTab === 'analytics' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setActiveTab('analytics')}
+                className="h-8"
+              >
+                <BarChart3 className="h-4 w-4 mr-1.5" />
+                Analytics
+              </Button>
+              <Button
+                variant={activeTab === 'dossier' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setActiveTab('dossier')}
+                className="h-8"
+                disabled={!selectedContact}
+              >
+                <FileSearch className="h-4 w-4 mr-1.5" />
+                Dossier
+              </Button>
+            </div>
+            
+            {/* Bulk Mode Toggle - Only show on Analysis tab */}
+            {activeTab === 'analysis' && (
+              <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-muted/50">
+                <Switch 
+                  id="bulk-mode" 
+                  checked={isBulkMode} 
+                  onCheckedChange={handleBulkModeToggle}
+                  disabled={showBulkProgress}
+                />
+                <Label htmlFor="bulk-mode" className="flex items-center gap-2 cursor-pointer font-medium">
+                  <ListChecks className="h-4 w-4" />
+                  Bulk Mode
+                </Label>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Recovered Session Banner */}
-        {recoveredSession && (
-          <BulkSessionRecovery
-            session={recoveredSession}
-            onResume={handleRecoveryResume}
-            onDiscard={handleRecoveryDiscard}
-          />
+        {/* Analytics Tab Content */}
+        {activeTab === 'analytics' && (
+          <IntelligenceAnalyticsDashboard />
         )}
+
+        {/* Dossier Tab Content */}
+        {activeTab === 'dossier' && selectedContact && (
+          <IntelligenceDossierPanel profileId={selectedContact} />
+        )}
+
+        {/* Analysis Tab Content */}
+        {activeTab === 'analysis' && (
+          <>
+            {/* Recovered Session Banner */}
+            {recoveredSession && (
+              <BulkSessionRecovery
+                session={recoveredSession}
+                onResume={handleRecoveryResume}
+                onDiscard={handleRecoveryDiscard}
+              />
+            )}
 
         {/* Bulk Progress Panel - Full Width when active */}
         {showBulkProgress && bulkSession.session && (
@@ -782,6 +847,8 @@ export default function MediaAnalysis() {
               </div>
             </CardContent>
           </Card>
+        )}
+          </>
         )}
       </div>
 
