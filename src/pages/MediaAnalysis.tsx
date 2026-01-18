@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,6 +42,7 @@ import { usePersistentBulkSession, type ProcessingStrategy } from "@/hooks/usePe
 import { MosaicFailureDialog } from "@/components/analysis/MosaicFailureDialog";
 import { IntelligenceAnalyticsDashboard } from "@/components/analysis/IntelligenceAnalyticsDashboard";
 import { IntelligenceDossierPanel } from "@/components/analysis/IntelligenceDossierPanel";
+import { VoiceBulkAnalysisPanel } from "@/components/analysis/VoiceBulkAnalysisPanel";
 import { useAutoAggregateOnCompletion } from "@/hooks/useAutoAggregateOnCompletion";
 import { estimateBulkCost } from "@/lib/bulkAnalysisPrioritization";
 import { useMutation } from "@tanstack/react-query";
@@ -54,7 +56,8 @@ const mediaTypeConfig = {
 };
 
 export default function MediaAnalysis() {
-  const [selectedContact, setSelectedContact] = useState<string>("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedContact, setSelectedContact] = useState<string>(() => searchParams.get('contact') || "");
   const [mediaType, setMediaType] = useState<MediaType>('image');
   const [selectedMedia, setSelectedMedia] = useState<{ id: string; url: string; name: string } | null>(null);
   const [selectedModes, setSelectedModes] = useState<string[]>([]);
@@ -71,7 +74,21 @@ export default function MediaAnalysis() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isPreparingUrls, setIsPreparingUrls] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
-  const [activeTab, setActiveTab] = useState<'analysis' | 'analytics' | 'dossier'>('analysis');
+  const [activeTab, setActiveTab] = useState<'analysis' | 'analytics' | 'dossier' | 'voice'>(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'voice' || tabParam === 'dossier' || tabParam === 'analytics') {
+      return tabParam;
+    }
+    return 'analysis';
+  });
+
+  // Sync URL params when contact or tab changes
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (selectedContact) params.set('contact', selectedContact);
+    if (activeTab !== 'analysis') params.set('tab', activeTab);
+    setSearchParams(params, { replace: true });
+  }, [selectedContact, activeTab, setSearchParams]);
 
   // Online/offline detection
   useEffect(() => {
@@ -434,6 +451,16 @@ export default function MediaAnalysis() {
                 <FileSearch className="h-4 w-4 mr-1.5" />
                 Dossier
               </Button>
+              <Button
+                variant={activeTab === 'voice' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setActiveTab('voice')}
+                className="h-8"
+                disabled={!selectedContact}
+              >
+                <FileAudio className="h-4 w-4 mr-1.5" />
+                Voice
+              </Button>
             </div>
             
             {/* Bulk Mode Toggle - Only show on Analysis tab */}
@@ -462,6 +489,17 @@ export default function MediaAnalysis() {
         {/* Dossier Tab Content */}
         {activeTab === 'dossier' && selectedContact && (
           <IntelligenceDossierPanel profileId={selectedContact} />
+        )}
+
+        {/* Voice Tab Content */}
+        {activeTab === 'voice' && selectedContact && (
+          <VoiceBulkAnalysisPanel 
+            profileId={selectedContact} 
+            profileName={contacts?.find(c => c.id === selectedContact)?.first_name || 'Contact'}
+            onComplete={() => {
+              toast.success('Voice analysis completed');
+            }}
+          />
         )}
 
         {/* Analysis Tab Content */}
