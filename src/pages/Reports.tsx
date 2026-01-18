@@ -13,7 +13,8 @@ import {
   BarChart3,
   Clock,
   Network,
-  FileDown
+  FileDown,
+  Bot
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,6 +23,7 @@ import { format } from 'date-fns';
 import { PDFDossierGenerator } from '@/components/reports/PDFDossierGenerator';
 import { NetworkMapExport } from '@/components/reports/NetworkMapExport';
 import { ScheduledReportsManager } from '@/components/reports/ScheduledReportsManager';
+import { IntelligenceAutopilotPanel } from '@/components/reports/IntelligenceAutopilotPanel';
 
 export default function Reports() {
   const queryClient = useQueryClient();
@@ -126,17 +128,21 @@ export default function Reports() {
   };
 
   return (
-    <AppLayout title="Reports">
+    <AppLayout title="Reports & Intelligence">
       <div className="space-y-6">
-        <Tabs defaultValue="generate" className="w-full">
-          <TabsList>
-            <TabsTrigger value="generate">
-              <FileText className="h-4 w-4 mr-2" />
-              Generate
-            </TabsTrigger>
+        <Tabs defaultValue="dossiers" className="w-full">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="dossiers">
               <FileDown className="h-4 w-4 mr-2" />
               Dossiers
+            </TabsTrigger>
+            <TabsTrigger value="autopilot">
+              <Bot className="h-4 w-4 mr-2" />
+              Autopilot
+            </TabsTrigger>
+            <TabsTrigger value="generate">
+              <FileText className="h-4 w-4 mr-2" />
+              Generate
             </TabsTrigger>
             <TabsTrigger value="network">
               <Network className="h-4 w-4 mr-2" />
@@ -151,6 +157,16 @@ export default function Reports() {
               Scheduled
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="dossiers" className="mt-6 min-h-[700px]">
+            <div className="w-full">
+              <PDFDossierGenerator />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="autopilot" className="mt-6 min-h-[700px]">
+            <IntelligenceAutopilotPanel />
+          </TabsContent>
 
           <TabsContent value="generate" className="mt-6">
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -273,13 +289,7 @@ export default function Reports() {
             </div>
           </TabsContent>
 
-          <TabsContent value="dossiers" className="mt-6 min-h-[600px]">
-            <div className="w-full">
-              <PDFDossierGenerator />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="network" className="mt-6 min-h-[600px]">
+          <TabsContent value="network" className="mt-6 min-h-[700px]">
             <div className="w-full">
               <NetworkMapExport />
             </div>
