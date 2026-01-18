@@ -34,6 +34,7 @@ interface EnhancedBulkProgressProps {
   onRetryItem: (itemId: string) => void;
   onSkipItem: (itemId: string) => void;
   onRetryAllFailed: () => void;
+  onContinueInBackground?: () => void;
   isOnline?: boolean;
 }
 
@@ -54,6 +55,7 @@ export function EnhancedBulkProgress({
   onRetryItem,
   onSkipItem,
   onRetryAllFailed,
+  onContinueInBackground,
   isOnline = true,
 }: EnhancedBulkProgressProps) {
   const [showAllItems, setShowAllItems] = useState(false);
@@ -196,6 +198,12 @@ export function EnhancedBulkProgress({
               <Button size="sm" variant="outline" onClick={onRetryAllFailed} disabled={!isOnline}>
                 <RotateCcw className="h-4 w-4 mr-1" />
                 Retry Failed ({failedItems.length})
+              </Button>
+            )}
+            {onContinueInBackground && session.status === "running" && runningItems.length === 0 && processed < session.totalItems && (
+              <Button size="sm" variant="default" onClick={onContinueInBackground} disabled={!isOnline}>
+                <Play className="h-4 w-4 mr-1" />
+                Continue in Background
               </Button>
             )}
           </div>

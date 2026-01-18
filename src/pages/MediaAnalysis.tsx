@@ -116,10 +116,10 @@ export default function MediaAnalysis() {
           
           if (existingSession.status === 'running') {
             // Auto-restore and resume running sessions immediately
-            console.log('[MediaAnalysis] Auto-resuming running session');
+            console.log('[MediaAnalysis] Auto-resuming running session with direct session override');
             bulkSession.restoreSession(existingSession);
-            // Small delay to ensure state is set before resuming
-            setTimeout(() => bulkSession.resume(), 100);
+            // Pass session directly to avoid React state timing issues
+            setTimeout(() => bulkSession.resume(existingSession), 100);
           } else if (existingSession.status === 'paused' || existingSession.status === 'pending') {
             // Show recovery dialog for paused/pending sessions
             setRecoveredSession(existingSession);
