@@ -488,3 +488,18 @@ verify_jwt = false
 
 [functions.autonomous-intelligence-orchestrator]
 verify_jwt = false
+
+[functions.cognitive-warfare-engine]
+verify_jwt = false
+
+[functions.active-defense-orchestrator]
+verify_jwt = false
+
+[functions.vulnerability-window-detector]
+verify_jwt = false
+
+[functions.proportional-response-engine]
+verify_jwt = false
+
+[functions.mosaic-intelligence-fuser]
+verify_jwt = false
