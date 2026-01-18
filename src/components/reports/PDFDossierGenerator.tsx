@@ -278,8 +278,11 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       const contactName = `${profile.first_name} ${profile.last_name || ''}`.trim();
 
       // ========================================
-      // COMPREHENSIVE DATA FUSION - 25+ Sources
+      // COMPREHENSIVE DATA FUSION - 30+ Sources
+      // Split into two batches to avoid TypeScript recursion limits
       // ========================================
+      
+      // Batch 1: Core intelligence sources
       const [
         commData,
         psychData,
@@ -296,16 +299,6 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         predictionsData,
         anomaliesData,
         milestonesData,
-        relationshipsData,
-        betrayalData,
-        traumaData,
-        scenarioPredictions,
-        crossModalData,
-        cognitiveSuperpositions,
-        precursorSignatures,
-        timelineProbabilities,
-        elicitationSessions,
-        financialPsychology,
       ] = await Promise.all([
         supabase.from('communications').select('*').eq('profile_id', targetProfileId).order('occurred_at', { ascending: false }).limit(30),
         supabase.from('psychological_profiles').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(1),
@@ -322,6 +315,19 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         supabase.from('behavioral_predictions').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(10),
         supabase.from('behavioral_anomalies').select('*').eq('profile_id', targetProfileId).eq('is_resolved', false),
         supabase.from('contact_life_milestones').select('*').eq('profile_id', targetProfileId).order('milestone_date', { ascending: false }).limit(10),
+      ]);
+
+      // Batch 2: Relationships & predictions
+      const [
+        relationshipsData,
+        betrayalData,
+        traumaData,
+        scenarioPredictions,
+        crossModalData,
+        cognitiveSuperpositions,
+        precursorSignatures,
+        timelineProbabilities,
+      ] = await Promise.all([
         supabase.from('contact_relationships').select('*, to_profile:profiles!contact_relationships_to_profile_id_fkey(first_name, last_name)').eq('from_profile_id', targetProfileId),
         supabase.from('betrayal_predictions').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(1),
         supabase.from('trauma_exploitation_windows').select('*').eq('profile_id', targetProfileId).limit(1),
@@ -330,9 +336,16 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         supabase.from('cognitive_superpositions').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(1),
         supabase.from('precursor_signatures').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(10),
         supabase.from('timeline_probabilities').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(10),
-        supabase.from('elicitation_sessions').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(5),
-        supabase.from('financial_psychology_profiles').select('*').eq('profile_id', targetProfileId).limit(1),
       ]);
+
+      // Batch 3: Warfare intelligence sources
+      const elicitationSessions = await supabase.from('elicitation_sessions').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(5);
+      const financialPsychology = await supabase.from('financial_psychology_profiles').select('*').eq('profile_id', targetProfileId).limit(1);
+      const sacredValuesData = await supabase.from('sacred_values').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false });
+      const memeticCampaignsData = await supabase.from('memetic_campaigns').select('*').limit(5);
+      const semanticOpsData = await supabase.from('semantic_operations').select('*').limit(5);
+      const identityDestabData = await supabase.from('identity_destabilization_logs').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(5);
+      const realityFrameworksData = await supabase.from('reality_frameworks').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(1);
 
       // Create PDF with enhanced styling
       const doc = new jsPDF();
