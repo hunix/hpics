@@ -43,6 +43,8 @@ const CATEGORY_ICONS: Record<IntelligenceItemType, typeof AlertTriangle> = {
   proximity: Users,
   action_item: Check,
   recommendation: Lightbulb,
+  media_analysis: Brain,
+  voice_insight: Brain,
 };
 
 const CATEGORY_COLORS: Record<IntelligenceItemType, string> = {
@@ -51,6 +53,8 @@ const CATEGORY_COLORS: Record<IntelligenceItemType, string> = {
   proximity: 'text-blue-500',
   action_item: 'text-green-500',
   recommendation: 'text-amber-500',
+  media_analysis: 'text-purple-500',
+  voice_insight: 'text-emerald-500',
 };
 
 const PRIORITY_STYLES: Record<PriorityTier, { bg: string; border: string; badge: string }> = {

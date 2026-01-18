@@ -7,17 +7,19 @@ interface UseAutoAggregateOnCompletionOptions {
   sessionStatus: string;
   profileId: string | null;
   autoAggregate?: boolean;
+  includeVoice?: boolean;
 }
 
 /**
  * Hook that automatically triggers intelligence aggregation when a bulk analysis session completes.
- * This updates contact profiles with extracted intelligence from analyzed media.
+ * This updates contact profiles with extracted intelligence from analyzed media and voice recordings.
  */
 export function useAutoAggregateOnCompletion({
   sessionId,
   sessionStatus,
   profileId,
-  autoAggregate = true
+  autoAggregate = true,
+  includeVoice = true
 }: UseAutoAggregateOnCompletionOptions) {
   const hasAggregatedRef = useRef<Set<string>>(new Set());
   const isAggregatingRef = useRef(false);
@@ -38,6 +40,9 @@ export function useAutoAggregateOnCompletion({
       
       console.log('[AutoAggregate] Starting intelligence aggregation for session:', sessionId);
       
+      let mediaCount = 0;
+      let voiceCount = 0;
+      
       try {
         // First, aggregate media intelligence
         const { data: aggregateResult, error: aggregateError } = await supabase.functions.invoke(
@@ -47,11 +52,25 @@ export function useAutoAggregateOnCompletion({
 
         if (aggregateError) {
           console.error('[AutoAggregate] Media aggregation failed:', aggregateError);
-          toast.error('Failed to aggregate media intelligence');
-          return;
+        } else {
+          console.log('[AutoAggregate] Media aggregation result:', aggregateResult);
+          mediaCount = aggregateResult?.extracted_count || 0;
         }
 
-        console.log('[AutoAggregate] Media aggregation result:', aggregateResult);
+        // Aggregate voice intelligence if enabled
+        if (includeVoice) {
+          const { data: voiceResult, error: voiceError } = await supabase.functions.invoke(
+            'aggregate-voice-intelligence',
+            { body: { profile_id: profileId } }
+          );
+
+          if (voiceError) {
+            console.error('[AutoAggregate] Voice aggregation failed:', voiceError);
+          } else {
+            console.log('[AutoAggregate] Voice aggregation result:', voiceResult);
+            voiceCount = voiceResult?.insights_count || 0;
+          }
+        }
 
         // Then, generate/update intelligence dossier
         const { data: dossierResult, error: dossierError } = await supabase.functions.invoke(
@@ -67,14 +86,18 @@ export function useAutoAggregateOnCompletion({
 
         if (dossierError) {
           console.error('[AutoAggregate] Dossier generation failed:', dossierError);
-          // Don't show error toast, dossier is optional enhancement
         } else {
           console.log('[AutoAggregate] Dossier generated:', dossierResult);
         }
 
-        toast.success('Intelligence aggregated', {
-          description: `Updated profile with ${aggregateResult?.extracted_count || 0} intelligence indicators`
-        });
+        const totalCount = mediaCount + voiceCount;
+        if (totalCount > 0 || !aggregateError) {
+          toast.success('Intelligence aggregated', {
+            description: `Updated profile with ${mediaCount} media + ${voiceCount} voice insights`
+          });
+        } else {
+          toast.error('Failed to aggregate intelligence');
+        }
 
       } catch (error) {
         console.error('[AutoAggregate] Aggregation error:', error);
@@ -87,7 +110,7 @@ export function useAutoAggregateOnCompletion({
     // Delay slightly to ensure all DB updates are complete
     const timeout = setTimeout(aggregateIntelligence, 2000);
     return () => clearTimeout(timeout);
-  }, [sessionId, sessionStatus, profileId, autoAggregate]);
+  }, [sessionId, sessionStatus, profileId, autoAggregate, includeVoice]);
 
   return {
     hasAggregated: sessionId ? hasAggregatedRef.current.has(sessionId) : false
