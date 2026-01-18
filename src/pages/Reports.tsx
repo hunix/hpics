@@ -24,6 +24,7 @@ import { PDFDossierGenerator } from '@/components/reports/PDFDossierGenerator';
 import { NetworkMapExport } from '@/components/reports/NetworkMapExport';
 import { ScheduledReportsManager } from '@/components/reports/ScheduledReportsManager';
 import { IntelligenceAutopilotPanel } from '@/components/reports/IntelligenceAutopilotPanel';
+import { ErrorBoundaryWithRecovery } from '@/components/ErrorBoundaryWithRecovery';
 
 export default function Reports() {
   const queryClient = useQueryClient();
@@ -160,7 +161,9 @@ export default function Reports() {
 
           <TabsContent value="dossiers" className="mt-6 min-h-[700px]">
             <div className="w-full">
-              <PDFDossierGenerator />
+              <ErrorBoundaryWithRecovery>
+                <PDFDossierGenerator />
+              </ErrorBoundaryWithRecovery>
             </div>
           </TabsContent>
 
@@ -291,7 +294,9 @@ export default function Reports() {
 
           <TabsContent value="network" className="mt-6 min-h-[700px]">
             <div className="w-full">
-              <NetworkMapExport />
+              <ErrorBoundaryWithRecovery>
+                <NetworkMapExport />
+              </ErrorBoundaryWithRecovery>
             </div>
           </TabsContent>
 

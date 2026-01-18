@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { Network, Download, Loader2, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Network, Download, Loader2, ZoomIn, ZoomOut, Maximize, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -17,11 +17,15 @@ interface NetworkNode {
   name: string;
   group: string;
   size: number;
+  x?: number;
+  y?: number;
+  fx?: number | null;
+  fy?: number | null;
 }
 
 interface NetworkLink {
-  source: string;
-  target: string;
+  source: string | NetworkNode;
+  target: string | NetworkNode;
   strength: number;
 }
 
@@ -33,10 +37,12 @@ export function NetworkMapExport() {
   const [format, setFormat] = useState<ExportFormat>('png');
   const [layout, setLayout] = useState<LayoutType>('force');
   const [networkData, setNetworkData] = useState<{ nodes: NetworkNode[]; links: NetworkLink[] } | null>(null);
+  const [renderError, setRenderError] = useState<string | null>(null);
 
-  const loadNetworkData = async () => {
+  const loadNetworkData = useCallback(async () => {
     if (!user) return;
     setIsLoading(true);
+    setRenderError(null);
 
     try {
       // Fetch only active/favorite contacts (not hardware items)
@@ -70,11 +76,12 @@ export function NetworkMapExport() {
       setNetworkData({ nodes, links });
     } catch (error) {
       console.error('Error loading network data:', error);
+      setRenderError(error instanceof Error ? error.message : 'Failed to load network data');
       toast.error('Failed to load network data');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     loadNetworkData();
@@ -82,6 +89,9 @@ export function NetworkMapExport() {
 
   useEffect(() => {
     if (!networkData || !svgRef.current) return;
+
+    // Reset error state on new render attempt
+    setRenderError(null);
 
     try {
       const svg = d3.select(svgRef.current);
@@ -97,17 +107,26 @@ export function NetworkMapExport() {
 
       // Filter links to only include valid node references (prevents D3 crash)
       const nodeIds = new Set(networkData.nodes.map(n => n.id));
-      const validLinks = networkData.links.filter(link => 
-        nodeIds.has(link.source as string) && nodeIds.has(link.target as string)
-      );
+      const validLinks = networkData.links.filter(link => {
+        const sourceId = typeof link.source === 'string' ? link.source : link.source?.id;
+        const targetId = typeof link.target === 'string' ? link.target : link.target?.id;
+        return sourceId && targetId && nodeIds.has(sourceId) && nodeIds.has(targetId);
+      });
 
       if (networkData.nodes.length === 0) {
         console.log('[NetworkMapExport] No nodes to render');
         return;
       }
 
-      // Create simulation with validated links
-      const simulation = d3.forceSimulation(networkData.nodes as any)
+      // DEFENSIVE: Ensure all nodes have valid initial positions
+      const nodesWithPositions = networkData.nodes.map((node, i) => ({
+        ...node,
+        x: node.x ?? width / 2 + (Math.random() - 0.5) * 100,
+        y: node.y ?? height / 2 + (Math.random() - 0.5) * 100,
+      }));
+
+      // Create simulation with validated links and positioned nodes
+      const simulation = d3.forceSimulation(nodesWithPositions as any)
         .force('link', d3.forceLink(validLinks).id((d: any) => d.id).distance(80))
         .force('charge', d3.forceManyBody().strength(-200))
         .force('center', d3.forceCenter(width / 2, height / 2))
@@ -118,14 +137,14 @@ export function NetworkMapExport() {
         .selectAll('line')
         .data(validLinks)
         .join('line')
-        .attr('stroke', '#999')
+        .attr('stroke', 'hsl(var(--muted-foreground))')
         .attr('stroke-opacity', 0.6)
         .attr('stroke-width', (d: any) => Math.sqrt(d.strength) * 2);
 
       // Draw nodes
       const node = svg.append('g')
         .selectAll('g')
-        .data(networkData.nodes)
+        .data(nodesWithPositions)
         .join('g')
         .call(d3.drag<any, any>()
           .on('start', (event, d: any) => {
@@ -146,7 +165,7 @@ export function NetworkMapExport() {
       node.append('circle')
         .attr('r', (d: any) => d.size)
         .attr('fill', (d: any) => colorScale(d.group))
-        .attr('stroke', '#fff')
+        .attr('stroke', 'hsl(var(--background))')
         .attr('stroke-width', 2);
 
       node.append('text')
@@ -154,16 +173,16 @@ export function NetworkMapExport() {
         .attr('x', 12)
         .attr('y', 4)
         .attr('font-size', '10px')
-        .attr('fill', '#333');
+        .attr('fill', 'hsl(var(--foreground))');
 
       simulation.on('tick', () => {
         link
-          .attr('x1', (d: any) => d.source.x)
-          .attr('y1', (d: any) => d.source.y)
-          .attr('x2', (d: any) => d.target.x)
-          .attr('y2', (d: any) => d.target.y);
+          .attr('x1', (d: any) => d.source?.x ?? 0)
+          .attr('y1', (d: any) => d.source?.y ?? 0)
+          .attr('x2', (d: any) => d.target?.x ?? 0)
+          .attr('y2', (d: any) => d.target?.y ?? 0);
 
-        node.attr('transform', (d: any) => `translate(${d.x},${d.y})`);
+        node.attr('transform', (d: any) => `translate(${d.x ?? 0},${d.y ?? 0})`);
       });
 
       // Cleanup on unmount
@@ -172,7 +191,7 @@ export function NetworkMapExport() {
       };
     } catch (error) {
       console.error('[NetworkMapExport] D3 rendering error:', error);
-      // Don't crash the component - graceful degradation
+      setRenderError(error instanceof Error ? error.message : 'Failed to render network visualization');
     }
   }, [networkData, layout]);
 
@@ -249,6 +268,21 @@ export function NetworkMapExport() {
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : renderError ? (
+            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground p-4">
+              <AlertTriangle className="h-12 w-12 mb-4 text-destructive" />
+              <p className="font-medium text-foreground">Network visualization failed</p>
+              <p className="text-sm text-center mt-1 max-w-md">{renderError}</p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => { setRenderError(null); loadNetworkData(); }} 
+                className="mt-4"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Retry
+              </Button>
             </div>
           ) : networkData && networkData.nodes.length > 0 ? (
             <svg ref={svgRef} className="w-full h-64" />

@@ -47,6 +47,9 @@ const FBI_TECHNIQUES = [
 ];
 
 export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGeneratorProps) {
+  // Version logging for cache debugging
+  console.log('[PDFDossierGenerator] v3.0 - Ultimate Intelligence - 47 Sections Loaded');
+  
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingIntel, setIsGeneratingIntel] = useState(false);
   const [intelProgress, setIntelProgress] = useState(0);
