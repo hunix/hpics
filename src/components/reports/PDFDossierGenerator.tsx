@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { FileText, Download, Loader2, User, Calendar, TrendingUp, Shield, Network, Brain, Image, Target, Clipboard, Heart, AlertTriangle, Mic, Zap, Eye, Crosshair, Sparkles, BookOpen, Gauge, Dna, Clock, Users, Radio, Scale, Fingerprint, Compass, Wand2, ShieldQuestion, Split, Lightbulb, BarChart3, Database, MessageCircle, Lock, Layers, Atom, MapPin, Activity, Wind, Cpu, Crown } from 'lucide-react';
+import { FileText, Download, Loader2, User, Calendar, TrendingUp, Shield, Network, Brain, Image, Target, Clipboard, Heart, AlertTriangle, Mic, Zap, Eye, Crosshair, Sparkles, BookOpen, Gauge, Dna, Clock, Users, Radio, Scale, Fingerprint, Compass, Wand2, ShieldQuestion, Split, Lightbulb, BarChart3, Database, MessageCircle, Lock, Layers, Atom, MapPin, Activity, Wind, Cpu, Crown, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -50,6 +50,7 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingIntel, setIsGeneratingIntel] = useState(false);
   const [intelProgress, setIntelProgress] = useState(0);
+  const [taskResults, setTaskResults] = useState<{ name: string; status: 'pending' | 'running' | 'success' | 'failed'; error?: string }[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<string | null>(profileId || null);
   const [selectedContactName, setSelectedContactName] = useState<string>(profileName || '');
   const [template, setTemplate] = useState<DossierTemplate>('full');
@@ -167,6 +168,7 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
 
     setIsGeneratingIntel(true);
     setIntelProgress(0);
+    setTaskResults([]);
 
     try {
       // Check what's missing
@@ -178,12 +180,13 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         supabase.from('ai_analyses').select('id').eq('profile_id', targetProfileId).eq('analysis_type', 'sacred_values').maybeSingle(),
       ]);
 
-      const tasks: { name: string; fn: () => Promise<any> }[] = [];
+      const tasks: { name: string; fn: () => Promise<any>; required: boolean }[] = [];
       
       if (!miceExists.data) {
         tasks.push({
           name: 'MICE Vulnerability Analysis',
           fn: () => supabase.functions.invoke('mice-recruitment-analyzer', { body: { profileId: targetProfileId, analysisDepth: 'comprehensive' } }),
+          required: true,
         });
       }
       
@@ -191,6 +194,7 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         tasks.push({
           name: 'Cialdini Influence Profile',
           fn: () => supabase.functions.invoke('analyze-influence-profile', { body: { profileId: targetProfileId } }),
+          required: true,
         });
       }
       
@@ -198,6 +202,7 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         tasks.push({
           name: 'Deep Intelligence Engine',
           fn: () => supabase.functions.invoke('deep-intelligence-engine', { body: { profileId: targetProfileId } }),
+          required: true,
         });
       }
       
@@ -205,6 +210,7 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         tasks.push({
           name: 'Behavioral DNA Sequencer',
           fn: () => supabase.functions.invoke('behavioral-dna-sequencer', { body: { profileId: targetProfileId } }),
+          required: false,
         });
       }
       
@@ -212,6 +218,7 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         tasks.push({
           name: 'Sacred Values Mapper',
           fn: () => supabase.functions.invoke('sacred-values-mapper', { body: { profileId: targetProfileId } }),
+          required: false,
         });
       }
 
@@ -219,11 +226,13 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       tasks.push({
         name: 'Cross-Modal Synthesis',
         fn: () => supabase.functions.invoke('cross-modal-synthesis-v2', { body: { profileId: targetProfileId } }),
+        required: false,
       });
       
       tasks.push({
         name: 'Precognitive Pattern Engine',
         fn: () => supabase.functions.invoke('precognitive-pattern-engine', { body: { profileId: targetProfileId } }),
+        required: false,
       });
 
       if (tasks.length === 0) {
@@ -232,27 +241,119 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         return;
       }
 
-      // Execute tasks sequentially with progress
+      // Initialize task results
+      setTaskResults(tasks.map(t => ({ name: t.name, status: 'pending' as const })));
+
+      let completedCount = 0;
+      let failedCount = 0;
+      const failedTasks: string[] = [];
+
+      // Execute tasks sequentially with progress and detailed tracking
       for (let i = 0; i < tasks.length; i++) {
-        toast.info(`Running: ${tasks[i].name}...`);
+        const task = tasks[i];
+        
+        // Update status to running
+        setTaskResults(prev => prev.map((t, idx) => 
+          idx === i ? { ...t, status: 'running' as const } : t
+        ));
+        
         setIntelProgress(((i) / tasks.length) * 100);
         
         try {
-          await tasks[i].fn();
+          console.log(`[IntelGen] Starting: ${task.name}`);
+          const result = await task.fn();
+          
+          // Check for function-level errors
+          if (result.error) {
+            throw new Error(result.error.message || 'Function returned error');
+          }
+          
+          // Update status to success
+          setTaskResults(prev => prev.map((t, idx) => 
+            idx === i ? { ...t, status: 'success' as const } : t
+          ));
+          completedCount++;
+          console.log(`[IntelGen] Success: ${task.name}`);
         } catch (e) {
-          console.warn(`${tasks[i].name} failed:`, e);
+          const errorMsg = e instanceof Error ? e.message : 'Unknown error';
+          console.error(`[IntelGen] Failed: ${task.name}`, e);
+          
+          // Update status to failed with error message
+          setTaskResults(prev => prev.map((t, idx) => 
+            idx === i ? { ...t, status: 'failed' as const, error: errorMsg } : t
+          ));
+          failedCount++;
+          failedTasks.push(task.name);
         }
         
         setIntelProgress(((i + 1) / tasks.length) * 100);
       }
 
-      toast.success('Full intelligence package generated!');
+      // Show summary toast
+      if (failedCount === 0) {
+        toast.success(`Intelligence package complete! ${completedCount} analyses generated.`);
+      } else if (completedCount > 0) {
+        toast.warning(`${completedCount} succeeded, ${failedCount} failed`, {
+          description: `Failed: ${failedTasks.join(', ')}`,
+          duration: 8000,
+        });
+      } else {
+        toast.error(`All ${failedCount} intelligence tasks failed`, {
+          description: 'Check console for details',
+          duration: 8000,
+        });
+      }
     } catch (error) {
-      console.error('Intel generation error:', error);
-      toast.error('Some intelligence generation failed');
+      console.error('[IntelGen] Critical error:', error);
+      toast.error('Intelligence generation failed', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
     } finally {
       setIsGeneratingIntel(false);
       setIntelProgress(0);
+    }
+  };
+
+  // Retry a single failed task
+  const retryTask = async (taskName: string) => {
+    const targetProfileId = profileId || selectedProfile;
+    if (!targetProfileId) return;
+
+    const taskMap: Record<string, () => Promise<any>> = {
+      'MICE Vulnerability Analysis': () => supabase.functions.invoke('mice-recruitment-analyzer', { body: { profileId: targetProfileId, analysisDepth: 'comprehensive' } }),
+      'Cialdini Influence Profile': () => supabase.functions.invoke('analyze-influence-profile', { body: { profileId: targetProfileId } }),
+      'Deep Intelligence Engine': () => supabase.functions.invoke('deep-intelligence-engine', { body: { profileId: targetProfileId } }),
+      'Behavioral DNA Sequencer': () => supabase.functions.invoke('behavioral-dna-sequencer', { body: { profileId: targetProfileId } }),
+      'Sacred Values Mapper': () => supabase.functions.invoke('sacred-values-mapper', { body: { profileId: targetProfileId } }),
+      'Cross-Modal Synthesis': () => supabase.functions.invoke('cross-modal-synthesis-v2', { body: { profileId: targetProfileId } }),
+      'Precognitive Pattern Engine': () => supabase.functions.invoke('precognitive-pattern-engine', { body: { profileId: targetProfileId } }),
+    };
+
+    const taskFn = taskMap[taskName];
+    if (!taskFn) return;
+
+    setTaskResults(prev => prev.map(t => 
+      t.name === taskName ? { ...t, status: 'running' as const, error: undefined } : t
+    ));
+
+    try {
+      toast.info(`Retrying: ${taskName}...`);
+      const result = await taskFn();
+      
+      if (result.error) {
+        throw new Error(result.error.message || 'Function returned error');
+      }
+      
+      setTaskResults(prev => prev.map(t => 
+        t.name === taskName ? { ...t, status: 'success' as const } : t
+      ));
+      toast.success(`${taskName} completed!`);
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : 'Unknown error';
+      setTaskResults(prev => prev.map(t => 
+        t.name === taskName ? { ...t, status: 'failed' as const, error: errorMsg } : t
+      ));
+      toast.error(`${taskName} failed again`, { description: errorMsg });
     }
   };
 
@@ -2458,6 +2559,48 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
             </Button>
             {isGeneratingIntel && (
               <Progress value={intelProgress} className="h-1" />
+            )}
+            
+            {/* Task Results Display */}
+            {taskResults.length > 0 && (
+              <div className="mt-3 space-y-1.5 p-3 bg-muted/30 rounded-lg border">
+                <p className="text-xs font-medium text-muted-foreground mb-2">Intelligence Tasks</p>
+                {taskResults.map((task) => (
+                  <div key={task.name} className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      {task.status === 'pending' && (
+                        <div className="h-2 w-2 rounded-full bg-muted-foreground/40" />
+                      )}
+                      {task.status === 'running' && (
+                        <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                      )}
+                      {task.status === 'success' && (
+                        <div className="h-2 w-2 rounded-full bg-green-500" />
+                      )}
+                      {task.status === 'failed' && (
+                        <div className="h-2 w-2 rounded-full bg-destructive" />
+                      )}
+                      <span className={task.status === 'failed' ? 'text-destructive' : ''}>{task.name}</span>
+                    </div>
+                    {task.status === 'failed' && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-5 px-2 text-xs"
+                        onClick={() => retryTask(task.name)}
+                        disabled={isGeneratingIntel}
+                      >
+                        Retry
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                {taskResults.some(t => t.status === 'failed') && (
+                  <p className="text-[10px] text-muted-foreground mt-2 pt-2 border-t">
+                    Failed tasks may still allow PDF generation with partial data
+                  </p>
+                )}
+              </div>
             )}
           </div>
         </div>
