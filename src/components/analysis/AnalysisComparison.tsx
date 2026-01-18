@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { GitCompare, Calendar, Brain, Eye, Activity, Volume2 } from 'lucide-react';
 import { format } from 'date-fns';
-import type { Json } from '@/integrations/supabase/types';
+import type { Json } from '@/types/database-helpers';
 
 interface AnalysisComparisonProps {
   profileId: string;

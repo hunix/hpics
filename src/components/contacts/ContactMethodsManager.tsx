@@ -19,11 +19,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Plus, Trash2, Mail, Phone, Linkedin, Twitter, Globe, Loader2, Pencil } from 'lucide-react';
-import type { Tables } from '@/integrations/supabase/types';
+import type { ContactMethod } from '@/types/database-helpers';
 import { WhatsAppQuickAction } from '@/components/whatsapp/WhatsAppQuickAction';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
-
-type ContactMethod = Tables<'contact_methods'>;
 
 const contactTypes = ['email', 'phone', 'linkedin', 'twitter', 'facebook', 'instagram', 'website', 'other'] as const;
 

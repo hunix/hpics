@@ -9,7 +9,7 @@ import {
   Layers
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { Json } from "@/integrations/supabase/types";
+import type { Json } from '@/types/database-helpers';
 
 interface Aggregate {
   id: string;

@@ -23,9 +23,9 @@ import { useFileViewPreferences, type MainViewMode } from '@/hooks/useFileViewPr
 import { ContactFolderCard } from '@/components/files/ContactFolderCard';
 import { FolderBreadcrumb } from '@/components/files/FolderBreadcrumb';
 import { FilePagination } from '@/components/contacts/FilePagination';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Document as BaseDocument } from '@/types/database-helpers';
 
-type Document = Tables<'documents'> & {
+type Document = BaseDocument & {
   profiles: { first_name: string; last_name: string | null } | null;
 };
 

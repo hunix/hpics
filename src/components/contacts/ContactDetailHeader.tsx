@@ -7,9 +7,9 @@ import {
 import { ShareContactDialog } from '@/components/collaboration/ShareContactDialog';
 import { ContactStorageBadge } from '@/components/contacts/ContactStorageBadge';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Profile as BaseProfile } from '@/types/database-helpers';
 
-type Profile = Tables<'profiles'> & { 
+type Profile = BaseProfile & { 
   relationship_subtype?: string; 
   hierarchy_level?: string;
   is_self_profile?: boolean;

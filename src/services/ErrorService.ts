@@ -1,8 +1,6 @@
 // Centralized Error Service with DB persistence
 import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
-
-type ErrorLogInsert = Database['public']['Tables']['error_logs']['Insert'];
+import type { ErrorLogInsert } from '@/types/database-helpers';
 type ErrorSeverity = 'info' | 'warning' | 'error' | 'critical';
 
 interface ErrorContext {

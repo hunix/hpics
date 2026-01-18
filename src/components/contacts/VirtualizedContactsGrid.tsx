@@ -7,9 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Star, Loader2 } from 'lucide-react';
 import { formatRelationshipDisplay } from '@/lib/relationshipLabels';
 import { CountryFlag } from './CountryFlag';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Profile as BaseProfile } from '@/types/database-helpers';
 
-type Profile = Tables<'profiles'> & { 
+type Profile = BaseProfile & { 
   relationship_subtype?: string; 
   hierarchy_level?: string; 
   country?: string | null;

@@ -14,7 +14,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { gaitAnalyzer } from '@/lib/biometrics/gaitAnalyzer';
 import type { MotionSample, GaitProfile } from '@/lib/biometrics/gaitAnalyzer';
-import type { Json } from '@/integrations/supabase/types';
+import type { Json } from '@/types/database-helpers';
 
 interface GaitCapturePanelProps {
   profileId: string;

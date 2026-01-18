@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { VirtualizedContactSelect } from '@/components/contacts/VirtualizedContactSelect';
 import { Upload, Loader2, Send } from 'lucide-react';
-import type { Enums } from '@/integrations/supabase/types';
+import type { Enums } from '@/types/database-helpers';
 
 interface ParsedMessage {
   date: Date;

@@ -15,9 +15,7 @@ import {
 } from '@/lib/warfare/miceAnalyzer';
 import { useAGISPhaseMiddleware } from './useAGISPhaseMiddleware';
 
-import type { Tables } from '@/integrations/supabase/types';
-
-type MICEAssessmentRecord = Tables<'mice_assessments'>;
+import type { MICEAssessment } from '@/types/database-helpers';
 
 export function useMICEAnalysis(profileId?: string) {
   const { user } = useAuth();
@@ -40,7 +38,7 @@ export function useMICEAnalysis(profileId?: string) {
         .maybeSingle();
       
       if (error) throw error;
-      return data as MICEAssessmentRecord | null;
+      return data as MICEAssessment | null;
     },
     enabled: !!user?.id && !!profileId,
   });

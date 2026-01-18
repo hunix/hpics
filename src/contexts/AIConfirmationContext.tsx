@@ -1,7 +1,7 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useAIConfirmation, AIRequestConfig } from '@/hooks/useAIConfirmation';
 import { AIConfirmationDialog } from '@/components/ai/AIConfirmationDialog';
-import { Json } from '@/integrations/supabase/types';
+import type { Json } from '@/types/database-helpers';
 
 interface AIConfirmationContextValue {
   requestConfirmation: (config: AIRequestConfig) => Promise<{ approved: boolean; logId?: string }>;

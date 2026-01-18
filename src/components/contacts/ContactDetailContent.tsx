@@ -1,6 +1,6 @@
 import { Separator } from '@/components/ui/separator';
 import { type SectionId } from '@/lib/contactDetailCategories';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Profile } from '@/types/database-helpers';
 
 // Lazy imports for code splitting
 import { lazy, Suspense } from 'react';
@@ -113,7 +113,7 @@ const BreakingPointCalculator = lazy(() => import('@/components/intelligence/dom
 const LearnedHelplessnessPanel = lazy(() => import('@/components/intelligence/dominion/LearnedHelplessnessPanel').then(m => ({ default: m.LearnedHelplessnessPanel })));
 const IdentityDestabilizationPanel = lazy(() => import('@/components/intelligence/dominion/IdentityDestabilizationPanel').then(m => ({ default: m.IdentityDestabilizationPanel })));
 
-type Profile = Tables<'profiles'>;
+
 
 interface ContactDetailContentProps {
   activeSection: SectionId;

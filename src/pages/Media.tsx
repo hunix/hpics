@@ -23,13 +23,13 @@ import { useFileViewPreferences, type MainViewMode, type ViewMode } from '@/hook
 import { ContactFolderCard } from '@/components/files/ContactFolderCard';
 import { FolderBreadcrumb } from '@/components/files/FolderBreadcrumb';
 import { FilePagination } from '@/components/contacts/FilePagination';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Media as BaseMedia, MeetingRecording } from '@/types/database-helpers';
 
-type Media = Tables<'media'> & {
+type Media = BaseMedia & {
   profiles: { first_name: string; last_name: string | null } | null;
 };
 
-type Recording = Tables<'meeting_recordings'> & {
+type Recording = MeetingRecording & {
   profiles: { first_name: string; last_name: string | null } | null;
 };
 
