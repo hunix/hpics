@@ -456,24 +456,35 @@ export function usePersistentBulkSession({
         .update({ status: "running", started_at: new Date().toISOString() })
         .in("id", itemIds);
 
-      // Get signed URLs for all items
+      // Get FRESH signed URLs for all items - never reuse stored URLs which may be expired
       const mediaItems: MosaicMediaItem[] = [];
       for (const item of batchToProcess) {
-        let url = item.media_url;
-        if (!url && item.media_id) {
-          // Try to get from media table
+        let url: string | undefined;
+        
+        // Always get storage_path and generate fresh signed URL
+        if (item.media_id) {
           const { data: mediaData } = await supabase
             .from("media")
-            .select("storage_path")
+            .select("storage_path, file_url")
             .eq("id", item.media_id)
             .single();
 
           if (mediaData?.storage_path) {
+            // Generate FRESH signed URL (never reuse item.media_url which may be expired)
             const { data: signedData } = await supabase.storage
               .from("media")
               .createSignedUrl(mediaData.storage_path, 3600);
             url = signedData?.signedUrl;
+          } else if (mediaData?.file_url) {
+            // Fall back to public URL if available
+            url = mediaData.file_url;
           }
+        }
+        
+        // Only fall back to stored URL if we couldn't get anything fresh
+        if (!url && item.media_url) {
+          console.warn(`[Mosaic] Using potentially expired stored URL for item ${item.id}`);
+          url = item.media_url;
         }
 
         if (url) {
@@ -483,6 +494,8 @@ export function usePersistentBulkSession({
             profileId: item.profile_id,
             bulkItemId: item.id, // Pass bulk_analysis_items.id for direct updates
           });
+        } else {
+          console.error(`[Mosaic] No valid URL found for item ${item.id}`);
         }
       }
 
@@ -1280,6 +1293,7 @@ export function usePersistentBulkSession({
       description: `Retrying ${failedCountBefore} items...`,
     });
 
+    // Clear expired URLs and reset status to force fresh URL generation on retry
     await supabase
       .from("bulk_analysis_items")
       .update({
@@ -1288,6 +1302,7 @@ export function usePersistentBulkSession({
         started_at: null,
         completed_at: null,
         retry_count: 0,
+        media_url: null, // Force fresh URL generation - old URLs may be expired
       })
       .eq("session_id", session.id)
       .eq("status", "failed");

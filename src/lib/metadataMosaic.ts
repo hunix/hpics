@@ -206,6 +206,10 @@ export async function generateMetadataMosaic(
   const itemsToProcess = mediaItems.slice(0, calc.imageCount);
   const mosaicId = crypto.randomUUID();
   
+  // Track failed loads for early abort
+  let failedLoads = 0;
+  const MAX_FAILED_RATIO = 0.25; // If more than 25% fail, abort early
+  
   // Load and place images
   for (let i = 0; i < itemsToProcess.length; i++) {
     const item = itemsToProcess[i];
@@ -262,7 +266,15 @@ export async function generateMetadataMosaic(
         col,
       });
     } catch (error) {
-      console.warn(`Failed to load image ${item.id}:`, error);
+      failedLoads++;
+      console.warn(`Failed to load image ${item.id} (${failedLoads}/${itemsToProcess.length}):`, error);
+      
+      // If more than 25% of images failed to load, abort early
+      // This likely indicates expired URLs
+      if (failedLoads / itemsToProcess.length > MAX_FAILED_RATIO) {
+        throw new Error(`Too many images failed to load (${failedLoads}/${itemsToProcess.length}). URLs may be expired - will regenerate.`);
+      }
+      
       // Draw placeholder for failed image
       ctx.fillStyle = '#333333';
       ctx.fillRect(x, y, calc.cellWidth, calc.cellHeight);
