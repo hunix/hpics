@@ -466,6 +466,7 @@ export function usePersistentBulkSession({
             gridRows: mosaic.gridRows,
             model: 'google/gemini-2.5-flash',
             sessionId: activeSession.id, // Include session ID for logging/diagnostics
+            bulkSessionId: activeSession.id, // For counter updates in background processing
           },
         }
       );
