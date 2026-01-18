@@ -29,6 +29,7 @@ interface MosaicRequest {
   bulkSessionId?: string; // alias for sessionId (bulk_analysis_sessions)
   gridCols: number;
   gridRows: number;
+  analysisModes?: string[]; // The actual analysis modes being run (e.g., face_intelligence, scene_intelligence)
 }
 
 // Helper to increment bulk_analysis_sessions counters directly
@@ -270,7 +271,8 @@ async function processInBackground(
   sessionId: string | undefined,
   bulkSessionId: string | undefined, // bulk_analysis_sessions ID for counter updates
   gridCols: number,
-  gridRows: number
+  gridRows: number,
+  analysisModes: string[] = [] // The actual analysis modes being run
 ) {
   const startTime = Date.now();
   let successfulItems = 0;
@@ -529,8 +531,12 @@ async function processInBackground(
               .single();
             
             const existingModes = (currentMedia as any)?.completed_analysis_modes || [];
-            // For mosaic, we track 'mosaic_metadata' as the completed mode
-            const newModes = ['mosaic_metadata'];
+            // Use the actual analysis modes passed from the frontend, plus mosaic_metadata as a marker
+            const newModes = [...analysisModes];
+            // Always include 'mosaic_metadata' as a marker that mosaic pipeline was used
+            if (!newModes.includes('mosaic_metadata')) {
+              newModes.push('mosaic_metadata');
+            }
             const allModes = [...new Set([...existingModes, ...newModes])];
             
             await supabase
@@ -744,7 +750,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body: MosaicRequest = await req.json();
-    const { mosaicImageUrl, cells, mosaicId, model = 'google/gemini-2.5-flash', sessionId, gridCols, gridRows } = body;
+    const { mosaicImageUrl, cells, mosaicId, model = 'google/gemini-2.5-flash', sessionId, gridCols, gridRows, analysisModes = [] } = body;
 
     // Validate required parameters
     if (!mosaicImageUrl) {
@@ -819,7 +825,8 @@ serve(async (req) => {
         undefined, // mosaic_metadata_sessions ID (not used here)
         bulkSessionId, // bulk_analysis_sessions ID for counter updates
         effectiveGridCols,
-        effectiveGridRows
+        effectiveGridRows,
+        analysisModes // Pass the analysis modes to background processing
       )
     );
 
