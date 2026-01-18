@@ -25,9 +25,9 @@ import { ComprehensiveScanButton } from '@/components/intelligence/Comprehensive
 import { ComprehensiveIntelligenceScan } from '@/components/intelligence/ComprehensiveIntelligenceScan';
 import { cn } from '@/lib/utils';
 import { type SectionId, getCategoryForSection } from '@/lib/contactDetailCategories';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Profile as BaseProfile } from '@/types/database-helpers';
 
-type Profile = Tables<'profiles'> & { relationship_subtype?: string; hierarchy_level?: string; is_self_profile?: boolean };
+type Profile = BaseProfile & { relationship_subtype?: string; hierarchy_level?: string; is_self_profile?: boolean };
 
 export default function ContactDetail() {
   const { id } = useParams<{ id: string }>();

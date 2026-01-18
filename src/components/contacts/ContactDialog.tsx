@@ -22,15 +22,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
-import type { Tables, TablesInsert } from '@/integrations/supabase/types';
+import type { Profile, ProfileInsert } from '@/types/database-helpers';
 import { 
   RELATIONSHIP_SUBTYPES, 
   HIERARCHY_LEVELS, 
   getSubtypesForRelationship, 
   needsHierarchy 
 } from '@/lib/relationshipSubtypes';
-
-type Profile = Tables<'profiles'>;
 
 interface ContactDialogProps {
   open: boolean;
@@ -82,7 +80,7 @@ export function ContactDialog({ open, onOpenChange, contact }: ContactDialogProp
 
   const mutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const profileData: TablesInsert<'profiles'> & { relationship_subtype?: string; hierarchy_level?: string } = {
+      const profileData: ProfileInsert & { relationship_subtype?: string; hierarchy_level?: string } = {
         user_id: user!.id,
         first_name: data.first_name,
         last_name: data.last_name || null,

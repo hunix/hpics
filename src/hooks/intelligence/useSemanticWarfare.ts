@@ -4,9 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import type { Tables } from '@/integrations/supabase/types';
-
-type SemanticOperationRecord = Tables<'semantic_operations'>;
+import type { SemanticOperation } from '@/types/database-helpers';
 
 export function useSemanticWarfare() {
   const { user } = useAuth();

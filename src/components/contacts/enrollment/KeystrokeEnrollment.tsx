@@ -12,7 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { keystrokeDynamicsAnalyzer } from '@/lib/biometrics/keystrokeDynamics';
 import type { KeyEvent, KeystrokeProfile } from '@/lib/biometrics/keystrokeDynamics';
-import type { Json } from '@/integrations/supabase/types';
+import type { Json } from '@/types/database-helpers';
 
 interface KeystrokeEnrollmentProps {
   profileId: string;

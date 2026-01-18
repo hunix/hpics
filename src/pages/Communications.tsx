@@ -12,9 +12,9 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { CommunicationDialog } from '@/components/communications/CommunicationDialog';
 import { formatDistanceToNow, format } from 'date-fns';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Communication as BaseCommunication } from '@/types/database-helpers';
 
-type Communication = Tables<'communications'> & {
+type Communication = BaseCommunication & {
   profiles: { first_name: string; last_name: string | null } | null;
 };
 

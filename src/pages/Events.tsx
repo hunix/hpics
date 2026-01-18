@@ -12,9 +12,9 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { EventDialog } from '@/components/events/EventDialog';
 import { format, formatDistanceToNow, isPast } from 'date-fns';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Event as BaseEvent } from '@/types/database-helpers';
 
-type Event = Tables<'events'> & {
+type Event = BaseEvent & {
   profiles: { first_name: string; last_name: string | null } | null;
 };
 

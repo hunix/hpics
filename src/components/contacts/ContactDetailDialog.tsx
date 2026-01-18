@@ -35,9 +35,7 @@ import { SharedExperiences } from './SharedExperiences';
 import { OptimalOutreach } from './OptimalOutreach';
 import { MessageTemplates } from './MessageTemplates';
 import { formatDistanceToNow } from 'date-fns';
-import type { Tables } from '@/integrations/supabase/types';
-
-type Profile = Tables<'profiles'>;
+import type { Profile } from '@/types/database-helpers';
 
 interface ContactDetailDialogProps {
   contact: Profile;

@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, MessageCircle } from 'lucide-react';
 import { ContactPicker } from '@/components/contacts/ContactPicker';
-import type { Enums } from '@/integrations/supabase/types';
+import type { Enums } from '@/types/database-helpers';
 
 import { useWhatsAppImportSession } from '@/hooks/useWhatsAppImportSession';
 import { WhatsAppImportDropzone } from './whatsapp/WhatsAppImportDropzone';

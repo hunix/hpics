@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { estimateTokens, calculateCostCents, AI_MODEL_PRICING } from '@/lib/aiPricing';
 import { toast } from 'sonner';
-import { Json } from '@/integrations/supabase/types';
+import type { Json } from '@/types/database-helpers';
 
 export interface AIRequestConfig {
   functionName: string;

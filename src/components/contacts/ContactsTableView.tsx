@@ -12,9 +12,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Profile as BaseProfile } from '@/types/database-helpers';
 
-type Profile = Tables<'profiles'> & { relationship_subtype?: string; hierarchy_level?: string; country?: string | null };
+type Profile = BaseProfile & { relationship_subtype?: string; hierarchy_level?: string; country?: string | null };
 
 interface ContactsTableViewProps {
   contacts: Profile[];

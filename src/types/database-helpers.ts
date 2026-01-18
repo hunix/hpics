@@ -12,12 +12,17 @@
  * import type { Tables } from '@/integrations/supabase/types';
  */
 
-import type { Database, Json } from '@/integrations/supabase/types';
+import type { Database, Json, Enums } from '@/integrations/supabase/types';
 
-// Re-export Json type for convenience
-export type { Json };
+// Re-export Json and Enums types for convenience
+export type { Json, Enums };
 
 type Tables = Database['public']['Tables'];
+
+// ============================================
+// Enum types
+// ============================================
+export type MessagePlatform = Enums<'message_platform'>;
 
 // Helper type for table access
 export type TableRow<T extends keyof Tables> = Tables[T]['Row'];

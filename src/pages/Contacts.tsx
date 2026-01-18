@@ -29,11 +29,11 @@ import {
   useActiveContactCounts,
   type SortBy 
 } from '@/hooks/useEnhancedContacts';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Profile as BaseProfile } from '@/types/database-helpers';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sparkles, BookUser } from 'lucide-react';
 
-type Profile = Tables<'profiles'> & { 
+type Profile = BaseProfile & { 
   relationship_subtype?: string; 
   hierarchy_level?: string;
   country?: string | null;
