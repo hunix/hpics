@@ -281,6 +281,7 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
               selectedId={selectedProfile}
               onSelect={handleContactSelect}
               placeholder="Search and select a contact..."
+              showAddressBook={false}
             />
           </div>
         )}
