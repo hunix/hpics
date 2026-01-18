@@ -1171,12 +1171,34 @@ export function usePersistentBulkSession({
     const activeSession = sessionOverride || session;
     if (!activeSession) return;
 
+    // Fetch accurate counts from database for honest messaging
+    const { data: itemCounts } = await supabase
+      .from("bulk_analysis_items")
+      .select("status")
+      .eq("session_id", activeSession.id);
+
+    const completed = itemCounts?.filter(i => i.status === 'completed').length || 0;
+    const failed = itemCounts?.filter(i => i.status === 'failed').length || 0;
+    const skipped = itemCounts?.filter(i => i.status === 'skipped').length || 0;
+
     await supabase
       .from("bulk_analysis_sessions")
-      .update({ status: "completed", completed_at: new Date().toISOString() })
+      .update({ 
+        status: "completed", 
+        completed_at: new Date().toISOString(),
+        completed_items: completed,
+        failed_items: failed,
+        skipped_items: skipped
+      })
       .eq("id", activeSession.id);
 
-    setSession((prev) => prev ? { ...prev, status: "completed" } : null);
+    setSession((prev) => prev ? { 
+      ...prev, 
+      status: "completed",
+      completedItems: completed,
+      failedItems: failed,
+      skippedItems: skipped
+    } : null);
 
     // Trigger aggregation if enabled
     if (activeSession.autoAggregate) {
@@ -1185,10 +1207,19 @@ export function usePersistentBulkSession({
         .catch((err) => console.error("Aggregation failed:", err));
     }
 
-    toast({
-      title: "Analysis complete",
-      description: `Analyzed ${activeSession.completedItems} items`,
-    });
+    // Different toast based on outcome - HONEST messaging
+    if (failed > 0) {
+      toast({
+        title: "Analysis complete with failures",
+        description: `${completed} analyzed successfully, ${failed} failed${skipped > 0 ? `, ${skipped} skipped` : ''}`,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Analysis complete",
+        description: `All ${completed} items analyzed successfully${skipped > 0 ? ` (${skipped} skipped)` : ''}`,
+      });
+    }
   }, [session, toast]);
 
   // Cancel session
@@ -1235,6 +1266,20 @@ export function usePersistentBulkSession({
   const retryAllFailed = useCallback(async () => {
     if (!session) return;
 
+    // Get count of failed items before retry
+    const { data: failedBefore } = await supabase
+      .from("bulk_analysis_items")
+      .select("id")
+      .eq("session_id", session.id)
+      .eq("status", "failed");
+
+    const failedCountBefore = failedBefore?.length || 0;
+
+    toast({
+      title: "Retrying failed items",
+      description: `Retrying ${failedCountBefore} items...`,
+    });
+
     await supabase
       .from("bulk_analysis_items")
       .update({
@@ -1248,7 +1293,7 @@ export function usePersistentBulkSession({
       .eq("status", "failed");
 
     await resume();
-  }, [session, resume]);
+  }, [session, resume, toast]);
 
   // Restore a session
   const restoreSession = useCallback((restoredSession: BulkSession) => {
