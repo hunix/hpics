@@ -149,10 +149,25 @@ export function MediaTypeBrowserMultiSelect({
 
   // Helper to check if item is fully analyzed for requested modes
   const isFullyAnalyzed = useCallback((item: MediaItem): boolean => {
-    if (requestedModes.length === 0) return false;
     const completed = item.completedAnalysisModes || [];
+    
+    // If no specific modes requested, consider "fully analyzed" if ANY modes are completed
+    if (requestedModes.length === 0) {
+      return completed.length > 0;
+    }
+    
+    // Otherwise, check if all requested modes are completed
     return requestedModes.every(mode => completed.includes(mode));
   }, [requestedModes]);
+  
+  // Computed counts for UI feedback
+  const analyzedCount = useMemo(() => 
+    mediaFiles.filter(f => (f.completedAnalysisModes || []).length > 0).length
+  , [mediaFiles]);
+
+  const unanalyzedCount = useMemo(() => 
+    mediaFiles.filter(f => (f.completedAnalysisModes || []).length === 0).length
+  , [mediaFiles]);
 
   // Helper to get remaining modes for an item
   const getRemainingModes = useCallback((item: MediaItem): string[] => {
@@ -288,24 +303,25 @@ export function MediaTypeBrowserMultiSelect({
             Clear
           </Button>
           
-          {/* Analysis Status Filter */}
-          {requestedModes.length > 0 && (
-            <Select value={showAnalyzedFilter} onValueChange={(v) => setShowAnalyzedFilter(v as 'all' | 'unanalyzed' | 'partial')}>
-              <SelectTrigger className="w-[150px] h-8 text-xs">
-                <Filter className="h-3 w-3 mr-1" />
-                <SelectValue placeholder="Filter status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All files</SelectItem>
-                <SelectItem value="unanalyzed">Needs analysis</SelectItem>
-                <SelectItem value="partial">Partially done</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
+          {/* Analysis Status Filter - Always visible */}
+          <Select value={showAnalyzedFilter} onValueChange={(v) => setShowAnalyzedFilter(v as 'all' | 'unanalyzed' | 'partial')}>
+            <SelectTrigger className="w-[170px] h-8 text-xs">
+              <Filter className="h-3 w-3 mr-1" />
+              <SelectValue placeholder="Filter status" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover">
+              <SelectItem value="all">All files ({totalLoaded})</SelectItem>
+              <SelectItem value="unanalyzed">Unanalyzed ({unanalyzedCount})</SelectItem>
+              <SelectItem value="partial">Partially done</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">
-            Showing {filteredFiles.length} of {totalLoaded} files
+            Showing {filteredFiles.length} of {totalLoaded}
+            {analyzedCount > 0 && (
+              <span className="text-green-600 ml-1">({analyzedCount} analyzed)</span>
+            )}
           </span>
           <Badge variant={selectedIds.length >= maxSelection ? "destructive" : "secondary"}>
             {selectedIds.length} / {maxSelection}
