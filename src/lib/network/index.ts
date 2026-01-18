@@ -1,8 +1,23 @@
-// Network Analysis Module - Unified exports
-// Consolidates all network algorithms into a single optimized module
+/**
+ * Network Analysis Module - Unified exports
+ * Consolidates all network algorithms into a single optimized module
+ * 
+ * Note: For IDE performance, only essential items are directly exported.
+ * Heavy algorithms are still available but imported when needed.
+ */
 
 // Re-export all types
 export * from './types';
+
+// Re-export visualization types with correct names
+export type {
+  VisualizationNode,
+  VisualizationLink,
+  NetworkVisualizationData,
+  ColorMode,
+} from './types/visualization';
+
+export { RELATIONSHIP_COLORS, RELATIONSHIP_TYPES } from './types/visualization';
 
 // Re-export utilities
 export { buildAdjacencyList, jaccardSimilarity, normalizeMap, bfsReachable, getConnectedComponents, getNodeWeight, getShortestPath } from './utils';
