@@ -4,7 +4,8 @@ import App from "./App.tsx";
 import "./index.css";
 import { initChunkErrorHandler } from "@/lib/chunkErrorHandler";
 import { 
-  APP_VERSION, 
+  APP_VERSION,
+  BUILD_TIMESTAMP,
   getStoredVersion, 
   setStoredVersion, 
   clearAllCaches,
@@ -56,8 +57,51 @@ const initVersionCheck = async () => {
   return true; // Safe to render
 };
 
-// PWA Service Worker registration with auto-update
+// Detect if running in Preview (editor) environment
+const isPreviewEnvironment = (): boolean => {
+  const hostname = window.location.hostname;
+  return hostname.includes('id-preview') || 
+         (hostname.includes('lovable.app') && hostname.includes('preview'));
+};
+
+// Force clear all caches for Preview environment
+const clearPreviewCaches = async () => {
+  console.log('[Preview] Clearing all caches for fresh load...');
+  
+  // Unregister all service workers
+  if ('serviceWorker' in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map(reg => reg.unregister()));
+    console.log(`[Preview] Unregistered ${registrations.length} service worker(s)`);
+  }
+  
+  // Delete all Cache Storage entries
+  if ('caches' in window) {
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames.map(name => caches.delete(name)));
+    console.log(`[Preview] Deleted ${cacheNames.length} cache(s)`);
+  }
+  
+  // Clear session storage
+  sessionStorage.clear();
+  
+  // Clear localStorage except auth keys
+  const keysToRemove = Object.keys(localStorage).filter(
+    key => !key.startsWith('sb-') && key !== 'app_version'
+  );
+  keysToRemove.forEach(key => localStorage.removeItem(key));
+  
+  setStoredVersion(APP_VERSION);
+};
+
+// PWA Service Worker registration with auto-update (only for production)
 const registerPWA = async () => {
+  // Skip PWA registration in preview environment
+  if (isPreviewEnvironment()) {
+    console.log('[PWA] Skipping service worker in preview environment');
+    return;
+  }
+  
   if ('serviceWorker' in navigator) {
     try {
       // Check for updates on every load
@@ -86,6 +130,12 @@ const registerPWA = async () => {
 
 // Initialize app
 const initApp = async () => {
+  // In preview environment, always clear caches first
+  if (isPreviewEnvironment()) {
+    await clearPreviewCaches();
+    console.log(`[Preview] Running build: ${APP_VERSION} @ ${BUILD_TIMESTAMP}`);
+  }
+  
   const shouldRender = await initVersionCheck();
   
   if (shouldRender) {

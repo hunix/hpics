@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { 
   FileText, 
   TrendingUp, 
@@ -25,9 +26,18 @@ import { NetworkMapExport } from '@/components/reports/NetworkMapExport';
 import { ScheduledReportsManager } from '@/components/reports/ScheduledReportsManager';
 import { IntelligenceAutopilotPanel } from '@/components/reports/IntelligenceAutopilotPanel';
 import { ErrorBoundaryWithRecovery } from '@/components/ErrorBoundaryWithRecovery';
+import { APP_VERSION, BUILD_TIMESTAMP } from '@/lib/appVersion';
+
+// Build stamp for debugging cache issues
+const BUILD_STAMP = `v${APP_VERSION} @ ${BUILD_TIMESTAMP.slice(0, 16)}`;
 
 export default function Reports() {
   const queryClient = useQueryClient();
+
+  // Log build stamp on mount for debugging
+  useEffect(() => {
+    console.log(`[Reports] Build stamp: ${BUILD_STAMP}`);
+  }, []);
 
   const { data: reports = [], isLoading } = useQuery({
     queryKey: ['generated-reports'],
@@ -131,6 +141,13 @@ export default function Reports() {
   return (
     <AppLayout title="Reports & Intelligence">
       <div className="space-y-6">
+        {/* Build Stamp for debugging */}
+        <div className="flex justify-end">
+          <Badge variant="outline" className="text-[10px] font-mono opacity-60">
+            {BUILD_STAMP}
+          </Badge>
+        </div>
+
         <Tabs defaultValue="dossiers" className="w-full">
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="dossiers">

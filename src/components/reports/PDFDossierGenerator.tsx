@@ -2486,6 +2486,9 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
               Ultimate Intelligence Dossier Generator
+              <Badge variant="secondary" className="text-[10px] font-mono bg-primary/10">
+                v3.0 | 47 Sections
+              </Badge>
             </CardTitle>
             <CardDescription>
               Generate comprehensive 47-section dossiers with behavioral DNA, quantum cognition, sacred values, and advanced warfare assessments
