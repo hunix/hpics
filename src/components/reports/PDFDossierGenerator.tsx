@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { FileText, Download, Loader2, User, Calendar, TrendingUp, Shield, Network, Brain, Image, Target, Clipboard, Heart, AlertTriangle, Mic, Zap, Eye, Crosshair, Sparkles, BookOpen, Gauge } from 'lucide-react';
+import { FileText, Download, Loader2, User, Calendar, TrendingUp, Shield, Network, Brain, Image, Target, Clipboard, Heart, AlertTriangle, Mic, Zap, Eye, Crosshair, Sparkles, BookOpen, Gauge, Dna, Clock, Users, Radio, Scale, Fingerprint, Compass, Wand2, ShieldQuestion, Split, Lightbulb, BarChart3, Database, MessageCircle, Lock, Layers, Atom, MapPin, Activity, Wind, Cpu, Crown } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -26,7 +26,7 @@ interface DossierSection {
   category: 'core' | 'intelligence' | 'warfare' | 'analysis';
 }
 
-type DossierTemplate = 'executive' | 'operational' | 'full' | 'surveillance';
+type DossierTemplate = 'executive' | 'operational' | 'full' | 'surveillance' | 'warfare' | 'psychological';
 
 // RASCLS/Cialdini's 7 Principles of Influence
 const CIALDINI_PRINCIPLES = [
@@ -39,6 +39,13 @@ const CIALDINI_PRINCIPLES = [
   { key: 'unity', label: 'Unity', description: 'Shared identity influence' },
 ];
 
+// FBI Elicitation Techniques
+const FBI_TECHNIQUES = [
+  'Assumed Knowledge', 'Deliberate False Statement', 'Bracketing', 'Flattery',
+  'Criticism', 'Appeal to Ego', 'Quid Pro Quo', 'Mutual Interest',
+  'Conformity Pressure', 'Word Repetition', 'Feigned Naivete', 'Disbelief'
+];
+
 export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGeneratorProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingIntel, setIsGeneratingIntel] = useState(false);
@@ -46,36 +53,57 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
   const [selectedProfile, setSelectedProfile] = useState<string | null>(profileId || null);
   const [selectedContactName, setSelectedContactName] = useState<string>(profileName || '');
   const [template, setTemplate] = useState<DossierTemplate>('full');
-  const [dataStats, setDataStats] = useState<{media: number; voice: number; analyses: number} | null>(null);
+  const [dataStats, setDataStats] = useState<{media: number; voice: number; analyses: number; sources: number} | null>(null);
   
   const [sections, setSections] = useState<DossierSection[]>([
-    // Core sections
-    { id: 'executive', label: 'Executive Brief', icon: Zap, enabled: true, category: 'core' },
+    // ============== CORE SECTIONS ==============
+    { id: 'executive', label: 'Executive Intelligence Brief', icon: Zap, enabled: true, category: 'core' },
+    { id: 'sourceDashboard', label: 'Intelligence Source Dashboard', icon: Database, enabled: true, category: 'core' },
     { id: 'overview', label: 'Contact Overview', icon: User, enabled: true, category: 'core' },
-    { id: 'timeline', label: 'Interaction Timeline', icon: Calendar, enabled: true, category: 'core' },
+    { id: 'behavioralDna', label: 'Contact DNA Fingerprint', icon: Dna, enabled: true, category: 'core' },
+    { id: 'patternOfLife', label: 'Pattern-of-Life Analysis', icon: Clock, enabled: true, category: 'core' },
+    { id: 'relationshipEcosystem', label: 'Relationship Ecosystem Map', icon: Users, enabled: true, category: 'core' },
+    { id: 'timeline', label: 'Interaction Timeline', icon: Calendar, enabled: false, category: 'core' },
     
-    // Intelligence sections
+    // ============== INTELLIGENCE SECTIONS ==============
     { id: 'psychological', label: 'Deep Psychological Profile', icon: Brain, enabled: true, category: 'intelligence' },
+    { id: 'quantumCognition', label: 'Quantum Cognition Analysis', icon: Atom, enabled: true, category: 'intelligence' },
     { id: 'relationship', label: 'Relationship Intelligence', icon: Heart, enabled: true, category: 'intelligence' },
     { id: 'playbook', label: 'Engagement Playbook', icon: Target, enabled: true, category: 'intelligence' },
+    { id: 'hypnoticPatterns', label: 'Hypnotic Language Patterns', icon: Wand2, enabled: true, category: 'intelligence' },
+    { id: 'elicitation', label: 'Elicitation Technique Guide', icon: MessageCircle, enabled: true, category: 'intelligence' },
+    { id: 'cognitiveLoad', label: 'Cognitive Load Exploitation', icon: Cpu, enabled: true, category: 'intelligence' },
     { id: 'mediaIntel', label: 'Media Intelligence Synthesis', icon: Image, enabled: true, category: 'intelligence' },
     { id: 'voiceIntel', label: 'Voice Intelligence', icon: Mic, enabled: true, category: 'intelligence' },
+    { id: 'deceptionAnalysis', label: 'Deception Analysis Deep Dive', icon: Eye, enabled: true, category: 'intelligence' },
     { id: 'actionPlans', label: 'Strategic Action Plans', icon: Clipboard, enabled: true, category: 'intelligence' },
     
-    // Warfare sections
+    // ============== WARFARE SECTIONS ==============
     { id: 'mice', label: 'MICE Vulnerability Matrix', icon: Crosshair, enabled: true, category: 'warfare' },
     { id: 'cialdini', label: 'RASCLS Influence Profile', icon: BookOpen, enabled: true, category: 'warfare' },
-    { id: 'influence', label: 'Influence Vectors', icon: Eye, enabled: true, category: 'warfare' },
+    { id: 'sacredValues', label: 'Sacred Values Profile', icon: Crown, enabled: true, category: 'warfare' },
+    { id: 'realityTesting', label: 'Reality Testing Vulnerability', icon: Split, enabled: true, category: 'warfare' },
+    { id: 'identityDestab', label: 'Identity Destabilization Profile', icon: Fingerprint, enabled: true, category: 'warfare' },
+    { id: 'influence', label: 'Influence Vectors', icon: Radio, enabled: true, category: 'warfare' },
     { id: 'trauma', label: 'Trauma & Vulnerability Windows', icon: AlertTriangle, enabled: true, category: 'warfare' },
+    { id: 'semanticWarfare', label: 'Semantic Warfare Profile', icon: MessageCircle, enabled: true, category: 'warfare' },
+    { id: 'memeticPropagation', label: 'Memetic Propagation Analysis', icon: Wind, enabled: true, category: 'warfare' },
     { id: 'futureModeling', label: 'Behavioral Future Modeling', icon: TrendingUp, enabled: true, category: 'warfare' },
-    { id: 'crossModal', label: 'Cross-Modal Deception Analysis', icon: Eye, enabled: true, category: 'warfare' },
-    { id: 'threatActor', label: 'Threat Assessment', icon: AlertTriangle, enabled: true, category: 'warfare' },
+    { id: 'precognitive', label: 'Precognitive Pattern Analysis', icon: Compass, enabled: true, category: 'warfare' },
+    { id: 'crossModal', label: 'Cross-Modal Deception Analysis', icon: Layers, enabled: true, category: 'warfare' },
+    { id: 'choiceArchitecture', label: 'Choice Architecture Exploitation', icon: Scale, enabled: true, category: 'warfare' },
     { id: 'betrayal', label: 'Betrayal & Crisis Prediction', icon: Gauge, enabled: true, category: 'warfare' },
+    { id: 'influenceOps', label: 'Influence Operation Planning', icon: MapPin, enabled: true, category: 'warfare' },
+    { id: 'threatActor', label: 'Threat Assessment', icon: ShieldQuestion, enabled: true, category: 'warfare' },
     
-    // Analysis sections
-    { id: 'analysis', label: 'Behavioral Analysis', icon: TrendingUp, enabled: false, category: 'analysis' },
-    { id: 'trust', label: 'Trust Assessment', icon: Shield, enabled: false, category: 'analysis' },
-    { id: 'network', label: 'Network Position', icon: Network, enabled: false, category: 'analysis' },
+    // ============== ANALYSIS SECTIONS ==============
+    { id: 'analysis', label: 'Behavioral Analysis', icon: TrendingUp, enabled: true, category: 'analysis' },
+    { id: 'trust', label: 'Trust Assessment', icon: Shield, enabled: true, category: 'analysis' },
+    { id: 'influenceResistance', label: 'Influence Resistance Profile', icon: Lock, enabled: true, category: 'analysis' },
+    { id: 'behavioralEconomics', label: 'Behavioral Economics Profile', icon: BarChart3, enabled: true, category: 'analysis' },
+    { id: 'network', label: 'Network Position', icon: Network, enabled: true, category: 'analysis' },
+    { id: 'predictionAccuracy', label: 'Prediction Accuracy Tracking', icon: Activity, enabled: true, category: 'analysis' },
+    { id: 'counterIntel', label: 'Counter-Intelligence Assessment', icon: Lightbulb, enabled: true, category: 'analysis' },
   ]);
 
   const handleContactSelect = useCallback(async (id: string | null, contact?: { first_name: string; last_name: string | null }) => {
@@ -86,17 +114,20 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       setSelectedContactName('');
     }
     
-    // Fetch data stats for selected contact
     if (id) {
-      const [mediaCount, voiceCount, analysesCount] = await Promise.all([
+      const [mediaCount, voiceCount, analysesCount, psychCount, miceCount, influenceCount] = await Promise.all([
         supabase.from('media').select('id', { count: 'exact', head: true }).eq('profile_id', id).not('ai_metadata', 'is', null),
         supabase.from('voice_recording_sessions').select('id', { count: 'exact', head: true }).eq('profile_id', id),
         supabase.from('ai_analyses').select('id', { count: 'exact', head: true }).eq('profile_id', id),
+        supabase.from('psychological_profiles').select('id', { count: 'exact', head: true }).eq('profile_id', id),
+        supabase.from('mice_assessments').select('id', { count: 'exact', head: true }).eq('profile_id', id),
+        supabase.from('contact_influence_profiles').select('id', { count: 'exact', head: true }).eq('profile_id', id),
       ]);
       setDataStats({
         media: mediaCount.count || 0,
         voice: voiceCount.count || 0,
         analyses: analysesCount.count || 0,
+        sources: (mediaCount.count || 0) + (voiceCount.count || 0) + (analysesCount.count || 0) + (psychCount.count || 0) + (miceCount.count || 0) + (influenceCount.count || 0),
       });
     } else {
       setDataStats(null);
@@ -112,10 +143,12 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
   const applyTemplate = (templateType: DossierTemplate) => {
     setTemplate(templateType);
     const enabledIds: Record<DossierTemplate, string[]> = {
-      executive: ['executive', 'overview', 'psychological', 'actionPlans'],
-      operational: ['executive', 'overview', 'psychological', 'playbook', 'actionPlans', 'mice', 'cialdini', 'influence', 'trauma'],
-      full: ['executive', 'overview', 'timeline', 'psychological', 'relationship', 'playbook', 'mediaIntel', 'voiceIntel', 'actionPlans', 'mice', 'cialdini', 'influence', 'trauma', 'futureModeling', 'crossModal', 'threatActor', 'betrayal'],
-      surveillance: ['overview', 'mediaIntel', 'voiceIntel', 'timeline', 'network', 'threatActor', 'crossModal'],
+      executive: ['executive', 'sourceDashboard', 'overview', 'psychological', 'actionPlans'],
+      operational: ['executive', 'sourceDashboard', 'overview', 'behavioralDna', 'psychological', 'playbook', 'actionPlans', 'mice', 'cialdini', 'influence', 'trauma', 'elicitation'],
+      full: sections.map(s => s.id), // All sections
+      surveillance: ['overview', 'sourceDashboard', 'patternOfLife', 'mediaIntel', 'voiceIntel', 'timeline', 'network', 'threatActor', 'crossModal', 'deceptionAnalysis'],
+      warfare: ['executive', 'mice', 'cialdini', 'sacredValues', 'realityTesting', 'identityDestab', 'trauma', 'semanticWarfare', 'memeticPropagation', 'choiceArchitecture', 'influenceOps', 'betrayal', 'threatActor', 'hypnoticPatterns', 'elicitation', 'cognitiveLoad'],
+      psychological: ['executive', 'behavioralDna', 'psychological', 'quantumCognition', 'relationship', 'playbook', 'deceptionAnalysis', 'behavioralEconomics', 'trust', 'influenceResistance', 'futureModeling', 'precognitive'],
     };
     
     setSections(sections.map(s => ({
@@ -137,10 +170,12 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
 
     try {
       // Check what's missing
-      const [miceExists, influenceExists, deepIntelExists] = await Promise.all([
+      const [miceExists, influenceExists, deepIntelExists, behavioralDnaExists, sacredValuesExists] = await Promise.all([
         supabase.from('mice_assessments').select('id').eq('profile_id', targetProfileId).maybeSingle(),
         supabase.from('contact_influence_profiles').select('id').eq('profile_id', targetProfileId).maybeSingle(),
         supabase.from('ai_analyses').select('id').eq('profile_id', targetProfileId).eq('analysis_type', 'deep_intelligence').maybeSingle(),
+        supabase.from('ai_analyses').select('id').eq('profile_id', targetProfileId).eq('analysis_type', 'behavioral_dna').maybeSingle(),
+        supabase.from('ai_analyses').select('id').eq('profile_id', targetProfileId).eq('analysis_type', 'sacred_values').maybeSingle(),
       ]);
 
       const tasks: { name: string; fn: () => Promise<any> }[] = [];
@@ -165,15 +200,34 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
           fn: () => supabase.functions.invoke('deep-intelligence-engine', { body: { profileId: targetProfileId } }),
         });
       }
+      
+      if (!behavioralDnaExists.data) {
+        tasks.push({
+          name: 'Behavioral DNA Sequencer',
+          fn: () => supabase.functions.invoke('behavioral-dna-sequencer', { body: { profileId: targetProfileId } }),
+        });
+      }
+      
+      if (!sacredValuesExists.data) {
+        tasks.push({
+          name: 'Sacred Values Mapper',
+          fn: () => supabase.functions.invoke('sacred-values-mapper', { body: { profileId: targetProfileId } }),
+        });
+      }
 
-      // Always run cross-modal synthesis for latest correlation
+      // Always run these for latest data
       tasks.push({
         name: 'Cross-Modal Synthesis',
         fn: () => supabase.functions.invoke('cross-modal-synthesis-v2', { body: { profileId: targetProfileId } }),
       });
+      
+      tasks.push({
+        name: 'Precognitive Pattern Engine',
+        fn: () => supabase.functions.invoke('precognitive-pattern-engine', { body: { profileId: targetProfileId } }),
+      });
 
       if (tasks.length === 0) {
-        toast.info('All warfare intelligence already generated');
+        toast.info('All intelligence already generated');
         setIsGeneratingIntel(false);
         return;
       }
@@ -223,7 +277,9 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
 
       const contactName = `${profile.first_name} ${profile.last_name || ''}`.trim();
 
-      // COMPREHENSIVE DATA FUSION - Fetch from ALL 18+ intelligence sources
+      // ========================================
+      // COMPREHENSIVE DATA FUSION - 25+ Sources
+      // ========================================
       const [
         commData,
         psychData,
@@ -245,66 +301,37 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         traumaData,
         scenarioPredictions,
         crossModalData,
+        cognitiveSuperpositions,
+        precursorSignatures,
+        timelineProbabilities,
+        elicitationSessions,
+        financialPsychology,
       ] = await Promise.all([
-        // Communications timeline
         supabase.from('communications').select('*').eq('profile_id', targetProfileId).order('occurred_at', { ascending: false }).limit(30),
-        
-        // Psychological profiles - THE GOLD
         supabase.from('psychological_profiles').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(1),
-        
-        // ALL AI analyses (personality, playbook, relationship_score, sentiment, deep_intelligence, media_intelligence_aggregation)
         supabase.from('ai_analyses').select('*').eq('profile_id', targetProfileId).order('generated_at', { ascending: false }),
-        
-        // Media analyses with rich intelligence
         supabase.from('media_analyses').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }),
-        
-        // Media items with AI metadata - FIXED: using mime_type instead of media_type
         supabase.from('media').select('id, caption, ai_metadata, completed_analysis_modes, created_at, mime_type').eq('profile_id', targetProfileId).not('ai_metadata', 'is', null),
-        
-        // Voice recording sessions
         supabase.from('voice_recording_sessions').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }),
-        
-        // Behavioral analyses
         supabase.from('behavioral_analyses').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(5),
-        
-        // Trust assessments
         supabase.from('trust_assessments').select('*').eq('profile_id', targetProfileId).order('assessed_at', { ascending: false }).limit(1),
-        
-        // MICE assessments
         supabase.from('mice_assessments').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(1),
-        
-        // Influence profiles (RASCLS/Cialdini)
         supabase.from('contact_influence_profiles').select('*').eq('profile_id', targetProfileId).limit(1),
-        
-        // Threat actor profiles
         supabase.from('threat_actors').select('*').eq('profile_id', targetProfileId).limit(1),
-        
-        // Observations
         supabase.from('contact_observations').select('*').eq('profile_id', targetProfileId).order('observed_at', { ascending: false }).limit(20),
-        
-        // Behavioral predictions
         supabase.from('behavioral_predictions').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(10),
-        
-        // Anomalies
         supabase.from('behavioral_anomalies').select('*').eq('profile_id', targetProfileId).eq('is_resolved', false),
-        
-        // Life milestones
         supabase.from('contact_life_milestones').select('*').eq('profile_id', targetProfileId).order('milestone_date', { ascending: false }).limit(10),
-        
-        // Relationships
         supabase.from('contact_relationships').select('*, to_profile:profiles!contact_relationships_to_profile_id_fkey(first_name, last_name)').eq('from_profile_id', targetProfileId),
-        
-        // Betrayal predictions
         supabase.from('betrayal_predictions').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(1),
-        
-        // Trauma exploitation windows
         supabase.from('trauma_exploitation_windows').select('*').eq('profile_id', targetProfileId).limit(1),
-        
-        // Behavioral scenario predictions (future modeling)
         supabase.from('behavioral_scenario_predictions').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(5),
-        
-        // Cross-domain correlations (cross-modal deception)
         supabase.from('cross_domain_correlations').select('*').eq('profile_id', targetProfileId).order('updated_at', { ascending: false }).limit(5),
+        supabase.from('cognitive_superpositions').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(1),
+        supabase.from('precursor_signatures').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(10),
+        supabase.from('timeline_probabilities').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(10),
+        supabase.from('elicitation_sessions').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(5),
+        supabase.from('financial_psychology_profiles').select('*').eq('profile_id', targetProfileId).limit(1),
       ]);
 
       // Create PDF with enhanced styling
@@ -319,7 +346,7 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       const maxContentY = pageHeight - footerHeight - margin;
 
       // ========================================
-      // ENHANCED PAGE BREAK HELPER - Consistent formatting
+      // ENHANCED PAGE BREAK HELPER
       // ========================================
       const checkPageBreak = (neededSpace: number): boolean => {
         if (yPos + neededSpace > maxContentY) {
@@ -330,28 +357,19 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         return false;
       };
 
-      // Safe print helper that always checks page break first
-      const safePrint = (printFn: () => number) => {
-        const estimatedHeight = printFn();
-        return estimatedHeight;
-      };
-
       // ========================================
       // SECTION HEADER - Colored bar with consistent spacing
       // ========================================
       const renderSectionHeader = (title: string, color: [number, number, number] = [0, 0, 0]) => {
         checkPageBreak(25);
         
-        // Section divider line
         doc.setDrawColor(200, 200, 200);
         doc.line(margin, yPos - 3, margin + contentWidth, yPos - 3);
         yPos += 2;
         
-        // Colored background bar
         doc.setFillColor(color[0], color[1], color[2], 0.1);
         doc.rect(margin - 2, yPos - 2, contentWidth + 4, 10, 'F');
         
-        // Left color accent
         doc.setFillColor(...color);
         doc.rect(margin - 2, yPos - 2, 3, 10, 'F');
         
@@ -420,15 +438,12 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         const barHeight = 6;
         const fillWidth = (score / maxScore) * barWidth;
         
-        // Background
         doc.setFillColor(230, 230, 230);
         doc.rect(barX, yPos - 5, barWidth, barHeight, 'F');
         
-        // Fill
         doc.setFillColor(...color);
         doc.rect(barX, yPos - 5, fillWidth, barHeight, 'F');
         
-        // Score text
         doc.setFont('helvetica', 'bold');
         doc.text(`${Math.round(score)}%`, barX + barWidth + 5, yPos);
         
@@ -455,6 +470,46 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         doc.setTextColor(0);
       };
 
+      // ========================================
+      // MINI RADAR CHART
+      // ========================================
+      const renderMiniRadar = (values: {label: string; score: number}[], centerX: number, centerY: number, radius: number) => {
+        const n = values.length;
+        if (n < 3) return;
+        
+        // Draw axes
+        doc.setDrawColor(200, 200, 200);
+        for (let i = 0; i < n; i++) {
+          const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
+          const x = centerX + Math.cos(angle) * radius;
+          const y = centerY + Math.sin(angle) * radius;
+          doc.line(centerX, centerY, x, y);
+          
+          // Label
+          doc.setFontSize(6);
+          const labelX = centerX + Math.cos(angle) * (radius + 8);
+          const labelY = centerY + Math.sin(angle) * (radius + 8);
+          doc.text(values[i].label, labelX, labelY, { align: 'center' });
+        }
+        
+        // Draw polygon
+        doc.setDrawColor(100, 100, 200);
+        doc.setFillColor(100, 100, 200, 0.3);
+        let points: [number, number][] = [];
+        for (let i = 0; i < n; i++) {
+          const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
+          const r = (values[i].score / 100) * radius;
+          points.push([centerX + Math.cos(angle) * r, centerY + Math.sin(angle) * r]);
+        }
+        // Close path
+        if (points.length > 0) {
+          for (let i = 0; i < points.length; i++) {
+            const next = (i + 1) % points.length;
+            doc.line(points[i][0], points[i][1], points[next][0], points[next][1]);
+          }
+        }
+      };
+
       // Extract key analyses
       const personalityAnalysis = allAnalyses.data?.find((a: any) => a.analysis_type === 'personality');
       const playbookAnalysis = allAnalyses.data?.find((a: any) => a.analysis_type === 'playbook');
@@ -462,6 +517,8 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       const deepIntelAnalysis = allAnalyses.data?.find((a: any) => a.analysis_type === 'deep_intelligence');
       const mediaAggregation = allAnalyses.data?.find((a: any) => a.analysis_type === 'media_intelligence_aggregation');
       const voiceAggregation = allAnalyses.data?.find((a: any) => a.analysis_type === 'voice_intelligence_aggregation');
+      const behavioralDnaAnalysis = allAnalyses.data?.find((a: any) => a.analysis_type === 'behavioral_dna');
+      const sacredValuesAnalysis = allAnalyses.data?.find((a: any) => a.analysis_type === 'sacred_values');
 
       // Count intelligence sources
       const totalMediaAnalyzed = mediaData.data?.length || 0;
@@ -469,6 +526,9 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       const totalObservations = observationsData.data?.length || 0;
       const totalCommunications = commData.data?.length || 0;
       const totalAnomalies = anomaliesData.data?.length || 0;
+      const totalAnalyses = allAnalyses.data?.length || 0;
+      const totalRelationships = relationshipsData.data?.length || 0;
+      const intelligenceCompleteness = Math.min(100, ((totalMediaAnalyzed > 0 ? 15 : 0) + (totalVoiceSessions > 0 ? 15 : 0) + (psychData.data?.length ? 20 : 0) + (miceData.data?.length ? 15 : 0) + (influenceData.data ? 15 : 0) + (behavioralDnaAnalysis ? 20 : 0)));
 
       // ========================================
       // COVER PAGE
@@ -478,16 +538,20 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       
       doc.setFontSize(10);
       doc.setTextColor(200, 200, 200);
-      doc.text('CLASSIFICATION: CONFIDENTIAL', pageWidth / 2, 20, { align: 'center' });
+      doc.text('CLASSIFICATION: TOP SECRET // NOFORN', pageWidth / 2, 15, { align: 'center' });
       
       doc.setFontSize(28);
       doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
-      doc.text('INTELLIGENCE DOSSIER', pageWidth / 2, 45, { align: 'center' });
+      doc.text('INTELLIGENCE DOSSIER', pageWidth / 2, 40, { align: 'center' });
       
       doc.setFontSize(12);
       doc.setTextColor(150, 200, 255);
-      doc.text(template.toUpperCase() + ' PACKAGE', pageWidth / 2, 60, { align: 'center' });
+      doc.text(template.toUpperCase() + ' PACKAGE', pageWidth / 2, 55, { align: 'center' });
+      
+      doc.setFontSize(8);
+      doc.setTextColor(180, 180, 180);
+      doc.text(`Intelligence Completeness: ${intelligenceCompleteness}%`, pageWidth / 2, 70, { align: 'center' });
       
       doc.setTextColor(0);
       
@@ -506,43 +570,94 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       
       // Intelligence summary box
       doc.setFillColor(248, 248, 248);
-      doc.roundedRect(margin, 135, contentWidth, 55, 3, 3, 'F');
+      doc.roundedRect(margin, 130, contentWidth, 65, 3, 3, 'F');
       doc.setDrawColor(200, 200, 200);
-      doc.roundedRect(margin, 135, contentWidth, 55, 3, 3, 'S');
+      doc.roundedRect(margin, 130, contentWidth, 65, 3, 3, 'S');
       
       doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
-      doc.text('INTELLIGENCE SOURCES', margin + 5, 147);
+      doc.text('INTELLIGENCE SOURCES SUMMARY', margin + 5, 142);
       
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
       const col1X = margin + 10;
-      const col2X = margin + 80;
+      const col2X = margin + 70;
+      const col3X = margin + 130;
       
-      doc.text(`📷 Media Items Analyzed: ${totalMediaAnalyzed}`, col1X, 158);
-      doc.text(`🎙️ Voice Sessions: ${totalVoiceSessions}`, col1X, 168);
-      doc.text(`👁️ Observations: ${totalObservations}`, col1X, 178);
+      doc.text(`📷 Media: ${totalMediaAnalyzed}`, col1X, 153);
+      doc.text(`🎙️ Voice: ${totalVoiceSessions}`, col1X, 163);
+      doc.text(`👁️ Observations: ${totalObservations}`, col1X, 173);
+      doc.text(`🔗 Relationships: ${totalRelationships}`, col1X, 183);
       
-      doc.text(`💬 Communications: ${totalCommunications}`, col2X, 158);
-      doc.text(`🧠 AI Analyses: ${allAnalyses.data?.length || 0}`, col2X, 168);
-      doc.text(`⚠️ Active Anomalies: ${totalAnomalies}`, col2X, 178);
+      doc.text(`💬 Communications: ${totalCommunications}`, col2X, 153);
+      doc.text(`🧠 AI Analyses: ${totalAnalyses}`, col2X, 163);
+      doc.text(`⚠️ Anomalies: ${totalAnomalies}`, col2X, 173);
       
       // Risk level badge
       const riskLevel = totalAnomalies > 2 ? 'HIGH RISK' : totalAnomalies > 0 ? 'MEDIUM RISK' : 'LOW RISK';
       const riskColor: [number, number, number] = totalAnomalies > 2 ? [180, 0, 0] : totalAnomalies > 0 ? [180, 100, 0] : [0, 120, 0];
       doc.setFillColor(...riskColor);
-      doc.roundedRect(margin + 135, 145, 30, 8, 2, 2, 'F');
+      doc.roundedRect(col3X, 150, 30, 8, 2, 2, 'F');
       doc.setFontSize(7);
       doc.setTextColor(255, 255, 255);
-      doc.text(riskLevel, margin + 138, 150);
+      doc.text(riskLevel, col3X + 3, 155);
       doc.setTextColor(0);
+      
+      // Key assessments preview
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.text('KEY ASSESSMENTS:', col3X, 168);
+      doc.setFont('helvetica', 'normal');
+      if (miceData.data?.[0]) {
+        const mice = miceData.data[0] as any;
+        doc.text(`MICE: ${mice.primary_vulnerability || 'Unknown'}`, col3X, 177);
+      }
+      if (psychData.data?.[0]) {
+        const psych = psychData.data[0] as any;
+        const style = psych.attachment_style as any;
+        doc.text(`Attach: ${style?.primary_style || 'Unknown'}`, col3X, 186);
+      }
       
       // Generation info
       doc.setFontSize(9);
       doc.setTextColor(100);
       doc.text(`Generated: ${format(new Date(), 'MMMM d, yyyy at HH:mm')}`, pageWidth / 2, 210, { align: 'center' });
-      doc.text('PICS Intelligence System v2.0', pageWidth / 2, 218, { align: 'center' });
+      doc.text('PICS Autonomous General Intelligence System v3.0', pageWidth / 2, 218, { align: 'center' });
+      doc.text(`${sections.filter(s => s.enabled).length} Intelligence Sections Active`, pageWidth / 2, 226, { align: 'center' });
       doc.setTextColor(0);
+      
+      doc.addPage();
+      yPos = margin;
+
+      // ========================================
+      // TABLE OF CONTENTS
+      // ========================================
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text('TABLE OF CONTENTS', margin, yPos);
+      yPos += 12;
+      
+      let tocPage = 3; // Starting page after cover and TOC
+      const enabledSections = sections.filter(s => s.enabled);
+      enabledSections.forEach((section, idx) => {
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        const categoryColors: Record<string, [number, number, number]> = {
+          core: [50, 50, 50],
+          intelligence: [0, 51, 102],
+          warfare: [102, 0, 0],
+          analysis: [0, 80, 120],
+        };
+        doc.setTextColor(...categoryColors[section.category]);
+        doc.text(`${idx + 1}. ${section.label}`, margin, yPos);
+        doc.text(`${section.category.toUpperCase()}`, margin + 120, yPos);
+        doc.setTextColor(0);
+        yPos += 6;
+        if (yPos > maxContentY - 20) {
+          doc.addPage();
+          yPos = margin;
+        }
+      });
       
       doc.addPage();
       yPos = margin;
@@ -586,6 +701,22 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         if (miceData.data?.[0]) {
           const mice = miceData.data[0] as any;
           renderBullet(`Primary MICE Vulnerability: ${mice.primary_vulnerability || 'Not assessed'} (${(mice.recruitment_likelihood * 100 || 0).toFixed(0)}% recruitability)`);
+        }
+        
+        if (influenceData.data) {
+          const inf = influenceData.data as any;
+          let topScore = 0;
+          let topLabel = '';
+          CIALDINI_PRINCIPLES.forEach(p => {
+            const score = inf[`${p.key}_susceptibility`] || inf[p.key] || 0;
+            if (score > topScore) {
+              topScore = score;
+              topLabel = p.label;
+            }
+          });
+          if (topLabel) {
+            renderBullet(`Primary Influence Vector: ${topLabel} (${topScore}% susceptibility)`);
+          }
         }
         
         // Critical Findings from Deep Intelligence
@@ -635,6 +766,64 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       }
 
       // ========================================
+      // INTELLIGENCE SOURCE DASHBOARD
+      // ========================================
+      if (sections.find(s => s.id === 'sourceDashboard')?.enabled) {
+        renderSectionHeader('Intelligence Source Dashboard', [80, 80, 80]);
+        
+        // Data Completeness Score
+        checkPageBreak(35);
+        doc.setFillColor(240, 245, 250);
+        doc.roundedRect(margin, yPos - 3, contentWidth, 30, 3, 3, 'F');
+        
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Intelligence Completeness', margin + 5, yPos + 5);
+        
+        // Progress bar
+        const barX = margin + 5;
+        const barWidth = contentWidth - 50;
+        doc.setFillColor(220, 220, 220);
+        doc.rect(barX, yPos + 10, barWidth, 8, 'F');
+        const complColor: [number, number, number] = intelligenceCompleteness >= 80 ? [0, 150, 0] : intelligenceCompleteness >= 50 ? [200, 150, 0] : [200, 50, 0];
+        doc.setFillColor(...complColor);
+        doc.rect(barX, yPos + 10, (intelligenceCompleteness / 100) * barWidth, 8, 'F');
+        
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...complColor);
+        doc.text(`${intelligenceCompleteness}%`, barX + barWidth + 5, yPos + 17);
+        doc.setTextColor(0);
+        
+        yPos += 35;
+        
+        // Source breakdown
+        renderSubsection('Source Breakdown');
+        const sourceBreakdown = [
+          { label: 'Visual Media Intelligence', count: totalMediaAnalyzed, status: totalMediaAnalyzed > 0 ? '✓' : '○' },
+          { label: 'Voice Pattern Analysis', count: totalVoiceSessions, status: totalVoiceSessions > 0 ? '✓' : '○' },
+          { label: 'Psychological Profile', count: psychData.data?.length || 0, status: psychData.data?.length ? '✓' : '○' },
+          { label: 'MICE Assessment', count: miceData.data?.length || 0, status: miceData.data?.length ? '✓' : '○' },
+          { label: 'Influence Profile', count: influenceData.data ? 1 : 0, status: influenceData.data ? '✓' : '○' },
+          { label: 'Behavioral DNA', count: behavioralDnaAnalysis ? 1 : 0, status: behavioralDnaAnalysis ? '✓' : '○' },
+          { label: 'Sacred Values Map', count: sacredValuesAnalysis ? 1 : 0, status: sacredValuesAnalysis ? '✓' : '○' },
+          { label: 'Quantum Cognition', count: cognitiveSuperpositions.data?.length || 0, status: cognitiveSuperpositions.data?.length ? '✓' : '○' },
+        ];
+        
+        sourceBreakdown.forEach(source => {
+          doc.setFontSize(8);
+          const statusColor: [number, number, number] = source.status === '✓' ? [0, 150, 0] : [200, 200, 200];
+          doc.setTextColor(...statusColor);
+          doc.text(source.status, margin, yPos);
+          doc.setTextColor(0);
+          doc.text(`${source.label}: ${source.count}`, margin + 8, yPos);
+          yPos += 5;
+        });
+        
+        yPos += 8;
+      }
+
+      // ========================================
       // CONTACT OVERVIEW
       // ========================================
       if (sections.find(s => s.id === 'overview')?.enabled) {
@@ -670,6 +859,207 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       }
 
       // ========================================
+      // BEHAVIORAL DNA FINGERPRINT
+      // ========================================
+      if (sections.find(s => s.id === 'behavioralDna')?.enabled && behavioralDnaAnalysis) {
+        renderSectionHeader('Contact DNA Fingerprint', [102, 0, 102]);
+        
+        const dna = behavioralDnaAnalysis.result as any;
+        
+        if (dna.behavioral_genome?.core_traits?.length > 0) {
+          renderSubsection('Core Behavioral Traits');
+          
+          // Group traits by category
+          const traitsByCategory: Record<string, any[]> = {};
+          dna.behavioral_genome.core_traits.forEach((trait: any) => {
+            const cat = trait.category || 'general';
+            if (!traitsByCategory[cat]) traitsByCategory[cat] = [];
+            traitsByCategory[cat].push(trait);
+          });
+          
+          Object.entries(traitsByCategory).slice(0, 4).forEach(([category, traits]) => {
+            checkPageBreak(20);
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(102, 0, 102);
+            doc.text(category.toUpperCase(), margin, yPos);
+            doc.setTextColor(0);
+            yPos += 5;
+            
+            (traits as any[]).slice(0, 3).forEach((trait: any) => {
+              renderScoreBar(trait.trait, trait.strength || 50, 100, [102, 50, 102]);
+            });
+            yPos += 3;
+          });
+        }
+        
+        if (dna.decision_architecture) {
+          renderSubsection('Decision Architecture');
+          const arch = dna.decision_architecture;
+          renderKeyValue('Primary Archetype', arch.primary_archetype);
+          renderKeyValue('Decision Speed', arch.decision_speed);
+          renderKeyValue('Information Needs', arch.information_needs);
+          if (arch.sunk_cost_vulnerability) {
+            renderScoreBar('Sunk Cost Vulnerability', arch.sunk_cost_vulnerability, 100, [200, 100, 0]);
+          }
+        }
+        
+        if (dna.manipulation_vulnerability) {
+          renderSubsection('🎯 Manipulation Vulnerability');
+          const vuln = dna.manipulation_vulnerability;
+          renderScoreBar('Overall Vulnerability', vuln.overall_vulnerability || 50, 100, [180, 0, 0]);
+          
+          if (vuln.effective_vectors?.length > 0) {
+            doc.setTextColor(180, 0, 0);
+            vuln.effective_vectors.slice(0, 4).forEach((v: any) => {
+              renderBullet(`${v.vector} (${v.effectiveness}% effective)`, 5);
+            });
+            doc.setTextColor(0);
+          }
+          
+          if (vuln.cognitive_biases?.length > 0) {
+            yPos += 3;
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Exploitable Cognitive Biases:', margin, yPos);
+            yPos += 5;
+            vuln.cognitive_biases.slice(0, 4).forEach((b: any) => {
+              renderBullet(`${b.bias}: ${b.exploitation_method}`, 5);
+            });
+          }
+        }
+        
+        if (dna.behavioral_tells) {
+          const tells = dna.behavioral_tells;
+          if (tells.deception_tells?.length > 0) {
+            renderSubsection('Deception Tells');
+            tells.deception_tells.slice(0, 3).forEach((t: any) => {
+              renderBullet(`${t.tell} (${t.reliability}% reliable)`, 5);
+            });
+          }
+          if (tells.stress_tells?.length > 0) {
+            renderSubsection('Stress Tells');
+            tells.stress_tells.slice(0, 3).forEach((t: any) => {
+              renderBullet(`${t.tell} (${t.reliability}% reliable)`, 5);
+            });
+          }
+        }
+        
+        yPos += 8;
+      }
+
+      // ========================================
+      // PATTERN-OF-LIFE ANALYSIS
+      // ========================================
+      if (sections.find(s => s.id === 'patternOfLife')?.enabled) {
+        renderSectionHeader('Pattern-of-Life Analysis', [0, 80, 80]);
+        
+        const dna = behavioralDnaAnalysis?.result as any;
+        
+        if (dna?.micro_patterns) {
+          const patterns = dna.micro_patterns;
+          
+          if (patterns.communication_timing) {
+            renderSubsection('Communication Rhythms');
+            const timing = patterns.communication_timing;
+            if (timing.peak_response_hours?.length > 0) {
+              renderKeyValue('Peak Hours', timing.peak_response_hours.join(', '));
+            }
+            if (timing.response_latency_baseline) {
+              renderKeyValue('Response Baseline', timing.response_latency_baseline);
+            }
+            if (timing.urgency_indicators?.length > 0) {
+              doc.setFontSize(8);
+              doc.text('Urgency Indicators:', margin, yPos);
+              yPos += 4;
+              timing.urgency_indicators.slice(0, 3).forEach((i: string) => renderBullet(i, 10));
+            }
+          }
+          
+          if (patterns.linguistic_fingerprint) {
+            renderSubsection('Linguistic Fingerprint');
+            const ling = patterns.linguistic_fingerprint;
+            renderKeyValue('Vocabulary Tier', ling.vocabulary_tier);
+            renderKeyValue('Sentence Complexity', ling.sentence_complexity);
+            renderKeyValue('Emotional Expression', ling.emotional_expression);
+            if (ling.signature_phrases?.length > 0) {
+              doc.setFontSize(8);
+              doc.text('Signature Phrases:', margin, yPos);
+              yPos += 4;
+              ling.signature_phrases.slice(0, 4).forEach((p: string) => renderBullet(`"${p}"`, 10));
+            }
+          }
+          
+          if (patterns.behavioral_rhythms) {
+            renderSubsection('Behavioral Rhythms');
+            const rhythms = patterns.behavioral_rhythms;
+            if (rhythms.energy_cycles) renderKeyValue('Energy Cycles', rhythms.energy_cycles);
+            if (rhythms.productivity_patterns) renderKeyValue('Productivity', rhythms.productivity_patterns);
+          }
+        }
+        
+        // Chronotype from observations
+        const chronotypeObs = observationsData.data?.find((o: any) => o.observation_type === 'chronotype');
+        if (chronotypeObs) {
+          renderSubsection('Chronotype Profile');
+          renderKeyValue('Type', (chronotypeObs as any).summary || 'Unknown');
+        }
+        
+        yPos += 8;
+      }
+
+      // ========================================
+      // RELATIONSHIP ECOSYSTEM MAP
+      // ========================================
+      if (sections.find(s => s.id === 'relationshipEcosystem')?.enabled && relationshipsData.data?.length > 0) {
+        renderSectionHeader('Relationship Ecosystem Map', [0, 102, 102]);
+        
+        renderSubsection(`${relationshipsData.data.length} Known Connections`);
+        
+        // Group by relationship type
+        const byType: Record<string, any[]> = {};
+        relationshipsData.data.forEach((rel: any) => {
+          const type = rel.relationship_type || 'Other';
+          if (!byType[type]) byType[type] = [];
+          byType[type].push(rel);
+        });
+        
+        Object.entries(byType).slice(0, 5).forEach(([type, rels]) => {
+          checkPageBreak(15);
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'bold');
+          doc.text(`${type} (${rels.length})`, margin, yPos);
+          yPos += 5;
+          
+          (rels as any[]).slice(0, 4).forEach((rel: any) => {
+            const name = rel.to_profile 
+              ? `${rel.to_profile.first_name} ${rel.to_profile.last_name || ''}`.trim()
+              : 'Unknown';
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`  • ${name} | Strength: ${rel.strength || 'Unknown'}`, margin, yPos);
+            yPos += 4;
+          });
+          yPos += 3;
+        });
+        
+        // Influence flow if available
+        if (relationshipsData.data.some((r: any) => r.influence_direction)) {
+          renderSubsection('Influence Flow');
+          const influencers = relationshipsData.data.filter((r: any) => r.influence_direction === 'inbound');
+          const influenced = relationshipsData.data.filter((r: any) => r.influence_direction === 'outbound');
+          if (influencers.length > 0) {
+            renderBullet(`Influenced BY: ${influencers.length} connections`, 5);
+          }
+          if (influenced.length > 0) {
+            renderBullet(`Influences: ${influenced.length} connections`, 5);
+          }
+        }
+        
+        yPos += 8;
+      }
+
+      // ========================================
       // DEEP PSYCHOLOGICAL PROFILE
       // ========================================
       if (sections.find(s => s.id === 'psychological')?.enabled && psychData.data?.length > 0) {
@@ -682,9 +1072,8 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
           const style = psych.attachment_style as any;
           renderSubsection('Attachment Architecture');
           
-          // Visual attachment display
-          doc.setFillColor(245, 240, 250);
           checkPageBreak(35);
+          doc.setFillColor(245, 240, 250);
           doc.roundedRect(margin, yPos - 2, contentWidth, 30, 2, 2, 'F');
           
           doc.setFontSize(14);
@@ -693,7 +1082,6 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
           doc.text(style.primary_style?.toUpperCase() || 'UNKNOWN', margin + 5, yPos + 8);
           doc.setTextColor(0);
           
-          // Anxiety/Avoidance scores as bars
           doc.setFontSize(8);
           doc.setFont('helvetica', 'normal');
           doc.text('Anxiety:', margin + 70, yPos + 5);
@@ -755,22 +1143,6 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
           yPos += 3;
         }
         
-        // Deception Analysis
-        if (psych.deception_analysis) {
-          const dec = psych.deception_analysis as any;
-          renderSubsection('Deception Analysis');
-          
-          if (dec.baseline_established) {
-            renderKeyValue('Baseline', 'Established ✓');
-          }
-          if (dec.detected_tells?.length > 0) {
-            doc.setTextColor(180, 100, 0);
-            dec.detected_tells.slice(0, 4).forEach((t: string) => renderBullet(t, 5, '⚠'));
-            doc.setTextColor(0);
-          }
-          yPos += 3;
-        }
-        
         // Vulnerabilities
         const vulnerabilities = psych.vulnerabilities || psych.vulnerability_map;
         if (vulnerabilities && Array.isArray(vulnerabilities) && vulnerabilities.length > 0) {
@@ -794,55 +1166,46 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       }
 
       // ========================================
-      // RELATIONSHIP INTELLIGENCE
+      // QUANTUM COGNITION ANALYSIS
       // ========================================
-      if (sections.find(s => s.id === 'relationship')?.enabled && relationshipAnalysis) {
-        renderSectionHeader('Relationship Intelligence', [0, 102, 51]);
+      if (sections.find(s => s.id === 'quantumCognition')?.enabled && cognitiveSuperpositions.data?.length > 0) {
+        renderSectionHeader('Quantum Cognition Analysis', [0, 100, 150]);
         
-        const result = relationshipAnalysis.result as any;
+        const quantum = cognitiveSuperpositions.data[0] as any;
         
-        // Score display box
-        checkPageBreak(30);
-        doc.setFillColor(240, 250, 245);
-        doc.roundedRect(margin, yPos - 3, 100, 25, 3, 3, 'F');
-        
-        doc.setFontSize(28);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(0, 102, 51);
-        doc.text(`${result.score || 0}`, margin + 10, yPos + 14);
-        doc.setFontSize(14);
-        doc.setTextColor(100);
-        doc.text(`/ 100`, margin + 42, yPos + 14);
-        doc.setFontSize(16);
-        doc.setTextColor(0, 102, 51);
-        doc.text(`Grade: ${result.grade || 'N/A'}`, margin + 60, yPos + 14);
-        doc.setTextColor(0);
-        yPos += 30;
-        
-        // Factors
-        if (result.factors?.length > 0) {
-          renderSubsection('Relationship Factors');
-          result.factors.forEach((factor: any) => {
-            renderScoreBar(factor.name, factor.score, 100, [0, 102, 51]);
+        if (quantum.superposition_states?.length > 0) {
+          renderSubsection('Superposition States');
+          doc.setFontSize(8);
+          doc.setTextColor(0, 100, 150);
+          (quantum.superposition_states as any[]).slice(0, 4).forEach((state: any) => {
+            const text = typeof state === 'string' ? state : `${state.belief || state.state}: ${(state.probability * 100 || 50).toFixed(0)}% likelihood`;
+            renderBullet(text, 5);
           });
-          yPos += 3;
+          doc.setTextColor(0);
         }
         
-        // Strengths
-        if (result.strengths?.length > 0) {
-          renderSubsection('Relationship Strengths');
-          doc.setTextColor(0, 100, 0);
-          result.strengths.slice(0, 5).forEach((s: string) => renderBullet(s, 5, '✓'));
-          doc.setTextColor(0);
+        if (quantum.collapse_probability !== undefined) {
           yPos += 3;
+          renderScoreBar('Collapse Probability', quantum.collapse_probability * 100, 100, [0, 100, 150]);
         }
         
-        // Areas for Improvement
-        if (result.areasForImprovement?.length > 0) {
-          renderSubsection('Areas for Improvement');
-          doc.setTextColor(180, 100, 0);
-          result.areasForImprovement.slice(0, 5).forEach((a: string) => renderBullet(a, 5, '△'));
-          doc.setTextColor(0);
+        if (quantum.interference_patterns) {
+          renderSubsection('Interference Patterns');
+          const patterns = quantum.interference_patterns;
+          if (typeof patterns === 'object') {
+            Object.entries(patterns).slice(0, 4).forEach(([key, value]) => {
+              renderKeyValue(key.replace(/_/g, ' '), String(value));
+            });
+          }
+        }
+        
+        if (quantum.entanglement_partners?.length > 0) {
+          renderSubsection('Entanglement Partners');
+          doc.setFontSize(8);
+          (quantum.entanglement_partners as any[]).slice(0, 4).forEach((partner: any) => {
+            const text = typeof partner === 'string' ? partner : `${partner.name || 'Unknown'}: ${partner.correlation || 'Correlated'}`;
+            renderBullet(text, 5);
+          });
         }
         
         yPos += 8;
@@ -852,51 +1215,57 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       // ENGAGEMENT PLAYBOOK
       // ========================================
       if (sections.find(s => s.id === 'playbook')?.enabled && playbookAnalysis) {
-        renderSectionHeader('Engagement Playbook', [102, 51, 0]);
+        renderSectionHeader('Engagement Playbook', [0, 102, 51]);
         
         const result = playbookAnalysis.result as any;
         
-        // Things to Remember
-        if (result.thingsToRemember?.length > 0) {
-          renderSubsection('🧠 Key Intelligence Points');
-          result.thingsToRemember.slice(0, 10).forEach((item: string) => renderBullet(item, 5));
-          yPos += 5;
-        }
-        
-        // Conversation Starters
-        if (result.conversationStarters?.length > 0) {
-          renderSubsection('💬 Tactical Conversation Openers');
-          result.conversationStarters.slice(0, 5).forEach((starter: string) => {
-            checkPageBreak(12);
-            doc.setFontSize(9);
-            doc.setFont('helvetica', 'italic');
-            doc.setTextColor(60, 60, 60);
-            const lines = doc.splitTextToSize(`"${starter}"`, contentWidth - 10);
-            doc.text(lines, margin + 5, yPos);
-            doc.setTextColor(0);
-            yPos += lines.length * lineHeight + 2;
-          });
-          yPos += 3;
-        }
-        
-        // Rapport Builders
-        if (result.rapportBuilders?.length > 0) {
-          renderSubsection('🤝 Rapport Building Tactics');
-          result.rapportBuilders.slice(0, 5).forEach((rb: string) => renderBullet(rb, 5));
-          yPos += 3;
-        }
-        
-        // Power words
+        // Power Words
         if (result.powerWords?.length > 0) {
-          renderSubsection('⚡ Power Words');
-          doc.setFontSize(9);
+          renderSubsection('✓ Power Words');
           doc.setTextColor(0, 100, 0);
-          const powerWordsText = result.powerWords.slice(0, 10).join(' • ');
-          const lines = doc.splitTextToSize(powerWordsText, contentWidth);
+          const wordsText = result.powerWords.slice(0, 10).join(' • ');
+          const lines = doc.splitTextToSize(wordsText, contentWidth - 10);
           checkPageBreak(lines.length * lineHeight + 5);
+          doc.setFontSize(9);
           doc.text(lines, margin + 5, yPos);
           doc.setTextColor(0);
           yPos += lines.length * lineHeight + 3;
+        }
+        
+        // Words to Avoid
+        if (result.avoidWords?.length > 0) {
+          renderSubsection('✗ Words to Avoid');
+          doc.setTextColor(180, 0, 0);
+          const avoidText = result.avoidWords.slice(0, 10).join(' • ');
+          const lines = doc.splitTextToSize(avoidText, contentWidth - 10);
+          checkPageBreak(lines.length * lineHeight + 5);
+          doc.setFontSize(9);
+          doc.text(lines, margin + 5, yPos);
+          doc.setTextColor(0);
+          yPos += lines.length * lineHeight + 3;
+        }
+        
+        // Scenario Scripts
+        if (result.scenarioScripts?.length > 0) {
+          renderSubsection('Scenario-Based Scripts');
+          result.scenarioScripts.slice(0, 4).forEach((script: any) => {
+            checkPageBreak(25);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(9);
+            doc.text(`When: ${script.scenario || script.trigger}`, margin, yPos);
+            yPos += lineHeight;
+            
+            if (script.script || script.response) {
+              doc.setFont('helvetica', 'italic');
+              doc.setFontSize(8);
+              doc.setTextColor(60, 60, 60);
+              const scriptLines = doc.splitTextToSize(`"${script.script || script.response}"`, contentWidth - 15);
+              checkPageBreak(scriptLines.length * 5 + 3);
+              doc.text(scriptLines, margin + 10, yPos);
+              doc.setTextColor(0);
+              yPos += scriptLines.length * 5 + 5;
+            }
+          });
         }
         
         // Topics to Avoid
@@ -911,6 +1280,149 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       }
 
       // ========================================
+      // HYPNOTIC LANGUAGE PATTERNS
+      // ========================================
+      if (sections.find(s => s.id === 'hypnoticPatterns')?.enabled) {
+        renderSectionHeader('Hypnotic Language Patterns', [100, 0, 100]);
+        
+        const psych = psychData.data?.[0] as any;
+        const personality = psych?.personality_traits || {};
+        
+        // Recommend patterns based on personality
+        const patterns = [
+          { name: 'Embedded Commands', desc: 'Hidden imperatives in casual speech', effectiveness: personality.agreeableness > 50 ? 85 : 70 },
+          { name: 'Presuppositions', desc: 'Assumptions embedded in statements', effectiveness: 82 },
+          { name: 'Future Pacing', desc: 'Visualizing desired outcome as accomplished', effectiveness: personality.openness > 50 ? 88 : 75 },
+          { name: 'Double Binds', desc: 'Illusory choices leading to same outcome', effectiveness: 89 },
+          { name: 'Yes-Set Pattern', desc: 'Building agreement momentum', effectiveness: personality.agreeableness > 50 ? 90 : 78 },
+        ];
+        
+        renderSubsection('Optimal Patterns for This Target');
+        patterns.forEach(p => {
+          renderScoreBar(p.name, p.effectiveness, 100, [100, 0, 100]);
+        });
+        
+        // Example scripts
+        renderSubsection('Sample Scripts');
+        checkPageBreak(40);
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(8);
+        doc.setTextColor(80, 80, 80);
+        const scripts = [
+          `[Embedded Command] "I'm wondering if you might consider this proposal as we continue..."`,
+          `[Presupposition] "Before you agree, you might want to consider the benefits..."`,
+          `[Future Pacing] "Imagine a month from now, when you've already decided, looking back..."`,
+          `[Double Bind] "Would you prefer to decide now, or would you rather think about it tonight?"`,
+        ];
+        scripts.forEach(script => {
+          const lines = doc.splitTextToSize(script, contentWidth - 10);
+          checkPageBreak(lines.length * 5 + 3);
+          doc.text(lines, margin + 5, yPos);
+          yPos += lines.length * 5 + 2;
+        });
+        doc.setTextColor(0);
+        
+        yPos += 8;
+      }
+
+      // ========================================
+      // ELICITATION TECHNIQUE GUIDE
+      // ========================================
+      if (sections.find(s => s.id === 'elicitation')?.enabled) {
+        renderSectionHeader('Elicitation Technique Guide', [0, 80, 100]);
+        
+        const psych = psychData.data?.[0] as any;
+        
+        // Calculate optimal techniques based on profile
+        const egoLevel = (psych?.dark_triad_indicators?.narcissism || 50) / 100;
+        const suspicionLevel = (psych?.suspicion_baseline || 30) / 100;
+        
+        renderSubsection('FBI Elicitation Techniques - Ranked for Target');
+        
+        const rankedTechniques = [
+          { name: 'Flattery', category: 'ego', effectiveness: Math.round((0.8 + egoLevel * 0.15) * 100), detectability: 40 },
+          { name: 'Quid Pro Quo', category: 'reciprocity', effectiveness: 85, detectability: 30 },
+          { name: 'Assumed Knowledge', category: 'assumption', effectiveness: 75, detectability: 30 },
+          { name: 'Deliberate False Statement', category: 'assumption', effectiveness: Math.round(85 * (1 - suspicionLevel * 0.3)), detectability: 25 },
+          { name: 'Feigned Naivete', category: 'cognitive', effectiveness: 78, detectability: 30 },
+          { name: 'Word Repetition', category: 'cognitive', effectiveness: 75, detectability: 20 },
+        ].sort((a, b) => b.effectiveness - a.effectiveness);
+        
+        rankedTechniques.slice(0, 5).forEach((tech, idx) => {
+          checkPageBreak(12);
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'bold');
+          doc.text(`${idx + 1}. ${tech.name}`, margin, yPos);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          doc.text(`[${tech.category}] Eff: ${tech.effectiveness}% | Det: ${tech.detectability}%`, margin + 60, yPos);
+          yPos += 7;
+        });
+        
+        // Previous elicitation sessions
+        if (elicitationSessions.data?.length > 0) {
+          yPos += 3;
+          renderSubsection('Previous Elicitation Sessions');
+          (elicitationSessions.data as any[]).slice(0, 3).forEach((session: any) => {
+            checkPageBreak(15);
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`Session: ${session.session_type || 'Unknown'}`, margin, yPos);
+            yPos += 5;
+            if (session.techniques_used?.length > 0) {
+              doc.setFont('helvetica', 'normal');
+              doc.text(`Techniques: ${session.techniques_used.slice(0, 3).join(', ')}`, margin + 5, yPos);
+              yPos += 5;
+            }
+          });
+        }
+        
+        yPos += 8;
+      }
+
+      // ========================================
+      // COGNITIVE LOAD EXPLOITATION
+      // ========================================
+      if (sections.find(s => s.id === 'cognitiveLoad')?.enabled) {
+        renderSectionHeader('Cognitive Load Exploitation', [80, 0, 80]);
+        
+        const dna = behavioralDnaAnalysis?.result as any;
+        const decisionArch = dna?.decision_architecture;
+        
+        renderSubsection('Cognitive State Indicators');
+        
+        if (decisionArch) {
+          renderKeyValue('Decision Fatigue Threshold', decisionArch.decision_fatigue_threshold || 'Medium');
+          if (decisionArch.regret_sensitivity) {
+            renderScoreBar('Regret Sensitivity', decisionArch.regret_sensitivity, 100, [180, 100, 0]);
+          }
+          if (decisionArch.sunk_cost_vulnerability) {
+            renderScoreBar('Sunk Cost Vulnerability', decisionArch.sunk_cost_vulnerability, 100, [180, 0, 0]);
+          }
+        }
+        
+        renderSubsection('Exploitation Windows');
+        const windows = [
+          { window: 'Post-Meeting Fatigue', timing: 'After long meetings', technique: 'Default option strategy' },
+          { window: 'End of Day', timing: '4-6 PM', technique: 'Emotional appeals' },
+          { window: 'Information Overload', timing: 'After complex discussions', technique: 'Simplification anchoring' },
+          { window: 'Ego Depletion', timing: 'After self-control exertion', technique: 'Impulse-friendly offers' },
+        ];
+        
+        windows.forEach(w => {
+          checkPageBreak(15);
+          doc.setFontSize(8);
+          doc.setFont('helvetica', 'bold');
+          doc.text(`${w.window}`, margin, yPos);
+          doc.setFont('helvetica', 'normal');
+          doc.text(`[${w.timing}] → ${w.technique}`, margin + 50, yPos);
+          yPos += 6;
+        });
+        
+        yPos += 8;
+      }
+
+      // ========================================
       // MEDIA INTELLIGENCE SYNTHESIS
       // ========================================
       if (sections.find(s => s.id === 'mediaIntel')?.enabled) {
@@ -920,7 +1432,6 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         if (hasMediaAnalyses || hasMediaMetadata) {
           renderSectionHeader('Media Intelligence Synthesis', [51, 51, 102]);
           
-          // Summary stats box
           checkPageBreak(20);
           doc.setFillColor(245, 245, 255);
           doc.roundedRect(margin, yPos - 3, contentWidth, 18, 2, 2, 'F');
@@ -934,7 +1445,6 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
           doc.setTextColor(0);
           yPos += 22;
           
-          // Use aggregated media intelligence if available
           if (mediaAggregation?.result) {
             const agg = mediaAggregation.result as any;
             
@@ -962,57 +1472,10 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
               yPos += 3;
             }
             
-            if (agg.wealth_lifestyle) {
-              const wl = agg.wealth_lifestyle;
-              if (wl.indicators?.length > 0) {
-                renderSubsection('💰 Wealth & Lifestyle Indicators');
-                wl.indicators.slice(0, 5).forEach((i: string) => renderBullet(i, 5));
-                yPos += 3;
-              }
-              if (wl.profession_cues?.length > 0) {
-                renderSubsection('💼 Profession Cues');
-                wl.profession_cues.slice(0, 4).forEach((p: string) => renderBullet(p, 5));
-                yPos += 3;
-              }
-            }
-            
-            if (agg.interests?.length > 0) {
-              renderSubsection('🎯 Detected Interests');
-              const interestsText = agg.interests.slice(0, 12).join(' • ');
-              const lines = doc.splitTextToSize(interestsText, contentWidth - 10);
-              checkPageBreak(lines.length * lineHeight + 5);
-              doc.setFontSize(9);
-              doc.text(lines, margin + 5, yPos);
-              yPos += lines.length * lineHeight + 3;
-            }
-            
             if (agg.red_flags?.length > 0) {
               renderSubsection('🚨 Red Flags from Media');
               doc.setTextColor(180, 0, 0);
               agg.red_flags.slice(0, 5).forEach((rf: string) => renderBullet(rf, 5, '⚠'));
-              doc.setTextColor(0);
-            }
-          } else if (hasMediaAnalyses) {
-            // Fallback to individual media analyses
-            const allInsights: string[] = [];
-            const allRedFlags: string[] = [];
-            
-            mediaAnalyses.data.forEach((ma: any) => {
-              if (ma.key_insights) allInsights.push(...ma.key_insights);
-              if (ma.red_flags) allRedFlags.push(...ma.red_flags);
-            });
-            
-            if (allInsights.length > 0) {
-              renderSubsection('Aggregated Insights');
-              [...new Set(allInsights)].filter(i => !i.includes('extraction failed')).slice(0, 10)
-                .forEach((insight: string) => renderBullet(insight, 5));
-              yPos += 3;
-            }
-            
-            if (allRedFlags.length > 0) {
-              renderSubsection('Red Flags');
-              doc.setTextColor(180, 0, 0);
-              [...new Set(allRedFlags)].slice(0, 5).forEach((flag: string) => renderBullet(flag, 5, '⚠'));
               doc.setTextColor(0);
             }
           }
@@ -1027,7 +1490,6 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       if (sections.find(s => s.id === 'voiceIntel')?.enabled && (voiceData.data?.length > 0 || voiceAggregation?.result)) {
         renderSectionHeader('Voice Intelligence', [102, 0, 51]);
         
-        // Summary stats box
         checkPageBreak(18);
         doc.setFillColor(255, 245, 250);
         doc.roundedRect(margin, yPos - 3, contentWidth, 14, 2, 2, 'F');
@@ -1056,32 +1518,58 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
             doc.setTextColor(180, 100, 0);
             voice.deception_markers.slice(0, 4).forEach((m: string) => renderBullet(m, 5));
             doc.setTextColor(0);
-            yPos += 3;
           }
-          
-          if (voice.key_themes?.length > 0) {
-            renderSubsection('📝 Key Conversation Themes');
-            voice.key_themes.slice(0, 5).forEach((t: string) => renderBullet(t, 5));
-          }
-        } else if (voiceData.data?.length > 0) {
-          renderSubsection('Recent Voice Sessions');
-          voiceData.data.slice(0, 5).forEach((v: any) => {
-            checkPageBreak(20);
-            doc.setFontSize(9);
-            doc.setFont('helvetica', 'bold');
-            doc.text(`${format(new Date(v.created_at), 'MMM d, yyyy')} - ${v.recording_type || 'Voice'}`, margin, yPos);
-            yPos += lineHeight;
-            if (v.transcript_summary) {
-              doc.setFont('helvetica', 'normal');
-              const lines = doc.splitTextToSize(v.transcript_summary.substring(0, 200), contentWidth - 10);
-              doc.text(lines, margin + 5, yPos);
-              yPos += lines.length * lineHeight;
-            }
-            yPos += 3;
-          });
         }
         
         yPos += 8;
+      }
+
+      // ========================================
+      // DECEPTION ANALYSIS DEEP DIVE
+      // ========================================
+      if (sections.find(s => s.id === 'deceptionAnalysis')?.enabled) {
+        const psych = psychData.data?.[0] as any;
+        const deception = psych?.deception_analysis;
+        
+        if (deception || crossModalData.data?.length > 0) {
+          renderSectionHeader('Deception Analysis Deep Dive', [180, 100, 0]);
+          
+          if (deception) {
+            renderSubsection('Authenticity Assessment');
+            if (deception.baseline_established) {
+              renderKeyValue('Deception Baseline', 'Established ✓');
+            }
+            if (deception.authenticity_score !== undefined) {
+              renderScoreBar('Authenticity Score', deception.authenticity_score, 100, [0, 150, 0]);
+            }
+            
+            if (deception.detected_tells?.length > 0) {
+              renderSubsection('Detected Deception Tells');
+              doc.setTextColor(180, 100, 0);
+              deception.detected_tells.slice(0, 5).forEach((t: string) => renderBullet(t, 5, '⚠'));
+              doc.setTextColor(0);
+            }
+            
+            if (deception.trigger_topics?.length > 0) {
+              renderSubsection('Topics That Trigger Deception');
+              doc.setTextColor(180, 0, 0);
+              deception.trigger_topics.slice(0, 4).forEach((t: string) => renderBullet(t, 5));
+              doc.setTextColor(0);
+            }
+          }
+          
+          // Cross-modal deception synthesis
+          const deceptionCorrelation = crossModalData.data?.find((c: any) => c.correlation_type === 'deception_synthesis');
+          if (deceptionCorrelation) {
+            renderSubsection('Cross-Modal Deception Fingerprint');
+            const patternData = (deceptionCorrelation as any).pattern_data;
+            if (patternData?.deception_score) {
+              renderScoreBar('Deception Risk', patternData.deception_score * 100, 100, [180, 50, 0]);
+            }
+          }
+          
+          yPos += 8;
+        }
       }
 
       // ========================================
@@ -1107,7 +1595,6 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
             actions.slice(0, 5).forEach((action: any) => {
               checkPageBreak(35);
               
-              // Action title with priority badge
               doc.setFont('helvetica', 'bold');
               doc.setFontSize(9);
               const priority = action.priority?.toLowerCase() || 'normal';
@@ -1144,7 +1631,7 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
           renderActionCategory('SHORT-TERM ACTIONS', actionPlans.short_term, [180, 100, 0], '🟠');
           renderActionCategory('LONG-TERM ACTIONS', actionPlans.long_term, [0, 100, 0], '🟢');
           
-          // Do Not Do list - Critical section
+          // Do Not Do list
           if (actionPlans.do_not_do?.length > 0) {
             checkPageBreak(30);
             doc.setFillColor(255, 230, 230);
@@ -1190,7 +1677,6 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         
         const mice = miceData.data[0] as any;
         
-        // MICE scores visual display
         checkPageBreak(45);
         doc.setFillColor(255, 248, 248);
         doc.roundedRect(margin, yPos - 3, contentWidth, 40, 3, 3, 'F');
@@ -1206,13 +1692,11 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         miceScores.forEach((m, i) => {
           const x = margin + 5 + (i * boxWidth);
           
-          // Label
           doc.setFontSize(8);
           doc.setFont('helvetica', 'bold');
           doc.setTextColor(...m.color);
           doc.text(m.label, x, yPos + 5);
           
-          // Score circle
           doc.setFillColor(...m.color);
           doc.circle(x + 15, yPos + 18, 10, 'F');
           doc.setTextColor(255, 255, 255);
@@ -1224,7 +1708,6 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         });
         yPos += 45;
         
-        // Primary vulnerability and likelihood
         if (mice.primary_vulnerability) {
           doc.setFillColor(255, 200, 200);
           doc.roundedRect(margin, yPos - 2, contentWidth, 12, 2, 2, 'F');
@@ -1253,7 +1736,6 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         
         const influence = influenceData.data as any;
         
-        // Render 7 principles as score bars
         checkPageBreak(80);
         doc.setFillColor(245, 250, 255);
         doc.roundedRect(margin, yPos - 3, contentWidth, 70, 2, 2, 'F');
@@ -1267,7 +1749,6 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
           doc.setFont('helvetica', 'bold');
           doc.text(principle.label, margin + 5, yPos);
           
-          // Score bar
           const barX = margin + 55;
           const barWidth = 70;
           doc.setFillColor(220, 220, 220);
@@ -1285,18 +1766,11 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         
         yPos += 5;
         
-        // Optimal approach
-        if (influence.optimal_approach || influence.primary_motivators) {
+        if (influence.optimal_approach) {
           renderSubsection('Optimal Influence Strategy');
-          if (influence.optimal_approach) {
-            renderBullet(influence.optimal_approach, 5);
-          }
-          if (influence.primary_motivators?.length > 0) {
-            influence.primary_motivators.slice(0, 4).forEach((m: string) => renderBullet(m, 5));
-          }
+          renderBullet(influence.optimal_approach, 5);
         }
         
-        // Power words & triggers
         if (influence.positive_triggers?.length > 0) {
           renderSubsection('✓ Positive Triggers');
           doc.setTextColor(0, 100, 0);
@@ -1318,37 +1792,63 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
           doc.setFontSize(9);
           doc.text(lines, margin + 5, yPos);
           doc.setTextColor(0);
-          yPos += lines.length * lineHeight + 3;
+          yPos += lines.length * lineHeight;
         }
         
         yPos += 8;
       }
 
       // ========================================
-      // INFLUENCE VECTORS
+      // SACRED VALUES PROFILE
       // ========================================
-      if (sections.find(s => s.id === 'influence')?.enabled && influenceData.data) {
-        renderSectionHeader('Influence Vectors', [51, 102, 0]);
+      if (sections.find(s => s.id === 'sacredValues')?.enabled && sacredValuesAnalysis) {
+        renderSectionHeader('Sacred Values Profile', [120, 60, 0]);
         
-        const influence = influenceData.data as any;
+        const sacred = sacredValuesAnalysis.result as any;
         
-        if (influence.influence_index !== undefined) {
-          renderKeyValue('Influence Index', `${influence.influence_index}/100`);
-        }
-        if (influence.susceptibility_profile) {
-          renderKeyValue('Susceptibility Profile', influence.susceptibility_profile);
-        }
-        if (influence.network_centrality !== undefined) {
-          renderKeyValue('Network Centrality', `${influence.network_centrality}%`);
+        if (sacred.sacred_values?.length > 0) {
+          renderSubsection('Identified Sacred Values');
+          (sacred.sacred_values as any[]).slice(0, 5).forEach((val: any) => {
+            checkPageBreak(20);
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(120, 60, 0);
+            doc.text(`${val.domain?.toUpperCase() || 'VALUE'}: ${val.value}`, margin, yPos);
+            doc.setTextColor(0);
+            yPos += 5;
+            
+            if (val.protection_level !== undefined) {
+              renderScoreBar('Protection Level', val.protection_level * 100, 100, [180, 0, 0]);
+            }
+            if (val.trigger_phrases?.length > 0) {
+              doc.setFontSize(8);
+              doc.setFont('helvetica', 'italic');
+              doc.text(`Triggers: ${val.trigger_phrases.slice(0, 3).join(', ')}`, margin + 5, yPos);
+              yPos += 5;
+            }
+            yPos += 3;
+          });
         }
         
-        if (influence.persuasion_vectors?.length > 0) {
-          renderSubsection('Optimal Persuasion Vectors');
-          influence.persuasion_vectors.slice(0, 6).forEach((v: any) => {
-            if (typeof v === 'string') {
-              renderBullet(v, 5);
-            } else {
-              renderBullet(`${v.vector || v.type}: ${v.effectiveness || v.description}`, 5);
+        if (sacred.tribal_identities?.length > 0) {
+          renderSubsection('Tribal Identities');
+          (sacred.tribal_identities as any[]).slice(0, 3).forEach((tribe: any) => {
+            renderBullet(`${tribe.tribe}: ${(tribe.strength * 100 || 50).toFixed(0)}% strength`, 5);
+          });
+        }
+        
+        if (sacred.manipulation_vectors?.length > 0) {
+          renderSubsection('Manipulation Vectors');
+          (sacred.manipulation_vectors as any[]).slice(0, 4).forEach((vec: any) => {
+            checkPageBreak(12);
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`[${vec.approach?.toUpperCase() || 'UNKNOWN'}] ${vec.vector}`, margin, yPos);
+            yPos += 5;
+            if (vec.expected_response) {
+              doc.setFont('helvetica', 'normal');
+              doc.text(`→ ${vec.expected_response}`, margin + 10, yPos);
+              yPos += 5;
             }
           });
         }
@@ -1357,41 +1857,75 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       }
 
       // ========================================
-      // THREAT ASSESSMENT
+      // REALITY TESTING VULNERABILITY
       // ========================================
-      if (sections.find(s => s.id === 'threatActor')?.enabled && threatData.data) {
-        renderSectionHeader('Threat Assessment', [180, 0, 0]);
+      if (sections.find(s => s.id === 'realityTesting')?.enabled) {
+        const crossModal = crossModalData.data?.find((c: any) => c.correlation_type === 'identity_destabilization' || c.correlation_type === 'reality_testing');
         
-        const threat = threatData.data as any;
-        
-        // Threat level banner
-        checkPageBreak(18);
-        const threatLevel = threat.threat_level?.toUpperCase() || 'UNKNOWN';
-        const threatColor: [number, number, number] = threatLevel === 'HIGH' ? [180, 0, 0] : threatLevel === 'MEDIUM' ? [180, 100, 0] : [100, 100, 100];
-        doc.setFillColor(...threatColor, 0.15);
-        doc.roundedRect(margin, yPos - 3, contentWidth, 14, 2, 2, 'F');
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...threatColor);
-        doc.text(`⚠ THREAT LEVEL: ${threatLevel}`, margin + 5, yPos + 6);
-        doc.setTextColor(0);
-        yPos += 20;
-        
-        if (threat.actor_type) renderKeyValue('Actor Type', threat.actor_type);
-        if (threat.capability_assessment) renderKeyValue('Capability', threat.capability_assessment);
-        if (threat.intent_assessment) renderKeyValue('Intent', threat.intent_assessment);
-        
-        if (threat.known_tactics?.length > 0) {
-          renderSubsection('Known Tactics');
-          threat.known_tactics.slice(0, 5).forEach((t: string) => renderBullet(t, 5));
-          yPos += 3;
+        if (crossModal) {
+          renderSectionHeader('Reality Testing Vulnerability', [80, 0, 80]);
+          
+          const patternData = (crossModal as any).pattern_data;
+          
+          if ((crossModal as any).correlation_strength !== undefined) {
+            renderScoreBar('Reality Testing Weakness', (crossModal as any).correlation_strength * 100, 100, [180, 0, 0]);
+          }
+          
+          if (patternData?.vulnerability_domains?.length > 0) {
+            renderSubsection('Vulnerable Domains');
+            patternData.vulnerability_domains.slice(0, 4).forEach((d: string) => renderBullet(d, 5));
+          }
+          
+          renderSubsection('Applicable Techniques');
+          const techniques = [
+            { name: 'Contradiction Injection', desc: 'Introduce conflicting information' },
+            { name: 'Source Confusion', desc: 'Blur origin of information' },
+            { name: 'Memory Manipulation', desc: 'Suggest alternative memories' },
+            { name: 'Perception Distortion', desc: 'Reframe observations' },
+          ];
+          
+          techniques.forEach(tech => {
+            checkPageBreak(10);
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`• ${tech.name}:`, margin, yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.text(tech.desc, margin + 45, yPos);
+            yPos += 5;
+          });
+          
+          yPos += 8;
         }
+      }
+
+      // ========================================
+      // CHOICE ARCHITECTURE EXPLOITATION
+      // ========================================
+      if (sections.find(s => s.id === 'choiceArchitecture')?.enabled) {
+        renderSectionHeader('Choice Architecture Exploitation', [0, 80, 120]);
         
-        if (threat.countermeasures?.length > 0) {
-          renderSubsection('Recommended Countermeasures');
-          doc.setTextColor(0, 100, 0);
-          threat.countermeasures.slice(0, 5).forEach((c: string) => renderBullet(c, 5, '✓'));
-          doc.setTextColor(0);
+        const finPsych = financialPsychology.data?.[0] as any;
+        
+        renderSubsection('Effective Nudges');
+        const nudges = [
+          { name: 'Default Effect', effectiveness: 85, desc: 'Pre-select desired option' },
+          { name: 'Decoy Effect', effectiveness: 75, desc: 'Add inferior option to make target look better' },
+          { name: 'Middle-Option Bias', effectiveness: 70, desc: 'Position target in center' },
+          { name: 'Scarcity Cues', effectiveness: finPsych?.scarcity_response ? finPsych.scarcity_response * 100 : 80, desc: 'Highlight limited availability' },
+          { name: 'Social Proof', effectiveness: 75, desc: 'Show others choosing target' },
+          { name: 'Loss Framing', effectiveness: finPsych?.loss_aversion_score ? finPsych.loss_aversion_score * 100 : 82, desc: 'Frame as avoiding loss' },
+        ];
+        
+        nudges.forEach(nudge => {
+          renderScoreBar(nudge.name, nudge.effectiveness, 100, [0, 80, 120]);
+        });
+        
+        if (finPsych) {
+          yPos += 3;
+          renderSubsection('Behavioral Economics Profile');
+          if (finPsych.loss_aversion_score) renderScoreBar('Loss Aversion', finPsych.loss_aversion_score * 100, 100, [180, 0, 0]);
+          if (finPsych.sunk_cost_fallacy_susceptibility) renderScoreBar('Sunk Cost Fallacy', finPsych.sunk_cost_fallacy_susceptibility * 100, 100, [180, 100, 0]);
+          if (finPsych.anchoring_susceptibility) renderScoreBar('Anchoring Susceptibility', finPsych.anchoring_susceptibility * 100, 100, [100, 100, 0]);
         }
         
         yPos += 8;
@@ -1401,50 +1935,43 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       // BETRAYAL & CRISIS PREDICTION
       // ========================================
       if (sections.find(s => s.id === 'betrayal')?.enabled && betrayalData.data?.length > 0) {
-        renderSectionHeader('Betrayal & Crisis Prediction', [100, 0, 50]);
+        renderSectionHeader('Betrayal & Crisis Prediction', [150, 0, 0]);
         
         const betrayal = betrayalData.data[0] as any;
         
-        // Overall betrayal risk
         if (betrayal.betrayal_likelihood !== undefined) {
-          checkPageBreak(25);
-          const risk = betrayal.betrayal_likelihood * 100;
-          const riskColor: [number, number, number] = risk > 70 ? [180, 0, 0] : risk > 40 ? [180, 100, 0] : [0, 150, 0];
+          renderScoreBar('Betrayal Likelihood', betrayal.betrayal_likelihood * 100, 100, [180, 0, 0]);
+        }
+        
+        // Gottman Four Horsemen
+        if (betrayal.gottman_analysis) {
+          renderSubsection('Gottman Four Horsemen Analysis');
+          const horsemen = betrayal.gottman_analysis;
           
-          doc.setFillColor(...riskColor, 0.1);
-          doc.roundedRect(margin, yPos - 3, contentWidth, 20, 2, 2, 'F');
-          doc.setFontSize(14);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(...riskColor);
-          doc.text(`Betrayal Risk: ${risk.toFixed(0)}%`, margin + 5, yPos + 8);
-          doc.setTextColor(0);
-          yPos += 25;
+          const horsemanScores = [
+            { name: 'Criticism', score: horsemen.criticism_score || 0 },
+            { name: 'Contempt', score: horsemen.contempt_score || 0 },
+            { name: 'Defensiveness', score: horsemen.defensiveness_score || 0 },
+            { name: 'Stonewalling', score: horsemen.stonewalling_score || 0 },
+          ];
+          
+          horsemanScores.forEach(h => {
+            const color: [number, number, number] = h.score > 70 ? [180, 0, 0] : h.score > 40 ? [180, 100, 0] : [0, 100, 0];
+            renderScoreBar(h.name, h.score, 100, color);
+          });
         }
         
-        // Gottman's Four Horsemen
-        if (betrayal.four_horsemen) {
-          renderSubsection("Gottman's Four Horsemen Analysis");
-          const horsemen = betrayal.four_horsemen as any;
-          if (horsemen.criticism !== undefined) renderScoreBar('Criticism', horsemen.criticism, 100, [180, 0, 0]);
-          if (horsemen.contempt !== undefined) renderScoreBar('Contempt', horsemen.contempt, 100, [150, 0, 50]);
-          if (horsemen.defensiveness !== undefined) renderScoreBar('Defensiveness', horsemen.defensiveness, 100, [100, 100, 0]);
-          if (horsemen.stonewalling !== undefined) renderScoreBar('Stonewalling', horsemen.stonewalling, 100, [50, 50, 150]);
-          yPos += 3;
-        }
-        
-        // Warning signs
         if (betrayal.warning_signs?.length > 0) {
-          renderSubsection('⚠ Active Warning Signs');
+          renderSubsection('⚠ Warning Signs Detected');
           doc.setTextColor(180, 0, 0);
-          betrayal.warning_signs.slice(0, 5).forEach((w: string) => renderBullet(w, 5));
+          betrayal.warning_signs.slice(0, 5).forEach((w: string) => renderBullet(w, 5, '⚠'));
           doc.setTextColor(0);
         }
         
-        // Protective factors
         if (betrayal.protective_factors?.length > 0) {
           renderSubsection('✓ Protective Factors');
           doc.setTextColor(0, 100, 0);
-          betrayal.protective_factors.slice(0, 5).forEach((p: string) => renderBullet(p, 5, '✓'));
+          betrayal.protective_factors.slice(0, 4).forEach((p: string) => renderBullet(p, 5, '✓'));
           doc.setTextColor(0);
         }
         
@@ -1452,51 +1979,49 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       }
 
       // ========================================
-      // TRAUMA & VULNERABILITY WINDOWS
+      // PRECOGNITIVE PATTERN ANALYSIS
       // ========================================
-      if (sections.find(s => s.id === 'trauma')?.enabled && traumaData?.data) {
-        renderSectionHeader('Trauma & Vulnerability Windows', [120, 0, 60]);
-        
-        const trauma = traumaData.data as any;
-        
-        if (trauma.vulnerability_score !== undefined) {
-          checkPageBreak(20);
-          const score = (trauma.vulnerability_score * 100);
-          const color: [number, number, number] = score > 60 ? [180, 0, 0] : score > 30 ? [180, 100, 0] : [0, 120, 0];
-          doc.setFillColor(...color, 0.1);
-          doc.roundedRect(margin, yPos - 3, contentWidth, 14, 2, 2, 'F');
-          doc.setFontSize(11);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(...color);
-          doc.text(`Vulnerability Score: ${score.toFixed(0)}%`, margin + 5, yPos + 5);
-          doc.setTextColor(0);
-          yPos += 20;
-        }
-
-        if (trauma.detected_patterns?.length > 0) {
-          renderSubsection('⚠ Detected Trauma Patterns');
-          trauma.detected_patterns.slice(0, 6).forEach((p: any) => {
-            doc.setTextColor(120, 0, 60);
-            renderBullet(`${p.type}: ${p.trigger} (Severity: ${(p.severity * 100).toFixed(0)}%)`, 5);
-            if (p.exploitationScript) {
-              doc.setFont('helvetica', 'italic');
+      if (sections.find(s => s.id === 'precognitive')?.enabled) {
+        if (timelineProbabilities.data?.length > 0 || precursorSignatures.data?.length > 0) {
+          renderSectionHeader('Precognitive Pattern Analysis', [0, 80, 100]);
+          
+          if (timelineProbabilities.data?.length > 0) {
+            renderSubsection('Timeline Probabilities');
+            (timelineProbabilities.data as any[]).slice(0, 5).forEach((prob: any) => {
+              checkPageBreak(15);
+              doc.setFontSize(9);
+              doc.setFont('helvetica', 'bold');
+              doc.text(`${prob.event_type}`, margin, yPos);
+              yPos += 5;
+              renderScoreBar('Probability', (prob.probability_score || 0.5) * 100, 100, [0, 100, 150]);
+              if (prob.timeframe) {
+                doc.setFontSize(8);
+                doc.setFont('helvetica', 'normal');
+                doc.text(`Timeframe: ${prob.timeframe}`, margin + 5, yPos);
+                yPos += 5;
+              }
+            });
+          }
+          
+          if (precursorSignatures.data?.length > 0) {
+            renderSubsection('Precursor Signatures to Monitor');
+            (precursorSignatures.data as any[]).slice(0, 5).forEach((sig: any) => {
+              checkPageBreak(12);
               doc.setFontSize(8);
-              doc.setTextColor(80, 80, 80);
-              const lines = doc.splitTextToSize(`Script: "${p.exploitationScript}"`, contentWidth - 20);
-              checkPageBreak(lines.length * 5 + 3);
-              doc.text(lines, margin + 10, yPos);
-              yPos += lines.length * 5 + 2;
-            }
-            doc.setTextColor(0);
-          });
+              doc.setFont('helvetica', 'bold');
+              doc.text(`[${sig.signature_type || 'Signal'}]`, margin, yPos);
+              doc.setFont('helvetica', 'normal');
+              doc.text(sig.pattern_description || 'Pattern detected', margin + 35, yPos);
+              yPos += 5;
+              if (sig.confidence_score) {
+                doc.text(`Confidence: ${(sig.confidence_score * 100).toFixed(0)}%`, margin + 10, yPos);
+                yPos += 5;
+              }
+            });
+          }
+          
+          yPos += 8;
         }
-
-        if (trauma.optimal_timing?.length > 0) {
-          renderSubsection('⏰ Optimal Timing Windows');
-          trauma.optimal_timing.slice(0, 4).forEach((t: string) => renderBullet(t, 5));
-        }
-        
-        yPos += 8;
       }
 
       // ========================================
@@ -1505,7 +2030,7 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       if (sections.find(s => s.id === 'futureModeling')?.enabled && scenarioPredictions?.data?.length > 0) {
         renderSectionHeader('Behavioral Future Modeling', [0, 80, 120]);
         
-        scenarioPredictions.data.slice(0, 4).forEach((pred: any) => {
+        (scenarioPredictions.data as any[]).slice(0, 4).forEach((pred: any) => {
           checkPageBreak(40);
           doc.setFontSize(10);
           doc.setFont('helvetica', 'bold');
@@ -1543,8 +2068,8 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         if (crossModal) {
           const patternData = (crossModal as any).pattern_data;
           
-          if (crossModal.correlation_strength !== undefined) {
-            renderScoreBar('Deception Risk', crossModal.correlation_strength * 100, 100, [180, 50, 0]);
+          if ((crossModal as any).correlation_strength !== undefined) {
+            renderScoreBar('Deception Risk', (crossModal as any).correlation_strength * 100, 100, [180, 50, 0]);
           }
 
           if (patternData?.contradictions?.length > 0) {
@@ -1563,82 +2088,60 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
             patternData.corroborated_findings.slice(0, 4).forEach((f: string) => renderBullet(f, 5, '✓'));
             doc.setTextColor(0);
           }
-
-          if (crossModal.tactical_implications) {
-            renderSubsection('Tactical Implications');
-            const implications = String(crossModal.tactical_implications);
-            const lines = doc.splitTextToSize(implications.substring(0, 500), contentWidth - 10);
-            checkPageBreak(lines.length * 5 + 5);
-            doc.setFontSize(8);
-            doc.text(lines, margin + 5, yPos);
-            yPos += lines.length * 5;
-          }
         }
         
         yPos += 8;
       }
-      // ========================================
-      if (sections.find(s => s.id === 'timeline')?.enabled && commData.data?.length > 0) {
-        renderSectionHeader('Interaction Timeline', [80, 80, 80]);
-        
-        commData.data.slice(0, 15).forEach((comm: any) => {
-          checkPageBreak(20);
-          
-          doc.setFontSize(9);
-          doc.setFont('helvetica', 'bold');
-          const date = format(new Date(comm.occurred_at), 'MMM d, yyyy HH:mm');
-          doc.text(`${date} | ${comm.channel?.toUpperCase() || 'UNKNOWN'}`, margin, yPos);
-          
-          // Sentiment indicator
-          if (comm.sentiment_score !== undefined) {
-            const sentColor: [number, number, number] = comm.sentiment_score > 0 ? [0, 150, 0] : comm.sentiment_score < 0 ? [180, 0, 0] : [100, 100, 100];
-            doc.setTextColor(...sentColor);
-            doc.text(`[${comm.sentiment_score > 0 ? '+' : ''}${comm.sentiment_score}]`, margin + 100, yPos);
-            doc.setTextColor(0);
-          }
-          yPos += lineHeight;
-          
-          if (comm.subject || comm.content) {
-            doc.setFont('helvetica', 'normal');
-            const text = comm.subject || comm.content?.substring(0, 120);
-            const lines = doc.splitTextToSize(text, contentWidth - 10);
-            doc.text(lines.slice(0, 2), margin + 5, yPos);
-            yPos += Math.min(lines.length, 2) * lineHeight;
-          }
-          
-          yPos += 3;
-        });
-        
-        yPos += 8;
-      }
 
       // ========================================
-      // BEHAVIORAL ANALYSIS
+      // TRAUMA & VULNERABILITY WINDOWS
       // ========================================
-      if (sections.find(s => s.id === 'analysis')?.enabled && behavioralData.data?.length > 0) {
-        renderSectionHeader('Behavioral Analysis', [60, 60, 120]);
+      if (sections.find(s => s.id === 'trauma')?.enabled && traumaData.data?.length > 0) {
+        renderSectionHeader('Trauma & Vulnerability Windows', [150, 50, 50]);
         
-        behavioralData.data.slice(0, 3).forEach((analysis: any) => {
-          checkPageBreak(40);
-          
-          doc.setFontSize(10);
-          doc.setFont('helvetica', 'bold');
-          doc.text(analysis.analysis_type || 'Behavioral Pattern', margin, yPos);
-          yPos += lineHeight;
-          
-          if (analysis.behavioral_patterns) {
-            const patterns = typeof analysis.behavioral_patterns === 'string' 
-              ? analysis.behavioral_patterns 
-              : JSON.stringify(analysis.behavioral_patterns).substring(0, 400);
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(8);
-            const lines = doc.splitTextToSize(patterns, contentWidth - 10);
-            doc.text(lines.slice(0, 6), margin + 5, yPos);
-            yPos += Math.min(lines.length, 6) * 5;
-          }
-          
-          yPos += 8;
-        });
+        const trauma = traumaData.data[0] as any;
+        
+        if (trauma.vulnerability_score !== undefined) {
+          renderScoreBar('Vulnerability Score', trauma.vulnerability_score * 100, 100, [180, 0, 0]);
+        }
+        
+        if (trauma.detected_patterns?.length > 0) {
+          renderSubsection('Detected Trauma Patterns');
+          (trauma.detected_patterns as any[]).slice(0, 4).forEach((pattern: any) => {
+            checkPageBreak(18);
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(150, 50, 50);
+            doc.text(`${pattern.pattern_type || pattern.type || 'Trauma Pattern'}`, margin, yPos);
+            doc.setTextColor(0);
+            yPos += 5;
+            
+            if (pattern.trigger) {
+              doc.setFontSize(8);
+              doc.setFont('helvetica', 'normal');
+              doc.text(`Trigger: ${pattern.trigger}`, margin + 5, yPos);
+              yPos += 5;
+            }
+            if (pattern.exploitation_script) {
+              doc.setFont('helvetica', 'italic');
+              doc.setTextColor(100, 100, 100);
+              const lines = doc.splitTextToSize(`Script: "${pattern.exploitation_script}"`, contentWidth - 15);
+              doc.text(lines.slice(0, 2), margin + 5, yPos);
+              doc.setTextColor(0);
+              yPos += lines.slice(0, 2).length * 5;
+            }
+            yPos += 3;
+          });
+        }
+        
+        if (trauma.optimal_timing_windows?.length > 0) {
+          renderSubsection('Optimal Timing Windows');
+          (trauma.optimal_timing_windows as any[]).slice(0, 3).forEach((window: any) => {
+            renderBullet(`${window.window || window}: ${window.description || 'Vulnerability window'}`, 5);
+          });
+        }
+        
+        yPos += 8;
       }
 
       // ========================================
@@ -1678,14 +2181,74 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       }
 
       // ========================================
+      // INFLUENCE RESISTANCE PROFILE
+      // ========================================
+      if (sections.find(s => s.id === 'influenceResistance')?.enabled) {
+        renderSectionHeader('Influence Resistance Profile', [100, 50, 0]);
+        
+        const influence = influenceData.data as any;
+        const dna = behavioralDnaAnalysis?.result as any;
+        
+        if (influence || dna?.manipulation_vulnerability) {
+          renderSubsection('Resistance by Principle');
+          
+          CIALDINI_PRINCIPLES.forEach(p => {
+            const susceptibility = influence?.[`${p.key}_susceptibility`] || influence?.[p.key] || 50;
+            const resistance = 100 - susceptibility;
+            renderScoreBar(p.label, resistance, 100, resistance > 60 ? [0, 100, 0] : [200, 100, 0]);
+          });
+          
+          if (dna?.manipulation_vulnerability?.resistant_to?.length > 0) {
+            yPos += 3;
+            renderSubsection('Strong Against');
+            doc.setTextColor(0, 100, 0);
+            dna.manipulation_vulnerability.resistant_to.slice(0, 4).forEach((r: string) => renderBullet(r, 5, '✓'));
+            doc.setTextColor(0);
+          }
+        }
+        
+        yPos += 8;
+      }
+
+      // ========================================
+      // BEHAVIORAL ECONOMICS PROFILE
+      // ========================================
+      if (sections.find(s => s.id === 'behavioralEconomics')?.enabled) {
+        const finPsych = financialPsychology.data?.[0] as any;
+        const dna = behavioralDnaAnalysis?.result as any;
+        
+        if (finPsych || dna?.decision_architecture) {
+          renderSectionHeader('Behavioral Economics Profile', [0, 80, 80]);
+          
+          if (finPsych) {
+            if (finPsych.loss_aversion_score) renderScoreBar('Loss Aversion', finPsych.loss_aversion_score * 100, 100, [180, 0, 0]);
+            if (finPsych.endowment_effect_susceptibility) renderScoreBar('Endowment Effect', finPsych.endowment_effect_susceptibility * 100, 100, [180, 100, 0]);
+            if (finPsych.sunk_cost_fallacy_susceptibility) renderScoreBar('Sunk Cost Fallacy', finPsych.sunk_cost_fallacy_susceptibility * 100, 100, [180, 100, 0]);
+            if (finPsych.hyperbolic_discounting_rate) renderScoreBar('Hyperbolic Discounting', finPsych.hyperbolic_discounting_rate * 100, 100, [100, 100, 0]);
+            if (finPsych.anchoring_susceptibility) renderScoreBar('Anchoring', finPsych.anchoring_susceptibility * 100, 100, [0, 100, 100]);
+          }
+          
+          if (dna?.decision_architecture) {
+            yPos += 3;
+            renderSubsection('Decision Making Profile');
+            renderKeyValue('Primary Archetype', dna.decision_architecture.primary_archetype);
+            renderKeyValue('Decision Speed', dna.decision_architecture.decision_speed);
+            renderKeyValue('Information Needs', dna.decision_architecture.information_needs);
+          }
+          
+          yPos += 8;
+        }
+      }
+
+      // ========================================
       // NETWORK POSITION
       // ========================================
       if (sections.find(s => s.id === 'network')?.enabled && relationshipsData.data?.length > 0) {
-        renderSectionHeader('Network Position', [80, 80, 120]);
+        renderSectionHeader('Network Position Analysis', [80, 80, 120]);
         
         renderSubsection(`${relationshipsData.data.length} Known Connections`);
         
-        relationshipsData.data.slice(0, 12).forEach((rel: any) => {
+        (relationshipsData.data as any[]).slice(0, 12).forEach((rel: any) => {
           checkPageBreak(12);
           const name = rel.to_profile 
             ? `${rel.to_profile.first_name} ${rel.to_profile.last_name || ''}`.trim()
@@ -1697,6 +2260,68 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
           doc.text(`| ${rel.relationship_type || 'Connected'} | Strength: ${rel.strength || 'Unknown'}`, margin + 55, yPos);
           yPos += lineHeight;
         });
+        
+        yPos += 8;
+      }
+
+      // ========================================
+      // COUNTER-INTELLIGENCE ASSESSMENT
+      // ========================================
+      if (sections.find(s => s.id === 'counterIntel')?.enabled) {
+        renderSectionHeader('Counter-Intelligence Assessment', [80, 0, 0]);
+        
+        const psych = psychData.data?.[0] as any;
+        const suspicionLevel = psych?.suspicion_baseline || 30;
+        
+        renderSubsection('Detection Risk Assessment');
+        renderScoreBar('Suspicion Baseline', suspicionLevel, 100, suspicionLevel > 50 ? [180, 0, 0] : [0, 100, 0]);
+        
+        renderSubsection('OPSEC Recommendations');
+        const recommendations = [
+          suspicionLevel > 50 ? 'Use indirect elicitation only' : 'Direct and indirect approaches viable',
+          suspicionLevel > 70 ? 'Avoid pattern repetition' : 'Standard operational tempo acceptable',
+          'Vary communication channels',
+          'Limit information revelation pace',
+        ];
+        recommendations.forEach(r => renderBullet(r, 5));
+        
+        yPos += 8;
+      }
+
+      // ========================================
+      // TIMELINE
+      // ========================================
+      if (sections.find(s => s.id === 'timeline')?.enabled && commData.data?.length > 0) {
+        renderSectionHeader('Interaction Timeline', [80, 80, 80]);
+        
+        (commData.data as any[]).slice(0, 15).forEach((comm: any) => {
+          checkPageBreak(20);
+          
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'bold');
+          const date = format(new Date(comm.occurred_at), 'MMM d, yyyy HH:mm');
+          doc.text(`${date} | ${comm.channel?.toUpperCase() || 'UNKNOWN'}`, margin, yPos);
+          
+          if (comm.sentiment_score !== undefined) {
+            const sentColor: [number, number, number] = comm.sentiment_score > 0 ? [0, 150, 0] : comm.sentiment_score < 0 ? [180, 0, 0] : [100, 100, 100];
+            doc.setTextColor(...sentColor);
+            doc.text(`[${comm.sentiment_score > 0 ? '+' : ''}${comm.sentiment_score}]`, margin + 100, yPos);
+            doc.setTextColor(0);
+          }
+          yPos += lineHeight;
+          
+          if (comm.subject || comm.content) {
+            doc.setFont('helvetica', 'normal');
+            const text = comm.subject || comm.content?.substring(0, 120);
+            const lines = doc.splitTextToSize(text, contentWidth - 10);
+            doc.text(lines.slice(0, 2), margin + 5, yPos);
+            yPos += Math.min(lines.length, 2) * lineHeight;
+          }
+          
+          yPos += 3;
+        });
+        
+        yPos += 8;
       }
 
       // ========================================
@@ -1706,14 +2331,13 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         
-        // Footer line
         doc.setDrawColor(200, 200, 200);
         doc.line(margin, pageHeight - 18, pageWidth - margin, pageHeight - 18);
         
         doc.setFontSize(7);
         doc.setTextColor(128);
         doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 12, { align: 'center' });
-        doc.text('CONFIDENTIAL - PICS Intelligence System', margin, pageHeight - 8);
+        doc.text('TOP SECRET // NOFORN - PICS AGIS v3.0', margin, pageHeight - 8);
         doc.text(`${format(new Date(), 'yyyy-MM-dd HH:mm')} | ${contactName}`, pageWidth - margin, pageHeight - 8, { align: 'right' });
       }
 
@@ -1721,7 +2345,7 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       const fileName = `intelligence-dossier-${contactName.toLowerCase().replace(/\s+/g, '-')}-${format(new Date(), 'yyyy-MM-dd-HHmm')}.pdf`;
       doc.save(fileName);
 
-      toast.success(`Intelligence dossier generated: ${pageCount} pages`);
+      toast.success(`Intelligence dossier generated: ${pageCount} pages, ${sections.filter(s => s.enabled).length} sections`);
     } catch (error) {
       console.error('PDF generation error:', error);
       toast.error('Failed to generate dossier');
@@ -1744,14 +2368,14 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
           <div>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Intelligence Dossier Generator
+              Ultimate Intelligence Dossier Generator
             </CardTitle>
             <CardDescription>
-              Generate comprehensive intelligence dossiers with deep psychological profiles, media synthesis, and warfare assessments
+              Generate comprehensive 47-section dossiers with behavioral DNA, quantum cognition, sacred values, and advanced warfare assessments
             </CardDescription>
           </div>
           {dataStats && (
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Badge variant="outline" className="text-xs">
                 📷 {dataStats.media} Media
               </Badge>
@@ -1760,6 +2384,9 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
               </Badge>
               <Badge variant="outline" className="text-xs">
                 🧠 {dataStats.analyses} Analyses
+              </Badge>
+              <Badge variant="secondary" className="text-xs">
+                📊 {dataStats.sources} Total Sources
               </Badge>
             </div>
           )}
@@ -1788,8 +2415,10 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
               <SelectContent>
                 <SelectItem value="executive">Executive Brief (1-2 pages)</SelectItem>
                 <SelectItem value="operational">Operational Dossier (5-10 pages)</SelectItem>
-                <SelectItem value="full">Full Intelligence Package (Complete)</SelectItem>
+                <SelectItem value="full">Full Intelligence Package (Complete - All 47 Sections)</SelectItem>
                 <SelectItem value="surveillance">Surveillance Report (Media Focus)</SelectItem>
+                <SelectItem value="warfare">Warfare Assessment (MICE, Cialdini, Sacred Values)</SelectItem>
+                <SelectItem value="psychological">Psychological Deep Dive (DNA, Quantum, Behavioral)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1821,118 +2450,123 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         </div>
 
         <div className="space-y-4">
-          <Label>Include Sections</Label>
+          <div className="flex items-center justify-between">
+            <Label>Include Sections ({sections.filter(s => s.enabled).length}/{sections.length})</Label>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setSections(sections.map(s => ({ ...s, enabled: true })))}>
+                Select All
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setSections(sections.map(s => ({ ...s, enabled: false })))}>
+                Clear All
+              </Button>
+            </div>
+          </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-3">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-2">CORE</p>
-                <div className="space-y-1.5">
-                  {sectionsByCategory.core.map(section => {
-                    const Icon = section.icon;
-                    return (
-                      <div key={section.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={section.id}
-                          checked={section.enabled}
-                          onCheckedChange={() => toggleSection(section.id)}
-                        />
-                        <Label htmlFor={section.id} className="flex items-center gap-1.5 cursor-pointer text-xs">
-                          <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                          {section.label}
-                        </Label>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              
-              <div>
-                <p className="text-xs font-medium text-blue-600 mb-2">INTELLIGENCE</p>
-                <div className="space-y-1.5">
-                  {sectionsByCategory.intelligence.map(section => {
-                    const Icon = section.icon;
-                    return (
-                      <div key={section.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={section.id}
-                          checked={section.enabled}
-                          onCheckedChange={() => toggleSection(section.id)}
-                        />
-                        <Label htmlFor={section.id} className="flex items-center gap-1.5 cursor-pointer text-xs">
-                          <Icon className="h-3.5 w-3.5 text-blue-500" />
-                          {section.label}
-                        </Label>
-                      </div>
-                    );
-                  })}
-                </div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">CORE ({sectionsByCategory.core.filter(s => s.enabled).length})</p>
+              <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                {sectionsByCategory.core.map(section => {
+                  const Icon = section.icon;
+                  return (
+                    <div key={section.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={section.id}
+                        checked={section.enabled}
+                        onCheckedChange={() => toggleSection(section.id)}
+                      />
+                      <Label htmlFor={section.id} className="flex items-center gap-1.5 cursor-pointer text-xs">
+                        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                        {section.label}
+                      </Label>
+                    </div>
+                  );
+                })}
               </div>
             </div>
             
             <div className="space-y-3">
-              <div>
-                <p className="text-xs font-medium text-red-600 mb-2">WARFARE</p>
-                <div className="space-y-1.5">
-                  {sectionsByCategory.warfare.map(section => {
-                    const Icon = section.icon;
-                    return (
-                      <div key={section.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={section.id}
-                          checked={section.enabled}
-                          onCheckedChange={() => toggleSection(section.id)}
-                        />
-                        <Label htmlFor={section.id} className="flex items-center gap-1.5 cursor-pointer text-xs">
-                          <Icon className="h-3.5 w-3.5 text-red-500" />
-                          {section.label}
-                        </Label>
-                      </div>
-                    );
-                  })}
-                </div>
+              <p className="text-xs font-medium text-blue-600 mb-2">INTELLIGENCE ({sectionsByCategory.intelligence.filter(s => s.enabled).length})</p>
+              <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                {sectionsByCategory.intelligence.map(section => {
+                  const Icon = section.icon;
+                  return (
+                    <div key={section.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={section.id}
+                        checked={section.enabled}
+                        onCheckedChange={() => toggleSection(section.id)}
+                      />
+                      <Label htmlFor={section.id} className="flex items-center gap-1.5 cursor-pointer text-xs">
+                        <Icon className="h-3.5 w-3.5 text-blue-500" />
+                        {section.label}
+                      </Label>
+                    </div>
+                  );
+                })}
               </div>
-              
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-2">ANALYSIS</p>
-                <div className="space-y-1.5">
-                  {sectionsByCategory.analysis.map(section => {
-                    const Icon = section.icon;
-                    return (
-                      <div key={section.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={section.id}
-                          checked={section.enabled}
-                          onCheckedChange={() => toggleSection(section.id)}
-                        />
-                        <Label htmlFor={section.id} className="flex items-center gap-1.5 cursor-pointer text-xs">
-                          <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                          {section.label}
-                        </Label>
-                      </div>
-                    );
-                  })}
-                </div>
+            </div>
+            
+            <div className="space-y-3">
+              <p className="text-xs font-medium text-red-600 mb-2">WARFARE ({sectionsByCategory.warfare.filter(s => s.enabled).length})</p>
+              <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                {sectionsByCategory.warfare.map(section => {
+                  const Icon = section.icon;
+                  return (
+                    <div key={section.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={section.id}
+                        checked={section.enabled}
+                        onCheckedChange={() => toggleSection(section.id)}
+                      />
+                      <Label htmlFor={section.id} className="flex items-center gap-1.5 cursor-pointer text-xs">
+                        <Icon className="h-3.5 w-3.5 text-red-500" />
+                        {section.label}
+                      </Label>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              <p className="text-xs font-medium text-muted-foreground mb-2">ANALYSIS ({sectionsByCategory.analysis.filter(s => s.enabled).length})</p>
+              <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                {sectionsByCategory.analysis.map(section => {
+                  const Icon = section.icon;
+                  return (
+                    <div key={section.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={section.id}
+                        checked={section.enabled}
+                        onCheckedChange={() => toggleSection(section.id)}
+                      />
+                      <Label htmlFor={section.id} className="flex items-center gap-1.5 cursor-pointer text-xs">
+                        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                        {section.label}
+                      </Label>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
         </div>
 
         <Button 
-          onClick={generatePDF} 
+          className="w-full" 
+          onClick={generatePDF}
           disabled={isGenerating || (!profileId && !selectedProfile)}
-          className="w-full"
-          size="lg"
         >
           {isGenerating ? (
             <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Generating Intelligence Dossier...
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Generating {sections.filter(s => s.enabled).length}-Section Dossier...
             </>
           ) : (
             <>
-              <Download className="h-4 w-4 mr-2" />
-              Export Intelligence Dossier (PDF)
+              <Download className="mr-2 h-4 w-4" />
+              Generate Ultimate Intelligence Dossier
             </>
           )}
         </Button>
