@@ -66,6 +66,9 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
     { id: 'mice', label: 'MICE Vulnerability Matrix', icon: Crosshair, enabled: true, category: 'warfare' },
     { id: 'cialdini', label: 'RASCLS Influence Profile', icon: BookOpen, enabled: true, category: 'warfare' },
     { id: 'influence', label: 'Influence Vectors', icon: Eye, enabled: true, category: 'warfare' },
+    { id: 'trauma', label: 'Trauma & Vulnerability Windows', icon: AlertTriangle, enabled: true, category: 'warfare' },
+    { id: 'futureModeling', label: 'Behavioral Future Modeling', icon: TrendingUp, enabled: true, category: 'warfare' },
+    { id: 'crossModal', label: 'Cross-Modal Deception Analysis', icon: Eye, enabled: true, category: 'warfare' },
     { id: 'threatActor', label: 'Threat Assessment', icon: AlertTriangle, enabled: true, category: 'warfare' },
     { id: 'betrayal', label: 'Betrayal & Crisis Prediction', icon: Gauge, enabled: true, category: 'warfare' },
     
@@ -110,9 +113,9 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
     setTemplate(templateType);
     const enabledIds: Record<DossierTemplate, string[]> = {
       executive: ['executive', 'overview', 'psychological', 'actionPlans'],
-      operational: ['executive', 'overview', 'psychological', 'playbook', 'actionPlans', 'mice', 'cialdini', 'influence'],
-      full: ['executive', 'overview', 'timeline', 'psychological', 'relationship', 'playbook', 'mediaIntel', 'voiceIntel', 'actionPlans', 'mice', 'cialdini', 'influence', 'threatActor', 'betrayal'],
-      surveillance: ['overview', 'mediaIntel', 'voiceIntel', 'timeline', 'network', 'threatActor'],
+      operational: ['executive', 'overview', 'psychological', 'playbook', 'actionPlans', 'mice', 'cialdini', 'influence', 'trauma'],
+      full: ['executive', 'overview', 'timeline', 'psychological', 'relationship', 'playbook', 'mediaIntel', 'voiceIntel', 'actionPlans', 'mice', 'cialdini', 'influence', 'trauma', 'futureModeling', 'crossModal', 'threatActor', 'betrayal'],
+      surveillance: ['overview', 'mediaIntel', 'voiceIntel', 'timeline', 'network', 'threatActor', 'crossModal'],
     };
     
     setSections(sections.map(s => ({
@@ -239,6 +242,9 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         milestonesData,
         relationshipsData,
         betrayalData,
+        traumaData,
+        scenarioPredictions,
+        crossModalData,
       ] = await Promise.all([
         // Communications timeline
         supabase.from('communications').select('*').eq('profile_id', targetProfileId).order('occurred_at', { ascending: false }).limit(30),
@@ -290,6 +296,15 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         
         // Betrayal predictions
         supabase.from('betrayal_predictions').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(1),
+        
+        // Trauma exploitation windows
+        supabase.from('trauma_exploitation_windows').select('*').eq('profile_id', targetProfileId).limit(1),
+        
+        // Behavioral scenario predictions (future modeling)
+        supabase.from('behavioral_scenario_predictions').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(5),
+        
+        // Cross-domain correlations (cross-modal deception)
+        supabase.from('cross_domain_correlations').select('*').eq('profile_id', targetProfileId).order('updated_at', { ascending: false }).limit(5),
       ]);
 
       // Create PDF with enhanced styling
@@ -1437,7 +1452,131 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       }
 
       // ========================================
-      // INTERACTION TIMELINE
+      // TRAUMA & VULNERABILITY WINDOWS
+      // ========================================
+      if (sections.find(s => s.id === 'trauma')?.enabled && traumaData?.data) {
+        renderSectionHeader('Trauma & Vulnerability Windows', [120, 0, 60]);
+        
+        const trauma = traumaData.data as any;
+        
+        if (trauma.vulnerability_score !== undefined) {
+          checkPageBreak(20);
+          const score = (trauma.vulnerability_score * 100);
+          const color: [number, number, number] = score > 60 ? [180, 0, 0] : score > 30 ? [180, 100, 0] : [0, 120, 0];
+          doc.setFillColor(...color, 0.1);
+          doc.roundedRect(margin, yPos - 3, contentWidth, 14, 2, 2, 'F');
+          doc.setFontSize(11);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(...color);
+          doc.text(`Vulnerability Score: ${score.toFixed(0)}%`, margin + 5, yPos + 5);
+          doc.setTextColor(0);
+          yPos += 20;
+        }
+
+        if (trauma.detected_patterns?.length > 0) {
+          renderSubsection('⚠ Detected Trauma Patterns');
+          trauma.detected_patterns.slice(0, 6).forEach((p: any) => {
+            doc.setTextColor(120, 0, 60);
+            renderBullet(`${p.type}: ${p.trigger} (Severity: ${(p.severity * 100).toFixed(0)}%)`, 5);
+            if (p.exploitationScript) {
+              doc.setFont('helvetica', 'italic');
+              doc.setFontSize(8);
+              doc.setTextColor(80, 80, 80);
+              const lines = doc.splitTextToSize(`Script: "${p.exploitationScript}"`, contentWidth - 20);
+              checkPageBreak(lines.length * 5 + 3);
+              doc.text(lines, margin + 10, yPos);
+              yPos += lines.length * 5 + 2;
+            }
+            doc.setTextColor(0);
+          });
+        }
+
+        if (trauma.optimal_timing?.length > 0) {
+          renderSubsection('⏰ Optimal Timing Windows');
+          trauma.optimal_timing.slice(0, 4).forEach((t: string) => renderBullet(t, 5));
+        }
+        
+        yPos += 8;
+      }
+
+      // ========================================
+      // BEHAVIORAL FUTURE MODELING
+      // ========================================
+      if (sections.find(s => s.id === 'futureModeling')?.enabled && scenarioPredictions?.data?.length > 0) {
+        renderSectionHeader('Behavioral Future Modeling', [0, 80, 120]);
+        
+        scenarioPredictions.data.slice(0, 4).forEach((pred: any) => {
+          checkPageBreak(40);
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(0, 80, 120);
+          doc.text(`Scenario: ${pred.scenario_type || 'Unknown'}`, margin, yPos);
+          doc.setTextColor(0);
+          yPos += lineHeight + 2;
+
+          if (pred.predicted_response) {
+            renderKeyValue('Predicted Response', pred.predicted_response);
+          }
+          if (pred.confidence_score) {
+            renderScoreBar('Confidence', pred.confidence_score * 100, 100, [0, 100, 150]);
+          }
+          if (pred.influence_opportunities?.length > 0) {
+            doc.setFontSize(8);
+            doc.setTextColor(0, 100, 0);
+            pred.influence_opportunities.slice(0, 2).forEach((o: string) => renderBullet(o, 10, '→'));
+            doc.setTextColor(0);
+          }
+          yPos += 5;
+        });
+        
+        yPos += 8;
+      }
+
+      // ========================================
+      // CROSS-MODAL DECEPTION ANALYSIS
+      // ========================================
+      if (sections.find(s => s.id === 'crossModal')?.enabled && crossModalData?.data?.length > 0) {
+        renderSectionHeader('Cross-Modal Deception Analysis', [100, 50, 0]);
+        
+        const crossModal = crossModalData.data.find((c: any) => c.correlation_type === 'deception_synthesis' || c.correlation_type === 'cross_modal') || crossModalData.data[0];
+        
+        if (crossModal) {
+          const patternData = (crossModal as any).pattern_data;
+          
+          if (crossModal.correlation_strength !== undefined) {
+            renderScoreBar('Deception Risk', crossModal.correlation_strength * 100, 100, [180, 50, 0]);
+          }
+
+          if (patternData?.contradictions?.length > 0) {
+            renderSubsection('⚠ Detected Contradictions');
+            doc.setTextColor(180, 50, 0);
+            patternData.contradictions.slice(0, 4).forEach((c: any) => {
+              const text = typeof c === 'string' ? c : `${c.modality_a} vs ${c.modality_b}: ${c.description || c.explanation}`;
+              renderBullet(text, 5);
+            });
+            doc.setTextColor(0);
+          }
+
+          if (patternData?.corroborated_findings?.length > 0) {
+            renderSubsection('✓ Corroborated Findings');
+            doc.setTextColor(0, 100, 0);
+            patternData.corroborated_findings.slice(0, 4).forEach((f: string) => renderBullet(f, 5, '✓'));
+            doc.setTextColor(0);
+          }
+
+          if (crossModal.tactical_implications) {
+            renderSubsection('Tactical Implications');
+            const implications = String(crossModal.tactical_implications);
+            const lines = doc.splitTextToSize(implications.substring(0, 500), contentWidth - 10);
+            checkPageBreak(lines.length * 5 + 5);
+            doc.setFontSize(8);
+            doc.text(lines, margin + 5, yPos);
+            yPos += lines.length * 5;
+          }
+        }
+        
+        yPos += 8;
+      }
       // ========================================
       if (sections.find(s => s.id === 'timeline')?.enabled && commData.data?.length > 0) {
         renderSectionHeader('Interaction Timeline', [80, 80, 80]);
