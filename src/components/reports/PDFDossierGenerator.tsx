@@ -99,6 +99,13 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
     { id: 'betrayal', label: 'Betrayal & Crisis Prediction', icon: Gauge, enabled: true, category: 'warfare' },
     { id: 'influenceOps', label: 'Influence Operation Planning', icon: MapPin, enabled: true, category: 'warfare' },
     { id: 'threatActor', label: 'Threat Assessment', icon: ShieldQuestion, enabled: true, category: 'warfare' },
+    { id: 'cognitiveWarfare', label: 'Cognitive Warfare Operations', icon: Cpu, enabled: true, category: 'warfare' },
+    { id: 'deceptionOps', label: 'Deception Operations', icon: Eye, enabled: true, category: 'warfare' },
+    { id: 'vulnerabilityWindows', label: 'Vulnerability Windows', icon: Clock, enabled: true, category: 'warfare' },
+    { id: 'activeDefense', label: 'Active Defense Posture', icon: Shield, enabled: true, category: 'warfare' },
+    { id: 'trustTrajectory', label: '180-Day Trust Trajectory', icon: TrendingUp, enabled: true, category: 'warfare' },
+    { id: 'mosaicFusion', label: 'Mosaic Intelligence Fusion', icon: Layers, enabled: true, category: 'warfare' },
+    { id: 'darkTetrad', label: 'Dark Tetrad Profile', icon: Brain, enabled: true, category: 'warfare' },
     
     // ============== ANALYSIS SECTIONS ==============
     { id: 'analysis', label: 'Behavioral Analysis', icon: TrendingUp, enabled: true, category: 'analysis' },
@@ -108,6 +115,7 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
     { id: 'network', label: 'Network Position', icon: Network, enabled: true, category: 'analysis' },
     { id: 'predictionAccuracy', label: 'Prediction Accuracy Tracking', icon: Activity, enabled: true, category: 'analysis' },
     { id: 'counterIntel', label: 'Counter-Intelligence Assessment', icon: Lightbulb, enabled: true, category: 'analysis' },
+    { id: 'proportionalResponse', label: 'Proportional Response Log', icon: Scale, enabled: true, category: 'analysis' },
   ]);
 
   const handleContactSelect = useCallback(async (id: string | null, contact?: { first_name: string; last_name: string | null }) => {
@@ -151,8 +159,8 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       operational: ['executive', 'sourceDashboard', 'overview', 'behavioralDna', 'psychological', 'playbook', 'actionPlans', 'mice', 'cialdini', 'influence', 'trauma', 'elicitation'],
       full: sections.map(s => s.id), // All sections
       surveillance: ['overview', 'sourceDashboard', 'patternOfLife', 'mediaIntel', 'voiceIntel', 'timeline', 'network', 'threatActor', 'crossModal', 'deceptionAnalysis'],
-      warfare: ['executive', 'mice', 'cialdini', 'sacredValues', 'realityTesting', 'identityDestab', 'trauma', 'semanticWarfare', 'memeticPropagation', 'choiceArchitecture', 'influenceOps', 'betrayal', 'threatActor', 'hypnoticPatterns', 'elicitation', 'cognitiveLoad'],
-      psychological: ['executive', 'behavioralDna', 'psychological', 'quantumCognition', 'relationship', 'playbook', 'deceptionAnalysis', 'behavioralEconomics', 'trust', 'influenceResistance', 'futureModeling', 'precognitive'],
+      warfare: ['executive', 'mice', 'cialdini', 'sacredValues', 'realityTesting', 'identityDestab', 'trauma', 'semanticWarfare', 'memeticPropagation', 'choiceArchitecture', 'influenceOps', 'betrayal', 'threatActor', 'hypnoticPatterns', 'elicitation', 'cognitiveLoad', 'cognitiveWarfare', 'deceptionOps', 'vulnerabilityWindows', 'activeDefense', 'trustTrajectory', 'mosaicFusion', 'darkTetrad'],
+      psychological: ['executive', 'behavioralDna', 'psychological', 'quantumCognition', 'relationship', 'playbook', 'deceptionAnalysis', 'behavioralEconomics', 'trust', 'influenceResistance', 'futureModeling', 'precognitive', 'darkTetrad'],
     };
     
     setSections(sections.map(s => ({
@@ -450,6 +458,25 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       const semanticOpsData = await supabase.from('semantic_operations').select('*').limit(5);
       const identityDestabData = await supabase.from('identity_destabilization_logs').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(5);
       const realityFrameworksData = await supabase.from('reality_frameworks').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(1);
+
+      // Batch 4: New warfare tables
+      const [
+        cognitiveWarfareData,
+        activeDefenseData,
+        deceptionOpsData,
+        vulnerabilityWindowsData,
+        trustTrajectoriesData,
+        proportionalResponseData,
+        mosaicFusionData,
+      ] = await Promise.all([
+        supabase.from('cognitive_warfare_operations').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(5),
+        supabase.from('active_defense_operations').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(3),
+        supabase.from('deception_operations').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(5),
+        supabase.from('vulnerability_windows').select('*').eq('profile_id', targetProfileId).order('predicted_start', { ascending: false }).limit(10),
+        supabase.from('trust_trajectories').select('*').eq('profile_id', targetProfileId).order('trajectory_date', { ascending: false }).limit(180),
+        supabase.from('proportional_response_logs').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(10),
+        supabase.from('mosaic_intelligence_fusion').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(1),
+      ]);
 
       // Create PDF with enhanced styling
       const doc = new jsPDF();
@@ -2406,6 +2433,268 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       }
 
       // ========================================
+      // COGNITIVE WARFARE OPERATIONS
+      // ========================================
+      if (sections.find(s => s.id === 'cognitiveWarfare')?.enabled && cognitiveWarfareData.data?.length > 0) {
+        renderSectionHeader('Cognitive Warfare Operations', [128, 0, 128]);
+        
+        (cognitiveWarfareData.data as any[]).forEach((op: any) => {
+          checkPageBreak(40);
+          renderSubsection(op.operation_name || 'Unnamed Operation');
+          doc.setFontSize(9);
+          doc.text(`Type: ${op.operation_type || 'Standard'} | Status: ${op.status?.toUpperCase() || 'PLANNING'} | Phase: ${op.current_phase || 'Recon'}`, margin, yPos);
+          yPos += lineHeight;
+          
+          if (op.effectiveness_score) {
+            renderScoreBar('Effectiveness', op.effectiveness_score * 100, 100, [128, 0, 128]);
+          }
+          
+          const vulnerabilities = op.cognitive_vulnerabilities as any[] || [];
+          if (vulnerabilities.length > 0) {
+            doc.setFont('helvetica', 'bold');
+            doc.text('Cognitive Vulnerabilities:', margin, yPos);
+            yPos += lineHeight;
+            vulnerabilities.slice(0, 3).forEach((v: any) => renderBullet(typeof v === 'string' ? v : v.name || JSON.stringify(v), 5));
+          }
+          yPos += 5;
+        });
+        yPos += 8;
+      }
+
+      // ========================================
+      // DECEPTION OPERATIONS
+      // ========================================
+      if (sections.find(s => s.id === 'deceptionOps')?.enabled && deceptionOpsData.data?.length > 0) {
+        renderSectionHeader('Deception Operations', [139, 69, 19]);
+        
+        (deceptionOpsData.data as any[]).forEach((op: any) => {
+          checkPageBreak(35);
+          renderSubsection(op.operation_name || 'Unnamed Deception');
+          doc.setFontSize(9);
+          doc.text(`Type: ${op.deception_type || 'Unknown'} | Status: ${op.status?.toUpperCase() || 'PLANNING'}`, margin, yPos);
+          yPos += lineHeight;
+          
+          if (op.plausibility_score) {
+            renderScoreBar('Plausibility', op.plausibility_score * 100, 100, [0, 150, 0]);
+          }
+          if (op.discovery_risk) {
+            renderScoreBar('Discovery Risk', op.discovery_risk * 100, 100, [200, 0, 0]);
+          }
+          
+          const coverStories = op.cover_stories as any[] || [];
+          if (coverStories.length > 0) {
+            doc.setFont('helvetica', 'bold');
+            doc.text('Cover Stories:', margin, yPos);
+            yPos += lineHeight;
+            coverStories.slice(0, 2).forEach((c: any) => renderBullet(typeof c === 'string' ? c : c.story || JSON.stringify(c), 5));
+          }
+          yPos += 5;
+        });
+        yPos += 8;
+      }
+
+      // ========================================
+      // VULNERABILITY WINDOWS
+      // ========================================
+      if (sections.find(s => s.id === 'vulnerabilityWindows')?.enabled && vulnerabilityWindowsData.data?.length > 0) {
+        renderSectionHeader('Vulnerability Windows', [220, 20, 60]);
+        
+        const activeWindows = (vulnerabilityWindowsData.data as any[]).filter(w => w.current_status === 'active' || w.current_status === 'predicted');
+        
+        if (activeWindows.length > 0) {
+          checkPageBreak(20);
+          doc.setFillColor(255, 230, 230);
+          doc.roundedRect(margin, yPos - 3, contentWidth, 15, 2, 2, 'F');
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(180, 0, 0);
+          doc.text(`${activeWindows.length} ACTIVE/PREDICTED VULNERABILITY WINDOWS`, margin + 5, yPos + 5);
+          doc.setTextColor(0);
+          yPos += 20;
+        }
+        
+        activeWindows.slice(0, 5).forEach((w: any) => {
+          checkPageBreak(25);
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'bold');
+          doc.text(`${w.window_type?.toUpperCase() || 'UNKNOWN'} - ${w.current_status?.toUpperCase()}`, margin, yPos);
+          yPos += lineHeight;
+          
+          if (w.vulnerability_score) {
+            renderScoreBar('Vulnerability', w.vulnerability_score * 100, 100, [220, 20, 60]);
+          }
+          
+          if (w.trigger_event) {
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Trigger: ${w.trigger_event}`, margin + 5, yPos);
+            yPos += lineHeight;
+          }
+          yPos += 3;
+        });
+        yPos += 8;
+      }
+
+      // ========================================
+      // 180-DAY TRUST TRAJECTORY
+      // ========================================
+      if (sections.find(s => s.id === 'trustTrajectory')?.enabled && trustTrajectoriesData.data?.length > 0) {
+        renderSectionHeader('180-Day Trust Trajectory', [0, 100, 180]);
+        
+        const trajectoryData = trustTrajectoriesData.data as any[];
+        const latestTrust = trajectoryData[0]?.trust_score || 0;
+        const oldestTrust = trajectoryData[trajectoryData.length - 1]?.trust_score || 0;
+        const trustDelta = latestTrust - oldestTrust;
+        
+        checkPageBreak(40);
+        doc.setFillColor(240, 248, 255);
+        doc.roundedRect(margin, yPos - 3, contentWidth, 35, 3, 3, 'F');
+        
+        const trustColor: [number, number, number] = trustDelta >= 0 ? [0, 150, 0] : [200, 0, 0];
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Trust Trajectory Summary', margin + 5, yPos + 5);
+        
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Current Trust Score: ${(latestTrust * 100).toFixed(0)}%`, margin + 5, yPos + 14);
+        doc.setTextColor(...trustColor);
+        doc.text(`180-Day Change: ${trustDelta >= 0 ? '+' : ''}${(trustDelta * 100).toFixed(1)}%`, margin + 85, yPos + 14);
+        doc.setTextColor(0);
+        
+        const avgDefection = trajectoryData.reduce((acc, t) => acc + (t.defection_probability || 0), 0) / trajectoryData.length;
+        doc.text(`Avg Defection Risk: ${(avgDefection * 100).toFixed(0)}%`, margin + 5, yPos + 23);
+        doc.text(`Data Points: ${trajectoryData.length}`, margin + 85, yPos + 23);
+        
+        yPos += 42;
+        yPos += 8;
+      }
+
+      // ========================================
+      // ACTIVE DEFENSE POSTURE
+      // ========================================
+      if (sections.find(s => s.id === 'activeDefense')?.enabled && activeDefenseData.data?.length > 0) {
+        renderSectionHeader('Active Defense Posture', [0, 128, 0]);
+        
+        const defense = (activeDefenseData.data as any[])[0];
+        
+        checkPageBreak(30);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Defense Type: ${defense.defense_type?.toUpperCase() || 'UNKNOWN'}`, margin, yPos);
+        doc.text(`Posture: ${defense.defense_posture?.toUpperCase() || 'PASSIVE'}`, margin + 80, yPos);
+        doc.text(`Escalation Level: ${defense.escalation_level || 1}`, margin + 140, yPos);
+        yPos += lineHeight + 3;
+        
+        const measures = defense.active_measures as any[] || [];
+        if (measures.length > 0) {
+          renderSubsection('Active Measures');
+          measures.slice(0, 4).forEach((m: any) => renderBullet(typeof m === 'string' ? m : m.name || JSON.stringify(m), 5));
+        }
+        
+        yPos += 8;
+      }
+
+      // ========================================
+      // MOSAIC INTELLIGENCE FUSION
+      // ========================================
+      if (sections.find(s => s.id === 'mosaicFusion')?.enabled && mosaicFusionData.data?.length > 0) {
+        renderSectionHeader('Mosaic Intelligence Fusion', [75, 0, 130]);
+        
+        const fusion = (mosaicFusionData.data as any[])[0];
+        
+        checkPageBreak(35);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Fusion Type: ${fusion.fusion_type?.toUpperCase() || 'COMPREHENSIVE'}`, margin, yPos);
+        doc.text(`Sources: ${fusion.source_count || 0}`, margin + 80, yPos);
+        doc.text(`Grade: ${fusion.intelligence_grade || 'N/A'}`, margin + 130, yPos);
+        yPos += lineHeight + 3;
+        
+        if (fusion.fusion_score) {
+          renderScoreBar('Fusion Score', fusion.fusion_score * 100, 100, [75, 0, 130]);
+        }
+        
+        const insights = fusion.high_confidence_insights as any[] || [];
+        if (insights.length > 0) {
+          renderSubsection('High Confidence Insights');
+          insights.slice(0, 4).forEach((i: any) => renderBullet(typeof i === 'string' ? i : i.insight || JSON.stringify(i), 5));
+        }
+        
+        yPos += 8;
+      }
+
+      // ========================================
+      // DARK TETRAD PROFILE
+      // ========================================
+      if (sections.find(s => s.id === 'darkTetrad')?.enabled && psychData.data?.length > 0) {
+        renderSectionHeader('Dark Tetrad Profile', [80, 0, 80]);
+        
+        const psych = (psychData.data as any[])[0];
+        const darkTriad = psych.dark_triad as any;
+        
+        if (darkTriad) {
+          checkPageBreak(50);
+          doc.setFillColor(250, 245, 255);
+          doc.roundedRect(margin, yPos - 3, contentWidth, 45, 3, 3, 'F');
+          
+          const traits = [
+            { name: 'NARCISSISM', score: darkTriad.narcissism?.score || 0, color: [128, 0, 128] as [number, number, number] },
+            { name: 'MACHIAVELLIAN', score: darkTriad.machiavellianism?.score || 0, color: [0, 0, 180] as [number, number, number] },
+            { name: 'PSYCHOPATHY', score: darkTriad.psychopathy?.score || 0, color: [180, 0, 0] as [number, number, number] },
+            { name: 'SADISM', score: darkTriad.sadism?.score || 0, color: [100, 0, 50] as [number, number, number] },
+          ];
+          
+          const boxWidth = (contentWidth - 20) / 4;
+          traits.forEach((t, i) => {
+            const x = margin + 5 + (i * boxWidth);
+            
+            doc.setFontSize(7);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(...t.color);
+            doc.text(t.name, x, yPos + 5);
+            
+            doc.setFillColor(...t.color);
+            doc.circle(x + 15, yPos + 20, 12, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(10);
+            doc.text(`${t.score.toFixed(0)}`, x + 15, yPos + 23, { align: 'center' });
+            doc.setTextColor(0);
+          });
+          yPos += 50;
+        }
+        yPos += 8;
+      }
+
+      // ========================================
+      // PROPORTIONAL RESPONSE LOG
+      // ========================================
+      if (sections.find(s => s.id === 'proportionalResponse')?.enabled && proportionalResponseData.data?.length > 0) {
+        renderSectionHeader('Proportional Response Log', [128, 128, 0]);
+        
+        (proportionalResponseData.data as any[]).slice(0, 5).forEach((log: any) => {
+          checkPageBreak(25);
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'bold');
+          doc.text(`${log.incident_type?.toUpperCase() || 'INCIDENT'} - Tier: ${log.response_tier?.toUpperCase() || 'UNKNOWN'}`, margin, yPos);
+          yPos += lineHeight;
+          
+          if (log.incident_severity) {
+            renderScoreBar('Severity', log.incident_severity * 100, 100, [200, 100, 0]);
+          }
+          
+          const lessons = log.lessons_learned as string[] || [];
+          if (lessons.length > 0) {
+            doc.setFont('helvetica', 'italic');
+            doc.setFontSize(8);
+            doc.text(`Lessons: ${lessons.slice(0, 2).join('; ')}`, margin + 5, yPos);
+            yPos += lineHeight;
+          }
+          yPos += 3;
+        });
+        yPos += 8;
+      }
+
+      // ========================================
       // TIMELINE
       // ========================================
       if (sections.find(s => s.id === 'timeline')?.enabled && commData.data?.length > 0) {
@@ -2487,11 +2776,11 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
               <FileText className="h-5 w-5" />
               Ultimate Intelligence Dossier Generator
               <Badge variant="secondary" className="text-[10px] font-mono bg-primary/10">
-                v3.0 | 47 Sections
+                v4.0 | 55 Sections
               </Badge>
             </CardTitle>
             <CardDescription>
-              Generate comprehensive 47-section dossiers with behavioral DNA, quantum cognition, sacred values, and advanced warfare assessments
+              Generate comprehensive 55-section dossiers with Dark Tetrad, cognitive warfare, deception ops, and 180-day trust trajectories
             </CardDescription>
           </div>
           {dataStats && (
