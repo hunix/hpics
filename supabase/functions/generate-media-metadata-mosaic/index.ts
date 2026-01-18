@@ -434,14 +434,17 @@ async function processInBackground(
       }));
       
       // Store specific error details for debugging
+      // Detect timeout (0 tokens) vs other empty responses
+      const isTimeoutFailure = aiResponse.inputTokens === 0 && aiResponse.outputTokens === 0;
       const errorDetails = {
-        type: 'empty_ai_response',
+        type: isTimeoutFailure ? 'timeout_zero_tokens' : 'empty_ai_response',
         inputTokens: aiResponse.inputTokens,
         outputTokens: aiResponse.outputTokens,
         mosaicSize: mosaicImageUrl?.length || 0,
         batchSize: cells.length,
         model: model,
         timestamp: new Date().toISOString(),
+        recommendedRetryBatchSize: Math.max(4, Math.floor(cells.length / 2)),
       };
       
       // Mark all items as failed with detailed error info

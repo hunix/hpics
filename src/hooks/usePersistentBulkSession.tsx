@@ -435,6 +435,14 @@ export function usePersistentBulkSession({
   const MOSAIC_MAX_RETRIES = 3;
   const MOSAIC_RETRY_DELAY_MS = 2000;
   const MOSAIC_TIMEOUT_MS = 120000; // 2 minutes
+  const DEFAULT_MOSAIC_BATCH_SIZE = 16; // Reduced from 32 for reliability
+  const RETRY_BATCH_SIZES = [16, 8, 4, 1]; // Progressive reduction on failures
+  const MAX_PAYLOAD_SIZE_KB = 200; // Conservative limit to prevent timeouts
+
+  // Get appropriate batch size based on retry attempt
+  const getRetryBatchSize = (attempt: number): number => {
+    return RETRY_BATCH_SIZES[Math.min(attempt, RETRY_BATCH_SIZES.length - 1)];
+  };
 
   // Process a batch of images using mosaic approach with smart retry
   const processBatchWithMosaic = useCallback(async (
@@ -680,14 +688,19 @@ export function usePersistentBulkSession({
 
       // Check if we should retry
       if (retryAttempt < MOSAIC_MAX_RETRIES - 1) {
-        setProcessingStatus(`Mosaic failed, retrying in ${MOSAIC_RETRY_DELAY_MS / 1000}s...`);
+        // Progressive batch size reduction based on retry attempt
+        const nextBatchSize = getRetryBatchSize(retryAttempt + 1);
+        logger.info('Mosaic failed, retrying with smaller batch', { 
+          attempt: retryAttempt + 1,
+          previousBatchSize: batchToProcess.length,
+          nextBatchSize,
+          error: error instanceof Error ? error.message : 'Unknown'
+        });
+        
+        setProcessingStatus(`Mosaic failed, retrying with ${nextBatchSize} images in ${MOSAIC_RETRY_DELAY_MS / 1000}s...`);
         await new Promise(r => setTimeout(r, MOSAIC_RETRY_DELAY_MS * (retryAttempt + 1)));
 
-        // Reduce batch size on retry if it's large
-        const newBatchSize = batchToProcess.length > 32 ? 32 :
-          batchToProcess.length > 16 ? 16 : undefined;
-
-        return processBatchWithMosaic(items, activeSession, retryAttempt + 1, newBatchSize);
+        return processBatchWithMosaic(items, activeSession, retryAttempt + 1, nextBatchSize);
       }
 
       // All retries exhausted - trigger user intervention
@@ -878,15 +891,15 @@ export function usePersistentBulkSession({
       const shouldUseMosaic = (strategy === 'mosaic' || strategy === 'hybrid') && imageItems.length >= 4;
 
       if (shouldUseMosaic) {
-        // Process images in batches using mosaic
-        const BATCH_SIZE = 32; // Reduced to keep payload under edge function limits (~6MB)
-        setProcessingStatus(`Processing ${imageItems.length} images with mosaic optimization...`);
+        // Process images in batches using mosaic - use reduced batch size for reliability
+        const BATCH_SIZE = DEFAULT_MOSAIC_BATCH_SIZE;
+        setProcessingStatus(`Processing ${imageItems.length} images with mosaic optimization (batch size: ${BATCH_SIZE})...`);
 
         for (let i = 0; i < imageItems.length; i += BATCH_SIZE) {
           if (!isRunningRef.current) break;
 
           const batch = imageItems.slice(i, i + BATCH_SIZE);
-          logger.info('Processing mosaic batch', { batchNum: i / BATCH_SIZE + 1, totalBatches: Math.ceil(imageItems.length / BATCH_SIZE) });
+          logger.info('Processing mosaic batch', { batchNum: i / BATCH_SIZE + 1, totalBatches: Math.ceil(imageItems.length / BATCH_SIZE), batchSize: batch.length });
 
           try {
             await processBatchWithMosaic(batch, activeSession);
@@ -1276,25 +1289,34 @@ export function usePersistentBulkSession({
       .eq("id", itemId);
   }, []);
 
-  // Retry all failed items
-  const retryAllFailed = useCallback(async () => {
+  // Retry all failed items with smaller batch sizes
+  const retryAllFailed = useCallback(async (batchSizeOverride?: number) => {
     if (!session) return;
 
     // Get count of failed items before retry
     const { data: failedBefore } = await supabase
       .from("bulk_analysis_items")
-      .select("id")
+      .select("id, result")
       .eq("session_id", session.id)
       .eq("status", "failed");
 
     const failedCountBefore = failedBefore?.length || 0;
+    
+    // Check if failures were due to timeout (0 tokens) - use even smaller batch
+    const hasTimeoutFailures = failedBefore?.some(item => {
+      const result = item.result as Record<string, unknown> | null;
+      return result?.type === 'timeout_zero_tokens' || result?.type === 'empty_ai_response';
+    });
+    
+    const recommendedBatchSize = batchSizeOverride || (hasTimeoutFailures ? 8 : 16);
 
     toast({
       title: "Retrying failed items",
-      description: `Retrying ${failedCountBefore} items...`,
+      description: `Retrying ${failedCountBefore} items with batch size ${recommendedBatchSize}...`,
     });
 
     // Clear expired URLs and reset status to force fresh URL generation on retry
+    // Also decrement session counters to account for items being retried
     await supabase
       .from("bulk_analysis_items")
       .update({
@@ -1304,9 +1326,26 @@ export function usePersistentBulkSession({
         completed_at: null,
         retry_count: 0,
         media_url: null, // Force fresh URL generation - old URLs may be expired
+        result: null, // Clear previous error details
       })
       .eq("session_id", session.id)
       .eq("status", "failed");
+
+    // Reset session failed counter since we're retrying
+    await supabase
+      .from("bulk_analysis_sessions")
+      .update({
+        failed_items: 0,
+        status: "running"
+      })
+      .eq("id", session.id);
+
+    // Update local session state
+    setSession(prev => prev ? {
+      ...prev,
+      failedItems: 0,
+      status: "running"
+    } : null);
 
     await resume();
   }, [session, resume, toast]);
