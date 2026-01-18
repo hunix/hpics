@@ -11,6 +11,7 @@ import { ExtendedOverview } from '@/components/contacts/ExtendedOverview';
 import { ExtendedInfoSection } from '@/components/contacts/ExtendedInfoSection';
 import { ContactMethodsManager } from '@/components/contacts/ContactMethodsManager';
 import { ProfileCompletenessWidget } from '@/components/contacts/ProfileCompletenessWidget';
+import { IntelligenceQuickActions } from '@/components/contacts/IntelligenceQuickActions';
 
 // Lazy-loaded sections for better performance
 const ContactDocumentsManager = lazy(() => import('@/components/contacts/ContactDocumentsManager').then(m => ({ default: m.ContactDocumentsManager })));
@@ -137,6 +138,7 @@ export function ContactDetailContent({
         return (
           <div className="space-y-6">
             <ProfileCompletenessWidget profileId={contact.id} />
+            <IntelligenceQuickActions profileId={contact.id} contactName={contactName} />
             <ExtendedOverview profileId={contact.id} profile={contact} />
           </div>
         );
