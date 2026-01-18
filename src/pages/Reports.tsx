@@ -148,19 +148,15 @@ export default function Reports() {
           </Badge>
         </div>
 
-        <Tabs defaultValue="dossiers" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="dossiers">
-              <FileDown className="h-4 w-4 mr-2" />
-              Dossiers
+        <Tabs defaultValue="generate" className="w-full">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="generate">
+              <FileText className="h-4 w-4 mr-2" />
+              Generate
             </TabsTrigger>
             <TabsTrigger value="autopilot">
               <Bot className="h-4 w-4 mr-2" />
               Autopilot
-            </TabsTrigger>
-            <TabsTrigger value="generate">
-              <FileText className="h-4 w-4 mr-2" />
-              Generate
             </TabsTrigger>
             <TabsTrigger value="network">
               <Network className="h-4 w-4 mr-2" />
@@ -175,18 +171,6 @@ export default function Reports() {
               Scheduled
             </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="dossiers" className="mt-6 min-h-[700px]">
-            <div className="w-full">
-              <ErrorBoundaryWithRecovery>
-                <PDFDossierGenerator />
-              </ErrorBoundaryWithRecovery>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="autopilot" className="mt-6 min-h-[700px]">
-            <IntelligenceAutopilotPanel />
-          </TabsContent>
 
           <TabsContent value="generate" className="mt-6">
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -307,6 +291,10 @@ export default function Reports() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="autopilot" className="mt-6 min-h-[700px]">
+            <IntelligenceAutopilotPanel />
           </TabsContent>
 
           <TabsContent value="network" className="mt-6 min-h-[700px]">
