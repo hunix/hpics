@@ -154,10 +154,279 @@ export const renderBehavioralDNA: SectionRenderer = (ctx, data) => {
   ctx.yPos += 8;
 };
 
+// Quantum Cognition renderer
+export const renderQuantumCognition: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  if (!data.quantumCognitionData?.length) return;
+  
+  ctx.renderSectionHeader('Quantum Cognition Analysis', [75, 0, 130]);
+  const quantum = (data.quantumCognitionData as Array<Record<string, unknown>>)[0];
+  
+  ctx.checkPageBreak(40);
+  doc.setFillColor(248, 245, 255);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 35, 3, 3, 'F');
+  
+  if (quantum.superposition_states) {
+    const states = quantum.superposition_states as string[];
+    ctx.renderSubsection('Decision Superposition States');
+    states.slice(0, 3).forEach(s => ctx.renderBullet(s, 5));
+  }
+  
+  if (quantum.collapse_probability !== undefined) {
+    ctx.renderScoreBar('Collapse Probability', (quantum.collapse_probability as number) * 100, 100, [75, 0, 130]);
+  }
+  ctx.yPos += 8;
+};
+
+// Relationship Dynamics renderer
+export const renderRelationship: SectionRenderer = (ctx, data) => {
+  if (!data.relationshipAnalysis?.result) return;
+  
+  ctx.renderSectionHeader('Relationship Dynamics', [150, 80, 50]);
+  const rel = data.relationshipAnalysis.result as Record<string, unknown>;
+  
+  if (rel.dynamics) {
+    const dynamics = rel.dynamics as Record<string, unknown>;
+    ctx.renderSubsection('Power Dynamics');
+    ctx.renderKeyValue('Power Balance', String(dynamics.power_balance || 'Balanced'));
+    ctx.renderKeyValue('Communication Style', String(dynamics.communication_style || 'Unknown'));
+  }
+  
+  if (rel.trajectory) {
+    ctx.renderSubsection('Trajectory');
+    ctx.renderBullet(`Direction: ${rel.trajectory}`, 5);
+  }
+  ctx.yPos += 8;
+};
+
+// Engagement Playbook renderer
+export const renderPlaybook: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  if (!data.playbookData?.length) return;
+  
+  ctx.renderSectionHeader('Engagement Playbook', [0, 100, 80]);
+  const playbook = (data.playbookData as Array<Record<string, unknown>>)[0];
+  
+  ctx.checkPageBreak(60);
+  doc.setFillColor(240, 255, 250);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 55, 3, 3, 'F');
+  
+  if (playbook.recommended_tactics) {
+    const tactics = playbook.recommended_tactics as string[];
+    ctx.renderSubsection('Recommended Tactics');
+    tactics.slice(0, 5).forEach(t => ctx.renderBullet(t, 5));
+  }
+  
+  if (playbook.approach_timing) {
+    const timing = playbook.approach_timing as Record<string, unknown>;
+    ctx.yPos += 3;
+    ctx.renderSubsection('Optimal Approach Timing');
+    ctx.renderBullet(`Best Time: ${timing.optimal_time || 'Morning'}`, 5);
+    ctx.renderBullet(`Best Day: ${timing.optimal_day || 'Midweek'}`, 5);
+  }
+  ctx.yPos += 8;
+};
+
+// Hypnotic Patterns renderer
+export const renderHypnoticPatterns: SectionRenderer = (ctx, data) => {
+  if (!data.hypnoticPatternsData?.length) return;
+  
+  ctx.renderSectionHeader('Language Pattern Library', [100, 0, 100]);
+  const patterns = (data.hypnoticPatternsData as Array<Record<string, unknown>>)[0];
+  
+  if (patterns.effective_patterns) {
+    const effective = patterns.effective_patterns as string[];
+    ctx.renderSubsection('Effective Patterns');
+    effective.slice(0, 5).forEach(p => ctx.renderBullet(p, 5));
+  }
+  
+  if (patterns.embedded_commands) {
+    const commands = patterns.embedded_commands as string[];
+    ctx.yPos += 3;
+    ctx.renderSubsection('Embedded Commands');
+    commands.slice(0, 3).forEach(c => ctx.renderBullet(`"${c}"`, 5));
+  }
+  ctx.yPos += 8;
+};
+
+// Elicitation Guide renderer
+export const renderElicitation: SectionRenderer = (ctx, data) => {
+  if (!data.elicitationData?.length) return;
+  
+  ctx.renderSectionHeader('Elicitation Technique Guide', [0, 80, 120]);
+  const sessions = data.elicitationData as Array<Record<string, unknown>>;
+  
+  // Effective techniques summary
+  const techniqueSuccess: Record<string, number> = {};
+  sessions.forEach((s) => {
+    const technique = s.technique_used as string;
+    const success = s.success_rating as number || 0;
+    if (technique) {
+      if (!techniqueSuccess[technique]) techniqueSuccess[technique] = 0;
+      techniqueSuccess[technique] += success;
+    }
+  });
+  
+  const topTechniques = Object.entries(techniqueSuccess)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+  
+  if (topTechniques.length > 0) {
+    ctx.renderSubsection('Most Effective Techniques');
+    topTechniques.forEach(([technique, _]) => {
+      ctx.renderBullet(technique, 5);
+    });
+  }
+  ctx.yPos += 8;
+};
+
+// Cognitive Load renderer
+export const renderCognitiveLoad: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  if (!data.cognitiveLoadData?.length) return;
+  
+  ctx.renderSectionHeader('Cognitive Load Exploitation', [180, 100, 50]);
+  const load = (data.cognitiveLoadData as Array<Record<string, unknown>>)[0];
+  
+  ctx.checkPageBreak(40);
+  doc.setFillColor(255, 248, 240);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 35, 3, 3, 'F');
+  
+  if (load.current_load !== undefined) {
+    ctx.renderScoreBar('Current Load', (load.current_load as number) * 100, 100, [180, 100, 50]);
+  }
+  
+  if (load.exploitation_windows) {
+    const windows = load.exploitation_windows as Array<Record<string, unknown>>;
+    ctx.yPos += 5;
+    ctx.renderSubsection('Exploitation Windows');
+    windows.slice(0, 3).forEach((w) => {
+      ctx.renderBullet(`${w.time_window || 'Unknown'}: ${w.opportunity || ''}`, 5);
+    });
+  }
+  ctx.yPos += 8;
+};
+
+// Dark Tetrad renderer
+export const renderDarkTetrad: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  if (!data.darkTetradData?.length && !data.psychData?.length) return;
+  
+  ctx.renderSectionHeader('Dark Tetrad Analysis', [50, 0, 50]);
+  
+  const darkData = data.darkTetradData?.[0] as Record<string, unknown> || 
+    (data.psychData?.[0] as Record<string, unknown>)?.dark_triad_indicators;
+  
+  if (!darkData) return;
+  
+  ctx.checkPageBreak(60);
+  doc.setFillColor(250, 245, 250);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 55, 3, 3, 'F');
+  
+  const traits = [
+    { key: 'narcissism', label: 'Narcissism', color: [180, 0, 0] as [number, number, number] },
+    { key: 'machiavellianism', label: 'Machiavellianism', color: [100, 0, 100] as [number, number, number] },
+    { key: 'psychopathy', label: 'Psychopathy', color: [50, 50, 50] as [number, number, number] },
+    { key: 'sadism', label: 'Sadism', color: [128, 0, 64] as [number, number, number] },
+  ];
+  
+  traits.forEach((trait) => {
+    const score = darkData[trait.key] as number;
+    if (score !== undefined) {
+      ctx.renderScoreBar(trait.label, score, 100, trait.color);
+    }
+  });
+  ctx.yPos += 8;
+};
+
+// Influence Vector renderer
+export const renderInfluenceVectors: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  if (!data.influenceVectorData?.length) return;
+  
+  ctx.renderSectionHeader('Influence Vector Analysis', [0, 100, 150]);
+  const vectors = data.influenceVectorData as Array<Record<string, unknown>>;
+  
+  ctx.checkPageBreak(50);
+  doc.setFillColor(240, 248, 255);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
+  
+  vectors.slice(0, 5).forEach((v) => {
+    const vector = v.vector_type as string || 'Unknown';
+    const strength = (v.strength as number) || 0;
+    ctx.renderScoreBar(vector, strength * 100, 100, [0, 100, 150]);
+  });
+  ctx.yPos += 8;
+};
+
+// Financial Psychology renderer
+export const renderFinancialPsychology: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  if (!data.financialPsychData?.length) return;
+  
+  ctx.renderSectionHeader('Financial Psychology Profile', [0, 128, 64]);
+  const finPsych = (data.financialPsychData as Array<Record<string, unknown>>)[0];
+  
+  ctx.checkPageBreak(50);
+  doc.setFillColor(240, 255, 245);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
+  
+  if (finPsych.money_scripts) {
+    const scripts = finPsych.money_scripts as string[];
+    ctx.renderSubsection('Money Scripts');
+    scripts.slice(0, 4).forEach(s => ctx.renderBullet(s, 5));
+  }
+  
+  if (finPsych.financial_triggers) {
+    const triggers = finPsych.financial_triggers as string[];
+    ctx.yPos += 3;
+    ctx.renderSubsection('Financial Triggers');
+    triggers.slice(0, 3).forEach(t => ctx.renderBullet(t, 5));
+  }
+  ctx.yPos += 8;
+};
+
+// Sacred Values renderer
+export const renderSacredValues: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  if (!data.sacredValuesData?.length) return;
+  
+  ctx.renderSectionHeader('Sacred Values Profile', [128, 64, 0]);
+  const sacred = (data.sacredValuesData as Array<Record<string, unknown>>)[0];
+  
+  ctx.checkPageBreak(50);
+  doc.setFillColor(255, 250, 240);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
+  
+  if (sacred.core_values) {
+    const values = sacred.core_values as string[];
+    ctx.renderSubsection('Core Sacred Values');
+    values.slice(0, 5).forEach(v => ctx.renderBullet(v, 5));
+  }
+  
+  if (sacred.taboo_violations) {
+    const taboos = sacred.taboo_violations as string[];
+    ctx.yPos += 3;
+    ctx.renderSubsection('Taboo Boundaries');
+    taboos.slice(0, 3).forEach(t => ctx.renderBullet(`⚠ ${t}`, 5));
+  }
+  ctx.yPos += 8;
+};
+
 export const intelligenceSectionRenderers = {
   mice: renderMICE,
   cialdini: renderCialdini,
   psychological: renderPsychologicalProfile,
   trust: renderTrust,
   behavioralDna: renderBehavioralDNA,
+  quantumCognition: renderQuantumCognition,
+  relationship: renderRelationship,
+  playbook: renderPlaybook,
+  hypnoticPatterns: renderHypnoticPatterns,
+  elicitation: renderElicitation,
+  cognitiveLoad: renderCognitiveLoad,
+  darkTetrad: renderDarkTetrad,
+  influenceVectors: renderInfluenceVectors,
+  financialPsychology: renderFinancialPsychology,
+  sacredValues: renderSacredValues,
 };

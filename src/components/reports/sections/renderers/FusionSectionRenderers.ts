@@ -82,6 +82,153 @@ export const renderMosaicFusion: SectionRenderer = (ctx, data) => {
   ctx.yPos += ctx.lineHeight + 8;
 };
 
+// Pattern of Life Fusion renderer
+export const renderPatternOfLifeFusion: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  if (!data.patternOfLifeEngineData?.length) return;
+  
+  ctx.renderSectionHeader('Pattern-of-Life Engine', [80, 100, 130]);
+  const pol = (data.patternOfLifeEngineData as Array<Record<string, unknown>>)[0]?.result as Record<string, unknown>;
+  
+  ctx.checkPageBreak(50);
+  doc.setFillColor(245, 248, 255);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
+  
+  if (pol?.circadian_profile) {
+    const circadian = pol.circadian_profile as Record<string, unknown>;
+    ctx.renderSubsection('Circadian Profile');
+    ctx.renderBullet(`Chronotype: ${circadian.chronotype || 'Unknown'}`, 5);
+    ctx.renderBullet(`Peak Cognitive: ${circadian.peak_cognitive_hours || 'Morning'}`, 5);
+  }
+  
+  if (pol?.routine_deviations) {
+    const deviations = pol.routine_deviations as Array<Record<string, unknown>>;
+    ctx.yPos += 3;
+    ctx.renderSubsection('Recent Routine Deviations');
+    deviations.slice(0, 3).forEach((d) => {
+      ctx.renderBullet(`${d.deviation_type || 'Unknown'}: ${d.significance || 'Low'}`, 5);
+    });
+  }
+  ctx.yPos += 8;
+};
+
+// Entity Resolution renderer
+export const renderEntityResolution: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  if (!data.entityResolutionData?.length) return;
+  
+  ctx.renderSectionHeader('Entity Resolution & Alias Detection', [100, 80, 60]);
+  const entity = (data.entityResolutionData as Array<Record<string, unknown>>)[0]?.result as Record<string, unknown>;
+  
+  ctx.checkPageBreak(50);
+  doc.setFillColor(255, 250, 245);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
+  
+  if (entity?.detected_aliases) {
+    const aliases = entity.detected_aliases as Array<Record<string, unknown>>;
+    ctx.renderSubsection('Detected Aliases');
+    aliases.slice(0, 5).forEach((a) => {
+      const name = a.alias as string || 'Unknown';
+      const confidence = (a.confidence as number) || 0;
+      ctx.renderBullet(`${name} (${Math.round(confidence * 100)}% match)`, 5);
+    });
+  }
+  
+  if (entity?.merged_profiles) {
+    const merged = entity.merged_profiles as number;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Merged Profiles: ${merged}`, ctx.margin + 5, ctx.yPos);
+    ctx.yPos += ctx.lineHeight;
+  }
+  ctx.yPos += 8;
+};
+
+// Sentiment Cascade renderer
+export const renderSentimentCascade: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  if (!data.sentimentCascadeData?.length) return;
+  
+  ctx.renderSectionHeader('Sentiment Cascade Prediction (SIR Model)', [150, 80, 80]);
+  const sentiment = (data.sentimentCascadeData as Array<Record<string, unknown>>)[0]?.result as Record<string, unknown>;
+  
+  ctx.checkPageBreak(50);
+  doc.setFillColor(255, 248, 248);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
+  
+  if (sentiment?.infection_rate !== undefined) {
+    ctx.renderScoreBar('Sentiment Infection Rate', (sentiment.infection_rate as number) * 100, 100, [150, 80, 80]);
+  }
+  
+  if (sentiment?.cascade_predictions) {
+    const predictions = sentiment.cascade_predictions as Array<Record<string, unknown>>;
+    ctx.yPos += 5;
+    ctx.renderSubsection('Cascade Predictions');
+    predictions.slice(0, 3).forEach((p) => {
+      const sentiment_type = p.sentiment as string || 'Unknown';
+      const spread = (p.spread_probability as number) || 0;
+      ctx.renderBullet(`${sentiment_type}: ${Math.round(spread * 100)}% spread probability`, 5);
+    });
+  }
+  ctx.yPos += 8;
+};
+
+// Cross-Domain Synthesis renderer
+export const renderCrossDomainSynthesis: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  if (!data.crossDomainData?.length) return;
+  
+  ctx.renderSectionHeader('Cross-Domain Intelligence Synthesis', [75, 100, 150]);
+  const cross = (data.crossDomainData as Array<Record<string, unknown>>)[0]?.result as Record<string, unknown>;
+  
+  ctx.checkPageBreak(50);
+  doc.setFillColor(245, 250, 255);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
+  
+  if (cross?.domain_correlations) {
+    const correlations = cross.domain_correlations as Array<Record<string, unknown>>;
+    ctx.renderSubsection('Domain Correlations');
+    correlations.slice(0, 4).forEach((c) => {
+      const domains = `${c.domain_a} ↔ ${c.domain_b}`;
+      const strength = (c.correlation_strength as number) || 0;
+      ctx.renderBullet(`${domains}: ${Math.round(strength * 100)}%`, 5);
+    });
+  }
+  
+  if (cross?.synthesis_insights) {
+    const insights = cross.synthesis_insights as string[];
+    ctx.yPos += 3;
+    ctx.renderSubsection('Synthesis Insights');
+    insights.slice(0, 3).forEach(i => ctx.renderBullet(i, 5));
+  }
+  ctx.yPos += 8;
+};
+
+// Predictive Convergence renderer
+export const renderPredictiveConvergence: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  if (!data.convergenceData?.length) return;
+  
+  ctx.renderSectionHeader('Predictive Convergence Analysis', [100, 50, 150]);
+  const convergence = (data.convergenceData as Array<Record<string, unknown>>)[0];
+  
+  ctx.checkPageBreak(40);
+  doc.setFillColor(250, 245, 255);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 35, 3, 3, 'F');
+  
+  if (convergence.synergy_multiplier !== undefined) {
+    ctx.renderScoreBar('Synergy Multiplier', (convergence.synergy_multiplier as number) * 25, 100, [100, 50, 150]);
+  }
+  
+  if (convergence.converging_phases) {
+    const phases = convergence.converging_phases as string[];
+    ctx.yPos += 5;
+    ctx.renderSubsection('Converging Phases');
+    phases.slice(0, 4).forEach(p => ctx.renderBullet(p, 5));
+  }
+  ctx.yPos += 8;
+};
+
 export const fusionSectionRenderers = {
   temporalFusion: renderTemporalFusion,
   digitalTwin: renderDigitalTwin,
@@ -90,4 +237,9 @@ export const fusionSectionRenderers = {
   dempsterShafer: renderDempsterShafer,
   counterfactual: renderCounterfactual,
   mosaicFusion: renderMosaicFusion,
+  patternOfLifeFusion: renderPatternOfLifeFusion,
+  entityResolution: renderEntityResolution,
+  sentimentCascade: renderSentimentCascade,
+  crossDomainSynthesis: renderCrossDomainSynthesis,
+  predictiveConvergence: renderPredictiveConvergence,
 };

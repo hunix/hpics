@@ -196,9 +196,223 @@ export const renderTimeline: SectionRenderer = (ctx, data) => {
   ctx.yPos += 8;
 };
 
+// Pattern of Life renderer
+export const renderPatternOfLife: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  if (!data.patternOfLifeData?.length) return;
+  
+  ctx.renderSectionHeader('Pattern of Life Analysis', [80, 100, 120]);
+  const pol = (data.patternOfLifeData as Array<Record<string, unknown>>)[0];
+  
+  ctx.checkPageBreak(50);
+  doc.setFillColor(245, 248, 252);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
+  
+  // Circadian rhythm
+  if (pol.peak_activity_hours) {
+    const hours = pol.peak_activity_hours as number[];
+    ctx.renderSubsection('Peak Activity Windows');
+    ctx.renderBullet(`Primary: ${hours[0] || 9}:00 - ${hours[1] || 17}:00`, 5);
+  }
+  
+  // Routine score
+  if (pol.routine_predictability !== undefined) {
+    ctx.renderScoreBar('Routine Predictability', (pol.routine_predictability as number) * 100, 100, [80, 100, 120]);
+  }
+  
+  // Deviation alerts
+  if (pol.recent_deviations) {
+    const deviations = pol.recent_deviations as Array<Record<string, unknown>>;
+    if (deviations.length > 0) {
+      ctx.yPos += 5;
+      ctx.renderSubsection('Recent Deviations');
+      deviations.slice(0, 3).forEach((d) => {
+        ctx.renderBullet(`${d.deviation_type || 'Unknown'}: ${d.description || ''}`, 5);
+      });
+    }
+  }
+  ctx.yPos += 8;
+};
+
+// Relationship Ecosystem renderer
+export const renderRelationshipEcosystem: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  if (!data.relationshipData?.length && !data.relationshipAnalysis) return;
+  
+  ctx.renderSectionHeader('Relationship Ecosystem', [150, 100, 50]);
+  
+  // Relationship analysis from AI
+  if (data.relationshipAnalysis?.result) {
+    const rel = data.relationshipAnalysis.result as Record<string, unknown>;
+    ctx.checkPageBreak(40);
+    doc.setFillColor(255, 250, 245);
+    doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 35, 3, 3, 'F');
+    
+    if (rel.score !== undefined) {
+      ctx.renderScoreBar('Relationship Health', rel.score as number, 100, [150, 100, 50]);
+    }
+    if (rel.grade) {
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Grade: ${rel.grade}`, ctx.margin + 5, ctx.yPos + 8);
+      ctx.yPos += 15;
+    }
+  }
+  
+  // Network relationships
+  if (data.relationshipData?.length) {
+    ctx.yPos += 5;
+    ctx.renderSubsection('Key Relationships');
+    (data.relationshipData as Array<Record<string, unknown>>).slice(0, 5).forEach((r) => {
+      const name = r.related_profile_name as string || 'Unknown';
+      const type = r.relationship_type as string || 'connection';
+      const strength = r.relationship_strength as number || 0;
+      ctx.renderBullet(`${name} (${type}) - Strength: ${Math.round(strength * 100)}%`, 5);
+    });
+  }
+  ctx.yPos += 8;
+};
+
+// Media Intelligence renderer
+export const renderMediaIntel: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  if (!data.mediaData?.length) return;
+  
+  ctx.renderSectionHeader('Visual Media Intelligence', [50, 50, 100]);
+  const media = data.mediaData as Array<Record<string, unknown>>;
+  
+  ctx.checkPageBreak(60);
+  doc.setFillColor(245, 245, 255);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 55, 3, 3, 'F');
+  
+  // Summary stats
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Total Media Analyzed: ${media.length}`, ctx.margin + 5, ctx.yPos + 8);
+  
+  // Aggregate intelligence
+  const withLocation = media.filter(m => m.location_data).length;
+  const withFaces = media.filter(m => m.faces_detected && (m.faces_detected as number) > 0).length;
+  const withObjects = media.filter(m => m.detected_objects).length;
+  
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Location data: ${withLocation} items`, ctx.margin + 5, ctx.yPos + 20);
+  doc.text(`Face detections: ${withFaces} items`, ctx.margin + 5, ctx.yPos + 28);
+  doc.text(`Object recognition: ${withObjects} items`, ctx.margin + 5, ctx.yPos + 36);
+  
+  ctx.yPos += 60;
+  
+  // Intelligence indicators
+  const intelIndicators = media.filter(m => m.intelligence_indicators);
+  if (intelIndicators.length > 0) {
+    ctx.renderSubsection('Key Intelligence Indicators');
+    intelIndicators.slice(0, 5).forEach((m) => {
+      const indicators = m.intelligence_indicators as Record<string, unknown>;
+      const wealth = indicators?.wealth_indicators || indicators?.lifestyle_indicators;
+      if (wealth) {
+        ctx.renderBullet(String(wealth).substring(0, 80), 5);
+      }
+    });
+  }
+  ctx.yPos += 8;
+};
+
+// Voice Intelligence renderer
+export const renderVoiceIntel: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  if (!data.voiceData?.length) return;
+  
+  ctx.renderSectionHeader('Voice Pattern Intelligence', [100, 50, 100]);
+  const voice = data.voiceData as Array<Record<string, unknown>>;
+  
+  ctx.checkPageBreak(50);
+  doc.setFillColor(255, 245, 255);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
+  
+  // Summary
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Voice Sessions Analyzed: ${voice.length}`, ctx.margin + 5, ctx.yPos + 8);
+  
+  // Aggregate emotional profile
+  const emotionalStates: Record<string, number> = {};
+  voice.forEach((v) => {
+    const emotions = v.detected_emotions as Record<string, number>;
+    if (emotions) {
+      Object.entries(emotions).forEach(([emotion, score]) => {
+        emotionalStates[emotion] = (emotionalStates[emotion] || 0) + (score as number);
+      });
+    }
+  });
+  
+  const topEmotions = Object.entries(emotionalStates)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
+  
+  if (topEmotions.length > 0) {
+    ctx.yPos += 15;
+    ctx.renderSubsection('Dominant Emotional Patterns');
+    topEmotions.forEach(([emotion, _]) => {
+      ctx.renderBullet(emotion.charAt(0).toUpperCase() + emotion.slice(1), 5);
+    });
+  }
+  
+  // Stress indicators
+  const avgStress = voice.reduce((sum, v) => sum + ((v.stress_level as number) || 0), 0) / voice.length;
+  if (avgStress > 0) {
+    ctx.renderScoreBar('Average Stress Level', avgStress * 100, 100, [180, 80, 80]);
+  }
+  ctx.yPos += 8;
+};
+
+// Anomaly Detection renderer
+export const renderAnomalyDetection: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  if (!data.anomaliesData?.length) return;
+  
+  ctx.renderSectionHeader('Anomaly Detection Report', [200, 50, 50]);
+  const anomalies = data.anomaliesData as Array<Record<string, unknown>>;
+  
+  ctx.checkPageBreak(30);
+  
+  // Alert banner
+  doc.setFillColor(255, 230, 230);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 20, 2, 2, 'F');
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(180, 0, 0);
+  doc.text(`${anomalies.length} ANOMALIES DETECTED`, ctx.margin + 5, ctx.yPos + 8);
+  doc.setTextColor(0);
+  ctx.yPos += 25;
+  
+  // List anomalies
+  anomalies.slice(0, 8).forEach((a) => {
+    ctx.checkPageBreak(20);
+    const type = (a.anomaly_type as string)?.toUpperCase() || 'UNKNOWN';
+    const severity = a.severity as string || 'medium';
+    const color: [number, number, number] = severity === 'high' ? [180, 0, 0] : severity === 'medium' ? [200, 150, 0] : [100, 100, 100];
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...color);
+    doc.text(`[${severity.toUpperCase()}]`, ctx.margin, ctx.yPos);
+    doc.setTextColor(0);
+    doc.setFont('helvetica', 'normal');
+    doc.text(type, ctx.margin + 25, ctx.yPos);
+    ctx.yPos += ctx.lineHeight + 2;
+  });
+  ctx.yPos += 8;
+};
+
 export const coreSectionRenderers = {
   executive: renderExecutiveBrief,
   sourceDashboard: renderSourceDashboard,
   overview: renderContactOverview,
   timeline: renderTimeline,
+  patternOfLife: renderPatternOfLife,
+  relationshipEcosystem: renderRelationshipEcosystem,
+  mediaIntel: renderMediaIntel,
+  voiceIntel: renderVoiceIntel,
+  anomalyDetection: renderAnomalyDetection,
 };
