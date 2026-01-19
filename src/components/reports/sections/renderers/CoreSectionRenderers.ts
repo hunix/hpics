@@ -4,22 +4,21 @@
  */
 
 import { format } from 'date-fns';
-import { PDFRenderContext, RenderHelpers, DossierData, SectionRenderer } from './types';
+import type { SectionRenderer } from './types';
 import { CIALDINI_PRINCIPLES } from '../types';
 
-export const renderExecutiveBrief: SectionRenderer = (ctx, helpers, data) => {
+export const renderExecutiveBrief: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  const { renderSectionHeader, renderSubsection, renderBullet, checkPageBreak } = helpers;
   
-  const psych = data.psychData.data?.[0] as Record<string, unknown> | undefined;
+  const psych = data.psychData?.[0] as Record<string, unknown> | undefined;
   const attachmentStyle = psych?.attachment_style as Record<string, unknown> | undefined;
   const riskColor: [number, number, number] = data.totalAnomalies > 2 ? [180, 0, 0] : data.totalAnomalies > 0 ? [180, 100, 0] : [0, 120, 0];
   const riskLevel = data.totalAnomalies > 2 ? 'HIGH' : data.totalAnomalies > 0 ? 'MEDIUM' : 'LOW';
   
-  renderSectionHeader('Executive Intelligence Brief', [0, 51, 102]);
+  ctx.renderSectionHeader('Executive Intelligence Brief', [0, 51, 102]);
   
   // Subject Classification Box
-  checkPageBreak(20);
+  ctx.checkPageBreak(20);
   doc.setFillColor(riskColor[0], riskColor[1], riskColor[2], 0.15);
   doc.roundedRect(ctx.margin, ctx.yPos - 2, ctx.contentWidth, 14, 2, 2, 'F');
   doc.setFontSize(11);
@@ -29,25 +28,25 @@ export const renderExecutiveBrief: SectionRenderer = (ctx, helpers, data) => {
   doc.setTextColor(0);
   ctx.yPos += 20;
   
-  renderSubsection('Strategic Assessment');
+  ctx.renderSubsection('Strategic Assessment');
   
   if (attachmentStyle?.primary_style) {
-    renderBullet(`Attachment Pattern: ${attachmentStyle.primary_style} (Anxiety: ${attachmentStyle.anxiety_score || 0}%, Avoidance: ${attachmentStyle.avoidance_score || 0}%)`);
+    ctx.renderBullet(`Attachment Pattern: ${attachmentStyle.primary_style} (Anxiety: ${attachmentStyle.anxiety_score || 0}%, Avoidance: ${attachmentStyle.avoidance_score || 0}%)`);
   }
   
   if (data.relationshipAnalysis?.result) {
     const rel = data.relationshipAnalysis.result as Record<string, unknown>;
-    renderBullet(`Relationship Status: Score ${rel.score || 0}/100, Grade ${rel.grade || 'N/A'}`);
+    ctx.renderBullet(`Relationship Status: Score ${rel.score || 0}/100, Grade ${rel.grade || 'N/A'}`);
   }
   
-  if (data.trustData.data?.[0]) {
-    const trust = data.trustData.data[0] as Record<string, unknown>;
-    renderBullet(`Trust Level: ${trust.overall_trust_score || 0}% (${trust.trust_trajectory || 'stable'})`);
+  if (data.trustData?.[0]) {
+    const trust = data.trustData[0] as Record<string, unknown>;
+    ctx.renderBullet(`Trust Level: ${trust.overall_trust_score || 0}% (${trust.trust_trajectory || 'stable'})`);
   }
   
-  if (data.miceData.data?.[0]) {
-    const mice = data.miceData.data[0] as Record<string, unknown>;
-    renderBullet(`Primary MICE Vulnerability: ${mice.primary_vulnerability || 'Not assessed'} (${((mice.recruitment_likelihood as number) * 100 || 0).toFixed(0)}% recruitability)`);
+  if (data.miceData?.[0]) {
+    const mice = data.miceData[0] as Record<string, unknown>;
+    ctx.renderBullet(`Primary MICE Vulnerability: ${mice.primary_vulnerability || 'Not assessed'} (${((mice.recruitment_likelihood as number) * 100 || 0).toFixed(0)}% recruitability)`);
   }
   
   if (data.influenceData.data) {
@@ -62,21 +61,20 @@ export const renderExecutiveBrief: SectionRenderer = (ctx, helpers, data) => {
       }
     });
     if (topLabel) {
-      renderBullet(`Primary Influence Vector: ${topLabel} (${topScore}% susceptibility)`);
+      ctx.renderBullet(`Primary Influence Vector: ${topLabel} (${topScore}% susceptibility)`);
     }
   }
   
   ctx.yPos += 8;
 };
 
-export const renderSourceDashboard: SectionRenderer = (ctx, helpers, data) => {
+export const renderSourceDashboard: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  const { renderSectionHeader, renderSubsection, checkPageBreak } = helpers;
   
-  renderSectionHeader('Intelligence Source Dashboard', [80, 80, 80]);
+  ctx.renderSectionHeader('Intelligence Source Dashboard', [80, 80, 80]);
   
   // Data Completeness Score
-  checkPageBreak(35);
+  ctx.checkPageBreak(35);
   doc.setFillColor(240, 245, 250);
   doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 30, 3, 3, 'F');
   
@@ -102,13 +100,13 @@ export const renderSourceDashboard: SectionRenderer = (ctx, helpers, data) => {
   ctx.yPos += 35;
   
   // Source breakdown
-  renderSubsection('Source Breakdown');
+  ctx.renderSubsection('Source Breakdown');
   const sourceBreakdown = [
     { label: 'Visual Media Intelligence', count: data.totalMediaAnalyzed, status: data.totalMediaAnalyzed > 0 ? '✓' : '○' },
     { label: 'Voice Pattern Analysis', count: data.totalVoiceSessions, status: data.totalVoiceSessions > 0 ? '✓' : '○' },
-    { label: 'Psychological Profile', count: data.psychData.data?.length || 0, status: data.psychData.data?.length ? '✓' : '○' },
-    { label: 'MICE Assessment', count: data.miceData.data?.length || 0, status: data.miceData.data?.length ? '✓' : '○' },
-    { label: 'Influence Profile', count: data.influenceData.data ? 1 : 0, status: data.influenceData.data ? '✓' : '○' },
+    { label: 'Psychological Profile', count: data.psychData?.length || 0, status: data.psychData?.length ? '✓' : '○' },
+    { label: 'MICE Assessment', count: data.miceData?.length || 0, status: data.miceData?.length ? '✓' : '○' },
+    { label: 'Influence Profile', count: data.influenceData ? 1 : 0, status: data.influenceData ? '✓' : '○' },
     { label: 'Behavioral DNA', count: data.behavioralDnaAnalysis ? 1 : 0, status: data.behavioralDnaAnalysis ? '✓' : '○' },
   ];
   
@@ -125,24 +123,23 @@ export const renderSourceDashboard: SectionRenderer = (ctx, helpers, data) => {
   ctx.yPos += 8;
 };
 
-export const renderContactOverview: SectionRenderer = (ctx, helpers, data) => {
+export const renderContactOverview: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  const { renderSectionHeader, renderSubsection, renderKeyValue, renderBullet, checkPageBreak } = helpers;
   
-  renderSectionHeader('Contact Overview', [50, 50, 50]);
+  ctx.renderSectionHeader('Contact Overview', [50, 50, 50]);
   
   const profile = data.profile;
-  renderKeyValue('Full Name', data.contactName);
-  renderKeyValue('Organization', String(profile.organization || 'Unknown'));
-  renderKeyValue('Position', String(profile.job_title || 'Unknown'));
-  renderKeyValue('Relationship Type', String(profile.relationship_type || 'Unclassified'));
-  renderKeyValue('Last Contact', profile.last_contact_date ? format(new Date(profile.last_contact_date as string), 'MMM d, yyyy') : 'Unknown');
+  ctx.renderKeyValue('Full Name', data.contactName);
+  ctx.renderKeyValue('Organization', String(profile.organization || 'Unknown'));
+  ctx.renderKeyValue('Position', String(profile.job_title || 'Unknown'));
+  ctx.renderKeyValue('Relationship Type', String(profile.relationship_type || 'Unclassified'));
+  ctx.renderKeyValue('Last Contact', profile.last_contact_date ? format(new Date(profile.last_contact_date as string), 'MMM d, yyyy') : 'Unknown');
   
   if (profile.notes) {
     ctx.yPos += 3;
-    renderSubsection('Notes');
+    ctx.renderSubsection('Notes');
     const noteLines = doc.splitTextToSize(String(profile.notes), ctx.contentWidth);
-    checkPageBreak(noteLines.length * ctx.lineHeight + 5);
+    ctx.checkPageBreak(noteLines.length * ctx.lineHeight + 5);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.text(noteLines, ctx.margin, ctx.yPos);
@@ -150,27 +147,26 @@ export const renderContactOverview: SectionRenderer = (ctx, helpers, data) => {
   }
   
   // Life milestones
-  if (data.milestonesData.data?.length) {
+  if (data.milestonesData?.length) {
     ctx.yPos += 3;
-    renderSubsection('Key Life Milestones');
-    (data.milestonesData.data as Record<string, unknown>[]).slice(0, 5).forEach((m) => {
-      renderBullet(`${format(new Date(m.milestone_date as string), 'MMM yyyy')}: ${m.milestone_type} - ${m.description || ''}`, 5);
+    ctx.renderSubsection('Key Life Milestones');
+    (data.milestonesData as Record<string, unknown>[]).slice(0, 5).forEach((m) => {
+      ctx.renderBullet(`${format(new Date(m.milestone_date as string), 'MMM yyyy')}: ${m.milestone_type} - ${m.description || ''}`, 5);
     });
   }
   
   ctx.yPos += 8;
 };
 
-export const renderTimeline: SectionRenderer = (ctx, helpers, data) => {
+export const renderTimeline: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  const { renderSectionHeader, checkPageBreak } = helpers;
   
-  if (!data.commData.data?.length) return;
+  if (!data.commData?.length) return;
   
-  renderSectionHeader('Interaction Timeline', [80, 80, 80]);
+  ctx.renderSectionHeader('Interaction Timeline', [80, 80, 80]);
   
-  (data.commData.data as Record<string, unknown>[]).slice(0, 15).forEach((comm) => {
-    checkPageBreak(20);
+  (data.commData as Record<string, unknown>[]).slice(0, 15).forEach((comm) => {
+    ctx.checkPageBreak(20);
     
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
