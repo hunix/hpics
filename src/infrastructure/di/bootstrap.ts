@@ -8,7 +8,9 @@
 import { getContainer, ServiceKeys } from './Container';
 import { getEventBus } from '@/domains/shared/events/EventBus';
 import { getFusionService } from '@/domains/fusion/services/FusionService';
+import { getIntelligenceService } from '@/domains/intelligence/services/IntelligenceService';
 import { getFusionFacade } from '@/application/facades/FusionFacade';
+import { getIntelligenceFacade } from '@/application/facades/IntelligenceFacade';
 import { supabase } from '@/integrations/supabase/client';
 
 let isBootstrapped = false;
@@ -28,15 +30,18 @@ export function bootstrapContainer(): void {
   container.registerInstance(ServiceKeys.SupabaseClient, supabase);
   container.registerInstance(ServiceKeys.EventBus, getEventBus());
 
-  // Domain Services - Fusion (Pilot Domain)
+  // Domain Services - Fusion
   container.register(ServiceKeys.FusionService, getFusionService, 'singleton');
+
+  // Domain Services - Intelligence
+  container.register(ServiceKeys.IntelligenceService, getIntelligenceService, 'singleton');
 
   // Application Facades
   container.register(ServiceKeys.FusionFacade, getFusionFacade, 'singleton');
+  container.register(ServiceKeys.IntelligenceFacade, getIntelligenceFacade, 'singleton');
 
-  // TODO: Register other domains as they are migrated
+  // TODO: Register remaining domains as they are migrated
   // container.register(ServiceKeys.ProfileService, getProfileService, 'singleton');
-  // container.register(ServiceKeys.IntelligenceService, getIntelligenceService, 'singleton');
   // container.register(ServiceKeys.WarfareService, getWarfareService, 'singleton');
 
   isBootstrapped = true;
