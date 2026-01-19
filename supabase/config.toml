@@ -503,3 +503,30 @@ verify_jwt = false
 
 [functions.mosaic-intelligence-fuser]
 verify_jwt = false
+
+[functions.temporal-fusion-transformer]
+verify_jwt = false
+
+[functions.behavioral-digital-twin]
+verify_jwt = false
+
+[functions.graph-rag-engine]
+verify_jwt = false
+
+[functions.shadow-network-analyzer]
+verify_jwt = false
+
+[functions.dempster-shafer-fusion]
+verify_jwt = false
+
+[functions.counterfactual-engine]
+verify_jwt = false
+
+[functions.pattern-of-life-engine]
+verify_jwt = false
+
+[functions.entity-resolution-engine]
+verify_jwt = false
+
+[functions.sentiment-cascade-predictor]
+verify_jwt = false

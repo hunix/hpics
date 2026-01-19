@@ -91,6 +91,7 @@ const AbsoluteGenesisCenter = lazyWithRetry(() => import("./pages/AbsoluteGenesi
 const AICostDashboard = lazyWithRetry(() => import("./pages/AICostDashboard"));
 const CrossModalAnalysis = lazyWithRetry(() => import("./pages/CrossModalAnalysis"));
 const ComprehensiveSystemHealthDashboard = lazyWithRetry(() => import("./pages/ComprehensiveSystemHealthDashboard"));
+const FusionCommandCenter = lazyWithRetry(() => import("./pages/FusionCommandCenter"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -202,6 +203,7 @@ const App = () => (
                           <Route path="/ai-cost-dashboard" element={<AICostDashboard />} />
                           <Route path="/cross-modal-analysis" element={<CrossModalAnalysis />} />
                           <Route path="/system-health-dashboard" element={<ComprehensiveSystemHealthDashboard />} />
+                          <Route path="/fusion-command" element={<FusionCommandCenter />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                       </Suspense>
