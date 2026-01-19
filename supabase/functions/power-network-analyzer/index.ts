@@ -157,6 +157,16 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit - respond before any auth/validation
+  try {
+    const body = await req.clone().json();
+    if (body?.healthCheck === true) {
+      return new Response(JSON.stringify({ ok: true, function: 'power-network-analyzer', timestamp: Date.now() }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  } catch { /* not JSON or no body - continue normally */ }
+
   try {
     const { userId, targetProfileId, analysisType = 'full_network' } = await req.json() as PowerNetworkRequest;
 
