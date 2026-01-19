@@ -6,55 +6,49 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// All intelligence tasks with their edge functions and categories
+// All intelligence tasks mapped to EXISTING edge functions
 const INTELLIGENCE_TASKS = [
-  // Core Intelligence (Priority 1)
+  // Core Intelligence (Priority 1) - 5 tasks
   { name: 'MICE Assessment', edgeFunction: 'mice-recruitment-analyzer', analysisType: 'full_assessment', category: 'core', priority: 1 },
   { name: 'Behavioral DNA', edgeFunction: 'behavioral-dna-sequencer', analysisType: 'full_sequence', category: 'core', priority: 1 },
-  { name: 'Dark Triad Analysis', edgeFunction: 'dark-triad-analyzer', analysisType: 'full_analysis', category: 'core', priority: 1 },
-  { name: 'Vulnerability Mapping', edgeFunction: 'vulnerability-mapper', analysisType: 'comprehensive', category: 'core', priority: 1 },
-  { name: 'Manipulation Susceptibility', edgeFunction: 'manipulation-susceptibility-engine', analysisType: 'full_assessment', category: 'core', priority: 1 },
+  { name: 'Attachment Vulnerability', edgeFunction: 'attachment-vulnerability-analyzer', analysisType: 'comprehensive', category: 'core', priority: 1 },
+  { name: 'Manipulation Susceptibility', edgeFunction: 'manipulation-vulnerability-assessment', analysisType: 'full_assessment', category: 'core', priority: 1 },
+  { name: 'Phobia Exploitation', edgeFunction: 'phobia-exploitation-engine', analysisType: 'full_analysis', category: 'core', priority: 1 },
   
-  // Psychological Operations (Priority 2)
+  // Psychological Operations (Priority 2) - 6 tasks
   { name: 'Cognitive Warfare', edgeFunction: 'cognitive-warfare-engine', analysisType: 'full_analysis', category: 'psychological', priority: 2 },
-  { name: 'Emotional Exploitation', edgeFunction: 'emotional-exploitation-mapper', analysisType: 'full_mapping', category: 'psychological', priority: 2 },
-  { name: 'Trust Architecture', edgeFunction: 'trust-architecture-mapper', analysisType: 'full_map', category: 'psychological', priority: 2 },
-  { name: 'Social Engineering', edgeFunction: 'social-engineering-simulator', analysisType: 'full_simulation', category: 'psychological', priority: 2 },
-  { name: 'Deception Detection', edgeFunction: 'deception-pattern-analyzer', analysisType: 'full_analysis', category: 'psychological', priority: 2 },
-  { name: 'Influence Operations', edgeFunction: 'influence-operation-planner', analysisType: 'full_plan', category: 'psychological', priority: 2 },
+  { name: 'Trauma Exploitation', edgeFunction: 'trauma-exploitation-engine', analysisType: 'full_mapping', category: 'psychological', priority: 2 },
+  { name: 'Deception Detection', edgeFunction: 'enhanced-deception-detector', analysisType: 'full_analysis', category: 'psychological', priority: 2 },
+  { name: 'Influence Profile', edgeFunction: 'analyze-influence-profile', analysisType: 'full_plan', category: 'psychological', priority: 2 },
+  { name: 'Coercion Resistance', edgeFunction: 'coercion-resistance-assessor', analysisType: 'full_assessment', category: 'psychological', priority: 2 },
+  { name: 'Existential Leverage', edgeFunction: 'existential-leverage-calculator', analysisType: 'full_analysis', category: 'psychological', priority: 2 },
   
-  // Advanced Warfare (Priority 3)
+  // Advanced Warfare (Priority 3) - 6 tasks
   { name: 'Memetic Propagation', edgeFunction: 'memetic-propagation-engine', analysisType: 'vulnerability_scan', category: 'warfare', priority: 3 },
   { name: 'Reality Consensus', edgeFunction: 'reality-consensus-engine', analysisType: 'map_anchors', category: 'warfare', priority: 3 },
   { name: 'Mass Formation', edgeFunction: 'mass-formation-analyzer', analysisType: 'full_analysis', category: 'warfare', priority: 3 },
-  { name: 'Narrative Warfare', edgeFunction: 'narrative-warfare-engine', analysisType: 'full_analysis', category: 'warfare', priority: 3 },
-  { name: 'Predictive Behavior', edgeFunction: 'predictive-behavior-engine', analysisType: 'full_prediction', category: 'warfare', priority: 3 },
+  { name: 'Narrative Control', edgeFunction: 'narrative-control-engine', analysisType: 'full_analysis', category: 'warfare', priority: 3 },
+  { name: 'Predictive Behavior', edgeFunction: 'predict-behavioral-scenarios', analysisType: 'full_prediction', category: 'warfare', priority: 3 },
   { name: 'Precognitive Patterns', edgeFunction: 'precognitive-pattern-engine', analysisType: 'full_analysis', category: 'warfare', priority: 3 },
   
-  // Network Intelligence (Priority 4)
-  { name: 'Network Topology', edgeFunction: 'network-topology-mapper', analysisType: 'full_map', category: 'network', priority: 4 },
-  { name: 'Social Graph', edgeFunction: 'social-graph-analyzer', analysisType: 'full_analysis', category: 'network', priority: 4 },
-  { name: 'Relationship Dynamics', edgeFunction: 'relationship-dynamics-engine', analysisType: 'full_analysis', category: 'network', priority: 4 },
-  { name: 'Influence Network', edgeFunction: 'influence-network-mapper', analysisType: 'full_map', category: 'network', priority: 4 },
+  // Network Intelligence (Priority 4) - 4 tasks
+  { name: 'Network Graph', edgeFunction: 'analyze-network-graph', analysisType: 'full_map', category: 'network', priority: 4 },
+  { name: 'Power Network', edgeFunction: 'power-network-analyzer', analysisType: 'full_analysis', category: 'network', priority: 4 },
+  { name: 'Relationship Trajectory', edgeFunction: 'predict-relationship-trajectory', analysisType: 'full_analysis', category: 'network', priority: 4 },
+  { name: 'Network Exploitation', edgeFunction: 'network-exploitation-mapper', analysisType: 'full_map', category: 'network', priority: 4 },
   
-  // Temporal & Quantum (Priority 5)
-  { name: 'Temporal Dynamics', edgeFunction: 'temporal-dynamics-engine', analysisType: 'full_analysis', category: 'temporal', priority: 5 },
+  // Temporal & Quantum (Priority 5) - 4 tasks
+  { name: 'Temporal Fusion', edgeFunction: 'temporal-fusion-transformer', analysisType: 'full_analysis', category: 'temporal', priority: 5 },
   { name: 'Quantum Cognition', edgeFunction: 'quantum-cognition-engine', analysisType: 'superposition', category: 'temporal', priority: 5 },
   { name: 'Morphic Resonance', edgeFunction: 'morphic-resonance-detector', analysisType: 'network', category: 'temporal', priority: 5 },
+  { name: 'Omega Point Tracking', edgeFunction: 'omega-point-tracker', analysisType: 'full_calculation', category: 'temporal', priority: 5 },
   
-  // Meta Intelligence (Priority 6)
-  { name: 'Meta Learning', edgeFunction: 'meta-learning-orchestrator', analysisType: 'full_training', category: 'meta', priority: 6 },
-  { name: 'Omega Point', edgeFunction: 'omega-point-calculator', analysisType: 'full_calculation', category: 'meta', priority: 6 },
-  { name: 'Reality Comprehension', edgeFunction: 'reality-comprehension-engine', analysisType: 'full_analysis', category: 'meta', priority: 6 },
-  { name: 'Omniscient Synthesis', edgeFunction: 'omniscient-synthesis-engine', analysisType: 'full_synthesis', category: 'meta', priority: 6 },
-  
-  // Fusion Intelligence (Priority 7)
-  { name: 'Deep Pattern Fusion', edgeFunction: 'deep-pattern-fusion-engine', analysisType: 'full_fusion', category: 'fusion', priority: 7 },
-  { name: 'Unified Field Analysis', edgeFunction: 'unified-field-analyzer', analysisType: 'full_unification', category: 'fusion', priority: 7 },
-  { name: 'Strategic Synthesis', edgeFunction: 'strategic-synthesis-engine', analysisType: 'full_synthesis', category: 'fusion', priority: 7 },
-  { name: 'Hyperdimensional Mapping', edgeFunction: 'hyperdimensional-mapper', analysisType: 'full_mapping', category: 'fusion', priority: 7 },
-  { name: 'Absolute Intelligence', edgeFunction: 'absolute-intelligence-synthesizer', analysisType: 'full_synthesis', category: 'fusion', priority: 7 },
-  { name: 'Transcendent Integration', edgeFunction: 'transcendent-integration-engine', analysisType: 'full_integration', category: 'fusion', priority: 7 },
+  // Fusion Intelligence (Priority 6) - 5 tasks
+  { name: 'Mosaic Intelligence', edgeFunction: 'mosaic-intelligence-fuser', analysisType: 'full_fusion', category: 'fusion', priority: 6 },
+  { name: 'Unified Data Fusion', edgeFunction: 'unified-data-fusion', analysisType: 'full_unification', category: 'fusion', priority: 6 },
+  { name: 'Omniscient Orchestrator', edgeFunction: 'omniscient-orchestrator', analysisType: 'full_synthesis', category: 'fusion', priority: 6 },
+  { name: 'Intelligence Dossier', edgeFunction: 'generate-intelligence-dossier', analysisType: 'full_dossier', category: 'fusion', priority: 6 },
+  { name: 'Aggregate Intelligence', edgeFunction: 'aggregate-media-intelligence', analysisType: 'full_aggregation', category: 'fusion', priority: 6 },
 ];
 
 // Circuit breaker state (in-memory for this execution)
@@ -401,8 +395,8 @@ async function processSessionTasks(supabase: any, sessionId: string, userId: str
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
-  // Process tasks by priority groups
-  const priorities = [1, 2, 3, 4, 5, 6, 7];
+  // Process tasks by priority groups (1-6, no priority 7)
+  const priorities = [1, 2, 3, 4, 5, 6];
   
   for (const priority of priorities) {
     // Check if session is still running
@@ -497,6 +491,7 @@ async function processSessionTasks(supabase: any, sessionId: string, userId: str
 
 async function processTask(supabase: any, supabaseUrl: string, supabaseAnonKey: string, task: any, userId: string, profileId: string, forceRefresh: boolean) {
   const startTime = Date.now();
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   
   // Check circuit breaker
   if (!checkCircuitBreaker(task.edge_function)) {
@@ -522,34 +517,62 @@ async function processTask(supabase: any, supabaseUrl: string, supabaseAnonKey: 
     .eq('id', task.id);
 
   try {
-    console.log(`[Task ${task.id}] Invoking ${task.edge_function}`);
+    console.log(`[Task ${task.id}] Invoking ${task.edge_function} for profile ${profileId}`);
     
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 45000); // 45 second timeout
+    const timeout = setTimeout(() => controller.abort(), 60000); // 60 second timeout
 
+    // Use service role key for backend-to-backend calls to avoid auth issues
     const response = await fetch(`${supabaseUrl}/functions/v1/${task.edge_function}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'apikey': supabaseAnonKey,
       },
       body: JSON.stringify({
         userId,
         profileId,
         analysisType: task.analysis_type,
         forceRefresh,
+        // Some functions expect different parameter names
+        profile_id: profileId,
+        user_id: userId,
+        targetProfileId: profileId,
       }),
       signal: controller.signal,
     });
 
     clearTimeout(timeout);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    const responseText = await response.text();
+    
+    // Handle 404 - function doesn't exist
+    if (response.status === 404) {
+      console.warn(`[Task ${task.id}] Edge function ${task.edge_function} not found (404), marking as skipped`);
+      await supabase
+        .from('intelligence_session_tasks')
+        .update({ 
+          status: 'skipped', 
+          completed_at: new Date().toISOString(),
+          error_message: `Function not deployed: ${task.edge_function}`,
+          processing_time_ms: Date.now() - startTime
+        })
+        .eq('id', task.id);
+      return;
     }
 
-    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${responseText.substring(0, 500)}`);
+    }
+
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch {
+      result = { raw: responseText };
+    }
+    
     const processingTime = Date.now() - startTime;
 
     // Success - update task
@@ -566,13 +589,13 @@ async function processTask(supabase: any, supabaseUrl: string, supabaseAnonKey: 
       .eq('id', task.id);
 
     recordCircuitSuccess(task.edge_function);
-    console.log(`[Task ${task.id}] Completed in ${processingTime}ms`);
+    console.log(`[Task ${task.id}] ${task.edge_function} completed in ${processingTime}ms`);
 
   } catch (error) {
     const processingTime = Date.now() - startTime;
     const errorMessage = error.message || 'Unknown error';
     
-    console.error(`[Task ${task.id}] Failed:`, errorMessage);
+    console.error(`[Task ${task.id}] ${task.edge_function} failed:`, errorMessage);
     recordCircuitFailure(task.edge_function);
 
     // Check if we should retry
@@ -588,7 +611,8 @@ async function processTask(supabase: any, supabaseUrl: string, supabaseAnonKey: 
         error_details: { 
           attempts: newAttempts, 
           lastError: errorMessage,
-          willRetry: shouldRetry 
+          willRetry: shouldRetry,
+          function: task.edge_function
         },
         processing_time_ms: processingTime
       })
