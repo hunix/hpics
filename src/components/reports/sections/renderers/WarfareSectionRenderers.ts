@@ -378,6 +378,39 @@ export const renderCoerciveControl: SectionRenderer = (ctx, data) => {
   ctx.yPos += 8;
 };
 
+// Influence renderer (v3.7.5 - missing renderer fix)
+export const renderInfluence: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  // Try influenceVectorData first, then fall back to influenceData
+  const vectors = Array.isArray(data.influenceVectorData) && data.influenceVectorData.length
+    ? data.influenceVectorData
+    : data.influenceData
+      ? [data.influenceData]
+      : [];
+  
+  if (!vectors.length) return;
+  
+  ctx.renderSectionHeader('Influence Profile Analysis', [0, 100, 180]);
+  
+  ctx.checkPageBreak(60);
+  doc.setFillColor(240, 248, 255);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 55, 3, 3, 'F');
+  
+  // Render influence vectors from Cialdini profile or vector data
+  const inf = (vectors[0] as Record<string, unknown>)?.data || vectors[0] as Record<string, unknown>;
+  if (inf) {
+    const principles = ['reciprocity', 'authority', 'scarcity', 'commitment', 'liking', 'social_proof', 'unity'];
+    
+    principles.forEach(p => {
+      const score = (inf[`${p}_susceptibility`] as number) || (inf[p] as number) || 0;
+      if (score > 0) {
+        ctx.renderScoreBar(p.replace('_', ' ').toUpperCase(), score, 100, [0, 100, 180]);
+      }
+    });
+  }
+  ctx.yPos += 8;
+};
+
 export const warfareSectionRenderers = {
   cognitiveWarfare: renderCognitiveWarfare,
   deceptionOps: renderDeceptionOps,
@@ -396,4 +429,5 @@ export const warfareSectionRenderers = {
   threatActor: renderThreatActor,
   trustTrajectory: renderTrustTrajectory,
   coerciveControl: renderCoerciveControl,
+  influence: renderInfluence,
 };
