@@ -1,17 +1,12 @@
 /**
  * Profile Domain Events
- * 
- * Events emitted by the Profile domain for cross-domain communication.
  */
 
 import { DomainEvent } from '@/domains/shared/events/DomainEvent';
 import { RelationshipType, ProfileStatus } from '../entities/Profile';
 
-/**
- * Emitted when a new profile is created
- */
 export class ProfileCreated extends DomainEvent {
-  readonly eventType = 'profile.created';
+  get eventType() { return 'profile.created'; }
 
   constructor(
     readonly profileId: string,
@@ -19,31 +14,29 @@ export class ProfileCreated extends DomainEvent {
     readonly firstName: string,
     readonly lastName?: string,
     readonly relationshipType?: RelationshipType
-  ) {
-    super();
+  ) { super(); }
+
+  protected getPayload(): Record<string, unknown> {
+    return { profileId: this.profileId, userId: this.userId, firstName: this.firstName, lastName: this.lastName, relationshipType: this.relationshipType };
   }
 }
 
-/**
- * Emitted when a profile is updated
- */
 export class ProfileUpdated extends DomainEvent {
-  readonly eventType = 'profile.updated';
+  get eventType() { return 'profile.updated'; }
 
   constructor(
     readonly profileId: string,
     readonly userId: string,
     readonly updatedFields: string[]
-  ) {
-    super();
+  ) { super(); }
+
+  protected getPayload(): Record<string, unknown> {
+    return { profileId: this.profileId, userId: this.userId, updatedFields: this.updatedFields };
   }
 }
 
-/**
- * Emitted when a profile is enriched with external data
- */
 export class ProfileEnriched extends DomainEvent {
-  readonly eventType = 'profile.enriched';
+  get eventType() { return 'profile.enriched'; }
 
   constructor(
     readonly profileId: string,
@@ -51,144 +44,131 @@ export class ProfileEnriched extends DomainEvent {
     readonly enrichmentSource: string,
     readonly fieldsEnriched: string[],
     readonly newCompletenessScore: number
-  ) {
-    super();
+  ) { super(); }
+
+  protected getPayload(): Record<string, unknown> {
+    return { profileId: this.profileId, userId: this.userId, enrichmentSource: this.enrichmentSource, fieldsEnriched: this.fieldsEnriched, newCompletenessScore: this.newCompletenessScore };
   }
 }
 
-/**
- * Emitted when a profile's status changes
- */
 export class ProfileStatusChanged extends DomainEvent {
-  readonly eventType = 'profile.status_changed';
+  get eventType() { return 'profile.status_changed'; }
 
   constructor(
     readonly profileId: string,
     readonly userId: string,
     readonly previousStatus: ProfileStatus,
     readonly newStatus: ProfileStatus
-  ) {
-    super();
+  ) { super(); }
+
+  protected getPayload(): Record<string, unknown> {
+    return { profileId: this.profileId, userId: this.userId, previousStatus: this.previousStatus, newStatus: this.newStatus };
   }
 }
 
-/**
- * Emitted when a profile is archived
- */
 export class ProfileArchived extends DomainEvent {
-  readonly eventType = 'profile.archived';
+  get eventType() { return 'profile.archived'; }
 
-  constructor(
-    readonly profileId: string,
-    readonly userId: string
-  ) {
-    super();
+  constructor(readonly profileId: string, readonly userId: string) { super(); }
+
+  protected getPayload(): Record<string, unknown> {
+    return { profileId: this.profileId, userId: this.userId };
   }
 }
 
-/**
- * Emitted when a profile is deleted
- */
 export class ProfileDeleted extends DomainEvent {
-  readonly eventType = 'profile.deleted';
+  get eventType() { return 'profile.deleted'; }
 
-  constructor(
-    readonly profileId: string,
-    readonly userId: string
-  ) {
-    super();
+  constructor(readonly profileId: string, readonly userId: string) { super(); }
+
+  protected getPayload(): Record<string, unknown> {
+    return { profileId: this.profileId, userId: this.userId };
   }
 }
 
-/**
- * Emitted when profile relationship type changes
- */
 export class ProfileRelationshipChanged extends DomainEvent {
-  readonly eventType = 'profile.relationship_changed';
+  get eventType() { return 'profile.relationship_changed'; }
 
   constructor(
     readonly profileId: string,
     readonly userId: string,
     readonly previousType: RelationshipType,
     readonly newType: RelationshipType
-  ) {
-    super();
+  ) { super(); }
+
+  protected getPayload(): Record<string, unknown> {
+    return { profileId: this.profileId, userId: this.userId, previousType: this.previousType, newType: this.newType };
   }
 }
 
-/**
- * Emitted when a profile is favorited/unfavorited
- */
 export class ProfileFavoriteToggled extends DomainEvent {
-  readonly eventType = 'profile.favorite_toggled';
+  get eventType() { return 'profile.favorite_toggled'; }
 
   constructor(
     readonly profileId: string,
     readonly userId: string,
     readonly isFavorite: boolean
-  ) {
-    super();
+  ) { super(); }
+
+  protected getPayload(): Record<string, unknown> {
+    return { profileId: this.profileId, userId: this.userId, isFavorite: this.isFavorite };
   }
 }
 
-/**
- * Emitted when an interaction is recorded with a profile
- */
 export class ProfileInteractionRecorded extends DomainEvent {
-  readonly eventType = 'profile.interaction_recorded';
+  get eventType() { return 'profile.interaction_recorded'; }
 
   constructor(
     readonly profileId: string,
     readonly userId: string,
     readonly interactionType: string,
     readonly metadata?: Record<string, unknown>
-  ) {
-    super();
+  ) { super(); }
+
+  protected getPayload(): Record<string, unknown> {
+    return { profileId: this.profileId, userId: this.userId, interactionType: this.interactionType, metadata: this.metadata };
   }
 }
 
-/**
- * Emitted when profile tags are modified
- */
 export class ProfileTagsModified extends DomainEvent {
-  readonly eventType = 'profile.tags_modified';
+  get eventType() { return 'profile.tags_modified'; }
 
   constructor(
     readonly profileId: string,
     readonly userId: string,
     readonly addedTags: string[],
     readonly removedTags: string[]
-  ) {
-    super();
+  ) { super(); }
+
+  protected getPayload(): Record<string, unknown> {
+    return { profileId: this.profileId, userId: this.userId, addedTags: this.addedTags, removedTags: this.removedTags };
   }
 }
 
-/**
- * Emitted when a profile merge is requested
- */
 export class ProfileMergeRequested extends DomainEvent {
-  readonly eventType = 'profile.merge_requested';
+  get eventType() { return 'profile.merge_requested'; }
 
   constructor(
     readonly primaryProfileId: string,
     readonly secondaryProfileId: string,
     readonly userId: string
-  ) {
-    super();
+  ) { super(); }
+
+  protected getPayload(): Record<string, unknown> {
+    return { primaryProfileId: this.primaryProfileId, secondaryProfileId: this.secondaryProfileId, userId: this.userId };
   }
 }
 
-/**
- * Emitted when profiles are successfully merged
- */
 export class ProfilesMerged extends DomainEvent {
-  readonly eventType = 'profile.merged';
+  get eventType() { return 'profile.merged'; }
 
   constructor(
     readonly resultingProfileId: string,
     readonly mergedProfileIds: string[],
     readonly userId: string
-  ) {
-    super();
+  ) { super(); }
+
+  protected getPayload(): Record<string, unknown> {
+    return { resultingProfileId: this.resultingProfileId, mergedProfileIds: this.mergedProfileIds, userId: this.userId };
   }
 }
