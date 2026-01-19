@@ -178,12 +178,42 @@ export type AnalysisSession = Tables['analysis_sessions']['Row'];
 // Network & Graph types
 // ============================================
 export type NetworkSnapshot = Tables['network_snapshots']['Row'];
+export type ContactRelationship = Tables['contact_relationships']['Row'];
+export type ContactRelationshipInsert = Tables['contact_relationships']['Insert'];
 
 // ============================================
 // Face Region types
 // ============================================
 export type FaceRegion = Tables['face_regions']['Row'];
 export type FaceRegionInsert = Tables['face_regions']['Insert'];
+
+// ============================================
+// Campaign & Warfare types
+// ============================================
+export type AutonomousCampaign = Tables['autonomous_campaigns']['Row'];
+export type AutonomousCampaignInsert = Tables['autonomous_campaigns']['Insert'];
+export type AutonomousCampaignUpdate = Tables['autonomous_campaigns']['Update'];
+
+export type ThreatActor = Tables['threat_actors']['Row'];
+export type ThreatActorInsert = Tables['threat_actors']['Insert'];
+
+export type ActionRecommendation = Tables['action_recommendations']['Row'];
+export type ActionRecommendationInsert = Tables['action_recommendations']['Insert'];
+
+// ============================================
+// Insight & Observation types
+// ============================================
+export type ContactObservation = Tables['contact_observations']['Row'];
+export type ContactObservationInsert = Tables['contact_observations']['Insert'];
+
+export type ContactInterest = Tables['contact_interests']['Row'];
+export type ContactInterestInsert = Tables['contact_interests']['Insert'];
+
+// ============================================
+// Personal Info types
+// ============================================
+export type ContactPersonalInfo = Tables['contact_personal_info']['Row'];
+export type ContactPersonalInfoInsert = Tables['contact_personal_info']['Insert'];
 
 // Export the full Database type for advanced use cases only
 export type { Database };

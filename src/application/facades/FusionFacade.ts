@@ -14,6 +14,7 @@ import {
 } from '@/domains/fusion/services/FusionService';
 import { FusionResult, FusionEngineType } from '@/domains/fusion/entities/FusionResult';
 import { DigitalTwin, BehaviorPattern, SimulationScenario } from '@/domains/fusion/entities/DigitalTwin';
+import { getContainer, ServiceKeys } from '@/infrastructure/di/Container';
 
 /**
  * High-level summary of fusion status for a profile

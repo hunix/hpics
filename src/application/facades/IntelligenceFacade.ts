@@ -16,6 +16,7 @@ import { Analysis, AnalysisType } from '@/domains/intelligence/entities/Analysis
 import { Dossier, DossierTemplate } from '@/domains/intelligence/entities/Dossier';
 import { Insight } from '@/domains/intelligence/entities/Insight';
 import { FusionFacade, getFusionFacade } from './FusionFacade';
+import { getContainer, ServiceKeys } from '@/infrastructure/di/Container';
 
 /**
  * Comprehensive intelligence package for a profile
