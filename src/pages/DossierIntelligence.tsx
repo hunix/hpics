@@ -36,6 +36,7 @@ import { DossierBrowser } from '@/components/intelligence/DossierBrowser';
 import { DossierExporter } from '@/components/intelligence/DossierExporter';
 import { ErrorBoundaryWithRecovery } from '@/components/ErrorBoundaryWithRecovery';
 import { APP_VERSION, BUILD_TIMESTAMP } from '@/lib/appVersion';
+import { useDossierStats } from './hooks/useDossierStats';
 
 // Build stamp for debugging
 const BUILD_STAMP = `v${APP_VERSION} @ ${BUILD_TIMESTAMP.slice(0, 16)}`;
@@ -76,28 +77,8 @@ export default function DossierIntelligence() {
     },
   });
 
-  // Fetch intelligence stats
-  const { data: stats } = useQuery({
-    queryKey: ['dossier-stats'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-
-      const [dossierCount, profileCount, analysisCount, warfareCount] = await Promise.all([
-        supabase.from('dossiers').select('id', { count: 'exact', head: true }),
-        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_active', true),
-        supabase.from('ai_analyses').select('id', { count: 'exact', head: true }),
-        supabase.from('cognitive_warfare_operations').select('id', { count: 'exact', head: true }),
-      ]);
-
-      return {
-        totalDossiers: dossierCount.count || 0,
-        activeProfiles: profileCount.count || 0,
-        totalAnalyses: analysisCount.count || 0,
-        warfareSimulations: warfareCount.count || 0,
-      };
-    },
-  });
+  // Use modular stats hook
+  const { data: stats } = useDossierStats();
 
   const handleRefresh = async () => {
     await refetchDossiers();

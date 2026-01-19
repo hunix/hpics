@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { FileText, Download, Loader2, User, Calendar, TrendingUp, Shield, Network, Brain, Image, Target, Clipboard, Heart, AlertTriangle, Mic, Zap, Eye, Crosshair, Sparkles, BookOpen, Gauge, Dna, Clock, Users, Radio, Scale, Fingerprint, Compass, Wand2, ShieldQuestion, Split, Lightbulb, BarChart3, Database, MessageCircle, Lock, Layers, Atom, MapPin, Activity, Wind, Cpu, Crown, RefreshCw, GitMerge, Workflow, Share2, Box, Beaker, FlaskConical, Binary, Waves, PersonStanding, Boxes, Sparkle, AlarmClock } from 'lucide-react';
+import { FileText, Download, Loader2, RefreshCw, CheckCircle, XCircle, AlertTriangle, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -13,121 +13,46 @@ import jsPDF from 'jspdf';
 import { format } from 'date-fns';
 import { ScalableContactSearch } from '@/components/contacts/ScalableContactSearch';
 
+// Import modular types, sections, and hooks
+import { 
+  DossierSection, 
+  DossierTemplate, 
+  CIALDINI_PRINCIPLES, 
+  FBI_TECHNIQUES,
+  DataStats,
+  TaskResult,
+} from './sections/types';
+import { DEFAULT_SECTIONS, applySectionTemplate, TEMPLATE_SECTION_IDS } from './sections/sectionDefinitions';
+import { useDossierData, type DossierDataResult } from './hooks/useDossierData';
+import { useIntelligenceGeneration } from './hooks/useIntelligenceGeneration';
+
 interface PDFDossierGeneratorProps {
   profileId?: string;
   profileName?: string;
 }
 
-interface DossierSection {
-  id: string;
-  label: string;
-  icon: React.ElementType;
-  enabled: boolean;
-  category: 'core' | 'intelligence' | 'warfare' | 'analysis';
-}
-
-type DossierTemplate = 'executive' | 'operational' | 'full' | 'surveillance' | 'warfare' | 'psychological' | 'fusion';
-
-// RASCLS/Cialdini's 7 Principles of Influence
-const CIALDINI_PRINCIPLES = [
-  { key: 'reciprocity', label: 'Reciprocity', description: 'Obligation to return favors' },
-  { key: 'authority', label: 'Authority', description: 'Deference to expertise' },
-  { key: 'scarcity', label: 'Scarcity', description: 'Value of rare opportunities' },
-  { key: 'commitment', label: 'Commitment/Consistency', description: 'Honoring prior commitments' },
-  { key: 'liking', label: 'Liking', description: 'Favor for those we like' },
-  { key: 'social_proof', label: 'Social Proof', description: 'Following others\' actions' },
-  { key: 'unity', label: 'Unity', description: 'Shared identity influence' },
-];
-
-// FBI Elicitation Techniques
-const FBI_TECHNIQUES = [
-  'Assumed Knowledge', 'Deliberate False Statement', 'Bracketing', 'Flattery',
-  'Criticism', 'Appeal to Ego', 'Quid Pro Quo', 'Mutual Interest',
-  'Conformity Pressure', 'Word Repetition', 'Feigned Naivete', 'Disbelief'
-];
-
 export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGeneratorProps) {
   // Version logging for cache debugging
-  console.log('[PDFDossierGenerator] v5.0 - Data Fusion Enhanced - 64 Sections Loaded');
+  console.log('[PDFDossierGenerator] v5.0.1 - Modularized - 64 Sections from sectionDefinitions');
   
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isGeneratingIntel, setIsGeneratingIntel] = useState(false);
-  const [intelProgress, setIntelProgress] = useState(0);
-  const [taskResults, setTaskResults] = useState<{ name: string; status: 'pending' | 'running' | 'success' | 'failed'; error?: string }[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<string | null>(profileId || null);
   const [selectedContactName, setSelectedContactName] = useState<string>(profileName || '');
   const [template, setTemplate] = useState<DossierTemplate>('full');
-  const [dataStats, setDataStats] = useState<{media: number; voice: number; analyses: number; sources: number} | null>(null);
+  const [dataStats, setDataStats] = useState<DataStats | null>(null);
   
-  const [sections, setSections] = useState<DossierSection[]>([
-    // ============== CORE SECTIONS ==============
-    { id: 'executive', label: 'Executive Intelligence Brief', icon: Zap, enabled: true, category: 'core' },
-    { id: 'sourceDashboard', label: 'Intelligence Source Dashboard', icon: Database, enabled: true, category: 'core' },
-    { id: 'overview', label: 'Contact Overview', icon: User, enabled: true, category: 'core' },
-    { id: 'behavioralDna', label: 'Contact DNA Fingerprint', icon: Dna, enabled: true, category: 'core' },
-    { id: 'patternOfLife', label: 'Pattern-of-Life Analysis', icon: Clock, enabled: true, category: 'core' },
-    { id: 'relationshipEcosystem', label: 'Relationship Ecosystem Map', icon: Users, enabled: true, category: 'core' },
-    { id: 'timeline', label: 'Interaction Timeline', icon: Calendar, enabled: false, category: 'core' },
-    
-    // ============== INTELLIGENCE SECTIONS ==============
-    { id: 'psychological', label: 'Deep Psychological Profile', icon: Brain, enabled: true, category: 'intelligence' },
-    { id: 'quantumCognition', label: 'Quantum Cognition Analysis', icon: Atom, enabled: true, category: 'intelligence' },
-    { id: 'relationship', label: 'Relationship Intelligence', icon: Heart, enabled: true, category: 'intelligence' },
-    { id: 'playbook', label: 'Engagement Playbook', icon: Target, enabled: true, category: 'intelligence' },
-    { id: 'hypnoticPatterns', label: 'Hypnotic Language Patterns', icon: Wand2, enabled: true, category: 'intelligence' },
-    { id: 'elicitation', label: 'Elicitation Technique Guide', icon: MessageCircle, enabled: true, category: 'intelligence' },
-    { id: 'cognitiveLoad', label: 'Cognitive Load Exploitation', icon: Cpu, enabled: true, category: 'intelligence' },
-    { id: 'mediaIntel', label: 'Media Intelligence Synthesis', icon: Image, enabled: true, category: 'intelligence' },
-    { id: 'voiceIntel', label: 'Voice Intelligence', icon: Mic, enabled: true, category: 'intelligence' },
-    { id: 'deceptionAnalysis', label: 'Deception Analysis Deep Dive', icon: Eye, enabled: true, category: 'intelligence' },
-    { id: 'actionPlans', label: 'Strategic Action Plans', icon: Clipboard, enabled: true, category: 'intelligence' },
-    
-    // ============== WARFARE SECTIONS ==============
-    { id: 'mice', label: 'MICE Vulnerability Matrix', icon: Crosshair, enabled: true, category: 'warfare' },
-    { id: 'cialdini', label: 'RASCLS Influence Profile', icon: BookOpen, enabled: true, category: 'warfare' },
-    { id: 'sacredValues', label: 'Sacred Values Profile', icon: Crown, enabled: true, category: 'warfare' },
-    { id: 'realityTesting', label: 'Reality Testing Vulnerability', icon: Split, enabled: true, category: 'warfare' },
-    { id: 'identityDestab', label: 'Identity Destabilization Profile', icon: Fingerprint, enabled: true, category: 'warfare' },
-    { id: 'influence', label: 'Influence Vectors', icon: Radio, enabled: true, category: 'warfare' },
-    { id: 'trauma', label: 'Trauma & Vulnerability Windows', icon: AlertTriangle, enabled: true, category: 'warfare' },
-    { id: 'semanticWarfare', label: 'Semantic Warfare Profile', icon: MessageCircle, enabled: true, category: 'warfare' },
-    { id: 'memeticPropagation', label: 'Memetic Propagation Analysis', icon: Wind, enabled: true, category: 'warfare' },
-    { id: 'futureModeling', label: 'Behavioral Future Modeling', icon: TrendingUp, enabled: true, category: 'warfare' },
-    { id: 'precognitive', label: 'Precognitive Pattern Analysis', icon: Compass, enabled: true, category: 'warfare' },
-    { id: 'crossModal', label: 'Cross-Modal Deception Analysis', icon: Layers, enabled: true, category: 'warfare' },
-    { id: 'choiceArchitecture', label: 'Choice Architecture Exploitation', icon: Scale, enabled: true, category: 'warfare' },
-    { id: 'betrayal', label: 'Betrayal & Crisis Prediction', icon: Gauge, enabled: true, category: 'warfare' },
-    { id: 'influenceOps', label: 'Influence Operation Planning', icon: MapPin, enabled: true, category: 'warfare' },
-    { id: 'threatActor', label: 'Threat Assessment', icon: ShieldQuestion, enabled: true, category: 'warfare' },
-    { id: 'cognitiveWarfare', label: 'Cognitive Warfare Operations', icon: Cpu, enabled: true, category: 'warfare' },
-    { id: 'deceptionOps', label: 'Deception Operations', icon: Eye, enabled: true, category: 'warfare' },
-    { id: 'vulnerabilityWindows', label: 'Vulnerability Windows', icon: Clock, enabled: true, category: 'warfare' },
-    { id: 'activeDefense', label: 'Active Defense Posture', icon: Shield, enabled: true, category: 'warfare' },
-    { id: 'trustTrajectory', label: '180-Day Trust Trajectory', icon: TrendingUp, enabled: true, category: 'warfare' },
-    { id: 'mosaicFusion', label: 'Mosaic Intelligence Fusion', icon: Layers, enabled: true, category: 'warfare' },
-    { id: 'darkTetrad', label: 'Dark Tetrad Profile', icon: Brain, enabled: true, category: 'warfare' },
-    
-    // ============== ANALYSIS SECTIONS ==============
-    { id: 'analysis', label: 'Behavioral Analysis', icon: TrendingUp, enabled: true, category: 'analysis' },
-    { id: 'trust', label: 'Trust Assessment', icon: Shield, enabled: true, category: 'analysis' },
-    { id: 'influenceResistance', label: 'Influence Resistance Profile', icon: Lock, enabled: true, category: 'analysis' },
-    { id: 'behavioralEconomics', label: 'Behavioral Economics Profile', icon: BarChart3, enabled: true, category: 'analysis' },
-    { id: 'network', label: 'Network Position', icon: Network, enabled: true, category: 'analysis' },
-    { id: 'predictionAccuracy', label: 'Prediction Accuracy Tracking', icon: Activity, enabled: true, category: 'analysis' },
-    { id: 'counterIntel', label: 'Counter-Intelligence Assessment', icon: Lightbulb, enabled: true, category: 'analysis' },
-    { id: 'proportionalResponse', label: 'Proportional Response Log', icon: Scale, enabled: true, category: 'analysis' },
-    
-    // ============== DATA FUSION SECTIONS (NEW) ==============
-    { id: 'temporalFusion', label: 'Temporal Fusion Transformer', icon: Clock, enabled: true, category: 'analysis' },
-    { id: 'digitalTwin', label: 'Behavioral Digital Twin', icon: PersonStanding, enabled: true, category: 'analysis' },
-    { id: 'graphRag', label: 'Graph RAG Intelligence', icon: Share2, enabled: true, category: 'intelligence' },
-    { id: 'shadowNetwork', label: 'Shadow Network Analysis', icon: Network, enabled: true, category: 'warfare' },
-    { id: 'dempsterShafer', label: 'Dempster-Shafer Fusion', icon: Beaker, enabled: true, category: 'analysis' },
-    { id: 'counterfactual', label: 'Counterfactual Engine', icon: Split, enabled: true, category: 'intelligence' },
-    { id: 'patternOfLifeFusion', label: 'Pattern-of-Life Engine', icon: Workflow, enabled: true, category: 'analysis' },
-    { id: 'entityResolution', label: 'Entity Resolution Engine', icon: Boxes, enabled: true, category: 'intelligence' },
-    { id: 'sentimentCascade', label: 'Sentiment Cascade Predictor', icon: Waves, enabled: true, category: 'warfare' },
-  ]);
+  // Use modular section definitions
+  const [sections, setSections] = useState<DossierSection[]>(DEFAULT_SECTIONS);
+
+  // Use modular hooks
+  const { fetchAllDossierData } = useDossierData();
+  const { 
+    isGeneratingIntel, 
+    intelProgress, 
+    taskResults, 
+    generateFullIntelligence, 
+    retryTask 
+  } = useIntelligenceGeneration();
 
   const handleContactSelect = useCallback(async (id: string | null, contact?: { first_name: string; last_name: string | null }) => {
     setSelectedProfile(id);
@@ -165,242 +90,29 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
 
   const applyTemplate = (templateType: DossierTemplate) => {
     setTemplate(templateType);
-    const enabledIds: Record<DossierTemplate, string[]> = {
-      executive: ['executive', 'sourceDashboard', 'overview', 'psychological', 'actionPlans'],
-      operational: ['executive', 'sourceDashboard', 'overview', 'behavioralDna', 'psychological', 'playbook', 'actionPlans', 'mice', 'cialdini', 'influence', 'trauma', 'elicitation'],
-      full: sections.map(s => s.id), // All sections
-      surveillance: ['overview', 'sourceDashboard', 'patternOfLife', 'mediaIntel', 'voiceIntel', 'timeline', 'network', 'threatActor', 'crossModal', 'deceptionAnalysis', 'patternOfLifeFusion', 'entityResolution'],
-      warfare: ['executive', 'mice', 'cialdini', 'sacredValues', 'realityTesting', 'identityDestab', 'trauma', 'semanticWarfare', 'memeticPropagation', 'choiceArchitecture', 'influenceOps', 'betrayal', 'threatActor', 'hypnoticPatterns', 'elicitation', 'cognitiveLoad', 'cognitiveWarfare', 'deceptionOps', 'vulnerabilityWindows', 'activeDefense', 'trustTrajectory', 'mosaicFusion', 'darkTetrad', 'shadowNetwork', 'sentimentCascade'],
-      psychological: ['executive', 'behavioralDna', 'psychological', 'quantumCognition', 'relationship', 'playbook', 'deceptionAnalysis', 'behavioralEconomics', 'trust', 'influenceResistance', 'futureModeling', 'precognitive', 'darkTetrad', 'digitalTwin', 'counterfactual'],
-      fusion: ['executive', 'temporalFusion', 'digitalTwin', 'graphRag', 'shadowNetwork', 'dempsterShafer', 'counterfactual', 'patternOfLifeFusion', 'entityResolution', 'sentimentCascade', 'mosaicFusion', 'quantumCognition', 'crossModal'],
-    };
-    
-    setSections(sections.map(s => ({
-      ...s,
-      enabled: enabledIds[templateType].includes(s.id),
-    })));
+    // Use the modular template section IDs from sectionDefinitions
+    setSections(applySectionTemplate(sections, templateType));
   };
 
-  // Generate missing warfare intelligence before PDF export
-  const generateFullIntelligence = async () => {
+  // Wrapper for generateFullIntelligence to get current profileId
+  const handleGenerateIntelligence = useCallback(() => {
     const targetProfileId = profileId || selectedProfile;
-    if (!targetProfileId) {
+    if (targetProfileId) {
+      generateFullIntelligence(targetProfileId);
+    } else {
       toast.error('Please select a contact first');
-      return;
     }
+  }, [profileId, selectedProfile, generateFullIntelligence]);
 
-    setIsGeneratingIntel(true);
-    setIntelProgress(0);
-    setTaskResults([]);
-
-    try {
-      // Check what's missing
-      const [miceExists, influenceExists, deepIntelExists, behavioralDnaExists, sacredValuesExists] = await Promise.all([
-        supabase.from('mice_assessments').select('id').eq('profile_id', targetProfileId).maybeSingle(),
-        supabase.from('contact_influence_profiles').select('id').eq('profile_id', targetProfileId).maybeSingle(),
-        supabase.from('ai_analyses').select('id').eq('profile_id', targetProfileId).eq('analysis_type', 'deep_intelligence').maybeSingle(),
-        supabase.from('ai_analyses').select('id').eq('profile_id', targetProfileId).eq('analysis_type', 'behavioral_dna').maybeSingle(),
-        supabase.from('ai_analyses').select('id').eq('profile_id', targetProfileId).eq('analysis_type', 'sacred_values').maybeSingle(),
-      ]);
-
-      const tasks: { name: string; fn: () => Promise<any>; required: boolean }[] = [];
-      
-      if (!miceExists.data) {
-        tasks.push({
-          name: 'MICE Vulnerability Analysis',
-          fn: () => supabase.functions.invoke('mice-recruitment-analyzer', { body: { profileId: targetProfileId, analysisDepth: 'comprehensive' } }),
-          required: true,
-        });
-      }
-      
-      if (!influenceExists.data) {
-        tasks.push({
-          name: 'Cialdini Influence Profile',
-          fn: () => supabase.functions.invoke('analyze-influence-profile', { body: { profileId: targetProfileId } }),
-          required: true,
-        });
-      }
-      
-      if (!deepIntelExists.data) {
-        tasks.push({
-          name: 'Deep Intelligence Engine',
-          fn: () => supabase.functions.invoke('deep-intelligence-engine', { body: { profileId: targetProfileId } }),
-          required: true,
-        });
-      }
-      
-      if (!behavioralDnaExists.data) {
-        tasks.push({
-          name: 'Behavioral DNA Sequencer',
-          fn: () => supabase.functions.invoke('behavioral-dna-sequencer', { body: { profileId: targetProfileId } }),
-          required: false,
-        });
-      }
-      
-      if (!sacredValuesExists.data) {
-        tasks.push({
-          name: 'Sacred Values Mapper',
-          fn: () => supabase.functions.invoke('sacred-values-mapper', { body: { profileId: targetProfileId } }),
-          required: false,
-        });
-      }
-
-      // Always run these for latest data
-      tasks.push({
-        name: 'Cross-Modal Synthesis',
-        fn: () => supabase.functions.invoke('cross-modal-synthesis-v2', { body: { profileId: targetProfileId } }),
-        required: false,
-      });
-      
-      tasks.push({
-        name: 'Precognitive Pattern Engine',
-        fn: () => supabase.functions.invoke('precognitive-pattern-engine', { body: { profileId: targetProfileId } }),
-        required: false,
-      });
-
-      // Data Fusion Engines (optional, for enhanced analysis)
-      tasks.push({
-        name: 'Temporal Fusion Transformer',
-        fn: () => supabase.functions.invoke('temporal-fusion-transformer', { body: { profileId: targetProfileId } }),
-        required: false,
-      });
-      
-      tasks.push({
-        name: 'Behavioral Digital Twin',
-        fn: () => supabase.functions.invoke('behavioral-digital-twin', { body: { profileId: targetProfileId } }),
-        required: false,
-      });
-      
-      tasks.push({
-        name: 'Pattern-of-Life Engine',
-        fn: () => supabase.functions.invoke('pattern-of-life-engine', { body: { profileId: targetProfileId } }),
-        required: false,
-      });
-
-      if (tasks.length === 0) {
-        toast.info('All intelligence already generated');
-        setIsGeneratingIntel(false);
-        return;
-      }
-
-      // Initialize task results
-      setTaskResults(tasks.map(t => ({ name: t.name, status: 'pending' as const })));
-
-      let completedCount = 0;
-      let failedCount = 0;
-      const failedTasks: string[] = [];
-
-      // Execute tasks sequentially with progress and detailed tracking
-      for (let i = 0; i < tasks.length; i++) {
-        const task = tasks[i];
-        
-        // Update status to running
-        setTaskResults(prev => prev.map((t, idx) => 
-          idx === i ? { ...t, status: 'running' as const } : t
-        ));
-        
-        setIntelProgress(((i) / tasks.length) * 100);
-        
-        try {
-          console.log(`[IntelGen] Starting: ${task.name}`);
-          const result = await task.fn();
-          
-          // Check for function-level errors
-          if (result.error) {
-            throw new Error(result.error.message || 'Function returned error');
-          }
-          
-          // Update status to success
-          setTaskResults(prev => prev.map((t, idx) => 
-            idx === i ? { ...t, status: 'success' as const } : t
-          ));
-          completedCount++;
-          console.log(`[IntelGen] Success: ${task.name}`);
-        } catch (e) {
-          const errorMsg = e instanceof Error ? e.message : 'Unknown error';
-          console.error(`[IntelGen] Failed: ${task.name}`, e);
-          
-          // Update status to failed with error message
-          setTaskResults(prev => prev.map((t, idx) => 
-            idx === i ? { ...t, status: 'failed' as const, error: errorMsg } : t
-          ));
-          failedCount++;
-          failedTasks.push(task.name);
-        }
-        
-        setIntelProgress(((i + 1) / tasks.length) * 100);
-      }
-
-      // Show summary toast
-      if (failedCount === 0) {
-        toast.success(`Intelligence package complete! ${completedCount} analyses generated.`);
-      } else if (completedCount > 0) {
-        toast.warning(`${completedCount} succeeded, ${failedCount} failed`, {
-          description: `Failed: ${failedTasks.join(', ')}`,
-          duration: 8000,
-        });
-      } else {
-        toast.error(`All ${failedCount} intelligence tasks failed`, {
-          description: 'Check console for details',
-          duration: 8000,
-        });
-      }
-    } catch (error) {
-      console.error('[IntelGen] Critical error:', error);
-      toast.error('Intelligence generation failed', {
-        description: error instanceof Error ? error.message : 'Unknown error',
-      });
-    } finally {
-      setIsGeneratingIntel(false);
-      setIntelProgress(0);
-    }
-  };
-
-  // Retry a single failed task
-  const retryTask = async (taskName: string) => {
+  // Wrapper for retryTask to pass current profileId
+  const handleRetryTask = useCallback((taskName: string) => {
     const targetProfileId = profileId || selectedProfile;
-    if (!targetProfileId) return;
-
-    const taskMap: Record<string, () => Promise<any>> = {
-      'MICE Vulnerability Analysis': () => supabase.functions.invoke('mice-recruitment-analyzer', { body: { profileId: targetProfileId, analysisDepth: 'comprehensive' } }),
-      'Cialdini Influence Profile': () => supabase.functions.invoke('analyze-influence-profile', { body: { profileId: targetProfileId } }),
-      'Deep Intelligence Engine': () => supabase.functions.invoke('deep-intelligence-engine', { body: { profileId: targetProfileId } }),
-      'Behavioral DNA Sequencer': () => supabase.functions.invoke('behavioral-dna-sequencer', { body: { profileId: targetProfileId } }),
-      'Sacred Values Mapper': () => supabase.functions.invoke('sacred-values-mapper', { body: { profileId: targetProfileId } }),
-      'Cross-Modal Synthesis': () => supabase.functions.invoke('cross-modal-synthesis-v2', { body: { profileId: targetProfileId } }),
-      'Precognitive Pattern Engine': () => supabase.functions.invoke('precognitive-pattern-engine', { body: { profileId: targetProfileId } }),
-      'Temporal Fusion Transformer': () => supabase.functions.invoke('temporal-fusion-transformer', { body: { profileId: targetProfileId } }),
-      'Behavioral Digital Twin': () => supabase.functions.invoke('behavioral-digital-twin', { body: { profileId: targetProfileId } }),
-      'Pattern-of-Life Engine': () => supabase.functions.invoke('pattern-of-life-engine', { body: { profileId: targetProfileId } }),
-    };
-
-    const taskFn = taskMap[taskName];
-    if (!taskFn) return;
-
-    setTaskResults(prev => prev.map(t => 
-      t.name === taskName ? { ...t, status: 'running' as const, error: undefined } : t
-    ));
-
-    try {
-      toast.info(`Retrying: ${taskName}...`);
-      const result = await taskFn();
-      
-      if (result.error) {
-        throw new Error(result.error.message || 'Function returned error');
-      }
-      
-      setTaskResults(prev => prev.map(t => 
-        t.name === taskName ? { ...t, status: 'success' as const } : t
-      ));
-      toast.success(`${taskName} completed!`);
-    } catch (e) {
-      const errorMsg = e instanceof Error ? e.message : 'Unknown error';
-      setTaskResults(prev => prev.map(t => 
-        t.name === taskName ? { ...t, status: 'failed' as const, error: errorMsg } : t
-      ));
-      toast.error(`${taskName} failed again`, { description: errorMsg });
+    if (targetProfileId) {
+      retryTask(taskName, targetProfileId);
     }
-  };
+  }, [profileId, selectedProfile, retryTask]);
+
+  // Note: Intelligence generation logic is now in useIntelligenceGeneration hook
 
   const generatePDF = async () => {
     if (!selectedProfile && !profileId) {
@@ -3192,7 +2904,7 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
             <Button 
               variant="outline" 
               className="w-full"
-              onClick={generateFullIntelligence}
+              onClick={handleGenerateIntelligence}
               disabled={isGeneratingIntel || (!profileId && !selectedProfile)}
             >
               {isGeneratingIntel ? (
@@ -3237,7 +2949,7 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
                         variant="ghost" 
                         size="sm" 
                         className="h-5 px-2 text-xs"
-                        onClick={() => retryTask(task.name)}
+                        onClick={() => handleRetryTask(task.name)}
                         disabled={isGeneratingIntel}
                       >
                         Retry
