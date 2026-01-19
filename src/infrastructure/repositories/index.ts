@@ -9,3 +9,9 @@ export {
   SupabaseCampaignRepository, 
   SupabaseThreatRepository 
 } from './SupabaseWarfareRepository';
+export { SupabaseNetworkRepository } from './SupabaseNetworkRepository';
+export { 
+  SupabaseAnalysisRepository,
+  SupabaseDossierRepository,
+  SupabaseInsightRepository 
+} from './SupabaseAnalysisRepository';
