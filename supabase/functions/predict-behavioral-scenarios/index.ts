@@ -31,14 +31,13 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Health check short-circuit - respond before any auth/validation
-  try {
-    const body = await req.clone().json();
-    if (body?.healthCheck === true) {
-      return new Response(JSON.stringify({ ok: true, function: 'predict-behavioral-scenarios', timestamp: Date.now() }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+  // Health check short-circuit via GET query param
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ ok: true, function: 'predict-behavioral-scenarios', timestamp: Date.now() }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
   } catch { /* not JSON or no body - continue normally */ }
 
   try {
