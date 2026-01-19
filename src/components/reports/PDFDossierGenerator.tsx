@@ -215,15 +215,26 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       context.yPos = context.margin;
 
       // Render each enabled section using modular renderers
+      // v3.7.5: Each section starts on a new page to prevent overlap
+      console.log(`[PDF] Starting render: ${enabledSections.length} sections enabled`);
+      
       for (const section of enabledSections) {
         const renderer = allSectionRenderers[section.id];
         if (renderer) {
           try {
+            // START EACH SECTION ON A NEW PAGE (v3.7.5 fix)
+            doc.addPage();
+            context.yPos = context.margin;
+            
+            console.log(`[PDF] Rendering: ${section.id} (page ${doc.getNumberOfPages()})`);
             renderer(context, allData);
           } catch (err) {
             console.warn(`[PDFDossierGenerator] Section ${section.id} render error:`, err);
-            // Continue with next section
+            // Render error placeholder on the page
+            context.renderSubsection(`⚠ Error rendering ${section.label}`);
           }
+        } else {
+          console.warn(`[PDFDossierGenerator] No renderer for section: ${section.id}`);
         }
       }
 
