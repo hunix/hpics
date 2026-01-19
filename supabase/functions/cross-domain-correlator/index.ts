@@ -64,7 +64,7 @@ serve(async (req) => {
       supabaseClient.from('breaking_point_predictions').select('*').eq('profile_id', profileId).maybeSingle(),
       supabaseClient.from('gottman_analyses').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
       supabaseClient.from('behavioral_baselines').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
-      supabaseClient.from('notes').select('*', { count: 'exact', head: true }).eq('profile_id', profileId),
+      supabaseClient.from('contact_interaction_notes').select('*', { count: 'exact', head: true }).eq('profile_id', profileId),
       supabaseClient.from('media').select('*', { count: 'exact', head: true }).eq('profile_id', profileId),
       supabaseClient.from('meetings').select('*', { count: 'exact', head: true }).eq('profile_id', profileId),
     ]);
