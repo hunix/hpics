@@ -304,19 +304,22 @@ export class SupabaseDossierRepository implements IDossierRepository {
   }
 
   async save(entity: Dossier): Promise<Dossier> {
+    const riskPayload = entity.threatAssessment 
+      ? JSON.parse(JSON.stringify(entity.threatAssessment)) 
+      : null;
+
     const { error } = await supabase
       .from('dossiers')
-      .upsert({
-        id: entity.id,
+      .upsert([{
         user_id: entity.userId,
         profile_id: entity.profileId,
         dossier_type: entity.template,
+        title: `Dossier for ${entity.profileId}`,
+        sections: [],
         summary: entity.executiveSummary?.overview || '',
         key_findings: entity.executiveSummary?.keyFindings || [],
-        risk_assessment: entity.threatAssessment,
-        created_at: entity.createdAt.toISOString(),
-        updated_at: new Date().toISOString()
-      });
+        risk_assessment: riskPayload
+      }], { onConflict: 'id' });
 
     if (error) throw error;
     return entity;
