@@ -34,7 +34,7 @@ serve(async (req) => {
 
     // Fetch historical data for precognitive analysis
     const [interactions, predictions, milestones, anomalies] = await Promise.all([
-      supabaseClient.from('interactions').select('*').eq('profile_id', profileId).order('interaction_date', { ascending: false }).limit(100),
+      supabaseClient.from('contact_interaction_notes').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(100),
       supabaseClient.from('behavioral_predictions').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(50),
       supabaseClient.from('life_milestones').select('*').eq('profile_id', profileId).order('milestone_date', { ascending: false }).limit(30),
       supabaseClient.from('behavioral_anomalies').select('*').eq('profile_id', profileId).order('detected_at', { ascending: false }).limit(30)
