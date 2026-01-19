@@ -530,3 +530,12 @@ verify_jwt = false
 
 [functions.sentiment-cascade-predictor]
 verify_jwt = false
+
+[functions.coercion-resistance-assessor]
+verify_jwt = false
+
+[functions.existential-leverage-calculator]
+verify_jwt = false
+
+[functions.network-exploitation-mapper]
+verify_jwt = false
