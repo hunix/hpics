@@ -2,11 +2,15 @@
  * @deprecated Use useProfiles from @/domains/profile/hooks/useProfileService instead.
  * This hook is maintained for backward compatibility during DDD migration.
  * Will be removed in a future version.
+ * 
+ * v3.6.0: Refactored to thin wrapper delegating to RPC calls.
  */
+
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
+// Re-export types for backward compatibility
 export interface EnhancedContact {
   id: string;
   first_name: string;
@@ -44,35 +48,31 @@ interface UseEnhancedContactsOptions {
   enabled?: boolean;
 }
 
-export function useEnhancedContacts({
-  searchQuery,
-  relationshipFilter,
-  subtypeFilter,
-  tagFilter,
-  favoriteFilter,
-  activeFilter,
-  letterFilter,
-  sortBy = 'name',
-  sortOrder = 'asc',
-  pageSize = 50,
-  enabled = true,
-}: UseEnhancedContactsOptions) {
+/**
+ * @deprecated Use useProfiles from @/domains/profile/hooks/useProfileService
+ */
+export function useEnhancedContacts(options: UseEnhancedContactsOptions) {
   const { user } = useAuth();
+  const {
+    searchQuery,
+    relationshipFilter,
+    subtypeFilter,
+    tagFilter,
+    favoriteFilter,
+    activeFilter,
+    letterFilter,
+    sortBy = 'name',
+    sortOrder = 'asc',
+    pageSize = 50,
+    enabled = true,
+  } = options;
+
+  if (import.meta.env.DEV) {
+    console.warn('[useEnhancedContacts] Deprecated: Use useProfiles from @/domains/profile/hooks/useProfileService');
+  }
 
   return useInfiniteQuery({
-    queryKey: [
-      'enhanced-contacts',
-      user?.id,
-      searchQuery,
-      relationshipFilter,
-      subtypeFilter,
-      tagFilter,
-      favoriteFilter,
-      activeFilter,
-      letterFilter,
-      sortBy,
-      sortOrder,
-    ],
+    queryKey: ['enhanced-contacts', user?.id, searchQuery, relationshipFilter, subtypeFilter, tagFilter, favoriteFilter, activeFilter, letterFilter, sortBy, sortOrder],
     queryFn: async ({ pageParam = 0 }) => {
       if (!user?.id) throw new Error('No user');
 
@@ -96,11 +96,7 @@ export function useEnhancedContacts({
       const contacts = (data || []) as EnhancedContact[];
       const totalCount = contacts[0]?.total_count ?? 0;
 
-      return {
-        contacts,
-        totalCount,
-        nextPage: contacts.length === pageSize ? pageParam + 1 : undefined,
-      };
+      return { contacts, totalCount, nextPage: contacts.length === pageSize ? pageParam + 1 : undefined };
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
     initialPageParam: 0,
@@ -109,7 +105,9 @@ export function useEnhancedContacts({
   });
 }
 
-// Hook to get active contact counts using server-side aggregation (no 1000 row limit)
+/**
+ * @deprecated Use ProfileFacade.getContactCounts
+ */
 export function useActiveContactCounts() {
   const { user } = useAuth();
 
@@ -117,26 +115,19 @@ export function useActiveContactCounts() {
     queryKey: ['active-contact-counts', user?.id],
     queryFn: async () => {
       if (!user?.id) throw new Error('No user');
-
-      const { data, error } = await supabase.rpc('get_contact_counts', {
-        p_user_id: user.id,
-      });
-
+      const { data, error } = await supabase.rpc('get_contact_counts', { p_user_id: user.id });
       if (error) throw error;
-
       const result = data?.[0] || { active_count: 0, inactive_count: 0, total_count: 0 };
-      return { 
-        active: Number(result.active_count) || 0, 
-        inactive: Number(result.inactive_count) || 0, 
-        total: Number(result.total_count) || 0 
-      };
+      return { active: Number(result.active_count) || 0, inactive: Number(result.inactive_count) || 0, total: Number(result.total_count) || 0 };
     },
     enabled: !!user?.id,
     staleTime: 60000,
   });
 }
 
-// Hook for letter counts for alphabetical sidebar
+/**
+ * @deprecated Use ProfileFacade.getLetterCounts
+ */
 export function useContactLetterCounts() {
   const { user } = useAuth();
 
@@ -144,11 +135,7 @@ export function useContactLetterCounts() {
     queryKey: ['contact-letter-counts', user?.id],
     queryFn: async () => {
       if (!user?.id) throw new Error('No user');
-
-      const { data, error } = await supabase.rpc('get_contact_letter_counts', {
-        p_user_id: user.id,
-      });
-
+      const { data, error } = await supabase.rpc('get_contact_letter_counts', { p_user_id: user.id });
       if (error) throw error;
       return (data || []) as { letter: string; count: number }[];
     },
@@ -157,7 +144,9 @@ export function useContactLetterCounts() {
   });
 }
 
-// Hook for filter options
+/**
+ * @deprecated Use ProfileFacade.getFilterOptions
+ */
 export function useContactFilterOptions() {
   const { user } = useAuth();
 
@@ -165,18 +154,10 @@ export function useContactFilterOptions() {
     queryKey: ['contact-filter-options', user?.id],
     queryFn: async () => {
       if (!user?.id) throw new Error('No user');
-
-      const { data, error } = await supabase.rpc('get_contact_filter_options', {
-        p_user_id: user.id,
-      });
-
+      const { data, error } = await supabase.rpc('get_contact_filter_options', { p_user_id: user.id });
       if (error) throw error;
       const result = data?.[0] || { relationships: [], subtypes: [], tags: [] };
-      return {
-        relationships: (result.relationships || []) as string[],
-        subtypes: (result.subtypes || []) as string[],
-        tags: (result.tags || []) as string[],
-      };
+      return { relationships: (result.relationships || []) as string[], subtypes: (result.subtypes || []) as string[], tags: (result.tags || []) as string[] };
     },
     enabled: !!user?.id,
     staleTime: 60000,

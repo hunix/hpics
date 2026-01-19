@@ -1,11 +1,11 @@
 // App Version Management for Cache Busting
 // This version should be incremented with each significant update
 
-export const APP_VERSION = '3.5.0';
-export const BUILD_TIMESTAMP = '2026-01-19T21:30:00Z';
+export const APP_VERSION = '3.6.0';
+export const BUILD_TIMESTAMP = '2026-01-19T22:00:00Z';
 
 // Versions that require forced cache clear when upgrading from
-export const FORCE_CLEAR_VERSIONS = ['3.4.0', '3.3.0', '3.2.0', '3.1.0', '3.0.0', '2.9.0', '2.8.0', '2.7.0', '2.6.0', '2.5.0', '2.4.0', '2.3.0', '2.2.0'];
+export const FORCE_CLEAR_VERSIONS = ['3.5.0', '3.4.0', '3.3.0', '3.2.0', '3.1.0', '3.0.0', '2.9.0', '2.8.0', '2.7.0', '2.6.0', '2.5.0', '2.4.0', '2.3.0', '2.2.0'];
 
 
 // Version check utilities
