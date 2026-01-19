@@ -214,8 +214,10 @@ export function resetAllCircuitBreakers(): void {
 // Pre-configured circuit breakers for common operations
 export const intelligenceCircuitBreaker = getCircuitBreaker('intelligence', {
   failureThreshold: 3,
-  resetTimeoutMs: 60000,
+  resetTimeoutMs: 60000,  // 1 minute pause when open
   halfOpenMaxAttempts: 2,
+  successThreshold: 2,
+  monitoringWindowMs: 120000,  // 2 minute window
 });
 
 export const embeddingCircuitBreaker = getCircuitBreaker('embeddings', {
@@ -235,6 +237,52 @@ export const analysisCircuitBreaker = getCircuitBreaker('analysis', {
   resetTimeoutMs: 60000,
   halfOpenMaxAttempts: 2,
 });
+
+/**
+ * Per-function circuit breakers for edge functions
+ * Automatically creates a breaker for each function
+ */
+export function getEdgeFunctionBreaker(functionName: string): CircuitBreaker {
+  const breakerName = `edge:${functionName}`;
+  return getCircuitBreaker(breakerName, {
+    failureThreshold: 3,
+    resetTimeoutMs: 60000,  // 1 minute cooldown
+    halfOpenMaxAttempts: 2,
+    successThreshold: 2,
+    monitoringWindowMs: 120000,
+  });
+}
+
+/**
+ * Check if any edge function breakers are open
+ */
+export function getOpenEdgeFunctionBreakers(): string[] {
+  const openBreakers: string[] = [];
+  circuitBreakers.forEach((breaker, name) => {
+    if (name.startsWith('edge:') && breaker.getStats().state === 'open') {
+      openBreakers.push(name.replace('edge:', ''));
+    }
+  });
+  return openBreakers;
+}
+
+/**
+ * Get time until a specific breaker might reset (0 if closed/half-open)
+ */
+export function getTimeUntilReset(functionName: string): number {
+  const breakerName = `edge:${functionName}`;
+  if (!circuitBreakers.has(breakerName)) return 0;
+  
+  const stats = circuitBreakers.get(breakerName)!.getStats();
+  if (stats.state !== 'open' || !stats.lastFailure) return 0;
+  
+  const breaker = circuitBreakers.get(breakerName)!;
+  const config = (breaker as any).config as CircuitBreakerConfig;
+  const elapsed = Date.now() - stats.lastFailure.getTime();
+  const remaining = config.resetTimeoutMs - elapsed;
+  
+  return Math.max(0, remaining);
+}
 
 /**
  * Decorator for wrapping async functions with circuit breaker protection

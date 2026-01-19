@@ -1,15 +1,19 @@
 /**
- * Intelligence Generation Hook v3.7.6
+ * Intelligence Generation Hook v3.7.7
  * Handles pre-generation of intelligence data before PDF export
  * 
+ * v3.7.7: Circuit breaker integration, health monitoring, background retry queue
  * v3.7.6: Enhanced reliability with retry logic, parallel batch execution, timeout handling
  * v3.7.5: 34 intelligence tasks covering all 64 dossier sections
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { TaskResult } from '../sections/types';
+import { getEdgeFunctionBreaker, CircuitOpenError, getOpenEdgeFunctionBreakers, getTimeUntilReset } from '@/lib/circuitBreaker';
+import { edgeFunctionHealthMonitor, type FunctionHealthStats } from '@/lib/edgeFunctionHealthMonitor';
+import { intelligenceRetryQueue } from '@/lib/intelligenceRetryQueue';
 
 interface IntelligenceTask {
   name: string;
@@ -28,33 +32,69 @@ const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 1500;
 const BATCH_SIZE = 3; // Parallel tasks per batch
 
+/**
+ * Invoke edge function with retry, timeout, circuit breaker, and health monitoring
+ */
 async function invokeWithRetry(
   edgeFunction: string, 
   body: Record<string, unknown>,
   retries = MAX_RETRIES
 ): Promise<{ data: unknown; error: Error | null }> {
+  const breaker = getEdgeFunctionBreaker(edgeFunction);
+  const startTime = Date.now();
   let lastError: Error | null = null;
+  
+  // Check if circuit is open
+  const breakerStats = breaker.getStats();
+  if (breakerStats.state === 'open') {
+    const timeUntil = getTimeUntilReset(edgeFunction);
+    return { 
+      data: null, 
+      error: new CircuitOpenError(`Circuit open for ${edgeFunction}, retry in ${Math.ceil(timeUntil / 1000)}s`) 
+    };
+  }
   
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      // Create abort controller for timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), INVOKE_TIMEOUT_MS);
-      
-      const result = await supabase.functions.invoke(edgeFunction, {
-        body,
-        // Note: signal support depends on supabase-js version
+      const result = await breaker.execute(async () => {
+        // Create abort controller for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), INVOKE_TIMEOUT_MS);
+        
+        try {
+          const response = await supabase.functions.invoke(edgeFunction, {
+            body,
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (response.error) {
+            throw new Error(response.error.message || 'Edge function error');
+          }
+          
+          return response.data;
+        } catch (err) {
+          clearTimeout(timeoutId);
+          throw err;
+        }
       });
       
-      clearTimeout(timeoutId);
+      // Success - record in health monitor
+      const responseTime = Date.now() - startTime;
+      edgeFunctionHealthMonitor.recordSuccess(edgeFunction, responseTime);
       
-      if (result.error) {
-        throw new Error(result.error.message || 'Edge function error');
-      }
-      
-      return { data: result.data, error: null };
+      return { data: result, error: null };
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
+      const responseTime = Date.now() - startTime;
+      
+      // Record failure in health monitor
+      edgeFunctionHealthMonitor.recordFailure(edgeFunction, responseTime, lastError.message);
+      
+      // Don't retry on circuit open errors
+      if (err instanceof CircuitOpenError) {
+        break;
+      }
       
       // Don't retry on non-retryable errors
       const msg = lastError.message.toLowerCase();
@@ -62,9 +102,10 @@ async function invokeWithRetry(
         break;
       }
       
-      // Wait before retry
+      // Wait before retry with exponential backoff
       if (attempt < retries) {
-        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS * (attempt + 1)));
+        const delay = RETRY_DELAY_MS * Math.pow(2, attempt);
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
   }
@@ -123,6 +164,13 @@ const ALL_INTELLIGENCE_TASKS: IntelligenceTask[] = [
 function parseErrorMessage(error: unknown): { message: string; canRetry: boolean } {
   const errorStr = error instanceof Error ? error.message : String(error);
   
+  // Circuit breaker errors
+  if (error instanceof CircuitOpenError || errorStr.includes('Circuit open')) {
+    const match = errorStr.match(/retry in (\d+)s/);
+    const seconds = match ? match[1] : '60';
+    return { message: `Paused (${seconds}s cooldown)`, canRetry: true };
+  }
+  
   // Known error patterns with user-friendly messages
   if (errorStr.includes('Insufficient data for cross-modal')) {
     return { message: 'Needs more media/voice data', canRetry: false };
@@ -145,6 +193,9 @@ function parseErrorMessage(error: unknown): { message: string; canRetry: boolean
   if (errorStr.includes('Insufficient') || errorStr.includes('No data')) {
     return { message: 'Insufficient data for analysis', canRetry: false };
   }
+  if (errorStr.includes('500') || errorStr.includes('502') || errorStr.includes('503')) {
+    return { message: 'Server error - will auto-retry', canRetry: true };
+  }
   
   // Default: truncate long messages
   const truncated = errorStr.length > 50 ? errorStr.substring(0, 47) + '...' : errorStr;
@@ -155,7 +206,34 @@ export function useIntelligenceGeneration() {
   const [isGeneratingIntel, setIsGeneratingIntel] = useState(false);
   const [intelProgress, setIntelProgress] = useState(0);
   const [taskResults, setTaskResults] = useState<TaskResult[]>([]);
+  const [healthStats, setHealthStats] = useState<Map<string, FunctionHealthStats>>(new Map());
+  const [queueStats, setQueueStats] = useState({ total: 0, ready: 0, waiting: 0, exhausted: 0 });
   const cancelRef = useRef(false);
+
+  // Initialize retry queue with invoker
+  useEffect(() => {
+    intelligenceRetryQueue.setInvoker(async (edgeFunction, body) => {
+      const result = await supabase.functions.invoke(edgeFunction, { body });
+      if (result.error) throw new Error(result.error.message);
+      return { data: result.data, error: null };
+    });
+
+    // Subscribe to health updates
+    const unsubHealth = edgeFunctionHealthMonitor.subscribe(setHealthStats);
+    
+    // Subscribe to queue updates
+    const unsubQueue = intelligenceRetryQueue.subscribe(() => {
+      setQueueStats(intelligenceRetryQueue.getStats());
+    });
+
+    // Initial stats
+    setQueueStats(intelligenceRetryQueue.getStats());
+
+    return () => {
+      unsubHealth();
+      unsubQueue();
+    };
+  }, []);
 
   /**
    * Check if a specific analysis already exists
@@ -189,17 +267,17 @@ export function useIntelligenceGeneration() {
   };
 
   /**
-   * Execute a batch of tasks in parallel
+   * Execute a batch of tasks in parallel with circuit breaker protection
    */
   const executeBatch = async (
     tasks: { task: IntelligenceTask; index: number }[],
     profileId: string,
     userId: string
-  ): Promise<{ index: number; success: boolean; error?: string; canRetry?: boolean }[]> => {
+  ): Promise<{ index: number; success: boolean; error?: string; canRetry?: boolean; task: IntelligenceTask }[]> => {
     const results = await Promise.all(
       tasks.map(async ({ task, index }) => {
         if (cancelRef.current) {
-          return { index, success: false, error: 'Cancelled', canRetry: false };
+          return { index, success: false, error: 'Cancelled', canRetry: false, task };
         }
 
         // Update to running
@@ -215,10 +293,10 @@ export function useIntelligenceGeneration() {
 
         if (error) {
           const parsed = parseErrorMessage(error);
-          return { index, success: false, error: parsed.message, canRetry: parsed.canRetry };
+          return { index, success: false, error: parsed.message, canRetry: parsed.canRetry, task };
         }
 
-        return { index, success: true };
+        return { index, success: true, task };
       })
     );
 
@@ -232,6 +310,12 @@ export function useIntelligenceGeneration() {
     if (!profileId) {
       toast.error('Please select a contact first');
       return;
+    }
+
+    // Check for open circuit breakers
+    const openBreakers = getOpenEdgeFunctionBreakers();
+    if (openBreakers.length > 3) {
+      toast.warning(`${openBreakers.length} functions are in cooldown. Consider waiting before starting.`);
     }
 
     cancelRef.current = false;
@@ -338,6 +422,18 @@ export function useIntelligenceGeneration() {
                   canRetry: result.canRetry 
                 } : t
               ));
+
+              // Add to background retry queue if retryable
+              if (result.canRetry && result.task) {
+                intelligenceRetryQueue.enqueue({
+                  taskName: result.task.name,
+                  edgeFunction: result.task.edgeFunction,
+                  profileId,
+                  userId,
+                  lastError: result.error || 'Unknown error',
+                  priority: result.task.priority,
+                });
+              }
             }
             processedCount++;
           }
@@ -362,9 +458,10 @@ export function useIntelligenceGeneration() {
       } else if (failedCount === 0 && completedCount > 0) {
         toast.success(`Intelligence package complete: ${completedCount} tasks (${skippedCount} skipped)`);
       } else if (completedCount > 0) {
-        toast.warning(`Completed ${completedCount}/${pendingTasks.length} tasks. ${failedCount} failed, ${skippedCount} skipped.`);
+        const queuedMsg = failedCount > 0 ? ` ${failedCount} queued for background retry.` : '';
+        toast.warning(`Completed ${completedCount}/${pendingTasks.length} tasks.${queuedMsg}`);
       } else if (failedCount > 0) {
-        toast.error(`All ${failedCount} tasks failed. Check errors for details.`);
+        toast.error(`All ${failedCount} tasks failed. Queued for background retry.`);
       }
     } catch (err) {
       console.error('[IntelligenceGeneration] Error:', err);
@@ -391,6 +488,14 @@ export function useIntelligenceGeneration() {
     const task = ALL_INTELLIGENCE_TASKS.find(t => t.name === taskName);
     if (!task) {
       toast.error('Unknown task');
+      return;
+    }
+
+    // Check circuit breaker first
+    const breaker = getEdgeFunctionBreaker(task.edgeFunction);
+    if (breaker.getStats().state === 'open') {
+      const timeUntil = getTimeUntilReset(task.edgeFunction);
+      toast.warning(`${taskName} is in cooldown. Wait ${Math.ceil(timeUntil / 1000)}s before retrying.`);
       return;
     }
 
@@ -425,14 +530,56 @@ export function useIntelligenceGeneration() {
       return;
     }
 
-    toast.info(`Retrying ${failedTasks.length} failed tasks...`);
+    // Check how many are blocked by circuit breaker
+    const openBreakers = getOpenEdgeFunctionBreakers();
+    const blockedTasks = failedTasks.filter(t => {
+      const task = ALL_INTELLIGENCE_TASKS.find(at => at.name === t.name);
+      return task && openBreakers.includes(task.edgeFunction);
+    });
 
-    for (const task of failedTasks) {
+    if (blockedTasks.length > 0) {
+      toast.warning(`${blockedTasks.length} tasks are in cooldown and will be skipped`);
+    }
+
+    const retryableTasks = failedTasks.filter(t => {
+      const task = ALL_INTELLIGENCE_TASKS.find(at => at.name === t.name);
+      return task && !openBreakers.includes(task.edgeFunction);
+    });
+
+    if (retryableTasks.length === 0) {
+      toast.info('All failed tasks are in cooldown. Try again later.');
+      return;
+    }
+
+    toast.info(`Retrying ${retryableTasks.length} failed tasks...`);
+
+    for (const task of retryableTasks) {
       await retryTask(task.name, profileId);
       // Small delay between retries
       await new Promise(resolve => setTimeout(resolve, 500));
     }
   }, [taskResults, retryTask]);
+
+  /**
+   * Get health status for a specific function
+   */
+  const getFunctionHealth = useCallback((edgeFunction: string): FunctionHealthStats | null => {
+    return healthStats.get(edgeFunction) || null;
+  }, [healthStats]);
+
+  /**
+   * Get overall system health
+   */
+  const getSystemHealth = useCallback(() => {
+    const summary = edgeFunctionHealthMonitor.getSummary();
+    const openBreakers = getOpenEdgeFunctionBreakers();
+    return {
+      ...summary,
+      openCircuitBreakers: openBreakers.length,
+      queuedRetries: queueStats.total,
+      isHealthy: openBreakers.length < 3 && summary.unhealthy < 5,
+    };
+  }, [queueStats]);
 
   return {
     isGeneratingIntel,
@@ -443,5 +590,11 @@ export function useIntelligenceGeneration() {
     retryAllFailed,
     cancelGeneration,
     totalTasks: ALL_INTELLIGENCE_TASKS.length,
+    // New reliability features
+    healthStats,
+    queueStats,
+    getFunctionHealth,
+    getSystemHealth,
+    openCircuitBreakers: getOpenEdgeFunctionBreakers(),
   };
 }
