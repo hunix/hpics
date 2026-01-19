@@ -40,7 +40,9 @@ export const renderInfluenceResistance: SectionRenderer = (ctx, data) => {
   if (!Array.isArray(data.influenceResistanceData) || !data.influenceResistanceData.length) return;
   
   ctx.renderSectionHeader('Influence Resistance Profile', [0, 100, 150]);
-  const resistance = (data.influenceResistanceData as Array<Record<string, unknown>>)[0];
+  // v3.7.5: Extract from .result field if present (ai_analyses format)
+  const rawData = (data.influenceResistanceData as Array<Record<string, unknown>>)[0];
+  const resistance = ((rawData?.result || rawData) as Record<string, unknown>) || {};
   
   ctx.checkPageBreak(45);
   doc.setFillColor(240, 248, 255);
@@ -64,7 +66,9 @@ export const renderBehavioralEconomics: SectionRenderer = (ctx, data) => {
   if (!Array.isArray(data.financialPsychData) || !data.financialPsychData.length) return;
   
   ctx.renderSectionHeader('Behavioral Economics Profile', [0, 128, 64]);
-  const finPsych = (data.financialPsychData as Array<Record<string, unknown>>)[0];
+  // v3.7.5: Extract from .result field if present (ai_analyses format)
+  const rawData = (data.financialPsychData as Array<Record<string, unknown>>)[0];
+  const finPsych = ((rawData?.result || rawData) as Record<string, unknown>) || {};
   
   ctx.checkPageBreak(50);
   doc.setFillColor(240, 255, 245);
@@ -91,7 +95,9 @@ export const renderNetworkPosition: SectionRenderer = (ctx, data) => {
   if (!Array.isArray(data.networkPositionData) || !data.networkPositionData.length) return;
   
   ctx.renderSectionHeader('Network Position Analysis', [100, 50, 150]);
-  const position = (data.networkPositionData as Array<Record<string, unknown>>)[0];
+  // v3.7.5: Extract from .result field if present (ai_analyses format)
+  const rawData = (data.networkPositionData as Array<Record<string, unknown>>)[0];
+  const position = ((rawData?.result || rawData) as Record<string, unknown>) || {};
   
   ctx.checkPageBreak(40);
   doc.setFillColor(250, 245, 255);
@@ -149,7 +155,9 @@ export const renderCounterIntel: SectionRenderer = (ctx, data) => {
   if (!Array.isArray(data.counterIntelData) || !data.counterIntelData.length) return;
   
   ctx.renderSectionHeader('Counter-Intelligence Assessment', [128, 0, 64]);
-  const counterIntel = (data.counterIntelData as Array<Record<string, unknown>>)[0];
+  // v3.7.5: Extract from .result field if present (ai_analyses format)
+  const rawData = (data.counterIntelData as Array<Record<string, unknown>>)[0];
+  const counterIntel = ((rawData?.result || rawData) as Record<string, unknown>) || {};
   
   ctx.checkPageBreak(40);
   doc.setFillColor(255, 245, 250);
@@ -196,7 +204,9 @@ export const renderCrossModalDeception: SectionRenderer = (ctx, data) => {
   if (!Array.isArray(data.deceptionAnalysisData) || !data.deceptionAnalysisData.length) return;
   
   ctx.renderSectionHeader('Cross-Modal Deception Analysis', [180, 0, 0]);
-  const deception = (data.deceptionAnalysisData as Array<Record<string, unknown>>)[0];
+  // v3.7.5: Extract from .result field if present (ai_analyses format)
+  const rawData = (data.deceptionAnalysisData as Array<Record<string, unknown>>)[0];
+  const deception = ((rawData?.result || rawData) as Record<string, unknown>) || {};
   
   ctx.checkPageBreak(45);
   doc.setFillColor(255, 240, 240);
