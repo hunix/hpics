@@ -170,7 +170,7 @@ serve(async (req) => {
       supabase.from("messages").select("*").in("profile_id", profileIds).order("created_at", { ascending: false }).limit(1000),
       supabase.from("entity_links").select("*").or(`source_profile_id.in.(${profileIds.join(',')}),target_profile_id.in.(${profileIds.join(',')})`).limit(500),
       supabase.from("cross_contact_patterns").select("*").eq("user_id", userId).eq("is_active", true).limit(100),
-      supabase.from("interactions").select("*").in("profile_id", profileIds).order("created_at", { ascending: false }).limit(500),
+      supabase.from("contact_interaction_notes").select("*").in("profile_id", profileIds).order("created_at", { ascending: false }).limit(500),
       supabase.from("location_history").select("*").in("profile_id", profileIds).order("timestamp", { ascending: false }).limit(200)
     ]);
 

@@ -44,7 +44,7 @@ serve(async (req) => {
       supabase.from('contact_locations').select('*').eq('user_id', userId),
       supabase.from('contact_residences').select('*').eq('user_id', userId),
       supabase.from('contact_properties').select('*').eq('user_id', userId),
-      supabase.from('interactions').select('id, profile_id, interaction_date, location_context').eq('user_id', userId).not('location_context', 'is', null).limit(200),
+      supabase.from('contact_interaction_notes').select('id, profile_id, created_at, note_text').eq('user_id', userId).limit(200),
       supabase.from('aerial_missions').select('*, aerial_captures(*)').eq('user_id', userId).order('created_at', { ascending: false }).limit(20),
     ]);
 

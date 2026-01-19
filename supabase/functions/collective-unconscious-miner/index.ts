@@ -36,8 +36,8 @@ serve(async (req) => {
     // Fetch all communications and behavioral data
     const [profileRes, notesRes, interactionsRes, psychRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', profileId).single(),
-      supabase.from('notes').select('content, created_at').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(100),
-      supabase.from('interactions').select('*').eq('profile_id', profileId).order('interaction_date', { ascending: false }).limit(50),
+      supabase.from('contact_interaction_notes').select('note_text, created_at').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(100),
+      supabase.from('contact_interaction_notes').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(50),
       supabase.from('psychology_assessments').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(5),
     ]);
 

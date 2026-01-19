@@ -39,10 +39,10 @@ serve(async (req) => {
       { data: vulnerabilityWindows }
     ] = await Promise.all([
       profileQuery.limit(50),
-      supabase.from('interactions')
+      supabase.from('contact_interaction_notes')
         .select('*')
         .eq('user_id', userId)
-        .order('interaction_date', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(100),
       supabase.from('behavioral_predictions')
         .select('*')

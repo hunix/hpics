@@ -27,7 +27,7 @@ serve(async (req) => {
     // Gather comprehensive data for Akashic analysis
     const [profile, interactions, relationships, analyses, milestones, predictions] = await Promise.all([
       supabaseClient.from('profiles').select('*').eq('id', profileId).single(),
-      supabaseClient.from('interactions').select('*').eq('profile_id', profileId).order('interaction_date', { ascending: false }).limit(100),
+      supabaseClient.from('contact_interaction_notes').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(100),
       supabaseClient.from('relationships').select('*').or(`profile_a_id.eq.${profileId},profile_b_id.eq.${profileId}`).limit(50),
       supabaseClient.from('ai_analyses').select('*').eq('profile_id', profileId).order('generated_at', { ascending: false }).limit(30),
       supabaseClient.from('life_milestones').select('*').eq('profile_id', profileId).limit(30),

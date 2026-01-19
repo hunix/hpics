@@ -31,7 +31,7 @@ serve(async (req) => {
 
     // Fetch convergence data
     const [profilesRes, networkRes, influenceRes, evolutionRes] = await Promise.all([
-      supabase.from('profiles').select('id, first_name, last_name, occupation').eq('user_id', userId).limit(100),
+      supabase.from('profiles').select('id, first_name, last_name, job_title').eq('user_id', userId).limit(100),
       supabase.from('network_nodes').select('*').eq('user_id', userId).limit(100),
       supabase.from('influence_cascades').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(50),
       supabase.from('agis_global_state').select('*').eq('user_id', userId).single(),

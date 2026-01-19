@@ -48,11 +48,11 @@ serve(async (req) => {
         .eq('analysis_type', 'facial')
         .gte('created_at', cutoffDate.toISOString())
         .order('created_at', { ascending: true }),
-      supabase.from('interactions')
+      supabase.from('contact_interaction_notes')
         .select('*')
         .eq('profile_id', profileId)
-        .gte('occurred_at', cutoffDate.toISOString())
-        .order('occurred_at', { ascending: true }),
+        .gte('created_at', cutoffDate.toISOString())
+        .order('created_at', { ascending: true }),
       supabase.from('observations')
         .select('*')
         .eq('profile_id', profileId)
