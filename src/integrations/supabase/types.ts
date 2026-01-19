@@ -1,3 +1,14 @@
+/**
+ * Supabase Database Types
+ * 
+ * @lovable-protected - Do not regenerate this file
+ * 
+ * This file has been split into domain-specific modules in ./types/domains/
+ * See .lovable/config.json for regeneration settings.
+ * 
+ * To update types after schema changes, run: node scripts/split-types.mjs
+ */
+
 export type Json =
   | string
   | number
@@ -14400,8 +14411,8 @@ export type Database = {
           profile_id: string | null
           reminder_days_before: number | null
           reminder_frequency:
-            | Database["public"]["Enums"]["reminder_frequency"]
-            | null
+          | Database["public"]["Enums"]["reminder_frequency"]
+          | null
           reminder_sent: boolean | null
           title: string
           updated_at: string
@@ -14417,8 +14428,8 @@ export type Database = {
           profile_id?: string | null
           reminder_days_before?: number | null
           reminder_frequency?:
-            | Database["public"]["Enums"]["reminder_frequency"]
-            | null
+          | Database["public"]["Enums"]["reminder_frequency"]
+          | null
           reminder_sent?: boolean | null
           title: string
           updated_at?: string
@@ -14434,8 +14445,8 @@ export type Database = {
           profile_id?: string | null
           reminder_days_before?: number | null
           reminder_frequency?:
-            | Database["public"]["Enums"]["reminder_frequency"]
-            | null
+          | Database["public"]["Enums"]["reminder_frequency"]
+          | null
           reminder_sent?: boolean | null
           title?: string
           updated_at?: string
@@ -16696,8 +16707,8 @@ export type Database = {
           created_at: string
           current_hash: string
           data_classification:
-            | Database["public"]["Enums"]["clearance_level"]
-            | null
+          | Database["public"]["Enums"]["clearance_level"]
+          | null
           id: string
           ip_address: unknown
           previous_hash: string
@@ -16715,8 +16726,8 @@ export type Database = {
           created_at?: string
           current_hash: string
           data_classification?:
-            | Database["public"]["Enums"]["clearance_level"]
-            | null
+          | Database["public"]["Enums"]["clearance_level"]
+          | null
           id?: string
           ip_address?: unknown
           previous_hash: string
@@ -16734,8 +16745,8 @@ export type Database = {
           created_at?: string
           current_hash?: string
           data_classification?:
-            | Database["public"]["Enums"]["clearance_level"]
-            | null
+          | Database["public"]["Enums"]["clearance_level"]
+          | null
           id?: string
           ip_address?: unknown
           previous_hash?: string
@@ -25361,8 +25372,8 @@ export type Database = {
           osint_scan_priority: number | null
           relationship_subtype: string | null
           relationship_type:
-            | Database["public"]["Enums"]["relationship_type"]
-            | null
+          | Database["public"]["Enums"]["relationship_type"]
+          | null
           social_platforms: Json | null
           tags: string[] | null
           tiktok_followers: number | null
@@ -25412,8 +25423,8 @@ export type Database = {
           osint_scan_priority?: number | null
           relationship_subtype?: string | null
           relationship_type?:
-            | Database["public"]["Enums"]["relationship_type"]
-            | null
+          | Database["public"]["Enums"]["relationship_type"]
+          | null
           social_platforms?: Json | null
           tags?: string[] | null
           tiktok_followers?: number | null
@@ -25463,8 +25474,8 @@ export type Database = {
           osint_scan_priority?: number | null
           relationship_subtype?: string | null
           relationship_type?:
-            | Database["public"]["Enums"]["relationship_type"]
-            | null
+          | Database["public"]["Enums"]["relationship_type"]
+          | null
           social_platforms?: Json | null
           tags?: string[] | null
           tiktok_followers?: number | null
@@ -34466,69 +34477,69 @@ export type Database = {
     Enums: {
       app_role: "admin" | "supervisor" | "analyst" | "viewer"
       clearance_level:
-        | "uncleared"
-        | "confidential"
-        | "secret"
-        | "top_secret"
-        | "sci"
+      | "uncleared"
+      | "confidential"
+      | "secret"
+      | "top_secret"
+      | "sci"
       communication_channel:
-        | "email"
-        | "phone"
-        | "video_call"
-        | "in_person"
-        | "message"
-        | "social_media"
-        | "other"
+      | "email"
+      | "phone"
+      | "video_call"
+      | "in_person"
+      | "message"
+      | "social_media"
+      | "other"
       communication_direction: "inbound" | "outbound"
       contact_type:
-        | "email"
-        | "phone"
-        | "linkedin"
-        | "twitter"
-        | "facebook"
-        | "instagram"
-        | "website"
-        | "other"
+      | "email"
+      | "phone"
+      | "linkedin"
+      | "twitter"
+      | "facebook"
+      | "instagram"
+      | "website"
+      | "other"
       data_classification:
-        | "public"
-        | "internal"
-        | "confidential"
-        | "restricted"
-        | "top_secret"
+      | "public"
+      | "internal"
+      | "confidential"
+      | "restricted"
+      | "top_secret"
       document_type:
-        | "resume"
-        | "contract"
-        | "presentation"
-        | "notes"
-        | "article"
-        | "other"
+      | "resume"
+      | "contract"
+      | "presentation"
+      | "notes"
+      | "article"
+      | "other"
       event_type:
-        | "birthday"
-        | "anniversary"
-        | "milestone"
-        | "meeting"
-        | "follow_up"
-        | "other"
+      | "birthday"
+      | "anniversary"
+      | "milestone"
+      | "meeting"
+      | "follow_up"
+      | "other"
       message_platform:
-        | "sms"
-        | "whatsapp"
-        | "linkedin"
-        | "telegram"
-        | "messenger"
-        | "imessage"
-        | "slack"
-        | "discord"
-        | "email_thread"
-        | "other"
+      | "sms"
+      | "whatsapp"
+      | "linkedin"
+      | "telegram"
+      | "messenger"
+      | "imessage"
+      | "slack"
+      | "discord"
+      | "email_thread"
+      | "other"
       relationship_type:
-        | "family"
-        | "friend"
-        | "colleague"
-        | "client"
-        | "mentor"
-        | "mentee"
-        | "acquaintance"
-        | "other"
+      | "family"
+      | "friend"
+      | "colleague"
+      | "client"
+      | "mentor"
+      | "mentee"
+      | "acquaintance"
+      | "other"
       reminder_frequency: "once" | "daily" | "weekly" | "monthly" | "yearly"
     }
     CompositeTypes: {
@@ -34543,116 +34554,116 @@ type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+  | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+  ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+  : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
-    ? R
-    : never
+  ? R
+  : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
-    : never
+    DefaultSchema["Views"])
+  ? (DefaultSchema["Tables"] &
+    DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+      Row: infer R
+    }
+  ? R
+  : never
+  : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["Tables"]
+  | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+  : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
+    Insert: infer I
+  }
+  ? I
+  : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
-    : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+    Insert: infer I
+  }
+  ? I
+  : never
+  : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["Tables"]
+  | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+  : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
+    Update: infer U
+  }
+  ? U
+  : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
-    : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+    Update: infer U
+  }
+  ? U
+  : never
+  : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["Enums"]
+  | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+  : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
+  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["CompositeTypes"]
+  | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+  : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : never
 
 export const Constants = {
   public: {

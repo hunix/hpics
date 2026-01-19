@@ -1,0 +1,11 @@
+{
+    "version": 1,
+    "protectedFiles": [
+        "src/integrations/supabase/types.ts",
+        "src/integrations/supabase/types/**/*"
+    ],
+    "regeneration": {
+        "supabaseTypes": false
+    },
+    "_comment": "This config prevents Lovable from auto-regenerating the split Supabase types. Manual updates required for schema changes."
+}
