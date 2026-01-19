@@ -3267,6 +3267,76 @@ export type Database = {
           },
         ]
       }
+      belief_network_states: {
+        Row: {
+          causal_chain: Json | null
+          created_at: string
+          dag_structure: Json | null
+          evidence_applied: Json | null
+          id: string
+          imminence_probability: number | null
+          inference_timestamp: string | null
+          network_name: string
+          node_probabilities: Json
+          precrime_indicators: Json | null
+          profile_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          causal_chain?: Json | null
+          created_at?: string
+          dag_structure?: Json | null
+          evidence_applied?: Json | null
+          id?: string
+          imminence_probability?: number | null
+          inference_timestamp?: string | null
+          network_name: string
+          node_probabilities?: Json
+          precrime_indicators?: Json | null
+          profile_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          causal_chain?: Json | null
+          created_at?: string
+          dag_structure?: Json | null
+          evidence_applied?: Json | null
+          id?: string
+          imminence_probability?: number | null
+          inference_timestamp?: string | null
+          network_name?: string
+          node_probabilities?: Json
+          precrime_indicators?: Json | null
+          profile_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "belief_network_states_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "belief_network_states_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "belief_network_states_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       betrayal_predictions: {
         Row: {
           created_at: string | null
@@ -9799,6 +9869,76 @@ export type Database = {
         }
         Relationships: []
       }
+      counterfactual_scenarios: {
+        Row: {
+          alternative_timelines: Json | null
+          baseline_state: Json | null
+          causal_justification: string | null
+          confidence: number | null
+          created_at: string
+          decision_tree: Json | null
+          id: string
+          intervention_type: string
+          modified_variables: Json
+          predicted_outcomes: Json | null
+          profile_id: string | null
+          scenario_name: string
+          user_id: string
+        }
+        Insert: {
+          alternative_timelines?: Json | null
+          baseline_state?: Json | null
+          causal_justification?: string | null
+          confidence?: number | null
+          created_at?: string
+          decision_tree?: Json | null
+          id?: string
+          intervention_type: string
+          modified_variables?: Json
+          predicted_outcomes?: Json | null
+          profile_id?: string | null
+          scenario_name: string
+          user_id: string
+        }
+        Update: {
+          alternative_timelines?: Json | null
+          baseline_state?: Json | null
+          causal_justification?: string | null
+          confidence?: number | null
+          created_at?: string
+          decision_tree?: Json | null
+          id?: string
+          intervention_type?: string
+          modified_variables?: Json
+          predicted_outcomes?: Json | null
+          profile_id?: string | null
+          scenario_name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "counterfactual_scenarios_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "counterfactual_scenarios_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "counterfactual_scenarios_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credential_exposures: {
         Row: {
           affected_service: string | null
@@ -12025,6 +12165,79 @@ export type Database = {
         }
         Relationships: []
       }
+      digital_twins: {
+        Row: {
+          behavioral_parameters: Json | null
+          calibration_accuracy: number | null
+          created_at: string
+          divergence_alerts: Json | null
+          generative_augmentations: Json | null
+          id: string
+          is_active: boolean | null
+          last_calibration_at: string | null
+          profile_id: string | null
+          simulation_history: Json | null
+          smga_state: Json | null
+          twin_state: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          behavioral_parameters?: Json | null
+          calibration_accuracy?: number | null
+          created_at?: string
+          divergence_alerts?: Json | null
+          generative_augmentations?: Json | null
+          id?: string
+          is_active?: boolean | null
+          last_calibration_at?: string | null
+          profile_id?: string | null
+          simulation_history?: Json | null
+          smga_state?: Json | null
+          twin_state?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          behavioral_parameters?: Json | null
+          calibration_accuracy?: number | null
+          created_at?: string
+          divergence_alerts?: Json | null
+          generative_augmentations?: Json | null
+          id?: string
+          is_active?: boolean | null
+          last_calibration_at?: string | null
+          profile_id?: string | null
+          simulation_history?: Json | null
+          smga_state?: Json | null
+          twin_state?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "digital_twins_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "digital_twins_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "digital_twins_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dimensional_influence: {
         Row: {
           amplification_factor: number | null
@@ -14242,6 +14455,79 @@ export type Database = {
           },
           {
             foreignKeyName: "events_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evidence_mass_functions: {
+        Row: {
+          belief: number | null
+          combination_rule_used: string | null
+          conflict_level: number | null
+          created_at: string
+          evidence_metadata: Json | null
+          hypothesis_set: Json
+          id: string
+          local_ignorance: number | null
+          mass_value: number
+          plausibility: number | null
+          profile_id: string | null
+          source_reliability: number | null
+          source_type: string | null
+          user_id: string
+        }
+        Insert: {
+          belief?: number | null
+          combination_rule_used?: string | null
+          conflict_level?: number | null
+          created_at?: string
+          evidence_metadata?: Json | null
+          hypothesis_set: Json
+          id?: string
+          local_ignorance?: number | null
+          mass_value: number
+          plausibility?: number | null
+          profile_id?: string | null
+          source_reliability?: number | null
+          source_type?: string | null
+          user_id: string
+        }
+        Update: {
+          belief?: number | null
+          combination_rule_used?: string | null
+          conflict_level?: number | null
+          created_at?: string
+          evidence_metadata?: Json | null
+          hypothesis_set?: Json
+          id?: string
+          local_ignorance?: number | null
+          mass_value?: number
+          plausibility?: number | null
+          profile_id?: string | null
+          source_reliability?: number | null
+          source_type?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evidence_mass_functions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "evidence_mass_functions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "evidence_mass_functions_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -19089,6 +19375,108 @@ export type Database = {
         }
         Relationships: []
       }
+      knowledge_graph_edges: {
+        Row: {
+          created_at: string
+          id: string
+          properties: Json | null
+          relationship_type: string
+          semantic_similarity: number | null
+          source_node_id: string | null
+          target_node_id: string | null
+          user_id: string
+          weight: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          properties?: Json | null
+          relationship_type: string
+          semantic_similarity?: number | null
+          source_node_id?: string | null
+          target_node_id?: string | null
+          user_id: string
+          weight?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          properties?: Json | null
+          relationship_type?: string
+          semantic_similarity?: number | null
+          source_node_id?: string | null
+          target_node_id?: string | null
+          user_id?: string
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_graph_edges_source_node_id_fkey"
+            columns: ["source_node_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_graph_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_graph_edges_target_node_id_fkey"
+            columns: ["target_node_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_graph_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_graph_nodes: {
+        Row: {
+          betweenness_score: number | null
+          centrality_score: number | null
+          community_id: number | null
+          created_at: string
+          embedding_vector: Json | null
+          id: string
+          node_label: string
+          node_type: string
+          pagerank_score: number | null
+          properties: Json | null
+          source_entity_id: string | null
+          source_entity_type: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          betweenness_score?: number | null
+          centrality_score?: number | null
+          community_id?: number | null
+          created_at?: string
+          embedding_vector?: Json | null
+          id?: string
+          node_label: string
+          node_type: string
+          pagerank_score?: number | null
+          properties?: Json | null
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          betweenness_score?: number | null
+          centrality_score?: number | null
+          community_id?: number | null
+          created_at?: string
+          embedding_vector?: Json | null
+          id?: string
+          node_label?: string
+          node_type?: string
+          pagerank_score?: number | null
+          properties?: Json | null
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       learned_helplessness_tracking: {
         Row: {
           attribution_style: Json | null
@@ -23581,6 +23969,85 @@ export type Database = {
           },
         ]
       }
+      osint_intelligence: {
+        Row: {
+          content_hash: string | null
+          content_summary: string | null
+          created_at: string
+          entities_extracted: Json | null
+          id: string
+          is_dark_web: boolean | null
+          keywords: Json | null
+          metadata: Json | null
+          profile_id: string | null
+          raw_content: string | null
+          sentiment_score: number | null
+          source_type: string
+          source_url: string | null
+          threat_relevance: number | null
+          user_id: string
+          verification_status: string | null
+        }
+        Insert: {
+          content_hash?: string | null
+          content_summary?: string | null
+          created_at?: string
+          entities_extracted?: Json | null
+          id?: string
+          is_dark_web?: boolean | null
+          keywords?: Json | null
+          metadata?: Json | null
+          profile_id?: string | null
+          raw_content?: string | null
+          sentiment_score?: number | null
+          source_type: string
+          source_url?: string | null
+          threat_relevance?: number | null
+          user_id: string
+          verification_status?: string | null
+        }
+        Update: {
+          content_hash?: string | null
+          content_summary?: string | null
+          created_at?: string
+          entities_extracted?: Json | null
+          id?: string
+          is_dark_web?: boolean | null
+          keywords?: Json | null
+          metadata?: Json | null
+          profile_id?: string | null
+          raw_content?: string | null
+          sentiment_score?: number | null
+          source_type?: string
+          source_url?: string | null
+          threat_relevance?: number | null
+          user_id?: string
+          verification_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "osint_intelligence_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "osint_intelligence_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "osint_intelligence_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       outcome_learning_logs: {
         Row: {
           action_type: string
@@ -23685,6 +24152,82 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      pattern_of_life: {
+        Row: {
+          activity_sequences: Json | null
+          alerts: Json | null
+          circadian_rhythm: Json | null
+          created_at: string
+          deviation_history: Json | null
+          deviation_threshold: number | null
+          id: string
+          last_deviation_at: string | null
+          locations: Json | null
+          profile_id: string | null
+          routine_strength: number | null
+          routine_type: string
+          time_windows: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activity_sequences?: Json | null
+          alerts?: Json | null
+          circadian_rhythm?: Json | null
+          created_at?: string
+          deviation_history?: Json | null
+          deviation_threshold?: number | null
+          id?: string
+          last_deviation_at?: string | null
+          locations?: Json | null
+          profile_id?: string | null
+          routine_strength?: number | null
+          routine_type: string
+          time_windows?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activity_sequences?: Json | null
+          alerts?: Json | null
+          circadian_rhythm?: Json | null
+          created_at?: string
+          deviation_history?: Json | null
+          deviation_threshold?: number | null
+          id?: string
+          last_deviation_at?: string | null
+          locations?: Json | null
+          profile_id?: string | null
+          routine_strength?: number | null
+          routine_type?: string
+          time_windows?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pattern_of_life_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "pattern_of_life_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "pattern_of_life_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       perception_tracking: {
         Row: {
@@ -27543,6 +28086,57 @@ export type Database = {
           },
         ]
       }
+      shadow_network_entities: {
+        Row: {
+          connection_anomalies: Json | null
+          created_at: string
+          detection_method: string | null
+          entity_label: string | null
+          entity_type: string
+          homophily_violations: Json | null
+          id: string
+          inference_confidence: number | null
+          intermediary_paths: Json | null
+          negative_space_indicators: Json | null
+          related_profile_ids: string[] | null
+          updated_at: string
+          user_id: string
+          visibility_score: number | null
+        }
+        Insert: {
+          connection_anomalies?: Json | null
+          created_at?: string
+          detection_method?: string | null
+          entity_label?: string | null
+          entity_type: string
+          homophily_violations?: Json | null
+          id?: string
+          inference_confidence?: number | null
+          intermediary_paths?: Json | null
+          negative_space_indicators?: Json | null
+          related_profile_ids?: string[] | null
+          updated_at?: string
+          user_id: string
+          visibility_score?: number | null
+        }
+        Update: {
+          connection_anomalies?: Json | null
+          created_at?: string
+          detection_method?: string | null
+          entity_label?: string | null
+          entity_type?: string
+          homophily_violations?: Json | null
+          id?: string
+          inference_confidence?: number | null
+          intermediary_paths?: Json | null
+          negative_space_indicators?: Json | null
+          related_profile_ids?: string[] | null
+          updated_at?: string
+          user_id?: string
+          visibility_score?: number | null
+        }
+        Relationships: []
+      }
       shadow_projections: {
         Row: {
           awareness_level: number | null
@@ -29581,6 +30175,85 @@ export type Database = {
           velocity_metrics?: Json | null
         }
         Relationships: []
+      }
+      temporal_predictions: {
+        Row: {
+          confidence_interval: number | null
+          created_at: string
+          dynamic_features: Json | null
+          id: string
+          prediction_metadata: Json | null
+          prediction_type: string
+          profile_id: string | null
+          quantile_high: number | null
+          quantile_low: number | null
+          quantile_mid: number | null
+          static_features: Json | null
+          time_horizon_days: number
+          trigger_conditions: Json | null
+          updated_at: string
+          user_id: string
+          variable_importance: Json | null
+        }
+        Insert: {
+          confidence_interval?: number | null
+          created_at?: string
+          dynamic_features?: Json | null
+          id?: string
+          prediction_metadata?: Json | null
+          prediction_type: string
+          profile_id?: string | null
+          quantile_high?: number | null
+          quantile_low?: number | null
+          quantile_mid?: number | null
+          static_features?: Json | null
+          time_horizon_days?: number
+          trigger_conditions?: Json | null
+          updated_at?: string
+          user_id: string
+          variable_importance?: Json | null
+        }
+        Update: {
+          confidence_interval?: number | null
+          created_at?: string
+          dynamic_features?: Json | null
+          id?: string
+          prediction_metadata?: Json | null
+          prediction_type?: string
+          profile_id?: string | null
+          quantile_high?: number | null
+          quantile_low?: number | null
+          quantile_mid?: number | null
+          static_features?: Json | null
+          time_horizon_days?: number
+          trigger_conditions?: Json | null
+          updated_at?: string
+          user_id?: string
+          variable_importance?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "temporal_predictions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "temporal_predictions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "temporal_predictions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       thermal_captures: {
         Row: {
