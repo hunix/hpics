@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { FileText, Download, Loader2, User, Calendar, TrendingUp, Shield, Network, Brain, Image, Target, Clipboard, Heart, AlertTriangle, Mic, Zap, Eye, Crosshair, Sparkles, BookOpen, Gauge, Dna, Clock, Users, Radio, Scale, Fingerprint, Compass, Wand2, ShieldQuestion, Split, Lightbulb, BarChart3, Database, MessageCircle, Lock, Layers, Atom, MapPin, Activity, Wind, Cpu, Crown, RefreshCw } from 'lucide-react';
+import { FileText, Download, Loader2, User, Calendar, TrendingUp, Shield, Network, Brain, Image, Target, Clipboard, Heart, AlertTriangle, Mic, Zap, Eye, Crosshair, Sparkles, BookOpen, Gauge, Dna, Clock, Users, Radio, Scale, Fingerprint, Compass, Wand2, ShieldQuestion, Split, Lightbulb, BarChart3, Database, MessageCircle, Lock, Layers, Atom, MapPin, Activity, Wind, Cpu, Crown, RefreshCw, GitMerge, Workflow, Share2, Box, Beaker, FlaskConical, Binary, Waves, PersonStanding, Boxes, Sparkle, AlarmClock } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -26,7 +26,7 @@ interface DossierSection {
   category: 'core' | 'intelligence' | 'warfare' | 'analysis';
 }
 
-type DossierTemplate = 'executive' | 'operational' | 'full' | 'surveillance' | 'warfare' | 'psychological';
+type DossierTemplate = 'executive' | 'operational' | 'full' | 'surveillance' | 'warfare' | 'psychological' | 'fusion';
 
 // RASCLS/Cialdini's 7 Principles of Influence
 const CIALDINI_PRINCIPLES = [
@@ -48,7 +48,7 @@ const FBI_TECHNIQUES = [
 
 export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGeneratorProps) {
   // Version logging for cache debugging
-  console.log('[PDFDossierGenerator] v3.0 - Ultimate Intelligence - 47 Sections Loaded');
+  console.log('[PDFDossierGenerator] v5.0 - Data Fusion Enhanced - 64 Sections Loaded');
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingIntel, setIsGeneratingIntel] = useState(false);
@@ -116,6 +116,17 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
     { id: 'predictionAccuracy', label: 'Prediction Accuracy Tracking', icon: Activity, enabled: true, category: 'analysis' },
     { id: 'counterIntel', label: 'Counter-Intelligence Assessment', icon: Lightbulb, enabled: true, category: 'analysis' },
     { id: 'proportionalResponse', label: 'Proportional Response Log', icon: Scale, enabled: true, category: 'analysis' },
+    
+    // ============== DATA FUSION SECTIONS (NEW) ==============
+    { id: 'temporalFusion', label: 'Temporal Fusion Transformer', icon: Clock, enabled: true, category: 'analysis' },
+    { id: 'digitalTwin', label: 'Behavioral Digital Twin', icon: PersonStanding, enabled: true, category: 'analysis' },
+    { id: 'graphRag', label: 'Graph RAG Intelligence', icon: Share2, enabled: true, category: 'intelligence' },
+    { id: 'shadowNetwork', label: 'Shadow Network Analysis', icon: Network, enabled: true, category: 'warfare' },
+    { id: 'dempsterShafer', label: 'Dempster-Shafer Fusion', icon: Beaker, enabled: true, category: 'analysis' },
+    { id: 'counterfactual', label: 'Counterfactual Engine', icon: Split, enabled: true, category: 'intelligence' },
+    { id: 'patternOfLifeFusion', label: 'Pattern-of-Life Engine', icon: Workflow, enabled: true, category: 'analysis' },
+    { id: 'entityResolution', label: 'Entity Resolution Engine', icon: Boxes, enabled: true, category: 'intelligence' },
+    { id: 'sentimentCascade', label: 'Sentiment Cascade Predictor', icon: Waves, enabled: true, category: 'warfare' },
   ]);
 
   const handleContactSelect = useCallback(async (id: string | null, contact?: { first_name: string; last_name: string | null }) => {
@@ -158,9 +169,10 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       executive: ['executive', 'sourceDashboard', 'overview', 'psychological', 'actionPlans'],
       operational: ['executive', 'sourceDashboard', 'overview', 'behavioralDna', 'psychological', 'playbook', 'actionPlans', 'mice', 'cialdini', 'influence', 'trauma', 'elicitation'],
       full: sections.map(s => s.id), // All sections
-      surveillance: ['overview', 'sourceDashboard', 'patternOfLife', 'mediaIntel', 'voiceIntel', 'timeline', 'network', 'threatActor', 'crossModal', 'deceptionAnalysis'],
-      warfare: ['executive', 'mice', 'cialdini', 'sacredValues', 'realityTesting', 'identityDestab', 'trauma', 'semanticWarfare', 'memeticPropagation', 'choiceArchitecture', 'influenceOps', 'betrayal', 'threatActor', 'hypnoticPatterns', 'elicitation', 'cognitiveLoad', 'cognitiveWarfare', 'deceptionOps', 'vulnerabilityWindows', 'activeDefense', 'trustTrajectory', 'mosaicFusion', 'darkTetrad'],
-      psychological: ['executive', 'behavioralDna', 'psychological', 'quantumCognition', 'relationship', 'playbook', 'deceptionAnalysis', 'behavioralEconomics', 'trust', 'influenceResistance', 'futureModeling', 'precognitive', 'darkTetrad'],
+      surveillance: ['overview', 'sourceDashboard', 'patternOfLife', 'mediaIntel', 'voiceIntel', 'timeline', 'network', 'threatActor', 'crossModal', 'deceptionAnalysis', 'patternOfLifeFusion', 'entityResolution'],
+      warfare: ['executive', 'mice', 'cialdini', 'sacredValues', 'realityTesting', 'identityDestab', 'trauma', 'semanticWarfare', 'memeticPropagation', 'choiceArchitecture', 'influenceOps', 'betrayal', 'threatActor', 'hypnoticPatterns', 'elicitation', 'cognitiveLoad', 'cognitiveWarfare', 'deceptionOps', 'vulnerabilityWindows', 'activeDefense', 'trustTrajectory', 'mosaicFusion', 'darkTetrad', 'shadowNetwork', 'sentimentCascade'],
+      psychological: ['executive', 'behavioralDna', 'psychological', 'quantumCognition', 'relationship', 'playbook', 'deceptionAnalysis', 'behavioralEconomics', 'trust', 'influenceResistance', 'futureModeling', 'precognitive', 'darkTetrad', 'digitalTwin', 'counterfactual'],
+      fusion: ['executive', 'temporalFusion', 'digitalTwin', 'graphRag', 'shadowNetwork', 'dempsterShafer', 'counterfactual', 'patternOfLifeFusion', 'entityResolution', 'sentimentCascade', 'mosaicFusion', 'quantumCognition', 'crossModal'],
     };
     
     setSections(sections.map(s => ({
@@ -243,6 +255,25 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       tasks.push({
         name: 'Precognitive Pattern Engine',
         fn: () => supabase.functions.invoke('precognitive-pattern-engine', { body: { profileId: targetProfileId } }),
+        required: false,
+      });
+
+      // Data Fusion Engines (optional, for enhanced analysis)
+      tasks.push({
+        name: 'Temporal Fusion Transformer',
+        fn: () => supabase.functions.invoke('temporal-fusion-transformer', { body: { profileId: targetProfileId } }),
+        required: false,
+      });
+      
+      tasks.push({
+        name: 'Behavioral Digital Twin',
+        fn: () => supabase.functions.invoke('behavioral-digital-twin', { body: { profileId: targetProfileId } }),
+        required: false,
+      });
+      
+      tasks.push({
+        name: 'Pattern-of-Life Engine',
+        fn: () => supabase.functions.invoke('pattern-of-life-engine', { body: { profileId: targetProfileId } }),
         required: false,
       });
 
@@ -338,6 +369,9 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       'Sacred Values Mapper': () => supabase.functions.invoke('sacred-values-mapper', { body: { profileId: targetProfileId } }),
       'Cross-Modal Synthesis': () => supabase.functions.invoke('cross-modal-synthesis-v2', { body: { profileId: targetProfileId } }),
       'Precognitive Pattern Engine': () => supabase.functions.invoke('precognitive-pattern-engine', { body: { profileId: targetProfileId } }),
+      'Temporal Fusion Transformer': () => supabase.functions.invoke('temporal-fusion-transformer', { body: { profileId: targetProfileId } }),
+      'Behavioral Digital Twin': () => supabase.functions.invoke('behavioral-digital-twin', { body: { profileId: targetProfileId } }),
+      'Pattern-of-Life Engine': () => supabase.functions.invoke('pattern-of-life-engine', { body: { profileId: targetProfileId } }),
     };
 
     const taskFn = taskMap[taskName];
@@ -476,6 +510,29 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         supabase.from('trust_trajectories').select('*').eq('profile_id', targetProfileId).order('trajectory_date', { ascending: false }).limit(180),
         supabase.from('proportional_response_logs').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(10),
         supabase.from('mosaic_intelligence_fusion').select('*').eq('profile_id', targetProfileId).order('created_at', { ascending: false }).limit(1),
+      ]);
+
+      // Batch 5: Data Fusion Engine Results (from ai_analyses)
+      const [
+        temporalFusionData,
+        digitalTwinData,
+        graphRagData,
+        shadowNetworkData,
+        dempsterShaferData,
+        counterfactualData,
+        patternOfLifeData,
+        entityResolutionData,
+        sentimentCascadeData,
+      ] = await Promise.all([
+        supabase.from('ai_analyses').select('*').eq('profile_id', targetProfileId).eq('analysis_type', 'temporal_fusion').order('generated_at', { ascending: false }).limit(1),
+        supabase.from('ai_analyses').select('*').eq('profile_id', targetProfileId).eq('analysis_type', 'digital_twin').order('generated_at', { ascending: false }).limit(1),
+        supabase.from('ai_analyses').select('*').eq('profile_id', targetProfileId).eq('analysis_type', 'graph_rag').order('generated_at', { ascending: false }).limit(1),
+        supabase.from('ai_analyses').select('*').eq('profile_id', targetProfileId).eq('analysis_type', 'shadow_network').order('generated_at', { ascending: false }).limit(1),
+        supabase.from('ai_analyses').select('*').eq('profile_id', targetProfileId).eq('analysis_type', 'dempster_shafer').order('generated_at', { ascending: false }).limit(1),
+        supabase.from('ai_analyses').select('*').eq('profile_id', targetProfileId).eq('analysis_type', 'counterfactual').order('generated_at', { ascending: false }).limit(1),
+        supabase.from('ai_analyses').select('*').eq('profile_id', targetProfileId).eq('analysis_type', 'pattern_of_life').order('generated_at', { ascending: false }).limit(1),
+        supabase.from('ai_analyses').select('*').eq('profile_id', targetProfileId).eq('analysis_type', 'entity_resolution').order('generated_at', { ascending: false }).limit(1),
+        supabase.from('ai_analyses').select('*').eq('profile_id', targetProfileId).eq('analysis_type', 'sentiment_cascade').order('generated_at', { ascending: false }).limit(1),
       ]);
 
       // Create PDF with enhanced styling
@@ -2695,6 +2752,303 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       }
 
       // ========================================
+      // TEMPORAL FUSION TRANSFORMER
+      // ========================================
+      if (sections.find(s => s.id === 'temporalFusion')?.enabled && temporalFusionData.data?.length > 0) {
+        renderSectionHeader('Temporal Fusion Transformer', [0, 120, 180]);
+        
+        const fusion = (temporalFusionData.data as any[])[0]?.result as any;
+        if (fusion) {
+          checkPageBreak(40);
+          
+          if (fusion.temporal_patterns?.length > 0) {
+            renderSubsection('Identified Temporal Patterns');
+            (fusion.temporal_patterns as any[]).slice(0, 4).forEach((p: any) => {
+              renderBullet(typeof p === 'string' ? p : `${p.pattern || p.name}: ${p.confidence ? `${(p.confidence * 100).toFixed(0)}%` : ''} ${p.description || ''}`, 5);
+            });
+          }
+          
+          if (fusion.forecasts?.length > 0) {
+            renderSubsection('Behavioral Forecasts');
+            (fusion.forecasts as any[]).slice(0, 3).forEach((f: any) => {
+              renderBullet(`${f.prediction || f.behavior}: ${f.timeframe || 'Near-term'} - ${(f.probability * 100 || 50).toFixed(0)}% probability`, 5);
+            });
+          }
+          
+          if (fusion.attention_weights) {
+            renderSubsection('Attention Weights');
+            Object.entries(fusion.attention_weights).slice(0, 4).forEach(([key, value]) => {
+              renderKeyValue(key.replace(/_/g, ' '), `${((value as number) * 100).toFixed(1)}%`);
+            });
+          }
+        }
+        yPos += 8;
+      }
+
+      // ========================================
+      // BEHAVIORAL DIGITAL TWIN
+      // ========================================
+      if (sections.find(s => s.id === 'digitalTwin')?.enabled && digitalTwinData.data?.length > 0) {
+        renderSectionHeader('Behavioral Digital Twin', [100, 50, 150]);
+        
+        const twin = (digitalTwinData.data as any[])[0]?.result as any;
+        if (twin) {
+          checkPageBreak(45);
+          
+          if (twin.fidelity_score) {
+            renderScoreBar('Twin Fidelity', twin.fidelity_score * 100, 100, [100, 50, 150]);
+          }
+          
+          if (twin.personality_parameters) {
+            renderSubsection('Personality Parameters');
+            Object.entries(twin.personality_parameters).slice(0, 5).forEach(([key, value]) => {
+              renderKeyValue(key.replace(/_/g, ' '), String(value));
+            });
+          }
+          
+          if (twin.simulation_scenarios?.length > 0) {
+            renderSubsection('Simulation Scenarios');
+            (twin.simulation_scenarios as any[]).slice(0, 3).forEach((s: any) => {
+              renderBullet(`${s.scenario || s.name}: ${s.predicted_response || s.outcome || 'Pending'}`, 5);
+            });
+          }
+        }
+        yPos += 8;
+      }
+
+      // ========================================
+      // GRAPH RAG INTELLIGENCE
+      // ========================================
+      if (sections.find(s => s.id === 'graphRag')?.enabled && graphRagData.data?.length > 0) {
+        renderSectionHeader('Graph RAG Intelligence', [0, 150, 100]);
+        
+        const graph = (graphRagData.data as any[])[0]?.result as any;
+        if (graph) {
+          checkPageBreak(40);
+          
+          if (graph.knowledge_clusters?.length > 0) {
+            renderSubsection('Knowledge Clusters');
+            (graph.knowledge_clusters as any[]).slice(0, 4).forEach((c: any) => {
+              renderBullet(typeof c === 'string' ? c : `${c.topic || c.name}: ${c.documents || 0} docs, ${c.entities || 0} entities`, 5);
+            });
+          }
+          
+          if (graph.relationship_insights?.length > 0) {
+            renderSubsection('Relationship Insights');
+            (graph.relationship_insights as any[]).slice(0, 4).forEach((r: any) => {
+              renderBullet(typeof r === 'string' ? r : r.insight || r.description, 5);
+            });
+          }
+          
+          if (graph.retrieval_quality) {
+            renderScoreBar('Retrieval Quality', graph.retrieval_quality * 100, 100, [0, 150, 100]);
+          }
+        }
+        yPos += 8;
+      }
+
+      // ========================================
+      // SHADOW NETWORK ANALYSIS
+      // ========================================
+      if (sections.find(s => s.id === 'shadowNetwork')?.enabled && shadowNetworkData.data?.length > 0) {
+        renderSectionHeader('Shadow Network Analysis', [50, 50, 80]);
+        
+        const shadow = (shadowNetworkData.data as any[])[0]?.result as any;
+        if (shadow) {
+          checkPageBreak(45);
+          
+          doc.setFillColor(245, 245, 250);
+          doc.roundedRect(margin, yPos - 3, contentWidth, 25, 3, 3, 'F');
+          
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'bold');
+          doc.text(`Hidden Connections: ${shadow.hidden_connection_count || 0}`, margin + 5, yPos + 5);
+          doc.text(`Covert Influence: ${((shadow.covert_influence_score || 0) * 100).toFixed(0)}%`, margin + 70, yPos + 5);
+          doc.text(`Network Opacity: ${((shadow.opacity_score || 0) * 100).toFixed(0)}%`, margin + 135, yPos + 5);
+          yPos += 25;
+          
+          if (shadow.hidden_actors?.length > 0) {
+            renderSubsection('Hidden Actors');
+            (shadow.hidden_actors as any[]).slice(0, 4).forEach((a: any) => {
+              renderBullet(typeof a === 'string' ? a : `${a.name || a.entity}: ${a.role || 'Unknown role'}`, 5);
+            });
+          }
+          
+          if (shadow.covert_channels?.length > 0) {
+            renderSubsection('Covert Communication Channels');
+            (shadow.covert_channels as any[]).slice(0, 3).forEach((c: any) => {
+              renderBullet(typeof c === 'string' ? c : `${c.channel || c.type}: ${c.frequency || 'Intermittent'}`, 5);
+            });
+          }
+        }
+        yPos += 8;
+      }
+
+      // ========================================
+      // DEMPSTER-SHAFER FUSION
+      // ========================================
+      if (sections.find(s => s.id === 'dempsterShafer')?.enabled && dempsterShaferData.data?.length > 0) {
+        renderSectionHeader('Dempster-Shafer Evidence Fusion', [150, 100, 0]);
+        
+        const ds = (dempsterShaferData.data as any[])[0]?.result as any;
+        if (ds) {
+          checkPageBreak(40);
+          
+          if (ds.belief_masses) {
+            renderSubsection('Belief Mass Assignments');
+            Object.entries(ds.belief_masses).slice(0, 5).forEach(([hypothesis, mass]) => {
+              renderScoreBar(hypothesis.replace(/_/g, ' '), (mass as number) * 100, 100, [150, 100, 0]);
+            });
+          }
+          
+          if (ds.conflicting_evidence?.length > 0) {
+            renderSubsection('Conflicting Evidence');
+            (ds.conflicting_evidence as any[]).slice(0, 3).forEach((e: any) => {
+              renderBullet(typeof e === 'string' ? e : `${e.source1} vs ${e.source2}: ${e.conflict_type || 'Contradiction'}`, 5);
+            });
+          }
+          
+          if (ds.uncertainty_score !== undefined) {
+            renderScoreBar('Overall Uncertainty', ds.uncertainty_score * 100, 100, [200, 50, 50]);
+          }
+        }
+        yPos += 8;
+      }
+
+      // ========================================
+      // COUNTERFACTUAL ENGINE
+      // ========================================
+      if (sections.find(s => s.id === 'counterfactual')?.enabled && counterfactualData.data?.length > 0) {
+        renderSectionHeader('Counterfactual Analysis', [120, 80, 160]);
+        
+        const cf = (counterfactualData.data as any[])[0]?.result as any;
+        if (cf) {
+          checkPageBreak(45);
+          
+          if (cf.scenarios?.length > 0) {
+            renderSubsection('What-If Scenarios');
+            (cf.scenarios as any[]).slice(0, 4).forEach((s: any) => {
+              checkPageBreak(15);
+              doc.setFontSize(9);
+              doc.setFont('helvetica', 'bold');
+              doc.text(`If: ${s.condition || s.if}`, margin, yPos);
+              yPos += lineHeight;
+              doc.setFont('helvetica', 'normal');
+              doc.text(`Then: ${s.outcome || s.then} (${(s.probability * 100 || 50).toFixed(0)}%)`, margin + 5, yPos);
+              yPos += lineHeight + 2;
+            });
+          }
+          
+          if (cf.causal_factors?.length > 0) {
+            renderSubsection('Key Causal Factors');
+            (cf.causal_factors as any[]).slice(0, 4).forEach((f: any) => {
+              renderBullet(typeof f === 'string' ? f : `${f.factor}: ${f.impact || 'Significant'}`, 5);
+            });
+          }
+        }
+        yPos += 8;
+      }
+
+      // ========================================
+      // PATTERN-OF-LIFE ENGINE
+      // ========================================
+      if (sections.find(s => s.id === 'patternOfLifeFusion')?.enabled && patternOfLifeData.data?.length > 0) {
+        renderSectionHeader('Pattern-of-Life Analysis', [0, 100, 100]);
+        
+        const pol = (patternOfLifeData.data as any[])[0]?.result as any;
+        if (pol) {
+          checkPageBreak(45);
+          
+          if (pol.daily_patterns) {
+            renderSubsection('Daily Activity Patterns');
+            Object.entries(pol.daily_patterns).slice(0, 4).forEach(([time, activity]) => {
+              renderKeyValue(time, String(activity));
+            });
+          }
+          
+          if (pol.routine_deviations?.length > 0) {
+            renderSubsection('Recent Deviations');
+            (pol.routine_deviations as any[]).slice(0, 3).forEach((d: any) => {
+              renderBullet(typeof d === 'string' ? d : `${d.date || 'Recent'}: ${d.deviation || d.description}`, 5);
+            });
+          }
+          
+          if (pol.predictability_score !== undefined) {
+            renderScoreBar('Predictability Score', pol.predictability_score * 100, 100, [0, 100, 100]);
+          }
+        }
+        yPos += 8;
+      }
+
+      // ========================================
+      // ENTITY RESOLUTION ENGINE
+      // ========================================
+      if (sections.find(s => s.id === 'entityResolution')?.enabled && entityResolutionData.data?.length > 0) {
+        renderSectionHeader('Entity Resolution Analysis', [80, 120, 0]);
+        
+        const er = (entityResolutionData.data as any[])[0]?.result as any;
+        if (er) {
+          checkPageBreak(40);
+          
+          if (er.resolved_identities?.length > 0) {
+            renderSubsection('Resolved Identities');
+            (er.resolved_identities as any[]).slice(0, 4).forEach((id: any) => {
+              renderBullet(typeof id === 'string' ? id : `${id.alias || id.name}: ${id.confidence ? `${(id.confidence * 100).toFixed(0)}%` : ''} confidence`, 5);
+            });
+          }
+          
+          if (er.linked_records?.length > 0) {
+            renderSubsection('Linked Records');
+            (er.linked_records as any[]).slice(0, 4).forEach((r: any) => {
+              renderBullet(typeof r === 'string' ? r : `${r.source}: ${r.record_type || 'Record'}`, 5);
+            });
+          }
+          
+          if (er.disambiguation_confidence !== undefined) {
+            renderScoreBar('Disambiguation Confidence', er.disambiguation_confidence * 100, 100, [80, 120, 0]);
+          }
+        }
+        yPos += 8;
+      }
+
+      // ========================================
+      // SENTIMENT CASCADE PREDICTOR
+      // ========================================
+      if (sections.find(s => s.id === 'sentimentCascade')?.enabled && sentimentCascadeData.data?.length > 0) {
+        renderSectionHeader('Sentiment Cascade Prediction', [180, 50, 100]);
+        
+        const sc = (sentimentCascadeData.data as any[])[0]?.result as any;
+        if (sc) {
+          checkPageBreak(45);
+          
+          doc.setFillColor(255, 245, 250);
+          doc.roundedRect(margin, yPos - 3, contentWidth, 20, 3, 3, 'F');
+          
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'bold');
+          doc.text(`Cascade Risk: ${sc.cascade_risk?.toUpperCase() || 'MODERATE'}`, margin + 5, yPos + 5);
+          doc.text(`Velocity: ${((sc.sentiment_velocity || 0) * 100).toFixed(0)}%`, margin + 70, yPos + 5);
+          doc.text(`Trigger Sensitivity: ${((sc.trigger_sensitivity || 0) * 100).toFixed(0)}%`, margin + 120, yPos + 5);
+          yPos += 25;
+          
+          if (sc.predicted_cascades?.length > 0) {
+            renderSubsection('Predicted Sentiment Cascades');
+            (sc.predicted_cascades as any[]).slice(0, 3).forEach((c: any) => {
+              renderBullet(`${c.trigger || 'Event'}: ${c.direction || 'Negative'} cascade, ${c.duration || 'Short-term'}`, 5);
+            });
+          }
+          
+          if (sc.emotional_contagion_paths?.length > 0) {
+            renderSubsection('Emotional Contagion Paths');
+            (sc.emotional_contagion_paths as any[]).slice(0, 3).forEach((p: any) => {
+              renderBullet(typeof p === 'string' ? p : `${p.from} → ${p.to}: ${p.emotion || 'Negative sentiment'}`, 5);
+            });
+          }
+        }
+        yPos += 8;
+      }
+
+      // ========================================
       // TIMELINE
       // ========================================
       if (sections.find(s => s.id === 'timeline')?.enabled && commData.data?.length > 0) {
@@ -2743,7 +3097,7 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         doc.setFontSize(7);
         doc.setTextColor(128);
         doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 12, { align: 'center' });
-        doc.text('TOP SECRET // NOFORN - PICS AGIS v3.0', margin, pageHeight - 8);
+        doc.text('TOP SECRET // NOFORN - PICS AGIS v5.0', margin, pageHeight - 8);
         doc.text(`${format(new Date(), 'yyyy-MM-dd HH:mm')} | ${contactName}`, pageWidth - margin, pageHeight - 8, { align: 'right' });
       }
 
@@ -2776,11 +3130,11 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
               <FileText className="h-5 w-5" />
               Ultimate Intelligence Dossier Generator
               <Badge variant="secondary" className="text-[10px] font-mono bg-primary/10">
-                v4.0 | 55 Sections
+                v5.0 | 64 Sections
               </Badge>
             </CardTitle>
             <CardDescription>
-              Generate comprehensive 55-section dossiers with Dark Tetrad, cognitive warfare, deception ops, and 180-day trust trajectories
+              Generate comprehensive 64-section dossiers with Data Fusion Engines, Digital Twins, Temporal Transformers, and Shadow Network Analysis
             </CardDescription>
           </div>
           {dataStats && (
@@ -2824,10 +3178,11 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
               <SelectContent>
                 <SelectItem value="executive">Executive Brief (1-2 pages)</SelectItem>
                 <SelectItem value="operational">Operational Dossier (5-10 pages)</SelectItem>
-                <SelectItem value="full">Full Intelligence Package (Complete - All 47 Sections)</SelectItem>
+                <SelectItem value="full">Full Intelligence Package (Complete - All 64 Sections)</SelectItem>
                 <SelectItem value="surveillance">Surveillance Report (Media Focus)</SelectItem>
                 <SelectItem value="warfare">Warfare Assessment (MICE, Cialdini, Sacred Values)</SelectItem>
                 <SelectItem value="psychological">Psychological Deep Dive (DNA, Quantum, Behavioral)</SelectItem>
+                <SelectItem value="fusion">Data Fusion Analysis (Temporal, Digital Twin, Graph RAG)</SelectItem>
               </SelectContent>
             </Select>
           </div>
