@@ -4,6 +4,7 @@
  * @lovable-protected - Do not regenerate
  */
 
+// Core domain types
 export * from './profiles-contacts.types';
 export * from './communications.types';
 export * from './intelligence.types';
@@ -15,7 +16,12 @@ export * from './behavioral-predictions.types';
 export * from './fusion-analysis.types';
 export * from './system-config.types';
 export * from './hardware-devices.types';
-export * from './advanced-operations.types';
+
+// Advanced operations sub-modules (replaces advanced-operations.types.ts)
+export * from './reality-dimensional.types';
+export * from './infinity-eternal.types';
+export * from './omniscient-transcendent.types';
+export * from './strategic-synthesis.types';
 
 // Re-export all domain table interfaces
 export type { ProfilesContactsTables } from './profiles-contacts.types';
@@ -29,4 +35,9 @@ export type { BehavioralPredictionsTables } from './behavioral-predictions.types
 export type { FusionAnalysisTables } from './fusion-analysis.types';
 export type { SystemConfigTables } from './system-config.types';
 export type { HardwareDevicesTables } from './hardware-devices.types';
-export type { AdvancedOperationsTables } from './advanced-operations.types';
+
+// Advanced sub-modules
+export type { RealityDimensionalTables } from './reality-dimensional.types';
+export type { InfinityEternalTables } from './infinity-eternal.types';
+export type { OmniscientTranscendentTables } from './omniscient-transcendent.types';
+export type { StrategicSynthesisTables } from './strategic-synthesis.types';
