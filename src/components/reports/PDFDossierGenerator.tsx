@@ -31,6 +31,7 @@ import {
 import { allSectionRenderers } from './sections/renderers';
 import { IntelligenceSessionRecovery } from './IntelligenceSessionRecovery';
 import { IntelligenceSessionProgress } from './IntelligenceSessionProgress';
+import { EdgeFunctionHealthPanel } from './EdgeFunctionHealthPanel';
 
 interface PDFDossierGeneratorProps {
   profileId?: string;
@@ -306,6 +307,9 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Edge Function Health Check Panel */}
+        <EdgeFunctionHealthPanel compact={false} />
+        
         {!profileId && (
           <div className="space-y-2">
             <Label>Select Contact</Label>
