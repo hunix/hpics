@@ -82,7 +82,7 @@ serve(async (req) => {
         marital: personalInfo.marital_status,
       } : null,
       interests: interests?.map(i => ({ name: i.name, type: i.interest_type })),
-      observations: observations?.map(o => ({ title: o.title, observation: o.observation, category: o.category })),
+      observations: observations?.map(o => ({ title: o.title, observation: o.observation as string, category: o.category })),
       communicationPreferences: commPrefs ? {
         preferred_channels: commPrefs.preferred_channels,
         communication_style: commPrefs.communication_style,

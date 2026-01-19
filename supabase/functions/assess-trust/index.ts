@@ -108,23 +108,8 @@ serve(async (req) => {
       (communications?.length || 0) > 5 && 'communication_history',
     ].filter(Boolean);
 
-    // Cross-reference name consistency
-    if (personalInfo) {
-      const profileName = `${profile.first_name} ${profile.last_name}`.toLowerCase().trim();
-      if (personalInfo.full_legal_name) {
-        const legalName = personalInfo.full_legal_name.toLowerCase().trim();
-        if (!legalName.includes(profile.first_name?.toLowerCase() || '') && 
-            !legalName.includes(profile.last_name?.toLowerCase() || '')) {
-          inconsistencies.push({
-            type: 'name_mismatch',
-            description: 'Profile name does not match legal name on record',
-            severity: 'medium',
-            sources: ['profile', 'personal_info'],
-          });
-          consistencyPoints -= 15;
-        }
-      }
-    }
+    // Cross-reference name consistency - note: full_legal_name not available in schema
+    // Skip name cross-reference check since contact_personal_info doesn't have legal name field
 
     // Check identity document consistency
     if (identityDocs && identityDocs.length > 0) {
@@ -256,7 +241,7 @@ serve(async (req) => {
                 deception_indicators: deceptionIndicators,
                 data_sources: dataSources,
                 recent_communications_count: communications?.length || 0,
-                observations_summary: observations?.slice(0, 5).map(o => ({ category: o.category, content: o.observation_text?.substring(0, 100) })),
+                observations_summary: observations?.slice(0, 5).map(o => ({ category: o.category, content: (o.observation as string)?.substring(0, 100) })),
               })
             }
           ],

@@ -81,7 +81,7 @@ serve(async (req) => {
       supabase.from('profiles').select('*').eq('id', profile_id).single(),
       supabase.from('contact_personal_info').select('*').eq('profile_id', profile_id).maybeSingle(),
       supabase.from('contact_methods').select('*').eq('profile_id', profile_id),
-      supabase.from('contact_relationships').select('*, related_profile:profiles!contact_relationships_related_profile_id_fkey(first_name, last_name)').eq('profile_id', profile_id),
+      supabase.from('contact_relationships').select('*, related_profile:profiles!contact_relationships_to_profile_id_fkey(first_name, last_name)').eq('from_profile_id', profile_id),
       supabase.from('education').select('*').eq('profile_id', profile_id),
       supabase.from('certifications').select('*').eq('profile_id', profile_id),
       supabase.from('contact_interests').select('*').eq('profile_id', profile_id),
@@ -141,12 +141,12 @@ serve(async (req) => {
       },
       extended: personalInfo ? {
         blood_group: personalInfo.blood_group,
-        medical_conditions: personalInfo.medical_conditions,
         allergies: personalInfo.allergies,
-        emergency_contact: personalInfo.emergency_contact,
         nationality: personalInfo.nationality,
         religion: personalInfo.religion,
         political_affiliation: personalInfo.political_affiliation,
+        marital_status: personalInfo.marital_status,
+        dietary_preferences: personalInfo.dietary_preferences,
       } : null,
       contact_methods: contactMethods?.map(m => ({
         type: m.type,
@@ -178,7 +178,7 @@ serve(async (req) => {
       current_title: profile.title,
       education: education?.map(e => ({
         institution: e.institution_name,
-        degree: e.degree,
+        degree: e.degree_type,
         field: e.field_of_study,
         dates: `${e.start_date || ''} - ${e.end_date || 'Present'}`,
       })),
@@ -205,7 +205,7 @@ serve(async (req) => {
       personality_indicators: behavioralAnalyses?.[0]?.personality_indicators,
       observations: observations?.map(o => ({
         category: o.category,
-        content: o.observation_text,
+        content: o.observation,
         confidence: o.confidence_level,
         validated: o.ai_validation_status,
       })),
