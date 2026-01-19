@@ -1,16 +1,50 @@
 /**
- * Dossier Sections - Barrel Export
+ * Dossier Sections - Barrel Export (v3.7.4)
  * Central export for all dossier section types, definitions, and hooks
  * 
+ * PERFORMANCE OPTIMIZED: Explicit exports instead of export *
+ * 
+ * v3.7.4: Refactored to explicit exports for IDE performance
  * v3.7.1: Added section renderers export for modular PDF generation
  * v3.6.0: Added hooks exports for modular PDF generation
  */
 
-export * from './types';
-export * from './pdfHelpers';
-export * from './sectionDefinitions';
+// Types (explicit exports for performance)
+export type {
+  DossierSection,
+  DossierTemplate,
+  PDFRenderContext,
+  DataStats,
+  TaskResult,
+} from './types';
 
-// Modular section renderers (v3.7.1) - exclude types to avoid conflicts
+export {
+  CIALDINI_PRINCIPLES,
+  FBI_TECHNIQUES,
+} from './types';
+
+// PDF Helpers (explicit exports for performance)
+export {
+  createPDFContext,
+  checkPageBreak,
+  renderSectionHeader,
+  renderSubsection,
+  renderBullet,
+  renderKeyValue,
+  renderScoreBar,
+  renderPriorityBadge,
+  safePrint,
+  type PDFContext,
+} from './pdfHelpers';
+
+// Section Definitions (explicit exports for performance)
+export {
+  DEFAULT_SECTIONS,
+  TEMPLATE_SECTION_IDS,
+  applySectionTemplate,
+} from './sectionDefinitions';
+
+// Modular section renderers (v3.7.1)
 export { 
   allSectionRenderers,
   coreSectionRenderers,
@@ -19,14 +53,12 @@ export {
   fusionSectionRenderers,
 } from './renderers';
 
-// Re-export hooks for convenience
+// Re-export hooks for convenience (avoid duplicates with pdfHelpers)
 export { useDossierData, type DossierDataResult } from '../hooks/useDossierData';
 export { useIntelligenceGeneration } from '../hooks/useIntelligenceGeneration';
 export { 
   createPDFDocument, 
   renderCoverPage, 
-  addPageFooters, 
-  safePrint,
-  type PDFContext,
+  addPageFooters,
   type PDFGenerationOptions,
 } from '../hooks/usePDFGeneration';

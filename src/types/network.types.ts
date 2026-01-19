@@ -1,6 +1,8 @@
 /**
- * @fileoverview Network Analysis Type Definitions
+ * @fileoverview Network Analysis Type Definitions (v3.7.4)
  * Consolidated types for network graph, visualization, and algorithms
+ * 
+ * PERFORMANCE OPTIMIZED: Explicit exports instead of export *
  * 
  * @deprecated Import directly from @/domains/network for domain entities.
  * This file re-exports for backward compatibility only.
@@ -35,6 +37,51 @@ export type {
   PropagationWave,
 } from '@/domains/network/entities/Influence';
 
-// Re-export algorithm types (internal implementation)
-export * from '@/lib/network/types';
-export * from '@/lib/network/types/visualization';
+// Re-export algorithm types (explicit exports for performance)
+export type {
+  NetworkNode as AlgorithmNetworkNode,
+  NetworkLink as AlgorithmNetworkLink,
+  AdjacencyList,
+  CentralityMap,
+  ClusterMap,
+  HierarchicalCluster,
+  StructuralHole as AlgorithmStructuralHole,
+  WeakTie,
+  PredictedLink,
+  ResilienceMetrics,
+  InfluenceFlow as AlgorithmInfluenceFlow,
+  InfluencePropagationResult,
+  PropagationWave as AlgorithmPropagationWave,
+  CommunityRole,
+  NodeRole as AlgorithmNodeRole,
+  CommunitySnapshot,
+  CommunityTransition,
+  CommunityHealthMetrics,
+  CommunityEvolution,
+  TemporalNetworkMetrics,
+  SleepingConnection,
+  TrajectoryPrediction,
+  SeasonalPattern,
+  GrowthOpportunity,
+  StrategicConnection,
+  ConnectionRecommendation,
+  NetworkMetrics,
+} from '@/lib/network/types';
+
+export {
+  CLUSTER_COLORS,
+  getClusterColor,
+} from '@/lib/network/types';
+
+// Re-export visualization types (explicit exports for performance)
+export type {
+  VisualizationNode,
+  VisualizationLink,
+  NetworkVisualizationData,
+  ColorMode,
+} from '@/lib/network/types/visualization';
+
+export {
+  RELATIONSHIP_COLORS,
+  RELATIONSHIP_TYPES,
+} from '@/lib/network/types/visualization';
