@@ -1,6 +1,8 @@
 /**
- * PDFDossierGenerator Types
+ * PDFDossierGenerator Types (v3.7.0)
  * Shared types for dossier section components
+ * 
+ * Expanded with PDFRenderContext for modular section renderers.
  */
 
 import jsPDF from 'jspdf';

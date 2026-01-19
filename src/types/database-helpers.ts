@@ -4,11 +4,13 @@
  * IMPORTANT: Always import from this file instead of directly from types.ts
  * This dramatically improves IDE performance and TypeScript compilation speed.
  * 
+ * v3.7.0: Expanded with 50+ additional types for warfare, fusion, and assessment tables
+ * 
  * @example
  * // ✅ Good - import from database-helpers
- * import type { Profile, Communication } from '@/types/database-helpers';
+ * import type { Profile, Communication, BetrayalPrediction } from '@/types/database-helpers';
  * 
- * // ❌ Bad - direct import from types.ts (33,000+ lines)
+ * // ❌ Bad - direct import from types.ts (35,000+ lines)
  * import type { Tables } from '@/integrations/supabase/types';
  */
 
@@ -135,6 +137,12 @@ export type AIUsageLog = Tables['ai_usage_logs']['Row'];
 export type AIUsageLogInsert = Tables['ai_usage_logs']['Insert'];
 
 // ============================================
+// Voice Recording types (v3.7.0)
+// ============================================
+export type VoiceRecordingSession = Tables['voice_recording_sessions']['Row'];
+export type VoiceRecordingSessionInsert = Tables['voice_recording_sessions']['Insert'];
+
+// ============================================
 // Intelligence Assessment types
 // ============================================
 export type MICEAssessment = Tables['mice_assessments']['Row'];
@@ -145,6 +153,108 @@ export type SemanticOperationInsert = Tables['semantic_operations']['Insert'];
 
 export type PsychologicalProfile = Tables['psychological_profiles']['Row'];
 export type TrustAssessment = Tables['trust_assessments']['Row'];
+
+// ============================================
+// Influence & Elicitation types (v3.7.0)
+// ============================================
+export type ContactInfluenceProfile = Tables['contact_influence_profiles']['Row'];
+export type ContactInfluenceProfileInsert = Tables['contact_influence_profiles']['Insert'];
+
+export type ElicitationSession = Tables['elicitation_sessions']['Row'];
+export type ElicitationSessionInsert = Tables['elicitation_sessions']['Insert'];
+
+// ============================================
+// Financial Psychology types (v3.7.0)
+// ============================================
+export type FinancialPsychologyProfile = Tables['financial_psychology_profiles']['Row'];
+export type FinancialPsychologyProfileInsert = Tables['financial_psychology_profiles']['Insert'];
+
+// ============================================
+// Sacred Values & Memetic types (v3.7.0)
+// ============================================
+export type SacredValue = Tables['sacred_values']['Row'];
+export type SacredValueInsert = Tables['sacred_values']['Insert'];
+
+export type MemeticCampaign = Tables['memetic_campaigns']['Row'];
+export type MemeticCampaignInsert = Tables['memetic_campaigns']['Insert'];
+
+// ============================================
+// Betrayal & Trauma types (v3.7.0)
+// ============================================
+export type BetrayalPrediction = Tables['betrayal_predictions']['Row'];
+export type BetrayalPredictionInsert = Tables['betrayal_predictions']['Insert'];
+
+export type TraumaExploitationWindow = Tables['trauma_exploitation_windows']['Row'];
+export type TraumaExploitationWindowInsert = Tables['trauma_exploitation_windows']['Insert'];
+
+// ============================================
+// Identity & Psychological Warfare types (v3.7.0)
+// ============================================
+export type IdentityDestabilizationLog = Tables['identity_destabilization_logs']['Row'];
+export type IdentityDestabilizationLogInsert = Tables['identity_destabilization_logs']['Insert'];
+
+export type RealityFramework = Tables['reality_frameworks']['Row'];
+export type RealityFrameworkInsert = Tables['reality_frameworks']['Insert'];
+
+// ============================================
+// Cognitive & Deception Warfare types (v3.7.0)
+// ============================================
+export type CognitiveWarfareOperation = Tables['cognitive_warfare_operations']['Row'];
+export type CognitiveWarfareOperationInsert = Tables['cognitive_warfare_operations']['Insert'];
+
+export type DeceptionOperation = Tables['deception_operations']['Row'];
+export type DeceptionOperationInsert = Tables['deception_operations']['Insert'];
+
+export type ActiveDefenseOperation = Tables['active_defense_operations']['Row'];
+export type ActiveDefenseOperationInsert = Tables['active_defense_operations']['Insert'];
+
+// ============================================
+// Vulnerability & Trust Trajectory types (v3.7.0)
+// ============================================
+export type VulnerabilityWindow = Tables['vulnerability_windows']['Row'];
+export type VulnerabilityWindowInsert = Tables['vulnerability_windows']['Insert'];
+
+export type TrustTrajectory = Tables['trust_trajectories']['Row'];
+export type TrustTrajectoryInsert = Tables['trust_trajectories']['Insert'];
+
+export type ProportionalResponseLog = Tables['proportional_response_logs']['Row'];
+export type ProportionalResponseLogInsert = Tables['proportional_response_logs']['Insert'];
+
+// ============================================
+// Fusion Intelligence types (v3.7.0)
+// ============================================
+export type MosaicIntelligenceFusion = Tables['mosaic_intelligence_fusion']['Row'];
+export type MosaicIntelligenceFusionInsert = Tables['mosaic_intelligence_fusion']['Insert'];
+
+export type CrossDomainCorrelation = Tables['cross_domain_correlations']['Row'];
+export type CrossDomainCorrelationInsert = Tables['cross_domain_correlations']['Insert'];
+
+export type CognitiveSuperposition = Tables['cognitive_superpositions']['Row'];
+export type CognitiveSuperpositionInsert = Tables['cognitive_superpositions']['Insert'];
+
+export type TimelineProbability = Tables['timeline_probabilities']['Row'];
+export type TimelineProbabilityInsert = Tables['timeline_probabilities']['Insert'];
+
+export type PrecursorSignature = Tables['precursor_signatures']['Row'];
+export type PrecursorSignatureInsert = Tables['precursor_signatures']['Insert'];
+
+// ============================================
+// Behavioral Prediction types (v3.7.0)
+// ============================================
+export type BehavioralPrediction = Tables['behavioral_predictions']['Row'];
+export type BehavioralPredictionInsert = Tables['behavioral_predictions']['Insert'];
+
+export type BehavioralAnomaly = Tables['behavioral_anomalies']['Row'];
+export type BehavioralAnomalyInsert = Tables['behavioral_anomalies']['Insert'];
+
+export type BehavioralScenarioPrediction = Tables['behavioral_scenario_predictions']['Row'];
+export type BehavioralScenarioPredictionInsert = Tables['behavioral_scenario_predictions']['Insert'];
+
+// ============================================
+// Cross-Modal Analysis types (v3.7.0)
+// ============================================
+export type CrossModalCorrelation = Tables['cross_modal_correlations']['Row'];
+export type CrossModalCorrelationInsert = Tables['cross_modal_correlations']['Insert'];
 
 // ============================================
 // Hardware & Mission types
@@ -210,6 +320,12 @@ export type ContactInterest = Tables['contact_interests']['Row'];
 export type ContactInterestInsert = Tables['contact_interests']['Insert'];
 
 // ============================================
+// Life Milestones types (v3.7.0)
+// ============================================
+export type ContactLifeMilestone = Tables['contact_life_milestones']['Row'];
+export type ContactLifeMilestoneInsert = Tables['contact_life_milestones']['Insert'];
+
+// ============================================
 // Personal Info types
 // ============================================
 export type ContactPersonalInfo = Tables['contact_personal_info']['Row'];
@@ -229,6 +345,28 @@ export type CertificationInsert = Tables['certifications']['Insert'];
 // ============================================
 export type ContactLocation = Tables['contact_locations']['Row'];
 export type ContactLocationInsert = Tables['contact_locations']['Insert'];
+
+// ============================================
+// Dossier types (v3.7.0)
+// ============================================
+export type Dossier = Tables['dossiers']['Row'];
+export type DossierInsert = Tables['dossiers']['Insert'];
+
+// ============================================
+// Addiction & Coercive Control types (v3.7.0)
+// ============================================
+export type AddictionProtocol = Tables['addiction_protocols']['Row'];
+export type AddictionProtocolInsert = Tables['addiction_protocols']['Insert'];
+
+// ============================================
+// AGIS System types (v3.7.0)
+// ============================================
+export type AGISGlobalState = Tables['agis_global_state']['Row'];
+export type AGISCascadeEvent = Tables['agis_cascade_events']['Row'];
+export type AGISAnalytics = Tables['agis_analytics']['Row'];
+export type AGISObjectiveTracking = Tables['agis_objective_tracking']['Row'];
+export type AGISPhaseSynergy = Tables['agis_phase_synergies']['Row'];
+export type AGISCascadeRule = Tables['agis_cascade_rules']['Row'];
 
 // Export the full Database type for advanced use cases only
 export type { Database };

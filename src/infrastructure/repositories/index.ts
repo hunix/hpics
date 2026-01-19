@@ -1,7 +1,8 @@
 /**
- * Infrastructure Repositories - Barrel Export
+ * Infrastructure Repositories - Barrel Export (v3.7.0)
  * 
  * Concrete Supabase implementations of domain repository interfaces.
+ * Analysis repositories now split into modular files in analysis/ folder.
  */
 
 export { SupabaseProfileRepository } from './SupabaseProfileRepository';
@@ -10,8 +11,10 @@ export {
   SupabaseThreatRepository 
 } from './SupabaseWarfareRepository';
 export { SupabaseNetworkRepository } from './SupabaseNetworkRepository';
+
+// Modular analysis repositories (v3.7.0)
 export { 
   SupabaseAnalysisRepository,
   SupabaseDossierRepository,
   SupabaseInsightRepository 
-} from './SupabaseAnalysisRepository';
+} from './analysis';
