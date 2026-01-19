@@ -21,6 +21,16 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit - respond before any auth/validation
+  try {
+    const body = await req.clone().json();
+    if (body?.healthCheck === true) {
+      return new Response(JSON.stringify({ ok: true, function: 'mice-recruitment-analyzer', timestamp: Date.now() }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  } catch { /* not JSON or no body - continue normally */ }
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;

@@ -129,7 +129,7 @@ export function useEdgeFunctionHealthCheck(): EdgeFunctionHealthResult {
         };
       }
       
-      // 200/204 from OPTIONS means function exists and CORS is configured
+      // 200 with healthCheck response = function is healthy and supports health checks
       // Any other 2xx/4xx response (except 404) also means function exists
       return {
         ...fn,
