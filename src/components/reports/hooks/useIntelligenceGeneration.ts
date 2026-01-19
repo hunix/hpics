@@ -24,6 +24,15 @@ export function useIntelligenceGeneration() {
     setTaskResults([]);
 
     try {
+      // Get current user for edge function authentication
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Authentication required');
+        setIsGeneratingIntel(false);
+        return;
+      }
+      const userId = user.id;
+
       // Check what's missing
       const [miceExists, influenceExists, deepIntelExists, behavioralDnaExists, sacredValuesExists] = await Promise.all([
         supabase.from('mice_assessments').select('id').eq('profile_id', profileId).maybeSingle(),
@@ -38,7 +47,7 @@ export function useIntelligenceGeneration() {
       if (!miceExists.data) {
         tasks.push({
           name: 'MICE Vulnerability Analysis',
-          fn: () => supabase.functions.invoke('mice-recruitment-analyzer', { body: { profileId, analysisDepth: 'comprehensive' } }),
+          fn: () => supabase.functions.invoke('mice-recruitment-analyzer', { body: { profileId, userId, analysisDepth: 'comprehensive' } }),
           required: true,
         });
       }
@@ -46,7 +55,7 @@ export function useIntelligenceGeneration() {
       if (!influenceExists.data) {
         tasks.push({
           name: 'Cialdini Influence Profile',
-          fn: () => supabase.functions.invoke('analyze-influence-profile', { body: { profileId } }),
+          fn: () => supabase.functions.invoke('analyze-influence-profile', { body: { profileId, userId } }),
           required: true,
         });
       }
@@ -54,7 +63,7 @@ export function useIntelligenceGeneration() {
       if (!deepIntelExists.data) {
         tasks.push({
           name: 'Deep Intelligence Engine',
-          fn: () => supabase.functions.invoke('deep-intelligence-engine', { body: { profileId } }),
+          fn: () => supabase.functions.invoke('deep-intelligence-engine', { body: { profileId, userId } }),
           required: true,
         });
       }
@@ -62,7 +71,7 @@ export function useIntelligenceGeneration() {
       if (!behavioralDnaExists.data) {
         tasks.push({
           name: 'Behavioral DNA Sequencer',
-          fn: () => supabase.functions.invoke('behavioral-dna-sequencer', { body: { profileId } }),
+          fn: () => supabase.functions.invoke('behavioral-dna-sequencer', { body: { profileId, userId } }),
           required: false,
         });
       }
@@ -70,7 +79,7 @@ export function useIntelligenceGeneration() {
       if (!sacredValuesExists.data) {
         tasks.push({
           name: 'Sacred Values Mapper',
-          fn: () => supabase.functions.invoke('sacred-values-mapper', { body: { profileId } }),
+          fn: () => supabase.functions.invoke('sacred-values-mapper', { body: { profileId, userId } }),
           required: false,
         });
       }
@@ -78,32 +87,32 @@ export function useIntelligenceGeneration() {
       // Always run these for latest data
       tasks.push({
         name: 'Cross-Modal Synthesis',
-        fn: () => supabase.functions.invoke('cross-modal-synthesis-v2', { body: { profileId } }),
+        fn: () => supabase.functions.invoke('cross-modal-synthesis-v2', { body: { profileId, userId } }),
         required: false,
       });
       
       tasks.push({
         name: 'Precognitive Pattern Engine',
-        fn: () => supabase.functions.invoke('precognitive-pattern-engine', { body: { profileId } }),
+        fn: () => supabase.functions.invoke('precognitive-pattern-engine', { body: { profileId, userId } }),
         required: false,
       });
 
       // Data Fusion Engines
       tasks.push({
         name: 'Temporal Fusion Transformer',
-        fn: () => supabase.functions.invoke('temporal-fusion-transformer', { body: { profileId } }),
+        fn: () => supabase.functions.invoke('temporal-fusion-transformer', { body: { profileId, userId } }),
         required: false,
       });
       
       tasks.push({
         name: 'Behavioral Digital Twin',
-        fn: () => supabase.functions.invoke('behavioral-digital-twin', { body: { profileId } }),
+        fn: () => supabase.functions.invoke('behavioral-digital-twin', { body: { profileId, userId } }),
         required: false,
       });
       
       tasks.push({
         name: 'Pattern-of-Life Engine',
-        fn: () => supabase.functions.invoke('pattern-of-life-engine', { body: { profileId } }),
+        fn: () => supabase.functions.invoke('pattern-of-life-engine', { body: { profileId, userId } }),
         required: false,
       });
 
@@ -172,17 +181,25 @@ export function useIntelligenceGeneration() {
   }, []);
 
   const retryTask = useCallback(async (taskName: string, profileId: string) => {
+    // Get current user for edge function authentication
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('Authentication required');
+      return;
+    }
+    const userId = user.id;
+
     const taskFunctions: Record<string, () => Promise<any>> = {
-      'MICE Vulnerability Analysis': () => supabase.functions.invoke('mice-recruitment-analyzer', { body: { profileId, analysisDepth: 'comprehensive' } }),
-      'Cialdini Influence Profile': () => supabase.functions.invoke('analyze-influence-profile', { body: { profileId } }),
-      'Deep Intelligence Engine': () => supabase.functions.invoke('deep-intelligence-engine', { body: { profileId } }),
-      'Behavioral DNA Sequencer': () => supabase.functions.invoke('behavioral-dna-sequencer', { body: { profileId } }),
-      'Sacred Values Mapper': () => supabase.functions.invoke('sacred-values-mapper', { body: { profileId } }),
-      'Cross-Modal Synthesis': () => supabase.functions.invoke('cross-modal-synthesis-v2', { body: { profileId } }),
-      'Precognitive Pattern Engine': () => supabase.functions.invoke('precognitive-pattern-engine', { body: { profileId } }),
-      'Temporal Fusion Transformer': () => supabase.functions.invoke('temporal-fusion-transformer', { body: { profileId } }),
-      'Behavioral Digital Twin': () => supabase.functions.invoke('behavioral-digital-twin', { body: { profileId } }),
-      'Pattern-of-Life Engine': () => supabase.functions.invoke('pattern-of-life-engine', { body: { profileId } }),
+      'MICE Vulnerability Analysis': () => supabase.functions.invoke('mice-recruitment-analyzer', { body: { profileId, userId, analysisDepth: 'comprehensive' } }),
+      'Cialdini Influence Profile': () => supabase.functions.invoke('analyze-influence-profile', { body: { profileId, userId } }),
+      'Deep Intelligence Engine': () => supabase.functions.invoke('deep-intelligence-engine', { body: { profileId, userId } }),
+      'Behavioral DNA Sequencer': () => supabase.functions.invoke('behavioral-dna-sequencer', { body: { profileId, userId } }),
+      'Sacred Values Mapper': () => supabase.functions.invoke('sacred-values-mapper', { body: { profileId, userId } }),
+      'Cross-Modal Synthesis': () => supabase.functions.invoke('cross-modal-synthesis-v2', { body: { profileId, userId } }),
+      'Precognitive Pattern Engine': () => supabase.functions.invoke('precognitive-pattern-engine', { body: { profileId, userId } }),
+      'Temporal Fusion Transformer': () => supabase.functions.invoke('temporal-fusion-transformer', { body: { profileId, userId } }),
+      'Behavioral Digital Twin': () => supabase.functions.invoke('behavioral-digital-twin', { body: { profileId, userId } }),
+      'Pattern-of-Life Engine': () => supabase.functions.invoke('pattern-of-life-engine', { body: { profileId, userId } }),
     };
 
     const fn = taskFunctions[taskName];
