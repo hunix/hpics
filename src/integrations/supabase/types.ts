@@ -18366,6 +18366,137 @@ export type Database = {
         }
         Relationships: []
       }
+      intelligence_session_tasks: {
+        Row: {
+          analysis_type: string | null
+          attempts: number | null
+          category: string
+          completed_at: string | null
+          created_at: string | null
+          edge_function: string
+          error_details: Json | null
+          error_message: string | null
+          id: string
+          max_attempts: number | null
+          priority: number | null
+          processing_time_ms: number | null
+          result: Json | null
+          session_id: string
+          started_at: string | null
+          status: string
+          task_name: string
+        }
+        Insert: {
+          analysis_type?: string | null
+          attempts?: number | null
+          category: string
+          completed_at?: string | null
+          created_at?: string | null
+          edge_function: string
+          error_details?: Json | null
+          error_message?: string | null
+          id?: string
+          max_attempts?: number | null
+          priority?: number | null
+          processing_time_ms?: number | null
+          result?: Json | null
+          session_id: string
+          started_at?: string | null
+          status?: string
+          task_name: string
+        }
+        Update: {
+          analysis_type?: string | null
+          attempts?: number | null
+          category?: string
+          completed_at?: string | null
+          created_at?: string | null
+          edge_function?: string
+          error_details?: Json | null
+          error_message?: string | null
+          id?: string
+          max_attempts?: number | null
+          priority?: number | null
+          processing_time_ms?: number | null
+          result?: Json | null
+          session_id?: string
+          started_at?: string | null
+          status?: string
+          task_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intelligence_session_tasks_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intelligence_sessions: {
+        Row: {
+          completed_at: string | null
+          completed_tasks: number | null
+          created_at: string | null
+          current_category: string | null
+          error_message: string | null
+          failed_tasks: number | null
+          force_refresh: boolean | null
+          id: string
+          metadata: Json | null
+          paused_at: string | null
+          profile_id: string
+          resumed_at: string | null
+          skipped_tasks: number | null
+          started_at: string | null
+          status: string
+          total_tasks: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_tasks?: number | null
+          created_at?: string | null
+          current_category?: string | null
+          error_message?: string | null
+          failed_tasks?: number | null
+          force_refresh?: boolean | null
+          id?: string
+          metadata?: Json | null
+          paused_at?: string | null
+          profile_id: string
+          resumed_at?: string | null
+          skipped_tasks?: number | null
+          started_at?: string | null
+          status?: string
+          total_tasks?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_tasks?: number | null
+          created_at?: string | null
+          current_category?: string | null
+          error_message?: string | null
+          failed_tasks?: number | null
+          force_refresh?: boolean | null
+          id?: string
+          metadata?: Json | null
+          paused_at?: string | null
+          profile_id?: string
+          resumed_at?: string | null
+          skipped_tasks?: number | null
+          started_at?: string | null
+          status?: string
+          total_tasks?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       intelligence_snapshots: {
         Row: {
           betrayal_scores: Json | null
