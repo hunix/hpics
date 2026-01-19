@@ -413,7 +413,48 @@ export const renderSacredValues: SectionRenderer = (ctx, data) => {
   ctx.yPos += 8;
 };
 
+// Deception Analysis Deep Dive renderer
+export const renderDeceptionAnalysis: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  // Try multiple data sources for deception analysis
+  const deceptionData = Array.isArray(data.deceptionAnalysisData) && data.deceptionAnalysisData.length
+    ? data.deceptionAnalysisData
+    : (data.allAnalyses as Array<Record<string, unknown>>)?.filter(a => a.analysis_type === 'deception_analysis');
+  
+  if (!deceptionData?.length) return;
+  
+  ctx.renderSectionHeader('Deception Analysis Deep Dive', [180, 0, 0]);
+  const deception = deceptionData[0] as Record<string, unknown>;
+  const result = (deception.result || deception) as Record<string, unknown>;
+  
+  ctx.checkPageBreak(50);
+  doc.setFillColor(255, 240, 240);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
+  
+  if (result.overall_deception_score !== undefined) {
+    const score = (result.overall_deception_score as number) * 100;
+    const color: [number, number, number] = score > 70 ? [180, 0, 0] : score > 40 ? [200, 150, 0] : [0, 150, 0];
+    ctx.renderScoreBar('Deception Likelihood', score, 100, color);
+  }
+  
+  if (result.deception_indicators) {
+    const indicators = result.deception_indicators as string[];
+    ctx.yPos += 5;
+    ctx.renderSubsection('Deception Indicators');
+    indicators.slice(0, 4).forEach(i => ctx.renderBullet(i, 5));
+  }
+  
+  if (result.verbal_cues) {
+    const cues = result.verbal_cues as string[];
+    ctx.yPos += 3;
+    ctx.renderSubsection('Verbal Deception Cues');
+    cues.slice(0, 3).forEach(c => ctx.renderBullet(c, 5));
+  }
+  ctx.yPos += 8;
+};
+
 export const intelligenceSectionRenderers = {
+  // Map section IDs from sectionDefinitions.ts to renderer functions
   mice: renderMICE,
   cialdini: renderCialdini,
   psychological: renderPsychologicalProfile,
@@ -426,7 +467,8 @@ export const intelligenceSectionRenderers = {
   elicitation: renderElicitation,
   cognitiveLoad: renderCognitiveLoad,
   darkTetrad: renderDarkTetrad,
-  influenceVectors: renderInfluenceVectors,
+  influence: renderInfluenceVectors,           // sectionDefinitions uses 'influence'
   financialPsychology: renderFinancialPsychology,
   sacredValues: renderSacredValues,
+  deceptionAnalysis: renderDeceptionAnalysis,
 };

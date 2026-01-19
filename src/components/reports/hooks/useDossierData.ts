@@ -1,6 +1,7 @@
 /**
- * Dossier Data Fetching Hook
+ * Dossier Data Fetching Hook (v3.7.3)
  * Centralizes all Supabase queries for dossier generation
+ * Expanded to fetch 55+ data sources for 64-section PDF
  */
 
 import { useCallback } from 'react';
@@ -46,6 +47,34 @@ export interface DossierDataResult {
   patternOfLifeData: any[];
   entityResolutionData: any[];
   sentimentCascadeData: any[];
+  // Additional fields for v3.7.3
+  quantumCognitionData: any[];
+  playbookData: any[];
+  hypnoticPatternsData: any[];
+  elicitationData: any[];
+  cognitiveLoadData: any[];
+  sacredValuesData: any[];
+  realityTestingData: any[];
+  identityDestabData: any[];
+  semanticWarfareData: any[];
+  memeticData: any[];
+  futureModelingData: any[];
+  precognitiveData: any[];
+  choiceArchitectureData: any[];
+  influenceOpsData: any[];
+  threatActorData: any[];
+  influenceResistanceData: any[];
+  financialPsychData: any[];
+  networkPositionData: any[];
+  predictionHistoryData: any[];
+  counterIntelData: any[];
+  deceptionAnalysisData: any[];
+  actionPlansData: any[];
+  darkTetradData: any[];
+  relationshipData: any[];
+  influenceVectorData: any[];
+  coerciveControlData: any[];
+  patternOfLifeEngineData: any[];
 }
 
 export function useDossierData() {
@@ -84,16 +113,16 @@ export function useDossierData() {
       observationsData,
       commData,
       anomaliesData,
-      milestonesData,
       relationshipsData,
       trustData,
+      actionPlansData,
     ] = await Promise.all([
       supabase.from('contact_observations').select('*').eq('profile_id', profileId).order('observed_at', { ascending: false }).limit(50),
       supabase.from('communications').select('*').eq('profile_id', profileId).order('communication_date', { ascending: false }).limit(100),
-      (supabase.from as Function)('anomaly_detections').select('*').eq('profile_id', profileId).order('detected_at', { ascending: false }).limit(20),
-      (supabase.from as Function)('life_milestones').select('*').eq('profile_id', profileId).order('milestone_date', { ascending: false }).limit(10),
+      supabase.from('behavioral_anomalies').select('*').eq('profile_id', profileId).order('detected_at', { ascending: false }).limit(20),
       supabase.from('contact_relationships').select('*, to_profile:to_profile_id(id, first_name, last_name, organization)').eq('from_profile_id', profileId).limit(50),
       supabase.from('trust_assessments').select('*').eq('profile_id', profileId).order('assessed_at', { ascending: false }).limit(1),
+      supabase.from('action_recommendations').select('*').eq('profile_id', profileId).order('priority_score', { ascending: false }).limit(10),
     ]);
 
     // Batch 3: Advanced intelligence
@@ -101,16 +130,16 @@ export function useDossierData() {
       traumaData,
       mediaAnalyses,
       betrayalData,
-      scenarioPredictions,
       elicitationSessions,
       financialPsychology,
+      proportionalResponseData,
     ] = await Promise.all([
-      (supabase.from as Function)('trauma_indicators').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(5),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'trauma_analysis').limit(5),
       supabase.from('media_analyses').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(30),
-      (supabase.from as Function)('betrayal_predictions').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(1),
-      (supabase.from as Function)('scenario_predictions').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(5),
-      (supabase.from as Function)('elicitation_sessions').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(5),
-      (supabase.from as Function)('financial_psychology').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(1),
+      supabase.from('betrayal_predictions').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(1),
+      supabase.from('elicitation_sessions').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(5),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'financial_psychology').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('proportional_response_logs').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(10),
     ]);
 
     // Batch 4: Warfare intelligence
@@ -124,7 +153,6 @@ export function useDossierData() {
       deceptionOpsData,
       vulnerabilityWindowsData,
       trustTrajectoriesData,
-      proportionalResponseData,
       mosaicFusionData,
     ] = await Promise.all([
       supabase.from('cross_modal_correlations').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(10),
@@ -136,11 +164,10 @@ export function useDossierData() {
       supabase.from('deception_operations').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(5),
       supabase.from('vulnerability_windows').select('*').eq('profile_id', profileId).order('predicted_start', { ascending: false }).limit(10),
       supabase.from('trust_trajectories').select('*').eq('profile_id', profileId).order('trajectory_date', { ascending: false }).limit(180),
-      supabase.from('proportional_response_logs').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(10),
       supabase.from('mosaic_intelligence_fusion').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(1),
     ]);
 
-    // Batch 5: Data Fusion Engine Results
+    // Batch 5: Data Fusion Engine Results (from ai_analyses by type)
     const [
       temporalFusionData,
       digitalTwinData,
@@ -163,12 +190,88 @@ export function useDossierData() {
       supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'sentiment_cascade').order('generated_at', { ascending: false }).limit(1),
     ]);
 
+    // Batch 6: Additional AI Analyses by Type (for section renderers expecting specific data)
+    const [
+      quantumCognitionData,
+      playbookData,
+      hypnoticPatternsData,
+      cognitiveLoadData,
+      sacredValuesData,
+      realityTestingData,
+      identityDestabData,
+      semanticWarfareData,
+      memeticData,
+    ] = await Promise.all([
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'quantum_cognition').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'engagement_playbook').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'hypnotic_patterns').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'cognitive_load').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'sacred_values').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'reality_testing').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'identity_destabilization').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'semantic_warfare').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'memetic_propagation').order('generated_at', { ascending: false }).limit(1),
+    ]);
+
+    // Batch 7: More AI Analyses by Type
+    const [
+      futureModelingData,
+      precognitiveData,
+      choiceArchitectureData,
+      influenceOpsData,
+      threatActorData,
+      influenceResistanceData,
+      networkPositionData,
+      predictionHistoryData,
+      counterIntelData,
+    ] = await Promise.all([
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'future_modeling').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'precognitive').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'choice_architecture').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'influence_operations').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'threat_actor').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'influence_resistance').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'network_position').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'prediction_accuracy').order('generated_at', { ascending: false }).limit(5),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'counter_intel').order('generated_at', { ascending: false }).limit(1),
+    ]);
+
+    // Batch 8: Final batch of AI Analyses
+    const [
+      deceptionAnalysisData,
+      darkTetradData,
+      influenceVectorData,
+      coerciveControlData,
+      patternOfLifeEngineData,
+      financialPsychData,
+      elicitationData,
+      scenarioPredictions,
+      milestonesData,
+    ] = await Promise.all([
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'deception_analysis').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'dark_tetrad').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'influence_vectors').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'coercive_control').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'pattern_of_life_engine').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'financial_psychology_profile').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('elicitation_sessions').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(10),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'scenario_prediction').order('generated_at', { ascending: false }).limit(5),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'life_milestones').order('generated_at', { ascending: false }).limit(10),
+    ]);
+
+    // Also fetch relationship data separately
+    const relationshipData = await supabase
+      .from('contact_relationships')
+      .select('*, related_profile:to_profile_id(id, first_name, last_name)')
+      .eq('from_profile_id', profileId)
+      .limit(20);
+
     return {
       profile,
       allAnalyses: allAnalyses.data || [],
       psychData: psychData.data || [],
       miceData: miceData.data || [],
-      influenceData: influenceData.data,
+      influenceData: influenceData,
       mediaData: mediaData.data || [],
       voiceData: voiceData.data || [],
       observationsData: observationsData.data || [],
@@ -203,6 +306,34 @@ export function useDossierData() {
       patternOfLifeData: patternOfLifeData.data || [],
       entityResolutionData: entityResolutionData.data || [],
       sentimentCascadeData: sentimentCascadeData.data || [],
+      // Additional v3.7.3 fields
+      quantumCognitionData: quantumCognitionData.data || [],
+      playbookData: playbookData.data || [],
+      hypnoticPatternsData: hypnoticPatternsData.data || [],
+      elicitationData: elicitationData.data || [],
+      cognitiveLoadData: cognitiveLoadData.data || [],
+      sacredValuesData: sacredValuesData.data || [],
+      realityTestingData: realityTestingData.data || [],
+      identityDestabData: identityDestabData.data || [],
+      semanticWarfareData: semanticWarfareData.data || [],
+      memeticData: memeticData.data || [],
+      futureModelingData: futureModelingData.data || [],
+      precognitiveData: precognitiveData.data || [],
+      choiceArchitectureData: choiceArchitectureData.data || [],
+      influenceOpsData: influenceOpsData.data || [],
+      threatActorData: threatActorData.data || [],
+      influenceResistanceData: influenceResistanceData.data || [],
+      financialPsychData: financialPsychData.data || [],
+      networkPositionData: networkPositionData.data || [],
+      predictionHistoryData: predictionHistoryData.data || [],
+      counterIntelData: counterIntelData.data || [],
+      deceptionAnalysisData: deceptionAnalysisData.data || [],
+      actionPlansData: actionPlansData.data || [],
+      darkTetradData: darkTetradData.data || [],
+      relationshipData: relationshipData.data || [],
+      influenceVectorData: influenceVectorData.data || [],
+      coerciveControlData: coerciveControlData.data || [],
+      patternOfLifeEngineData: patternOfLifeEngineData.data || [],
     };
   }, []);
 

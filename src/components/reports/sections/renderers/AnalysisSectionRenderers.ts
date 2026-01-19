@@ -252,13 +252,14 @@ export const renderActionPlans: SectionRenderer = (ctx, data) => {
 };
 
 export const analysisSectionRenderers = {
-  behavioralAnalysis: renderBehavioralAnalysis,
+  // Map section IDs from sectionDefinitions.ts to renderer functions
+  analysis: renderBehavioralAnalysis,
   influenceResistance: renderInfluenceResistance,
   behavioralEconomics: renderBehavioralEconomics,
-  networkPosition: renderNetworkPosition,
+  network: renderNetworkPosition,
   predictionAccuracy: renderPredictionAccuracy,
   counterIntel: renderCounterIntel,
   proportionalResponse: renderProportionalResponse,
-  crossModalDeception: renderCrossModalDeception,
+  crossModal: renderCrossModalDeception,
   actionPlans: renderActionPlans,
 };
