@@ -25,6 +25,7 @@ const KNOWN_SCHEMAS: Record<string, string[]> = {
     'relationship_type', 'relationship_subtype', 'hierarchy_level', 'notes',
     'avatar_url', 'is_favorite', 'is_active', 'tags', 'country', 'city',
     'address', 'created_at', 'updated_at', 'last_contact_date',
+    'engagement_score', 'data_richness_score', 'bio', 'linkedin_url',
   ],
   ai_analyses: [
     'id', 'user_id', 'profile_id', 'analysis_type', 'result', 'generated_at',
@@ -46,7 +47,8 @@ const KNOWN_SCHEMAS: Record<string, string[]> = {
   ],
   dossiers: [
     'id', 'user_id', 'profile_id', 'title', 'classification', 'dossier_type',
-    'content', 'sections_included', 'generated_at', 'updated_at',
+    'content', 'sections', 'summary', 'key_findings', 'risk_assessment',
+    'generated_at', 'created_at',
   ],
   media: [
     'id', 'user_id', 'profile_id', 'file_path', 'file_type', 'file_size',
@@ -57,12 +59,79 @@ const KNOWN_SCHEMAS: Record<string, string[]> = {
     'transcript', 'analysis_result', 'created_at', 'updated_at',
   ],
   autonomous_campaigns: [
-    'id', 'user_id', 'name', 'description', 'campaign_type', 'status',
-    'target_profile_ids', 'is_active', 'created_at', 'updated_at',
+    'id', 'user_id', 'campaign_name', 'campaign_type', 'objective',
+    'is_active', 'auto_execute', 'trigger_conditions', 'execution_rules',
+    'success_criteria', 'success_rate', 'created_at', 'updated_at',
   ],
   cognitive_warfare_operations: [
     'id', 'user_id', 'profile_id', 'operation_type', 'attack_vector',
     'target_dimension', 'status', 'effectiveness_score', 'created_at', 'updated_at',
+  ],
+  // Additional commonly used tables
+  messages: [
+    'id', 'user_id', 'profile_id', 'content', 'direction', 'channel', 
+    'sent_at', 'created_at',
+  ],
+  contact_interaction_notes: [
+    'id', 'user_id', 'profile_id', 'interaction_type', 'interaction_date',
+    'duration_minutes', 'location', 'note_text', 'audio_url', 'audio_transcription',
+    'mood_observed', 'topics_discussed', 'action_items', 'promises_made',
+    'relationship_temperature', 'notable_changes', 'follow_up_needed',
+    'follow_up_date', 'follow_up_reason', 'ai_extracted_insights', 'ai_processed_at',
+    'created_at', 'updated_at',
+  ],
+  contact_life_milestones: [
+    'id', 'user_id', 'profile_id', 'milestone_type', 'milestone_date',
+    'description', 'impact_score', 'created_at',
+  ],
+  contact_observations: [
+    'id', 'user_id', 'profile_id', 'observation_type', 'content',
+    'confidence', 'source', 'observed_at', 'created_at',
+  ],
+  behavioral_analyses: [
+    'id', 'user_id', 'profile_id', 'analysis_type', 'result',
+    'confidence_score', 'created_at',
+  ],
+  power_network_analyses: [
+    'id', 'user_id', 'analysis_type', 'scope_description', 'total_nodes',
+    'total_edges', 'network_density', 'power_scores', 'gatekeepers',
+    'brokers', 'influencers', 'communities', 'computed_at', 'created_at',
+  ],
+  contact_relationships: [
+    'id', 'user_id', 'from_profile_id', 'to_profile_id', 'relationship_type',
+    'strength', 'bidirectional', 'created_at', 'updated_at',
+  ],
+  active_defense_operations: [
+    'id', 'user_id', 'profile_id', 'defense_type', 'defense_posture',
+    'threat_profile', 'threat_indicators', 'escalation_level', 'automated_responses',
+    'active_measures', 'alert_thresholds', 'counter_narratives', 'deception_layers',
+    'effectiveness_metrics', 'honeypot_deployments', 'incident_log', 'response_playbook',
+    'threat_actor_id', 'created_at', 'updated_at',
+  ],
+  agis_global_state: [
+    'id', 'user_id', 'phase_health_scores', 'cross_phase_correlations',
+    'active_objectives', 'system_readiness_score', 'total_operations_count',
+    'success_rate', 'last_synthesis_at', 'created_at', 'updated_at',
+  ],
+  agis_analytics: [
+    'id', 'user_id', 'phase', 'metric_type', 'metric_value',
+    'metric_metadata', 'recorded_at',
+  ],
+  agis_cascade_events: [
+    'id', 'user_id', 'trigger_phase', 'trigger_event_type', 'trigger_source_id',
+    'affected_phases', 'cascade_path', 'execution_log', 'outcome_status',
+    'started_at', 'completed_at', 'created_at',
+  ],
+  agis_cascade_rules: [
+    'id', 'user_id', 'rule_name', 'source_phase', 'source_table',
+    'target_phase', 'target_action', 'trigger_condition', 'action_params',
+    'is_active', 'priority', 'cooldown_minutes', 'last_triggered_at',
+    'trigger_count', 'created_at', 'updated_at',
+  ],
+  agis_phase_synergies: [
+    'id', 'user_id', 'phase_a', 'phase_b', 'synergy_type', 'synergy_score',
+    'interaction_count', 'successful_cascades', 'last_interaction_at',
+    'created_at', 'updated_at',
   ],
 };
 

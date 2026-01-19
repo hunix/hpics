@@ -202,21 +202,31 @@ export class SupabaseDossierRepository implements IDossierRepository {
       recommendations: []
     } : null;
 
+    // Handle timestamps with fallbacks for columns that may not exist
+    const createdAt = row.created_at ? new Date(row.created_at as string) : new Date();
+    // updated_at may not exist in DB - fallback to generated_at or created_at
+    const updatedAt = row.updated_at 
+      ? new Date(row.updated_at as string) 
+      : (row.generated_at ? new Date(row.generated_at as string) : createdAt);
+
+    // confidence_score doesn't exist in dossiers table - use default 0.5
+    const confidenceScore = 0.5;
+
     return new Dossier(
       row.id as string,
       row.profile_id as string,
       row.user_id as string,
       (row.dossier_type as DossierTemplate) || 'full',
       'complete' as DossierStatus,
-      (row.confidence_score as number) || 0.5,
+      confidenceScore,
       executiveSummary,
       riskAssessment,
       [], // sections
       [], // sourcesUsed
       row.generated_at ? new Date(row.generated_at as string) : null,
       1, // version
-      new Date(row.created_at as string),
-      new Date((row.updated_at as string) || (row.created_at as string))
+      createdAt,
+      updatedAt
     );
   }
 }
