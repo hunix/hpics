@@ -5,6 +5,16 @@
 import { ProfileService, ProfileSearchCriteria, ProfileSummary } from '@/domains/profile/services/ProfileService';
 import { Profile, RelationshipType } from '@/domains/profile/entities/Profile';
 import { ContactScore } from '@/domains/profile/value-objects/ContactScore';
+import { getContainer, ServiceKeys } from '@/infrastructure/di/Container';
+
+// Singleton accessor for ProfileService
+let profileServiceInstance: ProfileService | null = null;
+function getProfileService(): ProfileService {
+  if (!profileServiceInstance) {
+    profileServiceInstance = new ProfileService();
+  }
+  return profileServiceInstance;
+}
 
 export interface ProfileWithScore {
   profile: Profile;
@@ -20,8 +30,8 @@ export interface ProfileDashboardData {
 export class ProfileFacade {
   private profileService: ProfileService;
 
-  constructor() {
-    this.profileService = new ProfileService();
+  constructor(profileService?: ProfileService) {
+    this.profileService = profileService || getProfileService();
   }
 
   async getProfileWithScore(profileId: string, userId: string): Promise<ProfileWithScore | null> {
