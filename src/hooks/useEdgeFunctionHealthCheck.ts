@@ -103,16 +103,16 @@ export function useEdgeFunctionHealthCheck(): EdgeFunctionHealthResult {
     const startTime = Date.now();
     
     try {
-      // Use POST request with empty body for health check - catches 404s for missing functions
+      // Use OPTIONS request for health check - this hits the CORS preflight handler
+      // which all edge functions implement, without triggering parameter validation
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${fn.edgeFunction}`,
         {
-          method: 'POST',
+          method: 'OPTIONS',
           headers: {
             'Content-Type': 'application/json',
             'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({}),
         }
       );
       
@@ -129,7 +129,8 @@ export function useEdgeFunctionHealthCheck(): EdgeFunctionHealthResult {
         };
       }
       
-      // Any other response (including 400, 401, 500) means function exists
+      // 200/204 from OPTIONS means function exists and CORS is configured
+      // Any other 2xx/4xx response (except 404) also means function exists
       return {
         ...fn,
         status: 'healthy',
