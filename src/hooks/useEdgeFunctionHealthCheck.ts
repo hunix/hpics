@@ -103,16 +103,14 @@ export function useEdgeFunctionHealthCheck(): EdgeFunctionHealthResult {
     const startTime = Date.now();
     
     try {
-      // Use POST with minimal body - any response except 404 means function exists
+      // Use GET with query parameter - more reliable than POST with body
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${fn.edgeFunction}`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${fn.edgeFunction}?healthCheck=1`,
         {
-          method: 'POST',
+          method: 'GET',
           headers: {
-            'Content-Type': 'application/json',
             'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ healthCheck: true }),
         }
       );
       
@@ -129,35 +127,34 @@ export function useEdgeFunctionHealthCheck(): EdgeFunctionHealthResult {
         };
       }
       
-      // 200 with healthCheck response = function is healthy and supports health checks
-      // Any other 2xx/4xx response (except 404) also means function exists
+      // Only 200 means healthy (function supports health check)
+      if (response.status === 200) {
+        return {
+          ...fn,
+          status: 'healthy',
+          latency,
+          error: undefined,
+          lastChecked: new Date(),
+        };
+      }
+      
+      // Any other status is considered unhealthy
       return {
         ...fn,
-        status: 'healthy',
+        status: 'unhealthy',
         latency,
-        error: undefined,
+        error: `Unexpected status: ${response.status}`,
         lastChecked: new Date(),
       };
     } catch (err) {
       const latency = Date.now() - startTime;
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       
-      // Network errors or timeouts
-      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('timeout')) {
-        return {
-          ...fn,
-          status: 'unhealthy',
-          latency,
-          error: 'Network error or timeout',
-          lastChecked: new Date(),
-        };
-      }
-      
       return {
         ...fn,
         status: 'unhealthy',
         latency,
-        error: errorMessage,
+        error: errorMessage.includes('Failed to fetch') ? 'Network error' : errorMessage,
         lastChecked: new Date(),
       };
     }
