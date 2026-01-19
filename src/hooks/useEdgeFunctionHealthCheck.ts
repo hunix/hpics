@@ -103,16 +103,16 @@ export function useEdgeFunctionHealthCheck(): EdgeFunctionHealthResult {
     const startTime = Date.now();
     
     try {
-      // Use OPTIONS request for health check - this hits the CORS preflight handler
-      // which all edge functions implement, without triggering parameter validation
+      // Use POST with minimal body - any response except 404 means function exists
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${fn.edgeFunction}`,
         {
-          method: 'OPTIONS',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
+          body: JSON.stringify({ healthCheck: true }),
         }
       );
       
