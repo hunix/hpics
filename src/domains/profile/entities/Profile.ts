@@ -76,4 +76,13 @@ export class Profile extends BaseEntity<string> {
   static reconstitute(props: ProfileProps): Profile {
     return new Profile(props);
   }
+
+  static create(props: Omit<ProfileProps, 'id' | 'createdAt' | 'updatedAt'>): Profile {
+    return new Profile({
+      ...props,
+      id: crypto.randomUUID(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  }
 }

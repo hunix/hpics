@@ -146,8 +146,9 @@ export class SupabaseProfileRepository implements IProfileRepository {
       notes: row.notes as string | undefined,
       tags: (row.tags as string[]) || [],
       isFavorite: (row.is_favorite as boolean) || false,
-      contactInfo: { email: row.email as string | undefined, phone: row.phone as string | undefined, linkedin_url: row.linkedin_url as string | undefined },
-      metadata: { source: row.source as string | undefined },
+      // Note: email/phone come from contact_methods table, not profiles
+      contactInfo: { linkedin_url: row.linkedin_url as string | undefined },
+      metadata: {},
       completenessScore: (row.data_richness_score as number) || 0,
       lastInteractionAt: row.updated_at ? new Date(row.updated_at as string) : undefined,
       createdAt: new Date(row.created_at as string),
@@ -161,8 +162,8 @@ export class SupabaseProfileRepository implements IProfileRepository {
       id: profile.id, user_id: props.userId, first_name: props.firstName, last_name: props.lastName,
       organization: props.organization, job_title: props.jobTitle, relationship_type: props.relationshipType,
       avatar_url: props.avatarUrl, bio: props.bio, notes: props.notes, tags: props.tags,
-      is_favorite: props.isFavorite, email: props.contactInfo.email, phone: props.contactInfo.phone,
-      linkedin_url: props.contactInfo.linkedin_url, updated_at: new Date().toISOString(),
+      is_favorite: props.isFavorite, linkedin_url: props.contactInfo.linkedin_url,
+      updated_at: new Date().toISOString(),
     };
   }
 }

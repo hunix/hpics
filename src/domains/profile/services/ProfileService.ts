@@ -1,11 +1,13 @@
 /**
  * Profile Domain Service
+ * 
+ * Refactored to use IProfileRepository for persistence (DDD pattern).
  */
 
-import { supabase } from '@/integrations/supabase/client';
 import { getEventBus, IEventBus } from '@/domains/shared/events/EventBus';
 import { Profile, ProfileProps, RelationshipType, ProfileStatus, ContactInfo } from '../entities/Profile';
 import { ContactScore } from '../value-objects/ContactScore';
+import { IProfileRepository, ProfileQueryOptions } from '../repositories/IProfileRepository';
 import {
   ProfileCreated,
   ProfileUpdated,
@@ -69,149 +71,113 @@ export interface EnrichmentResult {
 
 export class ProfileService {
   private eventBus: IEventBus;
+  private repository: IProfileRepository;
 
-  constructor() {
+  constructor(repository: IProfileRepository) {
     this.eventBus = getEventBus();
+    this.repository = repository;
   }
 
   async createProfile(userId: string, request: CreateProfileRequest): Promise<Profile> {
-    const insertData = {
-      user_id: userId,
-      first_name: request.firstName,
-      last_name: request.lastName,
+    const profile = Profile.create({
+      userId,
+      firstName: request.firstName,
+      lastName: request.lastName,
       organization: request.organization,
-      job_title: request.jobTitle,
-      relationship_type: request.relationshipType || 'unknown',
+      jobTitle: request.jobTitle,
+      relationshipType: request.relationshipType || 'unknown',
+      status: 'active',
       tags: request.tags || [],
-      is_favorite: false,
-    } as unknown as Record<string, unknown>;
+      isFavorite: false,
+      contactInfo: {
+        email: request.email,
+        phone: request.phone,
+      },
+      metadata: {},
+      completenessScore: 0,
+    });
 
-    const { data, error } = await (supabase
-      .from('profiles') as unknown as { insert: (d: unknown) => { select: () => { single: () => Promise<{ data: Record<string, unknown> | null; error: Error | null }> } } })
-      .insert(insertData)
-      .select()
-      .single();
-
-    if (error) throw new Error(`Failed to create profile: ${(error as Error).message}`);
-    const profile = this.mapToProfile(data, userId);
+    const saved = await this.repository.save(profile);
 
     await this.eventBus.publish(new ProfileCreated(
-      profile.id, userId, profile.firstName, profile.lastName, profile.relationshipType
+      saved.id, userId, saved.firstName, saved.lastName, saved.relationshipType
     ));
 
-    return profile;
+    return saved;
   }
 
   async getProfile(profileId: string, userId: string): Promise<Profile | null> {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', profileId)
-      .maybeSingle();
-
-    if (error || !data) return null;
-    return this.mapToProfile(data, userId);
+    return this.repository.findByIdForUser(profileId, userId);
   }
 
   async updateProfile(profileId: string, userId: string, request: UpdateProfileRequest): Promise<Profile> {
-    const updates: Record<string, unknown> = {};
-    const updatedFields: string[] = [];
+    const existing = await this.repository.findByIdForUser(profileId, userId);
+    if (!existing) throw new Error('Profile not found');
 
-    if (request.firstName !== undefined) { updates.first_name = request.firstName; updatedFields.push('firstName'); }
-    if (request.lastName !== undefined) { updates.last_name = request.lastName; updatedFields.push('lastName'); }
-    if (request.organization !== undefined) { updates.organization = request.organization; updatedFields.push('organization'); }
-    if (request.jobTitle !== undefined) { updates.job_title = request.jobTitle; updatedFields.push('jobTitle'); }
-    if (request.bio !== undefined) { updates.bio = request.bio; updatedFields.push('bio'); }
-    if (request.notes !== undefined) { updates.notes = request.notes; updatedFields.push('notes'); }
-    if (request.avatarUrl !== undefined) { updates.avatar_url = request.avatarUrl; updatedFields.push('avatarUrl'); }
-    if (request.tags !== undefined) { updates.tags = request.tags; updatedFields.push('tags'); }
+    const updatedFields: string[] = [];
+    const props = (existing as unknown as { _props: ProfileProps })._props;
+
+    if (request.firstName !== undefined) { props.firstName = request.firstName; updatedFields.push('firstName'); }
+    if (request.lastName !== undefined) { props.lastName = request.lastName; updatedFields.push('lastName'); }
+    if (request.organization !== undefined) { props.organization = request.organization; updatedFields.push('organization'); }
+    if (request.jobTitle !== undefined) { props.jobTitle = request.jobTitle; updatedFields.push('jobTitle'); }
+    if (request.bio !== undefined) { props.bio = request.bio; updatedFields.push('bio'); }
+    if (request.notes !== undefined) { props.notes = request.notes; updatedFields.push('notes'); }
+    if (request.avatarUrl !== undefined) { props.avatarUrl = request.avatarUrl; updatedFields.push('avatarUrl'); }
+    if (request.tags !== undefined) { props.tags = request.tags; updatedFields.push('tags'); }
     if (request.contactInfo) {
-      if (request.contactInfo.email) updates.email = request.contactInfo.email;
-      if (request.contactInfo.phone) updates.phone = request.contactInfo.phone;
-      if (request.contactInfo.linkedin_url) updates.linkedin_url = request.contactInfo.linkedin_url;
+      props.contactInfo = { ...props.contactInfo, ...request.contactInfo };
       updatedFields.push('contactInfo');
     }
-    updates.updated_at = new Date().toISOString();
+    props.updatedAt = new Date();
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', profileId)
-      .select()
-      .single();
-
-    if (error) throw new Error(`Failed to update profile: ${error.message}`);
-    const profile = this.mapToProfile(data, userId);
+    const saved = await this.repository.save(existing);
     await this.eventBus.publish(new ProfileUpdated(profileId, userId, updatedFields));
-    return profile;
+    return saved;
   }
 
   async deleteProfile(profileId: string, userId: string): Promise<void> {
-    const { error } = await supabase.from('profiles').delete().eq('id', profileId);
-    if (error) throw new Error(`Failed to delete profile: ${error.message}`);
+    await this.repository.delete(profileId);
     await this.eventBus.publish(new ProfileDeleted(profileId, userId));
   }
 
   async searchProfiles(userId: string, criteria: ProfileSearchCriteria, page = 0, pageSize = 50): Promise<{ profiles: Profile[]; totalCount: number }> {
-    const { data, error } = await supabase.rpc('search_contacts_v5', {
-      p_user_id: userId,
-      p_search_query: criteria.searchQuery || '',
-      p_relationship_filter: criteria.relationshipType || null,
-      p_favorite_filter: criteria.isFavorite ?? null,
-      p_page_offset: page,
-      p_page_size: pageSize,
-    });
-
-    if (error) throw new Error(`Search failed: ${error.message}`);
-    const profiles = (data || []).map((row: unknown) => this.mapToProfile(row as Record<string, unknown>, userId));
-    const totalCount = (data as unknown as Array<{ total_count?: number }>)?.[0]?.total_count || 0;
-    return { profiles, totalCount };
+    const options: ProfileQueryOptions = {
+      searchTerm: criteria.searchQuery,
+      relationshipType: criteria.relationshipType,
+      includeFavorites: criteria.isFavorite,
+    };
+    const result = await this.repository.searchProfiles(userId, options, { pagination: { page, pageSize } });
+    return { profiles: result.items, totalCount: result.totalCount };
   }
 
   async getProfilesByIds(profileIds: string[], userId: string): Promise<Profile[]> {
-    const { data, error } = await supabase.from('profiles').select('*').in('id', profileIds);
-    if (error) throw new Error(`Failed to fetch profiles: ${error.message}`);
-    return (data || []).map(row => this.mapToProfile(row, userId));
+    const profiles: Profile[] = [];
+    for (const id of profileIds) {
+      const p = await this.repository.findByIdForUser(id, userId);
+      if (p) profiles.push(p);
+    }
+    return profiles;
   }
 
   async getFavoriteProfiles(userId: string): Promise<Profile[]> {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('is_favorite', true)
-      .order('updated_at', { ascending: false });
-
-    if (error) throw new Error(`Failed to fetch favorites: ${error.message}`);
-    return (data || []).map(row => this.mapToProfile(row, userId));
+    return this.repository.findFavorites(userId);
   }
 
   async getRecentProfiles(userId: string, limit = 10): Promise<Profile[]> {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('updated_at', { ascending: false })
-      .limit(limit);
-
-    if (error) throw new Error(`Failed to fetch recent profiles: ${error.message}`);
-    return (data || []).map(row => this.mapToProfile(row, userId));
+    return this.repository.findRecentlyUpdated(userId, limit);
   }
 
   async toggleFavorite(profileId: string, userId: string): Promise<boolean> {
-    const { data: current } = await supabase.from('profiles').select('is_favorite').eq('id', profileId).maybeSingle();
-    const newState = !(current?.is_favorite || false);
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({ is_favorite: newState, updated_at: new Date().toISOString() })
-      .eq('id', profileId);
-
-    if (error) throw new Error(`Failed to toggle favorite: ${error.message}`);
+    const profile = await this.repository.findByIdForUser(profileId, userId);
+    if (!profile) throw new Error('Profile not found');
+    const newState = !profile.isFavorite;
+    await this.repository.updateFavoriteStatus(profileId, userId, newState);
     await this.eventBus.publish(new ProfileFavoriteToggled(profileId, userId, newState));
     return newState;
   }
 
   async changeStatus(profileId: string, userId: string, newStatus: ProfileStatus): Promise<void> {
-    // Note: status column may not exist in all schemas - this is a domain concept
     await this.eventBus.publish(new ProfileStatusChanged(profileId, userId, 'active', newStatus));
   }
 
@@ -221,12 +187,12 @@ export class ProfileService {
   }
 
   async recordInteraction(profileId: string, userId: string, interactionType: string, metadata?: Record<string, unknown>): Promise<void> {
-    const { error } = await supabase
-      .from('profiles')
-      .update({ updated_at: new Date().toISOString() })
-      .eq('id', profileId);
-
-    if (error) throw new Error(`Failed to record interaction: ${error.message}`);
+    const profile = await this.repository.findByIdForUser(profileId, userId);
+    if (profile) {
+      const props = (profile as unknown as { _props: ProfileProps })._props;
+      props.updatedAt = new Date();
+      await this.repository.save(profile);
+    }
     await this.eventBus.publish(new ProfileInteractionRecorded(profileId, userId, interactionType, metadata));
   }
 
@@ -242,10 +208,7 @@ export class ProfileService {
   }
 
   async getProfileSummary(userId: string): Promise<ProfileSummary> {
-    const { data, error } = await supabase.from('profiles').select('*');
-    if (error) throw new Error(`Failed to get summary: ${error.message}`);
-
-    const profiles = (data || []).map(row => this.mapToProfile(row, userId));
+    const profiles = await this.repository.findByUserId(userId);
 
     const byRelationshipType: Record<RelationshipType, number> = {
       family: 0, friend: 0, colleague: 0, professional: 0,
@@ -284,34 +247,6 @@ export class ProfileService {
     const strategicValue = profile.isFavorite ? 0.8 : 0.5;
 
     return ContactScore.create({ interactionFrequency, relationshipStrength, strategicValue, recency, dataCompleteness });
-  }
-
-  private mapToProfile(row: Record<string, unknown>, userId: string): Profile {
-    return Profile.reconstitute({
-      id: row.id as string,
-      userId: userId,
-      firstName: (row.first_name as string) || 'Unknown',
-      lastName: row.last_name as string | undefined,
-      organization: row.organization as string | undefined,
-      jobTitle: row.job_title as string | undefined,
-      relationshipType: (row.relationship_type as RelationshipType) || 'unknown',
-      status: 'active' as ProfileStatus,
-      avatarUrl: row.avatar_url as string | undefined,
-      bio: row.bio as string | undefined,
-      notes: row.notes as string | undefined,
-      tags: (row.tags as string[]) || [],
-      isFavorite: (row.is_favorite as boolean) || false,
-      contactInfo: {
-        email: row.email as string | undefined,
-        phone: row.phone as string | undefined,
-        linkedin_url: row.linkedin_url as string | undefined,
-      },
-      metadata: { source: row.source as string | undefined },
-      completenessScore: (row.data_richness_score as number) || 0,
-      lastInteractionAt: row.updated_at ? new Date(row.updated_at as string) : undefined,
-      createdAt: new Date(row.created_at as string),
-      updatedAt: new Date(row.updated_at as string),
-    });
   }
 
   private calculateRecencyScore(lastInteraction?: Date): number {

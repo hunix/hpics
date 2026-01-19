@@ -7,13 +7,9 @@ import { Profile, RelationshipType } from '@/domains/profile/entities/Profile';
 import { ContactScore } from '@/domains/profile/value-objects/ContactScore';
 import { getContainer, ServiceKeys } from '@/infrastructure/di/Container';
 
-// Singleton accessor for ProfileService
-let profileServiceInstance: ProfileService | null = null;
+// Singleton accessor for ProfileService from DI container
 function getProfileService(): ProfileService {
-  if (!profileServiceInstance) {
-    profileServiceInstance = new ProfileService();
-  }
-  return profileServiceInstance;
+  return getContainer().resolve<ProfileService>(ServiceKeys.ProfileService);
 }
 
 export interface ProfileWithScore {
