@@ -166,11 +166,20 @@ serve(async (req) => {
   }
 
   try {
-    const { userId, targetProfileId, analysisType = 'full_network' } = await req.json() as PowerNetworkRequest;
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
+
+    // Parse body safely (may be empty for health check GET requests that bypassed)
+    const rawBody = await req.json().catch(() => ({})) as PowerNetworkRequest;
+    const { userId, targetProfileId, analysisType = 'full_network' } = rawBody;
+
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'userId is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 

@@ -5,7 +5,7 @@
  * Auto-generated from types.ts split script
  */
 
-import type { Json } from '../base';
+import type { Json, Database } from '../base';
 
 /**
  * Tables in this domain: active_defense_operations, counter_intel_events, counter_operations, counter_surveillance_events, credential_exposures, dark_web_mentions, data_access_events, data_access_patterns, data_classification_tags, data_residency_controls, defensive_postures, encrypted_fields, encryption_key_rotations, encryption_keys, immutable_audit_logs, secure_deletion_records, security_alerts, security_audit_logs, security_events, security_findings, surveillance_alerts, tamper_detection_alerts, threat_actors, threat_assessments, threat_intelligence, tscm_sweeps, vulnerability_windows
