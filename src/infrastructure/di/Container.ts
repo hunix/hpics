@@ -141,6 +141,7 @@ export const ServiceKeys = {
   ProfileFacade: 'ProfileFacade',
   IntelligenceFacade: 'IntelligenceFacade',
   FusionFacade: 'FusionFacade',
+  NetworkFacade: 'NetworkFacade',
   WarfareFacade: 'WarfareFacade',
   
   // Infrastructure
