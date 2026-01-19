@@ -19,6 +19,16 @@ import { WarfareService } from '@/domains/warfare/services/WarfareService';
 import { WarfareFacade } from '@/application/facades/WarfareFacade';
 import { supabase } from '@/integrations/supabase/client';
 
+// Repository implementations
+import { SupabaseProfileRepository } from '@/infrastructure/repositories/SupabaseProfileRepository';
+import { SupabaseNetworkRepository } from '@/infrastructure/repositories/SupabaseNetworkRepository';
+import { 
+  SupabaseAnalysisRepository, 
+  SupabaseDossierRepository, 
+  SupabaseInsightRepository 
+} from '@/infrastructure/repositories/SupabaseAnalysisRepository';
+import { SupabaseCampaignRepository, SupabaseThreatRepository } from '@/infrastructure/repositories/SupabaseWarfareRepository';
+
 let isBootstrapped = false;
 
 export function bootstrapContainer(): void {
@@ -26,16 +36,29 @@ export function bootstrapContainer(): void {
 
   const container = getContainer();
 
+  // Infrastructure
   container.registerInstance(ServiceKeys.SupabaseClient, supabase);
   container.registerInstance(ServiceKeys.EventBus, getEventBus());
 
+  // Repositories
+  container.register(ServiceKeys.ProfileRepository, () => new SupabaseProfileRepository(), 'singleton');
+  container.register(ServiceKeys.NetworkRepository, () => new SupabaseNetworkRepository(), 'singleton');
+  container.register(ServiceKeys.AnalysisRepository, () => new SupabaseAnalysisRepository(), 'singleton');
+  container.register(ServiceKeys.DossierRepository, () => new SupabaseDossierRepository(), 'singleton');
+  container.register('InsightRepository', () => new SupabaseInsightRepository(), 'singleton');
+  container.register(ServiceKeys.WarfareRepository, () => ({
+    campaigns: new SupabaseCampaignRepository(supabase),
+    threats: new SupabaseThreatRepository(supabase)
+  }), 'singleton');
+
+  // Domain Services
   container.register(ServiceKeys.FusionService, getFusionService, 'singleton');
   container.register(ServiceKeys.IntelligenceService, getIntelligenceService, 'singleton');
   container.register(ServiceKeys.ProfileService, () => new ProfileService(), 'singleton');
   container.register(ServiceKeys.NetworkService, () => new NetworkService(), 'singleton');
-
   container.register(ServiceKeys.WarfareService, () => new WarfareService(), 'singleton');
 
+  // Facades
   container.register(ServiceKeys.FusionFacade, getFusionFacade, 'singleton');
   container.register(ServiceKeys.IntelligenceFacade, getIntelligenceFacade, 'singleton');
   container.register(ServiceKeys.ProfileFacade, getProfileFacade, 'singleton');
