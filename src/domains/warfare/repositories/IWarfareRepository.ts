@@ -9,6 +9,27 @@ import { Threat, ThreatLevel, ThreatStatus } from '../entities/Threat';
 import { Strategy } from '../entities/Strategy';
 
 /**
+ * Query options for campaigns
+ */
+export interface CampaignQueryOptions {
+  status?: CampaignStatus;
+  type?: CampaignType;
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * Query options for threats
+ */
+export interface ThreatQueryOptions {
+  level?: ThreatLevel;
+  status?: ThreatStatus;
+  profileId?: string;
+  limit?: number;
+  offset?: number;
+}
+
+/**
  * Campaign Repository Interface
  */
 export interface ICampaignRepository {
