@@ -8,6 +8,8 @@ export interface FunctionHealth {
   latency?: number;
   error?: string;
   lastChecked: Date | null;
+  schemaValidated?: boolean;
+  schemaWarnings?: string[];
 }
 
 export interface HealthSummary {
@@ -15,6 +17,7 @@ export interface HealthSummary {
   healthy: number;
   unhealthy: number;
   checking: number;
+  schemaIssues: number;
 }
 
 export interface EdgeFunctionHealthResult {
@@ -214,6 +217,7 @@ export function useEdgeFunctionHealthCheck(): EdgeFunctionHealthResult {
     healthy: functions.filter(f => f.status === 'healthy').length,
     unhealthy: functions.filter(f => f.status === 'unhealthy').length,
     checking: functions.filter(f => f.status === 'checking').length,
+    schemaIssues: functions.filter(f => f.schemaWarnings && f.schemaWarnings.length > 0).length,
   };
 
   const getCriticalMissing = useCallback(() => {

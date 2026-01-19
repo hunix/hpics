@@ -141,25 +141,26 @@ serve(async (req) => {
     }
 
     // Gather relevant data for existential analysis
+    // Using correct table: contact_interaction_notes (not 'notes')
     const [
       profileResult,
-      notesResult,
+      interactionNotesResult,
       milestonesResult,
       psychProfileResult,
       observationsResult,
       previousAnalysesResult
     ] = await Promise.all([
-      supabase.from("profiles").select("*").eq("id", profileId).single(),
-      supabase.from("notes").select("*").eq("profile_id", profileId).order("created_at", { ascending: false }).limit(100),
-      supabase.from("contact_life_milestones").select("*").eq("profile_id", profileId).limit(50),
+      supabase.from("profiles").select("id, first_name, last_name, organization, job_title, relationship_type, notes, avatar_url, is_favorite, tags, country, city, created_at, updated_at").eq("id", profileId).single(),
+      supabase.from("contact_interaction_notes").select("id, profile_id, interaction_type, interaction_date, note_text, mood_observed, topics_discussed, relationship_temperature, notable_changes").eq("profile_id", profileId).order("created_at", { ascending: false }).limit(100),
+      supabase.from("contact_life_milestones").select("id, profile_id, milestone_type, milestone_date, description, impact_score").eq("profile_id", profileId).limit(50),
       supabase.from("psychological_profiles").select("*").eq("profile_id", profileId).maybeSingle(),
-      supabase.from("contact_observations").select("*").eq("profile_id", profileId).limit(100),
+      supabase.from("contact_observations").select("id, profile_id, observation_type, content, confidence, source, observed_at").eq("profile_id", profileId).limit(100),
       supabase.from("ai_analyses").select("*").eq("profile_id", profileId).in("analysis_type", ["behavioral_dna", "psychological", "manipulation_vulnerability"]).limit(10)
     ]);
 
     const contextData = {
       profile: profileResult.data,
-      notes: notesResult.data || [],
+      interactionNotes: interactionNotesResult.data || [],
       milestones: milestonesResult.data || [],
       psychProfile: psychProfileResult.data,
       observations: observationsResult.data || [],
