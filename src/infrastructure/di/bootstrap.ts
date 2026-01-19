@@ -1,8 +1,5 @@
 /**
  * DI Container Bootstrap
- * 
- * Initializes the dependency injection container with all services.
- * This should be called once at application startup.
  */
 
 import { getContainer, ServiceKeys } from './Container';
@@ -11,53 +8,31 @@ import { getFusionService } from '@/domains/fusion/services/FusionService';
 import { getIntelligenceService } from '@/domains/intelligence/services/IntelligenceService';
 import { getFusionFacade } from '@/application/facades/FusionFacade';
 import { getIntelligenceFacade } from '@/application/facades/IntelligenceFacade';
+import { ProfileService } from '@/domains/profile/services/ProfileService';
+import { getProfileFacade } from '@/application/facades/ProfileFacade';
 import { supabase } from '@/integrations/supabase/client';
 
 let isBootstrapped = false;
 
-/**
- * Bootstrap the DI container with all services
- */
 export function bootstrapContainer(): void {
-  if (isBootstrapped) {
-    console.log('[DI] Container already bootstrapped');
-    return;
-  }
+  if (isBootstrapped) return;
 
   const container = getContainer();
 
-  // Infrastructure
   container.registerInstance(ServiceKeys.SupabaseClient, supabase);
   container.registerInstance(ServiceKeys.EventBus, getEventBus());
 
-  // Domain Services - Fusion
   container.register(ServiceKeys.FusionService, getFusionService, 'singleton');
-
-  // Domain Services - Intelligence
   container.register(ServiceKeys.IntelligenceService, getIntelligenceService, 'singleton');
+  container.register(ServiceKeys.ProfileService, () => new ProfileService(), 'singleton');
 
-  // Application Facades
   container.register(ServiceKeys.FusionFacade, getFusionFacade, 'singleton');
   container.register(ServiceKeys.IntelligenceFacade, getIntelligenceFacade, 'singleton');
-
-  // TODO: Register remaining domains as they are migrated
-  // container.register(ServiceKeys.ProfileService, getProfileService, 'singleton');
-  // container.register(ServiceKeys.WarfareService, getWarfareService, 'singleton');
+  container.register(ServiceKeys.ProfileFacade, getProfileFacade, 'singleton');
 
   isBootstrapped = true;
-  console.log('[DI] Container bootstrapped with services:', container.getRegisteredKeys());
+  console.log('[DI] Container bootstrapped:', container.getRegisteredKeys());
 }
 
-/**
- * Reset the container (for testing)
- */
-export function resetBootstrap(): void {
-  isBootstrapped = false;
-}
-
-/**
- * Check if container is bootstrapped
- */
-export function isContainerReady(): boolean {
-  return isBootstrapped;
-}
+export function resetBootstrap(): void { isBootstrapped = false; }
+export function isContainerReady(): boolean { return isBootstrapped; }
