@@ -38,7 +38,6 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
-  } catch { /* not JSON or no body - continue normally */ }
 
   try {
     const authHeader = req.headers.get('Authorization');
