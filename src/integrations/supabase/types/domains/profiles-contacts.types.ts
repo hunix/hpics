@@ -5,7 +5,7 @@
  * Auto-generated from types.ts split script
  */
 
-import type { Json } from '../base';
+import type { Json, Database } from '../base';
 
 /**
  * Tables in this domain: certifications, contact_influence_profiles, contact_interests, contact_life_milestones, contact_locations, contact_methods, contact_observations, contact_personal_info, contact_relationships, digital_twins, dossiers, education, identity_blueprints, personality_profiles, profiles, profiles_access_logs, shared_contacts, unknown_persons

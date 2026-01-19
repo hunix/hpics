@@ -5,7 +5,7 @@
  * Auto-generated from types.ts split script
  */
 
-import type { Json } from '../base';
+import type { Json, Database } from '../base';
 
 /**
  * Tables in this domain: communications, email_access_logs, email_accounts, email_messages, email_threads, gmail_config, live_transcriptions, meeting_intelligence, meeting_recordings, message_fingerprints, messages, outlook_config, vocal_analyses, voice_analysis_jobs, voice_insights, voice_notes, voice_recording_sessions, voice_signatures, whatsapp_config, whatsapp_import_sessions, whatsapp_templates

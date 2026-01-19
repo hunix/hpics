@@ -5,7 +5,7 @@
  * Auto-generated from types.ts split script
  */
 
-import type { Json } from '../base';
+import type { Json, Database } from '../base';
 
 /**
  * Tables in this domain: document_analysis_jobs, document_embeddings, document_hashes, document_insights, documents, extracted_documents, face_regions, face_scan_jobs, facial_analyses, gait_analyses, gait_profiles, media, media_analyses, media_contact_tags, media_metadata_jobs, moment_captures, screenshot_imports, thermal_captures, video_mosaics

@@ -5,7 +5,7 @@
  * Auto-generated from types.ts split script
  */
 
-import type { Json } from '../base';
+import type { Json, Database } from '../base';
 
 /**
  * Tables in this domain: ab_test_assignments, ab_tests, app_settings, dashboard_layouts, deletion_requests, device_sync_log, error_logs, generated_reports, integration_configs, integration_guides, integration_test_history, navigation_preferences, navigation_quick_access, notification_preferences, oauth_tokens, platform_config, prompt_versions, push_subscriptions, query_cache, query_suggestions, reports_schedule, saved_searches, sync_cursors, system_evolution_log, system_health, user_config_overrides, user_preferences, user_roles, webhook_logs, webhooks, weekly_summaries, workspace_members, workspaces

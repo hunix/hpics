@@ -29,7 +29,9 @@ serve(async (req) => {
 
     // Handle both user tokens and service role calls
     const authHeader = req.headers.get('Authorization');
-    const body = await req.json();
+    
+    // Parse body safely (handles empty body from malformed requests)
+    const body = await req.json().catch(() => ({}));
     
     // Normalize parameter names
     const profileId = body.profileId || body.profile_id;
