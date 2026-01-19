@@ -37,36 +37,52 @@ serve(async (req) => {
       });
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
     const token = authHeader.replace('Bearer ', '');
-    const authClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    );
+    const isServiceRoleCall = token === supabaseServiceKey;
+
+    const body = await req.json().catch(() => ({}));
     let userId: string;
-    try {
-      const { data: claimsData, error: authError } = await (authClient.auth as any).getClaims(token);
-      if (authError || !claimsData?.claims) {
+
+    if (isServiceRoleCall) {
+      // For service role calls, get userId from body
+      userId = body.userId || body.user_id;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'userId is required for service calls' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      // Normal user token validation
+      const authClient = createClient(supabaseUrl, supabaseAnonKey);
+      try {
+        const { data: { user }, error: authError } = await authClient.auth.getUser(token);
+        if (authError || !user) {
+          return new Response(JSON.stringify({ error: 'Session expired. Please log in again.' }), {
+            status: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        userId = user.id;
+      } catch (authError) {
+        console.error('Auth error:', authError);
         return new Response(JSON.stringify({ error: 'Session expired. Please log in again.' }), {
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      userId = claimsData.claims.sub as string;
-    } catch (authError) {
-      console.error('Auth error:', authError);
-      return new Response(JSON.stringify({ error: 'Session expired. Please log in again.' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
     }
 
-    const body = await req.json().catch(() => ({}));
+    // Create supabase client with service role for service calls, or user context otherwise
+    const supabase = createClient(
+      supabaseUrl,
+      isServiceRoleCall ? supabaseServiceKey : supabaseAnonKey,
+      isServiceRoleCall ? {} : { global: { headers: { Authorization: authHeader } } }
+    );
+
     const profileIds = body.profileIds as string[] | undefined;
 
     const now = new Date();

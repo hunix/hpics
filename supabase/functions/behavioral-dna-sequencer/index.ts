@@ -195,7 +195,25 @@ serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
-    const { profileId, userId } = await req.json() as BehavioralDNARequest;
+    
+    // Handle both user tokens and service role calls
+    const authHeader = req.headers.get("Authorization");
+    const token = authHeader?.replace("Bearer ", "");
+    const isServiceRoleCall = token === supabaseKey;
+    
+    const body = await req.json();
+    
+    // Normalize parameter names (support both camelCase and snake_case)
+    const profileId = body.profileId || body.profile_id;
+    let userId = body.userId || body.user_id;
+    
+    // For non-service-role calls, validate user token
+    if (!isServiceRoleCall && authHeader && token) {
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (!error && user) {
+        userId = user.id;
+      }
+    }
 
     if (!profileId || !userId) {
       return new Response(
@@ -220,7 +238,7 @@ serve(async (req) => {
       supabase.from("behavioral_analyses").select("*").eq("profile_id", profileId).limit(20),
       supabase.from("voice_insights").select("*").eq("profile_id", profileId).limit(50),
       supabase.from("media_analyses").select("*").eq("profile_id", profileId).limit(100),
-      supabase.from("interactions").select("*").eq("profile_id", profileId).order("created_at", { ascending: false }).limit(200)
+      supabase.from("contact_interaction_notes").select("id, profile_id, interaction_type, interaction_date, note_text, mood_observed, topics_discussed, relationship_temperature").eq("profile_id", profileId).order("created_at", { ascending: false }).limit(200)
     ]);
 
     const contextData = {
