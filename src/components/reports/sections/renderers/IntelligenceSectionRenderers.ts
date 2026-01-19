@@ -160,7 +160,9 @@ export const renderQuantumCognition: SectionRenderer = (ctx, data) => {
   if (!Array.isArray(data.quantumCognitionData) || !data.quantumCognitionData.length) return;
   
   ctx.renderSectionHeader('Quantum Cognition Analysis', [75, 0, 130]);
-  const quantum = (data.quantumCognitionData as Array<Record<string, unknown>>)[0];
+  // v3.7.5: Extract from .result field if present (ai_analyses format)
+  const rawData = (data.quantumCognitionData as Array<Record<string, unknown>>)[0];
+  const quantum = ((rawData?.result || rawData) as Record<string, unknown>) || {};
   
   ctx.checkPageBreak(40);
   doc.setFillColor(248, 245, 255);
@@ -205,7 +207,9 @@ export const renderPlaybook: SectionRenderer = (ctx, data) => {
   if (!Array.isArray(data.playbookData) || !data.playbookData.length) return;
   
   ctx.renderSectionHeader('Engagement Playbook', [0, 100, 80]);
-  const playbook = (data.playbookData as Array<Record<string, unknown>>)[0];
+  // v3.7.5: Extract from .result field if present (ai_analyses format)
+  const rawData = (data.playbookData as Array<Record<string, unknown>>)[0];
+  const playbook = ((rawData?.result || rawData) as Record<string, unknown>) || {};
   
   ctx.checkPageBreak(60);
   doc.setFillColor(240, 255, 250);
@@ -232,7 +236,9 @@ export const renderHypnoticPatterns: SectionRenderer = (ctx, data) => {
   if (!Array.isArray(data.hypnoticPatternsData) || !data.hypnoticPatternsData.length) return;
   
   ctx.renderSectionHeader('Language Pattern Library', [100, 0, 100]);
-  const patterns = (data.hypnoticPatternsData as Array<Record<string, unknown>>)[0];
+  // v3.7.5: Extract from .result field if present (ai_analyses format)
+  const rawData = (data.hypnoticPatternsData as Array<Record<string, unknown>>)[0];
+  const patterns = ((rawData?.result || rawData) as Record<string, unknown>) || {};
   
   if (patterns.effective_patterns) {
     const effective = patterns.effective_patterns as string[];
@@ -286,7 +292,9 @@ export const renderCognitiveLoad: SectionRenderer = (ctx, data) => {
   if (!Array.isArray(data.cognitiveLoadData) || !data.cognitiveLoadData.length) return;
   
   ctx.renderSectionHeader('Cognitive Load Exploitation', [180, 100, 50]);
-  const load = (data.cognitiveLoadData as Array<Record<string, unknown>>)[0];
+  // v3.7.5: Extract from .result field if present (ai_analyses format)
+  const rawData = (data.cognitiveLoadData as Array<Record<string, unknown>>)[0];
+  const load = ((rawData?.result || rawData) as Record<string, unknown>) || {};
   
   ctx.checkPageBreak(40);
   doc.setFillColor(255, 248, 240);
@@ -467,7 +475,7 @@ export const intelligenceSectionRenderers = {
   elicitation: renderElicitation,
   cognitiveLoad: renderCognitiveLoad,
   darkTetrad: renderDarkTetrad,
-  influence: renderInfluenceVectors,           // sectionDefinitions uses 'influence'
+  // NOTE: 'influence' section is handled by warfareSectionRenderers (v3.7.5 fix)
   financialPsychology: renderFinancialPsychology,
   sacredValues: renderSacredValues,
   deceptionAnalysis: renderDeceptionAnalysis,
