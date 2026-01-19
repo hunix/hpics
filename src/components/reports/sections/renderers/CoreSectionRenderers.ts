@@ -237,7 +237,7 @@ export const renderPatternOfLife: SectionRenderer = (ctx, data) => {
 // Relationship Ecosystem renderer
 export const renderRelationshipEcosystem: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.relationshipData?.length && !data.relationshipAnalysis) return;
+  if ((!Array.isArray(data.relationshipData) || !data.relationshipData.length) && !data.relationshipAnalysis) return;
   
   ctx.renderSectionHeader('Relationship Ecosystem', [150, 100, 50]);
   
@@ -260,7 +260,7 @@ export const renderRelationshipEcosystem: SectionRenderer = (ctx, data) => {
   }
   
   // Network relationships
-  if (data.relationshipData?.length) {
+  if (Array.isArray(data.relationshipData) && data.relationshipData.length) {
     ctx.yPos += 5;
     ctx.renderSubsection('Key Relationships');
     (data.relationshipData as Array<Record<string, unknown>>).slice(0, 5).forEach((r) => {
