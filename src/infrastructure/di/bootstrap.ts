@@ -41,7 +41,7 @@ export function bootstrapContainer(): void {
   container.registerInstance(ServiceKeys.EventBus, getEventBus());
 
   // Repositories
-  container.register(ServiceKeys.ProfileRepository, () => new SupabaseProfileRepository(), 'singleton');
+  container.register(ServiceKeys.ProfileRepository, () => new SupabaseProfileRepository(supabase), 'singleton');
   container.register(ServiceKeys.NetworkRepository, () => new SupabaseNetworkRepository(), 'singleton');
   container.register(ServiceKeys.AnalysisRepository, () => new SupabaseAnalysisRepository(), 'singleton');
   container.register(ServiceKeys.DossierRepository, () => new SupabaseDossierRepository(), 'singleton');
