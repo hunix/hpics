@@ -134,24 +134,39 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       const contactName = `${profile.first_name} ${profile.last_name || ''}`.trim();
 
       // Use modular data fetching hook
-      const allData = await fetchAllDossierData(targetProfileId!);
+      const rawData = await fetchAllDossierData(targetProfileId!);
 
       // Create PDF with modular helper
       const { doc, context } = createPDFDocument();
 
-      // Calculate intelligence completeness
-      const totalMediaAnalyzed = allData.mediaData?.length || 0;
-      const totalVoiceSessions = allData.voiceData?.length || 0;
-      const totalAnomalies = allData.anomaliesData?.length || 0;
-      const hasBehavioralDna = allData.allAnalyses?.some((a: Record<string, unknown>) => a.analysis_type === 'behavioral_dna');
+      // Calculate computed fields for ExtendedDossierData
+      const totalMediaAnalyzed = rawData.mediaData?.length || 0;
+      const totalVoiceSessions = rawData.voiceData?.length || 0;
+      const totalAnomalies = rawData.anomaliesData?.length || 0;
+      const hasBehavioralDna = rawData.allAnalyses?.some((a: Record<string, unknown>) => a.analysis_type === 'behavioral_dna');
       const intelligenceCompleteness = Math.min(100, (
         (totalMediaAnalyzed > 0 ? 15 : 0) + 
         (totalVoiceSessions > 0 ? 15 : 0) + 
-        (allData.psychData?.length ? 20 : 0) + 
-        (allData.miceData?.length ? 15 : 0) + 
-        (allData.influenceData ? 15 : 0) + 
+        (rawData.psychData?.length ? 20 : 0) + 
+        (rawData.miceData?.length ? 15 : 0) + 
+        (rawData.influenceData ? 15 : 0) + 
         (hasBehavioralDna ? 20 : 0)
       ));
+
+      // Build ExtendedDossierData with computed fields
+      const behavioralDnaAnalysis = rawData.allAnalyses?.find((a: Record<string, unknown>) => a.analysis_type === 'behavioral_dna');
+      const relationshipAnalysis = rawData.allAnalyses?.find((a: Record<string, unknown>) => a.analysis_type === 'relationship_dynamics');
+      
+      const allData: import('./sections/renderers/types').ExtendedDossierData = {
+        ...rawData,
+        contactName,
+        totalAnomalies,
+        totalMediaAnalyzed,
+        totalVoiceSessions,
+        intelligenceCompleteness,
+        behavioralDnaAnalysis: behavioralDnaAnalysis ? { result: behavioralDnaAnalysis.result } : undefined,
+        relationshipAnalysis: relationshipAnalysis ? { result: relationshipAnalysis.result } : undefined,
+      };
 
       // Render cover page
       renderCoverPage(
