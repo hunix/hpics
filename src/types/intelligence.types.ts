@@ -1,10 +1,35 @@
 /**
  * @fileoverview Intelligence & Analysis Type Definitions
  * Consolidated types for AI intelligence, behavioral analysis, and relationship analysis
+ * 
+ * @deprecated Import directly from @/domains/intelligence for domain entities.
+ * This file re-exports for backward compatibility only.
  */
 
-// Re-export from original locations for backward compatibility
-// Note: Some types have duplicates across files, using explicit exports to avoid conflicts
+// Re-export domain entities (canonical source)
+export type {
+  Analysis,
+  AnalysisType,
+  AnalysisStatus,
+  AnalysisResult,
+} from '@/domains/intelligence/entities/Analysis';
+
+export type {
+  Dossier,
+  DossierTemplate,
+  DossierSection,
+  ThreatAssessment,
+} from '@/domains/intelligence/entities/Dossier';
+
+export {
+  Insight,
+  type InsightPriority,
+  type InsightCategory,
+  type InsightActionability,
+  type InsightEvidence,
+} from '@/domains/intelligence/entities/Insight';
+
+// Re-export legacy types for backward compatibility
 export {
   type RelationshipAnalysis,
   type BehavioralAnalysis,

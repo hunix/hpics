@@ -3,6 +3,9 @@
  * 
  * Custom hook for fetching and processing network visualization data.
  * Handles profile fetching, decay calculation, and network metric computation.
+ * 
+ * @deprecated Use useNetworkGraph from @/domains/network/hooks/useNetworkService instead.
+ * This hook is maintained for backward compatibility during migration.
  */
 
 import { useQuery } from '@tanstack/react-query';

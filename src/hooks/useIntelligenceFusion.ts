@@ -1,3 +1,8 @@
+/**
+ * @deprecated Use useFusionService from @/domains/fusion/hooks/useFusionService instead.
+ * This hook is maintained for backward compatibility during migration.
+ */
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
