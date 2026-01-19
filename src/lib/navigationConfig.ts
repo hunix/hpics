@@ -149,6 +149,16 @@ export const navigationItems: NavItem[] = [
     keywords: ['rag', 'agent', 'hub', 'intelligence', 'ai', 'search', 'semantic'],
   },
   {
+    id: 'dossier-intelligence',
+    title: 'Dossier Intelligence',
+    url: '/dossier-intelligence',
+    icon: FileText,
+    description: 'Intelligence synthesis & 64-section warfare dossiers',
+    category: 'intelligence',
+    requiredRole: 'analyst',
+    keywords: ['dossier', 'intelligence', 'pdf', 'report', 'synthesis', 'warfare', 'analysis'],
+  },
+  {
     id: 'superiority',
     title: 'Strategic Analysis',
     url: '/superiority',
