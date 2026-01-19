@@ -32,27 +32,50 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Handle both user tokens and service role calls
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
+    const body = await req.json();
+    
+    // Normalize parameter names
+    const profileId = body.profileId || body.profile_id;
+    const fusionType = body.fusionType || body.fusion_type || 'comprehensive';
+    const includeHistorical = body.includeHistorical ?? body.include_historical ?? true;
+    const correlationThreshold = body.correlationThreshold || body.correlation_threshold || 0.6;
+    let userId = body.userId || body.user_id;
+    
+    // Check if service role call or user token
+    const token = authHeader?.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseServiceKey;
+    
+    if (!isServiceRoleCall && authHeader) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token!);
+      if (!authError && user) {
+        userId = user.id;
+      } else if (!userId) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    if (!userId && !isServiceRoleCall) {
+      return new Response(JSON.stringify({ error: 'userId is required' }), {
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid token' }), {
-        status: 401,
+    if (!profileId) {
+      return new Response(JSON.stringify({ error: 'profileId is required' }), {
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const request: MosaicFusionRequest = await req.json();
-    const correlationThreshold = request.correlationThreshold || 0.6;
+    // Create user object for queries
+    const user = { id: userId };
+    const request: MosaicFusionRequest = { profileId, fusionType, includeHistorical, correlationThreshold };
 
     // Gather ALL available intelligence sources
     const [

@@ -52,36 +52,45 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'No authorization header' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-    
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Handle both user tokens and service role calls
+    const authHeader = req.headers.get('Authorization');
+    const body = await req.json();
     
-    // Verify auth
-    const authClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY') ?? '');
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await authClient.auth.getUser(token);
+    // Normalize parameter names
+    const profileId = body.profileId || body.profile_id;
+    const dossierType = body.dossierType || body.dossier_type || 'full_actionable';
+    const includeMediaIntelligence = body.includeMediaIntelligence ?? body.include_media_intelligence ?? true;
+    let userId = body.userId || body.user_id;
     
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
+    // Check if service role call or user token
+    const token = authHeader?.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseServiceKey;
+    
+    if (!isServiceRoleCall && authHeader) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token!);
+      if (!authError && user) {
+        userId = user.id;
+      } else if (!userId) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    if (!userId && !isServiceRoleCall) {
+      return new Response(JSON.stringify({ error: 'userId is required' }), {
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const { 
-      profileId, 
-      dossierType = 'full_actionable', // 'summary', 'full', 'full_actionable'
-      includeMediaIntelligence = true 
-    } = await req.json();
+    // Create a user-like object for queries that need user.id
+    const user = { id: userId };
 
     if (!profileId) {
       return new Response(JSON.stringify({ error: 'profileId required' }), {
