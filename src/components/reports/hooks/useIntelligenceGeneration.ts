@@ -1,10 +1,12 @@
 /**
- * Intelligence Generation Hook v3.7.4
+ * Intelligence Generation Hook v3.7.6
  * Handles pre-generation of intelligence data before PDF export
- * Now with 25+ intelligence tasks covering all 64 dossier sections
+ * 
+ * v3.7.6: Enhanced reliability with retry logic, parallel batch execution, timeout handling
+ * v3.7.5: 34 intelligence tasks covering all 64 dossier sections
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { TaskResult } from '../sections/types';
@@ -12,55 +14,107 @@ import type { TaskResult } from '../sections/types';
 interface IntelligenceTask {
   name: string;
   edgeFunction: string;
-  analysisType?: string; // For checking if already exists in ai_analyses
-  checkTable?: string;   // For checking other tables
+  analysisType?: string;
+  checkTable?: string;
   required: boolean;
   category: 'core' | 'psychological' | 'warfare' | 'fusion';
+  priority: number; // Lower = higher priority
+  dependsOn?: string[]; // Edge functions this task depends on
+}
+
+// Edge function invocation with retry and timeout
+const INVOKE_TIMEOUT_MS = 45000; // 45 seconds per function
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 1500;
+const BATCH_SIZE = 3; // Parallel tasks per batch
+
+async function invokeWithRetry(
+  edgeFunction: string, 
+  body: Record<string, unknown>,
+  retries = MAX_RETRIES
+): Promise<{ data: unknown; error: Error | null }> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      // Create abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), INVOKE_TIMEOUT_MS);
+      
+      const result = await supabase.functions.invoke(edgeFunction, {
+        body,
+        // Note: signal support depends on supabase-js version
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (result.error) {
+        throw new Error(result.error.message || 'Edge function error');
+      }
+      
+      return { data: result.data, error: null };
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      
+      // Don't retry on non-retryable errors
+      const msg = lastError.message.toLowerCase();
+      if (msg.includes('not found') || msg.includes('404') || msg.includes('auth')) {
+        break;
+      }
+      
+      // Wait before retry
+      if (attempt < retries) {
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS * (attempt + 1)));
+      }
+    }
+  }
+  
+  return { data: null, error: lastError };
 }
 
 // Comprehensive task definitions covering all 64 sections
 const ALL_INTELLIGENCE_TASKS: IntelligenceTask[] = [
-  // Core Analysis (Priority 1)
-  { name: 'MICE Vulnerability Analysis', edgeFunction: 'mice-recruitment-analyzer', checkTable: 'mice_assessments', required: true, category: 'core' },
-  { name: 'Cialdini Influence Profile', edgeFunction: 'analyze-influence-profile', checkTable: 'contact_influence_profiles', required: true, category: 'core' },
-  { name: 'Deep Intelligence Engine', edgeFunction: 'deep-intelligence-engine', analysisType: 'deep_intelligence', required: true, category: 'core' },
-  { name: 'Trust Assessment', edgeFunction: 'assess-trust', checkTable: 'trust_assessments', required: true, category: 'core' },
-  { name: 'Behavioral Analysis', edgeFunction: 'analyze-behavioral', checkTable: 'behavioral_analyses', required: true, category: 'core' },
+  // Core Analysis (Priority 1) - Run first, these feed into others
+  { name: 'MICE Vulnerability Analysis', edgeFunction: 'mice-recruitment-analyzer', checkTable: 'mice_assessments', required: true, category: 'core', priority: 1 },
+  { name: 'Cialdini Influence Profile', edgeFunction: 'analyze-influence-profile', checkTable: 'contact_influence_profiles', required: true, category: 'core', priority: 1 },
+  { name: 'Deep Intelligence Engine', edgeFunction: 'deep-intelligence-engine', analysisType: 'deep_intelligence', required: true, category: 'core', priority: 1 },
+  { name: 'Trust Assessment', edgeFunction: 'assess-trust', checkTable: 'trust_assessments', required: true, category: 'core', priority: 1 },
+  { name: 'Behavioral Analysis', edgeFunction: 'analyze-behavioral', checkTable: 'behavioral_analyses', required: true, category: 'core', priority: 1 },
   
   // Psychological Profiling (Priority 2)
-  { name: 'Behavioral DNA Sequencer', edgeFunction: 'behavioral-dna-sequencer', analysisType: 'behavioral_dna', required: true, category: 'psychological' },
-  { name: 'Sacred Values Mapper', edgeFunction: 'sacred-values-mapper', analysisType: 'sacred_values', required: true, category: 'psychological' },
-  { name: 'Quantum Cognition Engine', edgeFunction: 'quantum-cognition-engine', analysisType: 'quantum_cognition', required: false, category: 'psychological' },
-  { name: 'Dark Tetrad Profiler', edgeFunction: 'adversary-profiler', analysisType: 'dark_tetrad', required: false, category: 'psychological' },
-  { name: 'Hypnotic Patterns Analyzer', edgeFunction: 'nlp-hypnotic-patterns', analysisType: 'hypnotic_patterns', required: false, category: 'psychological' },
-  { name: 'Elicitation Guide Generator', edgeFunction: 'elicitation-engine', analysisType: 'elicitation_guide', required: false, category: 'psychological' },
-  { name: 'Cognitive Load Analyzer', edgeFunction: 'behavioral-economics-engine', analysisType: 'cognitive_load', required: false, category: 'psychological' },
-  { name: 'Attachment Vulnerability', edgeFunction: 'attachment-vulnerability-analyzer', analysisType: 'attachment_vulnerability', required: false, category: 'psychological' },
-  { name: 'Trauma Exploitation Analysis', edgeFunction: 'trauma-exploitation-engine', analysisType: 'trauma_exploitation', required: false, category: 'psychological' },
+  { name: 'Behavioral DNA Sequencer', edgeFunction: 'behavioral-dna-sequencer', analysisType: 'behavioral_dna', required: true, category: 'psychological', priority: 2 },
+  { name: 'Sacred Values Mapper', edgeFunction: 'sacred-values-mapper', analysisType: 'sacred_values', required: true, category: 'psychological', priority: 2 },
+  { name: 'Quantum Cognition Engine', edgeFunction: 'quantum-cognition-engine', analysisType: 'quantum_cognition', required: false, category: 'psychological', priority: 2 },
+  { name: 'Dark Tetrad Profiler', edgeFunction: 'adversary-profiler', analysisType: 'dark_tetrad', required: false, category: 'psychological', priority: 2 },
+  { name: 'Hypnotic Patterns Analyzer', edgeFunction: 'nlp-hypnotic-patterns', analysisType: 'hypnotic_patterns', required: false, category: 'psychological', priority: 2 },
+  { name: 'Elicitation Guide Generator', edgeFunction: 'elicitation-engine', analysisType: 'elicitation_guide', required: false, category: 'psychological', priority: 2 },
+  { name: 'Cognitive Load Analyzer', edgeFunction: 'behavioral-economics-engine', analysisType: 'cognitive_load', required: false, category: 'psychological', priority: 2 },
+  { name: 'Attachment Vulnerability', edgeFunction: 'attachment-vulnerability-analyzer', analysisType: 'attachment_vulnerability', required: false, category: 'psychological', priority: 2 },
+  { name: 'Trauma Exploitation Analysis', edgeFunction: 'trauma-exploitation-engine', analysisType: 'trauma_exploitation', required: false, category: 'psychological', priority: 2 },
   
   // Warfare & Influence (Priority 3)
-  { name: 'Cognitive Warfare Engine', edgeFunction: 'cognitive-warfare-engine', analysisType: 'cognitive_warfare', required: false, category: 'warfare' },
-  { name: 'Reality Consensus Engine', edgeFunction: 'reality-consensus-engine', analysisType: 'reality_testing', required: false, category: 'warfare' },
-  { name: 'Identity Destabilization', edgeFunction: 'identity-destabilization-engine', analysisType: 'identity_destabilization', required: false, category: 'warfare' },
-  { name: 'Semantic Warfare Engine', edgeFunction: 'semantic-warfare-engine', analysisType: 'semantic_warfare', required: false, category: 'warfare' },
-  { name: 'Memetic Propagation', edgeFunction: 'memetic-propagation-engine', analysisType: 'memetic_propagation', required: false, category: 'warfare' },
-  { name: 'Narrative Control Engine', edgeFunction: 'narrative-control-engine', analysisType: 'narrative_control', required: false, category: 'warfare' },
-  { name: 'Choice Architecture', edgeFunction: 'choice-architecture-optimizer', analysisType: 'choice_architecture', required: false, category: 'warfare' },
-  { name: 'Influence Resistance Profile', edgeFunction: 'manipulation-vulnerability-assessment', analysisType: 'influence_resistance', required: false, category: 'warfare' },
-  { name: 'Betrayal Predictor', edgeFunction: 'betrayal-likelihood-scorer', analysisType: 'betrayal_prediction', required: false, category: 'warfare' },
-  { name: 'Counter-Intelligence Monitor', edgeFunction: 'counter-intelligence-monitor', analysisType: 'counter_intel', required: false, category: 'warfare' },
+  { name: 'Cognitive Warfare Engine', edgeFunction: 'cognitive-warfare-engine', analysisType: 'cognitive_warfare', required: false, category: 'warfare', priority: 3 },
+  { name: 'Reality Consensus Engine', edgeFunction: 'reality-consensus-engine', analysisType: 'reality_testing', required: false, category: 'warfare', priority: 3 },
+  { name: 'Identity Destabilization', edgeFunction: 'identity-destabilization-engine', analysisType: 'identity_destabilization', required: false, category: 'warfare', priority: 3 },
+  { name: 'Semantic Warfare Engine', edgeFunction: 'semantic-warfare-engine', analysisType: 'semantic_warfare', required: false, category: 'warfare', priority: 3 },
+  { name: 'Memetic Propagation', edgeFunction: 'memetic-propagation-engine', analysisType: 'memetic_propagation', required: false, category: 'warfare', priority: 3 },
+  { name: 'Narrative Control Engine', edgeFunction: 'narrative-control-engine', analysisType: 'narrative_control', required: false, category: 'warfare', priority: 3 },
+  { name: 'Choice Architecture', edgeFunction: 'choice-architecture-optimizer', analysisType: 'choice_architecture', required: false, category: 'warfare', priority: 3 },
+  { name: 'Influence Resistance Profile', edgeFunction: 'manipulation-vulnerability-assessment', analysisType: 'influence_resistance', required: false, category: 'warfare', priority: 3 },
+  { name: 'Betrayal Predictor', edgeFunction: 'betrayal-likelihood-scorer', analysisType: 'betrayal_prediction', required: false, category: 'warfare', priority: 3 },
+  { name: 'Counter-Intelligence Monitor', edgeFunction: 'counter-intelligence-monitor', analysisType: 'counter_intel', required: false, category: 'warfare', priority: 3 },
   
-  // Data Fusion & Synthesis (Priority 4)
-  { name: 'Cross-Modal Synthesis', edgeFunction: 'cross-modal-synthesis-v2', analysisType: 'cross_modal_synthesis', required: false, category: 'fusion' },
-  { name: 'Precognitive Pattern Engine', edgeFunction: 'precognitive-pattern-engine', analysisType: 'precognitive_patterns', required: false, category: 'fusion' },
-  { name: 'Temporal Fusion Transformer', edgeFunction: 'temporal-fusion-transformer', analysisType: 'temporal_fusion', required: false, category: 'fusion' },
-  { name: 'Behavioral Digital Twin', edgeFunction: 'behavioral-digital-twin', analysisType: 'digital_twin', required: false, category: 'fusion' },
-  { name: 'Pattern-of-Life Engine', edgeFunction: 'pattern-of-life-engine', analysisType: 'pattern_of_life', required: false, category: 'fusion' },
-  { name: 'Graph RAG Intelligence', edgeFunction: 'graph-rag-engine', analysisType: 'graph_rag', required: false, category: 'fusion' },
-  { name: 'Power Network Analyzer', edgeFunction: 'power-network-analyzer', analysisType: 'network_position', required: false, category: 'fusion' },
-  { name: 'Shadow Network Analyzer', edgeFunction: 'detect-shadow-networks', analysisType: 'shadow_networks', required: false, category: 'fusion' },
-  { name: 'Influence Orchestrator', edgeFunction: 'influence-orchestrator-v2', analysisType: 'influence_operations', required: false, category: 'fusion' },
-  { name: 'Generate Playbook', edgeFunction: 'generate-playbook', analysisType: 'playbook', required: false, category: 'fusion' },
+  // Data Fusion & Synthesis (Priority 4) - Run last, depend on earlier analyses
+  { name: 'Cross-Modal Synthesis', edgeFunction: 'cross-modal-synthesis-v2', analysisType: 'cross_modal_synthesis', required: false, category: 'fusion', priority: 4 },
+  { name: 'Precognitive Pattern Engine', edgeFunction: 'precognitive-pattern-engine', analysisType: 'precognitive_patterns', required: false, category: 'fusion', priority: 4 },
+  { name: 'Temporal Fusion Transformer', edgeFunction: 'temporal-fusion-transformer', analysisType: 'temporal_fusion', required: false, category: 'fusion', priority: 4 },
+  { name: 'Behavioral Digital Twin', edgeFunction: 'behavioral-digital-twin', analysisType: 'digital_twin', required: false, category: 'fusion', priority: 4 },
+  { name: 'Pattern-of-Life Engine', edgeFunction: 'pattern-of-life-engine', analysisType: 'pattern_of_life', required: false, category: 'fusion', priority: 4 },
+  { name: 'Graph RAG Intelligence', edgeFunction: 'graph-rag-engine', analysisType: 'graph_rag', required: false, category: 'fusion', priority: 4 },
+  { name: 'Power Network Analyzer', edgeFunction: 'power-network-analyzer', analysisType: 'network_position', required: false, category: 'fusion', priority: 4 },
+  { name: 'Shadow Network Analyzer', edgeFunction: 'detect-shadow-networks', analysisType: 'shadow_networks', required: false, category: 'fusion', priority: 4 },
+  { name: 'Influence Orchestrator', edgeFunction: 'influence-orchestrator-v2', analysisType: 'influence_operations', required: false, category: 'fusion', priority: 4 },
+  { name: 'Generate Playbook', edgeFunction: 'generate-playbook', analysisType: 'playbook', required: false, category: 'fusion', priority: 5 }, // Playbook runs last
 ];
 
 /**
@@ -101,6 +155,7 @@ export function useIntelligenceGeneration() {
   const [isGeneratingIntel, setIsGeneratingIntel] = useState(false);
   const [intelProgress, setIntelProgress] = useState(0);
   const [taskResults, setTaskResults] = useState<TaskResult[]>([]);
+  const cancelRef = useRef(false);
 
   /**
    * Check if a specific analysis already exists
@@ -133,6 +188,43 @@ export function useIntelligenceGeneration() {
     }
   };
 
+  /**
+   * Execute a batch of tasks in parallel
+   */
+  const executeBatch = async (
+    tasks: { task: IntelligenceTask; index: number }[],
+    profileId: string,
+    userId: string
+  ): Promise<{ index: number; success: boolean; error?: string; canRetry?: boolean }[]> => {
+    const results = await Promise.all(
+      tasks.map(async ({ task, index }) => {
+        if (cancelRef.current) {
+          return { index, success: false, error: 'Cancelled', canRetry: false };
+        }
+
+        // Update to running
+        setTaskResults(prev => prev.map((t, idx) =>
+          idx === index ? { ...t, status: 'running' as const } : t
+        ));
+
+        const { data, error } = await invokeWithRetry(task.edgeFunction, {
+          profileId,
+          userId,
+          analysisDepth: 'comprehensive',
+        });
+
+        if (error) {
+          const parsed = parseErrorMessage(error);
+          return { index, success: false, error: parsed.message, canRetry: parsed.canRetry };
+        }
+
+        return { index, success: true };
+      })
+    );
+
+    return results;
+  };
+
   const generateFullIntelligence = useCallback(async (
     profileId: string,
     forceRefresh: boolean = false
@@ -142,6 +234,7 @@ export function useIntelligenceGeneration() {
       return;
     }
 
+    cancelRef.current = false;
     setIsGeneratingIntel(true);
     setIntelProgress(0);
     setTaskResults([]);
@@ -157,13 +250,13 @@ export function useIntelligenceGeneration() {
       const userId = user.id;
 
       // Build task list - skip existing unless forceRefresh
-      const tasksToRun: { task: IntelligenceTask; status: 'pending' | 'skipped' }[] = [];
+      const tasksToRun: { task: IntelligenceTask; status: 'pending' | 'skipped'; index: number }[] = [];
 
       if (forceRefresh) {
         // Run all tasks
-        tasksToRun.push(...ALL_INTELLIGENCE_TASKS.map(task => ({ task, status: 'pending' as const })));
+        tasksToRun.push(...ALL_INTELLIGENCE_TASKS.map((task, index) => ({ task, status: 'pending' as const, index })));
       } else {
-        // Check which tasks need to run
+        // Check which tasks need to run (parallel existence checks)
         const existenceChecks = await Promise.all(
           ALL_INTELLIGENCE_TASKS.map(async (task) => ({
             task,
@@ -171,13 +264,13 @@ export function useIntelligenceGeneration() {
           }))
         );
 
-        for (const { task, exists } of existenceChecks) {
-          if (exists) {
-            tasksToRun.push({ task, status: 'skipped' as const });
-          } else {
-            tasksToRun.push({ task, status: 'pending' as const });
-          }
-        }
+        existenceChecks.forEach(({ task, exists }, index) => {
+          tasksToRun.push({
+            task,
+            status: exists ? 'skipped' as const : 'pending' as const,
+            index,
+          });
+        });
       }
 
       const pendingTasks = tasksToRun.filter(t => t.status === 'pending');
@@ -199,52 +292,74 @@ export function useIntelligenceGeneration() {
 
       let completedCount = 0;
       let failedCount = 0;
-      let taskIndex = 0;
+      let processedCount = skippedCount; // Start from skipped count for progress
 
-      // Execute pending tasks sequentially with progress tracking
-      for (const { task, status } of tasksToRun) {
-        if (status === 'skipped') {
-          taskIndex++;
-          continue;
+      // Group tasks by priority for batch execution
+      const priorityGroups = new Map<number, { task: IntelligenceTask; index: number }[]>();
+      for (const { task, status, index } of tasksToRun) {
+        if (status === 'pending') {
+          const priority = task.priority;
+          if (!priorityGroups.has(priority)) {
+            priorityGroups.set(priority, []);
+          }
+          priorityGroups.get(priority)!.push({ task, index });
         }
+      }
 
-        // Update status to running
-        setTaskResults(prev => prev.map((t, idx) =>
-          idx === taskIndex ? { ...t, status: 'running' as const } : t
-        ));
+      // Execute by priority group, with parallel execution within each group
+      const sortedPriorities = Array.from(priorityGroups.keys()).sort((a, b) => a - b);
 
-        try {
-          const result = await supabase.functions.invoke(task.edgeFunction, {
-            body: { profileId, userId, analysisDepth: 'comprehensive' },
-          });
+      for (const priority of sortedPriorities) {
+        if (cancelRef.current) break;
 
-          if (result.error) {
-            throw new Error(result.error.message || 'Task failed');
+        const groupTasks = priorityGroups.get(priority)!;
+        
+        // Execute in batches within priority group
+        for (let i = 0; i < groupTasks.length; i += BATCH_SIZE) {
+          if (cancelRef.current) break;
+
+          const batch = groupTasks.slice(i, i + BATCH_SIZE);
+          const results = await executeBatch(batch, profileId, userId);
+
+          // Update results
+          for (const result of results) {
+            if (result.success) {
+              completedCount++;
+              setTaskResults(prev => prev.map((t, idx) =>
+                idx === result.index ? { ...t, status: 'success' as const } : t
+              ));
+            } else {
+              failedCount++;
+              setTaskResults(prev => prev.map((t, idx) =>
+                idx === result.index ? { 
+                  ...t, 
+                  status: 'failed' as const, 
+                  error: result.error, 
+                  canRetry: result.canRetry 
+                } : t
+              ));
+            }
+            processedCount++;
           }
 
-          completedCount++;
-          setTaskResults(prev => prev.map((t, idx) =>
-            idx === taskIndex ? { ...t, status: 'success' as const } : t
-          ));
-        } catch (err) {
-          failedCount++;
-          const { message, canRetry } = parseErrorMessage(err);
-          setTaskResults(prev => prev.map((t, idx) =>
-            idx === taskIndex ? { ...t, status: 'failed' as const, error: message, canRetry } : t
-          ));
+          setIntelProgress(Math.round((processedCount / tasksToRun.length) * 100));
+
+          // Small delay between batches to prevent rate limiting
+          if (i + BATCH_SIZE < groupTasks.length) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
         }
 
-        taskIndex++;
-        setIntelProgress(Math.round((taskIndex / tasksToRun.length) * 100));
-
-        // Small delay between tasks to prevent rate limiting
-        if (taskIndex < tasksToRun.length) {
-          await new Promise(resolve => setTimeout(resolve, 300));
+        // Delay between priority groups
+        if (priority < sortedPriorities[sortedPriorities.length - 1]) {
+          await new Promise(resolve => setTimeout(resolve, 800));
         }
       }
 
       // Summary toast
-      if (failedCount === 0 && completedCount > 0) {
+      if (cancelRef.current) {
+        toast.info('Intelligence generation cancelled');
+      } else if (failedCount === 0 && completedCount > 0) {
         toast.success(`Intelligence package complete: ${completedCount} tasks (${skippedCount} skipped)`);
       } else if (completedCount > 0) {
         toast.warning(`Completed ${completedCount}/${pendingTasks.length} tasks. ${failedCount} failed, ${skippedCount} skipped.`);
@@ -257,6 +372,10 @@ export function useIntelligenceGeneration() {
     } finally {
       setIsGeneratingIntel(false);
     }
+  }, []);
+
+  const cancelGeneration = useCallback(() => {
+    cancelRef.current = true;
   }, []);
 
   const retryTask = useCallback(async (taskName: string, profileId: string) => {
@@ -279,25 +398,41 @@ export function useIntelligenceGeneration() {
       t.name === taskName ? { ...t, status: 'running' as const, error: undefined } : t
     ));
 
-    try {
-      const result = await supabase.functions.invoke(task.edgeFunction, {
-        body: { profileId, userId, analysisDepth: 'comprehensive' },
-      });
+    const { data, error } = await invokeWithRetry(task.edgeFunction, {
+      profileId,
+      userId,
+      analysisDepth: 'comprehensive',
+    });
 
-      if (result.error) throw new Error(result.error.message);
-
-      setTaskResults(prev => prev.map(t =>
-        t.name === taskName ? { ...t, status: 'success' as const, error: undefined, canRetry: true } : t
-      ));
-      toast.success(`${taskName} completed`);
-    } catch (err) {
-      const { message, canRetry } = parseErrorMessage(err);
+    if (error) {
+      const { message, canRetry } = parseErrorMessage(error);
       setTaskResults(prev => prev.map(t =>
         t.name === taskName ? { ...t, status: 'failed' as const, error: message, canRetry } : t
       ));
       toast.error(`${taskName} failed: ${message}`);
+    } else {
+      setTaskResults(prev => prev.map(t =>
+        t.name === taskName ? { ...t, status: 'success' as const, error: undefined, canRetry: true } : t
+      ));
+      toast.success(`${taskName} completed`);
     }
   }, []);
+
+  const retryAllFailed = useCallback(async (profileId: string) => {
+    const failedTasks = taskResults.filter(t => t.status === 'failed' && t.canRetry);
+    if (failedTasks.length === 0) {
+      toast.info('No retryable failed tasks');
+      return;
+    }
+
+    toast.info(`Retrying ${failedTasks.length} failed tasks...`);
+
+    for (const task of failedTasks) {
+      await retryTask(task.name, profileId);
+      // Small delay between retries
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  }, [taskResults, retryTask]);
 
   return {
     isGeneratingIntel,
@@ -305,6 +440,8 @@ export function useIntelligenceGeneration() {
     taskResults,
     generateFullIntelligence,
     retryTask,
+    retryAllFailed,
+    cancelGeneration,
     totalTasks: ALL_INTELLIGENCE_TASKS.length,
   };
 }

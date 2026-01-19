@@ -11,10 +11,25 @@ import {
   setStoredVersion, 
   clearAllCaches,
   FORCE_CLEAR_VERSIONS,
+  handleChunkLoadingError,
+  clearChunkErrorTracking,
 } from "@/lib/appVersion";
 
 // Initialize chunk error handler for deployment resilience
 initChunkErrorHandler();
+
+// Global error handler for chunk loading failures
+window.addEventListener('error', async (event) => {
+  if (event.error) {
+    await handleChunkLoadingError(event.error);
+  }
+});
+
+window.addEventListener('unhandledrejection', async (event) => {
+  if (event.reason instanceof Error) {
+    await handleChunkLoadingError(event.reason);
+  }
+});
 
 // Version-based cache busting for PWA/Native apps
 const initVersionCheck = async () => {
