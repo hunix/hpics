@@ -14,14 +14,11 @@ import {
 } from '../services/ProfileService';
 import { Profile, RelationshipType, ProfileStatus } from '../entities/Profile';
 
-// Singleton service instance
-let profileServiceInstance: ProfileService | null = null;
+import { getContainer, ServiceKeys } from '@/infrastructure/di/Container';
 
+// Get ProfileService from DI container
 function getProfileService(): ProfileService {
-  if (!profileServiceInstance) {
-    profileServiceInstance = new ProfileService();
-  }
-  return profileServiceInstance;
+  return getContainer().resolve<ProfileService>(ServiceKeys.ProfileService);
 }
 
 // ============================================

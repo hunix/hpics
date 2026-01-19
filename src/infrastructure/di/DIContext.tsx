@@ -27,7 +27,7 @@ export function DIProvider({ children }: { children: React.ReactNode }) {
     },
     getProfileService: () => {
       const container = getContainer();
-      return container.resolve<ProfileService>(ServiceKeys.ProfileService) || new ProfileService();
+      return container.resolve<ProfileService>(ServiceKeys.ProfileService);
     },
   }), []);
 
@@ -37,10 +37,11 @@ export function DIProvider({ children }: { children: React.ReactNode }) {
 export function useDI(): DIContextValue {
   const context = useContext(DIContext);
   if (!context) {
-    // Fallback for when not wrapped in provider
+    // Fallback - resolve from container
+    const container = getContainer();
     return {
-      getNetworkService: () => new NetworkService(),
-      getProfileService: () => new ProfileService(),
+      getNetworkService: () => container.resolve<NetworkService>(ServiceKeys.NetworkService) || new NetworkService(),
+      getProfileService: () => container.resolve<ProfileService>(ServiceKeys.ProfileService),
     };
   }
   return context;

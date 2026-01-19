@@ -215,5 +215,20 @@ export type ContactInterestInsert = Tables['contact_interests']['Insert'];
 export type ContactPersonalInfo = Tables['contact_personal_info']['Row'];
 export type ContactPersonalInfoInsert = Tables['contact_personal_info']['Insert'];
 
+// ============================================
+// Education & Certification types
+// ============================================
+export type Education = Tables['education']['Row'];
+export type EducationInsert = Tables['education']['Insert'];
+
+export type Certification = Tables['certifications']['Row'];
+export type CertificationInsert = Tables['certifications']['Insert'];
+
+// ============================================
+// Location types
+// ============================================
+export type ContactLocation = Tables['contact_locations']['Row'];
+export type ContactLocationInsert = Tables['contact_locations']['Insert'];
+
 // Export the full Database type for advanced use cases only
 export type { Database };

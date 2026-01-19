@@ -45,23 +45,33 @@ export function bootstrapContainer(): void {
   container.register(ServiceKeys.NetworkRepository, () => new SupabaseNetworkRepository(), 'singleton');
   container.register(ServiceKeys.AnalysisRepository, () => new SupabaseAnalysisRepository(), 'singleton');
   container.register(ServiceKeys.DossierRepository, () => new SupabaseDossierRepository(), 'singleton');
-  container.register('InsightRepository', () => new SupabaseInsightRepository(), 'singleton');
+  container.register(ServiceKeys.InsightRepository, () => new SupabaseInsightRepository(), 'singleton');
   container.register(ServiceKeys.WarfareRepository, () => ({
     campaigns: new SupabaseCampaignRepository(supabase),
-    threats: new SupabaseThreatRepository(supabase)
+    threats: new SupabaseThreatRepository(supabase),
+    strategies: { findById: async () => null, findByUserId: async () => [], save: async (e: unknown) => e, delete: async () => {}, findByCampaign: async () => [], findActive: async () => [] }
   }), 'singleton');
 
-  // Domain Services
+  // Domain Services - inject repositories
   container.register(ServiceKeys.FusionService, getFusionService, 'singleton');
   container.register(ServiceKeys.IntelligenceService, getIntelligenceService, 'singleton');
-  container.register(ServiceKeys.ProfileService, () => new ProfileService(), 'singleton');
+  container.register(ServiceKeys.ProfileService, () => {
+    const repo = container.resolve<import('@/domains/profile/repositories/IProfileRepository').IProfileRepository>(ServiceKeys.ProfileRepository);
+    return new ProfileService(repo);
+  }, 'singleton');
   container.register(ServiceKeys.NetworkService, () => new NetworkService(), 'singleton');
-  container.register(ServiceKeys.WarfareService, () => new WarfareService(), 'singleton');
+  container.register(ServiceKeys.WarfareService, () => {
+    const warfareRepo = container.resolve<import('@/domains/warfare/repositories/IWarfareRepository').IWarfareRepository>(ServiceKeys.WarfareRepository);
+    return new WarfareService(warfareRepo);
+  }, 'singleton');
 
   // Facades
   container.register(ServiceKeys.FusionFacade, getFusionFacade, 'singleton');
   container.register(ServiceKeys.IntelligenceFacade, getIntelligenceFacade, 'singleton');
-  container.register(ServiceKeys.ProfileFacade, getProfileFacade, 'singleton');
+  container.register(ServiceKeys.ProfileFacade, () => {
+    const profileService = container.resolve<ProfileService>(ServiceKeys.ProfileService);
+    return new (class extends Object { constructor(private ps: ProfileService) { super(); } })(profileService);
+  }, 'singleton');
   container.register(ServiceKeys.NetworkFacade, () => {
     const networkService = container.resolve<NetworkService>(ServiceKeys.NetworkService)!;
     return new NetworkFacade(networkService);

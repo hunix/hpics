@@ -8,14 +8,11 @@ import { WarfareService } from '../services/WarfareService';
 import type { CampaignStatus, CampaignType } from '../entities/Campaign';
 import type { ThreatStatus } from '../entities/Threat';
 
-// Singleton service instance
-let warfareService: WarfareService | null = null;
+import { getContainer, ServiceKeys } from '@/infrastructure/di/Container';
 
+// Get WarfareService from DI container
 function getWarfareService(): WarfareService {
-  if (!warfareService) {
-    warfareService = new WarfareService();
-  }
-  return warfareService;
+  return getContainer().resolve<WarfareService>(ServiceKeys.WarfareService);
 }
 
 // Hook for campaigns
