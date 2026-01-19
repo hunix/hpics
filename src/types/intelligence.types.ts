@@ -43,7 +43,23 @@ export {
   type AIUsageSummary,
 } from '@/lib/aiIntelligenceTypes';
 
-export * from '@/lib/analysisTypes';
+// Re-export analysis types (explicit for performance)
+export type {
+  AnalysisTypeConfig,
+  MediaAnalysisMode,
+  MediaType,
+  AnalysisContext,
+} from '@/lib/analysisTypes';
+
+export {
+  MEDIA_ANALYSIS_MODES,
+  ANALYSIS_PURPOSES,
+  ANALYSIS_RELATIONSHIPS,
+  ANALYSIS_DEPTHS,
+  ANALYSIS_TYPES,
+  getAnalysisTypeByKey,
+  getAnalysisTypesByCategory,
+} from '@/lib/analysisTypes';
 
 export {
   type IntelligenceMethodology,
