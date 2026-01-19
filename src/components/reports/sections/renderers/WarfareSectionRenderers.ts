@@ -91,7 +91,7 @@ export const renderActiveDefense: SectionRenderer = (ctx, data) => {
 // Reality Testing renderer
 export const renderRealityTesting: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.realityTestingData?.length) return;
+  if (!Array.isArray(data.realityTestingData) || !data.realityTestingData.length) return;
   
   ctx.renderSectionHeader('Reality Testing Vulnerability', [128, 0, 128]);
   const reality = (data.realityTestingData as Array<Record<string, unknown>>)[0];
@@ -116,7 +116,7 @@ export const renderRealityTesting: SectionRenderer = (ctx, data) => {
 // Identity Destabilization renderer
 export const renderIdentityDestab: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.identityDestabData?.length) return;
+  if (!Array.isArray(data.identityDestabData) || !data.identityDestabData.length) return;
   
   ctx.renderSectionHeader('Identity Destabilization Profile', [100, 0, 80]);
   const identity = (data.identityDestabData as Array<Record<string, unknown>>)[0];
@@ -141,7 +141,7 @@ export const renderIdentityDestab: SectionRenderer = (ctx, data) => {
 // Semantic Warfare renderer
 export const renderSemanticWarfare: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.semanticWarfareData?.length) return;
+  if (!Array.isArray(data.semanticWarfareData) || !data.semanticWarfareData.length) return;
   
   ctx.renderSectionHeader('Semantic Warfare Profile', [0, 80, 100]);
   const semantic = (data.semanticWarfareData as Array<Record<string, unknown>>)[0];
@@ -168,7 +168,7 @@ export const renderSemanticWarfare: SectionRenderer = (ctx, data) => {
 // Memetic Propagation renderer
 export const renderMemeticPropagation: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.memeticData?.length) return;
+  if (!Array.isArray(data.memeticData) || !data.memeticData.length) return;
   
   ctx.renderSectionHeader('Memetic Propagation Analysis', [150, 50, 100]);
   const memetic = (data.memeticData as Array<Record<string, unknown>>)[0];
@@ -193,7 +193,7 @@ export const renderMemeticPropagation: SectionRenderer = (ctx, data) => {
 // Future Modeling renderer
 export const renderFutureModeling: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.futureModelingData?.length) return;
+  if (!Array.isArray(data.futureModelingData) || !data.futureModelingData.length) return;
   
   ctx.renderSectionHeader('Behavioral Future Modeling', [50, 80, 150]);
   const future = (data.futureModelingData as Array<Record<string, unknown>>)[0];
@@ -217,7 +217,7 @@ export const renderFutureModeling: SectionRenderer = (ctx, data) => {
 // Precognitive Patterns renderer
 export const renderPrecognitive: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.precognitiveData?.length) return;
+  if (!Array.isArray(data.precognitiveData) || !data.precognitiveData.length) return;
   
   ctx.renderSectionHeader('Precognitive Pattern Analysis', [100, 50, 150]);
   const precog = (data.precognitiveData as Array<Record<string, unknown>>)[0];
@@ -239,7 +239,7 @@ export const renderPrecognitive: SectionRenderer = (ctx, data) => {
 // Choice Architecture renderer
 export const renderChoiceArchitecture: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.choiceArchitectureData?.length) return;
+  if (!Array.isArray(data.choiceArchitectureData) || !data.choiceArchitectureData.length) return;
   
   ctx.renderSectionHeader('Choice Architecture Exploitation', [0, 128, 100]);
   const choice = (data.choiceArchitectureData as Array<Record<string, unknown>>)[0];
@@ -266,7 +266,7 @@ export const renderChoiceArchitecture: SectionRenderer = (ctx, data) => {
 // Influence Operations renderer
 export const renderInfluenceOps: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.influenceOpsData?.length) return;
+  if (!Array.isArray(data.influenceOpsData) || !data.influenceOpsData.length) return;
   
   ctx.renderSectionHeader('Influence Operation Planning', [64, 0, 128]);
   const ops = data.influenceOpsData as Array<Record<string, unknown>>;
@@ -293,7 +293,7 @@ export const renderInfluenceOps: SectionRenderer = (ctx, data) => {
 // Threat Actor renderer
 export const renderThreatActor: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.threatActorData?.length) return;
+  if (!Array.isArray(data.threatActorData) || !data.threatActorData.length) return;
   
   ctx.renderSectionHeader('Threat Assessment Profile', [200, 0, 0]);
   const threat = (data.threatActorData as Array<Record<string, unknown>>)[0];
@@ -356,7 +356,7 @@ export const renderTrustTrajectory: SectionRenderer = (ctx, data) => {
 // Coercive Control renderer
 export const renderCoerciveControl: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.coerciveControlData?.length) return;
+  if (!Array.isArray(data.coerciveControlData) || !data.coerciveControlData.length) return;
   
   ctx.renderSectionHeader('Coercive Control Assessment', [180, 0, 60]);
   const coercive = (data.coerciveControlData as Array<Record<string, unknown>>)[0];

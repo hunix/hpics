@@ -157,7 +157,7 @@ export const renderBehavioralDNA: SectionRenderer = (ctx, data) => {
 // Quantum Cognition renderer
 export const renderQuantumCognition: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.quantumCognitionData?.length) return;
+  if (!Array.isArray(data.quantumCognitionData) || !data.quantumCognitionData.length) return;
   
   ctx.renderSectionHeader('Quantum Cognition Analysis', [75, 0, 130]);
   const quantum = (data.quantumCognitionData as Array<Record<string, unknown>>)[0];
@@ -202,7 +202,7 @@ export const renderRelationship: SectionRenderer = (ctx, data) => {
 // Engagement Playbook renderer
 export const renderPlaybook: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.playbookData?.length) return;
+  if (!Array.isArray(data.playbookData) || !data.playbookData.length) return;
   
   ctx.renderSectionHeader('Engagement Playbook', [0, 100, 80]);
   const playbook = (data.playbookData as Array<Record<string, unknown>>)[0];
@@ -229,7 +229,7 @@ export const renderPlaybook: SectionRenderer = (ctx, data) => {
 
 // Hypnotic Patterns renderer
 export const renderHypnoticPatterns: SectionRenderer = (ctx, data) => {
-  if (!data.hypnoticPatternsData?.length) return;
+  if (!Array.isArray(data.hypnoticPatternsData) || !data.hypnoticPatternsData.length) return;
   
   ctx.renderSectionHeader('Language Pattern Library', [100, 0, 100]);
   const patterns = (data.hypnoticPatternsData as Array<Record<string, unknown>>)[0];
@@ -251,7 +251,7 @@ export const renderHypnoticPatterns: SectionRenderer = (ctx, data) => {
 
 // Elicitation Guide renderer
 export const renderElicitation: SectionRenderer = (ctx, data) => {
-  if (!data.elicitationData?.length) return;
+  if (!Array.isArray(data.elicitationData) || !data.elicitationData.length) return;
   
   ctx.renderSectionHeader('Elicitation Technique Guide', [0, 80, 120]);
   const sessions = data.elicitationData as Array<Record<string, unknown>>;
@@ -283,7 +283,7 @@ export const renderElicitation: SectionRenderer = (ctx, data) => {
 // Cognitive Load renderer
 export const renderCognitiveLoad: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.cognitiveLoadData?.length) return;
+  if (!Array.isArray(data.cognitiveLoadData) || !data.cognitiveLoadData.length) return;
   
   ctx.renderSectionHeader('Cognitive Load Exploitation', [180, 100, 50]);
   const load = (data.cognitiveLoadData as Array<Record<string, unknown>>)[0];
@@ -310,7 +310,7 @@ export const renderCognitiveLoad: SectionRenderer = (ctx, data) => {
 // Dark Tetrad renderer
 export const renderDarkTetrad: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.darkTetradData?.length && !data.psychData?.length) return;
+  if ((!Array.isArray(data.darkTetradData) || !data.darkTetradData.length) && (!Array.isArray(data.psychData) || !data.psychData.length)) return;
   
   ctx.renderSectionHeader('Dark Tetrad Analysis', [50, 0, 50]);
   
@@ -342,7 +342,7 @@ export const renderDarkTetrad: SectionRenderer = (ctx, data) => {
 // Influence Vector renderer
 export const renderInfluenceVectors: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.influenceVectorData?.length) return;
+  if (!Array.isArray(data.influenceVectorData) || !data.influenceVectorData.length) return;
   
   ctx.renderSectionHeader('Influence Vector Analysis', [0, 100, 150]);
   const vectors = data.influenceVectorData as Array<Record<string, unknown>>;
@@ -362,7 +362,7 @@ export const renderInfluenceVectors: SectionRenderer = (ctx, data) => {
 // Financial Psychology renderer
 export const renderFinancialPsychology: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.financialPsychData?.length) return;
+  if (!Array.isArray(data.financialPsychData) || !data.financialPsychData.length) return;
   
   ctx.renderSectionHeader('Financial Psychology Profile', [0, 128, 64]);
   const finPsych = (data.financialPsychData as Array<Record<string, unknown>>)[0];
@@ -389,7 +389,7 @@ export const renderFinancialPsychology: SectionRenderer = (ctx, data) => {
 // Sacred Values renderer
 export const renderSacredValues: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.sacredValuesData?.length) return;
+  if (!Array.isArray(data.sacredValuesData) || !data.sacredValuesData.length) return;
   
   ctx.renderSectionHeader('Sacred Values Profile', [128, 64, 0]);
   const sacred = (data.sacredValuesData as Array<Record<string, unknown>>)[0];

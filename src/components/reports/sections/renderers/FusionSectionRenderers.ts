@@ -85,7 +85,7 @@ export const renderMosaicFusion: SectionRenderer = (ctx, data) => {
 // Pattern of Life Fusion renderer
 export const renderPatternOfLifeFusion: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.patternOfLifeEngineData?.length) return;
+  if (!Array.isArray(data.patternOfLifeEngineData) || !data.patternOfLifeEngineData.length) return;
   
   ctx.renderSectionHeader('Pattern-of-Life Engine', [80, 100, 130]);
   const pol = (data.patternOfLifeEngineData as Array<Record<string, unknown>>)[0]?.result as Record<string, unknown>;
@@ -176,7 +176,7 @@ export const renderSentimentCascade: SectionRenderer = (ctx, data) => {
 // Cross-Domain Synthesis renderer
 export const renderCrossDomainSynthesis: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.crossDomainData?.length) return;
+  if (!Array.isArray(data.crossDomainData) || !data.crossDomainData.length) return;
   
   ctx.renderSectionHeader('Cross-Domain Intelligence Synthesis', [75, 100, 150]);
   const cross = (data.crossDomainData as Array<Record<string, unknown>>)[0]?.result as Record<string, unknown>;
@@ -207,7 +207,7 @@ export const renderCrossDomainSynthesis: SectionRenderer = (ctx, data) => {
 // Predictive Convergence renderer
 export const renderPredictiveConvergence: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.convergenceData?.length) return;
+  if (!Array.isArray(data.convergenceData) || !data.convergenceData.length) return;
   
   ctx.renderSectionHeader('Predictive Convergence Analysis', [100, 50, 150]);
   const convergence = (data.convergenceData as Array<Record<string, unknown>>)[0];

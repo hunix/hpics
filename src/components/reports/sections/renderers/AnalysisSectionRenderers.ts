@@ -37,7 +37,7 @@ export const renderBehavioralAnalysis: SectionRenderer = (ctx, data) => {
 
 export const renderInfluenceResistance: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.influenceResistanceData?.length) return;
+  if (!Array.isArray(data.influenceResistanceData) || !data.influenceResistanceData.length) return;
   
   ctx.renderSectionHeader('Influence Resistance Profile', [0, 100, 150]);
   const resistance = (data.influenceResistanceData as Array<Record<string, unknown>>)[0];
@@ -61,7 +61,7 @@ export const renderInfluenceResistance: SectionRenderer = (ctx, data) => {
 
 export const renderBehavioralEconomics: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.financialPsychData?.length) return;
+  if (!Array.isArray(data.financialPsychData) || !data.financialPsychData.length) return;
   
   ctx.renderSectionHeader('Behavioral Economics Profile', [0, 128, 64]);
   const finPsych = (data.financialPsychData as Array<Record<string, unknown>>)[0];
@@ -88,7 +88,7 @@ export const renderBehavioralEconomics: SectionRenderer = (ctx, data) => {
 
 export const renderNetworkPosition: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.networkPositionData?.length) return;
+  if (!Array.isArray(data.networkPositionData) || !data.networkPositionData.length) return;
   
   ctx.renderSectionHeader('Network Position Analysis', [100, 50, 150]);
   const position = (data.networkPositionData as Array<Record<string, unknown>>)[0];
@@ -121,7 +121,7 @@ export const renderNetworkPosition: SectionRenderer = (ctx, data) => {
 
 export const renderPredictionAccuracy: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.predictionHistoryData?.length) return;
+  if (!Array.isArray(data.predictionHistoryData) || !data.predictionHistoryData.length) return;
   
   ctx.renderSectionHeader('Prediction Accuracy Tracking', [80, 80, 80]);
   const predictions = data.predictionHistoryData as Array<Record<string, unknown>>;
@@ -146,7 +146,7 @@ export const renderPredictionAccuracy: SectionRenderer = (ctx, data) => {
 
 export const renderCounterIntel: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.counterIntelData?.length) return;
+  if (!Array.isArray(data.counterIntelData) || !data.counterIntelData.length) return;
   
   ctx.renderSectionHeader('Counter-Intelligence Assessment', [128, 0, 64]);
   const counterIntel = (data.counterIntelData as Array<Record<string, unknown>>)[0];
@@ -167,7 +167,7 @@ export const renderCounterIntel: SectionRenderer = (ctx, data) => {
 
 export const renderProportionalResponse: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.proportionalResponseData?.length) return;
+  if (!Array.isArray(data.proportionalResponseData) || !data.proportionalResponseData.length) return;
   
   ctx.renderSectionHeader('Proportional Response Log', [150, 75, 0]);
   const responses = data.proportionalResponseData as Array<Record<string, unknown>>;
@@ -193,7 +193,7 @@ export const renderProportionalResponse: SectionRenderer = (ctx, data) => {
 
 export const renderCrossModalDeception: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.deceptionAnalysisData?.length) return;
+  if (!Array.isArray(data.deceptionAnalysisData) || !data.deceptionAnalysisData.length) return;
   
   ctx.renderSectionHeader('Cross-Modal Deception Analysis', [180, 0, 0]);
   const deception = (data.deceptionAnalysisData as Array<Record<string, unknown>>)[0];
@@ -219,7 +219,7 @@ export const renderCrossModalDeception: SectionRenderer = (ctx, data) => {
 
 export const renderActionPlans: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.actionPlansData?.length) return;
+  if (!Array.isArray(data.actionPlansData) || !data.actionPlansData.length) return;
   
   ctx.renderSectionHeader('Strategic Action Plans', [0, 80, 160]);
   const plans = data.actionPlansData as Array<Record<string, unknown>>;
