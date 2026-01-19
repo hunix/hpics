@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import App from "./App.tsx";
 import "./index.css";
 import { initChunkErrorHandler } from "@/lib/chunkErrorHandler";
+import { bootstrapContainer } from "@/infrastructure/di/bootstrap";
 import { 
   APP_VERSION,
   BUILD_TIMESTAMP,
@@ -139,6 +140,9 @@ const initApp = async () => {
   const shouldRender = await initVersionCheck();
   
   if (shouldRender) {
+    // Bootstrap DI container before rendering
+    bootstrapContainer();
+    
     await registerPWA();
     createRoot(document.getElementById("root")!).render(<App />);
   }

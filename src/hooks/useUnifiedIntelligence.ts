@@ -1,3 +1,8 @@
+/**
+ * @deprecated Use useIntelligenceService from @/domains/intelligence/hooks/useIntelligenceService instead.
+ * This hook is maintained for backward compatibility during migration.
+ */
+
 import { useState, useCallback, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useContextEngine } from './useContextEngine';

@@ -14,6 +14,7 @@ import { AIBudgetWarning } from "@/components/ai/AIBudgetWarning";
 import { FullPageLoader } from "@/components/ui/LoadingSpinner";
 import { lazyWithRetry } from "@/lib/chunkErrorHandler";
 import { SessionTimeoutProvider } from "@/components/providers/SessionTimeoutProvider";
+import { DIProvider } from "@/infrastructure/di/DIContext";
 
 // ALL pages lazy-loaded for optimal initial bundle size
 const Index = lazyWithRetry(() => import("./pages/Index"));
@@ -118,15 +119,16 @@ const queryClient = new QueryClient({
 const App = () => (
   <ErrorBoundaryWithRecovery>
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <ThemeProvider>
-          <TooltipProvider>
-            <RealtimeProvider>
-              <AIConfirmationProvider>
-                <SessionTimeoutProvider timeoutMinutes={30} warningMinutes={5}>
-                  <Toaster />
-                  <Sonner />
-                  <AIBudgetWarning />
+      <DIProvider>
+        <AuthProvider>
+          <ThemeProvider>
+            <TooltipProvider>
+              <RealtimeProvider>
+                <AIConfirmationProvider>
+                  <SessionTimeoutProvider timeoutMinutes={30} warningMinutes={5}>
+                    <Toaster />
+                    <Sonner />
+                    <AIBudgetWarning />
                   <BrowserRouter>
                     <GlobalShortcutsProvider>
                       <Suspense fallback={<FullPageLoader />}>
@@ -209,12 +211,13 @@ const App = () => (
                       </Suspense>
                     </GlobalShortcutsProvider>
                   </BrowserRouter>
-                </SessionTimeoutProvider>
-              </AIConfirmationProvider>
-            </RealtimeProvider>
-          </TooltipProvider>
-        </ThemeProvider>
-      </AuthProvider>
+                  </SessionTimeoutProvider>
+                </AIConfirmationProvider>
+              </RealtimeProvider>
+            </TooltipProvider>
+          </ThemeProvider>
+        </AuthProvider>
+      </DIProvider>
     </QueryClientProvider>
   </ErrorBoundaryWithRecovery>
 );
