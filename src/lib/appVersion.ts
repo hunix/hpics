@@ -2,6 +2,8 @@
  * Application Version Management
  * Used for cache busting and version tracking
  * 
+ * v3.7.2: Added 43 section renderers (64 total), created AnalysisSectionRenderers,
+ *         enhanced ExtendedDossierData with index signature for dynamic data fields.
  * v3.7.1: Extracted 64 section renderers to modular files (Core, Intelligence, Warfare, Fusion),
  *         created domain-specific type files (warfare-types, fusion-types, assessment-types).
  * v3.7.0: Complete modularization - Split SupabaseAnalysisRepository (697→3 files),
@@ -9,11 +11,11 @@
  * v3.6.1: Modularization cleanup - PDFDossierGenerator and DossierIntelligence
  *         now use modular imports from sections/ and hooks/
  */
-export const APP_VERSION = '3.7.1';
-export const BUILD_TIMESTAMP = '2026-01-20T00:15:00Z';
+export const APP_VERSION = '3.7.2';
+export const BUILD_TIMESTAMP = '2026-01-20T01:00:00Z';
 
 // Versions that require forced cache clear when upgrading from
-export const FORCE_CLEAR_VERSIONS = ['3.7.0', '3.6.1', '3.6.0', '3.5.0', '3.4.0', '3.3.0', '3.2.0', '3.1.0', '3.0.0', '2.9.0', '2.8.0', '2.7.0', '2.6.0', '2.5.0', '2.4.0', '2.3.0', '2.2.0'];
+export const FORCE_CLEAR_VERSIONS = ['3.7.1', '3.7.0', '3.6.1', '3.6.0', '3.5.0', '3.4.0', '3.3.0', '3.2.0', '3.1.0', '3.0.0', '2.9.0', '2.8.0', '2.7.0', '2.6.0', '2.5.0', '2.4.0', '2.3.0', '2.2.0'];
 
 
 // Version check utilities

@@ -12,6 +12,7 @@ export type { DossierDataResult } from '../../hooks/useDossierData';
 
 /**
  * Extended dossier data with computed fields added by PDFDossierGenerator
+ * Uses index signature to allow dynamic data field access
  */
 export interface ExtendedDossierData extends DossierDataResult {
   // Computed fields added before rendering
@@ -24,6 +25,9 @@ export interface ExtendedDossierData extends DossierDataResult {
   // AI analyses pre-filtered by type
   behavioralDnaAnalysis?: { result: unknown };
   relationshipAnalysis?: { result: unknown };
+  
+  // Dynamic data fields - allows accessing any *Data property
+  [key: string]: unknown;
 }
 
 /**
