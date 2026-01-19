@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { FileText, Download, Loader2, Sparkles } from 'lucide-react';
+import { FileText, Download, Loader2, Sparkles, SkipForward } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -43,6 +44,7 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
   const [selectedContactName, setSelectedContactName] = useState<string>(profileName || '');
   const [template, setTemplate] = useState<DossierTemplate>('full');
   const [dataStats, setDataStats] = useState<DataStats | null>(null);
+  const [forceRefresh, setForceRefresh] = useState(false);
   
   // Use modular section definitions
   const [sections, setSections] = useState<DossierSection[]>(DEFAULT_SECTIONS);
@@ -54,7 +56,8 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
     intelProgress, 
     taskResults, 
     generateFullIntelligence, 
-    retryTask 
+    retryTask,
+    totalTasks,
   } = useIntelligenceGeneration();
 
   const handleContactSelect = useCallback(async (id: string | null, contact?: { first_name: string; last_name: string | null }) => {
@@ -99,11 +102,11 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
   const handleGenerateIntelligence = useCallback(() => {
     const targetProfileId = profileId || selectedProfile;
     if (targetProfileId) {
-      generateFullIntelligence(targetProfileId);
+      generateFullIntelligence(targetProfileId, forceRefresh);
     } else {
       toast.error('Please select a contact first');
     }
-  }, [profileId, selectedProfile, generateFullIntelligence]);
+  }, [profileId, selectedProfile, generateFullIntelligence, forceRefresh]);
 
   const handleRetryTask = useCallback((taskName: string) => {
     const targetProfileId = profileId || selectedProfile;
@@ -307,7 +310,17 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
           </div>
           
           <div className="space-y-2">
-            <Label>Pre-Generation</Label>
+            <Label>Pre-Generation ({totalTasks} Tasks)</Label>
+            <div className="flex items-center gap-2 mb-2">
+              <Switch
+                id="force-refresh"
+                checked={forceRefresh}
+                onCheckedChange={setForceRefresh}
+              />
+              <Label htmlFor="force-refresh" className="text-xs text-muted-foreground cursor-pointer">
+                Force re-analyze (ignore existing data)
+              </Label>
+            </div>
             <Button 
               variant="outline" 
               className="w-full"
@@ -329,33 +342,50 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
             {isGeneratingIntel && <Progress value={intelProgress} className="h-1" />}
             
             {taskResults.length > 0 && (
-              <div className="mt-3 space-y-1.5 p-3 bg-muted/30 rounded-lg border">
-                <p className="text-xs font-medium text-muted-foreground mb-2">Intelligence Tasks</p>
+              <div className="mt-3 space-y-1.5 p-3 bg-muted/30 rounded-lg border max-h-64 overflow-y-auto">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-medium text-muted-foreground">Intelligence Tasks</p>
+                  <div className="flex gap-2 text-[10px]">
+                    <span className="text-green-600">{taskResults.filter(t => t.status === 'success').length} ✓</span>
+                    <span className="text-muted-foreground">{taskResults.filter(t => t.status === 'skipped').length} skipped</span>
+                    <span className="text-destructive">{taskResults.filter(t => t.status === 'failed').length} failed</span>
+                  </div>
+                </div>
                 {taskResults.map((task) => (
-                  <div key={task.name} className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2">
-                      {task.status === 'pending' && <div className="h-2 w-2 rounded-full bg-muted-foreground/40" />}
-                      {task.status === 'running' && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
-                      {task.status === 'success' && <div className="h-2 w-2 rounded-full bg-green-500" />}
-                      {task.status === 'failed' && <div className="h-2 w-2 rounded-full bg-destructive" />}
-                      <span className={task.status === 'failed' ? 'text-destructive' : ''}>{task.name}</span>
+                  <div key={task.name} className="flex items-center justify-between text-xs py-0.5">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      {task.status === 'pending' && <div className="h-2 w-2 rounded-full bg-muted-foreground/40 shrink-0" />}
+                      {task.status === 'running' && <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />}
+                      {task.status === 'success' && <div className="h-2 w-2 rounded-full bg-green-500 shrink-0" />}
+                      {task.status === 'failed' && <div className="h-2 w-2 rounded-full bg-destructive shrink-0" />}
+                      {task.status === 'skipped' && <SkipForward className="h-3 w-3 text-muted-foreground shrink-0" />}
+                      <span className={`truncate ${task.status === 'failed' ? 'text-destructive' : task.status === 'skipped' ? 'text-muted-foreground' : ''}`}>
+                        {task.name}
+                      </span>
                     </div>
-                    {task.status === 'failed' && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-5 px-2 text-xs"
-                        onClick={() => handleRetryTask(task.name)}
-                        disabled={isGeneratingIntel}
-                      >
-                        Retry
-                      </Button>
-                    )}
+                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                      {task.status === 'failed' && task.error && (
+                        <span className="text-[10px] text-muted-foreground max-w-[100px] truncate" title={task.error}>
+                          {task.error}
+                        </span>
+                      )}
+                      {task.status === 'failed' && task.canRetry !== false && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-5 px-2 text-xs"
+                          onClick={() => handleRetryTask(task.name)}
+                          disabled={isGeneratingIntel}
+                        >
+                          Retry
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
                 {taskResults.some(t => t.status === 'failed') && (
                   <p className="text-[10px] text-muted-foreground mt-2 pt-2 border-t">
-                    Failed tasks may still allow PDF generation with partial data
+                    Some tasks may lack data prerequisites. PDF generation will use available data.
                   </p>
                 )}
               </div>

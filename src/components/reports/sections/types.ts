@@ -1,8 +1,9 @@
 /**
- * PDFDossierGenerator Types (v3.7.0)
+ * PDFDossierGenerator Types (v3.7.4)
  * Shared types for dossier section components
  * 
  * Expanded with PDFRenderContext for modular section renderers.
+ * v3.7.4: Extended TaskResult with canRetry, analysisType, and skipped status
  */
 
 import jsPDF from 'jspdf';
@@ -39,8 +40,10 @@ export interface DataStats {
 
 export interface TaskResult {
   name: string;
-  status: 'pending' | 'running' | 'success' | 'failed';
+  status: 'pending' | 'running' | 'success' | 'failed' | 'skipped';
   error?: string;
+  canRetry?: boolean;
+  analysisType?: string;
 }
 
 // RASCLS/Cialdini's 7 Principles of Influence
