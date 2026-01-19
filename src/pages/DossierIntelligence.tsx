@@ -83,17 +83,18 @@ export default function DossierIntelligence() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
-      const [dossierCount, profileCount, analysisCount] = await Promise.all([
+      const [dossierCount, profileCount, analysisCount, warfareCount] = await Promise.all([
         supabase.from('dossiers').select('id', { count: 'exact', head: true }),
         supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_active', true),
         supabase.from('ai_analyses').select('id', { count: 'exact', head: true }),
+        supabase.from('cognitive_warfare_operations').select('id', { count: 'exact', head: true }),
       ]);
 
       return {
         totalDossiers: dossierCount.count || 0,
         activeProfiles: profileCount.count || 0,
         totalAnalyses: analysisCount.count || 0,
-        warfareSimulations: 0, // Will be populated from actual table when available
+        warfareSimulations: warfareCount.count || 0,
       };
     },
   });

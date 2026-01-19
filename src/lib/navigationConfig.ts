@@ -5,6 +5,7 @@ import {
   Layers, Cpu, DollarSign, Home, Briefcase, Eye, AlertTriangle, Lock,
   Zap, Compass, Smartphone, Crown, Swords, Orbit, TrendingUp, Search, 
   GitBranch, Lightbulb, Target, LayoutGrid, Fingerprint, CircleDot, Atom,
+  Workflow,
   type LucideIcon
 } from 'lucide-react';
 import type { AppRole, ClearanceLevel } from '@/hooks/useClearance';
@@ -166,6 +167,17 @@ export const navigationItems: NavItem[] = [
     category: 'intelligence',
     requiredRole: 'analyst',
     keywords: ['network', 'connections', 'graph', 'ml'],
+  },
+  {
+    id: 'fusion-command',
+    title: 'Fusion Command',
+    url: '/fusion-command',
+    icon: Workflow,
+    badge: 'new',
+    description: 'Data Fusion Engines - TFT, Digital Twin, Graph RAG',
+    category: 'intelligence',
+    requiredRole: 'analyst',
+    keywords: ['fusion', 'data', 'temporal', 'digital twin', 'graph', 'rag', 'dempster', 'shafer', 'counterfactual'],
   },
   {
     id: 'supremacy-command',
