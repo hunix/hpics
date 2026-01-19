@@ -254,11 +254,11 @@ serve(async (req) => {
       
       // Fetch interactions
       const { data: interactionRecords } = await supabaseClient
-        .from('interactions')
-        .select('occurred_at, interaction_type, outcome')
+        .from('contact_interaction_notes')
+        .select('created_at, interaction_type, note_text')
         .eq('user_id', user.id)
         .eq('profile_id', profile_id)
-        .order('occurred_at', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(200);
       
       if (messages) {
@@ -273,9 +273,9 @@ serve(async (req) => {
         interactionData = [
           ...interactionData,
           ...interactionRecords.map(i => ({
-            timestamp: i.occurred_at,
+            timestamp: i.created_at,
             type: i.interaction_type as any,
-            response_quality: i.outcome === 'positive' ? 0.9 : i.outcome === 'negative' ? 0.3 : 0.6
+            response_quality: 0.6
           }))
         ];
       }

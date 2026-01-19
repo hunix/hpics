@@ -116,7 +116,7 @@ serve(async (req) => {
     const dataContext = {
       profile: {
         name: profileName,
-        occupation: profile.occupation,
+        occupation: profile.job_title,
         organization: profile.organization,
         location: profile.location,
         birthday: profile.birthday,

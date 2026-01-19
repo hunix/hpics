@@ -28,10 +28,10 @@ serve(async (req) => {
       { data: previousPredictions },
       { data: milestones }
     ] = await Promise.all([
-      supabase.from('interactions')
+      supabase.from('contact_interaction_notes')
         .select('*')
         .eq('profile_id', profileId)
-        .order('occurred_at', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(200),
       supabase.from('messages')
         .select('*')

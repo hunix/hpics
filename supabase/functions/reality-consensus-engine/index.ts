@@ -31,7 +31,7 @@ serve(async (req) => {
 
     // Fetch belief and worldview data
     const [profilesRes, beliefsRes, sacredRes, groupsRes] = await Promise.all([
-      supabase.from('profiles').select('id, first_name, last_name, occupation').eq('user_id', userId).limit(100),
+      supabase.from('profiles').select('id, first_name, last_name, job_title').eq('user_id', userId).limit(100),
       supabase.from('ai_analyses').select('*').eq('user_id', userId).in('analysis_type', ['beliefs', 'worldview', 'values']).limit(50),
       supabase.from('sacred_values').select('*').eq('user_id', userId).limit(50),
       supabase.from('contact_groups').select('*, contact_group_members(profile_id)').eq('user_id', userId),

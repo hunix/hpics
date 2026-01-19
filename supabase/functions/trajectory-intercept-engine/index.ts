@@ -42,10 +42,10 @@ serve(async (req) => {
         .eq('profile_id', profileId)
         .order('calculated_at', { ascending: false })
         .limit(30),
-      supabase.from('interactions')
+      supabase.from('contact_interaction_notes')
         .select('*')
         .eq('profile_id', profileId)
-        .order('interaction_date', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(50),
       supabase.from('behavioral_predictions')
         .select('*')

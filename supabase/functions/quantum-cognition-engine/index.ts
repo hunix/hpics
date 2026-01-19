@@ -17,6 +17,14 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ ok: true, function: 'quantum-cognition-engine', timestamp: Date.now() }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const { userId, profileId, analysisType } = await req.json() as QuantumAnalysisRequest;
     
@@ -32,7 +40,7 @@ serve(async (req) => {
     // Fetch profile data and recent decisions
     const [profileRes, interactionsRes, decisionsRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', profileId).single(),
-      supabase.from('interactions').select('*').eq('profile_id', profileId).order('interaction_date', { ascending: false }).limit(50),
+      supabase.from('contact_interaction_notes').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(50),
       supabase.from('behavioral_predictions').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(20),
     ]);
 

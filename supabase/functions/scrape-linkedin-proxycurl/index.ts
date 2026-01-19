@@ -175,7 +175,7 @@ serve(async (req) => {
     }
     if (data.headline) enrichedData.job_title = data.headline;
     if (data.summary) enrichedData.bio = data.summary;
-    if (data.occupation) enrichedData.occupation = data.occupation;
+    if (data.occupation) enrichedData.job_title = enrichedData.job_title || data.occupation;
     if (data.public_identifier) {
       enrichedData.linkedin_url = `https://linkedin.com/in/${data.public_identifier}`;
     }

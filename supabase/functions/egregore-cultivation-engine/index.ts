@@ -23,7 +23,7 @@ serve(async (req) => {
 
     // Fetch group dynamics data
     const [profilesRes, groupsRes, memeticRes, influenceRes] = await Promise.all([
-      supabase.from('profiles').select('id, first_name, last_name, occupation, notes').eq('user_id', userId).limit(100),
+      supabase.from('profiles').select('id, first_name, last_name, job_title, notes').eq('user_id', userId).limit(100),
       supabase.from('contact_groups').select('*').eq('user_id', userId),
       supabase.from('memetic_campaigns').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(20),
       supabase.from('influence_cascades').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(30),

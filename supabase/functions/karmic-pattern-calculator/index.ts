@@ -25,7 +25,7 @@ serve(async (req) => {
     const [profileRes, milestonesRes, interactionsRes, predictionsRes, familyRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', profileId).single(),
       supabase.from('life_milestones').select('*').eq('profile_id', profileId).order('occurred_at', { ascending: true }),
-      supabase.from('interactions').select('*').eq('profile_id', profileId).order('interaction_date', { ascending: true }).limit(200),
+      supabase.from('contact_interaction_notes').select('*').eq('profile_id', profileId).order('created_at', { ascending: true }).limit(200),
       supabase.from('behavioral_predictions').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(50),
       supabase.from('contact_family_members').select('*').eq('contact_id', profileId),
     ]);
