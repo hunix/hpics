@@ -1,0 +1,168 @@
+/**
+ * Supabase Profile Repository Implementation
+ */
+
+import { SupabaseClient } from '@supabase/supabase-js';
+import { IProfileRepository, ProfileQueryOptions } from '@/domains/profile/repositories/IProfileRepository';
+import { Profile, RelationshipType, ProfileStatus, ProfileProps } from '@/domains/profile/entities/Profile';
+import { QuerySpec, PaginatedResult } from '@/domains/shared/repositories/BaseRepository';
+
+export class SupabaseProfileRepository implements IProfileRepository {
+  constructor(private supabase: SupabaseClient) {}
+
+  async findById(id: string): Promise<Profile | null> {
+    const { data, error } = await this.supabase.from('profiles').select('*').eq('id', id).maybeSingle();
+    if (error || !data) return null;
+    return this.mapToProfile(data);
+  }
+
+  async findAll(): Promise<Profile[]> {
+    const { data, error } = await this.supabase.from('profiles').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data || []).map(row => this.mapToProfile(row));
+  }
+
+  async findBySpec(spec: QuerySpec<Profile>): Promise<PaginatedResult<Profile>> {
+    const page = spec.pagination?.page || 0;
+    const pageSize = spec.pagination?.pageSize || 50;
+    const { data, error, count } = await this.supabase.from('profiles').select('*', { count: 'exact' }).range(page * pageSize, (page + 1) * pageSize - 1);
+    if (error) throw error;
+    const totalCount = count || 0;
+    return { items: (data || []).map(row => this.mapToProfile(row)), totalCount, page, pageSize, totalPages: Math.ceil(totalCount / pageSize), hasNextPage: (page + 1) * pageSize < totalCount, hasPreviousPage: page > 0 };
+  }
+
+  async save(entity: Profile): Promise<Profile> {
+    const row = this.mapToRow(entity);
+    const { data, error } = await this.supabase.from('profiles').upsert(row).select().single();
+    if (error) throw error;
+    return this.mapToProfile(data);
+  }
+
+  async saveMany(entities: Profile[]): Promise<Profile[]> {
+    const rows = entities.map(e => this.mapToRow(e));
+    const { data, error } = await this.supabase.from('profiles').upsert(rows).select();
+    if (error) throw error;
+    return (data || []).map(row => this.mapToProfile(row));
+  }
+
+  async delete(id: string): Promise<void> {
+    const { error } = await this.supabase.from('profiles').delete().eq('id', id);
+    if (error) throw error;
+  }
+
+  async deleteMany(ids: string[]): Promise<void> {
+    const { error } = await this.supabase.from('profiles').delete().in('id', ids);
+    if (error) throw error;
+  }
+
+  async exists(id: string): Promise<boolean> {
+    const { data } = await this.supabase.from('profiles').select('id').eq('id', id).maybeSingle();
+    return !!data;
+  }
+
+  async count(): Promise<number> {
+    const { count, error } = await this.supabase.from('profiles').select('*', { count: 'exact', head: true });
+    if (error) throw error;
+    return count || 0;
+  }
+
+  async findByUserId(userId: string): Promise<Profile[]> {
+    const { data, error } = await this.supabase.from('profiles').select('*').eq('user_id', userId).order('updated_at', { ascending: false });
+    if (error) throw error;
+    return (data || []).map(row => this.mapToProfile(row));
+  }
+
+  async findByUserIdAndSpec(userId: string, spec: QuerySpec<Profile>): Promise<PaginatedResult<Profile>> {
+    const page = spec.pagination?.page || 0;
+    const pageSize = spec.pagination?.pageSize || 50;
+    const { data, error, count } = await this.supabase.from('profiles').select('*', { count: 'exact' }).eq('user_id', userId).range(page * pageSize, (page + 1) * pageSize - 1);
+    if (error) throw error;
+    const totalCount = count || 0;
+    return { items: (data || []).map(row => this.mapToProfile(row)), totalCount, page, pageSize, totalPages: Math.ceil(totalCount / pageSize), hasNextPage: (page + 1) * pageSize < totalCount, hasPreviousPage: page > 0 };
+  }
+
+  async findByIdForUser(id: string, userId: string): Promise<Profile | null> {
+    const { data, error } = await this.supabase.from('profiles').select('*').eq('id', id).eq('user_id', userId).maybeSingle();
+    if (error || !data) return null;
+    return this.mapToProfile(data);
+  }
+
+  async findFavorites(userId: string): Promise<Profile[]> {
+    const { data, error } = await this.supabase.from('profiles').select('*').eq('user_id', userId).eq('is_favorite', true).order('updated_at', { ascending: false });
+    if (error) throw error;
+    return (data || []).map(row => this.mapToProfile(row));
+  }
+
+  async findByRelationshipType(userId: string, relationshipType: string): Promise<Profile[]> {
+    const { data, error } = await this.supabase.from('profiles').select('*').eq('user_id', userId).eq('relationship_type', relationshipType);
+    if (error) throw error;
+    return (data || []).map(row => this.mapToProfile(row));
+  }
+
+  async searchProfiles(userId: string, options: ProfileQueryOptions, spec?: QuerySpec<Profile>): Promise<PaginatedResult<Profile>> {
+    const page = spec?.pagination?.page || 0;
+    const pageSize = spec?.pagination?.pageSize || 50;
+    const { data, error } = await this.supabase.rpc('search_contacts_v5', { p_user_id: userId, p_search_query: options.searchTerm || '', p_relationship_filter: options.relationshipType || null, p_favorite_filter: options.includeFavorites ?? null, p_page_offset: page, p_page_size: pageSize });
+    if (error) throw error;
+    const profiles = (data || []).map((row: Record<string, unknown>) => this.mapToProfile(row));
+    const totalCount = (data as Array<{ total_count?: number }>)?.[0]?.total_count || profiles.length;
+    return { items: profiles, totalCount, page, pageSize, totalPages: Math.ceil(totalCount / pageSize), hasNextPage: profiles.length === pageSize, hasPreviousPage: page > 0 };
+  }
+
+  async updateFavoriteStatus(profileId: string, userId: string, isFavorite: boolean): Promise<void> {
+    const { error } = await this.supabase.from('profiles').update({ is_favorite: isFavorite, updated_at: new Date().toISOString() }).eq('id', profileId).eq('user_id', userId);
+    if (error) throw error;
+  }
+
+  async updateActiveStatus(profileId: string, userId: string, isActive: boolean): Promise<void> {
+    const { error } = await this.supabase.from('profiles').update({ is_active: isActive, updated_at: new Date().toISOString() }).eq('id', profileId).eq('user_id', userId);
+    if (error) throw error;
+  }
+
+  async countByUser(userId: string): Promise<number> {
+    const { count, error } = await this.supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('user_id', userId);
+    if (error) throw error;
+    return count || 0;
+  }
+
+  async findRecentlyUpdated(userId: string, limit = 10): Promise<Profile[]> {
+    const { data, error } = await this.supabase.from('profiles').select('*').eq('user_id', userId).order('updated_at', { ascending: false }).limit(limit);
+    if (error) throw error;
+    return (data || []).map(row => this.mapToProfile(row));
+  }
+
+  private mapToProfile(row: Record<string, unknown>): Profile {
+    return Profile.reconstitute({
+      id: row.id as string,
+      userId: (row.user_id as string) || '',
+      firstName: (row.first_name as string) || 'Unknown',
+      lastName: row.last_name as string | undefined,
+      organization: row.organization as string | undefined,
+      jobTitle: row.job_title as string | undefined,
+      relationshipType: (row.relationship_type as RelationshipType) || 'unknown',
+      status: 'active' as ProfileStatus,
+      avatarUrl: row.avatar_url as string | undefined,
+      bio: row.bio as string | undefined,
+      notes: row.notes as string | undefined,
+      tags: (row.tags as string[]) || [],
+      isFavorite: (row.is_favorite as boolean) || false,
+      contactInfo: { email: row.email as string | undefined, phone: row.phone as string | undefined, linkedin_url: row.linkedin_url as string | undefined },
+      metadata: { source: row.source as string | undefined },
+      completenessScore: (row.data_richness_score as number) || 0,
+      lastInteractionAt: row.updated_at ? new Date(row.updated_at as string) : undefined,
+      createdAt: new Date(row.created_at as string),
+      updatedAt: new Date(row.updated_at as string),
+    });
+  }
+
+  private mapToRow(profile: Profile): Record<string, unknown> {
+    const props = (profile as unknown as { _props: ProfileProps })._props;
+    return {
+      id: profile.id, user_id: props.userId, first_name: props.firstName, last_name: props.lastName,
+      organization: props.organization, job_title: props.jobTitle, relationship_type: props.relationshipType,
+      avatar_url: props.avatarUrl, bio: props.bio, notes: props.notes, tags: props.tags,
+      is_favorite: props.isFavorite, email: props.contactInfo.email, phone: props.contactInfo.phone,
+      linkedin_url: props.contactInfo.linkedin_url, updated_at: new Date().toISOString(),
+    };
+  }
+}

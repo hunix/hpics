@@ -1,5 +1,30 @@
 # Welcome to your Lovable project
 
+## IDE Performance Notes
+
+The `src/integrations/supabase/types.ts` file is auto-generated and ~35,000 lines.
+For better IDE performance:
+
+1. **Import from helpers instead of types.ts:**
+   ```typescript
+   // ✅ Good - Import from database helpers
+   import type { Profile, ContactRelationship } from '@/types/database-helpers';
+   
+   // ❌ Avoid - Direct import from large types file
+   import type { Database } from '@/integrations/supabase/types';
+   ```
+
+2. **VS Code settings for large file exclusion:**
+   ```json
+   {
+     "files.exclude": {
+       "**/src/integrations/supabase/types.ts": true
+     }
+   }
+   ```
+
+3. **TypeScript memory settings (tsconfig.json is pre-configured)**
+
 ## Project info
 
 **URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID

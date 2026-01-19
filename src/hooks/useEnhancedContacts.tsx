@@ -1,3 +1,8 @@
+/**
+ * @deprecated Use useProfiles from @/domains/profile/hooks/useProfileService instead.
+ * This hook is maintained for backward compatibility during DDD migration.
+ * Will be removed in a future version.
+ */
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
