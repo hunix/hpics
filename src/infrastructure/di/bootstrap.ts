@@ -69,8 +69,8 @@ export function bootstrapContainer(): void {
   container.register(ServiceKeys.FusionFacade, getFusionFacade, 'singleton');
   container.register(ServiceKeys.IntelligenceFacade, getIntelligenceFacade, 'singleton');
   container.register(ServiceKeys.ProfileFacade, () => {
-    const profileService = container.resolve<ProfileService>(ServiceKeys.ProfileService);
-    return new (class extends Object { constructor(private ps: ProfileService) { super(); } })(profileService);
+    const profileService = container.resolve<ProfileService>(ServiceKeys.ProfileService)!;
+    return new (getProfileFacade().constructor as any)(profileService);
   }, 'singleton');
   container.register(ServiceKeys.NetworkFacade, () => {
     const networkService = container.resolve<NetworkService>(ServiceKeys.NetworkService)!;

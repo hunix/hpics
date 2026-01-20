@@ -135,14 +135,14 @@ export async function getPlatformConfig(
     if (options?.userId) {
       const { data: userOverride } = await supabaseClient
         .from('user_config_overrides')
-        .select('override_value')
+        .select('config_value')
         .eq('user_id', options.userId)
         .eq('config_key', configKey)
         .eq('is_active', true)
         .maybeSingle();
       
-      if (userOverride?.override_value !== undefined) {
-        value = userOverride.override_value;
+      if (userOverride?.config_value !== undefined) {
+        value = userOverride.config_value;
         configCache.set(cacheKey, { value, timestamp: Date.now() });
         return value;
       }
