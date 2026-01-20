@@ -88,13 +88,13 @@ serve(async (req) => {
       userId = user.id;
     }
 
-    console.log('Analyzing network graph for user:', user.id);
+    console.log('Analyzing network graph for user:', userId);
 
     // Fetch all profiles
     const { data: profiles } = await supabase
       .from('profiles')
       .select('id, first_name, last_name, relationship_type')
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     if (!profiles || profiles.length < 2) {
       return new Response(JSON.stringify({ 
@@ -110,7 +110,7 @@ serve(async (req) => {
     const { data: relationships } = await supabase
       .from('contact_relationships')
       .select('from_profile_id, to_profile_id, relationship_type, strength')
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     // Build graph
     const nodes: NetworkNode[] = profiles.map(p => ({
@@ -200,14 +200,14 @@ serve(async (req) => {
     // Store analysis
     await supabase.from('ai_analyses').insert({
       profile_id: profiles[0].id, // Store under first profile
-      user_id: user.id,
+      user_id: userId,
       analysis_type: 'network_graph',
       result: result,
     });
 
     // Log usage
     await supabase.from('ai_usage_logs').insert({
-      user_id: user.id,
+      user_id: userId,
       function_name: 'analyze-network-graph',
       model_name: 'local-graph',
       provider: 'local',
