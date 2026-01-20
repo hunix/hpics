@@ -25428,6 +25428,45 @@ export type Database = {
           },
         ]
       }
+      prediction_accuracy_logs: {
+        Row: {
+          accuracy_score: number | null
+          actual_value: Json | null
+          created_at: string
+          evaluated_at: string | null
+          id: string
+          predicted_value: Json | null
+          prediction_id: string | null
+          prediction_type: string
+          user_id: string
+          was_accurate: boolean | null
+        }
+        Insert: {
+          accuracy_score?: number | null
+          actual_value?: Json | null
+          created_at?: string
+          evaluated_at?: string | null
+          id?: string
+          predicted_value?: Json | null
+          prediction_id?: string | null
+          prediction_type: string
+          user_id: string
+          was_accurate?: boolean | null
+        }
+        Update: {
+          accuracy_score?: number | null
+          actual_value?: Json | null
+          created_at?: string
+          evaluated_at?: string | null
+          id?: string
+          predicted_value?: Json | null
+          prediction_id?: string | null
+          prediction_type?: string
+          user_id?: string
+          was_accurate?: boolean | null
+        }
+        Relationships: []
+      }
       prediction_models: {
         Row: {
           accuracy_metrics: Json | null
@@ -25600,6 +25639,64 @@ export type Database = {
           },
           {
             foreignKeyName: "primordial_creation_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      primordial_origins: {
+        Row: {
+          created_at: string
+          foundational_patterns: Json | null
+          genesis_power_level: number | null
+          id: string
+          origin_narrative: string | null
+          origin_type: string
+          profile_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          foundational_patterns?: Json | null
+          genesis_power_level?: number | null
+          id?: string
+          origin_narrative?: string | null
+          origin_type: string
+          profile_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          foundational_patterns?: Json | null
+          genesis_power_level?: number | null
+          id?: string
+          origin_narrative?: string | null
+          origin_type?: string
+          profile_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "primordial_origins_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "primordial_origins_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "primordial_origins_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -32370,6 +32467,64 @@ export type Database = {
           },
           {
             foreignKeyName: "trust_trajectories_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trust_trajectory_forecasts: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          forecast_data: Json | null
+          id: string
+          prediction_horizon_days: number | null
+          profile_id: string | null
+          trajectory_points: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          forecast_data?: Json | null
+          id?: string
+          prediction_horizon_days?: number | null
+          profile_id?: string | null
+          trajectory_points?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          forecast_data?: Json | null
+          id?: string
+          prediction_horizon_days?: number | null
+          profile_id?: string | null
+          trajectory_points?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trust_trajectory_forecasts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "trust_trajectory_forecasts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "trust_trajectory_forecasts_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
