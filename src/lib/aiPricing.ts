@@ -8,7 +8,30 @@ export interface ModelPricing {
 }
 
 export const AI_MODEL_PRICING: Record<string, ModelPricing> = {
-  // Lovable AI Gateway (Google) - Current Models
+  // ============ GEMINI 3 FAMILY (PRIMARY - v5.3) ============
+  'google/gemini-3-pro-preview': {
+    provider: 'google',
+    model: 'google/gemini-3-pro-preview',
+    inputPer1M: 1.50,
+    outputPer1M: 12.00,
+    displayName: 'Gemini 3 Pro',
+  },
+  'google/gemini-3-flash-preview': {
+    provider: 'google',
+    model: 'google/gemini-3-flash-preview',
+    inputPer1M: 0.10,
+    outputPer1M: 0.40,
+    displayName: 'Gemini 3 Flash',
+  },
+  'google/gemini-3-pro-image-preview': {
+    provider: 'google',
+    model: 'google/gemini-3-pro-image-preview',
+    inputPer1M: 2.00,
+    outputPer1M: 15.00,
+    displayName: 'Gemini 3 Pro Image',
+  },
+  
+  // ============ GEMINI 2.5 FAMILY (LEGACY) ============
   'google/gemini-2.5-flash': {
     provider: 'google',
     model: 'google/gemini-2.5-flash',
@@ -30,27 +53,12 @@ export const AI_MODEL_PRICING: Record<string, ModelPricing> = {
     outputPer1M: 0.075,
     displayName: 'Gemini 2.5 Flash Lite',
   },
-  // Google Gemini 3 Models (Next Gen)
-  'google/gemini-3-pro-preview': {
-    provider: 'google',
-    model: 'google/gemini-3-pro-preview',
-    inputPer1M: 1.50,
-    outputPer1M: 12.00,
-    displayName: 'Gemini 3 Pro Preview',
-  },
   'google/gemini-2.5-flash-image': {
     provider: 'google',
     model: 'google/gemini-2.5-flash-image',
     inputPer1M: 0.10,
     outputPer1M: 0.40,
     displayName: 'Gemini 2.5 Flash Image',
-  },
-  'google/gemini-3-pro-image-preview': {
-    provider: 'google',
-    model: 'google/gemini-3-pro-image-preview',
-    inputPer1M: 2.00,
-    outputPer1M: 15.00,
-    displayName: 'Gemini 3 Pro Image Preview',
   },
   
   // OpenAI GPT-5 Models
@@ -168,54 +176,55 @@ export interface ModelTier {
   speedScore: number; // 1-10 speed rating
 }
 
+// MODEL TIERS - GEMINI 3 OPTIMIZED (v5.3)
 export const MODEL_TIERS: ModelTier[] = [
   {
     id: 'speed',
     name: 'Speed',
-    description: 'Fastest responses, lowest cost. Best for simple tasks.',
+    description: 'Fastest responses with Gemini 3 Flash. Best for simple tasks.',
     models: {
-      google: 'google/gemini-2.5-flash-lite',
+      google: 'google/gemini-3-flash-preview',
       openai: 'openai/gpt-5-nano',
     },
     costMultiplier: 0.25,
-    qualityScore: 6,
+    qualityScore: 7,
     speedScore: 10,
   },
   {
     id: 'balanced',
     name: 'Balanced',
-    description: 'Good performance at reasonable cost. Recommended for most tasks.',
+    description: 'Gemini 3 Flash with extended tokens. Recommended for most tasks.',
     models: {
-      google: 'google/gemini-2.5-flash',
+      google: 'google/gemini-3-flash-preview',
       openai: 'openai/gpt-5-mini',
     },
     costMultiplier: 1,
     qualityScore: 8,
-    speedScore: 8,
+    speedScore: 9,
   },
   {
     id: 'quality',
     name: 'Quality',
-    description: 'Best accuracy and reasoning. Use for complex analysis.',
+    description: 'Gemini 3 Pro for complex reasoning and deep analysis.',
     models: {
-      google: 'google/gemini-2.5-pro',
+      google: 'google/gemini-3-pro-preview',
       openai: 'openai/gpt-5',
     },
     costMultiplier: 4,
     qualityScore: 10,
-    speedScore: 5,
+    speedScore: 6,
   },
   {
     id: 'nextgen',
-    name: 'Next Gen',
-    description: 'Cutting-edge models with latest capabilities.',
+    name: 'Extreme',
+    description: 'Gemini 3 Pro with maximum token capacity for fusion tasks.',
     models: {
       google: 'google/gemini-3-pro-preview',
       openai: 'openai/gpt-5',
     },
     costMultiplier: 5,
     qualityScore: 10,
-    speedScore: 4,
+    speedScore: 5,
   },
 ];
 

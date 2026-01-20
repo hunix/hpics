@@ -56,13 +56,14 @@ interface ModelPricing {
 
 // Model pricing (in USD per 1M tokens) - Updated Jan 2026
 const MODEL_PRICING: Record<string, ModelPricing> = {
-  // Gemini 2.5 family
+  // Gemini 2.5 family (legacy)
   'google/gemini-2.5-flash': { inputPer1M: 0.075, outputPer1M: 0.30 },
   'google/gemini-2.5-pro': { inputPer1M: 1.25, outputPer1M: 10.00 },
   'google/gemini-2.5-flash-lite': { inputPer1M: 0.01875, outputPer1M: 0.075 },
   'google/gemini-2.5-flash-image': { inputPer1M: 0.10, outputPer1M: 0.40 },
-  // Gemini 3 family (next-gen)
+  // Gemini 3 family (next-gen) - PRIMARY MODELS
   'google/gemini-3-pro-preview': { inputPer1M: 1.50, outputPer1M: 12.00 },
+  'google/gemini-3-flash-preview': { inputPer1M: 0.10, outputPer1M: 0.40 },
   'google/gemini-3-pro-image-preview': { inputPer1M: 2.00, outputPer1M: 15.00 },
   // OpenAI GPT-5 family
   'openai/gpt-5': { inputPer1M: 5.00, outputPer1M: 15.00 },
@@ -360,14 +361,16 @@ export function parseAIJson<T>(content: string, fallback: T): T {
   }
 }
 
-// Model tier selector with provider options
+// Model tier selector with provider options - GEMINI 3 OPTIMIZED
 export type ModelTier = 'speed' | 'balanced' | 'quality' | 'nextgen';
 export type ModelProvider = 'google' | 'openai';
+export type TaskComplexityLevel = 'light' | 'standard' | 'complex' | 'extreme';
 
+// Tier models now use Gemini 3 family as primary
 const TIER_MODELS: Record<ModelTier, Record<ModelProvider, string>> = {
-  speed: { google: 'google/gemini-2.5-flash-lite', openai: 'openai/gpt-5-nano' },
-  balanced: { google: 'google/gemini-2.5-flash', openai: 'openai/gpt-5-mini' },
-  quality: { google: 'google/gemini-2.5-pro', openai: 'openai/gpt-5' },
+  speed: { google: 'google/gemini-3-flash-preview', openai: 'openai/gpt-5-nano' },
+  balanced: { google: 'google/gemini-3-flash-preview', openai: 'openai/gpt-5-mini' },
+  quality: { google: 'google/gemini-3-pro-preview', openai: 'openai/gpt-5' },
   nextgen: { google: 'google/gemini-3-pro-preview', openai: 'openai/gpt-5' },
 };
 
@@ -378,8 +381,121 @@ export function selectModel(tier: ModelTier = 'balanced', provider: ModelProvide
 // Image generation model selector
 export function selectImageModel(quality: 'fast' | 'quality' = 'fast'): string {
   return quality === 'fast' 
-    ? 'google/gemini-2.5-flash-image' 
+    ? 'google/gemini-3-flash-preview'  // Gemini 3 Flash handles vision
     : 'google/gemini-3-pro-image-preview';
+}
+
+// Vision model selector for multimodal analysis
+export function selectVisionModel(quality: 'fast' | 'quality' = 'fast'): string {
+  return quality === 'fast' 
+    ? 'google/gemini-3-flash-preview' 
+    : 'google/gemini-3-pro-image-preview';
+}
+
+/**
+ * INTELLIGENCE TASK CONFIGURATION
+ * Maps analysis types to optimal Gemini 3 model configurations
+ * 
+ * TEMPERATURE GUIDELINES:
+ * 0.3-0.4: Factual extraction, data parsing, structured output
+ * 0.5-0.6: Analytical tasks requiring consistency
+ * 0.65-0.75: Complex reasoning with creative elements
+ * 0.75-0.85: Highly creative/speculative analysis
+ * 
+ * TOKEN GUIDELINES FOR GEMINI 3:
+ * 3000-4000: Simple analysis, single-focus outputs
+ * 5000-8000: Standard multi-section analysis
+ * 10000-12000: Complex multi-dimensional analysis
+ * 16000-20000: Fusion/synthesis across multiple data sources
+ */
+export interface IntelligenceTaskConfig {
+  model: string;
+  temperature: number;
+  maxTokens: number;
+  complexity: TaskComplexityLevel;
+}
+
+export const INTELLIGENCE_TASK_CONFIGS: Record<string, IntelligenceTaskConfig> = {
+  // ============ LIGHT COMPLEXITY - Gemini 3 Flash (temp 0.3-0.5, 3000-4000 tokens) ============
+  'trauma_exploitation': { model: 'google/gemini-3-flash-preview', temperature: 0.45, maxTokens: 4000, complexity: 'light' },
+  'phobia_exploitation': { model: 'google/gemini-3-flash-preview', temperature: 0.45, maxTokens: 4000, complexity: 'light' },
+  'digital_footprint': { model: 'google/gemini-3-flash-preview', temperature: 0.35, maxTokens: 4000, complexity: 'light' },
+  'opsec_assessment': { model: 'google/gemini-3-flash-preview', temperature: 0.4, maxTokens: 4000, complexity: 'light' },
+  'behavioral_baseline': { model: 'google/gemini-3-flash-preview', temperature: 0.4, maxTokens: 4000, complexity: 'light' },
+  'tscm_sweep': { model: 'google/gemini-3-flash-preview', temperature: 0.35, maxTokens: 3500, complexity: 'light' },
+  'family_protection': { model: 'google/gemini-3-flash-preview', temperature: 0.4, maxTokens: 4000, complexity: 'light' },
+  
+  // ============ STANDARD COMPLEXITY - Gemini 3 Flash (temp 0.5-0.6, 5000-8000 tokens) ============
+  'behavioral_dna': { model: 'google/gemini-3-flash-preview', temperature: 0.55, maxTokens: 8000, complexity: 'standard' },
+  'attachment_vulnerability': { model: 'google/gemini-3-flash-preview', temperature: 0.55, maxTokens: 6000, complexity: 'standard' },
+  'manipulation_susceptibility': { model: 'google/gemini-3-flash-preview', temperature: 0.5, maxTokens: 6000, complexity: 'standard' },
+  'social_engineering': { model: 'google/gemini-3-flash-preview', temperature: 0.5, maxTokens: 5000, complexity: 'standard' },
+  'coercion_resistance': { model: 'google/gemini-3-flash-preview', temperature: 0.5, maxTokens: 5000, complexity: 'standard' },
+  'deception_detection': { model: 'google/gemini-3-flash-preview', temperature: 0.45, maxTokens: 5000, complexity: 'standard' },
+  'influence_profile': { model: 'google/gemini-3-flash-preview', temperature: 0.55, maxTokens: 6000, complexity: 'standard' },
+  'existential_leverage': { model: 'google/gemini-3-flash-preview', temperature: 0.55, maxTokens: 6000, complexity: 'standard' },
+  'crisis_response': { model: 'google/gemini-3-flash-preview', temperature: 0.5, maxTokens: 5000, complexity: 'standard' },
+  'lawfare_defense': { model: 'google/gemini-3-flash-preview', temperature: 0.5, maxTokens: 5000, complexity: 'standard' },
+  'reputation_defense': { model: 'google/gemini-3-flash-preview', temperature: 0.5, maxTokens: 5000, complexity: 'standard' },
+  'economic_warfare': { model: 'google/gemini-3-flash-preview', temperature: 0.5, maxTokens: 5000, complexity: 'standard' },
+  
+  // ============ COMPLEX REASONING - Gemini 3 Pro (temp 0.65-0.75, 10000-12000 tokens) ============
+  'mice_assessment': { model: 'google/gemini-3-pro-preview', temperature: 0.65, maxTokens: 12000, complexity: 'complex' },
+  'cognitive_warfare': { model: 'google/gemini-3-pro-preview', temperature: 0.7, maxTokens: 12000, complexity: 'complex' },
+  'memetic_propagation': { model: 'google/gemini-3-pro-preview', temperature: 0.75, maxTokens: 10000, complexity: 'complex' },
+  'reality_consensus': { model: 'google/gemini-3-pro-preview', temperature: 0.7, maxTokens: 10000, complexity: 'complex' },
+  'quantum_cognition': { model: 'google/gemini-3-pro-preview', temperature: 0.75, maxTokens: 12000, complexity: 'complex' },
+  'precognitive_pattern': { model: 'google/gemini-3-pro-preview', temperature: 0.7, maxTokens: 10000, complexity: 'complex' },
+  'mass_formation': { model: 'google/gemini-3-pro-preview', temperature: 0.7, maxTokens: 10000, complexity: 'complex' },
+  'narrative_control': { model: 'google/gemini-3-pro-preview', temperature: 0.7, maxTokens: 10000, complexity: 'complex' },
+  'behavioral_prediction': { model: 'google/gemini-3-pro-preview', temperature: 0.65, maxTokens: 10000, complexity: 'complex' },
+  'morphic_resonance': { model: 'google/gemini-3-pro-preview', temperature: 0.75, maxTokens: 10000, complexity: 'complex' },
+  'omega_point': { model: 'google/gemini-3-pro-preview', temperature: 0.75, maxTokens: 10000, complexity: 'complex' },
+  'temporal_fusion': { model: 'google/gemini-3-pro-preview', temperature: 0.7, maxTokens: 10000, complexity: 'complex' },
+  
+  // ============ EXTREME/FUSION - Gemini 3 Pro MAX (temp 0.6-0.7, 16000-20000 tokens) ============
+  'omniscient_synthesis': { model: 'google/gemini-3-pro-preview', temperature: 0.65, maxTokens: 16000, complexity: 'extreme' },
+  'unified_fusion': { model: 'google/gemini-3-pro-preview', temperature: 0.6, maxTokens: 16000, complexity: 'extreme' },
+  'mosaic_intelligence': { model: 'google/gemini-3-pro-preview', temperature: 0.6, maxTokens: 16000, complexity: 'extreme' },
+  'full_dossier': { model: 'google/gemini-3-pro-preview', temperature: 0.6, maxTokens: 20000, complexity: 'extreme' },
+  'aggregate_intelligence': { model: 'google/gemini-3-pro-preview', temperature: 0.6, maxTokens: 16000, complexity: 'extreme' },
+  'network_graph': { model: 'google/gemini-3-pro-preview', temperature: 0.55, maxTokens: 12000, complexity: 'extreme' },
+  'power_network': { model: 'google/gemini-3-pro-preview', temperature: 0.6, maxTokens: 12000, complexity: 'extreme' },
+  'relationship_trajectory': { model: 'google/gemini-3-pro-preview', temperature: 0.65, maxTokens: 10000, complexity: 'extreme' },
+  'network_exploitation': { model: 'google/gemini-3-pro-preview', temperature: 0.6, maxTokens: 10000, complexity: 'extreme' },
+  
+  // ============ VISION TASKS - Gemini 3 Pro Image (temp 0.5, 8000 tokens) ============
+  'facial_analysis': { model: 'google/gemini-3-pro-image-preview', temperature: 0.5, maxTokens: 8000, complexity: 'complex' },
+  'body_language': { model: 'google/gemini-3-pro-image-preview', temperature: 0.5, maxTokens: 8000, complexity: 'complex' },
+  'media_grid': { model: 'google/gemini-3-pro-image-preview', temperature: 0.5, maxTokens: 10000, complexity: 'complex' },
+};
+
+/**
+ * Get task-specific AI configuration for intelligence analysis
+ * Uses analysis type to determine optimal model, temperature, and token limits
+ */
+export function getTaskConfig(analysisType: string): IntelligenceTaskConfig {
+  // Normalize analysis type (handle various naming conventions)
+  const normalizedType = analysisType
+    .toLowerCase()
+    .replace(/-/g, '_')
+    .replace(/\s+/g, '_')
+    .replace('full_', '')
+    .replace('_analysis', '')
+    .replace('_assessment', '')
+    .replace('_detection', '')
+    .replace('_prediction', '')
+    .replace('_mapping', '')
+    .replace('_calculation', '')
+    .replace('_sequence', '')
+    .replace('comprehensive', 'attachment_vulnerability');
+  
+  return INTELLIGENCE_TASK_CONFIGS[normalizedType] || {
+    model: 'google/gemini-3-flash-preview',
+    temperature: 0.55,
+    maxTokens: 6000,
+    complexity: 'standard',
+  };
 }
 
 // Get user's preferred model for a specific analysis type
@@ -427,4 +543,45 @@ export const FUNCTION_TO_ANALYSIS_TYPE: Record<string, string> = {
   'generate-weekly-summary': 'weekly_summary',
   'generate-media-metadata': 'media_analysis',
   'rag-query': 'rag_query',
+  // Intelligence edge functions
+  'mice-recruitment-analyzer': 'mice_assessment',
+  'behavioral-dna-sequencer': 'behavioral_dna',
+  'attachment-vulnerability-analyzer': 'attachment_vulnerability',
+  'manipulation-vulnerability-assessment': 'manipulation_susceptibility',
+  'phobia-exploitation-engine': 'phobia_exploitation',
+  'cognitive-warfare-engine': 'cognitive_warfare',
+  'trauma-exploitation-engine': 'trauma_exploitation',
+  'enhanced-deception-detector': 'deception_detection',
+  'analyze-influence-profile': 'influence_profile',
+  'coercion-resistance-assessor': 'coercion_resistance',
+  'existential-leverage-calculator': 'existential_leverage',
+  'memetic-propagation-engine': 'memetic_propagation',
+  'reality-consensus-engine': 'reality_consensus',
+  'mass-formation-analyzer': 'mass_formation',
+  'narrative-control-engine': 'narrative_control',
+  'predict-behavioral-scenarios': 'behavioral_prediction',
+  'precognitive-pattern-engine': 'precognitive_pattern',
+  'analyze-network-graph': 'network_graph',
+  'power-network-analyzer': 'power_network',
+  'predict-relationship-trajectory': 'relationship_trajectory',
+  'network-exploitation-mapper': 'network_exploitation',
+  'temporal-fusion-transformer': 'temporal_fusion',
+  'quantum-cognition-engine': 'quantum_cognition',
+  'morphic-resonance-detector': 'morphic_resonance',
+  'omega-point-tracker': 'omega_point',
+  'mosaic-intelligence-fuser': 'mosaic_intelligence',
+  'unified-data-fusion': 'unified_fusion',
+  'omniscient-orchestrator': 'omniscient_synthesis',
+  'generate-intelligence-dossier': 'full_dossier',
+  'aggregate-media-intelligence': 'aggregate_intelligence',
+  'opsec-vulnerability-analyzer': 'opsec_assessment',
+  'social-engineering-detector': 'social_engineering',
+  'crisis-response-orchestrator': 'crisis_response',
+  'lawfare-defense-analyzer': 'lawfare_defense',
+  'reputation-defense-engine': 'reputation_defense',
+  'behavioral-baseline-monitor': 'behavioral_baseline',
+  'family-protection-analyzer': 'family_protection',
+  'economic-warfare-detector': 'economic_warfare',
+  'tscm-sweep-analyzer': 'tscm_sweep',
+  'digital-footprint-scanner': 'digital_footprint',
 };
