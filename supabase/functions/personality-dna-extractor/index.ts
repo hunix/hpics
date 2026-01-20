@@ -146,8 +146,19 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit via GET query param - before any auth/body parsing
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ ok: true, function: 'personality-dna-extractor', timestamp: Date.now() }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
-    const { profileId, userId, analysisDepth = 'standard' } = await req.json() as PersonalityRequest;
+    const body = await req.json();
+    const profileId = body.profileId || body.profile_id;
+    const userId = body.userId || body.user_id;
+    const analysisDepth = body.analysisDepth || body.analysis_depth || 'standard';
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;

@@ -19,13 +19,26 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check handler
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ 
+      ok: true, 
+      function: 'identity-destabilization-engine', 
+      timestamp: Date.now() 
+    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { profileId, userId, targetDomain = 'all' } = await req.json();
+    const body = await req.json();
+    const profileId = body.profileId || body.profile_id;
+    const userId = body.userId || body.user_id;
+    const targetDomain = body.targetDomain || body.target_domain || 'all';
 
     if (!profileId || !userId) {
       return new Response(
@@ -151,16 +164,15 @@ serve(async (req) => {
         profile_id: profileId,
         user_id: userId,
         correlation_type: 'identity_destabilization',
-        domains_involved: ['reality', 'identity', 'memory', 'social'],
+        source_domains: ['reality', 'identity', 'memory', 'social'],
         correlation_strength: vulnerabilityScore,
-        pattern_data: {
+        tactical_implications: JSON.stringify({
           realityTestingStrength,
           selfConceptStability,
           memoryConfidence,
           socialValidationNeed,
-          techniques: techniques.map(t => t.name),
-        },
-        tactical_implications: techniques.map(t => t.script).join('\n\n'),
+          techniques: techniques.map(t => ({ name: t.name, script: t.script })),
+        }),
         updated_at: new Date().toISOString(),
       }, { onConflict: 'profile_id,user_id,correlation_type' });
 

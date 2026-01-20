@@ -31350,6 +31350,8 @@ export type Database = {
           indicators_of_compromise: Json | null
           known_tactics: string[] | null
           last_activity_at: string | null
+          last_assessed_at: string | null
+          motivations: Json | null
           network_affiliations: string[] | null
           profile_id: string | null
           status: string | null
@@ -31368,6 +31370,8 @@ export type Database = {
           indicators_of_compromise?: Json | null
           known_tactics?: string[] | null
           last_activity_at?: string | null
+          last_assessed_at?: string | null
+          motivations?: Json | null
           network_affiliations?: string[] | null
           profile_id?: string | null
           status?: string | null
@@ -31386,6 +31390,8 @@ export type Database = {
           indicators_of_compromise?: Json | null
           known_tactics?: string[] | null
           last_activity_at?: string | null
+          last_assessed_at?: string | null
+          motivations?: Json | null
           network_affiliations?: string[] | null
           profile_id?: string | null
           status?: string | null

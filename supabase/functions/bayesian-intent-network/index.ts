@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,6 +16,7 @@ interface IntentNode {
 
 interface BayesianRequest {
   profileId: string;
+  userId?: string;
   nodes: IntentNode[];
   edges: { from: string; to: string; cpt: number[][] }[]; // Conditional probability tables
   observations: { node_id: string; observed_state: string }[];
@@ -26,8 +28,26 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit via GET query param - before any auth/body parsing
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ ok: true, function: 'bayesian-intent-network', timestamp: Date.now() }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
-    const { profileId, nodes, edges, observations, queryNodes }: BayesianRequest = await req.json();
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const body = await req.json();
+    const profileId = body.profileId || body.profile_id;
+    const userId = body.userId || body.user_id;
+    const nodes = body.nodes || [];
+    const edges = body.edges || [];
+    const observations = body.observations || [];
+    const queryNodes = body.queryNodes || body.query_nodes || [];
 
     // Build adjacency list and CPT lookup
     const children: Record<string, string[]> = {};
@@ -165,24 +185,37 @@ serve(async (req) => {
       });
     }
 
-    return new Response(
-      JSON.stringify({
+    const result = {
+      profile_id: profileId,
+      posterior_probabilities: posteriors,
+      most_likely_intents: mostLikelyIntents,
+      uncertainties,
+      what_if_analysis: whatIfAnalysis,
+      observations_used: observations.length,
+      network_nodes: nodes.length,
+      inference_method: 'belief_propagation',
+      analyzed_at: new Date().toISOString(),
+    };
+
+    // Persist to ai_analyses for section availability detection (if userId provided)
+    if (userId && profileId) {
+      await supabase.from('ai_analyses').upsert({
+        user_id: userId,
         profile_id: profileId,
-        posterior_probabilities: posteriors,
-        most_likely_intents: mostLikelyIntents,
-        uncertainties,
-        what_if_analysis: whatIfAnalysis,
-        observations_used: observations.length,
-        network_nodes: nodes.length,
-        inference_method: 'belief_propagation',
-        analyzed_at: new Date().toISOString(),
-      }),
+        analysis_type: 'bayesian_intent',
+        result,
+        generated_at: new Date().toISOString()
+      }, { onConflict: 'profile_id,analysis_type' });
+    }
+
+    return new Response(
+      JSON.stringify(result),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Bayesian Intent Network error:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

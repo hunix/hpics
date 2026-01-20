@@ -30,26 +30,20 @@ serve(async (req) => {
 
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
-    // Create client with user's auth header for getClaims
-    const authClient = createClient(SUPABASE_URL, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
+    // Create service role client
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     
-    // Validate JWT using getClaims
+    // Validate JWT using getUser (modern pattern)
     const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
     
-    const userId = claimsData.claims.sub as string;
-    const user = { id: userId };
-    
-    // Use service role client for database operations
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    // Note: Already using service role client from above
 
     const { profile_id, analysis_depth = 'comprehensive', focus_areas, model_preference } = await req.json();
 
