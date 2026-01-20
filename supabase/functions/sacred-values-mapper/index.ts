@@ -157,7 +157,7 @@ ${observations.data?.map(o => `${o.category}: ${o.observation}`).join('\n') || '
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
       ],
-      userId: user.id,
+      userId,
       functionName: 'sacred-values-mapper',
       profileId,
       temperature: 0.6,
