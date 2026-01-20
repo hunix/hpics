@@ -74,21 +74,19 @@ Deno.serve(async (req) => {
         break;
 
       case 'observation':
-        // Save as observation
+        // Save as observation - using contact_observations table
         const { data: observation, error: obsError } = await supabase
-          .from('observations')
+          .from('contact_observations')
           .insert({
             user_id: user.id,
             profile_id: profileId,
-            observation_type: category || 'ai_insight',
-            content: content,
-            importance: importance || 'medium',
-            source: 'ai_agent',
-            metadata: {
-              question,
-              generated_at: new Date().toISOString(),
-              tags: tags || [],
-            },
+            category: category || 'ai_insight',
+            title: `AI Insight: ${(content || '').substring(0, 50)}...`,
+            observation: content,
+            confidence_level: importance === 'high' ? 'high' : importance === 'low' ? 'low' : 'medium',
+            ai_validation_status: 'validated',
+            ai_confidence_score: 0.85,
+            tags: tags || [],
           })
           .select()
           .single();

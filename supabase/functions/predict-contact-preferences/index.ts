@@ -81,10 +81,10 @@ serve(async (req) => {
         .order('created_at', { ascending: false })
         .limit(100),
       
-      // Observations
+      // Observations - using contact_observations table
       supabase
-        .from('observations')
-        .select('content, observation_type, importance, created_at')
+        .from('contact_observations')
+        .select('observation, category, confidence_level, created_at')
         .eq('profile_id', profileId)
         .order('created_at', { ascending: false })
         .limit(50),
@@ -128,10 +128,10 @@ serve(async (req) => {
         content: m.content?.substring(0, 500),
         direction: m.direction,
       })),
-      observations: (observationsResult.data || []).map(o => ({
-        content: o.content,
-        type: o.observation_type,
-        importance: o.importance,
+      observations: (observationsResult.data || []).map((o: any) => ({
+        content: o.observation,
+        type: o.category,
+        importance: o.confidence_level,
       })),
       media: (mediaResult.data || []).map(m => ({
         caption: m.caption,

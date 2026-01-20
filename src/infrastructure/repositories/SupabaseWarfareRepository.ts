@@ -7,9 +7,11 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Campaign, CampaignStatus, CampaignType } from '@/domains/warfare/entities/Campaign';
 import { Threat, ThreatLevel, ThreatStatus, calculateRiskScore } from '@/domains/warfare/entities/Threat';
+import { Strategy, StrategyStatus, StrategyType } from '@/domains/warfare/entities/Strategy';
 import { 
   ICampaignRepository, 
   IThreatRepository,
+  IStrategyRepository,
   CampaignQueryOptions,
   ThreatQueryOptions,
 } from '@/domains/warfare/repositories/IWarfareRepository';
@@ -547,5 +549,140 @@ export class SupabaseThreatRepository implements IThreatRepository {
 
   private getLevel(num: number): ThreatLevel {
     return (['minimal', 'low', 'medium', 'high', 'critical'] as ThreatLevel[])[Math.min(num - 1, 4)] || 'medium';
+  }
+}
+
+/**
+ * Supabase Strategy Repository Implementation
+ * Implements IStrategyRepository for strategic planning data
+ */
+export class SupabaseStrategyRepository implements IStrategyRepository {
+  constructor(private supabase: SupabaseClient) {}
+
+  async findById(id: string): Promise<Strategy | null> {
+    const { data, error } = await this.supabase
+      .from('influence_strategies')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error || !data) return null;
+    return this.mapToStrategy(data);
+  }
+
+  async findByUserId(userId: string): Promise<Strategy[]> {
+    const { data, error } = await this.supabase
+      .from('influence_strategies')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data || []).map(row => this.mapToStrategy(row));
+  }
+
+  async save(entity: Strategy): Promise<Strategy> {
+    const row = this.mapToRow(entity);
+    
+    const { data, error } = await this.supabase
+      .from('influence_strategies')
+      .upsert(row)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapToStrategy(data);
+  }
+
+  async delete(id: string): Promise<void> {
+    const { error } = await this.supabase
+      .from('influence_strategies')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  }
+
+  async findByCampaign(userId: string, campaignId: string): Promise<Strategy[]> {
+    const { data, error } = await this.supabase
+      .from('influence_strategies')
+      .select('*')
+      .eq('user_id', userId)
+      .contains('scope', [campaignId]);
+
+    if (error) throw error;
+    return (data || []).map(row => this.mapToStrategy(row));
+  }
+
+  async findActive(userId: string): Promise<Strategy[]> {
+    const { data, error } = await this.supabase
+      .from('influence_strategies')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_active', true);
+
+    if (error) throw error;
+    return (data || []).map(row => this.mapToStrategy(row));
+  }
+
+  private mapToStrategy(row: Record<string, unknown>): Strategy {
+    const strategyData = (row.strategy_elements as Record<string, unknown>) || {};
+    return {
+      id: row.id as string,
+      userId: row.user_id as string,
+      name: (row.strategy_name as string) || 'Unnamed Strategy',
+      description: (row.description as string) || '',
+      type: (row.strategy_type as StrategyType) || 'hybrid',
+      status: (row.is_active as boolean) ? 'active' : 'draft',
+      goals: ((strategyData.goals as unknown[]) || []).map((g: any) => ({
+        id: g.id || crypto.randomUUID(),
+        name: g.name || '',
+        description: g.description || '',
+        priority: g.priority || 1,
+        timeframe: g.timeframe || 'medium_term',
+        metrics: g.metrics || [],
+        status: g.status || 'not_started',
+      })),
+      playbooks: ((strategyData.playbooks as unknown[]) || []).map((p: any) => ({
+        id: p.id || crypto.randomUUID(),
+        name: p.name || '',
+        description: p.description || '',
+        tactics: p.tactics || [],
+        triggerConditions: p.triggerConditions || [],
+        successCriteria: p.successCriteria || [],
+        fallbackPlan: p.fallbackPlan || null,
+      })),
+      scope: ((row.target_profiles as string[]) || []),
+      constraints: ((strategyData.constraints as string[]) || []),
+      assumptions: ((strategyData.assumptions as string[]) || []),
+      risks: ((strategyData.risks as string[]) || []),
+      approvedBy: null,
+      approvedAt: null,
+      effectiveFrom: row.effective_date ? new Date(row.effective_date as string) : null,
+      effectiveUntil: null,
+      createdAt: new Date(row.created_at as string),
+      updatedAt: new Date((row.updated_at as string) || (row.created_at as string)),
+    };
+  }
+
+  private mapToRow(entity: Strategy): Record<string, unknown> {
+    return {
+      id: entity.id,
+      user_id: entity.userId,
+      strategy_name: entity.name,
+      strategy_type: entity.type,
+      description: entity.description,
+      is_active: entity.status === 'active',
+      target_profiles: entity.scope,
+      strategy_elements: {
+        goals: entity.goals,
+        playbooks: entity.playbooks,
+        constraints: entity.constraints,
+        assumptions: entity.assumptions,
+        risks: entity.risks,
+      },
+      effective_date: entity.effectiveFrom?.toISOString() || null,
+      updated_at: new Date().toISOString(),
+    };
   }
 }
