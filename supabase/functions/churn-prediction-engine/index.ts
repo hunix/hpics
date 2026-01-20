@@ -54,7 +54,7 @@ serve(async (req) => {
         .eq('prediction_type', 'churn')
         .order('created_at', { ascending: false })
         .limit(10),
-      supabase.from('life_milestones')
+      supabase.from('contact_life_milestones')
         .select('*')
         .eq('profile_id', profileId)
         .order('milestone_date', { ascending: false })

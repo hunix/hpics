@@ -243,18 +243,24 @@ async function extractEvidenceFromProfile(
 
   // Get interaction history
   const { data: interactions } = await supabase
-    .from('interaction_history')
-    .select('sentiment_score, engagement_score')
+    .from('contact_interaction_notes')
+    .select('relationship_temperature, mood_observed')
     .eq('profile_id', profileId)
-    .order('interaction_date', { ascending: false })
+    .order('created_at', { ascending: false })
     .limit(10);
 
   if (interactions && interactions.length > 0) {
-    const avgSentiment = interactions.reduce((a: number, i: any) => a + (i.sentiment_score || 50), 0) / interactions.length;
-    const avgEngagement = interactions.reduce((a: number, i: any) => a + (i.engagement_score || 50), 0) / interactions.length;
+    // Use relationship_temperature (1-10 scale) and mood_observed as proxies
+    const avgSentiment = interactions.reduce((a: number, i: any) => a + ((i.relationship_temperature || 5) * 10), 0) / interactions.length;
+    const avgEngagement = interactions.reduce((a: number, i: any) => {
+      const mood = (i.mood_observed || '').toLowerCase();
+      if (mood.includes('positive') || mood.includes('happy') || mood.includes('engaged')) return a + 70;
+      if (mood.includes('negative') || mood.includes('distant') || mood.includes('disengaged')) return a + 30;
+      return a + 50;
+    }, 0) / interactions.length;
 
     sources.push({
-      sourceType: 'interaction_history',
+      sourceType: 'contact_interaction_notes',
       hypotheses: {
         'engaged': avgEngagement > 60 ? 0.5 : 0.2,
         'disengaged': avgEngagement < 40 ? 0.4 : 0.1,

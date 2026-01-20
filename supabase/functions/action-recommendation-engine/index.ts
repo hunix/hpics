@@ -172,7 +172,7 @@ serve(async (req) => {
       supabase.from('financial_intelligence').select('profile_id, wealth_tier, opportunity_windows').eq('user_id', userId),
       supabase.from('power_network_analyses').select('strategic_opportunities, network_risks').eq('user_id', userId).order('analyzed_at', { ascending: false }).limit(1),
       supabase.from('deep_correlations').select('*').eq('user_id', userId).order('discovered_at', { ascending: false }).limit(20),
-      supabase.from('calendar_events').select('*').eq('user_id', userId).gte('start_time', new Date().toISOString()).limit(20),
+      supabase.from('events').select('*').eq('user_id', userId).gte('start_time', new Date().toISOString()).limit(20),
       supabase.from('relationship_health_scores').select('*').eq('user_id', userId).order('calculated_at', { ascending: false }).limit(50)
     ]);
 

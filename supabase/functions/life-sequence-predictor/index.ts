@@ -460,7 +460,7 @@ serve(async (req) => {
     if (!life_sequence && profile_id) {
       // Fetch life events from various sources
       const { data: milestones } = await supabaseClient
-        .from('life_milestones')
+        .from('contact_life_milestones')
         .select('*')
         .eq('profile_id', profile_id)
         .order('milestone_date', { ascending: false });
