@@ -267,6 +267,15 @@ ${context.communicationPatterns}`
         },
         valid_from: new Date().toISOString(),
       });
+
+      // Also persist to ai_analyses for section availability
+      await supabase.from('ai_analyses').upsert({
+        profile_id,
+        user_id: userId,
+        analysis_type: 'behavioral_prediction',
+        result: predictions,
+        generated_at: new Date().toISOString()
+      }, { onConflict: 'user_id,profile_id,analysis_type' });
     }
 
     // Log AI usage with config model
