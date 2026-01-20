@@ -250,8 +250,8 @@ function calculateCentrality(
 function calculateEigenvectorCentrality(
   nodes: NetworkNode[],
   adjacencyList: Map<string, Map<string, number>>,
-  iterations: number = 100,
-  tolerance: number = 1e-6
+  iterations: number = 20, // Reduced from 100 to prevent CPU timeout
+  tolerance: number = 1e-4  // Relaxed tolerance for faster convergence
 ): Map<string, number> {
   const scores = new Map<string, number>();
   
@@ -414,7 +414,7 @@ function calculatePageRank(
   nodes: NetworkNode[],
   adjacencyList: Map<string, Map<string, number>>,
   damping: number = 0.85,
-  iterations: number = 100
+  iterations: number = 20 // Reduced from 100 to prevent CPU timeout
 ): Map<string, number> {
   const n = nodes.length;
   const pageRank = new Map<string, number>();

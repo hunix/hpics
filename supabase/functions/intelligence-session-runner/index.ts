@@ -153,7 +153,20 @@ serve(async (req) => {
 
     let result: any;
 
-    switch (action) {
+    // Handle undefined action - default to 'start' if profileId is provided
+    const effectiveAction = action || (profileId ? 'start' : undefined);
+    
+    if (!effectiveAction) {
+      return new Response(JSON.stringify({ 
+        error: 'Action is required. Valid actions: start, resume, pause, cancel, retry_failed, retry_task',
+        validActions: ['start', 'resume', 'pause', 'cancel', 'retry_failed', 'retry_task']
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    switch (effectiveAction) {
       case 'start':
         result = await startSession(supabase, user.id, profileId!, forceRefresh || false);
         break;
@@ -173,7 +186,13 @@ serve(async (req) => {
         result = await retryTask(supabase, user.id, taskId!);
         break;
       default:
-        throw new Error(`Unknown action: ${action}`);
+        return new Response(JSON.stringify({ 
+          error: `Unknown action: ${effectiveAction}`,
+          validActions: ['start', 'resume', 'pause', 'cancel', 'retry_failed', 'retry_task']
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
     }
 
     return new Response(JSON.stringify(result), {
