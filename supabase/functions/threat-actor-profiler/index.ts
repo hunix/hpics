@@ -17,13 +17,45 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit via GET query param - before any auth/body parsing
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ ok: true, function: 'threat-actor-profiler', timestamp: Date.now() }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const lovableKey = Deno.env.get('LOVABLE_API_KEY');
     
     const supabase = createClient(supabaseUrl, supabaseKey);
-    const { userId, profileId, analysisDepth } = await req.json() as ThreatProfileRequest;
+    
+    // Handle both user tokens and service role calls
+    const authHeader = req.headers.get('Authorization');
+    const body = await req.json();
+    const token = authHeader?.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseKey;
+    
+    // Normalize parameter names
+    const profileId = body.profileId || body.profile_id;
+    const analysisDepth = body.analysisDepth || body.analysis_depth || 'standard';
+    let userId = body.userId || body.user_id;
+    
+    if (!isServiceRoleCall && authHeader) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token!);
+      if (!authError && user) {
+        userId = user.id;
+      }
+    }
+    
+    if (!profileId || !userId) {
+      return new Response(JSON.stringify({ error: 'profileId and userId are required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Gather intelligence on potential threat actor
     const [
@@ -172,6 +204,15 @@ Create comprehensive threat actor profile in JSON format:
       motivations: threatProfile.intentions,
       last_assessed_at: new Date().toISOString()
     }, { onConflict: 'user_id,profile_id' });
+
+    // Also persist to ai_analyses for section availability detection
+    await supabase.from('ai_analyses').upsert({
+      user_id: userId,
+      profile_id: profileId,
+      analysis_type: 'threat_actor',
+      result: threatProfile,
+      generated_at: new Date().toISOString()
+    }, { onConflict: 'profile_id,analysis_type' });
 
     return new Response(JSON.stringify({
       success: true,
