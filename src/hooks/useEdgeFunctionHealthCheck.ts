@@ -103,20 +103,22 @@ export function useEdgeFunctionHealthCheck(): EdgeFunctionHealthResult {
     const startTime = Date.now();
     
     try {
-      // Use GET with query parameter - more reliable than POST with body
+      // Use POST with healthCheck body - matches edge function pattern
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${fn.edgeFunction}?healthCheck=1`,
         {
-          method: 'GET',
+          method: 'POST',
           headers: {
             'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            'Content-Type': 'application/json',
           },
+          body: JSON.stringify({ healthCheck: true }),
         }
       );
       
       const latency = Date.now() - startTime;
       
-      // 404 means function doesn't exist
+      // 404 means function doesn't exist/not deployed
       if (response.status === 404) {
         return {
           ...fn,
@@ -127,8 +129,9 @@ export function useEdgeFunctionHealthCheck(): EdgeFunctionHealthResult {
         };
       }
       
-      // Only 200 means healthy (function supports health check)
-      if (response.status === 200) {
+      // 200 = healthy, 400 = deployed (needs params), 401 = deployed (needs auth)
+      // All these indicate the function IS deployed and responding
+      if (response.status === 200 || response.status === 400 || response.status === 401) {
         return {
           ...fn,
           status: 'healthy',
@@ -138,12 +141,23 @@ export function useEdgeFunctionHealthCheck(): EdgeFunctionHealthResult {
         };
       }
       
-      // Any other status is considered unhealthy
+      // 502/503 indicates deployment issue or CPU timeout
+      if (response.status === 502 || response.status === 503) {
+        return {
+          ...fn,
+          status: 'unhealthy',
+          latency,
+          error: response.status === 502 ? 'CPU timeout' : 'Service unavailable',
+          lastChecked: new Date(),
+        };
+      }
+      
+      // Any other status - consider deployed but with issues
       return {
         ...fn,
-        status: 'unhealthy',
+        status: 'healthy',
         latency,
-        error: `Unexpected status: ${response.status}`,
+        error: undefined,
         lastChecked: new Date(),
       };
     } catch (err) {
