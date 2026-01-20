@@ -362,8 +362,8 @@ serve(async (req) => {
       .limit(1000);
 
     const { data: interactions } = await supabase
-      .from('interaction_history')
-      .select('*')
+      .from('contact_interaction_notes')
+      .select('id, profile_id, interaction_type, interaction_date, note_text, mood_observed, topics_discussed')
       .eq('user_id', user.id)
       .order('interaction_date', { ascending: false })
       .limit(500);

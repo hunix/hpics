@@ -217,6 +217,15 @@ ${messages?.slice(0, 50).map(m => `[${m.direction}] ${m.content}`).join('\n\n') 
       risk_mitigation: analysis.intervention.specificRecommendations
     }, { onConflict: 'profile_id' });
 
+    // Also persist to ai_analyses for section availability detection
+    await supabase.from('ai_analyses').upsert({
+      user_id: user.id,
+      profile_id: request.profileId,
+      analysis_type: 'gottman_analysis',
+      result: analysis,
+      generated_at: new Date().toISOString()
+    }, { onConflict: 'profile_id,analysis_type' });
+
     return new Response(JSON.stringify({
       success: true,
       analysis,

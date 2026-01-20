@@ -161,6 +161,19 @@ serve(async (req) => {
     else if (overallControlScore > 0.4) controlPhase = 'Active Conditioning';
     else if (overallControlScore > 0.2) controlPhase = 'Trust Building';
 
+    // Also persist to ai_analyses for section availability detection
+    await supabaseClient.from('ai_analyses').upsert({
+      user_id: userId,
+      profile_id: profileId,
+      analysis_type: 'cult_tactics',
+      result: {
+        biteMetrics,
+        overallControlScore,
+        controlPhase,
+      },
+      generated_at: new Date().toISOString()
+    }, { onConflict: 'profile_id,analysis_type' });
+
     return new Response(
       JSON.stringify({
         success: true,
