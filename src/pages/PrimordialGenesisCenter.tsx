@@ -62,7 +62,7 @@ export default function PrimordialGenesisCenter() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Creation Potential</p>
-                  <p className="text-2xl font-bold text-amber-400">{synthesis?.reduce((s, x) => s + Number(x.creation_potential || 0), 0).toFixed(0)}%</p>
+                  <p className="text-2xl font-bold text-amber-400">{synthesis?.reduce((s, x) => s + Number(x.synthesis_intensity || 0), 0).toFixed(0)}%</p>
                 </div>
                 <Zap className="h-8 w-8 text-amber-500" />
               </div>
@@ -99,7 +99,7 @@ export default function PrimordialGenesisCenter() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Genesis Synthesis</CardTitle>
-                <Button onClick={() => createSynthesis.mutate({ synthesis_type: 'matter-energy', creation_potential: 25 })} className="bg-red-600 hover:bg-red-700">
+                <Button onClick={() => createSynthesis.mutate({ synthesis_mode: 'matter-energy', synthesis_intensity: 25 })} className="bg-red-600 hover:bg-red-700">
                   <Sparkles className="h-4 w-4 mr-2" />Initiate Synthesis
                 </Button>
               </CardHeader>
@@ -108,10 +108,10 @@ export default function PrimordialGenesisCenter() {
                   <div className="grid gap-4">{synthesis?.map((s) => (
                     <div key={s.id} className="p-4 rounded-lg border border-red-500/30 bg-red-950/20">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium capitalize">{String(s.synthesis_type)}</span>
-                        <Badge variant="outline">Potential: {String(s.creation_potential)}%</Badge>
+                        <span className="font-medium capitalize">{String(s.synthesis_mode)}</span>
+                        <Badge variant="outline">Intensity: {String(s.synthesis_intensity || 0)}%</Badge>
                       </div>
-                      <Progress value={Number(s.creation_potential)} className="h-2" />
+                      <Progress value={Number(s.synthesis_intensity || 0)} className="h-2" />
                     </div>
                   ))}</div>
                 )}
