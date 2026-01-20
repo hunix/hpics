@@ -374,10 +374,10 @@ serve(async (req) => {
 
     // Get recent interactions
     const { data: interactions } = await supabase
-      .from('interaction_history')
+      .from('contact_interaction_notes')
       .select('*')
       .eq('profile_id', profileId)
-      .order('interaction_date', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(50);
 
     // Run SMGA loop

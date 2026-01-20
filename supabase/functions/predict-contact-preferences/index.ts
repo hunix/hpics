@@ -98,7 +98,7 @@ serve(async (req) => {
       
       // Calendar events
       supabase
-        .from('calendar_events')
+        .from('events')
         .select('title, description, location')
         .eq('profile_id', profileId)
         .limit(30),

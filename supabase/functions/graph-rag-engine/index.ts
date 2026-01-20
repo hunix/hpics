@@ -134,10 +134,10 @@ async function buildKnowledgeGraph(
 
   // Get interactions and create event nodes
   const { data: interactions } = await supabase
-    .from('interaction_history')
+    .from('contact_interaction_notes')
     .select('*')
     .eq('user_id', userId)
-    .order('interaction_date', { ascending: false })
+    .order('created_at', { ascending: false })
     .limit(200);
 
   for (const interaction of interactions || []) {

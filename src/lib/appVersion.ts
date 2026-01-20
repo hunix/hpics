@@ -2,13 +2,12 @@
  * Application Version Management
  * Used for cache busting and version tracking
  * 
- * v3.9.11: Enterprise Intelligence Pipeline Alignment
- *          - Fixed omega-point-tracker: added ai_analyses upsert (analysis_type: 'omega_point')
- *          - Fixed mass-formation-analyzer: added ai_analyses upsert (analysis_type: 'mass_formation')
- *          - Fixed omniscient-orchestrator: insert → upsert for ai_analyses
- *          - Fixed analyze-network-graph: insert → upsert for ai_analyses
- *          - Fixed sectionDataSources: manipulation_vulnerability → manipulation_susceptibility
- *          - Added new section mappings: omegaPoint, massFormation, morphicResonance, networkGraph
+ * v3.9.16: Extended Schema Alignment
+ *          - Fixed life_milestones → contact_life_milestones (4 functions)
+ *          - Fixed calendar_events → events (2 functions)
+ *          - Fixed interaction_history → contact_interaction_notes (3 functions)
+ *          - Fixed contact_enrichment_data → contact_observations (1 function)
+ * v3.9.15: Schema alignment - Added unique constraints, fixed column mismatches, health checks, auth patterns
  * v3.9.10: Extended Edge Function Schema Alignment Phase 5
  *          - Fixed mosaic-intelligence-fuser: insert → upsert for ai_analyses
  *          - Fixed adversary-profiler: added health check
@@ -57,12 +56,12 @@
  * v3.9.0: DDD Barrel Export Compliance - IDE performance optimization
  * v3.8.9: Schema Remediation - Fixed 13 edge functions with contact_observations column mismatches
  */
-export const APP_VERSION = '3.9.15';
+export const APP_VERSION = '3.9.16';
 export const BUILD_TIMESTAMP = new Date().toISOString();
 
 // Versions that require forced cache clear when upgrading from
-// v3.9.15: Schema alignment - Added unique constraints, fixed column mismatches, health checks, auth patterns
-export const FORCE_CLEAR_VERSIONS = ['3.9.14', '3.9.13', '3.9.12', '3.9.11', '3.9.10', '3.9.9', '3.9.8', '3.9.7', '3.9.6', '3.9.5', '3.9.4', '3.9.3', '3.9.2', '3.9.1', '3.9.0', '3.8.9', '3.8.8', '3.8.7', '3.8.6', '3.8.5', '3.8.4', '3.8.3', '3.8.2', '3.8.1', '3.8.0', '3.7.7', '3.7.6', '3.7.5', '3.7.4', '3.7.3', '3.7.2', '3.7.1', '3.7.0', '3.6.1', '3.6.0', '3.5.0'];
+// v3.9.16: Extended schema alignment - Fixed 10 edge functions with table name mismatches
+export const FORCE_CLEAR_VERSIONS = ['3.9.15', '3.9.14', '3.9.13', '3.9.12', '3.9.11', '3.9.10', '3.9.9', '3.9.8', '3.9.7', '3.9.6', '3.9.5', '3.9.4', '3.9.3', '3.9.2', '3.9.1', '3.9.0', '3.8.9', '3.8.8', '3.8.7', '3.8.6', '3.8.5', '3.8.4', '3.8.3', '3.8.2', '3.8.1', '3.8.0', '3.7.7', '3.7.6', '3.7.5', '3.7.4', '3.7.3', '3.7.2', '3.7.1', '3.7.0', '3.6.1', '3.6.0', '3.5.0'];
 
 // Cache key for tracking chunk errors
 const CHUNK_ERROR_KEY = 'chunk_error_count';

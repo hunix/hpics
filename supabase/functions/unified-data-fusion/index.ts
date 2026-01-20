@@ -382,7 +382,7 @@ async function getDataCompleteness(supabase: any, userId: string, profileId: str
     { name: "voiceAnalyses", table: "vocal_analyses", filter: { profile_id: profileId } },
     { name: "facialAnalyses", table: "facial_analyses", filter: { profile_id: profileId } },
     { name: "bodyLanguage", table: "body_language_analyses", filter: { profile_id: profileId } },
-    { name: "enrichmentData", table: "contact_enrichment_data", filter: { profile_id: profileId } },
+    { name: "enrichmentData", table: "contact_observations", filter: { profile_id: profileId } }, // contact_enrichment_data doesn't exist, use observations
     { name: "relationships", table: "contact_relationships", filter: {} }, // Special handling
     { name: "aiAnalyses", table: "ai_analyses", filter: { profile_id: profileId } },
     { name: "biometricSamples", table: "biometric_samples", filter: { profile_id: profileId } },
