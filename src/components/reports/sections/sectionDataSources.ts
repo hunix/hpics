@@ -1,13 +1,14 @@
 /**
- * Section Data Sources Mapping (v5.3)
+ * Section Data Sources Mapping (v5.5)
  * Maps section IDs to their data sources for availability checking
  * 
+ * v5.5: Complete analysis_type alignment with edge function outputs
+ *       - deception_detection → enhanced_deception_detection (matches enhanced-deception-detector)
+ *       - mosaic_intelligence → mosaic_intelligence_fusion (matches mosaic-intelligence-fuser)
+ *       - omniscient_synthesis → omniscient_orchestration (matches omniscient-orchestrator)
+ *       - Added: omegaPoint, massFormation, morphicResonance, networkGraph, omniscientOrchestration
+ * v5.4: Added convergence sections (omega_point, mass_formation, morphic_resonance, network_graph)
  * v5.3: Aligned analysis_type values with actual edge function outputs
- *       - mosaic_intelligence → mosaic_intelligence_fusion
- *       - deception_analysis → enhanced_deception_detection
- *       - counter_intel → counter_intelligence
- *       - Added new sections: manipulationSusceptibility, coercionResistance, 
- *         existentialLeverage, networkExploitation
  */
 
 export interface SectionDataSource {
@@ -47,9 +48,9 @@ export const SECTION_DATA_SOURCES: Record<string, SectionDataSource> = {
   hypnoticPatterns: { type: 'ai_analyses', analysisType: 'hypnotic_patterns' },
   elicitation: { type: 'ai_analyses', analysisType: 'elicitation_guide' },
   cognitiveLoad: { type: 'ai_analyses', analysisType: 'cognitive_load' },
-  mediaIntel: { type: 'table', table: 'media' },
+  mediaIntel: { type: 'ai_analyses', analysisType: 'aggregate_intelligence' },
   voiceIntel: { type: 'table', table: 'voice_recording_sessions' },
-  // FIXED: edge function stores 'enhanced_deception_detection' not 'deception_analysis'
+  // FIXED: edge function stores 'enhanced_deception_detection' - must match exactly
   deceptionAnalysis: { type: 'ai_analyses', analysisType: 'enhanced_deception_detection' },
   actionPlans: { type: 'table', table: 'action_recommendations' },
 
@@ -93,11 +94,15 @@ export const SECTION_DATA_SOURCES: Record<string, SectionDataSource> = {
   sentimentAnalysis: { type: 'ai_analyses', analysisType: 'sentiment' },
   relationshipScore: { type: 'ai_analyses', analysisType: 'relationship_score' },
   intelligenceDossier: { type: 'ai_analyses', analysisType: 'intelligence_dossier' },
-  // NEW: Advanced convergence sections (v5.4)
+  // NEW: Advanced convergence sections (v5.5)
   omegaPoint: { type: 'ai_analyses', analysisType: 'omega_point' },
   massFormation: { type: 'ai_analyses', analysisType: 'mass_formation' },
   morphicResonance: { type: 'ai_analyses', analysisType: 'morphic_resonance' },
   networkGraph: { type: 'ai_analyses', analysisType: 'network_graph' },
+  omniscientOrchestration: { type: 'ai_analyses', analysisType: 'omniscient_orchestration' },
+  unifiedFusion: { type: 'ai_analyses', analysisType: 'unified_fusion' },
+  fullDossier: { type: 'ai_analyses', analysisType: 'full_dossier' },
+  aggregateIntelligence: { type: 'ai_analyses', analysisType: 'aggregate_intelligence' },
   
   // Defense Operations (10 sections - v5.0) - Now check ai_analyses instead of empty tables
   opsecAssessment: { type: 'ai_analyses', analysisType: 'opsec_assessment' },
