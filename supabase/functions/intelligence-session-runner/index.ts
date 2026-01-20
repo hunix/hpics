@@ -49,6 +49,18 @@ const INTELLIGENCE_TASKS = [
   { name: 'Omniscient Orchestrator', edgeFunction: 'omniscient-orchestrator', analysisType: 'full_synthesis', category: 'fusion', priority: 6 },
   { name: 'Intelligence Dossier', edgeFunction: 'generate-intelligence-dossier', analysisType: 'full_dossier', category: 'fusion', priority: 6 },
   { name: 'Aggregate Intelligence', edgeFunction: 'aggregate-media-intelligence', analysisType: 'full_aggregation', category: 'fusion', priority: 6 },
+  
+  // Defense Operations (Priority 7) - 10 new warfare tasks (v5.0)
+  { name: 'OPSEC Vulnerability', edgeFunction: 'opsec-vulnerability-analyzer', analysisType: 'opsec_assessment', category: 'defense', priority: 7 },
+  { name: 'Social Engineering', edgeFunction: 'social-engineering-detector', analysisType: 'social_engineering', category: 'defense', priority: 7 },
+  { name: 'Crisis Response', edgeFunction: 'crisis-response-orchestrator', analysisType: 'crisis_response', category: 'defense', priority: 7 },
+  { name: 'Lawfare Defense', edgeFunction: 'lawfare-defense-analyzer', analysisType: 'lawfare_defense', category: 'defense', priority: 7 },
+  { name: 'Reputation Defense', edgeFunction: 'reputation-defense-engine', analysisType: 'reputation_defense', category: 'defense', priority: 7 },
+  { name: 'Behavioral Baseline', edgeFunction: 'behavioral-baseline-monitor', analysisType: 'behavioral_baseline', category: 'defense', priority: 7 },
+  { name: 'Family Protection', edgeFunction: 'family-protection-analyzer', analysisType: 'family_protection', category: 'defense', priority: 7 },
+  { name: 'Economic Warfare', edgeFunction: 'economic-warfare-detector', analysisType: 'economic_warfare', category: 'defense', priority: 7 },
+  { name: 'TSCM Sweep', edgeFunction: 'tscm-sweep-analyzer', analysisType: 'tscm_sweep', category: 'defense', priority: 7 },
+  { name: 'Digital Footprint', edgeFunction: 'digital-footprint-scanner', analysisType: 'digital_footprint', category: 'defense', priority: 7 },
 ];
 
 // Circuit breaker state (in-memory for this execution)
@@ -395,8 +407,8 @@ async function processSessionTasks(supabase: any, sessionId: string, userId: str
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
-  // Process tasks by priority groups (1-6, no priority 7)
-  const priorities = [1, 2, 3, 4, 5, 6];
+  // Process tasks by priority groups (1-7)
+  const priorities = [1, 2, 3, 4, 5, 6, 7];
   
   for (const priority of priorities) {
     // Check if session is still running

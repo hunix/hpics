@@ -368,5 +368,44 @@ export type AGISObjectiveTracking = Tables['agis_objective_tracking']['Row'];
 export type AGISPhaseSynergy = Tables['agis_phase_synergies']['Row'];
 export type AGISCascadeRule = Tables['agis_cascade_rules']['Row'];
 
+// ============================================
+// New Warfare Enhancement types (v5.0)
+// ============================================
+export type OpsecAssessment = Tables['opsec_assessments']['Row'];
+export type OpsecAssessmentInsert = Tables['opsec_assessments']['Insert'];
+
+export type DigitalFootprintItem = Tables['digital_footprint_items']['Row'];
+export type DigitalFootprintItemInsert = Tables['digital_footprint_items']['Insert'];
+
+export type SocialEngineeringIncident = Tables['social_engineering_incidents']['Row'];
+export type SocialEngineeringIncidentInsert = Tables['social_engineering_incidents']['Insert'];
+
+export type HoneyProfile = Tables['honey_profiles']['Row'];
+export type HoneyProfileInsert = Tables['honey_profiles']['Insert'];
+
+export type LegalThreatAssessment = Tables['legal_threat_assessments']['Row'];
+export type LegalThreatAssessmentInsert = Tables['legal_threat_assessments']['Insert'];
+
+export type ReputationIncident = Tables['reputation_incidents']['Row'];
+export type ReputationIncidentInsert = Tables['reputation_incidents']['Insert'];
+
+export type ProtectedPerson = Tables['protected_persons']['Row'];
+export type ProtectedPersonInsert = Tables['protected_persons']['Insert'];
+
+export type EmergencyProtocol = Tables['emergency_protocols']['Row'];
+export type EmergencyProtocolInsert = Tables['emergency_protocols']['Insert'];
+
+export type CrisisEvent = Tables['crisis_events']['Row'];
+export type CrisisEventInsert = Tables['crisis_events']['Insert'];
+
+export type EconomicThreatAssessment = Tables['economic_threat_assessments']['Row'];
+export type EconomicThreatAssessmentInsert = Tables['economic_threat_assessments']['Insert'];
+
+export type TscmSweepResult = Tables['tscm_sweep_results']['Row'];
+export type TscmSweepResultInsert = Tables['tscm_sweep_results']['Insert'];
+
+export type BehavioralBaseline = Tables['behavioral_baselines']['Row'];
+export type BehavioralBaselineInsert = Tables['behavioral_baselines']['Insert'];
+
 // Export the full Database type for advanced use cases only
 export type { Database };

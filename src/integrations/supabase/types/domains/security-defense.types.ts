@@ -1639,4 +1639,506 @@ export interface SecurityDefenseTables {
           },
         ]
       }
+
+  // ============================================
+  // New Warfare Enhancement Tables (v5.0)
+  // ============================================
+  opsec_assessments: {
+    Row: {
+      id: string
+      user_id: string
+      profile_id: string | null
+      overall_score: number | null
+      digital_exposure_score: number | null
+      physical_security_score: number | null
+      communication_security_score: number | null
+      vulnerabilities: Json | null
+      recommendations: Json | null
+      threat_vectors: Json | null
+      assessed_at: string
+      created_at: string
+      updated_at: string
+    }
+    Insert: {
+      id?: string
+      user_id: string
+      profile_id?: string | null
+      overall_score?: number | null
+      digital_exposure_score?: number | null
+      physical_security_score?: number | null
+      communication_security_score?: number | null
+      vulnerabilities?: Json | null
+      recommendations?: Json | null
+      threat_vectors?: Json | null
+      assessed_at?: string
+      created_at?: string
+      updated_at?: string
+    }
+    Update: {
+      id?: string
+      user_id?: string
+      profile_id?: string | null
+      overall_score?: number | null
+      digital_exposure_score?: number | null
+      physical_security_score?: number | null
+      communication_security_score?: number | null
+      vulnerabilities?: Json | null
+      recommendations?: Json | null
+      threat_vectors?: Json | null
+      assessed_at?: string
+      created_at?: string
+      updated_at?: string
+    }
+    Relationships: []
+  }
+  digital_footprint_items: {
+    Row: {
+      id: string
+      user_id: string
+      profile_id: string | null
+      platform: string
+      data_type: string
+      exposure_level: string | null
+      content_summary: string | null
+      url: string | null
+      discovered_at: string
+      remediation_status: string | null
+      risk_score: number | null
+      created_at: string
+    }
+    Insert: {
+      id?: string
+      user_id: string
+      profile_id?: string | null
+      platform: string
+      data_type: string
+      exposure_level?: string | null
+      content_summary?: string | null
+      url?: string | null
+      discovered_at?: string
+      remediation_status?: string | null
+      risk_score?: number | null
+      created_at?: string
+    }
+    Update: {
+      id?: string
+      user_id?: string
+      profile_id?: string | null
+      platform?: string
+      data_type?: string
+      exposure_level?: string | null
+      content_summary?: string | null
+      url?: string | null
+      discovered_at?: string
+      remediation_status?: string | null
+      risk_score?: number | null
+      created_at?: string
+    }
+    Relationships: []
+  }
+  social_engineering_incidents: {
+    Row: {
+      id: string
+      user_id: string
+      profile_id: string | null
+      incident_type: string
+      attack_vector: string | null
+      threat_level: number | null
+      detected_at: string
+      details: Json | null
+      recommendations: Json | null
+      status: string | null
+      created_at: string
+    }
+    Insert: {
+      id?: string
+      user_id: string
+      profile_id?: string | null
+      incident_type: string
+      attack_vector?: string | null
+      threat_level?: number | null
+      detected_at?: string
+      details?: Json | null
+      recommendations?: Json | null
+      status?: string | null
+      created_at?: string
+    }
+    Update: {
+      id?: string
+      user_id?: string
+      profile_id?: string | null
+      incident_type?: string
+      attack_vector?: string | null
+      threat_level?: number | null
+      detected_at?: string
+      details?: Json | null
+      recommendations?: Json | null
+      status?: string | null
+      created_at?: string
+    }
+    Relationships: []
+  }
+  honey_profiles: {
+    Row: {
+      id: string
+      user_id: string
+      profile_id: string | null
+      honey_type: string
+      persona_data: Json | null
+      deployment_status: string | null
+      interactions_logged: number | null
+      threat_detections: Json | null
+      created_at: string
+      updated_at: string
+    }
+    Insert: {
+      id?: string
+      user_id: string
+      profile_id?: string | null
+      honey_type: string
+      persona_data?: Json | null
+      deployment_status?: string | null
+      interactions_logged?: number | null
+      threat_detections?: Json | null
+      created_at?: string
+      updated_at?: string
+    }
+    Update: {
+      id?: string
+      user_id?: string
+      profile_id?: string | null
+      honey_type?: string
+      persona_data?: Json | null
+      deployment_status?: string | null
+      interactions_logged?: number | null
+      threat_detections?: Json | null
+      created_at?: string
+      updated_at?: string
+    }
+    Relationships: []
+  }
+  legal_threat_assessments: {
+    Row: {
+      id: string
+      user_id: string
+      profile_id: string | null
+      threat_type: string
+      jurisdiction: string | null
+      severity: string | null
+      likelihood: number | null
+      defensive_options: Json | null
+      assessed_at: string
+      status: string | null
+      created_at: string
+    }
+    Insert: {
+      id?: string
+      user_id: string
+      profile_id?: string | null
+      threat_type: string
+      jurisdiction?: string | null
+      severity?: string | null
+      likelihood?: number | null
+      defensive_options?: Json | null
+      assessed_at?: string
+      status?: string | null
+      created_at?: string
+    }
+    Update: {
+      id?: string
+      user_id?: string
+      profile_id?: string | null
+      threat_type?: string
+      jurisdiction?: string | null
+      severity?: string | null
+      likelihood?: number | null
+      defensive_options?: Json | null
+      assessed_at?: string
+      status?: string | null
+      created_at?: string
+    }
+    Relationships: []
+  }
+  reputation_incidents: {
+    Row: {
+      id: string
+      user_id: string
+      profile_id: string | null
+      incident_type: string
+      platform: string | null
+      severity: number | null
+      detected_at: string
+      content_summary: string | null
+      response_strategy: Json | null
+      status: string | null
+      created_at: string
+    }
+    Insert: {
+      id?: string
+      user_id: string
+      profile_id?: string | null
+      incident_type: string
+      platform?: string | null
+      severity?: number | null
+      detected_at?: string
+      content_summary?: string | null
+      response_strategy?: Json | null
+      status?: string | null
+      created_at?: string
+    }
+    Update: {
+      id?: string
+      user_id?: string
+      profile_id?: string | null
+      incident_type?: string
+      platform?: string | null
+      severity?: number | null
+      detected_at?: string
+      content_summary?: string | null
+      response_strategy?: Json | null
+      status?: string | null
+      created_at?: string
+    }
+    Relationships: []
+  }
+  protected_persons: {
+    Row: {
+      id: string
+      user_id: string
+      name: string
+      relationship: string | null
+      protection_level: string | null
+      security_protocols: Json | null
+      emergency_contacts: Json | null
+      created_at: string
+      updated_at: string
+    }
+    Insert: {
+      id?: string
+      user_id: string
+      name: string
+      relationship?: string | null
+      protection_level?: string | null
+      security_protocols?: Json | null
+      emergency_contacts?: Json | null
+      created_at?: string
+      updated_at?: string
+    }
+    Update: {
+      id?: string
+      user_id?: string
+      name?: string
+      relationship?: string | null
+      protection_level?: string | null
+      security_protocols?: Json | null
+      emergency_contacts?: Json | null
+      created_at?: string
+      updated_at?: string
+    }
+    Relationships: []
+  }
+  emergency_protocols: {
+    Row: {
+      id: string
+      user_id: string
+      protocol_name: string
+      trigger_conditions: Json | null
+      response_steps: Json | null
+      contacts: Json | null
+      is_active: boolean
+      last_tested_at: string | null
+      created_at: string
+      updated_at: string
+    }
+    Insert: {
+      id?: string
+      user_id: string
+      protocol_name: string
+      trigger_conditions?: Json | null
+      response_steps?: Json | null
+      contacts?: Json | null
+      is_active?: boolean
+      last_tested_at?: string | null
+      created_at?: string
+      updated_at?: string
+    }
+    Update: {
+      id?: string
+      user_id?: string
+      protocol_name?: string
+      trigger_conditions?: Json | null
+      response_steps?: Json | null
+      contacts?: Json | null
+      is_active?: boolean
+      last_tested_at?: string | null
+      created_at?: string
+      updated_at?: string
+    }
+    Relationships: []
+  }
+  crisis_events: {
+    Row: {
+      id: string
+      user_id: string
+      profile_id: string | null
+      crisis_type: string
+      severity: string | null
+      detected_at: string
+      status: string | null
+      escalation_level: number | null
+      response_actions: Json | null
+      timeline: Json | null
+      resolved_at: string | null
+      created_at: string
+    }
+    Insert: {
+      id?: string
+      user_id: string
+      profile_id?: string | null
+      crisis_type: string
+      severity?: string | null
+      detected_at?: string
+      status?: string | null
+      escalation_level?: number | null
+      response_actions?: Json | null
+      timeline?: Json | null
+      resolved_at?: string | null
+      created_at?: string
+    }
+    Update: {
+      id?: string
+      user_id?: string
+      profile_id?: string | null
+      crisis_type?: string
+      severity?: string | null
+      detected_at?: string
+      status?: string | null
+      escalation_level?: number | null
+      response_actions?: Json | null
+      timeline?: Json | null
+      resolved_at?: string | null
+      created_at?: string
+    }
+    Relationships: []
+  }
+  economic_threat_assessments: {
+    Row: {
+      id: string
+      user_id: string
+      profile_id: string | null
+      threat_type: string
+      financial_exposure: number | null
+      threat_actors: Json | null
+      countermeasures: Json | null
+      assessed_at: string
+      status: string | null
+      created_at: string
+    }
+    Insert: {
+      id?: string
+      user_id: string
+      profile_id?: string | null
+      threat_type: string
+      financial_exposure?: number | null
+      threat_actors?: Json | null
+      countermeasures?: Json | null
+      assessed_at?: string
+      status?: string | null
+      created_at?: string
+    }
+    Update: {
+      id?: string
+      user_id?: string
+      profile_id?: string | null
+      threat_type?: string
+      financial_exposure?: number | null
+      threat_actors?: Json | null
+      countermeasures?: Json | null
+      assessed_at?: string
+      status?: string | null
+      created_at?: string
+    }
+    Relationships: []
+  }
+  tscm_sweep_results: {
+    Row: {
+      id: string
+      user_id: string
+      profile_id: string | null
+      sweep_type: string
+      location: string | null
+      sweep_date: string
+      devices_detected: Json | null
+      vulnerabilities_found: Json | null
+      recommendations: Json | null
+      status: string | null
+      created_at: string
+    }
+    Insert: {
+      id?: string
+      user_id: string
+      profile_id?: string | null
+      sweep_type: string
+      location?: string | null
+      sweep_date?: string
+      devices_detected?: Json | null
+      vulnerabilities_found?: Json | null
+      recommendations?: Json | null
+      status?: string | null
+      created_at?: string
+    }
+    Update: {
+      id?: string
+      user_id?: string
+      profile_id?: string | null
+      sweep_type?: string
+      location?: string | null
+      sweep_date?: string
+      devices_detected?: Json | null
+      vulnerabilities_found?: Json | null
+      recommendations?: Json | null
+      status?: string | null
+      created_at?: string
+    }
+    Relationships: []
+  }
+  behavioral_baselines: {
+    Row: {
+      id: string
+      user_id: string
+      profile_id: string | null
+      baseline_date: string
+      normal_patterns: Json | null
+      deviation_thresholds: Json | null
+      current_deviations: Json | null
+      anomaly_alerts: Json | null
+      created_at: string
+      updated_at: string
+    }
+    Insert: {
+      id?: string
+      user_id: string
+      profile_id?: string | null
+      baseline_date?: string
+      normal_patterns?: Json | null
+      deviation_thresholds?: Json | null
+      current_deviations?: Json | null
+      anomaly_alerts?: Json | null
+      created_at?: string
+      updated_at?: string
+    }
+    Update: {
+      id?: string
+      user_id?: string
+      profile_id?: string | null
+      baseline_date?: string
+      normal_patterns?: Json | null
+      deviation_thresholds?: Json | null
+      current_deviations?: Json | null
+      anomaly_alerts?: Json | null
+      created_at?: string
+      updated_at?: string
+    }
+    Relationships: []
+  }
 }
