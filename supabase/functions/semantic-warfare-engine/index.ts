@@ -26,6 +26,14 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit via GET query param
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ ok: true, function: 'semantic-warfare-engine', timestamp: Date.now() }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -147,6 +155,15 @@ Operation Type: ${request.operationType}`;
         status: 'planning'
       });
     }
+
+    // Always persist to ai_analyses for section availability
+    await supabase.from('ai_analyses').upsert({
+      user_id: user.id,
+      profile_id: request.profileId || null,
+      analysis_type: 'semantic_warfare',
+      result: analysis,
+      generated_at: new Date().toISOString()
+    }, { onConflict: 'profile_id,analysis_type' });
 
     return new Response(JSON.stringify({
       success: true,

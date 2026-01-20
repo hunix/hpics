@@ -172,6 +172,15 @@ Desired Outcome: ${request.desiredOutcome}`;
       status: 'draft'
     }).select().single();
 
+    // Persist to ai_analyses for section availability
+    await supabase.from('ai_analyses').upsert({
+      user_id: userId,
+      profile_id: request.profileIds?.[0] || null,
+      analysis_type: 'memetic_propagation',
+      result: campaign,
+      generated_at: new Date().toISOString()
+    }, { onConflict: 'profile_id,analysis_type' });
+
     return new Response(JSON.stringify({
       success: true,
       campaign,

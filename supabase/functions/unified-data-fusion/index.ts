@@ -231,7 +231,7 @@ async function comprehensiveFusion(supabase: any, userId: string, profileId: str
 
   // 11. Voice Analyses
   const { data: voiceAnalyses } = await supabase
-    .from("voice_analyses")
+    .from("vocal_analyses")
     .select("*")
     .eq("profile_id", profileId)
     .eq("user_id", userId);
@@ -240,7 +240,7 @@ async function comprehensiveFusion(supabase: any, userId: string, profileId: str
 
   // 12. Facial Analyses
   const { data: facialAnalyses } = await supabase
-    .from("facial_emotion_analyses")
+    .from("facial_analyses")
     .select("*")
     .eq("profile_id", profileId)
     .eq("user_id", userId);
@@ -256,12 +256,13 @@ async function comprehensiveFusion(supabase: any, userId: string, profileId: str
   dataCollections.bodyLanguage = bodyLanguage || [];
   completenessScores.bodyLanguage = (bodyLanguage?.length || 0) > 0 ? 1 : 0;
 
-  // 14. Enrichment Data
+  // 14. Enrichment Data - fetch from ai_analyses instead of non-existent table
   const { data: enrichmentData } = await supabase
-    .from("contact_enrichment_data")
+    .from("ai_analyses")
     .select("*")
     .eq("profile_id", profileId)
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .eq("analysis_type", "enrichment");
   dataCollections.enrichmentData = enrichmentData || [];
   completenessScores.enrichmentData = (enrichmentData?.length || 0) > 0 ? 1 : 0;
 
@@ -378,8 +379,8 @@ async function getDataCompleteness(supabase: any, userId: string, profileId: str
     { name: "observations", table: "contact_observations", filter: { profile_id: profileId } },
     { name: "behavioralAnalyses", table: "behavioral_analyses", filter: { profile_id: profileId } },
     { name: "psychologicalProfile", table: "psychological_profiles", filter: { profile_id: profileId } },
-    { name: "voiceAnalyses", table: "voice_analyses", filter: { profile_id: profileId } },
-    { name: "facialAnalyses", table: "facial_emotion_analyses", filter: { profile_id: profileId } },
+    { name: "voiceAnalyses", table: "vocal_analyses", filter: { profile_id: profileId } },
+    { name: "facialAnalyses", table: "facial_analyses", filter: { profile_id: profileId } },
     { name: "bodyLanguage", table: "body_language_analyses", filter: { profile_id: profileId } },
     { name: "enrichmentData", table: "contact_enrichment_data", filter: { profile_id: profileId } },
     { name: "relationships", table: "contact_relationships", filter: {} }, // Special handling

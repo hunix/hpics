@@ -36,7 +36,7 @@ serve(async (req) => {
     const [interactions, predictions, milestones, anomalies] = await Promise.all([
       supabaseClient.from('contact_interaction_notes').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(100),
       supabaseClient.from('behavioral_predictions').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(50),
-      supabaseClient.from('life_milestones').select('*').eq('profile_id', profileId).order('milestone_date', { ascending: false }).limit(30),
+      supabaseClient.from('contact_life_milestones').select('*').eq('profile_id', profileId).order('milestone_date', { ascending: false }).limit(30),
       supabaseClient.from('behavioral_anomalies').select('*').eq('profile_id', profileId).order('detected_at', { ascending: false }).limit(30)
     ]);
 
@@ -164,6 +164,15 @@ Analyze for precognitive patterns and provide structured JSON output:
         });
       }
     }
+
+    // Persist to ai_analyses for section availability
+    await supabaseClient.from('ai_analyses').upsert({
+      user_id: userId,
+      profile_id: profileId,
+      analysis_type: 'precognitive_patterns',
+      result: analysis,
+      generated_at: new Date().toISOString()
+    }, { onConflict: 'profile_id,analysis_type' });
 
     return new Response(JSON.stringify({
       success: true,

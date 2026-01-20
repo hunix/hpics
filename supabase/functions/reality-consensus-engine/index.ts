@@ -204,6 +204,15 @@ Create reality injection protocol. Return JSON:
       });
     }
 
+    // Persist to ai_analyses for section availability
+    await supabase.from('ai_analyses').upsert({
+      user_id: userId,
+      profile_id: null, // Network-level analysis
+      analysis_type: 'reality_consensus',
+      result: analysis,
+      generated_at: new Date().toISOString()
+    }, { onConflict: 'user_id,analysis_type' });
+
     return new Response(JSON.stringify({
       success: true,
       action,

@@ -36,7 +36,7 @@ export const SECTION_DATA_SOURCES: Record<string, SectionDataSource> = {
   overview: { type: 'profile', alwaysAvailable: true },
   behavioralDna: { type: 'ai_analyses', analysisType: 'behavioral_dna' },
   patternOfLife: { type: 'ai_analyses', analysisType: 'pattern_of_life' },
-  relationshipEcosystem: { type: 'table', table: 'relationships' },
+  relationshipEcosystem: { type: 'table', table: 'contact_relationships' },
   timeline: { type: 'table', table: 'contact_interaction_notes' },
 
   // ============== INTELLIGENCE SECTIONS (11) ==============
@@ -57,7 +57,7 @@ export const SECTION_DATA_SOURCES: Record<string, SectionDataSource> = {
   mice: { type: 'table', table: 'mice_assessments' },
   cialdini: { type: 'table', table: 'contact_influence_profiles' },
   sacredValues: { type: 'ai_analyses', analysisType: 'sacred_values' },
-  realityTesting: { type: 'ai_analyses', analysisType: 'reality_testing' },
+  realityTesting: { type: 'ai_analyses', analysisType: 'reality_consensus' },
   identityDestab: { type: 'ai_analyses', analysisType: 'identity_destabilization' },
   influence: { type: 'table', table: 'contact_influence_profiles' },
   trauma: { type: 'ai_analyses', analysisType: 'trauma_exploitation' },

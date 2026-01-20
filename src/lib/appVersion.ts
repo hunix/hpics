@@ -2,6 +2,14 @@
  * Application Version Management
  * Used for cache busting and version tracking
  * 
+ * v3.9.5: Comprehensive Edge Function Schema Alignment
+ *         - Fixed table references: life_milestones → contact_life_milestones (mosaic-intelligence-fuser, precognitive-pattern-engine)
+ *         - Fixed table references: voice_analyses → vocal_analyses, facial_emotion_analyses → facial_analyses (unified-data-fusion)
+ *         - Fixed table references: relationships → contact_relationships (sectionDataSources.ts)
+ *         - Added ai_analyses persistence to 6 functions: precognitive-pattern-engine, quantum-cognition-engine,
+ *           reality-consensus-engine, narrative-control-engine, memetic-propagation-engine, semantic-warfare-engine
+ *         - Fixed analysis type alignment: reality_testing → reality_consensus, precognitive_pattern → precognitive_patterns
+ *         - Added health check to semantic-warfare-engine
  * v3.9.4: Edge Function Data Persistence Fix - Resolved disabled sections issue
  *         - Root cause: Edge functions saved to specialized tables but UI checked ai_analyses
  *         - Fixed 12 edge functions to also persist results to ai_analyses table:
@@ -46,11 +54,11 @@
  * v3.8.3: Schema Alignment Phase 2 - Fixed 5 edge functions using deprecated 'observations' table
  * v3.8.2: Enterprise Schema Alignment - Fixed platform-config, trauma/opsec/lawfare analyzers
  */
-export const APP_VERSION = '3.9.4';
+export const APP_VERSION = '3.9.5';
 export const BUILD_TIMESTAMP = new Date().toISOString();
 
 // Versions that require forced cache clear when upgrading from
-export const FORCE_CLEAR_VERSIONS = ['3.9.3', '3.9.2', '3.9.1', '3.9.0', '3.8.9', '3.8.8', '3.8.7', '3.8.6', '3.8.5', '3.8.4', '3.8.3', '3.8.2', '3.8.1', '3.8.0', '3.7.7', '3.7.6', '3.7.5', '3.7.4', '3.7.3', '3.7.2', '3.7.1', '3.7.0', '3.6.1', '3.6.0', '3.5.0'];
+export const FORCE_CLEAR_VERSIONS = ['3.9.4', '3.9.3', '3.9.2', '3.9.1', '3.9.0', '3.8.9', '3.8.8', '3.8.7', '3.8.6', '3.8.5', '3.8.4', '3.8.3', '3.8.2', '3.8.1', '3.8.0', '3.7.7', '3.7.6', '3.7.5', '3.7.4', '3.7.3', '3.7.2', '3.7.1', '3.7.0', '3.6.1', '3.6.0', '3.5.0'];
 
 // Cache key for tracking chunk errors
 const CHUNK_ERROR_KEY = 'chunk_error_count';
