@@ -155,7 +155,19 @@ const ALL_INTELLIGENCE_TASKS: IntelligenceTask[] = [
   { name: 'Power Network Analyzer', edgeFunction: 'power-network-analyzer', analysisType: 'network_position', required: false, category: 'fusion', priority: 4 },
   { name: 'Shadow Network Analyzer', edgeFunction: 'detect-shadow-networks', analysisType: 'shadow_networks', required: false, category: 'fusion', priority: 4 },
   { name: 'Influence Orchestrator', edgeFunction: 'influence-orchestrator-v2', analysisType: 'influence_operations', required: false, category: 'fusion', priority: 4 },
-  { name: 'Generate Playbook', edgeFunction: 'generate-playbook', analysisType: 'playbook', required: false, category: 'fusion', priority: 5 }, // Playbook runs last
+  { name: 'Generate Playbook', edgeFunction: 'generate-playbook', analysisType: 'playbook', required: false, category: 'fusion', priority: 5 },
+  
+  // Defense Operations (Priority 5) - 10 new warfare tasks (v5.0)
+  { name: 'OPSEC Assessment', edgeFunction: 'opsec-vulnerability-analyzer', analysisType: 'opsec_assessment', required: false, category: 'warfare', priority: 5 },
+  { name: 'Social Engineering Detection', edgeFunction: 'social-engineering-detector', analysisType: 'social_engineering', required: false, category: 'warfare', priority: 5 },
+  { name: 'Crisis Response Analysis', edgeFunction: 'crisis-response-orchestrator', analysisType: 'crisis_response', required: false, category: 'warfare', priority: 5 },
+  { name: 'Lawfare Defense', edgeFunction: 'lawfare-defense-analyzer', analysisType: 'lawfare_defense', required: false, category: 'warfare', priority: 5 },
+  { name: 'Reputation Defense', edgeFunction: 'reputation-defense-engine', analysisType: 'reputation_defense', required: false, category: 'warfare', priority: 5 },
+  { name: 'Behavioral Baseline', edgeFunction: 'behavioral-baseline-monitor', analysisType: 'behavioral_baseline', required: false, category: 'warfare', priority: 5 },
+  { name: 'Family Protection', edgeFunction: 'family-protection-analyzer', analysisType: 'family_protection', required: false, category: 'warfare', priority: 5 },
+  { name: 'Economic Warfare', edgeFunction: 'economic-warfare-detector', analysisType: 'economic_warfare', required: false, category: 'warfare', priority: 5 },
+  { name: 'TSCM Sweep', edgeFunction: 'tscm-sweep-analyzer', analysisType: 'tscm_sweep', required: false, category: 'warfare', priority: 5 },
+  { name: 'Digital Footprint', edgeFunction: 'digital-footprint-scanner', analysisType: 'digital_footprint', required: false, category: 'warfare', priority: 5 },
 ];
 
 /**

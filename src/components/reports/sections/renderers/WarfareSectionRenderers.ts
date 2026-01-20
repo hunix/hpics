@@ -411,6 +411,325 @@ export const renderInfluence: SectionRenderer = (ctx, data) => {
   ctx.yPos += 8;
 };
 
+// ============================================
+// OPSEC Assessment Renderer (v5.0)
+// ============================================
+export const renderOpsecAssessment: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  if (!Array.isArray(data.opsecAssessments) || !data.opsecAssessments.length) return;
+  
+  ctx.renderSectionHeader('OPSEC Vulnerability Assessment', [220, 20, 60]);
+  const assessment = (data.opsecAssessments as Array<Record<string, unknown>>)[0];
+  
+  ctx.checkPageBreak(60);
+  doc.setFillColor(255, 240, 245);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 55, 3, 3, 'F');
+  
+  if (assessment.overall_score !== undefined) {
+    ctx.renderScoreBar('Overall OPSEC Score', (assessment.overall_score as number), 100, [0, 128, 0]);
+  }
+  if (assessment.digital_exposure_score !== undefined) {
+    ctx.renderScoreBar('Digital Exposure', (assessment.digital_exposure_score as number), 100, [200, 100, 0]);
+  }
+  if (assessment.communication_security_score !== undefined) {
+    ctx.renderScoreBar('Communication Security', (assessment.communication_security_score as number), 100, [0, 100, 200]);
+  }
+  
+  if (assessment.vulnerabilities) {
+    const vulns = assessment.vulnerabilities as string[];
+    ctx.yPos += 5;
+    ctx.renderSubsection('Key Vulnerabilities');
+    vulns.slice(0, 4).forEach(v => ctx.renderBullet(v, 5));
+  }
+  ctx.yPos += 8;
+};
+
+// ============================================
+// Social Engineering Detection Renderer (v5.0)
+// ============================================
+export const renderSocialEngineering: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  if (!Array.isArray(data.socialEngineeringIncidents) || !data.socialEngineeringIncidents.length) return;
+  
+  ctx.renderSectionHeader('Social Engineering Detection', [200, 50, 50]);
+  const incidents = data.socialEngineeringIncidents as Array<Record<string, unknown>>;
+  
+  ctx.checkPageBreak(50);
+  doc.setFillColor(255, 245, 245);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
+  
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(200, 0, 0);
+  doc.text(`${incidents.length} Incident(s) Detected`, ctx.margin + 5, ctx.yPos + 8);
+  doc.setTextColor(0);
+  ctx.yPos += 15;
+  
+  incidents.slice(0, 3).forEach((inc) => {
+    ctx.checkPageBreak(20);
+    ctx.renderSubsection(`${inc.incident_type || 'Unknown Attack'}`);
+    doc.setFontSize(9);
+    doc.text(`Vector: ${inc.attack_vector || 'Unknown'} | Threat Level: ${inc.threat_level || 'N/A'}`, ctx.margin, ctx.yPos);
+    ctx.yPos += ctx.lineHeight + 5;
+  });
+  ctx.yPos += 8;
+};
+
+// ============================================
+// Crisis Response Renderer (v5.0)
+// ============================================
+export const renderCrisisResponse: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  if (!Array.isArray(data.crisisEvents) || !data.crisisEvents.length) return;
+  
+  ctx.renderSectionHeader('Crisis Response Status', [180, 0, 0]);
+  const crises = data.crisisEvents as Array<Record<string, unknown>>;
+  const activeCrises = crises.filter(c => c.status === 'active');
+  
+  ctx.checkPageBreak(45);
+  if (activeCrises.length > 0) {
+    doc.setFillColor(255, 230, 230);
+    doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 20, 2, 2, 'F');
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(180, 0, 0);
+    doc.text(`${activeCrises.length} ACTIVE CRISIS EVENT(S)`, ctx.margin + 5, ctx.yPos + 10);
+    doc.setTextColor(0);
+    ctx.yPos += 25;
+  }
+  
+  crises.slice(0, 3).forEach((crisis) => {
+    ctx.checkPageBreak(25);
+    ctx.renderSubsection(`${crisis.crisis_type || 'Unknown Crisis'}`);
+    doc.setFontSize(9);
+    doc.text(`Severity: ${crisis.severity || 'N/A'} | Escalation: Level ${crisis.escalation_level || 0}`, ctx.margin, ctx.yPos);
+    ctx.yPos += ctx.lineHeight + 5;
+  });
+  ctx.yPos += 8;
+};
+
+// ============================================
+// Lawfare Defense Renderer (v5.0)
+// ============================================
+export const renderLawfareDefense: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  if (!Array.isArray(data.legalThreats) || !data.legalThreats.length) return;
+  
+  ctx.renderSectionHeader('Lawfare Defense Analysis', [100, 50, 150]);
+  const threats = data.legalThreats as Array<Record<string, unknown>>;
+  
+  ctx.checkPageBreak(50);
+  doc.setFillColor(250, 245, 255);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
+  
+  threats.slice(0, 3).forEach((threat) => {
+    ctx.checkPageBreak(25);
+    ctx.renderSubsection(`${threat.threat_type || 'Legal Threat'}`);
+    doc.setFontSize(9);
+    doc.text(`Jurisdiction: ${threat.jurisdiction || 'Unknown'} | Severity: ${threat.severity || 'N/A'}`, ctx.margin, ctx.yPos);
+    ctx.yPos += ctx.lineHeight;
+    if (threat.likelihood !== undefined) {
+      doc.text(`Likelihood: ${Math.round((threat.likelihood as number) * 100)}%`, ctx.margin, ctx.yPos);
+      ctx.yPos += ctx.lineHeight;
+    }
+    ctx.yPos += 5;
+  });
+  ctx.yPos += 8;
+};
+
+// ============================================
+// Reputation Defense Renderer (v5.0)
+// ============================================
+export const renderReputationDefense: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  if (!Array.isArray(data.reputationIncidents) || !data.reputationIncidents.length) return;
+  
+  ctx.renderSectionHeader('Reputation Defense Status', [150, 100, 0]);
+  const incidents = data.reputationIncidents as Array<Record<string, unknown>>;
+  
+  ctx.checkPageBreak(50);
+  doc.setFillColor(255, 250, 240);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
+  
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`${incidents.length} Reputation Incident(s) Tracked`, ctx.margin + 5, ctx.yPos + 8);
+  ctx.yPos += 15;
+  
+  incidents.slice(0, 3).forEach((inc) => {
+    ctx.checkPageBreak(20);
+    doc.setFontSize(9);
+    doc.text(`• ${inc.incident_type || 'Incident'} on ${inc.platform || 'Unknown Platform'} (Severity: ${inc.severity || 'N/A'})`, ctx.margin, ctx.yPos);
+    ctx.yPos += ctx.lineHeight + 3;
+  });
+  ctx.yPos += 8;
+};
+
+// ============================================
+// Family Protection Renderer (v5.0)
+// ============================================
+export const renderFamilyProtection: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  const hasPersons = Array.isArray(data.protectedPersons) && data.protectedPersons.length > 0;
+  const hasProtocols = Array.isArray(data.emergencyProtocols) && data.emergencyProtocols.length > 0;
+  if (!hasPersons && !hasProtocols) return;
+  
+  ctx.renderSectionHeader('Family & VIP Protection', [0, 100, 150]);
+  
+  ctx.checkPageBreak(60);
+  doc.setFillColor(240, 250, 255);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 55, 3, 3, 'F');
+  
+  if (hasPersons) {
+    const persons = data.protectedPersons as Array<Record<string, unknown>>;
+    ctx.renderSubsection(`Protected Persons (${persons.length})`);
+    persons.slice(0, 4).forEach(p => {
+      ctx.renderBullet(`${p.name || 'Unknown'} - ${p.relationship || 'N/A'} (${p.protection_level || 'Standard'})`, 5);
+    });
+    ctx.yPos += 5;
+  }
+  
+  if (hasProtocols) {
+    const protocols = data.emergencyProtocols as Array<Record<string, unknown>>;
+    ctx.renderSubsection(`Active Emergency Protocols (${protocols.length})`);
+    protocols.slice(0, 3).forEach(p => {
+      ctx.renderBullet(`${p.protocol_name || 'Protocol'}`, 5);
+    });
+  }
+  ctx.yPos += 8;
+};
+
+// ============================================
+// Economic Warfare Renderer (v5.0)
+// ============================================
+export const renderEconomicWarfare: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  if (!Array.isArray(data.economicThreats) || !data.economicThreats.length) return;
+  
+  ctx.renderSectionHeader('Economic Warfare Assessment', [150, 50, 50]);
+  const threats = data.economicThreats as Array<Record<string, unknown>>;
+  
+  ctx.checkPageBreak(50);
+  doc.setFillColor(255, 245, 245);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
+  
+  threats.slice(0, 3).forEach((threat) => {
+    ctx.checkPageBreak(25);
+    ctx.renderSubsection(`${threat.threat_type || 'Economic Threat'}`);
+    doc.setFontSize(9);
+    if (threat.financial_exposure !== undefined) {
+      doc.text(`Financial Exposure: $${(threat.financial_exposure as number).toLocaleString()}`, ctx.margin, ctx.yPos);
+      ctx.yPos += ctx.lineHeight;
+    }
+    doc.text(`Status: ${threat.status || 'Active'}`, ctx.margin, ctx.yPos);
+    ctx.yPos += ctx.lineHeight + 5;
+  });
+  ctx.yPos += 8;
+};
+
+// ============================================
+// TSCM Sweep Renderer (v5.0)
+// ============================================
+export const renderTscmSweep: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  if (!Array.isArray(data.tscmSweeps) || !data.tscmSweeps.length) return;
+  
+  ctx.renderSectionHeader('TSCM Sweep Results', [50, 100, 150]);
+  const sweeps = data.tscmSweeps as Array<Record<string, unknown>>;
+  
+  ctx.checkPageBreak(50);
+  doc.setFillColor(245, 250, 255);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
+  
+  sweeps.slice(0, 3).forEach((sweep) => {
+    ctx.checkPageBreak(25);
+    ctx.renderSubsection(`${sweep.sweep_type || 'TSCM Sweep'} - ${sweep.location || 'Unknown Location'}`);
+    doc.setFontSize(9);
+    doc.text(`Date: ${sweep.sweep_date || 'N/A'} | Status: ${sweep.status || 'Completed'}`, ctx.margin, ctx.yPos);
+    ctx.yPos += ctx.lineHeight;
+    
+    if (sweep.devices_detected) {
+      const devices = sweep.devices_detected as any[];
+      if (devices.length > 0) {
+        doc.setTextColor(200, 0, 0);
+        doc.text(`⚠ ${devices.length} Device(s) Detected`, ctx.margin, ctx.yPos);
+        doc.setTextColor(0);
+        ctx.yPos += ctx.lineHeight;
+      }
+    }
+    ctx.yPos += 5;
+  });
+  ctx.yPos += 8;
+};
+
+// ============================================
+// Digital Footprint Renderer (v5.0)
+// ============================================
+export const renderDigitalFootprint: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  if (!Array.isArray(data.digitalFootprints) || !data.digitalFootprints.length) return;
+  
+  ctx.renderSectionHeader('Digital Footprint Analysis', [100, 0, 150]);
+  const items = data.digitalFootprints as Array<Record<string, unknown>>;
+  
+  ctx.checkPageBreak(50);
+  doc.setFillColor(250, 245, 255);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
+  
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`${items.length} Digital Footprint Items Discovered`, ctx.margin + 5, ctx.yPos + 8);
+  ctx.yPos += 15;
+  
+  // Group by platform
+  const platforms = new Set(items.map(i => i.platform as string));
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  Array.from(platforms).slice(0, 5).forEach(platform => {
+    const count = items.filter(i => i.platform === platform).length;
+    doc.text(`• ${platform}: ${count} item(s)`, ctx.margin, ctx.yPos);
+    ctx.yPos += ctx.lineHeight;
+  });
+  ctx.yPos += 8;
+};
+
+// ============================================
+// Behavioral Baseline Renderer (v5.0)
+// ============================================
+export const renderBehavioralBaseline: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  if (!Array.isArray(data.behavioralBaselines) || !data.behavioralBaselines.length) return;
+  
+  ctx.renderSectionHeader('Behavioral Baseline', [0, 128, 100]);
+  const baseline = (data.behavioralBaselines as Array<Record<string, unknown>>)[0];
+  
+  ctx.checkPageBreak(50);
+  doc.setFillColor(240, 255, 250);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
+  
+  doc.setFontSize(10);
+  doc.text(`Baseline Date: ${baseline.baseline_date || 'N/A'}`, ctx.margin + 5, ctx.yPos + 8);
+  ctx.yPos += 15;
+  
+  if (baseline.current_deviations) {
+    const deviations = baseline.current_deviations as string[];
+    if (deviations.length > 0) {
+      ctx.renderSubsection('Current Deviations');
+      deviations.slice(0, 4).forEach(d => ctx.renderBullet(d, 5));
+    }
+  }
+  
+  if (baseline.anomaly_alerts) {
+    const alerts = baseline.anomaly_alerts as string[];
+    if (alerts.length > 0) {
+      ctx.yPos += 3;
+      ctx.renderSubsection('Anomaly Alerts');
+      alerts.slice(0, 3).forEach(a => ctx.renderBullet(a, 5));
+    }
+  }
+  ctx.yPos += 8;
+};
+
 export const warfareSectionRenderers = {
   cognitiveWarfare: renderCognitiveWarfare,
   deceptionOps: renderDeceptionOps,
@@ -430,4 +749,15 @@ export const warfareSectionRenderers = {
   trustTrajectory: renderTrustTrajectory,
   coerciveControl: renderCoerciveControl,
   influence: renderInfluence,
+  // New Warfare Enhancement renderers (v5.0)
+  opsecAssessment: renderOpsecAssessment,
+  socialEngineering: renderSocialEngineering,
+  crisisResponse: renderCrisisResponse,
+  lawfareDefense: renderLawfareDefense,
+  reputationDefense: renderReputationDefense,
+  familyProtection: renderFamilyProtection,
+  economicWarfare: renderEconomicWarfare,
+  tscmSweep: renderTscmSweep,
+  digitalFootprint: renderDigitalFootprint,
+  behavioralBaseline: renderBehavioralBaseline,
 };

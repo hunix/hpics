@@ -59,6 +59,17 @@ export const DEFAULT_SECTIONS: DossierSection[] = [
   { id: 'trustTrajectory', label: '180-Day Trust Trajectory', icon: TrendingUp, enabled: true, category: 'warfare' },
   { id: 'mosaicFusion', label: 'Mosaic Intelligence Fusion', icon: Layers, enabled: true, category: 'warfare' },
   { id: 'darkTetrad', label: 'Dark Tetrad Profile', icon: Brain, enabled: true, category: 'warfare' },
+  // New Defense Operations sections (v5.0)
+  { id: 'opsecAssessment', label: 'OPSEC Vulnerability Assessment', icon: Shield, enabled: true, category: 'warfare' },
+  { id: 'socialEngineering', label: 'Social Engineering Detection', icon: AlertTriangle, enabled: true, category: 'warfare' },
+  { id: 'crisisResponse', label: 'Crisis Response Status', icon: Zap, enabled: true, category: 'warfare' },
+  { id: 'lawfareDefense', label: 'Lawfare Defense Analysis', icon: Scale, enabled: true, category: 'warfare' },
+  { id: 'reputationDefense', label: 'Reputation Defense Status', icon: Shield, enabled: true, category: 'warfare' },
+  { id: 'familyProtection', label: 'Family & VIP Protection', icon: Users, enabled: true, category: 'warfare' },
+  { id: 'economicWarfare', label: 'Economic Warfare Assessment', icon: BarChart3, enabled: true, category: 'warfare' },
+  { id: 'tscmSweep', label: 'TSCM Sweep Results', icon: Radio, enabled: true, category: 'warfare' },
+  { id: 'digitalFootprint', label: 'Digital Footprint Analysis', icon: Fingerprint, enabled: true, category: 'warfare' },
+  { id: 'behavioralBaseline', label: 'Behavioral Baseline', icon: Activity, enabled: true, category: 'warfare' },
   
   // ============== ANALYSIS SECTIONS ==============
   { id: 'analysis', label: 'Behavioral Analysis', icon: TrendingUp, enabled: true, category: 'analysis' },
@@ -87,7 +98,7 @@ export const TEMPLATE_SECTION_IDS: Record<DossierTemplate, string[]> = {
   operational: ['executive', 'sourceDashboard', 'overview', 'behavioralDna', 'psychological', 'playbook', 'actionPlans', 'mice', 'cialdini', 'influence', 'trauma', 'elicitation'],
   full: DEFAULT_SECTIONS.map(s => s.id),
   surveillance: ['overview', 'sourceDashboard', 'patternOfLife', 'mediaIntel', 'voiceIntel', 'timeline', 'network', 'threatActor', 'crossModal', 'deceptionAnalysis', 'patternOfLifeFusion', 'entityResolution'],
-  warfare: ['executive', 'mice', 'cialdini', 'sacredValues', 'realityTesting', 'identityDestab', 'trauma', 'semanticWarfare', 'memeticPropagation', 'choiceArchitecture', 'influenceOps', 'betrayal', 'threatActor', 'hypnoticPatterns', 'elicitation', 'cognitiveLoad', 'cognitiveWarfare', 'deceptionOps', 'vulnerabilityWindows', 'activeDefense', 'trustTrajectory', 'mosaicFusion', 'darkTetrad', 'shadowNetwork', 'sentimentCascade'],
+  warfare: ['executive', 'mice', 'cialdini', 'sacredValues', 'realityTesting', 'identityDestab', 'trauma', 'semanticWarfare', 'memeticPropagation', 'choiceArchitecture', 'influenceOps', 'betrayal', 'threatActor', 'hypnoticPatterns', 'elicitation', 'cognitiveLoad', 'cognitiveWarfare', 'deceptionOps', 'vulnerabilityWindows', 'activeDefense', 'trustTrajectory', 'mosaicFusion', 'darkTetrad', 'shadowNetwork', 'sentimentCascade', 'opsecAssessment', 'socialEngineering', 'crisisResponse', 'lawfareDefense', 'reputationDefense', 'familyProtection', 'economicWarfare', 'tscmSweep', 'digitalFootprint', 'behavioralBaseline'],
   psychological: ['executive', 'behavioralDna', 'psychological', 'quantumCognition', 'relationship', 'playbook', 'deceptionAnalysis', 'behavioralEconomics', 'trust', 'influenceResistance', 'futureModeling', 'precognitive', 'darkTetrad', 'digitalTwin', 'counterfactual'],
   fusion: ['executive', 'temporalFusion', 'digitalTwin', 'graphRag', 'shadowNetwork', 'dempsterShafer', 'counterfactual', 'patternOfLifeFusion', 'entityResolution', 'sentimentCascade', 'mosaicFusion', 'quantumCognition', 'crossModal'],
 };

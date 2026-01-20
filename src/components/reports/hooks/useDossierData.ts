@@ -75,6 +75,19 @@ export interface DossierDataResult {
   influenceVectorData: any[];
   coerciveControlData: any[];
   patternOfLifeEngineData: any[];
+  // New Warfare Enhancement fields (v5.0)
+  opsecAssessments: any[];
+  digitalFootprints: any[];
+  socialEngineeringIncidents: any[];
+  honeyProfiles: any[];
+  legalThreats: any[];
+  reputationIncidents: any[];
+  protectedPersons: any[];
+  emergencyProtocols: any[];
+  crisisEvents: any[];
+  economicThreats: any[];
+  tscmSweeps: any[];
+  behavioralBaselines: any[];
 }
 
 export function useDossierData() {
@@ -266,6 +279,42 @@ export function useDossierData() {
       .eq('from_profile_id', profileId)
       .limit(20);
 
+    // Get userId for user-scoped tables
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id;
+
+    // Batch 9: Warfare Enhancement Tables (v5.0)
+    // Using explicit type casts to handle tables that may not exist in all environments
+    const warfareBatch = await Promise.all([
+      supabase.from('opsec_assessments' as any).select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(1),
+      supabase.from('digital_footprint_items' as any).select('*').eq('profile_id', profileId).order('discovered_at', { ascending: false }).limit(20),
+      supabase.from('social_engineering_incidents' as any).select('*').eq('profile_id', profileId).order('detected_at', { ascending: false }).limit(10),
+      supabase.from('honey_profiles' as any).select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(5),
+      supabase.from('legal_threat_assessments' as any).select('*').eq('profile_id', profileId).order('assessed_at', { ascending: false }).limit(3),
+      supabase.from('reputation_incidents' as any).select('*').eq('profile_id', profileId).order('detected_at', { ascending: false }).limit(10),
+      userId ? supabase.from('protected_persons' as any).select('*').eq('user_id', userId).limit(20) : Promise.resolve({ data: [] }),
+      userId ? supabase.from('emergency_protocols' as any).select('*').eq('user_id', userId).eq('is_active', true).limit(5) : Promise.resolve({ data: [] }),
+      supabase.from('crisis_events' as any).select('*').eq('profile_id', profileId).order('detected_at', { ascending: false }).limit(10),
+      supabase.from('economic_threat_assessments' as any).select('*').eq('profile_id', profileId).order('assessed_at', { ascending: false }).limit(3),
+      supabase.from('tscm_sweep_results' as any).select('*').eq('profile_id', profileId).order('sweep_date', { ascending: false }).limit(5),
+      supabase.from('behavioral_baselines' as any).select('*').eq('profile_id', profileId).order('baseline_date', { ascending: false }).limit(1),
+    ]);
+
+    const [
+      opsecAssessments,
+      digitalFootprints,
+      socialEngineeringIncidents,
+      honeyProfiles,
+      legalThreats,
+      reputationIncidents,
+      protectedPersons,
+      emergencyProtocols,
+      crisisEvents,
+      economicThreats,
+      tscmSweeps,
+      behavioralBaselines,
+    ] = warfareBatch as unknown as Array<{ data: any[] | null }>;
+
     return {
       profile,
       allAnalyses: allAnalyses.data || [],
@@ -334,6 +383,19 @@ export function useDossierData() {
       influenceVectorData: influenceVectorData.data || [],
       coerciveControlData: coerciveControlData.data || [],
       patternOfLifeEngineData: patternOfLifeEngineData.data || [],
+      // New Warfare Enhancement fields (v5.0)
+      opsecAssessments: opsecAssessments.data || [],
+      digitalFootprints: digitalFootprints.data || [],
+      socialEngineeringIncidents: socialEngineeringIncidents.data || [],
+      honeyProfiles: honeyProfiles.data || [],
+      legalThreats: legalThreats.data || [],
+      reputationIncidents: reputationIncidents.data || [],
+      protectedPersons: protectedPersons.data || [],
+      emergencyProtocols: emergencyProtocols.data || [],
+      crisisEvents: crisisEvents.data || [],
+      economicThreats: economicThreats.data || [],
+      tscmSweeps: tscmSweeps.data || [],
+      behavioralBaselines: behavioralBaselines.data || [],
     };
   }, []);
 
