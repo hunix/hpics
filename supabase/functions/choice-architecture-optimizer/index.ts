@@ -300,26 +300,43 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit via GET query param - before any auth/body parsing
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ ok: true, function: 'choice-architecture-optimizer', timestamp: Date.now() }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      supabaseServiceKey
     );
 
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
-    }
-
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      throw new Error('Unauthorized');
-    }
-
     const body = await req.json();
+    const token = authHeader?.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseServiceKey;
+    
+    let userId: string;
+    
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+      if (!userId) {
+        throw new Error('userId is required for service calls');
+      }
+    } else {
+      if (!authHeader) {
+        throw new Error('No authorization header');
+      }
+      const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token!);
+      if (authError || !user) {
+        throw new Error('Unauthorized');
+      }
+      userId = user.id;
+    }
     const { action } = body;
 
     let result;
@@ -331,7 +348,7 @@ serve(async (req) => {
         // Save campaign if profile_id provided
         if (body.request.target_profile_id) {
           await supabaseClient.from('nudge_campaigns').insert({
-            user_id: user.id,
+            user_id: userId,
             profile_id: body.request.target_profile_id,
             campaign_name: `Nudge for ${body.request.context}`,
             nudge_type: result.nudge_type.split(' + ')[0].toLowerCase().replace(' ', '_'),
@@ -339,6 +356,15 @@ serve(async (req) => {
             nudge_config: result.implementation,
             is_active: true
           });
+          
+          // Also persist to ai_analyses for section availability detection
+          await supabaseClient.from('ai_analyses').upsert({
+            user_id: userId,
+            profile_id: body.request.target_profile_id,
+            analysis_type: 'choice_architecture',
+            result: result,
+            generated_at: new Date().toISOString()
+          }, { onConflict: 'profile_id,analysis_type' });
         }
         break;
         
