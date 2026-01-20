@@ -248,8 +248,8 @@ async function startSession(supabase: any, userId: string, profileId: string, fo
 
   if (tasksError) throw tasksError;
 
-  // Start processing in background
-  EdgeRuntime.waitUntil(processSessionTasks(supabase, session.id, userId, profileId, forceRefresh));
+  // Start processing in background (fire and forget)
+  processSessionTasks(supabase, session.id, userId, profileId, forceRefresh).catch(console.error);
 
   // Update session to running
   await supabase
@@ -290,8 +290,8 @@ async function resumeSession(supabase: any, userId: string, sessionId: string) {
     })
     .eq('id', sessionId);
 
-  // Resume processing
-  EdgeRuntime.waitUntil(processSessionTasks(supabase, sessionId, userId, session.profile_id, session.force_refresh));
+  // Resume processing (fire and forget)
+  processSessionTasks(supabase, sessionId, userId, session.profile_id, session.force_refresh).catch(console.error);
 
   return { sessionId, status: 'resumed' };
 }
@@ -369,8 +369,8 @@ async function retryFailedTasks(supabase: any, userId: string, sessionId: string
     })
     .eq('id', sessionId);
 
-  // Resume processing
-  EdgeRuntime.waitUntil(processSessionTasks(supabase, sessionId, userId, session.profile_id, session.force_refresh));
+  // Resume processing (fire and forget)
+  processSessionTasks(supabase, sessionId, userId, session.profile_id, session.force_refresh).catch(console.error);
 
   return { sessionId, status: 'retrying', tasksReset: resetTasks?.length || 0 };
 }
@@ -406,8 +406,8 @@ async function retryTask(supabase: any, userId: string, taskId: string) {
     .update({ status: 'running' })
     .eq('id', task.session_id);
 
-  // Process this task
-  EdgeRuntime.waitUntil(processSessionTasks(supabase, task.session_id, userId, task.session.profile_id, task.session.force_refresh));
+  // Process this task (fire and forget)
+  processSessionTasks(supabase, task.session_id, userId, task.session.profile_id, task.session.force_refresh).catch(console.error);
 
   return { taskId, status: 'retrying' };
 }
@@ -466,7 +466,7 @@ async function processSessionTasks(supabase: any, sessionId: string, userId: str
       if (!checkSession || checkSession.status !== 'running') break;
 
       // Process batch in parallel
-      await Promise.all(batch.map(task => 
+      await Promise.all(batch.map((task: any) => 
         processTask(supabase, supabaseUrl, supabaseAnonKey, task, userId, profileId, forceRefresh)
       ));
     }
@@ -478,9 +478,9 @@ async function processSessionTasks(supabase: any, sessionId: string, userId: str
     .select('status')
     .eq('session_id', sessionId);
 
-  const pending = finalTasks?.filter(t => t.status === 'pending').length || 0;
-  const failed = finalTasks?.filter(t => t.status === 'failed').length || 0;
-  const completed = finalTasks?.filter(t => t.status === 'completed').length || 0;
+  const pending = finalTasks?.filter((t: any) => t.status === 'pending').length || 0;
+  const failed = finalTasks?.filter((t: any) => t.status === 'failed').length || 0;
+  const completed = finalTasks?.filter((t: any) => t.status === 'completed').length || 0;
 
   // Update session final status
   let finalStatus = 'completed';
@@ -614,9 +614,9 @@ async function processTask(supabase: any, supabaseUrl: string, supabaseAnonKey: 
     recordCircuitSuccess(task.edge_function);
     console.log(`[Task ${task.id}] ${task.edge_function} completed in ${processingTime}ms`);
 
-  } catch (error) {
+  } catch (error: unknown) {
     const processingTime = Date.now() - startTime;
-    const errorMessage = error.message || 'Unknown error';
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     
     console.error(`[Task ${task.id}] ${task.edge_function} failed:`, errorMessage);
     recordCircuitFailure(task.edge_function);

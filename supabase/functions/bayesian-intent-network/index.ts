@@ -68,18 +68,18 @@ serve(async (req) => {
     // Initialize beliefs with priors
     const beliefs: Record<string, number[]> = {};
     for (const node of nodes) {
-      beliefs[node.id] = node.states.map((_, i) => 
+      beliefs[node.id] = node.states.map((_: string, i: number) => 
         i === 0 ? node.prior_probability : (1 - node.prior_probability) / (node.states.length - 1)
       );
     }
 
     // Apply observations (set observed nodes to certainty)
     for (const obs of observations) {
-      const node = nodes.find(n => n.id === obs.node_id);
+      const node = nodes.find((n: IntentNode) => n.id === obs.node_id);
       if (node) {
         const stateIdx = node.states.indexOf(obs.observed_state);
         if (stateIdx >= 0) {
-          beliefs[node.id] = node.states.map((_, i) => i === stateIdx ? 1 : 0);
+          beliefs[node.id] = node.states.map((_: string, i: number) => i === stateIdx ? 1 : 0);
         }
       }
     }
@@ -91,7 +91,7 @@ serve(async (req) => {
       const nodeParents = parents[nodeId];
       if (nodeParents.length === 0) continue;
 
-      const node = nodes.find(n => n.id === nodeId);
+      const node = nodes.find((n: IntentNode) => n.id === nodeId);
       if (!node) continue;
 
       // Update belief based on parents
@@ -130,9 +130,9 @@ serve(async (req) => {
     // Extract posterior probabilities for query nodes
     const posteriors: Record<string, { state: string; probability: number }[]> = {};
     for (const queryNodeId of queryNodes) {
-      const node = nodes.find(n => n.id === queryNodeId);
+      const node = nodes.find((n: IntentNode) => n.id === queryNodeId);
       if (node && beliefs[node.id]) {
-        posteriors[queryNodeId] = node.states.map((state, idx) => ({
+        posteriors[queryNodeId] = node.states.map((state: string, idx: number) => ({
           state,
           probability: beliefs[node.id][idx],
         }));
@@ -140,15 +140,15 @@ serve(async (req) => {
     }
 
     // Compute most likely intent configuration
-    const intentNodes = nodes.filter(n => n.type === 'intent');
-    const mostLikelyIntents = intentNodes.map(node => {
+    const intentNodes = nodes.filter((n: IntentNode) => n.type === 'intent');
+    const mostLikelyIntents = intentNodes.map((node: IntentNode) => {
       const belief = beliefs[node.id];
       const maxIdx = belief.indexOf(Math.max(...belief));
       return {
         intent: node.name,
         most_likely_state: node.states[maxIdx],
         confidence: belief[maxIdx],
-        all_probabilities: node.states.map((s, i) => ({ state: s, prob: belief[i] })),
+        all_probabilities: node.states.map((s: string, i: number) => ({ state: s, prob: belief[i] })),
       };
     });
 
@@ -169,7 +169,7 @@ serve(async (req) => {
     
     // Simulate removing each observation to see its impact
     for (const obs of observations) {
-      const filteredObs = observations.filter(o => o.node_id !== obs.node_id);
+      const filteredObs = observations.filter((o: { node_id: string; observed_state: string }) => o.node_id !== obs.node_id);
       const altBeliefs = runInference(nodes, edges, cpts, parents, filteredObs);
       
       const impact: Record<string, number> = {};
@@ -273,17 +273,17 @@ function runInference(
   const beliefs: Record<string, number[]> = {};
   
   for (const node of nodes) {
-    beliefs[node.id] = node.states.map((_, i) => 
+    beliefs[node.id] = node.states.map((_: string, i: number) => 
       i === 0 ? node.prior_probability : (1 - node.prior_probability) / (node.states.length - 1)
     );
   }
 
   for (const obs of observations) {
-    const node = nodes.find(n => n.id === obs.node_id);
+    const node = nodes.find((n: IntentNode) => n.id === obs.node_id);
     if (node) {
       const stateIdx = node.states.indexOf(obs.observed_state);
       if (stateIdx >= 0) {
-        beliefs[node.id] = node.states.map((_, i) => i === stateIdx ? 1 : 0);
+        beliefs[node.id] = node.states.map((_: string, i: number) => i === stateIdx ? 1 : 0);
       }
     }
   }

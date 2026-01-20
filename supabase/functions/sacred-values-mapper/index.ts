@@ -163,14 +163,27 @@ ${observations.data?.map(o => `${o.category}: ${o.observation}`).join('\n') || '
       temperature: 0.6,
     });
 
+    interface SacredValue {
+      valueDomain: string;
+      valueName: string;
+      protectionLevel: number;
+      emotionalIntensity: number;
+      tribalAssociations: string[];
+      identityCentrality: number;
+      violationTriggers: string[];
+      exploitationVectors: string[];
+      defensiveReactions: string[];
+    }
+
     const mapping = parseAIJson(aiResponse.content, {
-      sacredValuesProfile: { identifiedValues: [], tribalIdentity: {} },
+      sacredValuesProfile: { identifiedValues: [] as SacredValue[], tribalIdentity: {} },
       influenceStrategies: {},
       riskAssessment: { moralOutrageRisk: 0.3 }
     });
 
     // Store each identified sacred value
-    for (const value of mapping.sacredValuesProfile.identifiedValues || []) {
+    const identifiedValues = (mapping.sacredValuesProfile?.identifiedValues || []) as SacredValue[];
+    for (const value of identifiedValues) {
       await supabase.from('sacred_values').insert({
         user_id: userId,
         profile_id: profileId,

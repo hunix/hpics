@@ -174,12 +174,12 @@ ${analyses.data?.slice(0, 5).map(a => `- ${a.analysis_type}: ${JSON.stringify(a.
 
     const assessment = parseAIJson(aiResponse.content, {
       miceProfile: {
-        money: { vulnerabilityScore: 0.5 },
-        ideology: { vulnerabilityScore: 0.5 },
-        compromise: { vulnerabilityScore: 0.5 },
-        ego: { vulnerabilityScore: 0.5 }
+        money: { vulnerabilityScore: 0.5, indicators: [] },
+        ideology: { vulnerabilityScore: 0.5, grievances: [] },
+        compromise: { vulnerabilityScore: 0.5, leveragePoints: [] },
+        ego: { vulnerabilityScore: 0.5, recognitionNeeds: [] }
       },
-      overallAssessment: { primaryVulnerability: 'E', recruitmentLikelihood: 0.5 },
+      overallAssessment: { primaryVulnerability: 'E', recruitmentLikelihood: 0.5, optimalApproach: '', approachScripts: [] },
       riskAssessment: {}
     });
 
@@ -187,18 +187,18 @@ ${analyses.data?.slice(0, 5).map(a => `- ${a.analysis_type}: ${JSON.stringify(a.
     await supabase.from('mice_assessments').insert({
       user_id: userId,
       profile_id: profileId,
-      money_vulnerability: assessment.miceProfile.money.vulnerabilityScore,
-      money_indicators: assessment.miceProfile.money.indicators,
-      ideology_alignment: assessment.miceProfile.ideology,
-      ideology_conflicts: assessment.miceProfile.ideology.grievances,
-      compromise_material: assessment.miceProfile.compromise.leveragePoints,
-      compromise_leverage_score: assessment.miceProfile.compromise.vulnerabilityScore,
-      ego_needs: assessment.miceProfile.ego.recognitionNeeds,
-      ego_vulnerabilities: assessment.miceProfile.ego,
-      recruitment_likelihood: assessment.overallAssessment.recruitmentLikelihood,
-      optimal_approach: assessment.overallAssessment.optimalApproach,
-      approach_scripts: assessment.overallAssessment.approachScripts,
-      risk_assessment: assessment.riskAssessment
+      money_vulnerability: assessment.miceProfile?.money?.vulnerabilityScore || 0.5,
+      money_indicators: assessment.miceProfile?.money?.indicators || [],
+      ideology_alignment: assessment.miceProfile?.ideology || {},
+      ideology_conflicts: assessment.miceProfile?.ideology?.grievances || [],
+      compromise_material: assessment.miceProfile?.compromise?.leveragePoints || [],
+      compromise_leverage_score: assessment.miceProfile?.compromise?.vulnerabilityScore || 0.5,
+      ego_needs: assessment.miceProfile?.ego?.recognitionNeeds || [],
+      ego_vulnerabilities: assessment.miceProfile?.ego || {},
+      recruitment_likelihood: assessment.overallAssessment?.recruitmentLikelihood || 0.5,
+      optimal_approach: assessment.overallAssessment?.optimalApproach || '',
+      approach_scripts: assessment.overallAssessment?.approachScripts || [],
+      risk_assessment: assessment.riskAssessment || {}
     });
 
     // Also persist to ai_analyses for section availability detection

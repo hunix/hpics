@@ -131,15 +131,22 @@ Operation Type: ${request.operationType}`;
       temperature: 0.7,
     });
 
+    interface ReframingStrategy {
+      strategy?: string;
+      anchorPhrases?: string[];
+      deploymentContexts?: string[];
+    }
+
     const analysis = parseAIJson(aiResponse.content, {
-      termAnalysis: { currentMeaning: request.targetTerm, connotations: [], emotionalValence: 0 },
-      reframingStrategies: [],
+      termAnalysis: { currentMeaning: request.targetTerm, connotations: [], emotionalValence: 0, overtonPosition: '' },
+      reframingStrategies: [] as ReframingStrategy[],
       linguisticTechniques: [],
       counterNarratives: [],
       implementationPlan: {}
     });
 
     // Store the operation
+    const strategies = analysis.reframingStrategies as ReframingStrategy[];
     if (request.operationType !== 'analyze') {
       await supabase.from('semantic_operations').insert({
         user_id: user.id,
@@ -147,11 +154,11 @@ Operation Type: ${request.operationType}`;
         target_term: request.targetTerm,
         current_definition: request.currentContext,
         target_definition: request.desiredFraming,
-        framing_strategy: analysis.reframingStrategies[0]?.strategy,
-        overton_position: analysis.termAnalysis.overtonPosition,
-        linguistic_techniques: analysis.linguisticTechniques,
-        anchor_phrases: analysis.reframingStrategies[0]?.anchorPhrases || [],
-        deployment_contexts: analysis.reframingStrategies[0]?.deploymentContexts || [],
+        framing_strategy: strategies[0]?.strategy || '',
+        overton_position: analysis.termAnalysis?.overtonPosition || '',
+        linguistic_techniques: analysis.linguisticTechniques || [],
+        anchor_phrases: strategies[0]?.anchorPhrases || [],
+        deployment_contexts: strategies[0]?.deploymentContexts || [],
         status: 'planning'
       });
     }
