@@ -539,3 +539,36 @@ verify_jwt = false
 
 [functions.network-exploitation-mapper]
 verify_jwt = false
+
+[functions.intelligence-session-runner]
+verify_jwt = false
+
+[functions.attachment-vulnerability-analyzer]
+verify_jwt = false
+
+[functions.mice-recruitment-analyzer]
+verify_jwt = false
+
+[functions.sacred-values-mapper]
+verify_jwt = false
+
+[functions.identity-destabilization-engine]
+verify_jwt = false
+
+[functions.breaking-point-calculator]
+verify_jwt = false
+
+[functions.semantic-warfare-engine]
+verify_jwt = false
+
+[functions.bayesian-intent-network]
+verify_jwt = false
+
+[functions.unified-data-fusion]
+verify_jwt = false
+
+[functions.analyze-network-graph]
+verify_jwt = false
+
+[functions.memetic-propagation-engine]
+verify_jwt = false
