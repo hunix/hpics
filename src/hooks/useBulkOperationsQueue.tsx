@@ -64,7 +64,7 @@ export function useBulkDeleteContacts() {
       'education',
       'events',
       'gift_ideas',
-      'life_milestones',
+      'contact_life_milestones',
       'media',
       'meeting_recordings',
       'relationship_goals',
