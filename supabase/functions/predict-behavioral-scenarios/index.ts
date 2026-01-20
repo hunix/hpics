@@ -138,7 +138,7 @@ serve(async (req) => {
     }
 
     // Get AI config for model selection
-    const aiConfig = await getAIConfig(supabase, user.id);
+    const aiConfig = await getAIConfig(supabase, userId);
 
     // Call AI for predictions
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
