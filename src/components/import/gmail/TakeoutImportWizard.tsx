@@ -428,10 +428,10 @@ export function TakeoutImportWizard() {
           Import More
         </Button>
         <Button onClick={() => {
-          // Navigate to email review
-          window.location.href = '/emails/unmatched';
+          // Navigate to communications hub
+          window.location.href = '/communications';
         }}>
-          Review Unmatched Emails
+          View Communications
         </Button>
       </div>
     </div>
