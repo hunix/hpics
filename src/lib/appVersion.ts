@@ -2,6 +2,20 @@
  * Application Version Management
  * Used for cache busting and version tracking
  * 
+ * v3.9.7: Extended Edge Function Schema Alignment Phase 2
+ *         - Fixed shadow-network-analyzer: interaction_history → contact_interaction_notes
+ *         - Added ai_analyses persistence to 10 additional functions:
+ *           personality-dna-extractor, gottman-relationship-analyzer, family-systems-analyzer,
+ *           breaking-point-calculator, betrayal-likelihood-scorer, identity-destabilization-engine,
+ *           cult-tactics-engine, dependency-orchestrator
+ * v3.9.6: Extended Edge Function Schema Alignment
+ *         - Fixed analyze-influence-profile: interaction_notes → contact_interaction_notes
+ *         - Fixed power-network-analyzer: name → first_name/last_name, company → organization
+ *         - Fixed temporal-fusion-transformer: interaction_history → contact_interaction_notes
+ *         - Fixed predict-behavioral-scenarios: interaction_history → contact_interaction_notes
+ *         - Fixed predict-relationship-trajectory: interaction_history → contact_interaction_notes
+ *         - Fixed manipulation-vulnerability-assessment: analysis_type alignment
+ *         - Added ai_analyses persistence to 6 more functions
  * v3.9.5: Comprehensive Edge Function Schema Alignment
  *         - Fixed table references: life_milestones → contact_life_milestones (mosaic-intelligence-fuser, precognitive-pattern-engine)
  *         - Fixed table references: voice_analyses → vocal_analyses, facial_emotion_analyses → facial_analyses (unified-data-fusion)
@@ -12,53 +26,18 @@
  *         - Added health check to semantic-warfare-engine
  * v3.9.4: Edge Function Data Persistence Fix - Resolved disabled sections issue
  *         - Root cause: Edge functions saved to specialized tables but UI checked ai_analyses
- *         - Fixed 12 edge functions to also persist results to ai_analyses table:
- *           trauma-exploitation-engine, cognitive-warfare-engine, behavioral-baseline-monitor,
- *           crisis-response-orchestrator, social-engineering-detector, digital-footprint-scanner,
- *           lawfare-defense-analyzer, reputation-defense-engine, economic-warfare-detector,
- *           tscm-sweep-analyzer, opsec-vulnerability-analyzer, family-protection-analyzer
- *         - Updated sectionDataSources.ts: Defense sections now check ai_analyses instead of empty tables
+ *         - Fixed 12 edge functions to also persist results to ai_analyses table
  * v3.9.3: Analysis Type Alignment - Fixed section data source mapping to match edge function outputs
- *         - attachment-vulnerability-analyzer: user.id → userId (ReferenceError fix)
- *         - sectionDataSources.ts: Aligned 6 analysis_type mismatches:
- *           - mosaic_intelligence → mosaic_intelligence_fusion
- *           - deception_analysis → enhanced_deception_detection
- *           - counter_intel → counter_intelligence
- *           - shadow_networks → shadow_network
- *         - Added 9 new section mappings for existing edge function outputs
  * v3.9.2: Enterprise Session Recovery - Fixed edge function bugs causing session deadlock
- *         - predict-behavioral-scenarios: user.id → userId (ReferenceError fix)
- *         - analyze-network-graph: user.id → userId (ReferenceError fix)
- *         - Database recovery for stuck session 0f72ba21-f054-4b66-b62a-8187098f8996
  * v3.9.1: Force cache purge to fix stale route caching on /dossier-intelligence
  * v3.9.0: DDD Barrel Export Compliance - IDE performance optimization
- *         - Converted 4 barrel files to explicit named exports:
- *           design-system/index.ts, bulkUpload/index.ts, network/index.ts, domains/index.ts
- *         - Removed export * statements per DDD protocol
  * v3.8.9: Schema Remediation - Fixed 13 edge functions with contact_observations column mismatches
- *         - observation_text→observation: auto-embed-content, entity-extraction, universal-embedding-processor,
- *           rag-helper, sacred-values-mapper, mice-recruitment-analyzer
- *         - observed_at→created_at: contact-ai-agent-v2, train-behavior-model, generate-intelligence-dossier,
- *           generate-churn-intervention, useDossierData.ts
- *         - observation_type/notes→category/observation: personality-dna-extractor, behavioral-future-modeler,
- *           financial-intelligence-scan
- * v3.8.8: Navigation Cleanup - Fixed dead /emails/unmatched link, added legacy supremacy entry
- * v3.8.7: Navigation Alignment - Added missing defense-grid navigation entry
- * v3.8.6: Final Schema Alignment - Fixed 8 edge functions with contact_observations column mismatches
- *         - existential-leverage-calculator, generate-meeting-prep, aggregate-contact-intelligence
- *         - mosaic-intelligence-fuser, deep-intelligence-engine, rag-query, process-document-embeddings
- *         - future-timeline-engine: All now use category/observation/created_at
- *         - Updated schemaValidator.ts to match actual contact_observations schema
- * v3.8.5: Network Metrics - Real graph clustering coefficient and BFS average path length
- * v3.8.4: DDD repositories, pagination, override_value→config_value fixes
- * v3.8.3: Schema Alignment Phase 2 - Fixed 5 edge functions using deprecated 'observations' table
- * v3.8.2: Enterprise Schema Alignment - Fixed platform-config, trauma/opsec/lawfare analyzers
  */
-export const APP_VERSION = '3.9.6';
+export const APP_VERSION = '3.9.7';
 export const BUILD_TIMESTAMP = new Date().toISOString();
 
 // Versions that require forced cache clear when upgrading from
-export const FORCE_CLEAR_VERSIONS = ['3.9.4', '3.9.3', '3.9.2', '3.9.1', '3.9.0', '3.8.9', '3.8.8', '3.8.7', '3.8.6', '3.8.5', '3.8.4', '3.8.3', '3.8.2', '3.8.1', '3.8.0', '3.7.7', '3.7.6', '3.7.5', '3.7.4', '3.7.3', '3.7.2', '3.7.1', '3.7.0', '3.6.1', '3.6.0', '3.5.0'];
+export const FORCE_CLEAR_VERSIONS = ['3.9.6', '3.9.5', '3.9.4', '3.9.3', '3.9.2', '3.9.1', '3.9.0', '3.8.9', '3.8.8', '3.8.7', '3.8.6', '3.8.5', '3.8.4', '3.8.3', '3.8.2', '3.8.1', '3.8.0', '3.7.7', '3.7.6', '3.7.5', '3.7.4', '3.7.3', '3.7.2', '3.7.1', '3.7.0', '3.6.1', '3.6.0', '3.5.0'];
 
 // Cache key for tracking chunk errors
 const CHUNK_ERROR_KEY = 'chunk_error_count';

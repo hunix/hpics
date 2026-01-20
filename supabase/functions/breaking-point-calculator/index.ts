@@ -169,6 +169,22 @@ serve(async (req) => {
       console.error('Insert error:', insertError);
     }
 
+    // Also persist to ai_analyses for section availability detection
+    await supabaseClient.from('ai_analyses').upsert({
+      user_id: userId,
+      profile_id: profileId,
+      analysis_type: 'breaking_point',
+      result: {
+        breakingPointProximity,
+        estimatedDaysToBreak,
+        pressureVectors,
+        criticalVectors: criticalVectors.map(v => v.name),
+        avgUtilization,
+        maxUtilization,
+      },
+      generated_at: new Date().toISOString()
+    }, { onConflict: 'profile_id,analysis_type' });
+
     return new Response(
       JSON.stringify({
         success: true,

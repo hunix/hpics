@@ -257,6 +257,15 @@ serve(async (req) => {
       console.error('Insert error:', insertError);
     }
 
+    // Also persist to ai_analyses for section availability detection
+    await supabase.from('ai_analyses').upsert({
+      user_id: userId,
+      profile_id: profileId,
+      analysis_type: 'personality_dna',
+      result: analysis,
+      generated_at: new Date().toISOString()
+    }, { onConflict: 'profile_id,analysis_type' });
+
     // Log AI usage
     await supabase.from('ai_usage_logs').insert({
       user_id: userId,

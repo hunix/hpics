@@ -168,6 +168,24 @@ serve(async (req) => {
       console.error('Insert error:', insertError);
     }
 
+    // Also persist to ai_analyses for section availability detection
+    await supabaseClient.from('ai_analyses').upsert({
+      user_id: userId,
+      profile_id: profileId,
+      analysis_type: 'identity_destabilization',
+      result: {
+        vulnerabilityScore,
+        techniques,
+        metrics: {
+          realityTestingStrength,
+          selfConceptStability,
+          memoryConfidence,
+          socialValidationNeed,
+        },
+      },
+      generated_at: new Date().toISOString()
+    }, { onConflict: 'profile_id,analysis_type' });
+
     return new Response(
       JSON.stringify({
         success: true,

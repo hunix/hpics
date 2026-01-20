@@ -153,6 +153,19 @@ serve(async (req) => {
       console.error('Update error:', updateError);
     }
 
+    // Also persist to ai_analyses for section availability detection
+    await supabaseClient.from('ai_analyses').upsert({
+      user_id: userId,
+      profile_id: profileId,
+      analysis_type: 'dependency_orchestration',
+      result: {
+        orchestrationPlan,
+        currentLevels,
+        tacticCount: tactics.length,
+      },
+      generated_at: new Date().toISOString()
+    }, { onConflict: 'profile_id,analysis_type' });
+
     return new Response(
       JSON.stringify({
         success: true,

@@ -184,6 +184,15 @@ ${analyses.data?.slice(0, 5).map(a => `- ${a.analysis_type}: ${JSON.stringify(a.
       risk_mitigation: prediction.riskMitigation.recommendedActions
     });
 
+    // Also persist to ai_analyses for section availability detection
+    await supabase.from('ai_analyses').upsert({
+      user_id: user.id,
+      profile_id: profileId,
+      analysis_type: 'betrayal_likelihood',
+      result: prediction,
+      generated_at: new Date().toISOString()
+    }, { onConflict: 'profile_id,analysis_type' });
+
     return new Response(JSON.stringify({
       success: true,
       prediction,

@@ -409,6 +409,15 @@ serve(async (req) => {
       }, {
         onConflict: 'profile_id'
       });
+
+      // Also persist to ai_analyses for section availability detection
+      await supabaseClient.from('ai_analyses').upsert({
+        user_id: user.id,
+        profile_id,
+        analysis_type: 'family_systems',
+        result: analysis,
+        generated_at: new Date().toISOString()
+      }, { onConflict: 'profile_id,analysis_type' });
     }
 
     return new Response(JSON.stringify(analysis), {
