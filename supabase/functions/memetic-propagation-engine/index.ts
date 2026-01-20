@@ -148,8 +148,8 @@ Desired Outcome: ${request.desiredOutcome}`;
     });
 
     const campaign = parseAIJson(aiResponse.content, {
-      memeticAnalysis: { coreNarrative: request.narrative, viralityScore: 0.5 },
-      sirModel: { estimatedR0: 1.0 },
+      memeticAnalysis: { coreNarrative: request.narrative, viralityScore: 0.5, emotionalHooks: [] },
+      sirModel: { estimatedR0: 1.0, infectionRate: 0.3, recoveryRate: 0.1 },
       amplificationStrategy: {},
       memeVariants: [],
       immunizationRisks: [],
