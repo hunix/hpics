@@ -310,31 +310,31 @@ AVAILABLE INTELLIGENCE SOURCES:
 ${psychProfile.data ? JSON.stringify(psychProfile.data, null, 2).substring(0, 1500) : 'Not available'}
 
 2. Communications (${communications.data?.length || 0} records):
-${communications.data?.slice(0, 30).map(c => 
+${communications.data?.slice(0, 30).map((c: { occurred_at?: string; direction?: string; content?: string; sentiment_score?: number }) => 
   `[${c.occurred_at}] ${c.direction}: ${c.content?.substring(0, 100)}... Sentiment: ${c.sentiment_score}`
 ).join('\n') || 'None'}
 
 3. Media Analysis (${media.data?.length || 0} items):
-${media.data?.slice(0, 10).map(m => 
+${media.data?.slice(0, 10).map((m: { media_type?: string; ai_metadata?: unknown }) => 
   `[${m.media_type}] ${JSON.stringify(m.ai_metadata || {}).substring(0, 200)}`
 ).join('\n') || 'None'}
 
 4. AI Analyses (${analyses.data?.length || 0} analyses):
-${analyses.data?.slice(0, 10).map(a => 
+${analyses.data?.slice(0, 10).map((a: { analysis_type?: string; result?: unknown }) => 
   `[${a.analysis_type}] ${JSON.stringify(a.result || {}).substring(0, 200)}`
 ).join('\n') || 'None'}
 
 5. Behavioral Observations:
-${observations.data?.slice(0, 15).map(o => `- ${o.category}: ${o.observation}`).join('\n') || 'None'}
+${observations.data?.slice(0, 15).map((o: { category?: string; observation?: string }) => `- ${o.category}: ${o.observation}`).join('\n') || 'None'}
 
 6. Anomalies Detected:
-${anomalies.data?.map(a => `- ${a.anomaly_type}: ${a.description}`).join('\n') || 'None'}
+${anomalies.data?.map((a: { anomaly_type?: string; description?: string }) => `- ${a.anomaly_type}: ${a.description}`).join('\n') || 'None'}
 
 7. Life Milestones:
-${milestones.data?.map(m => `- ${m.milestone_type}: ${m.milestone_date}`).join('\n') || 'None'}
+${milestones.data?.map((m: { milestone_type?: string; milestone_date?: string }) => `- ${m.milestone_type}: ${m.milestone_date}`).join('\n') || 'None'}
 
 8. Betrayal Predictions:
-${betrayalPredictions.data?.map(b => 
+${betrayalPredictions.data?.map((b: { defection_probability?: number; trust_score?: number }) => 
   `Defection Prob: ${b.defection_probability}, Trust: ${b.trust_score}`
 ).join('\n') || 'None'}
 
@@ -345,7 +345,7 @@ ${influenceProfiles.data?.[0] ? JSON.stringify(influenceProfiles.data[0]).substr
 ${miceAssessments.data?.[0] ? JSON.stringify(miceAssessments.data[0]).substring(0, 500) : 'None'}
 
 11. Sacred Values:
-${sacredValues.data?.map(s => `- ${s.value_name}: Violation Threshold ${s.violation_threshold}`).join('\n') || 'None'}
+${sacredValues.data?.map((s: { value_name?: string; violation_threshold?: number }) => `- ${s.value_name}: Violation Threshold ${s.violation_threshold}`).join('\n') || 'None'}
 
 12. Behavioral DNA:
 ${behavioralDNA.data?.[0] ? JSON.stringify(behavioralDNA.data[0]).substring(0, 500) : 'None'}

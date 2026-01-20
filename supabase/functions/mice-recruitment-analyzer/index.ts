@@ -152,13 +152,13 @@ Position: ${profile.data?.job_title || 'Unknown'}
 Location: ${profile.data?.location || 'Unknown'}
 
 Recent Communications (${messages.data?.length || 0} messages):
-${messages.data?.slice(0, 20).map(m => `- ${m.content?.substring(0, 200)}`).join('\n') || 'No messages'}
+${messages.data?.slice(0, 20).map((m: { content?: string }) => `- ${m.content?.substring(0, 200)}`).join('\n') || 'No messages'}
 
 Observations (${observations.data?.length || 0}):
-${observations.data?.slice(0, 10).map(o => `- ${o.category}: ${o.observation?.substring(0, 150)}`).join('\n') || 'No observations'}
+${observations.data?.slice(0, 10).map((o: { category?: string; observation?: string }) => `- ${o.category}: ${o.observation?.substring(0, 150)}`).join('\n') || 'No observations'}
 
 Previous Analyses:
-${analyses.data?.slice(0, 5).map(a => `- ${a.analysis_type}: ${JSON.stringify(a.result).substring(0, 200)}`).join('\n') || 'No analyses'}`;
+${analyses.data?.slice(0, 5).map((a: { analysis_type?: string; result?: unknown }) => `- ${a.analysis_type}: ${JSON.stringify(a.result).substring(0, 200)}`).join('\n') || 'No analyses'}`;
 
     const aiResponse = await callAI({
       model: selectModel('quality'),

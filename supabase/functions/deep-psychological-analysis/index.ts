@@ -87,7 +87,7 @@ serve(async (req) => {
 
     let allMessages: any[] = [];
     if (conversations && conversations.length > 0) {
-      const conversationIds = conversations.map(c => c.id);
+      const conversationIds = conversations.map((c: { id: string }) => c.id);
       const { data: messages } = await supabase
         .from('messages')
         .select('*')
