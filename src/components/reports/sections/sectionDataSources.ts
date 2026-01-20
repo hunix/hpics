@@ -1,6 +1,13 @@
 /**
- * Section Data Sources Mapping (v5.2)
+ * Section Data Sources Mapping (v5.3)
  * Maps section IDs to their data sources for availability checking
+ * 
+ * v5.3: Aligned analysis_type values with actual edge function outputs
+ *       - mosaic_intelligence → mosaic_intelligence_fusion
+ *       - deception_analysis → enhanced_deception_detection
+ *       - counter_intel → counter_intelligence
+ *       - Added new sections: manipulationSusceptibility, coercionResistance, 
+ *         existentialLeverage, networkExploitation
  */
 
 export interface SectionDataSource {
@@ -19,7 +26,8 @@ export interface SectionDataSource {
 }
 
 /**
- * Complete mapping of all 74 sections to their data sources
+ * Complete mapping of all 74+ sections to their data sources
+ * IMPORTANT: analysisType values MUST match what edge functions store in ai_analyses table
  */
 export const SECTION_DATA_SOURCES: Record<string, SectionDataSource> = {
   // ============== CORE SECTIONS (7) ==============
@@ -41,10 +49,11 @@ export const SECTION_DATA_SOURCES: Record<string, SectionDataSource> = {
   cognitiveLoad: { type: 'ai_analyses', analysisType: 'cognitive_load' },
   mediaIntel: { type: 'table', table: 'media' },
   voiceIntel: { type: 'table', table: 'voice_recording_sessions' },
-  deceptionAnalysis: { type: 'ai_analyses', analysisType: 'deception_analysis' },
+  // FIXED: edge function stores 'enhanced_deception_detection' not 'deception_analysis'
+  deceptionAnalysis: { type: 'ai_analyses', analysisType: 'enhanced_deception_detection' },
   actionPlans: { type: 'table', table: 'action_recommendations' },
 
-  // ============== WARFARE SECTIONS (33) ==============
+  // ============== WARFARE SECTIONS (33+) ==============
   mice: { type: 'table', table: 'mice_assessments' },
   cialdini: { type: 'table', table: 'contact_influence_profiles' },
   sacredValues: { type: 'ai_analyses', analysisType: 'sacred_values' },
@@ -66,12 +75,25 @@ export const SECTION_DATA_SOURCES: Record<string, SectionDataSource> = {
   vulnerabilityWindows: { type: 'ai_analyses', analysisType: 'vulnerability_windows' },
   activeDefense: { type: 'table', table: 'active_defense_operations' },
   trustTrajectory: { type: 'table', table: 'trust_trajectory_forecasts' },
-  mosaicFusion: { type: 'ai_analyses', analysisType: 'mosaic_intelligence' },
+  // FIXED: edge function stores 'mosaic_intelligence_fusion' not 'mosaic_intelligence'
+  mosaicFusion: { type: 'ai_analyses', analysisType: 'mosaic_intelligence_fusion' },
   darkTetrad: { type: 'ai_analyses', analysisType: 'dark_tetrad' },
-  shadowNetwork: { type: 'ai_analyses', analysisType: 'shadow_networks' },
+  // FIXED: edge function stores 'shadow_network' (singular) not 'shadow_networks'
+  shadowNetwork: { type: 'ai_analyses', analysisType: 'shadow_network' },
   sentimentCascade: { type: 'ai_analyses', analysisType: 'sentiment_cascade' },
   
-  // New Defense Operations (10 sections - v5.0)
+  // NEW: Sections mapped to actual edge function outputs (v5.3)
+  manipulationSusceptibility: { type: 'ai_analyses', analysisType: 'manipulation_vulnerability' },
+  coercionResistance: { type: 'ai_analyses', analysisType: 'coercion_resistance' },
+  existentialLeverage: { type: 'ai_analyses', analysisType: 'existential_leverage' },
+  networkExploitation: { type: 'ai_analyses', analysisType: 'network_exploitation' },
+  deepIntelligence: { type: 'ai_analyses', analysisType: 'deep_intelligence_comprehensive' },
+  personalityProfile: { type: 'ai_analyses', analysisType: 'personality' },
+  sentimentAnalysis: { type: 'ai_analyses', analysisType: 'sentiment' },
+  relationshipScore: { type: 'ai_analyses', analysisType: 'relationship_score' },
+  intelligenceDossier: { type: 'ai_analyses', analysisType: 'intelligence_dossier' },
+  
+  // Defense Operations (10 sections - v5.0)
   opsecAssessment: { type: 'table', table: 'opsec_assessments' },
   socialEngineering: { type: 'table', table: 'social_engineering_incidents' },
   crisisResponse: { type: 'table', table: 'crisis_events' },
@@ -90,7 +112,8 @@ export const SECTION_DATA_SOURCES: Record<string, SectionDataSource> = {
   behavioralEconomics: { type: 'ai_analyses', analysisType: 'behavioral_economics' },
   network: { type: 'ai_analyses', analysisType: 'network_position' },
   predictionAccuracy: { type: 'table', table: 'prediction_accuracy_logs' },
-  counterIntel: { type: 'ai_analyses', analysisType: 'counter_intel' },
+  // FIXED: edge function stores 'counter_intelligence' not 'counter_intel'
+  counterIntel: { type: 'ai_analyses', analysisType: 'counter_intelligence' },
   proportionalResponse: { type: 'table', table: 'proportional_response_logs' },
 
   // ============== DATA FUSION SECTIONS (9) ==============
