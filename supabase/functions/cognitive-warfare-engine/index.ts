@@ -312,6 +312,17 @@ Provide comprehensive cognitive warfare analysis.`;
       created_at: new Date().toISOString()
     });
 
+    // Also persist to ai_analyses for section availability detection
+    if (request.profileId) {
+      await supabase.from('ai_analyses').upsert({
+        user_id: userId,
+        profile_id: request.profileId,
+        analysis_type: 'cognitive_warfare',
+        result: analysis,
+        generated_at: new Date().toISOString()
+      }, { onConflict: 'profile_id,analysis_type' });
+    }
+
     return new Response(JSON.stringify({
       success: true,
       analysis,

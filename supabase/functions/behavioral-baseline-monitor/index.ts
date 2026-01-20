@@ -83,6 +83,15 @@ Deno.serve(async (req) => {
           .select()
           .single();
 
+        // Also persist to ai_analyses for section availability detection
+        await supabase.from('ai_analyses').upsert({
+          user_id: userId,
+          profile_id: profileId,
+          analysis_type: 'behavioral_baseline',
+          result: { baseline: stored, metrics: baseline.metrics },
+          generated_at: new Date().toISOString()
+        }, { onConflict: 'profile_id,analysis_type' });
+
         return new Response(JSON.stringify({
           success: true,
           baseline: stored,
@@ -90,6 +99,15 @@ Deno.serve(async (req) => {
           profileId
         }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
+
+      // Also persist existing baseline to ai_analyses
+      await supabase.from('ai_analyses').upsert({
+        user_id: userId,
+        profile_id: profileId,
+        analysis_type: 'behavioral_baseline',
+        result: { baseline: existingBaseline },
+        generated_at: new Date().toISOString()
+      }, { onConflict: 'profile_id,analysis_type' });
 
       return new Response(JSON.stringify({
         success: true,

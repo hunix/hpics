@@ -93,17 +93,17 @@ export const SECTION_DATA_SOURCES: Record<string, SectionDataSource> = {
   relationshipScore: { type: 'ai_analyses', analysisType: 'relationship_score' },
   intelligenceDossier: { type: 'ai_analyses', analysisType: 'intelligence_dossier' },
   
-  // Defense Operations (10 sections - v5.0)
-  opsecAssessment: { type: 'table', table: 'opsec_assessments' },
-  socialEngineering: { type: 'table', table: 'social_engineering_incidents' },
-  crisisResponse: { type: 'table', table: 'crisis_events' },
-  lawfareDefense: { type: 'table', table: 'legal_threat_assessments' },
-  reputationDefense: { type: 'table', table: 'reputation_incidents' },
-  familyProtection: { type: 'table', table: 'protected_persons', keyColumn: 'user_id' },
-  economicWarfare: { type: 'table', table: 'economic_threat_assessments' },
-  tscmSweep: { type: 'table', table: 'tscm_sweep_results' },
-  digitalFootprint: { type: 'table', table: 'digital_footprint_items' },
-  behavioralBaseline: { type: 'table', table: 'behavioral_baselines' },
+  // Defense Operations (10 sections - v5.0) - Now check ai_analyses instead of empty tables
+  opsecAssessment: { type: 'ai_analyses', analysisType: 'opsec_assessment' },
+  socialEngineering: { type: 'ai_analyses', analysisType: 'social_engineering' },
+  crisisResponse: { type: 'ai_analyses', analysisType: 'crisis_response' },
+  lawfareDefense: { type: 'ai_analyses', analysisType: 'lawfare_defense' },
+  reputationDefense: { type: 'ai_analyses', analysisType: 'reputation_defense' },
+  familyProtection: { type: 'ai_analyses', analysisType: 'family_protection' },
+  economicWarfare: { type: 'ai_analyses', analysisType: 'economic_warfare' },
+  tscmSweep: { type: 'ai_analyses', analysisType: 'tscm_sweep' },
+  digitalFootprint: { type: 'ai_analyses', analysisType: 'digital_footprint' },
+  behavioralBaseline: { type: 'ai_analyses', analysisType: 'behavioral_baseline' },
 
   // ============== ANALYSIS SECTIONS (8) ==============
   analysis: { type: 'table', table: 'behavioral_analyses' },
