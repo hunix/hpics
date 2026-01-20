@@ -110,14 +110,14 @@ serve(async (req) => {
       supabase.from('ai_analyses').select('*').eq('profile_id', request.profileId).order('generated_at', { ascending: false }).limit(50),
       supabase.from('contact_observations').select('*').eq('profile_id', request.profileId).order('created_at', { ascending: false }).limit(50),
       supabase.from('behavioral_anomalies').select('*').eq('profile_id', request.profileId).order('detected_at', { ascending: false }).limit(20),
-      supabase.from('life_milestones').select('*').eq('profile_id', request.profileId).limit(30),
+      supabase.from('contact_life_milestones').select('*').eq('profile_id', request.profileId).limit(30),
       supabase.from('relationship_scores').select('*').eq('profile_id', request.profileId).order('calculated_at', { ascending: false }).limit(20),
       supabase.from('betrayal_predictions').select('*').eq('profile_id', request.profileId).order('created_at', { ascending: false }).limit(5),
-      supabase.from('influence_profiles').select('*').eq('profile_id', request.profileId).order('created_at', { ascending: false }).limit(5),
+      supabase.from('ai_analyses').select('*').eq('profile_id', request.profileId).eq('analysis_type', 'influence_profile').limit(5),
       supabase.from('mice_assessments').select('*').eq('profile_id', request.profileId).order('created_at', { ascending: false }).limit(5),
       supabase.from('semantic_operations').select('*').eq('user_id', user.id).limit(10),
       supabase.from('sacred_values').select('*').eq('profile_id', request.profileId).limit(10),
-      supabase.from('behavioral_dna').select('*').eq('profile_id', request.profileId).order('created_at', { ascending: false }).limit(3)
+      supabase.from('ai_analyses').select('*').eq('profile_id', request.profileId).eq('analysis_type', 'behavioral_dna').limit(3)
     ]);
 
     const systemPrompt = `You are an expert intelligence analyst specializing in multi-source intelligence fusion.

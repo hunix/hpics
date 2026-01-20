@@ -232,7 +232,16 @@ serve(async (req) => {
         }
       }
 
-      return new Response(JSON.stringify({ 
+      // Persist to ai_analyses for section availability
+      await supabaseClient.from('ai_analyses').upsert({
+        user_id: userId,
+        profile_id: profileId,
+        analysis_type: 'narrative_control',
+        result: { measurements: newMeasurements, averageShift: avgShift },
+        generated_at: new Date().toISOString()
+      }, { onConflict: 'profile_id,analysis_type' });
+
+      return new Response(JSON.stringify({
         success: true,
         dimensionsMeasured: dimensions.length,
         averageShift: avgShift,

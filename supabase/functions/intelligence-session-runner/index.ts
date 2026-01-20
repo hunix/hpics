@@ -30,7 +30,7 @@ const INTELLIGENCE_TASKS = [
   { name: 'Mass Formation', edgeFunction: 'mass-formation-analyzer', analysisType: 'mass_formation', category: 'warfare', priority: 3, complexity: 'complex' },
   { name: 'Narrative Control', edgeFunction: 'narrative-control-engine', analysisType: 'narrative_control', category: 'warfare', priority: 3, complexity: 'complex' },
   { name: 'Predictive Behavior', edgeFunction: 'predict-behavioral-scenarios', analysisType: 'behavioral_prediction', category: 'warfare', priority: 3, complexity: 'complex' },
-  { name: 'Precognitive Patterns', edgeFunction: 'precognitive-pattern-engine', analysisType: 'precognitive_pattern', category: 'warfare', priority: 3, complexity: 'complex' },
+  { name: 'Precognitive Patterns', edgeFunction: 'precognitive-pattern-engine', analysisType: 'precognitive_patterns', category: 'warfare', priority: 3, complexity: 'complex' },
   
   // Network Intelligence (Priority 4) - 4 tasks
   { name: 'Network Graph', edgeFunction: 'analyze-network-graph', analysisType: 'network_graph', category: 'network', priority: 4, complexity: 'extreme' },

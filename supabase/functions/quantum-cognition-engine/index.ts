@@ -139,6 +139,15 @@ Respond with JSON containing:
       quantum_signature: analysis.quantumSignature,
     });
 
+    // Persist to ai_analyses for section availability
+    await supabase.from('ai_analyses').upsert({
+      user_id: userId,
+      profile_id: profileId,
+      analysis_type: 'quantum_cognition',
+      result: analysis,
+      generated_at: new Date().toISOString()
+    }, { onConflict: 'profile_id,analysis_type' });
+
     return new Response(JSON.stringify({
       success: true,
       profileId,
