@@ -2,6 +2,14 @@
  * Application Version Management
  * Used for cache busting and version tracking
  * 
+ * v3.9.3: Analysis Type Alignment - Fixed section data source mapping to match edge function outputs
+ *         - attachment-vulnerability-analyzer: user.id → userId (ReferenceError fix)
+ *         - sectionDataSources.ts: Aligned 6 analysis_type mismatches:
+ *           - mosaic_intelligence → mosaic_intelligence_fusion
+ *           - deception_analysis → enhanced_deception_detection
+ *           - counter_intel → counter_intelligence
+ *           - shadow_networks → shadow_network
+ *         - Added 9 new section mappings for existing edge function outputs
  * v3.9.2: Enterprise Session Recovery - Fixed edge function bugs causing session deadlock
  *         - predict-behavioral-scenarios: user.id → userId (ReferenceError fix)
  *         - analyze-network-graph: user.id → userId (ReferenceError fix)
@@ -30,11 +38,11 @@
  * v3.8.3: Schema Alignment Phase 2 - Fixed 5 edge functions using deprecated 'observations' table
  * v3.8.2: Enterprise Schema Alignment - Fixed platform-config, trauma/opsec/lawfare analyzers
  */
-export const APP_VERSION = '3.9.2';
+export const APP_VERSION = '3.9.3';
 export const BUILD_TIMESTAMP = new Date().toISOString();
 
 // Versions that require forced cache clear when upgrading from
-export const FORCE_CLEAR_VERSIONS = ['3.9.1', '3.9.0', '3.8.9', '3.8.8', '3.8.7', '3.8.6', '3.8.5', '3.8.4', '3.8.3', '3.8.2', '3.8.1', '3.8.0', '3.7.7', '3.7.6', '3.7.5', '3.7.4', '3.7.3', '3.7.2', '3.7.1', '3.7.0', '3.6.1', '3.6.0', '3.5.0'];
+export const FORCE_CLEAR_VERSIONS = ['3.9.2', '3.9.1', '3.9.0', '3.8.9', '3.8.8', '3.8.7', '3.8.6', '3.8.5', '3.8.4', '3.8.3', '3.8.2', '3.8.1', '3.8.0', '3.7.7', '3.7.6', '3.7.5', '3.7.4', '3.7.3', '3.7.2', '3.7.1', '3.7.0', '3.6.1', '3.6.0', '3.5.0'];
 
 // Cache key for tracking chunk errors
 const CHUNK_ERROR_KEY = 'chunk_error_count';
