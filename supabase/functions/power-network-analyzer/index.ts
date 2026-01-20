@@ -192,41 +192,39 @@ serve(async (req) => {
       { data: financialIntel },
       { data: previousAnalyses }
     ] = await Promise.all([
-      supabase.from('profiles').select('id, name, company, title, relationship_type, relationship_strength, tags').eq('user_id', userId).eq('is_active', true).limit(500),
-      supabase.from('contact_relationships').select('*').eq('user_id', userId),
-      supabase.from('contact_interactions').select('profile_id, interaction_type, sentiment, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(1000),
-      supabase.from('personality_profiles').select('profile_id, openness, extraversion, agreeableness').eq('user_id', userId),
-      supabase.from('financial_intelligence').select('profile_id, wealth_tier, influence_implications').eq('user_id', userId),
-      supabase.from('power_network_analyses').select('*').eq('user_id', userId).order('analyzed_at', { ascending: false }).limit(3)
+      supabase.from('profiles').select('id, first_name, last_name, organization, job_title, relationship_type, tags').eq('user_id', userId).eq('is_active', true).limit(500),
+      supabase.from('contact_relationships').select('from_profile_id, to_profile_id, relationship_type, strength').eq('user_id', userId),
+      supabase.from('contact_interaction_notes').select('profile_id, interaction_type, mood_observed, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(1000),
+      supabase.from('psychological_profiles').select('profile_id, personality_ocean').eq('user_id', userId),
+      supabase.from('ai_analyses').select('profile_id, result').eq('user_id', userId).eq('analysis_type', 'financial_intelligence'),
+      supabase.from('power_network_analyses').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(3)
     ]);
 
     // Build network graph representation
     const networkData = {
       nodes: profiles?.map(p => ({
         id: p.id,
-        name: p.name,
-        company: p.company,
-        title: p.title,
+        name: `${p.first_name || ''} ${p.last_name || ''}`.trim(),
+        company: p.organization,
+        title: p.job_title,
         relationshipType: p.relationship_type,
-        relationshipStrength: p.relationship_strength,
         tags: p.tags,
         personality: personalityProfiles?.find(pp => pp.profile_id === p.id),
         financial: financialIntel?.find(fi => fi.profile_id === p.id)
       })),
       edges: relationships?.map(r => ({
-        source: r.profile_id_1,
-        target: r.profile_id_2,
+        source: r.from_profile_id,
+        target: r.to_profile_id,
         relationshipType: r.relationship_type,
-        strength: r.strength,
-        direction: r.direction
+        strength: r.strength
       })),
       interactionPatterns: interactions?.reduce((acc, i) => {
         const key = i.profile_id;
-        if (!acc[key]) acc[key] = { count: 0, sentiments: [] };
+        if (!acc[key]) acc[key] = { count: 0, moods: [] };
         acc[key].count++;
-        acc[key].sentiments.push(i.sentiment);
+        acc[key].moods.push(i.mood_observed);
         return acc;
-      }, {} as Record<string, { count: number; sentiments: string[] }>),
+      }, {} as Record<string, { count: number; moods: string[] }>),
       analysisContext: {
         type: analysisType,
         targetProfile: targetProfileId,
@@ -292,6 +290,15 @@ serve(async (req) => {
     if (insertError) {
       console.error('Insert error:', insertError);
     }
+
+    // Store in ai_analyses for section availability
+    await supabase.from('ai_analyses').upsert({
+      user_id: userId,
+      profile_id: profiles?.[0]?.id || null,
+      analysis_type: 'power_network',
+      result: analysis,
+      generated_at: new Date().toISOString()
+    }, { onConflict: 'user_id,profile_id,analysis_type' });
 
     // Log AI usage
     await supabase.from('ai_usage_logs').insert({

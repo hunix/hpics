@@ -89,7 +89,7 @@ serve(async (req) => {
       supabase.from('events').select('*').eq('profile_id', profileId).eq('user_id', user.id).limit(30),
       supabase.from('psychological_profiles').select('*').eq('profile_id', profileId).eq('user_id', user.id).maybeSingle(),
       supabase.from('contact_communication_preferences').select('*').eq('profile_id', profileId).eq('user_id', user.id).maybeSingle(),
-      supabase.from('interaction_notes').select('*').eq('profile_id', profileId).eq('user_id', user.id).limit(50),
+      supabase.from('contact_interaction_notes').select('id, profile_id, interaction_type, interaction_date, note_text, mood_observed, topics_discussed, relationship_temperature').eq('profile_id', profileId).eq('user_id', user.id).limit(50),
       supabase.from('media_analyses').select('*').eq('profile_id', profileId).eq('user_id', user.id).limit(20)
     ]);
 
@@ -142,10 +142,10 @@ serve(async (req) => {
         topics_to_avoid: commPrefs.topics_to_avoid
       } : null,
       interaction_notes: interactions?.map(n => ({
-        title: n.title,
-        content: n.content?.substring(0, 300),
-        mood: n.mood,
-        importance: n.importance
+        type: n.interaction_type,
+        content: n.note_text?.substring(0, 300),
+        mood: n.mood_observed,
+        topics: n.topics_discussed
       })) || [],
       behavioral_observations: mediaAnalyses?.map(a => ({
         type: a.analysis_type,
@@ -258,7 +258,16 @@ Generate a comprehensive influence profile including:
       throw saveError;
     }
 
-    return new Response(JSON.stringify({ 
+    // Also persist to ai_analyses for section availability
+    await supabase.from('ai_analyses').upsert({
+      user_id: user.id,
+      profile_id: profileId,
+      analysis_type: 'influence_profile',
+      result: analysis,
+      generated_at: new Date().toISOString()
+    }, { onConflict: 'user_id,profile_id,analysis_type' });
+
+    return new Response(JSON.stringify({
       success: true, 
       profile: savedProfile,
       analysis

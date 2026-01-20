@@ -260,18 +260,19 @@ serve(async (req) => {
     // Get historical data for dynamic features if not provided
     let profileDynamicFeatures = dynamicFeatures || [];
     if (!dynamicFeatures || dynamicFeatures.length === 0) {
-      // Fetch interaction history
+      // Fetch interaction history from contact_interaction_notes
       const { data: interactions } = await supabase
-        .from('interaction_history')
-        .select('interaction_date, sentiment_score, engagement_score, topics_discussed')
+        .from('contact_interaction_notes')
+        .select('interaction_date, relationship_temperature, mood_observed')
         .eq('profile_id', profileId)
         .order('interaction_date', { ascending: true })
         .limit(100);
       
       if (interactions) {
+        const moodScores: Record<string, number> = { 'great': 90, 'good': 75, 'neutral': 50, 'stressed': 30, 'difficult': 15 };
         profileDynamicFeatures = interactions.map((i: any) => ({
           timestamp: new Date(i.interaction_date).getTime(),
-          value: i.sentiment_score || i.engagement_score || 50,
+          value: i.relationship_temperature || moodScores[i.mood_observed] || 50,
           type: 'interaction'
         }));
       }
@@ -322,6 +323,22 @@ serve(async (req) => {
     if (insertError) {
       console.error('[TFT] Insert error:', insertError);
     }
+
+    // Store in ai_analyses for section availability
+    await supabase.from('ai_analyses').upsert({
+      user_id: userId,
+      profile_id: profileId,
+      analysis_type: 'temporal_fusion',
+      result: {
+        predictionType,
+        quantiles,
+        variableImportance,
+        triggerConditions,
+        trend,
+        attentionPattern
+      },
+      generated_at: new Date().toISOString()
+    }, { onConflict: 'user_id,profile_id,analysis_type' });
 
     const result = {
       predictionId: prediction?.id,

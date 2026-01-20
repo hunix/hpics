@@ -324,6 +324,18 @@ serve(async (req) => {
 
     console.log(`Generated trajectory predictions for ${predictions.length} profiles`);
 
+    // Store results in ai_analyses for section availability (use first profile or network-level)
+    const primaryProfileId = profiles?.[0]?.id || null;
+    if (primaryProfileId) {
+      await supabase.from('ai_analyses').upsert({
+        user_id: userId,
+        profile_id: primaryProfileId,
+        analysis_type: 'relationship_trajectory',
+        result: { predictions: predictions.slice(0, 20), generatedAt: new Date().toISOString() },
+        generated_at: new Date().toISOString()
+      }, { onConflict: 'user_id,profile_id,analysis_type' });
+    }
+
     return new Response(JSON.stringify({
       success: true,
       predictions,
