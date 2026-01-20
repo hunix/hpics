@@ -258,14 +258,14 @@ Provide forensic deception analysis in this JSON format:
       analysis = { raw: content, parseError: true };
     }
 
-    // Store enhanced deception analysis
-    await supabase.from('ai_analyses').insert({
+    // Store enhanced deception analysis using upsert for idempotency
+    await supabase.from('ai_analyses').upsert({
       user_id: userId,
       profile_id: profileId,
       analysis_type: 'enhanced_deception_detection',
       result: analysis,
       generated_at: new Date().toISOString()
-    });
+    }, { onConflict: 'profile_id,analysis_type' });
 
     return new Response(JSON.stringify({
       success: true,

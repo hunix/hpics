@@ -304,39 +304,64 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit via GET query param - before any auth/body parsing
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ ok: true, function: 'pattern-of-life-engine', timestamp: Date.now() }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'No authorization header' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+    const body = await req.json();
+    const token = authHeader?.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseKey;
+    
+    // Normalize parameter names
+    const profileId = body.profileId || body.profile_id;
+    const action = body.action || 'analyze';
+    const timeframeDays = body.timeframeDays || body.timeframe_days || 90;
+    let userId: string;
+    
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'userId is required for service calls' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    } else {
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: 'No authorization header' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token!);
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      userId = user.id;
     }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    const { action, profileId, timeframeDays } = await req.json() as PatternOfLifeRequest;
 
     console.log(`[Pattern of Life] Action: ${action} for profile ${profileId}`);
 
-    // Get interactions
-    const days = timeframeDays || 90;
+    // Get interactions using correct table name
+    const days = timeframeDays;
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
 
     const { data: interactions } = await supabase
-      .from('interaction_history')
+      .from('contact_interaction_notes')
       .select('*')
       .eq('profile_id', profileId)
       .gte('interaction_date', cutoffDate.toISOString())
@@ -421,11 +446,11 @@ serve(async (req) => {
       .from('pattern_of_life')
       .select('id')
       .eq('profile_id', profileId)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .single();
 
     const patternData = {
-      user_id: user.id,
+      user_id: userId,
       profile_id: profileId,
       routine_type: 'comprehensive',
       time_windows: routines.flatMap(r => r.timeWindows),
@@ -445,6 +470,15 @@ serve(async (req) => {
     } else {
       await supabase.from('pattern_of_life').insert(patternData);
     }
+
+    // Also persist to ai_analyses for section availability detection
+    await supabase.from('ai_analyses').upsert({
+      user_id: userId,
+      profile_id: profileId,
+      analysis_type: 'pattern_of_life',
+      result: result,
+      generated_at: new Date().toISOString()
+    }, { onConflict: 'profile_id,analysis_type' });
 
     console.log(`[Pattern of Life] Complete. ${routines.length} routines, ${result.deviationCount || 0} deviations`);
 
