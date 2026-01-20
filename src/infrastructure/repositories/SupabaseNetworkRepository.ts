@@ -146,14 +146,87 @@ export class SupabaseNetworkRepository implements INetworkRepository {
     const nodeCount = nodes.length;
     const edgeCount = edges.length;
     
+    // Calculate density
     const maxEdges = nodeCount * (nodeCount - 1) / 2;
     const density = maxEdges > 0 ? edgeCount / maxEdges : 0;
 
+    // Build adjacency list for calculations
+    const adjacencyList = new Map<string, Set<string>>();
+    nodes.forEach(n => adjacencyList.set(n.id, new Set()));
+    edges.forEach(edge => {
+      adjacencyList.get(edge.sourceId)?.add(edge.targetId);
+      adjacencyList.get(edge.targetId)?.add(edge.sourceId);
+    });
+
+    // Calculate clustering coefficient (average local clustering)
+    let totalClustering = 0;
+    let nodesWithNeighbors = 0;
+    
+    for (const [nodeId, neighbors] of adjacencyList) {
+      const k = neighbors.size;
+      if (k < 2) continue;
+      
+      nodesWithNeighbors++;
+      let triangles = 0;
+      const neighborArray = Array.from(neighbors);
+      
+      for (let i = 0; i < neighborArray.length; i++) {
+        for (let j = i + 1; j < neighborArray.length; j++) {
+          if (adjacencyList.get(neighborArray[i])?.has(neighborArray[j])) {
+            triangles++;
+          }
+        }
+      }
+      
+      const possibleTriangles = (k * (k - 1)) / 2;
+      totalClustering += triangles / possibleTriangles;
+    }
+    
+    const clusteringCoefficient = nodesWithNeighbors > 0 
+      ? totalClustering / nodesWithNeighbors 
+      : 0;
+
+    // Calculate average path length using BFS from each node
+    let totalPathLength = 0;
+    let pathCount = 0;
+    
+    for (const sourceNode of nodes) {
+      const distances = this.bfsDistances(sourceNode.id, adjacencyList);
+      for (const [, distance] of distances) {
+        if (distance > 0 && distance < Infinity) {
+          totalPathLength += distance;
+          pathCount++;
+        }
+      }
+    }
+    
+    const averagePathLength = pathCount > 0 ? totalPathLength / pathCount : 0;
+
     return {
       density,
-      clusteringCoefficient: 0,
-      averagePathLength: 0
+      clusteringCoefficient,
+      averagePathLength
     };
+  }
+
+  private bfsDistances(startId: string, adjacencyList: Map<string, Set<string>>): Map<string, number> {
+    const distances = new Map<string, number>();
+    const queue: { nodeId: string; distance: number }[] = [{ nodeId: startId, distance: 0 }];
+    distances.set(startId, 0);
+    
+    while (queue.length > 0) {
+      const { nodeId, distance } = queue.shift()!;
+      const neighbors = adjacencyList.get(nodeId) || new Set();
+      
+      for (const neighbor of neighbors) {
+        if (!distances.has(neighbor)) {
+          distances.set(neighbor, distance + 1);
+          queue.push({ nodeId: neighbor, distance: distance + 1 });
+        }
+      }
+    }
+    
+    return distances;
   }
 
   async findShortestPath(
@@ -213,13 +286,24 @@ export class SupabaseNetworkRepository implements INetworkRepository {
   }
 
   private mapToNetworkNode(row: DbRow): NetworkNode {
+    // Build label from available name fields, fallback to relationship type or ID
+    const firstName = row.first_name as string | undefined;
+    const lastName = row.last_name as string | undefined;
+    const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+    const relationshipType = row.relationship_type as string | undefined;
+    const profileId = (row.to_profile_id || row.id) as string;
+    
+    const label = fullName || relationshipType || `Contact ${profileId.slice(0, 8)}`;
+    
     return {
       id: row.id as string,
-      profileId: row.to_profile_id as string,
-      label: 'Connection',
+      profileId: profileId,
+      label,
       type: 'profile',
       metadata: {
-        relationshipType: row.relationship_type
+        relationshipType: relationshipType,
+        firstName,
+        lastName
       },
       createdAt: new Date(row.created_at as string),
       updatedAt: new Date(row.updated_at as string)

@@ -12,7 +12,7 @@
  * v3.8.1: Navigation visibility fix - Force cache clear for Dossier Intelligence menu
  * v3.8.0: Browser-Independent Intelligence Pipeline with Realtime updates
  */
-export const APP_VERSION = '3.8.4';
+export const APP_VERSION = '3.8.5';
 export const BUILD_TIMESTAMP = new Date().toISOString();
 
 // Versions that require forced cache clear when upgrading from
