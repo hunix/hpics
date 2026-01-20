@@ -45,6 +45,43 @@ Deno.serve(async (req) => {
 
     const { action, threatDetails, profileId } = body;
 
+    // Default analysis mode for intelligence session calls
+    if (!action && profileId) {
+      // Run comprehensive economic warfare analysis
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', profileId)
+        .single();
+
+      const analysis = analyzeEconomicThreat({
+        description: `Economic threat analysis for ${profile?.full_name || 'profile'}`,
+        confirmed: false,
+        financialImpact: 'medium'
+      });
+
+      // Store assessment
+      const { data } = await supabase
+        .from('economic_threat_assessments')
+        .insert({
+          user_id: userId,
+          profile_id: profileId,
+          threat_type: analysis.threatType,
+          threat_vector: analysis.threatVector,
+          severity_score: analysis.severityScore,
+          financial_exposure: analysis.financialExposure,
+          timeline_urgency: analysis.timelineUrgency,
+          attack_indicators: analysis.indicators,
+          countermeasures: analysis.countermeasures,
+          status: 'analyzed'
+        })
+        .select()
+        .single();
+
+      return new Response(JSON.stringify({ success: true, analysis, assessmentId: data?.id }), 
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     switch (action) {
       case 'analyze_threat': {
         const analysis = analyzeEconomicThreat(threatDetails);

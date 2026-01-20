@@ -45,6 +45,20 @@ Deno.serve(async (req) => {
 
     const { action, sweepData, locationId } = body;
 
+    // Default analysis mode for intelligence session calls
+    if (!action && body.profileId) {
+      // Run baseline environment security analysis
+      const analysis = analyzeSweepResults({ type: 'comprehensive' });
+      const environmentAnalysis = analyzeSecurityEnvironment({});
+
+      return new Response(JSON.stringify({ 
+        success: true, 
+        sweep: analysis,
+        environment: environmentAnalysis,
+        profileId: body.profileId
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     switch (action) {
       case 'record_sweep': {
         const analysis = analyzeSweepResults(sweepData);

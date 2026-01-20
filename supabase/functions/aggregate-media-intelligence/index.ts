@@ -28,20 +28,27 @@ serve(async (req) => {
       });
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const authClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
+    const body = await req.json();
+    const token = authHeader.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseServiceKey;
+    
     let userId: string;
-    try {
-      const token = authHeader.replace('Bearer ', '');
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'userId is required for service calls' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      const authClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY') ?? '', {
+        global: { headers: { Authorization: authHeader } }
+      });
       const { data: { user }, error: authError } = await authClient.auth.getUser(token);
       if (authError || !user) {
         return new Response(JSON.stringify({ error: 'Session expired' }), {
@@ -50,14 +57,10 @@ serve(async (req) => {
         });
       }
       userId = user.id;
-    } catch {
-      return new Response(JSON.stringify({ error: 'Session expired' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
     }
 
-    const { profileId, tier = 'standard' } = await req.json();
+    const profileId = body.profileId || body.profile_id;
+    const tier = body.tier || 'standard';
 
     if (!profileId) {
       return new Response(JSON.stringify({ error: 'Profile ID required' }), {

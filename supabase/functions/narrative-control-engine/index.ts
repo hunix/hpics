@@ -26,21 +26,52 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const { campaignId, profileId, action } = await req.json() as NarrativeRequest;
+    const body = await req.json();
+    const token = authHeader.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseServiceKey;
+    
+    let userId: string;
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'userId is required for service calls' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      const anonClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY') ?? '', {
+        global: { headers: { Authorization: authHeader } }
+      });
+      const { data: { user }, error: authError } = await anonClient.auth.getUser();
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      userId = user.id;
+    }
+
+    // Default to measure_perception for intelligence session calls
+    const campaignId = body.campaignId;
+    const profileId = body.profileId || body.profile_id;
+    const action = body.action || 'measure_perception';
+    
+    // Use service role client for database operations
+    const supabaseClient = supabase;
 
     if (action === 'deploy') {
       // Fetch campaign details
@@ -48,7 +79,7 @@ serve(async (req) => {
         .from('narrative_campaigns')
         .select('*')
         .eq('id', campaignId)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .single();
 
       if (campaignError || !campaign) {
@@ -67,7 +98,7 @@ serve(async (req) => {
           const persona = generatePersona(channel.channel);
           
           nodes.push({
-            user_id: user.id,
+            user_id: userId,
             campaign_id: campaignId,
             node_type: i === 0 ? 'primary' : 'amplifier',
             content: generateNarrativeContent(campaign.target_narrative, channel.channel, i),
@@ -114,7 +145,7 @@ serve(async (req) => {
       let query = supabaseClient
         .from('perception_tracking')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('measured_at', { ascending: false });
 
       if (profileId) {
@@ -147,7 +178,7 @@ serve(async (req) => {
         const current = Math.min(1, Math.max(0, previous + shift));
 
         newMeasurements.push({
-          user_id: user.id,
+          user_id: userId,
           profile_id: profileId,
           campaign_id: campaignId,
           perception_dimension: dimension,

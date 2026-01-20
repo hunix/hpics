@@ -50,16 +50,32 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const isServiceRoleCall = token === SUPABASE_SERVICE_ROLE_KEY;
     
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid token' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const body = await req.json();
+    let userId: string;
+    
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'userId is required for service calls' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Invalid token' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      userId = user.id;
     }
 
-    const { profile_id, scenarios, custom_scenario } = await req.json();
+    const profile_id = body.profile_id || body.profileId;
+    const { scenarios, custom_scenario } = body;
 
     if (!profile_id) {
       return new Response(JSON.stringify({ error: 'profile_id required' }), {
@@ -81,13 +97,13 @@ serve(async (req) => {
         .from('psychological_profiles')
         .select('*')
         .eq('profile_id', profile_id)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .single(),
       supabase
         .from('behavioral_analyses')
         .select('*')
         .eq('profile_id', profile_id)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(10),
       supabase
@@ -99,7 +115,7 @@ serve(async (req) => {
         .from('communications')
         .select('*')
         .eq('profile_id', profile_id)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('occurred_at', { ascending: false })
         .limit(50),
     ]);
@@ -239,7 +255,7 @@ ${context.communicationPatterns}`
     if (predictions) {
       await supabase.from('behavioral_predictions').insert({
         profile_id,
-        user_id: user.id,
+        user_id: userId,
         prediction_type: 'scenario_predictions',
         prediction_value: predictions,
         confidence_score: predictions.overall_predictability || 70,
@@ -255,7 +271,7 @@ ${context.communicationPatterns}`
 
     // Log AI usage with config model
     await supabase.from('ai_usage_logs').insert({
-      user_id: user.id,
+      user_id: userId,
       profile_id,
       function_name: 'predict-behavioral-scenarios',
       model_name: aiConfig.defaultModel,
