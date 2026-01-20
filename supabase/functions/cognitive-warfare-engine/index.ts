@@ -52,18 +52,36 @@ serve(async (req) => {
       });
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid token' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const body = await req.json();
+    const token = authHeader.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseServiceKey;
+    
+    let userId: string;
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'userId is required for service calls' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Invalid token' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      userId = user.id;
     }
 
-    const request: CognitiveWarfareRequest = await req.json();
+    // Default to analyze_vulnerability if no operationType for intelligence session calls
+    const request: CognitiveWarfareRequest = {
+      ...body,
+      operationType: body.operationType || 'analyze_vulnerability',
+      profileId: body.profileId || body.profile_id,
+    };
 
     // Gather intelligence context
     let profileContext = '';
@@ -270,7 +288,7 @@ Provide comprehensive cognitive warfare analysis.`;
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
       ],
-      userId: user.id,
+      userId,
       functionName: 'cognitive-warfare-engine',
       profileId: request.profileId,
       temperature: 0.6,
@@ -285,7 +303,7 @@ Provide comprehensive cognitive warfare analysis.`;
 
     // Store the operation
     await supabase.from('cognitive_warfare_operations').insert({
-      user_id: user.id,
+      user_id: userId,
       profile_id: request.profileId || null,
       operation_type: request.operationType,
       target_domain: request.targetDomain || 'all',

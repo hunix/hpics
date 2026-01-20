@@ -46,18 +46,38 @@ serve(async (req) => {
       });
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid token' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const body = await req.json();
+    const token = authHeader.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseServiceKey;
+    
+    let userId: string;
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'userId is required for service calls' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Invalid token' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      userId = user.id;
     }
 
-    const request: MemeticRequest = await req.json();
+    // For intelligence session calls, provide defaults for memetic analysis
+    const request: MemeticRequest = {
+      narrative: body.narrative || 'General influence analysis',
+      targetAudience: body.targetAudience || 'Target profile network',
+      emotionalHooks: body.emotionalHooks || [],
+      desiredOutcome: body.desiredOutcome || 'Comprehensive memetic propagation assessment',
+      profileIds: body.profileIds || (body.profileId ? [body.profileId] : []),
+    };
 
     const systemPrompt = `You are an expert in memetics, viral marketing, and epidemic modeling.
 Your task is to engineer ideas for maximum propagation using SIR (Susceptible-Infected-Recovered) models.
@@ -122,7 +142,7 @@ Desired Outcome: ${request.desiredOutcome}`;
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
       ],
-      userId: user.id,
+      userId,
       functionName: 'memetic-propagation-engine',
       temperature: 0.8,
     });
@@ -138,7 +158,7 @@ Desired Outcome: ${request.desiredOutcome}`;
 
     // Store the campaign
     const { data: savedCampaign } = await supabase.from('memetic_campaigns').insert({
-      user_id: user.id,
+      user_id: userId,
       campaign_name: `Meme: ${request.narrative.substring(0, 50)}`,
       target_profiles: request.profileIds || [],
       meme_content: campaign,

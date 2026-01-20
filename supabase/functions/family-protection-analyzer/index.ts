@@ -45,6 +45,27 @@ Deno.serve(async (req) => {
 
     const { action, personDetails } = body;
 
+    // Default analysis mode for intelligence session calls
+    if (!action && body.profileId) {
+      // Get existing protected persons and generate summary
+      const { data } = await supabase
+        .from('protected_persons')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('is_active', true);
+
+      const summary = generateProtectionSummary(data || []);
+      const threatAssessment = assessThreatToFamily(null, null);
+
+      return new Response(JSON.stringify({ 
+        success: true, 
+        persons: data || [],
+        summary,
+        threatAssessment,
+        profileId: body.profileId
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     switch (action) {
       case 'add_protected_person': {
         const { data, error } = await supabase

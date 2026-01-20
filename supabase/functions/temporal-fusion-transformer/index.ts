@@ -206,16 +206,35 @@ serve(async (req) => {
       });
     }
 
+    const body = await req.json();
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+    const isServiceRoleCall = token === supabaseKey;
+    
+    let userId: string;
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'userId is required for service calls' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    } else {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      userId = user.id;
     }
 
-    const { profileId, predictionType, timeHorizonDays, staticFeatures, dynamicFeatures } = await req.json() as PredictionRequest;
+    const profileId = body.profileId || body.profile_id;
+    const predictionType = body.predictionType || 'behavior';
+    const timeHorizonDays = body.timeHorizonDays || 30;
+    const staticFeatures = body.staticFeatures;
+    const dynamicFeatures = body.dynamicFeatures;
 
     console.log(`[TFT] Processing ${predictionType} prediction for profile ${profileId}`);
 
@@ -263,8 +282,8 @@ serve(async (req) => {
     const { weights, attentionPattern } = temporalAttention(profileDynamicFeatures, timeHorizonDays);
     
     // Calculate base metrics
-    const values = profileDynamicFeatures.map(f => f.value);
-    const baseValue = values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 50;
+    const values = profileDynamicFeatures.map((f: TemporalFeature) => f.value);
+    const baseValue = values.length > 0 ? values.reduce((a: number, b: number) => a + b, 0) / values.length : 50;
     const trend = calculateTrend(values);
     const variance = calculateVariance(values) * 30; // Scale for visibility
     
@@ -278,7 +297,7 @@ serve(async (req) => {
     const { data: prediction, error: insertError } = await supabase
       .from('temporal_predictions')
       .insert({
-        user_id: user.id,
+        user_id: userId,
         profile_id: profileId,
         prediction_type: predictionType,
         time_horizon_days: timeHorizonDays,

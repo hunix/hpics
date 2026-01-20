@@ -52,31 +52,49 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    const { data: { user }, error: authError } = await anonClient.auth.getUser();
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const body = await req.json();
+    const token = authHeader.replace("Bearer ", "");
+    const isServiceRoleCall = token === supabaseKey;
+    
+    let userId: string;
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: "userId is required for service calls" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } else {
+      const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+        global: { headers: { Authorization: authHeader } },
       });
+      const { data: { user }, error: authError } = await anonClient.auth.getUser();
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      userId = user.id;
     }
 
-    const { action, profileId, options = {} } = await req.json();
+    // Default to comprehensive_fusion for intelligence session calls
+    const action = body.action || "comprehensive_fusion";
+    const profileId = body.profileId || body.profile_id;
+    const options = body.options || {};
 
     switch (action) {
       case "comprehensive_fusion":
-        return await comprehensiveFusion(supabase, user.id, profileId, options);
+        return await comprehensiveFusion(supabase, userId, profileId, options);
       case "get_data_completeness":
-        return await getDataCompleteness(supabase, user.id, profileId);
+        return await getDataCompleteness(supabase, userId, profileId);
       case "cross_contact_analysis":
-        return await crossContactAnalysis(supabase, user.id, options);
+        return await crossContactAnalysis(supabase, userId, options);
       case "pattern_detection":
-        return await patternDetection(supabase, user.id, profileId);
+        return await patternDetection(supabase, userId, profileId);
       case "temporal_analysis":
-        return await temporalAnalysis(supabase, user.id, profileId, options);
+        return await temporalAnalysis(supabase, userId, profileId, options);
       default:
         return new Response(JSON.stringify({ error: "Unknown action" }), {
           status: 400,

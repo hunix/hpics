@@ -46,6 +46,28 @@ Deno.serve(async (req) => {
     const profileId = body.profileId || body.profile_id;
     const { action } = body;
 
+    // Default analysis mode for intelligence session calls
+    if (!action && profileId) {
+      // Get existing footprint and assess exposure
+      const { data } = await supabase
+        .from('digital_footprint_items')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('profile_id', profileId)
+        .order('discovered_at', { ascending: false });
+
+      const summary = generateFootprintSummary(data || []);
+      const exposure = assessDigitalExposure(data || []);
+
+      return new Response(JSON.stringify({ 
+        success: true, 
+        items: data || [],
+        summary,
+        exposure,
+        profileId
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     switch (action) {
       case 'scan': {
         const scanResults = performDigitalFootprintScan(body.targetInfo);

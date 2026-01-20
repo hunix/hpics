@@ -46,6 +46,58 @@ Deno.serve(async (req) => {
     const profileId = body.profileId || body.profile_id;
     const { action, behavioralData } = body;
 
+    // Default analysis mode for intelligence session calls
+    if (!action && profileId) {
+      // Fetch or establish baseline
+      const { data: existingBaseline } = await supabase
+        .from('behavioral_baselines')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('profile_id', profileId)
+        .single();
+
+      if (!existingBaseline) {
+        // Establish new baseline
+        const { data: interactions } = await supabase
+          .from('contact_interaction_notes')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('profile_id', profileId)
+          .order('interaction_date', { ascending: false })
+          .limit(100);
+
+        const baseline = calculateBaseline(interactions || []);
+
+        const { data: stored } = await supabase
+          .from('behavioral_baselines')
+          .upsert({
+            user_id: userId,
+            profile_id: profileId,
+            baseline_type: 'communication',
+            baseline_metrics: baseline.metrics,
+            deviation_thresholds: baseline.thresholds,
+            sample_size: interactions?.length || 0,
+            confidence_score: baseline.confidence,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id,profile_id,baseline_type' })
+          .select()
+          .single();
+
+        return new Response(JSON.stringify({
+          success: true,
+          baseline: stored,
+          metrics: baseline.metrics,
+          profileId
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        baseline: existingBaseline,
+        profileId
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     switch (action) {
       case 'establish_baseline': {
         // Fetch historical interaction data

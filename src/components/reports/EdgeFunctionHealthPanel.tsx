@@ -196,6 +196,7 @@ export function EdgeFunctionHealthPanel({ onReadyChange, compact = false }: Edge
   } = useEdgeFunctionHealthCheck();
 
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [isPanelExpanded, setIsPanelExpanded] = useState(false); // Default collapsed
 
   // Notify parent of ready state changes
   if (onReadyChange) {
@@ -238,8 +239,85 @@ export function EdgeFunctionHealthPanel({ onReadyChange, compact = false }: Edge
   }
 
   return (
-    <div className="rounded-lg border bg-card/50 overflow-hidden">
-      {/* Header */}
+    <Collapsible open={isPanelExpanded} onOpenChange={setIsPanelExpanded}>
+      <div className="rounded-lg border bg-card/50 overflow-hidden">
+        {/* Collapsible Header */}
+        <CollapsibleTrigger asChild>
+          <div className="flex items-center justify-between p-3 border-b bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors">
+            <div className="flex items-center gap-3">
+              {isPanelExpanded ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
+              <OverallStatusBadge summary={summary} isChecking={isChecking} />
+              <span className="text-xs text-muted-foreground">
+                {summary.healthy}/{summary.total} Edge Functions
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {lastFullCheck && (
+                <span className="text-[10px] text-muted-foreground">
+                  {formatDistanceToNow(lastFullCheck, { addSuffix: true })}
+                </span>
+              )}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-7 px-2 text-xs"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  runHealthCheck();
+                }}
+                disabled={isChecking}
+              >
+                <RefreshCw className={cn("h-3 w-3 mr-1", isChecking && "animate-spin")} />
+                Check
+              </Button>
+            </div>
+          </div>
+        </CollapsibleTrigger>
+
+        <CollapsibleContent>
+          {/* Critical Missing Warning */}
+          {criticalMissing.length > 0 && (
+            <div className="p-3 bg-destructive/10 border-b border-destructive/20">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-destructive">
+                    Critical functions unavailable
+                  </p>
+                  <p className="text-xs text-destructive/80 mt-0.5">
+                    {criticalMissing.map(f => f.name).join(', ')} must be deployed before generation.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Category List */}
+          <div className="p-2 space-y-1 max-h-[300px] overflow-y-auto">
+            {categoryOrder.map(category => {
+              const functions = byCategory[category];
+              if (!functions?.length) return null;
+              
+              return (
+                <CategorySection
+                  key={category}
+                  category={category}
+                  functions={functions}
+                  isExpanded={expandedCategories.has(category)}
+                  onToggle={() => toggleCategory(category)}
+                />
+              );
+            })}
+          </div>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
+  );
+}
       <div className="flex items-center justify-between p-3 border-b bg-muted/30">
         <div className="flex items-center gap-3">
           <OverallStatusBadge summary={summary} isChecking={isChecking} />

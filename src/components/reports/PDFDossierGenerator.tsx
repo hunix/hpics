@@ -321,20 +321,23 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         {/* Edge Function Health Check Panel */}
         <EdgeFunctionHealthPanel compact={false} />
         
-        {!profileId && (
-          <div className="space-y-2">
-            <Label>Select Contact</Label>
-            <ScalableContactSearch
-              selectedId={selectedProfile}
-              onSelect={handleContactSelect}
-              placeholder="Search and select a contact..."
-              showAddressBook={false}
-            />
-          </div>
-        )}
-
+        {/* Contact + Template Selection Row (50/50 layout) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
+          {/* Contact selector - 50% width */}
+          {!profileId && (
+            <div className="space-y-2">
+              <Label>Select Contact</Label>
+              <ScalableContactSearch
+                selectedId={selectedProfile}
+                onSelect={handleContactSelect}
+                placeholder="Search and select a contact..."
+                showAddressBook={false}
+              />
+            </div>
+          )}
+          
+          {/* Template selector - 50% width (or full width if profileId provided) */}
+          <div className={cn("space-y-2", profileId && "md:col-span-2")}>
             <Label>Dossier Template</Label>
             <Select value={template} onValueChange={(v: DossierTemplate) => applyTemplate(v)}>
               <SelectTrigger className="w-full">
@@ -351,6 +354,7 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
               </SelectContent>
             </Select>
           </div>
+        </div>
           
           <div className="space-y-2">
             <Label>Pre-Generation ({totalTasks} Tasks)</Label>

@@ -42,18 +42,31 @@ serve(async (req) => {
       });
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid token' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const body = await req.json();
+    const token = authHeader.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseServiceKey;
+    
+    let userId: string;
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'userId is required for service calls' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Invalid token' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      userId = user.id;
     }
 
-    const { profileId }: MICERequest = await req.json();
+    const profileId = body.profileId || body.profile_id;
 
     // Gather intelligence on target
     const [profile, messages, observations, analyses] = await Promise.all([
@@ -153,7 +166,7 @@ ${analyses.data?.slice(0, 5).map(a => `- ${a.analysis_type}: ${JSON.stringify(a.
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
       ],
-      userId: user.id,
+      userId,
       functionName: 'mice-recruitment-analyzer',
       profileId,
       temperature: 0.6,
@@ -172,7 +185,7 @@ ${analyses.data?.slice(0, 5).map(a => `- ${a.analysis_type}: ${JSON.stringify(a.
 
     // Store the assessment
     await supabase.from('mice_assessments').insert({
-      user_id: user.id,
+      user_id: userId,
       profile_id: profileId,
       money_vulnerability: assessment.miceProfile.money.vulnerabilityScore,
       money_indicators: assessment.miceProfile.money.indicators,
