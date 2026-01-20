@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { cn } from '@/lib/utils';
 import { FileText, Download, Loader2, Sparkles, SkipForward, Play, Pause, RefreshCw, AlertTriangle, Lock, Database } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -355,8 +356,8 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
             </Select>
           </div>
         </div>
-          
-          <div className="space-y-2">
+        
+        <div className="space-y-2">
             <Label>Pre-Generation ({totalTasks} Tasks)</Label>
             
             {/* Session Recovery UI - shown when there's an existing pausable/resumable session */}
@@ -491,7 +492,6 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
               </div>
             )}
           </div>
-        </div>
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">
