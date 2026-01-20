@@ -2,12 +2,14 @@
  * Intelligence Service - Core domain service for intelligence operations
  * 
  * Coordinates analysis execution, dossier generation, and insight management.
+ * Follows DDD principles - uses repositories instead of direct Supabase access.
  */
 
 import { supabase } from '@/integrations/supabase/client';
 import { Analysis, AnalysisType, AnalysisResult, AnalysisMetadata } from '../entities/Analysis';
 import { Dossier, DossierTemplate, ExecutiveSummary, ThreatAssessment, DossierSection } from '../entities/Dossier';
 import { Insight, InsightCategory, InsightPriority, InsightActionability, InsightEvidence } from '../entities/Insight';
+import { IAnalysisRepository, IDossierRepository, IInsightRepository } from '../repositories/IAnalysisRepository';
 import { getEventBus } from '@/domains/shared';
 import { 
   AnalysisCompleted, 
@@ -49,10 +51,35 @@ export interface IntelligenceSummary {
 
 export class IntelligenceService {
   private edgeFunctionBaseUrl: string;
+  private analysisRepository: IAnalysisRepository | null = null;
+  private dossierRepository: IDossierRepository | null = null;
+  private insightRepository: IInsightRepository | null = null;
 
-  constructor() {
+  constructor(
+    analysisRepo?: IAnalysisRepository,
+    dossierRepo?: IDossierRepository,
+    insightRepo?: IInsightRepository
+  ) {
     const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || 'yibszncvwmefwamayfty';
     this.edgeFunctionBaseUrl = `https://${projectId}.supabase.co/functions/v1`;
+    
+    // Accept optional repository injection for DDD compliance
+    if (analysisRepo) this.analysisRepository = analysisRepo;
+    if (dossierRepo) this.dossierRepository = dossierRepo;
+    if (insightRepo) this.insightRepository = insightRepo;
+  }
+
+  /**
+   * Set repositories (for DI container injection)
+   */
+  setRepositories(
+    analysisRepo: IAnalysisRepository,
+    dossierRepo: IDossierRepository,
+    insightRepo: IInsightRepository
+  ): void {
+    this.analysisRepository = analysisRepo;
+    this.dossierRepository = dossierRepo;
+    this.insightRepository = insightRepo;
   }
 
   /**
@@ -70,26 +97,20 @@ export class IntelligenceService {
         const edgeFunctionName = this.getEdgeFunctionForAnalysis(analysisType);
         const startTime = Date.now();
 
-        const response = await fetch(`${this.edgeFunctionBaseUrl}/${edgeFunctionName}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
+        const response = await supabase.functions.invoke(edgeFunctionName, {
+          body: {
             profileId: request.profileId,
             sourceIds: request.sourceIds,
             options: request.options,
-          }),
+          },
         });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          await eventBus.publish(new AnalysisFailed(request.profileId, analysisType, errorText));
+        if (response.error) {
+          await eventBus.publish(new AnalysisFailed(request.profileId, analysisType, response.error.message));
           continue;
         }
 
-        const data = await response.json();
+        const data = response.data;
         const processingTimeMs = Date.now() - startTime;
 
         const analysis = new Analysis(
@@ -145,25 +166,20 @@ export class IntelligenceService {
     if (!session) return null;
 
     try {
-      const response = await fetch(`${this.edgeFunctionBaseUrl}/generate-intelligence-dossier`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
+      const response = await supabase.functions.invoke('generate-intelligence-dossier', {
+        body: {
           profileId: request.profileId,
           template: request.template,
           options: request.options,
-        }),
+        },
       });
 
-      if (!response.ok) {
-        console.error('[IntelligenceService] Dossier generation failed:', await response.text());
+      if (response.error) {
+        console.error('[IntelligenceService] Dossier generation failed:', response.error.message);
         return null;
       }
 
-      const data = await response.json();
+      const data = response.data;
 
       const dossier = new Dossier(
         data.id || crypto.randomUUID(),
@@ -197,26 +213,47 @@ export class IntelligenceService {
   }
 
   /**
-   * Get the latest dossier for a profile
+   * Get the latest dossier for a profile - uses repository if available
    */
   async getLatestDossier(profileId: string): Promise<Dossier | null> {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return null;
+
+    // Use repository if available (DDD compliant)
+    if (this.dossierRepository) {
+      return this.dossierRepository.findLatest(session.user.id, profileId);
+    }
+
+    // Fallback to direct query (deprecated pattern)
+    console.warn('[IntelligenceService] Using direct Supabase query - inject repository for DDD compliance');
     const { data } = await supabase
       .from('dossiers')
       .select('*')
       .eq('profile_id', profileId)
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (!data) return null;
-
     return this.mapRowToDossier(data);
   }
 
   /**
-   * Get analyses for a profile
+   * Get analyses for a profile - uses repository if available
    */
   async getAnalyses(profileId: string, analysisType?: AnalysisType): Promise<Analysis[]> {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return [];
+
+    // Use repository if available (DDD compliant)
+    if (this.analysisRepository) {
+      return this.analysisRepository.findByProfile(session.user.id, profileId, {
+        types: analysisType ? [analysisType] : undefined
+      });
+    }
+
+    // Fallback to direct query (deprecated pattern)
+    console.warn('[IntelligenceService] Using direct Supabase query - inject repository for DDD compliance');
     let query = supabase
       .from('ai_analyses')
       .select('*')
@@ -234,10 +271,20 @@ export class IntelligenceService {
   }
 
   /**
-   * Get active insights for a profile
+   * Get active insights for a profile - uses repository if available
    */
   async getActiveInsights(profileId: string): Promise<Insight[]> {
-    const { data } = await (supabase as any)
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return [];
+
+    // Use repository if available (DDD compliant)
+    if (this.insightRepository) {
+      return this.insightRepository.findActive(session.user.id, profileId);
+    }
+
+    // Fallback to direct query (deprecated pattern)
+    console.warn('[IntelligenceService] Using direct Supabase query - inject repository for DDD compliance');
+    const { data } = await supabase
       .from('action_recommendations')
       .select('*')
       .eq('profile_id', profileId)
@@ -245,8 +292,7 @@ export class IntelligenceService {
       .order('priority_score', { ascending: false });
 
     if (!data) return [];
-
-    return data.map((row: any) => this.mapRowToInsight(row));
+    return (data as unknown as Record<string, unknown>[]).map((row) => this.mapRowToInsight(row));
   }
 
   /**
@@ -300,17 +346,12 @@ export class IntelligenceService {
     if (!session) return;
 
     try {
-      const response = await fetch(`${this.edgeFunctionBaseUrl}/aggregate-media-intelligence`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ profileId }),
+      const response = await supabase.functions.invoke('aggregate-media-intelligence', {
+        body: { profileId },
       });
 
-      if (response.ok) {
-        const data = await response.json();
+      if (!response.error && response.data) {
+        const data = response.data;
         const eventBus = getEventBus();
         await eventBus.publish(new IntelligenceAggregated(
           profileId,
@@ -340,61 +381,72 @@ export class IntelligenceService {
     return mapping[analysisType] || 'analyze-media-deep';
   }
 
-  private mapRowToAnalysis(row: any): Analysis {
+  private mapRowToAnalysis(row: Record<string, unknown>): Analysis {
     return new Analysis(
-      row.id,
-      row.profile_id,
-      row.user_id,
+      row.id as string,
+      row.profile_id as string,
+      row.user_id as string,
       row.analysis_type as AnalysisType,
       'completed',
-      row.result?.confidence || 0.5,
-      row.result,
+      (row.result as Record<string, unknown>)?.confidence as number || 0.5,
+      row.result as AnalysisResult | null,
       null,
       [],
       null,
-      new Date(row.generated_at),
-      new Date(row.generated_at),
-      new Date(row.generated_at)
+      new Date(row.generated_at as string),
+      new Date(row.generated_at as string),
+      new Date(row.generated_at as string)
     );
   }
 
-  private mapRowToDossier(row: any): Dossier {
+  private mapRowToDossier(row: Record<string, unknown>): Dossier {
+    const rawStatus = (row.status as string) || 'complete';
+    // Map to valid DossierStatus values
+    const validStatuses: Record<string, 'draft' | 'generating' | 'complete' | 'archived'> = {
+      'draft': 'draft',
+      'generating': 'generating',
+      'complete': 'complete',
+      'archived': 'archived',
+      'failed': 'draft', // Map failed to draft
+    };
+    const status = validStatuses[rawStatus] || 'complete';
+    
     return new Dossier(
-      row.id,
-      row.profile_id,
-      row.user_id,
-      row.template || 'full',
-      row.status || 'complete',
-      row.overall_confidence || 0.5,
-      row.executive_summary,
-      row.threat_assessment,
-      row.sections || [],
-      row.sources_used || [],
-      row.generated_at ? new Date(row.generated_at) : null,
-      row.version || 1,
-      new Date(row.created_at),
-      new Date(row.updated_at)
+      row.id as string,
+      row.profile_id as string,
+      row.user_id as string,
+      (row.template as DossierTemplate) || 'full',
+      status,
+      (row.overall_confidence as number) || 0.5,
+      row.executive_summary as ExecutiveSummary,
+      row.threat_assessment as ThreatAssessment,
+      (row.sections as DossierSection[]) || [],
+      (row.sources_used as string[]) || [],
+      row.generated_at ? new Date(row.generated_at as string) : null,
+      (row.version as number) || 1,
+      new Date(row.created_at as string),
+      new Date((row.updated_at as string) || (row.created_at as string))
     );
   }
 
-  private mapRowToInsight(row: any): Insight {
+  private mapRowToInsight(row: Record<string, unknown>): Insight {
     return new Insight(
-      row.id,
-      row.profile_id,
-      row.user_id,
-      row.category || 'behavioral',
-      this.mapPriorityScore(row.priority_score),
+      row.id as string,
+      row.profile_id as string,
+      row.user_id as string,
+      (row.category as InsightCategory) || 'behavioral',
+      this.mapPriorityScore(row.priority_score as number),
       row.urgency === 'urgent' ? 'urgent' : 'actionable',
-      row.title,
-      row.description,
-      row.success_probability || 0.5,
-      row.supporting_evidence || [],
+      row.title as string,
+      row.description as string,
+      (row.success_probability as number) || 0.5,
+      (row.supporting_evidence as InsightEvidence[]) || [],
       [],
-      row.expires_at ? new Date(row.expires_at) : null,
+      row.expires_at ? new Date(row.expires_at as string) : null,
       row.status === 'actioned',
-      row.actioned_at ? new Date(row.actioned_at) : null,
-      new Date(row.created_at),
-      new Date(row.created_at)
+      row.actioned_at ? new Date(row.actioned_at as string) : null,
+      new Date(row.created_at as string),
+      new Date(row.created_at as string)
     );
   }
 
@@ -414,4 +466,11 @@ export function getIntelligenceService(): IntelligenceService {
     intelligenceServiceInstance = new IntelligenceService();
   }
   return intelligenceServiceInstance;
+}
+
+/**
+ * Reset singleton (for testing or DI reinitialization)
+ */
+export function resetIntelligenceService(): void {
+  intelligenceServiceInstance = null;
 }
