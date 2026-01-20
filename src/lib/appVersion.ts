@@ -2,6 +2,12 @@
  * Application Version Management
  * Used for cache busting and version tracking
  * 
+ * v3.9.8: Extended Edge Function Schema Alignment Phase 3
+ *         - Fixed ai_analyses persistence: insert → upsert for idempotency
+ *           (coercion-resistance-assessor, existential-leverage-calculator, network-exploitation-mapper)
+ *         - Added health check + ai_analyses persistence to sacred-values-mapper
+ *         - Added health check + ai_analyses persistence to choice-architecture-optimizer
+ *         - Added dual auth pattern (user token + service role) to sacred-values-mapper
  * v3.9.7: Extended Edge Function Schema Alignment Phase 2
  *         - Fixed shadow-network-analyzer: interaction_history → contact_interaction_notes
  *         - Added ai_analyses persistence to 10 additional functions:
@@ -33,11 +39,11 @@
  * v3.9.0: DDD Barrel Export Compliance - IDE performance optimization
  * v3.8.9: Schema Remediation - Fixed 13 edge functions with contact_observations column mismatches
  */
-export const APP_VERSION = '3.9.7';
+export const APP_VERSION = '3.9.8';
 export const BUILD_TIMESTAMP = new Date().toISOString();
 
 // Versions that require forced cache clear when upgrading from
-export const FORCE_CLEAR_VERSIONS = ['3.9.6', '3.9.5', '3.9.4', '3.9.3', '3.9.2', '3.9.1', '3.9.0', '3.8.9', '3.8.8', '3.8.7', '3.8.6', '3.8.5', '3.8.4', '3.8.3', '3.8.2', '3.8.1', '3.8.0', '3.7.7', '3.7.6', '3.7.5', '3.7.4', '3.7.3', '3.7.2', '3.7.1', '3.7.0', '3.6.1', '3.6.0', '3.5.0'];
+export const FORCE_CLEAR_VERSIONS = ['3.9.7', '3.9.6', '3.9.5', '3.9.4', '3.9.3', '3.9.2', '3.9.1', '3.9.0', '3.8.9', '3.8.8', '3.8.7', '3.8.6', '3.8.5', '3.8.4', '3.8.3', '3.8.2', '3.8.1', '3.8.0', '3.7.7', '3.7.6', '3.7.5', '3.7.4', '3.7.3', '3.7.2', '3.7.1', '3.7.0', '3.6.1', '3.6.0', '3.5.0'];
 
 // Cache key for tracking chunk errors
 const CHUNK_ERROR_KEY = 'chunk_error_count';

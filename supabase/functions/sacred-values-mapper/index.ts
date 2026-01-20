@@ -21,31 +21,52 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit via GET query param - before any auth/body parsing
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ ok: true, function: 'sacred-values-mapper', timestamp: Date.now() }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const body = await req.json();
+    const token = authHeader?.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseServiceKey;
+    
+    // Normalize parameter names
+    const profileId = body.profileId || body.profile_id;
+    let userId: string;
+    
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'userId is required for service calls' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token!);
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Invalid token' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      userId = user.id;
     }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid token' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const { profileId }: SacredValuesRequest = await req.json();
 
     // Gather data
     const [profile, messages, observations] = await Promise.all([
@@ -151,7 +172,7 @@ ${observations.data?.map(o => `${o.category}: ${o.observation}`).join('\n') || '
     // Store each identified sacred value
     for (const value of mapping.sacredValuesProfile.identifiedValues || []) {
       await supabase.from('sacred_values').insert({
-        user_id: user.id,
+        user_id: userId,
         profile_id: profileId,
         value_domain: value.valueDomain,
         value_name: value.valueName,
@@ -164,6 +185,15 @@ ${observations.data?.map(o => `${o.category}: ${o.observation}`).join('\n') || '
         defensive_reactions: value.defensiveReactions
       });
     }
+
+    // Also persist to ai_analyses for section availability detection
+    await supabase.from('ai_analyses').upsert({
+      user_id: userId,
+      profile_id: profileId,
+      analysis_type: 'sacred_values',
+      result: mapping,
+      generated_at: new Date().toISOString()
+    }, { onConflict: 'profile_id,analysis_type' });
 
     return new Response(JSON.stringify({
       success: true,

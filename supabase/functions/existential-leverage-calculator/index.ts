@@ -225,14 +225,14 @@ serve(async (req) => {
       throw new Error("Failed to parse existential leverage analysis");
     }
 
-    // Store the analysis
-    await supabase.from("ai_analyses").insert({
+    // Store the analysis using upsert for idempotency
+    await supabase.from("ai_analyses").upsert({
       profile_id: profileId,
       user_id: userId,
       analysis_type: "existential_leverage",
       result: analysis,
       generated_at: new Date().toISOString()
-    });
+    }, { onConflict: 'profile_id,analysis_type' });
 
     const usage = aiResult.usage || {};
     const estimatedCost = ((usage.prompt_tokens || 0) * 0.00001 + (usage.completion_tokens || 0) * 0.00003) * 100;
