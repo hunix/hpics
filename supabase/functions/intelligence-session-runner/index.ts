@@ -19,7 +19,8 @@ const INTELLIGENCE_TASKS = [
   // Psychological Operations (Priority 2) - 6 tasks
   { name: 'Cognitive Warfare', edgeFunction: 'cognitive-warfare-engine', analysisType: 'cognitive_warfare', category: 'psychological', priority: 2, complexity: 'complex' },
   { name: 'Trauma Exploitation', edgeFunction: 'trauma-exploitation-engine', analysisType: 'trauma_exploitation', category: 'psychological', priority: 2, complexity: 'light' },
-  { name: 'Deception Detection', edgeFunction: 'enhanced-deception-detector', analysisType: 'deception_detection', category: 'psychological', priority: 2, complexity: 'standard' },
+  // FIXED: enhanced-deception-detector stores 'enhanced_deception_detection' not 'deception_detection'
+  { name: 'Deception Detection', edgeFunction: 'enhanced-deception-detector', analysisType: 'enhanced_deception_detection', category: 'psychological', priority: 2, complexity: 'standard' },
   { name: 'Influence Profile', edgeFunction: 'analyze-influence-profile', analysisType: 'influence_profile', category: 'psychological', priority: 2, complexity: 'standard' },
   { name: 'Coercion Resistance', edgeFunction: 'coercion-resistance-assessor', analysisType: 'coercion_resistance', category: 'psychological', priority: 2, complexity: 'standard' },
   { name: 'Existential Leverage', edgeFunction: 'existential-leverage-calculator', analysisType: 'existential_leverage', category: 'psychological', priority: 2, complexity: 'standard' },
@@ -45,9 +46,10 @@ const INTELLIGENCE_TASKS = [
   { name: 'Omega Point Tracking', edgeFunction: 'omega-point-tracker', analysisType: 'omega_point', category: 'temporal', priority: 5, complexity: 'complex' },
   
   // Fusion Intelligence (Priority 6) - 5 tasks
-  { name: 'Mosaic Intelligence', edgeFunction: 'mosaic-intelligence-fuser', analysisType: 'mosaic_intelligence', category: 'fusion', priority: 6, complexity: 'extreme' },
+  // FIXED: mosaic-intelligence-fuser stores 'mosaic_intelligence_fusion' not 'mosaic_intelligence'
+  { name: 'Mosaic Intelligence', edgeFunction: 'mosaic-intelligence-fuser', analysisType: 'mosaic_intelligence_fusion', category: 'fusion', priority: 6, complexity: 'extreme' },
   { name: 'Unified Data Fusion', edgeFunction: 'unified-data-fusion', analysisType: 'unified_fusion', category: 'fusion', priority: 6, complexity: 'extreme' },
-  { name: 'Omniscient Orchestrator', edgeFunction: 'omniscient-orchestrator', analysisType: 'omniscient_synthesis', category: 'fusion', priority: 6, complexity: 'extreme' },
+  { name: 'Omniscient Orchestrator', edgeFunction: 'omniscient-orchestrator', analysisType: 'omniscient_orchestration', category: 'fusion', priority: 6, complexity: 'extreme' },
   { name: 'Intelligence Dossier', edgeFunction: 'generate-intelligence-dossier', analysisType: 'full_dossier', category: 'fusion', priority: 6, complexity: 'extreme' },
   { name: 'Aggregate Intelligence', edgeFunction: 'aggregate-media-intelligence', analysisType: 'aggregate_intelligence', category: 'fusion', priority: 6, complexity: 'extreme' },
   

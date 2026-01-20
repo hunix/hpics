@@ -279,17 +279,17 @@ serve(async (req) => {
       yellow_flags: [] as string[]
     };
 
-    // Store the aggregation result
+    // Store the aggregation result (use 'aggregate_intelligence' to match session runner)
     const { error: updateError } = await supabase
       .from('ai_analyses')
       .upsert({
         user_id: userId,
         profile_id: profileId,
-        analysis_type: 'media_intelligence_aggregation',
+        analysis_type: 'aggregate_intelligence',
         result: aggregationResult,
         generated_at: new Date().toISOString()
       }, {
-        onConflict: 'user_id,profile_id,analysis_type'
+        onConflict: 'profile_id,analysis_type'
       });
 
     if (updateError) {
