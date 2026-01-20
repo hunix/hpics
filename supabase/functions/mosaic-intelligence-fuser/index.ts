@@ -108,7 +108,7 @@ serve(async (req) => {
       supabase.from('communications').select('*').eq('profile_id', request.profileId).order('occurred_at', { ascending: false }).limit(200),
       supabase.from('media').select('id, media_type, ai_metadata, created_at').eq('profile_id', request.profileId).limit(100),
       supabase.from('ai_analyses').select('*').eq('profile_id', request.profileId).order('generated_at', { ascending: false }).limit(50),
-      supabase.from('behavioral_observations').select('*').eq('profile_id', request.profileId).order('observed_at', { ascending: false }).limit(50),
+      supabase.from('contact_observations').select('*').eq('profile_id', request.profileId).order('created_at', { ascending: false }).limit(50),
       supabase.from('behavioral_anomalies').select('*').eq('profile_id', request.profileId).order('detected_at', { ascending: false }).limit(20),
       supabase.from('life_milestones').select('*').eq('profile_id', request.profileId).limit(30),
       supabase.from('relationship_scores').select('*').eq('profile_id', request.profileId).order('calculated_at', { ascending: false }).limit(20),
@@ -325,7 +325,7 @@ ${analyses.data?.slice(0, 10).map(a =>
 ).join('\n') || 'None'}
 
 5. Behavioral Observations:
-${observations.data?.slice(0, 15).map(o => `- ${o.observation_type}: ${o.content}`).join('\n') || 'None'}
+${observations.data?.slice(0, 15).map(o => `- ${o.category}: ${o.observation}`).join('\n') || 'None'}
 
 6. Anomalies Detected:
 ${anomalies.data?.map(a => `- ${a.anomaly_type}: ${a.description}`).join('\n') || 'None'}

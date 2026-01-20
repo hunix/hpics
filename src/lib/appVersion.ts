@@ -2,21 +2,21 @@
  * Application Version Management
  * Used for cache busting and version tracking
  * 
- * v3.8.4: Comprehensive DDD & Schema Alignment
- *         - Fixed deep-correlation-mapper to use contact_observations with correct columns
- *         - Fixed platform-config.ts all override_value → config_value references
- *         - Refactored IntelligenceService to use repository pattern (DDD compliant)
- *         - Implemented real pagination in Analysis/Dossier/Insight repositories
+ * v3.8.6: Final Schema Alignment - Fixed 8 edge functions with contact_observations column mismatches
+ *         - existential-leverage-calculator, generate-meeting-prep, aggregate-contact-intelligence
+ *         - mosaic-intelligence-fuser, deep-intelligence-engine, rag-query, process-document-embeddings
+ *         - future-timeline-engine: All now use category/observation/created_at
+ *         - Updated schemaValidator.ts to match actual contact_observations schema
+ * v3.8.5: Network Metrics - Real graph clustering coefficient and BFS average path length
+ * v3.8.4: DDD repositories, pagination, override_value→config_value fixes
  * v3.8.3: Schema Alignment Phase 2 - Fixed 5 edge functions using deprecated 'observations' table
  * v3.8.2: Enterprise Schema Alignment - Fixed platform-config, trauma/opsec/lawfare analyzers
- * v3.8.1: Navigation visibility fix - Force cache clear for Dossier Intelligence menu
- * v3.8.0: Browser-Independent Intelligence Pipeline with Realtime updates
  */
-export const APP_VERSION = '3.8.5';
+export const APP_VERSION = '3.8.6';
 export const BUILD_TIMESTAMP = new Date().toISOString();
 
 // Versions that require forced cache clear when upgrading from
-export const FORCE_CLEAR_VERSIONS = ['3.8.3', '3.8.2', '3.8.1', '3.8.0', '3.7.7', '3.7.6', '3.7.5', '3.7.4', '3.7.3', '3.7.2', '3.7.1', '3.7.0', '3.6.1', '3.6.0', '3.5.0'];
+export const FORCE_CLEAR_VERSIONS = ['3.8.5', '3.8.4', '3.8.3', '3.8.2', '3.8.1', '3.8.0', '3.7.7', '3.7.6', '3.7.5', '3.7.4', '3.7.3', '3.7.2', '3.7.1', '3.7.0', '3.6.1', '3.6.0', '3.5.0'];
 
 // Cache key for tracking chunk errors
 const CHUNK_ERROR_KEY = 'chunk_error_count';

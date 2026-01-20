@@ -43,7 +43,7 @@ serve(async (req) => {
         { data: events },
       ] = await Promise.all([
         supabaseClient.from('contact_interaction_notes').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(100),
-        supabaseClient.from('contact_observations').select('*').eq('profile_id', profileId).order('observation_date', { ascending: false }).limit(50),
+        supabaseClient.from('contact_observations').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(50),
         supabaseClient.from('communications').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(100),
         supabaseClient.from('calendar_events').select('*').eq('profile_id', profileId).order('start_time', { ascending: false }).limit(50),
       ]);

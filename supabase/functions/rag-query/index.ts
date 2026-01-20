@@ -317,9 +317,9 @@ serve(async (req) => {
     // 4. Search observations
     let obsQuery = supabase
       .from('contact_observations')
-      .select('id, category, observation_text, created_at, profile_id, profiles(first_name, last_name)')
+      .select('id, category, observation, created_at, profile_id, profiles(first_name, last_name)')
       .eq('user_id', user.id)
-      .ilike('observation_text', `%${query}%`)
+      .ilike('observation', `%${query}%`)
       .order('created_at', { ascending: false })
       .limit(effectiveMaxResults);
 
@@ -333,7 +333,7 @@ serve(async (req) => {
         keywordResults.push({
           source_type: 'observation',
           source_id: obs.id,
-          content: obs.observation_text,
+          content: obs.observation,
           relevance_score: 0.75,
           metadata: {
             category: obs.category,

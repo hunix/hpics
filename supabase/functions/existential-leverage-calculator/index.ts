@@ -162,7 +162,7 @@ serve(async (req) => {
       supabase.from("contact_interaction_notes").select("id, profile_id, interaction_type, interaction_date, note_text, mood_observed, topics_discussed, relationship_temperature, notable_changes").eq("profile_id", profileId).order("created_at", { ascending: false }).limit(100),
       supabase.from("contact_life_milestones").select("id, profile_id, milestone_type, milestone_date, description, impact_score").eq("profile_id", profileId).limit(50),
       supabase.from("psychological_profiles").select("*").eq("profile_id", profileId).maybeSingle(),
-      supabase.from("contact_observations").select("id, profile_id, observation_type, content, confidence, source, observed_at").eq("profile_id", profileId).limit(100),
+      supabase.from("contact_observations").select("id, profile_id, category, title, observation, confidence_level, created_at").eq("profile_id", profileId).limit(100),
       supabase.from("ai_analyses").select("*").eq("profile_id", profileId).in("analysis_type", ["behavioral_dna", "psychological", "manipulation_vulnerability"]).limit(10)
     ]);
 

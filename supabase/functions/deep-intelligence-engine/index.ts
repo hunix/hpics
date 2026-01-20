@@ -139,7 +139,7 @@ serve(async (req) => {
       { data: mediaAnalyses },
     ] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', profileId).single(),
-      supabase.from('contact_observations').select('*').eq('profile_id', profileId).order('observed_at', { ascending: false }).limit(50),
+      supabase.from('contact_observations').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(50),
       supabase.from('messages').select('content, direction, sentiment_score, created_at').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(100),
       supabase.from('behavioral_analyses').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(10),
       supabase.from('psychological_profiles').select('*').eq('profile_id', profileId).maybeSingle(),
@@ -151,10 +151,10 @@ serve(async (req) => {
       profile: profile || {},
       name: profileName || `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim(),
       observations: (observations || []).map(o => ({
-        content: o.content,
+        content: o.observation,
         category: o.category,
-        date: o.observed_at,
-        sentiment: o.sentiment,
+        date: o.created_at,
+        confidence: o.confidence_level,
       })),
       communicationPatterns: (messages || []).slice(0, 50).map(m => ({
         direction: m.direction,

@@ -82,14 +82,14 @@ serve(async (req) => {
     } else if (sourceType === 'observation') {
       const { data: observations } = await supabase
         .from('contact_observations')
-        .select('id, observation_text, category, profile_id')
+        .select('id, observation, category, profile_id')
         .eq('user_id', user.id)
-        .not('observation_text', 'is', null)
+        .not('observation', 'is', null)
         .limit(batchSize);
 
       documents = (observations || []).map(o => ({
         id: o.id,
-        content: o.observation_text,
+        content: o.observation,
         source_type: 'observation',
         profile_id: o.profile_id,
         metadata: { category: o.category },

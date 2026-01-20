@@ -88,7 +88,7 @@ serve(async (req) => {
       .select('*')
       .eq('profile_id', profileId)
       .eq('user_id', user.id)
-      .order('observed_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(5);
 
     // Build briefing
@@ -148,8 +148,8 @@ function extractKeyTopics(communications: any[], observations: any[]): string[] 
 
   // Extract from observations
   (observations || []).forEach((o: any) => {
-    if (o.observation_type) {
-      topics.add(o.observation_type.replace('_', ' '));
+    if (o.category) {
+      topics.add(o.category.replace('_', ' '));
     }
   });
 
@@ -193,10 +193,10 @@ function generateTalkingPoints(profile: any, communications: any[], observations
 
   // Recent life events
   const recentObs = (observations || []).find((o: any) => 
-    o.observation_type === 'life_event' || o.observation_type === 'achievement'
+    o.category === 'life_event' || o.category === 'achievement'
   );
   if (recentObs) {
-    points.push(`Follow up on: ${recentObs.content?.substring(0, 50) || 'recent event'}`);
+    points.push(`Follow up on: ${recentObs.observation?.substring(0, 50) || 'recent event'}`);
   }
 
   // Work-related
