@@ -177,7 +177,7 @@ serve(async (req) => {
         direction: m.direction
       })),
       previousPredictionAccuracy: predictionAccuracy,
-      observedBehaviors: observations?.map(o => ({ type: o.observation_type, note: o.notes })),
+      observedBehaviors: observations?.map(o => ({ type: o.category, note: o.observation })),
       deceptionTendencies: deceptionData?.map(d => ({ score: d.overall_deception_score, findings: d.key_findings })),
       scenario: {
         type: scenarioType,

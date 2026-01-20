@@ -168,8 +168,8 @@ serve(async (req) => {
         recentTopics: messages?.slice(0, 20).map(m => m.content?.slice(0, 100))
       },
       observations: observations?.map(o => ({
-        type: o.observation_type,
-        note: o.notes,
+        type: o.category,
+        note: o.observation,
         date: o.created_at
       })),
       visualAnalyses: mediaAnalyses?.map(m => m.analysis_result),

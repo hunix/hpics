@@ -157,7 +157,7 @@ serve(async (req) => {
       // Process existing documents that don't have entities yet
       const sources = [
         { table: 'messages', contentField: 'content', type: 'message', hasProfileId: false },
-        { table: 'contact_observations', contentField: 'observation_text', type: 'observation', hasProfileId: true },
+        { table: 'contact_observations', contentField: 'observation', type: 'observation', hasProfileId: true },
         { table: 'voice_insights', contentField: 'transcription', type: 'voice', hasProfileId: true }
       ];
 

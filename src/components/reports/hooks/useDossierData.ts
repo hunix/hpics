@@ -130,7 +130,7 @@ export function useDossierData() {
       trustData,
       actionPlansData,
     ] = await Promise.all([
-      supabase.from('contact_observations').select('*').eq('profile_id', profileId).order('observed_at', { ascending: false }).limit(50),
+      supabase.from('contact_observations').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(50),
       supabase.from('communications').select('*').eq('profile_id', profileId).order('communication_date', { ascending: false }).limit(100),
       supabase.from('behavioral_anomalies').select('*').eq('profile_id', profileId).order('detected_at', { ascending: false }).limit(20),
       supabase.from('contact_relationships').select('*, to_profile:to_profile_id(id, first_name, last_name, organization)').eq('from_profile_id', profileId).limit(50),

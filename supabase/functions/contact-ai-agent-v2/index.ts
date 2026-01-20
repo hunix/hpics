@@ -127,7 +127,7 @@ const AGENT_TOOLS: AgentTool[] = [
         .select('*')
         .eq('profile_id', context.profileId)
         .eq('user_id', context.userId)
-        .order('observed_at', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(10);
 
       return { behavioral, psychological, observations };

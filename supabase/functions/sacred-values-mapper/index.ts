@@ -128,7 +128,7 @@ Communications (${messages.data?.length || 0}):
 ${messages.data?.slice(0, 40).map(m => m.content?.substring(0, 200)).join('\n') || 'No messages'}
 
 Observations (${observations.data?.length || 0}):
-${observations.data?.map(o => `${o.category}: ${o.observation_text}`).join('\n') || 'No observations'}`;
+${observations.data?.map(o => `${o.category}: ${o.observation}`).join('\n') || 'No observations'}`;
 
     const aiResponse = await callAI({
       model: selectModel('quality'),
