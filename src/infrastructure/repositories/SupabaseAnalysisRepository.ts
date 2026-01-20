@@ -57,28 +57,61 @@ export class SupabaseAnalysisRepository implements IAnalysisRepository {
   }
 
   async findBySpec(spec: QuerySpec<Analysis>): Promise<PaginatedResult<Analysis>> {
-    const items = await this.findAll();
+    const page = spec?.pagination?.page || 0;
+    const pageSize = spec?.pagination?.pageSize || 50;
+    const offset = page * pageSize;
+
+    let query = supabase
+      .from('analysis_events')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(offset, offset + pageSize - 1);
+
+    const { data, error, count } = await query;
+    if (error) throw error;
+
+    const items = (data || []).map(row => this.mapToAnalysis(row));
+    const totalCount = count || items.length;
+    const totalPages = Math.ceil(totalCount / pageSize);
+
     return {
       items,
-      totalCount: items.length,
-      page: 1,
-      pageSize: items.length,
-      totalPages: 1,
-      hasNextPage: false,
-      hasPreviousPage: false
+      totalCount,
+      page,
+      pageSize,
+      totalPages,
+      hasNextPage: page < totalPages - 1,
+      hasPreviousPage: page > 0
     };
   }
 
   async findByUserIdAndSpec(userId: string, spec: QuerySpec<Analysis>): Promise<PaginatedResult<Analysis>> {
-    const items = await this.findByUserId(userId);
+    const page = spec?.pagination?.page || 0;
+    const pageSize = spec?.pagination?.pageSize || 50;
+    const offset = page * pageSize;
+
+    let query = supabase
+      .from('analysis_events')
+      .select('*', { count: 'exact' })
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + pageSize - 1);
+
+    const { data, error, count } = await query;
+    if (error) throw error;
+
+    const items = (data || []).map(row => this.mapToAnalysis(row));
+    const totalCount = count || items.length;
+    const totalPages = Math.ceil(totalCount / pageSize);
+
     return {
       items,
-      totalCount: items.length,
-      page: 1,
-      pageSize: items.length,
-      totalPages: 1,
-      hasNextPage: false,
-      hasPreviousPage: false
+      totalCount,
+      page,
+      pageSize,
+      totalPages,
+      hasNextPage: page < totalPages - 1,
+      hasPreviousPage: page > 0
     };
   }
 
@@ -278,28 +311,61 @@ export class SupabaseDossierRepository implements IDossierRepository {
   }
 
   async findBySpec(spec: QuerySpec<Dossier>): Promise<PaginatedResult<Dossier>> {
-    const items = await this.findAll();
+    const page = spec?.pagination?.page || 0;
+    const pageSize = spec?.pagination?.pageSize || 50;
+    const offset = page * pageSize;
+
+    let query = supabase
+      .from('dossiers')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(offset, offset + pageSize - 1);
+
+    const { data, error, count } = await query;
+    if (error) throw error;
+
+    const items = (data || []).map(row => this.mapToDossier(row));
+    const totalCount = count || items.length;
+    const totalPages = Math.ceil(totalCount / pageSize);
+
     return {
       items,
-      totalCount: items.length,
-      page: 1,
-      pageSize: items.length,
-      totalPages: 1,
-      hasNextPage: false,
-      hasPreviousPage: false
+      totalCount,
+      page,
+      pageSize,
+      totalPages,
+      hasNextPage: page < totalPages - 1,
+      hasPreviousPage: page > 0
     };
   }
 
   async findByUserIdAndSpec(userId: string, spec: QuerySpec<Dossier>): Promise<PaginatedResult<Dossier>> {
-    const items = await this.findByUserId(userId);
+    const page = spec?.pagination?.page || 0;
+    const pageSize = spec?.pagination?.pageSize || 50;
+    const offset = page * pageSize;
+
+    let query = supabase
+      .from('dossiers')
+      .select('*', { count: 'exact' })
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + pageSize - 1);
+
+    const { data, error, count } = await query;
+    if (error) throw error;
+
+    const items = (data || []).map(row => this.mapToDossier(row));
+    const totalCount = count || items.length;
+    const totalPages = Math.ceil(totalCount / pageSize);
+
     return {
       items,
-      totalCount: items.length,
-      page: 1,
-      pageSize: items.length,
-      totalPages: 1,
-      hasNextPage: false,
-      hasPreviousPage: false
+      totalCount,
+      page,
+      pageSize,
+      totalPages,
+      hasNextPage: page < totalPages - 1,
+      hasPreviousPage: page > 0
     };
   }
 
@@ -487,28 +553,61 @@ export class SupabaseInsightRepository implements IInsightRepository {
   }
 
   async findBySpec(spec: QuerySpec<Insight>): Promise<PaginatedResult<Insight>> {
-    const items = await this.findAll();
+    const page = spec?.pagination?.page || 0;
+    const pageSize = spec?.pagination?.pageSize || 50;
+    const offset = page * pageSize;
+
+    let query = supabase
+      .from('action_recommendations')
+      .select('*', { count: 'exact' })
+      .order('priority_score', { ascending: false })
+      .range(offset, offset + pageSize - 1);
+
+    const { data, error, count } = await query;
+    if (error) throw error;
+
+    const items = (data || []).map(row => this.mapToInsight(row));
+    const totalCount = count || items.length;
+    const totalPages = Math.ceil(totalCount / pageSize);
+
     return {
       items,
-      totalCount: items.length,
-      page: 1,
-      pageSize: items.length,
-      totalPages: 1,
-      hasNextPage: false,
-      hasPreviousPage: false
+      totalCount,
+      page,
+      pageSize,
+      totalPages,
+      hasNextPage: page < totalPages - 1,
+      hasPreviousPage: page > 0
     };
   }
 
   async findByUserIdAndSpec(userId: string, spec: QuerySpec<Insight>): Promise<PaginatedResult<Insight>> {
-    const items = await this.findByUserId(userId);
+    const page = spec?.pagination?.page || 0;
+    const pageSize = spec?.pagination?.pageSize || 50;
+    const offset = page * pageSize;
+
+    let query = supabase
+      .from('action_recommendations')
+      .select('*', { count: 'exact' })
+      .eq('user_id', userId)
+      .order('priority_score', { ascending: false })
+      .range(offset, offset + pageSize - 1);
+
+    const { data, error, count } = await query;
+    if (error) throw error;
+
+    const items = (data || []).map(row => this.mapToInsight(row));
+    const totalCount = count || items.length;
+    const totalPages = Math.ceil(totalCount / pageSize);
+
     return {
       items,
-      totalCount: items.length,
-      page: 1,
-      pageSize: items.length,
-      totalPages: 1,
-      hasNextPage: false,
-      hasPreviousPage: false
+      totalCount,
+      page,
+      pageSize,
+      totalPages,
+      hasNextPage: page < totalPages - 1,
+      hasPreviousPage: page > 0
     };
   }
 

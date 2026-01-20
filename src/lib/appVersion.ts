@@ -2,39 +2,21 @@
  * Application Version Management
  * Used for cache busting and version tracking
  * 
+ * v3.8.4: Comprehensive DDD & Schema Alignment
+ *         - Fixed deep-correlation-mapper to use contact_observations with correct columns
+ *         - Fixed platform-config.ts all override_value → config_value references
+ *         - Refactored IntelligenceService to use repository pattern (DDD compliant)
+ *         - Implemented real pagination in Analysis/Dossier/Insight repositories
  * v3.8.3: Schema Alignment Phase 2 - Fixed 5 edge functions using deprecated 'observations' table
- *         (emotional-trajectory-analyzer, unified-data-fusion, save-ai-insight, predict-contact-preferences,
- *         contact-ai-agent). All now use 'contact_observations' with correct column mappings.
- *         Implemented real SupabaseStrategyRepository.
- * v3.8.2: Enterprise Schema Alignment - Fixed platform-config column reference (override_value → config_value),
- *         trauma-exploitation-engine, opsec-vulnerability-analyzer, and lawfare-defense-analyzer
- *         to use correct database columns. Fixed ProfileFacade DI registration.
- * v3.8.1: Navigation visibility fix - Force cache clear to ensure Dossier Intelligence
- *         menu item is visible for all users after removing role restrictions.
- * v3.8.0: Browser-Independent Intelligence Pipeline - Database-persisted sessions with Realtime updates,
- *         backend edge function processing via EdgeRuntime.waitUntil(), full resume/pause/cancel support,
- *         survives browser refresh, circuit breaker at backend level, automatic stale task detection.
- * v3.7.7: Added circuit breaker pattern, per-function health monitoring, background retry queue.
- * v3.7.6: Enhanced auto cache-busting with chunk error prevention, improved edge function reliability.
- * v3.7.5: PDF page breaks, expanded intelligence tasks (34 total), Force Refresh UI toggle.
- * v3.7.4: Expanded intelligence tasks (10→34), added force refresh toggle, graceful error handling,
- *         user-friendly error messages with canRetry flag, skipped task status for existing data.
- * v3.7.3: Fixed section ID to renderer key mappings, expanded data fetching to 55+ sources,
- *         added renderDeceptionAnalysis, fixed useDossierData for all renderer data needs.
- * v3.7.2: Added 43 section renderers (64 total), created AnalysisSectionRenderers,
- *         enhanced ExtendedDossierData with index signature for dynamic data fields.
- * v3.7.1: Extracted 64 section renderers to modular files (Core, Intelligence, Warfare, Fusion),
- *         created domain-specific type files (warfare-types, fusion-types, assessment-types).
- * v3.7.0: Complete modularization - Split SupabaseAnalysisRepository (697→3 files),
- *         expanded database-helpers.ts with 50+ types, enhanced type system.
- * v3.6.1: Modularization cleanup - PDFDossierGenerator and DossierIntelligence
- *         now use modular imports from sections/ and hooks/
+ * v3.8.2: Enterprise Schema Alignment - Fixed platform-config, trauma/opsec/lawfare analyzers
+ * v3.8.1: Navigation visibility fix - Force cache clear for Dossier Intelligence menu
+ * v3.8.0: Browser-Independent Intelligence Pipeline with Realtime updates
  */
-export const APP_VERSION = '3.8.3';
+export const APP_VERSION = '3.8.4';
 export const BUILD_TIMESTAMP = new Date().toISOString();
 
 // Versions that require forced cache clear when upgrading from
-export const FORCE_CLEAR_VERSIONS = ['3.8.2', '3.8.1', '3.8.0', '3.7.7', '3.7.6', '3.7.5', '3.7.4', '3.7.3', '3.7.2', '3.7.1', '3.7.0', '3.6.1', '3.6.0', '3.5.0', '3.4.0', '3.3.0', '3.2.0', '3.1.0', '3.0.0', '2.9.0', '2.8.0', '2.7.0', '2.6.0', '2.5.0', '2.4.0', '2.3.0', '2.2.0'];
+export const FORCE_CLEAR_VERSIONS = ['3.8.3', '3.8.2', '3.8.1', '3.8.0', '3.7.7', '3.7.6', '3.7.5', '3.7.4', '3.7.3', '3.7.2', '3.7.1', '3.7.0', '3.6.1', '3.6.0', '3.5.0'];
 
 // Cache key for tracking chunk errors
 const CHUNK_ERROR_KEY = 'chunk_error_count';

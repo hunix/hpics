@@ -155,7 +155,7 @@ serve(async (req) => {
       supabase.from('profiles').select('id, name, company, title, tags, relationship_type').eq('user_id', userId).eq('is_active', true).limit(200),
       supabase.from('messages').select('profile_id, content, created_at, direction, ai_analysis').eq('user_id', userId).order('created_at', { ascending: false }).limit(1000),
       supabase.from('contact_interactions').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(500),
-      supabase.from('contact_observations').select('profile_id, observation_type, notes, created_at').eq('user_id', userId).limit(300),
+      supabase.from('contact_observations').select('profile_id, category, observation, created_at').eq('user_id', userId).limit(300),
       supabase.from('meeting_recordings').select('profile_id, summary, entities_mentioned, created_at').eq('user_id', userId).limit(100),
       supabase.from('location_history').select('profile_id, location, created_at').eq('user_id', userId).limit(500),
       supabase.from('behavioral_analyses').select('profile_id, behavioral_patterns, personality_indicators').eq('user_id', userId).limit(100),
@@ -189,7 +189,7 @@ serve(async (req) => {
       observationsByContact: observations?.reduce((acc, o) => {
         const key = o.profile_id;
         if (!acc[key]) acc[key] = [];
-        acc[key].push({ type: o.observation_type, note: o.notes, time: o.created_at });
+        acc[key].push({ type: o.category, note: o.observation, time: o.created_at });
         return acc;
       }, {} as Record<string, any[]>),
       entityMentions: meetings?.reduce((acc, m) => {

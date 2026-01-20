@@ -117,15 +117,15 @@ export async function getPlatformConfig(
     if (options?.contactId && options?.userId) {
       const { data: contactOverride } = await supabaseClient
         .from('contact_config_overrides')
-        .select('override_value')
+        .select('config_value')
         .eq('profile_id', options.contactId)
         .eq('config_key', configKey)
         .eq('user_id', options.userId)
         .eq('is_active', true)
         .maybeSingle();
       
-      if (contactOverride?.override_value !== undefined) {
-        value = contactOverride.override_value;
+      if (contactOverride?.config_value !== undefined) {
+        value = contactOverride.config_value;
         configCache.set(cacheKey, { value, timestamp: Date.now() });
         return value;
       }
@@ -202,14 +202,14 @@ export async function getPlatformConfigs(
     if (options?.userId) {
       const { data: userOverrides } = await supabaseClient
         .from('user_config_overrides')
-        .select('config_key, override_value')
+        .select('config_key, config_value')
         .eq('user_id', options.userId)
         .eq('is_active', true)
         .in('config_key', configKeys);
       
       if (userOverrides) {
         for (const override of userOverrides) {
-          results[override.config_key] = override.override_value;
+          results[override.config_key] = override.config_value;
         }
       }
     }
@@ -218,7 +218,7 @@ export async function getPlatformConfigs(
     if (options?.contactId && options?.userId) {
       const { data: contactOverrides } = await supabaseClient
         .from('contact_config_overrides')
-        .select('config_key, override_value')
+        .select('config_key, config_value')
         .eq('profile_id', options.contactId)
         .eq('user_id', options.userId)
         .eq('is_active', true)
@@ -226,7 +226,7 @@ export async function getPlatformConfigs(
       
       if (contactOverrides) {
         for (const override of contactOverrides) {
-          results[override.config_key] = override.override_value;
+          results[override.config_key] = override.config_value;
         }
       }
     }
