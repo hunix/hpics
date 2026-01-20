@@ -27,7 +27,7 @@ import {
   SupabaseDossierRepository, 
   SupabaseInsightRepository 
 } from '@/infrastructure/repositories/SupabaseAnalysisRepository';
-import { SupabaseCampaignRepository, SupabaseThreatRepository } from '@/infrastructure/repositories/SupabaseWarfareRepository';
+import { SupabaseCampaignRepository, SupabaseThreatRepository, SupabaseStrategyRepository } from '@/infrastructure/repositories/SupabaseWarfareRepository';
 
 let isBootstrapped = false;
 
@@ -49,7 +49,7 @@ export function bootstrapContainer(): void {
   container.register(ServiceKeys.WarfareRepository, () => ({
     campaigns: new SupabaseCampaignRepository(supabase),
     threats: new SupabaseThreatRepository(supabase),
-    strategies: { findById: async () => null, findByUserId: async () => [], save: async (e: unknown) => e, delete: async () => {}, findByCampaign: async () => [], findActive: async () => [] }
+    strategies: new SupabaseStrategyRepository(supabase)
   }), 'singleton');
 
   // Domain Services - inject repositories

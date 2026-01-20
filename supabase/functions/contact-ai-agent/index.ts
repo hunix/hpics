@@ -169,11 +169,11 @@ async function gatherContactIntelligence(
   // Get all data in parallel
   const promises: Promise<any>[] = [];
 
-  // Observations
+  // Observations - using contact_observations table
   if (options.includeObservations) {
     promises.push(
       supabase
-        .from('observations')
+        .from('contact_observations')
         .select('*')
         .eq('profile_id', profileId)
         .order('created_at', { ascending: false })
@@ -397,7 +397,7 @@ ${JSON.stringify(profile, null, 2)}
   if (context.observations?.length) {
     prompt += `### Observations (${context.observations.length} entries)
 Key observations about this contact:
-${context.observations.slice(0, 20).map((o: any) => `- [${o.observation_type}] ${o.content?.substring(0, 200) || 'No content'} (${o.created_at})`).join('\n')}
+${context.observations.slice(0, 20).map((o: any) => `- [${o.category || 'general'}] ${(o.observation || o.title || 'No content')?.substring(0, 200)} (${o.created_at})`).join('\n')}
 
 `;
   }

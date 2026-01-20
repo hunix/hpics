@@ -203,7 +203,7 @@ async function comprehensiveFusion(supabase: any, userId: string, profileId: str
 
   // 8. Observations
   const { data: observations } = await supabase
-    .from("observations")
+    .from("contact_observations")
     .select("*")
     .eq("profile_id", profileId)
     .eq("user_id", userId);
@@ -375,7 +375,7 @@ async function getDataCompleteness(supabase: any, userId: string, profileId: str
     { name: "communications", table: "communications", filter: { profile_id: profileId } },
     { name: "documents", table: "documents", filter: { profile_id: profileId } },
     { name: "media", table: "media", filter: { profile_id: profileId } },
-    { name: "observations", table: "observations", filter: { profile_id: profileId } },
+    { name: "observations", table: "contact_observations", filter: { profile_id: profileId } },
     { name: "behavioralAnalyses", table: "behavioral_analyses", filter: { profile_id: profileId } },
     { name: "psychologicalProfile", table: "psychological_profiles", filter: { profile_id: profileId } },
     { name: "voiceAnalyses", table: "voice_analyses", filter: { profile_id: profileId } },
@@ -603,7 +603,7 @@ async function temporalAnalysis(supabase: any, userId: string, profileId: string
       .select("id, occurred_at, channel, direction, subject")
       .eq("profile_id", profileId).eq("user_id", userId)
       .gte("occurred_at", cutoffDate),
-    supabase.from("observations")
+    supabase.from("contact_observations")
       .select("id, created_at, category, title")
       .eq("profile_id", profileId).eq("user_id", userId)
       .gte("created_at", cutoffDate),

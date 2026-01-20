@@ -53,11 +53,11 @@ serve(async (req) => {
         .eq('profile_id', profileId)
         .gte('created_at', cutoffDate.toISOString())
         .order('created_at', { ascending: true }),
-      supabase.from('observations')
+      supabase.from('contact_observations')
         .select('*')
         .eq('profile_id', profileId)
-        .gte('observed_at', cutoffDate.toISOString())
-        .order('observed_at', { ascending: true })
+        .gte('created_at', cutoffDate.toISOString())
+        .order('created_at', { ascending: true })
     ]);
 
     const EMOTIONAL_TRAJECTORY_PROMPT = `You are an expert in emotional intelligence and psychological trajectory analysis. Analyze the following longitudinal emotional data to map emotional patterns, predict future states, and identify intervention opportunities.
