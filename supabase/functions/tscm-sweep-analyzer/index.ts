@@ -51,6 +51,15 @@ Deno.serve(async (req) => {
       const analysis = analyzeSweepResults({ type: 'comprehensive' });
       const environmentAnalysis = analyzeSecurityEnvironment({});
 
+      // Persist to ai_analyses for section availability detection
+      await supabase.from('ai_analyses').upsert({
+        user_id: userId,
+        profile_id: body.profileId,
+        analysis_type: 'tscm_sweep',
+        result: { sweep: analysis, environment: environmentAnalysis },
+        generated_at: new Date().toISOString()
+      }, { onConflict: 'profile_id,analysis_type' });
+
       return new Response(JSON.stringify({ 
         success: true, 
         sweep: analysis,

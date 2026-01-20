@@ -99,6 +99,15 @@ Deno.serve(async (req) => {
         ]
       };
 
+      // Persist to ai_analyses for section availability detection
+      await supabase.from('ai_analyses').upsert({
+        user_id: userId,
+        profile_id: targetProfileId,
+        analysis_type: 'lawfare_defense',
+        result: analysis,
+        generated_at: new Date().toISOString()
+      }, { onConflict: 'profile_id,analysis_type' });
+
       return new Response(JSON.stringify({
         success: true,
         analysis,

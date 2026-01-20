@@ -57,6 +57,15 @@ Deno.serve(async (req) => {
       const summary = generateProtectionSummary(data || []);
       const threatAssessment = assessThreatToFamily(null, null);
 
+      // Persist to ai_analyses for section availability detection
+      await supabase.from('ai_analyses').upsert({
+        user_id: userId,
+        profile_id: body.profileId,
+        analysis_type: 'family_protection',
+        result: { summary, threatAssessment, personsCount: (data || []).length },
+        generated_at: new Date().toISOString()
+      }, { onConflict: 'profile_id,analysis_type' });
+
       return new Response(JSON.stringify({ 
         success: true, 
         persons: data || [],

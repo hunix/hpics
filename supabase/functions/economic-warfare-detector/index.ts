@@ -78,6 +78,15 @@ Deno.serve(async (req) => {
         .select()
         .single();
 
+      // Persist to ai_analyses for section availability detection
+      await supabase.from('ai_analyses').upsert({
+        user_id: userId,
+        profile_id: profileId,
+        analysis_type: 'economic_warfare',
+        result: analysis,
+        generated_at: new Date().toISOString()
+      }, { onConflict: 'profile_id,analysis_type' });
+
       return new Response(JSON.stringify({ success: true, analysis, assessmentId: data?.id }), 
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }

@@ -59,6 +59,15 @@ Deno.serve(async (req) => {
       const summary = generateFootprintSummary(data || []);
       const exposure = assessDigitalExposure(data || []);
 
+      // Persist to ai_analyses for section availability detection
+      await supabase.from('ai_analyses').upsert({
+        user_id: userId,
+        profile_id: profileId,
+        analysis_type: 'digital_footprint',
+        result: { summary, exposure, itemCount: (data || []).length },
+        generated_at: new Date().toISOString()
+      }, { onConflict: 'profile_id,analysis_type' });
+
       return new Response(JSON.stringify({ 
         success: true, 
         items: data || [],
