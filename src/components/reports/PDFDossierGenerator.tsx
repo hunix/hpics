@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { FileText, Download, Loader2, Sparkles, SkipForward, Play, Pause, RefreshCw, AlertTriangle } from 'lucide-react';
+import { FileText, Download, Loader2, Sparkles, SkipForward, Play, Pause, RefreshCw, AlertTriangle, Lock, Database } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -32,6 +32,9 @@ import { allSectionRenderers } from './sections/renderers';
 import { IntelligenceSessionRecovery } from './IntelligenceSessionRecovery';
 import { IntelligenceSessionProgress } from './IntelligenceSessionProgress';
 import { EdgeFunctionHealthPanel } from './EdgeFunctionHealthPanel';
+import { useSectionDataAvailability } from './hooks/useSectionDataAvailability';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
 
 interface PDFDossierGeneratorProps {
   profileId?: string;
@@ -40,7 +43,7 @@ interface PDFDossierGeneratorProps {
 
 export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGeneratorProps) {
   // Version logging for cache debugging
-  console.log('[PDFDossierGenerator] v5.2.0 - Session-Based Intelligence - Browser Persistent');
+  console.log('[PDFDossierGenerator] v5.2.1 - 74 Sections, 40 Tasks - Auto-Disable Empty Sections');
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<string | null>(profileId || null);
@@ -57,6 +60,14 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
   
   // Use new session-based intelligence generation (v3.8.0)
   const targetProfileId = profileId || selectedProfile || '';
+  
+  // Check data availability for sections (v5.2) - MUST come after targetProfileId definition
+  const { 
+    availabilityMap, 
+    isLoading: isCheckingAvailability,
+    sectionsWithData,
+    refresh: refreshAvailability,
+  } = useSectionDataAvailability(targetProfileId || null);
   const { 
     session,
     tasks,
@@ -130,8 +141,8 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
     retryTask(taskId);
   }, [retryTask]);
   
-  // Total tasks count from session or default
-  const totalTasks = session?.totalTasks || 34;
+  // Total tasks count from session or default (40 tasks in v5.2)
+  const totalTasks = session?.totalTasks || 40;
 
   const generatePDF = async () => {
     if (!selectedProfile && !profileId) {
@@ -289,11 +300,11 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
               <FileText className="h-5 w-5" />
               Ultimate Intelligence Dossier Generator
               <Badge variant="secondary" className="text-[10px] font-mono bg-primary/10">
-                v5.1 | 64 Sections | Modular
+                v5.2 | 74 Sections | 40 Tasks
               </Badge>
             </CardTitle>
             <CardDescription>
-              Generate comprehensive 64-section dossiers with Data Fusion Engines, Digital Twins, Temporal Transformers, and Shadow Network Analysis
+              Generate comprehensive 74-section dossiers with Data Fusion Engines, Digital Twins, Temporal Transformers, and Defense Operations
             </CardDescription>
           </div>
           {dataStats && (
@@ -332,7 +343,7 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
               <SelectContent>
                 <SelectItem value="executive">Executive Brief (1-2 pages)</SelectItem>
                 <SelectItem value="operational">Operational Dossier (5-10 pages)</SelectItem>
-                <SelectItem value="full">Full Intelligence Package (Complete - All 64 Sections)</SelectItem>
+                <SelectItem value="full">Full Intelligence Package (Complete - All 74 Sections)</SelectItem>
                 <SelectItem value="surveillance">Surveillance Report (Media Focus)</SelectItem>
                 <SelectItem value="warfare">Warfare Assessment (MICE, Cialdini, Sacred Values)</SelectItem>
                 <SelectItem value="psychological">Psychological Deep Dive (DNA, Quantum, Behavioral)</SelectItem>
@@ -482,14 +493,45 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
           <div className="flex items-center justify-between">
             <Label>Include Sections ({sections.filter(s => s.enabled).length}/{sections.length})</Label>
             <div className="flex gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setSections(sections.map(s => ({ 
+                  ...s, 
+                  enabled: availabilityMap.get(s.id) ?? true 
+                })))}
+                title="Select all sections that have data"
+              >
+                Select With Data
+              </Button>
               <Button variant="ghost" size="sm" onClick={() => setSections(sections.map(s => ({ ...s, enabled: true })))}>
                 Select All
               </Button>
               <Button variant="ghost" size="sm" onClick={() => setSections(sections.map(s => ({ ...s, enabled: false })))}>
-                Clear All
+                Clear
               </Button>
             </div>
           </div>
+          
+          {/* Data availability summary */}
+          {targetProfileId && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+              {isCheckingAvailability ? (
+                <span className="flex items-center gap-1">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Checking data availability...
+                </span>
+              ) : (
+                <span className="flex items-center gap-1">
+                  <Database className="h-3 w-3" />
+                  {sectionsWithData}/{sections.length} sections have data
+                  <Button variant="ghost" size="sm" className="h-5 px-1" onClick={refreshAvailability}>
+                    <RefreshCw className="h-3 w-3" />
+                  </Button>
+                </span>
+              )}
+            </div>
+          )}
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {(['core', 'intelligence', 'warfare', 'analysis'] as const).map((category) => {
@@ -514,18 +556,42 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
                   <div className="space-y-1.5 max-h-64 overflow-y-auto">
                     {categorySections.map(section => {
                       const Icon = section.icon;
+                      const hasData = availabilityMap.get(section.id) ?? true;
+                      const isDisabled = !hasData && targetProfileId;
+                      
                       return (
-                        <div key={section.id} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={section.id}
-                            checked={section.enabled}
-                            onCheckedChange={() => toggleSection(section.id)}
-                          />
-                          <Label htmlFor={section.id} className="flex items-center gap-1.5 cursor-pointer text-xs">
-                            <Icon className={`h-3.5 w-3.5 ${iconColors[category]}`} />
-                            {section.label}
-                          </Label>
-                        </div>
+                        <TooltipProvider key={section.id}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className={`flex items-center space-x-2 ${isDisabled ? 'opacity-50' : ''}`}>
+                                <Checkbox
+                                  id={section.id}
+                                  checked={section.enabled && !isDisabled}
+                                  onCheckedChange={() => !isDisabled && toggleSection(section.id)}
+                                  disabled={!!isDisabled}
+                                />
+                                <Label 
+                                  htmlFor={section.id} 
+                                  className={`flex items-center gap-1.5 text-xs ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                                >
+                                  {isDisabled ? (
+                                    <Lock className="h-3 w-3 text-muted-foreground" />
+                                  ) : (
+                                    <Icon className={`h-3.5 w-3.5 ${iconColors[category]}`} />
+                                  )}
+                                  <span className={isDisabled ? 'line-through' : ''}>
+                                    {section.label}
+                                  </span>
+                                </Label>
+                              </div>
+                            </TooltipTrigger>
+                            {isDisabled && (
+                              <TooltipContent side="right" className="text-xs max-w-[200px]">
+                                <p>No data available for this section. Generate intelligence first or add relevant data.</p>
+                              </TooltipContent>
+                            )}
+                          </Tooltip>
+                        </TooltipProvider>
                       );
                     })}
                   </div>
