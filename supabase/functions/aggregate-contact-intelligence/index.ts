@@ -88,7 +88,7 @@ serve(async (req) => {
       supabase.from('communications').select('*').eq('profile_id', profileId).eq('user_id', user.id).order('occurred_at', { ascending: false }).limit(50),
       supabase.from('behavioral_predictions').select('*').eq('profile_id', profileId).eq('user_id', user.id).order('created_at', { ascending: false }).limit(10),
       supabase.from('churn_predictions').select('*').eq('profile_id', profileId).eq('user_id', user.id).order('created_at', { ascending: false }).limit(3),
-      supabase.from('contact_observations').select('*').eq('profile_id', profileId).eq('user_id', user.id).order('observed_at', { ascending: false }).limit(20),
+      supabase.from('contact_observations').select('*').eq('profile_id', profileId).eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
       supabase.from('contact_relationships').select('*, to_profile:profiles!contact_relationships_to_profile_id_fkey(first_name, last_name)').eq('from_profile_id', profileId).eq('user_id', user.id),
       supabase.from('psychological_profiles').select('*').eq('profile_id', profileId).eq('user_id', user.id).order('created_at', { ascending: false }).limit(1),
       supabase.from('influence_actions').select('*, methodology_outcomes(*)').eq('target_profile_id', profileId).eq('user_id', user.id).order('created_at', { ascending: false }).limit(10),
@@ -165,9 +165,9 @@ serve(async (req) => {
         factors: churnPredictionsResult.data[0].contributing_factors,
       } : null,
       observations: observationsResult.data?.map((o: any) => ({
-        type: o.observation_type,
-        content: o.content?.substring(0, 200),
-        importance: o.importance_score,
+        type: o.category,
+        content: o.observation?.substring(0, 200),
+        confidence: o.confidence_level,
       })),
       relationships: relationshipsResult.data?.map((r: any) => ({
         type: r.relationship_type,
