@@ -211,6 +211,16 @@ export const navigationItems: NavItem[] = [
     keywords: ['cognitive', 'warfare', 'agis', 'phase 3', 'memetic', 'mice', 'semantic', 'betrayal', 'sacred'],
   },
   {
+    id: 'defense-grid',
+    title: 'Defense Grid',
+    url: '/defense-grid',
+    icon: Shield,
+    description: 'AGIS Phase 1 - Defensive warfare operations',
+    category: 'intelligence',
+    requiredRole: 'analyst',
+    keywords: ['defense', 'grid', 'warfare', 'phase 1', 'protection', 'shield'],
+  },
+  {
     id: 'dominion-command',
     title: 'Dominion Command',
     url: '/dominion',
