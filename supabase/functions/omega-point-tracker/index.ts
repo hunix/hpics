@@ -186,6 +186,16 @@ Analyze omega point convergence. Return JSON:
       }
     }
 
+    // Persist to ai_analyses for section enablement (use first profile or userId as profile_id)
+    const primaryProfileId = profilesRes.data?.[0]?.id || userId;
+    await supabase.from('ai_analyses').upsert({
+      user_id: userId,
+      profile_id: primaryProfileId,
+      analysis_type: 'omega_point',
+      result: analysis,
+      generated_at: new Date().toISOString()
+    }, { onConflict: 'profile_id,analysis_type' });
+
     return new Response(JSON.stringify({
       success: true,
       omegaAnalysis: analysis,
