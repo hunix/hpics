@@ -265,7 +265,7 @@ Generate a comprehensive influence profile including:
       analysis_type: 'influence_profile',
       result: analysis,
       generated_at: new Date().toISOString()
-    }, { onConflict: 'user_id,profile_id,analysis_type' });
+    }, { onConflict: 'profile_id,analysis_type' });
 
     return new Response(JSON.stringify({
       success: true, 

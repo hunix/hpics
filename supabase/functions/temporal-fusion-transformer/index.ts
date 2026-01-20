@@ -338,7 +338,7 @@ serve(async (req) => {
         attentionPattern
       },
       generated_at: new Date().toISOString()
-    }, { onConflict: 'user_id,profile_id,analysis_type' });
+    }, { onConflict: 'profile_id,analysis_type' });
 
     const result = {
       predictionId: prediction?.id,

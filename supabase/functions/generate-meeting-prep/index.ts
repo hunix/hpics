@@ -117,7 +117,7 @@ serve(async (req) => {
         result: briefing,
         generated_at: new Date().toISOString(),
       }, {
-        onConflict: 'user_id,profile_id,analysis_type',
+        onConflict: 'profile_id,analysis_type',
       });
 
     return new Response(

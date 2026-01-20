@@ -333,7 +333,7 @@ serve(async (req) => {
         analysis_type: 'relationship_trajectory',
         result: { predictions: predictions.slice(0, 20), generatedAt: new Date().toISOString() },
         generated_at: new Date().toISOString()
-      }, { onConflict: 'user_id,profile_id,analysis_type' });
+      }, { onConflict: 'profile_id,analysis_type' });
     }
 
     return new Response(JSON.stringify({

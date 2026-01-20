@@ -275,7 +275,7 @@ ${context.communicationPatterns}`
         analysis_type: 'behavioral_prediction',
         result: predictions,
         generated_at: new Date().toISOString()
-      }, { onConflict: 'user_id,profile_id,analysis_type' });
+      }, { onConflict: 'profile_id,analysis_type' });
     }
 
     // Log AI usage with config model
