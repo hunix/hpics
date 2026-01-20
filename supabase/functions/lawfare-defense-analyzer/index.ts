@@ -109,21 +109,22 @@ Deno.serve(async (req) => {
     // Analyze the legal threat
     const analysis = analyzeLegalThreat(threatDetails, adversaryInfo, jurisdiction);
 
-    // Store assessment
+    // Store assessment (aligned to actual schema columns)
     const { data: assessment, error: insertError } = await supabase
       .from('legal_threat_assessments')
       .insert({
         user_id: userId,
+        profile_id: profileId || null,
         threat_type: analysis.threatType,
-        adversary_type: adversaryInfo?.type || 'unknown',
-        jurisdiction: jurisdiction || 'unspecified',
-        threat_severity: analysis.severity,
-        likelihood_of_action: analysis.likelihood,
-        estimated_cost_range: analysis.costRange,
-        recommended_posture: analysis.recommendedPosture,
-        defense_strategies: analysis.defenseStrategies,
-        evidence_needed: analysis.evidenceNeeded,
-        status: 'active'
+        severity: analysis.severity,
+        adversary_profile_id: adversaryInfo?.profileId || null,
+        legal_exposure_score: (analysis.likelihood || 0.5) * 100,
+        jurisdiction_risks: { primary: jurisdiction || 'unspecified', risks: [] },
+        counter_strategies: analysis.defenseStrategies,
+        evidence_chain: analysis.evidenceNeeded,
+        timeline: analysis.timeline,
+        status: 'active',
+        assessed_at: new Date().toISOString()
       })
       .select()
       .single();

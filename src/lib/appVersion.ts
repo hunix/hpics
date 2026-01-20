@@ -2,6 +2,9 @@
  * Application Version Management
  * Used for cache busting and version tracking
  * 
+ * v3.8.2: Enterprise Schema Alignment - Fixed platform-config column reference (override_value → config_value),
+ *         trauma-exploitation-engine, opsec-vulnerability-analyzer, and lawfare-defense-analyzer
+ *         to use correct database columns. Fixed ProfileFacade DI registration.
  * v3.8.1: Navigation visibility fix - Force cache clear to ensure Dossier Intelligence
  *         menu item is visible for all users after removing role restrictions.
  * v3.8.0: Browser-Independent Intelligence Pipeline - Database-persisted sessions with Realtime updates,
@@ -23,11 +26,11 @@
  * v3.6.1: Modularization cleanup - PDFDossierGenerator and DossierIntelligence
  *         now use modular imports from sections/ and hooks/
  */
-export const APP_VERSION = '3.8.1';
+export const APP_VERSION = '3.8.2';
 export const BUILD_TIMESTAMP = new Date().toISOString();
 
 // Versions that require forced cache clear when upgrading from
-export const FORCE_CLEAR_VERSIONS = ['3.8.0', '3.7.7', '3.7.6', '3.7.5', '3.7.4', '3.7.3', '3.7.2', '3.7.1', '3.7.0', '3.6.1', '3.6.0', '3.5.0', '3.4.0', '3.3.0', '3.2.0', '3.1.0', '3.0.0', '2.9.0', '2.8.0', '2.7.0', '2.6.0', '2.5.0', '2.4.0', '2.3.0', '2.2.0'];
+export const FORCE_CLEAR_VERSIONS = ['3.8.1', '3.8.0', '3.7.7', '3.7.6', '3.7.5', '3.7.4', '3.7.3', '3.7.2', '3.7.1', '3.7.0', '3.6.1', '3.6.0', '3.5.0', '3.4.0', '3.3.0', '3.2.0', '3.1.0', '3.0.0', '2.9.0', '2.8.0', '2.7.0', '2.6.0', '2.5.0', '2.4.0', '2.3.0', '2.2.0'];
 
 // Cache key for tracking chunk errors
 const CHUNK_ERROR_KEY = 'chunk_error_count';
