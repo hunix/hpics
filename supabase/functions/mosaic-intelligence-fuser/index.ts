@@ -376,13 +376,14 @@ Synthesize all available intelligence into a unified assessment.`;
       confidenceMatrix: {}
     });
 
-    // Store the fusion result
-    await supabase.from('ai_analyses').insert({
+    // Store the fusion result (idempotent)
+    await supabase.from('ai_analyses').upsert({
       user_id: user.id,
       profile_id: request.profileId,
       analysis_type: 'mosaic_intelligence_fusion',
-      result: fusion
-    });
+      result: fusion,
+      generated_at: new Date().toISOString()
+    }, { onConflict: 'profile_id,analysis_type' });
 
     return new Response(JSON.stringify({
       success: true,
