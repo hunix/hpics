@@ -200,6 +200,16 @@ export const navigationItems: NavItem[] = [
     keywords: ['supremacy', 'agis', 'phase 2', 'tactical', 'negotiation', 'attachment', 'chronotype'],
   },
   {
+    id: 'supremacy-legacy',
+    title: 'Supremacy (Legacy)',
+    url: '/supremacy',
+    icon: Crown,
+    description: 'Original Supremacy Dashboard - Legacy AGIS',
+    category: 'intelligence',
+    requiredRole: 'analyst',
+    keywords: ['supremacy', 'legacy', 'dashboard', 'original'],
+  },
+  {
     id: 'cognitive-warfare',
     title: 'Cognitive Warfare',
     url: '/cognitive-warfare',
