@@ -292,13 +292,16 @@ serve(async (req) => {
     }
 
     // Store in ai_analyses for section availability
-    await supabase.from('ai_analyses').upsert({
-      user_id: userId,
-      profile_id: profiles?.[0]?.id || null,
-      analysis_type: 'power_network',
-      result: analysis,
-      generated_at: new Date().toISOString()
-    }, { onConflict: 'user_id,profile_id,analysis_type' });
+    const primaryProfileId = profiles?.[0]?.id;
+    if (primaryProfileId) {
+      await supabase.from('ai_analyses').upsert({
+        user_id: userId,
+        profile_id: primaryProfileId,
+        analysis_type: 'power_network',
+        result: analysis,
+        generated_at: new Date().toISOString()
+      }, { onConflict: 'profile_id,analysis_type' });
+    }
 
     // Log AI usage
     await supabase.from('ai_usage_logs').insert({

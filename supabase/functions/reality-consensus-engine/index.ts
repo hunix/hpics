@@ -205,13 +205,18 @@ Create reality injection protocol. Return JSON:
     }
 
     // Persist to ai_analyses for section availability
-    await supabase.from('ai_analyses').upsert({
-      user_id: userId,
-      profile_id: null, // Network-level analysis
-      analysis_type: 'reality_consensus',
-      result: analysis,
-      generated_at: new Date().toISOString()
-    }, { onConflict: 'user_id,analysis_type' });
+    // Note: For network-level analyses without profile_id, we use insert with upsert logic
+    // The unique constraint is on (profile_id, analysis_type), but we still need user_id for RLS
+    const profileIdForAnalysis = profilesRes.data?.[0]?.id || null;
+    if (profileIdForAnalysis) {
+      await supabase.from('ai_analyses').upsert({
+        user_id: userId,
+        profile_id: profileIdForAnalysis,
+        analysis_type: 'reality_consensus',
+        result: analysis,
+        generated_at: new Date().toISOString()
+      }, { onConflict: 'profile_id,analysis_type' });
+    }
 
     return new Response(JSON.stringify({
       success: true,

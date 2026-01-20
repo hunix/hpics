@@ -445,7 +445,7 @@ ${formattedMessages}`;
         result: fullAnalysis,
         generated_at: new Date().toISOString(),
       }, {
-        onConflict: 'user_id,profile_id,analysis_type',
+        onConflict: 'profile_id,analysis_type',
       });
 
     if (saveError) {
