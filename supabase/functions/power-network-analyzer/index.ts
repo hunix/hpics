@@ -202,33 +202,33 @@ serve(async (req) => {
 
     // Build network graph representation
     const networkData = {
-      nodes: profiles?.map(p => ({
+      nodes: profiles?.map((p: { id: string; first_name?: string; last_name?: string; organization?: string; job_title?: string; relationship_type?: string; tags?: string[] }) => ({
         id: p.id,
         name: `${p.first_name || ''} ${p.last_name || ''}`.trim(),
         company: p.organization,
         title: p.job_title,
         relationshipType: p.relationship_type,
         tags: p.tags,
-        personality: personalityProfiles?.find(pp => pp.profile_id === p.id),
-        financial: financialIntel?.find(fi => fi.profile_id === p.id)
+        personality: personalityProfiles?.find((pp: { profile_id: string }) => pp.profile_id === p.id),
+        financial: financialIntel?.find((fi: { profile_id: string }) => fi.profile_id === p.id)
       })),
-      edges: relationships?.map(r => ({
+      edges: relationships?.map((r: { from_profile_id: string; to_profile_id: string; relationship_type?: string; strength?: number }) => ({
         source: r.from_profile_id,
         target: r.to_profile_id,
         relationshipType: r.relationship_type,
         strength: r.strength
       })),
-      interactionPatterns: interactions?.reduce((acc, i) => {
+      interactionPatterns: interactions?.reduce((acc: Record<string, { count: number; moods: string[] }>, i: { profile_id: string; mood_observed?: string }) => {
         const key = i.profile_id;
         if (!acc[key]) acc[key] = { count: 0, moods: [] };
         acc[key].count++;
-        acc[key].moods.push(i.mood_observed);
+        if (i.mood_observed) acc[key].moods.push(i.mood_observed);
         return acc;
       }, {} as Record<string, { count: number; moods: string[] }>),
       analysisContext: {
         type: analysisType,
         targetProfile: targetProfileId,
-        previousInsights: previousAnalyses?.map(a => a.key_insights)
+        previousInsights: previousAnalyses?.map((a: { key_insights?: string[] }) => a.key_insights)
       }
     };
 

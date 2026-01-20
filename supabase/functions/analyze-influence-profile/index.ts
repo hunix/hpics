@@ -110,19 +110,19 @@ serve(async (req) => {
         tags: profile.tags,
         notes: profile.notes
       },
-      messages: messages?.map(m => ({
+      messages: messages?.map((m: { content?: string; is_from_contact?: boolean; sent_at?: string }) => ({
         content: m.content?.substring(0, 500),
         from_contact: m.is_from_contact,
         date: m.sent_at
       })) || [],
-      communications: communications?.map(c => ({
+      communications: communications?.map((c: { channel?: string; direction?: string; subject?: string; sentiment_score?: number; occurred_at?: string }) => ({
         channel: c.channel,
         direction: c.direction,
         subject: c.subject,
         sentiment: c.sentiment_score,
         date: c.occurred_at
       })) || [],
-      events: events?.map(e => ({
+      events: events?.map((e: { event_type?: string; title?: string; event_date?: string }) => ({
         type: e.event_type,
         title: e.title,
         date: e.event_date
@@ -141,13 +141,13 @@ serve(async (req) => {
         favorite_topics: commPrefs.favorite_topics,
         topics_to_avoid: commPrefs.topics_to_avoid
       } : null,
-      interaction_notes: interactions?.map(n => ({
+      interaction_notes: interactions?.map((n: { interaction_type?: string; note_text?: string; mood_observed?: string; topics_discussed?: string[] }) => ({
         type: n.interaction_type,
         content: n.note_text?.substring(0, 300),
         mood: n.mood_observed,
         topics: n.topics_discussed
       })) || [],
-      behavioral_observations: mediaAnalyses?.map(a => ({
+      behavioral_observations: mediaAnalyses?.map((a: { analysis_type?: string; analysis_result?: unknown }) => ({
         type: a.analysis_type,
         result: a.analysis_result
       })) || []
