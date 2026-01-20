@@ -155,7 +155,6 @@ export const navigationItems: NavItem[] = [
     icon: FileText,
     description: 'Intelligence synthesis & 64-section warfare dossiers',
     category: 'intelligence',
-    requiredRole: 'analyst',
     keywords: ['dossier', 'intelligence', 'pdf', 'report', 'synthesis', 'warfare', 'analysis'],
   },
   {
