@@ -173,7 +173,7 @@ async function keywordSearch(
         try {
           const { data: observations } = await supabase
             .from('contact_observations')
-            .select('id, category, observation_text, ai_validation_status, confidence_level')
+            .select('id, category, observation, ai_validation_status, confidence_level')
             .eq('user_id', userId)
             .eq('profile_id', profileId)
             .limit(30);
@@ -181,7 +181,7 @@ async function keywordSearch(
           if (observations) {
             const queryLower = query.toLowerCase();
             for (const obs of observations) {
-              const text = obs.observation_text || '';
+              const text = obs.observation || '';
               const textLower = text.toLowerCase();
               
               const queryWords = queryLower.split(/\s+/).filter((w: string) => w.length > 3);

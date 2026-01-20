@@ -61,7 +61,7 @@ serve(async (req) => {
       supabase.from("profiles").select("*").eq("id", profileId).single(),
       supabase.from("communications").select("*").eq("profile_id", profileId).order("occurred_at", { ascending: false }).limit(100),
       supabase.from("messages").select("*").eq("profile_id", profileId).order("sent_at", { ascending: false }).limit(100),
-      supabase.from("contact_observations").select("*").eq("profile_id", profileId).order("observed_at", { ascending: false }).limit(50),
+      supabase.from("contact_observations").select("*").eq("profile_id", profileId).order("created_at", { ascending: false }).limit(50),
       supabase.from("behavioral_baselines").select("*").eq("profile_id", profileId).limit(5)
     ]);
 

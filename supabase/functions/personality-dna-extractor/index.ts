@@ -175,7 +175,7 @@ serve(async (req) => {
     // Compile linguistic corpus
     const textCorpus = [
       ...(messages || []).map(m => m.content),
-      ...(observations || []).map(o => o.notes),
+      ...(observations || []).map(o => o.observation),
       ...(recordings || []).filter(r => r.transcription).map(r => r.transcription)
     ].filter(Boolean).join('\n\n');
 
@@ -185,7 +185,7 @@ serve(async (req) => {
       textCorpus: textCorpus.slice(0, 50000), // Limit context size
       voicePatterns: voiceInsights,
       behavioralPatterns: behavioralData,
-      observationNotes: observations?.map(o => ({ note: o.notes, type: o.observation_type }))
+      observationNotes: observations?.map(o => ({ note: o.observation, type: o.category }))
     };
 
     // Get AI config from platform settings

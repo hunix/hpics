@@ -41,7 +41,7 @@ const DATA_SOURCES = [
   },
   { 
     table: 'contact_observations', 
-    contentField: 'observation_text',
+    contentField: 'observation',
     sourceType: 'observation',
     userIdPath: 'user_id',
     profileIdPath: 'profile_id',

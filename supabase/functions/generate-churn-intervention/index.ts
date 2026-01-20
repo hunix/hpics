@@ -155,7 +155,7 @@ serve(async (req) => {
       supabase.from('contact_observations')
         .select('*')
         .eq('profile_id', profileId)
-        .order('observed_at', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(10),
       supabase.from('relationship_scores')
         .select('*')

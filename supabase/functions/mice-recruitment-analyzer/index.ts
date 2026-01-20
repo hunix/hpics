@@ -155,7 +155,7 @@ Recent Communications (${messages.data?.length || 0} messages):
 ${messages.data?.slice(0, 20).map(m => `- ${m.content?.substring(0, 200)}`).join('\n') || 'No messages'}
 
 Observations (${observations.data?.length || 0}):
-${observations.data?.slice(0, 10).map(o => `- ${o.category}: ${o.observation_text?.substring(0, 150)}`).join('\n') || 'No observations'}
+${observations.data?.slice(0, 10).map(o => `- ${o.category}: ${o.observation?.substring(0, 150)}`).join('\n') || 'No observations'}
 
 Previous Analyses:
 ${analyses.data?.slice(0, 5).map(a => `- ${a.analysis_type}: ${JSON.stringify(a.result).substring(0, 200)}`).join('\n') || 'No analyses'}`;

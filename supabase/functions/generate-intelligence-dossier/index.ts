@@ -144,7 +144,7 @@ serve(async (req) => {
       supabase.from('contact_influence_profiles').select('*').eq('profile_id', profileId).eq('user_id', user.id).maybeSingle(),
       supabase.from('behavioral_analyses').select('*').eq('profile_id', profileId).eq('user_id', user.id).order('created_at', { ascending: false }).limit(5),
       supabase.from('communications').select('*').eq('profile_id', profileId).eq('user_id', user.id).order('occurred_at', { ascending: false }).limit(50),
-      supabase.from('contact_observations').select('*').eq('profile_id', profileId).eq('user_id', user.id).order('observed_at', { ascending: false }).limit(30),
+      supabase.from('contact_observations').select('*').eq('profile_id', profileId).eq('user_id', user.id).order('created_at', { ascending: false }).limit(30),
       supabase.from('behavioral_predictions').select('*').eq('profile_id', profileId).eq('user_id', user.id).order('created_at', { ascending: false }).limit(10),
       supabase.from('contact_relationships').select('*, to_profile:profiles!contact_relationships_to_profile_id_fkey(first_name, last_name)').eq('from_profile_id', profileId).eq('user_id', user.id),
       supabase.from('contact_predicted_preferences').select('*').eq('profile_id', profileId).eq('user_id', user.id).order('confidence_score', { ascending: false }).limit(20),

@@ -171,7 +171,7 @@ serve(async (req) => {
         sources.push({ table: 'messages', contentField: 'content', type: 'message' });
       }
       if (backfillType === 'observations' || backfillType === 'all') {
-        sources.push({ table: 'contact_observations', contentField: 'observation_text', type: 'observation' });
+        sources.push({ table: 'contact_observations', contentField: 'observation', type: 'observation' });
       }
       if (backfillType === 'voice' || backfillType === 'all') {
         sources.push({ table: 'voice_insights', contentField: 'transcription', type: 'voice' });
