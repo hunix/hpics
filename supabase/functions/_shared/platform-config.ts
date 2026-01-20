@@ -14,14 +14,16 @@ export interface PlatformConfigValue {
   default_value: any;
 }
 
-// Default values for all platform configurations
+// Default values for all platform configurations - GEMINI 3 OPTIMIZED
 export const CONFIG_DEFAULTS: Record<string, any> = {
-  // AI Configuration
-  'ai.default_model': 'google/gemini-2.5-flash',
-  'ai.quality_model': 'google/gemini-2.5-pro',
-  'ai.speed_model': 'google/gemini-2.5-flash-lite',
-  'ai.max_tokens_per_request': 4000,
-  'ai.temperature_default': 0.7,
+  // AI Configuration - Gemini 3 Family (v5.3)
+  'ai.default_model': 'google/gemini-3-flash-preview',
+  'ai.quality_model': 'google/gemini-3-pro-preview',
+  'ai.speed_model': 'google/gemini-3-flash-preview',
+  'ai.reasoning_model': 'google/gemini-3-pro-preview',
+  'ai.vision_model': 'google/gemini-3-pro-image-preview',
+  'ai.max_tokens_per_request': 16000,  // Increased for Gemini 3
+  'ai.temperature_default': 0.55,
   'ai.daily_budget_cents': 5000,
   'ai.weekly_budget_cents': 25000,
   'ai.monthly_budget_cents': 100000,
@@ -243,15 +245,18 @@ export function clearConfigCache(): void {
 }
 
 /**
- * Get AI-specific configuration values
+ * Get AI-specific configuration values - GEMINI 3 OPTIMIZED
  */
 export async function getAIConfig(
   supabaseClient: SupabaseClientAny,
-  userId?: string
+  userId?: string,
+  analysisType?: string  // NEW: Optional analysis type for task-specific config
 ): Promise<{
   defaultModel: string;
   qualityModel: string;
   speedModel: string;
+  reasoningModel: string;
+  visionModel: string;
   maxTokens: number;
   temperature: number;
   dailyBudgetCents: number;
@@ -262,6 +267,10 @@ export async function getAIConfig(
 }> {
   const configs = await getPlatformConfigs(supabaseClient, [
     'ai.default_model',
+    'ai.quality_model',
+    'ai.speed_model',
+    'ai.reasoning_model',
+    'ai.vision_model',
     'ai.max_tokens_per_request',
     'ai.temperature_default',
     'ai.daily_budget_cents',
@@ -272,11 +281,13 @@ export async function getAIConfig(
   ], { userId });
   
   return {
-    defaultModel: configs['ai.default_model'],
-    qualityModel: 'google/gemini-2.5-pro', // Quality tier is always pro
-    speedModel: 'google/gemini-2.5-flash-lite', // Speed tier is always lite
-    maxTokens: configs['ai.max_tokens_per_request'],
-    temperature: configs['ai.temperature_default'],
+    defaultModel: configs['ai.default_model'] || 'google/gemini-3-flash-preview',
+    qualityModel: configs['ai.quality_model'] || 'google/gemini-3-pro-preview',
+    speedModel: configs['ai.speed_model'] || 'google/gemini-3-flash-preview',
+    reasoningModel: configs['ai.reasoning_model'] || 'google/gemini-3-pro-preview',
+    visionModel: configs['ai.vision_model'] || 'google/gemini-3-pro-image-preview',
+    maxTokens: configs['ai.max_tokens_per_request'] || 16000,
+    temperature: configs['ai.temperature_default'] || 0.55,
     dailyBudgetCents: configs['ai.daily_budget_cents'],
     weeklyBudgetCents: configs['ai.weekly_budget_cents'],
     monthlyBudgetCents: configs['ai.monthly_budget_cents'],

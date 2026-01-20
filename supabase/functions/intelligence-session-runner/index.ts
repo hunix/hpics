@@ -6,61 +6,62 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// All intelligence tasks mapped to EXISTING edge functions
+// All intelligence tasks mapped to EXISTING edge functions - GEMINI 3 OPTIMIZED (v5.3)
+// Complexity levels: light (Flash), standard (Flash), complex (Pro), extreme (Pro Max)
 const INTELLIGENCE_TASKS = [
   // Core Intelligence (Priority 1) - 5 tasks
-  { name: 'MICE Assessment', edgeFunction: 'mice-recruitment-analyzer', analysisType: 'full_assessment', category: 'core', priority: 1 },
-  { name: 'Behavioral DNA', edgeFunction: 'behavioral-dna-sequencer', analysisType: 'full_sequence', category: 'core', priority: 1 },
-  { name: 'Attachment Vulnerability', edgeFunction: 'attachment-vulnerability-analyzer', analysisType: 'comprehensive', category: 'core', priority: 1 },
-  { name: 'Manipulation Susceptibility', edgeFunction: 'manipulation-vulnerability-assessment', analysisType: 'full_assessment', category: 'core', priority: 1 },
-  { name: 'Phobia Exploitation', edgeFunction: 'phobia-exploitation-engine', analysisType: 'full_analysis', category: 'core', priority: 1 },
+  { name: 'MICE Assessment', edgeFunction: 'mice-recruitment-analyzer', analysisType: 'mice_assessment', category: 'core', priority: 1, complexity: 'complex' },
+  { name: 'Behavioral DNA', edgeFunction: 'behavioral-dna-sequencer', analysisType: 'behavioral_dna', category: 'core', priority: 1, complexity: 'standard' },
+  { name: 'Attachment Vulnerability', edgeFunction: 'attachment-vulnerability-analyzer', analysisType: 'attachment_vulnerability', category: 'core', priority: 1, complexity: 'standard' },
+  { name: 'Manipulation Susceptibility', edgeFunction: 'manipulation-vulnerability-assessment', analysisType: 'manipulation_susceptibility', category: 'core', priority: 1, complexity: 'standard' },
+  { name: 'Phobia Exploitation', edgeFunction: 'phobia-exploitation-engine', analysisType: 'phobia_exploitation', category: 'core', priority: 1, complexity: 'light' },
   
   // Psychological Operations (Priority 2) - 6 tasks
-  { name: 'Cognitive Warfare', edgeFunction: 'cognitive-warfare-engine', analysisType: 'full_analysis', category: 'psychological', priority: 2 },
-  { name: 'Trauma Exploitation', edgeFunction: 'trauma-exploitation-engine', analysisType: 'full_mapping', category: 'psychological', priority: 2 },
-  { name: 'Deception Detection', edgeFunction: 'enhanced-deception-detector', analysisType: 'full_analysis', category: 'psychological', priority: 2 },
-  { name: 'Influence Profile', edgeFunction: 'analyze-influence-profile', analysisType: 'full_plan', category: 'psychological', priority: 2 },
-  { name: 'Coercion Resistance', edgeFunction: 'coercion-resistance-assessor', analysisType: 'full_assessment', category: 'psychological', priority: 2 },
-  { name: 'Existential Leverage', edgeFunction: 'existential-leverage-calculator', analysisType: 'full_analysis', category: 'psychological', priority: 2 },
+  { name: 'Cognitive Warfare', edgeFunction: 'cognitive-warfare-engine', analysisType: 'cognitive_warfare', category: 'psychological', priority: 2, complexity: 'complex' },
+  { name: 'Trauma Exploitation', edgeFunction: 'trauma-exploitation-engine', analysisType: 'trauma_exploitation', category: 'psychological', priority: 2, complexity: 'light' },
+  { name: 'Deception Detection', edgeFunction: 'enhanced-deception-detector', analysisType: 'deception_detection', category: 'psychological', priority: 2, complexity: 'standard' },
+  { name: 'Influence Profile', edgeFunction: 'analyze-influence-profile', analysisType: 'influence_profile', category: 'psychological', priority: 2, complexity: 'standard' },
+  { name: 'Coercion Resistance', edgeFunction: 'coercion-resistance-assessor', analysisType: 'coercion_resistance', category: 'psychological', priority: 2, complexity: 'standard' },
+  { name: 'Existential Leverage', edgeFunction: 'existential-leverage-calculator', analysisType: 'existential_leverage', category: 'psychological', priority: 2, complexity: 'standard' },
   
   // Advanced Warfare (Priority 3) - 6 tasks
-  { name: 'Memetic Propagation', edgeFunction: 'memetic-propagation-engine', analysisType: 'vulnerability_scan', category: 'warfare', priority: 3 },
-  { name: 'Reality Consensus', edgeFunction: 'reality-consensus-engine', analysisType: 'map_anchors', category: 'warfare', priority: 3 },
-  { name: 'Mass Formation', edgeFunction: 'mass-formation-analyzer', analysisType: 'full_analysis', category: 'warfare', priority: 3 },
-  { name: 'Narrative Control', edgeFunction: 'narrative-control-engine', analysisType: 'full_analysis', category: 'warfare', priority: 3 },
-  { name: 'Predictive Behavior', edgeFunction: 'predict-behavioral-scenarios', analysisType: 'full_prediction', category: 'warfare', priority: 3 },
-  { name: 'Precognitive Patterns', edgeFunction: 'precognitive-pattern-engine', analysisType: 'full_analysis', category: 'warfare', priority: 3 },
+  { name: 'Memetic Propagation', edgeFunction: 'memetic-propagation-engine', analysisType: 'memetic_propagation', category: 'warfare', priority: 3, complexity: 'complex' },
+  { name: 'Reality Consensus', edgeFunction: 'reality-consensus-engine', analysisType: 'reality_consensus', category: 'warfare', priority: 3, complexity: 'complex' },
+  { name: 'Mass Formation', edgeFunction: 'mass-formation-analyzer', analysisType: 'mass_formation', category: 'warfare', priority: 3, complexity: 'complex' },
+  { name: 'Narrative Control', edgeFunction: 'narrative-control-engine', analysisType: 'narrative_control', category: 'warfare', priority: 3, complexity: 'complex' },
+  { name: 'Predictive Behavior', edgeFunction: 'predict-behavioral-scenarios', analysisType: 'behavioral_prediction', category: 'warfare', priority: 3, complexity: 'complex' },
+  { name: 'Precognitive Patterns', edgeFunction: 'precognitive-pattern-engine', analysisType: 'precognitive_pattern', category: 'warfare', priority: 3, complexity: 'complex' },
   
   // Network Intelligence (Priority 4) - 4 tasks
-  { name: 'Network Graph', edgeFunction: 'analyze-network-graph', analysisType: 'full_map', category: 'network', priority: 4 },
-  { name: 'Power Network', edgeFunction: 'power-network-analyzer', analysisType: 'full_analysis', category: 'network', priority: 4 },
-  { name: 'Relationship Trajectory', edgeFunction: 'predict-relationship-trajectory', analysisType: 'full_analysis', category: 'network', priority: 4 },
-  { name: 'Network Exploitation', edgeFunction: 'network-exploitation-mapper', analysisType: 'full_map', category: 'network', priority: 4 },
+  { name: 'Network Graph', edgeFunction: 'analyze-network-graph', analysisType: 'network_graph', category: 'network', priority: 4, complexity: 'extreme' },
+  { name: 'Power Network', edgeFunction: 'power-network-analyzer', analysisType: 'power_network', category: 'network', priority: 4, complexity: 'extreme' },
+  { name: 'Relationship Trajectory', edgeFunction: 'predict-relationship-trajectory', analysisType: 'relationship_trajectory', category: 'network', priority: 4, complexity: 'extreme' },
+  { name: 'Network Exploitation', edgeFunction: 'network-exploitation-mapper', analysisType: 'network_exploitation', category: 'network', priority: 4, complexity: 'extreme' },
   
   // Temporal & Quantum (Priority 5) - 4 tasks
-  { name: 'Temporal Fusion', edgeFunction: 'temporal-fusion-transformer', analysisType: 'full_analysis', category: 'temporal', priority: 5 },
-  { name: 'Quantum Cognition', edgeFunction: 'quantum-cognition-engine', analysisType: 'superposition', category: 'temporal', priority: 5 },
-  { name: 'Morphic Resonance', edgeFunction: 'morphic-resonance-detector', analysisType: 'network', category: 'temporal', priority: 5 },
-  { name: 'Omega Point Tracking', edgeFunction: 'omega-point-tracker', analysisType: 'full_calculation', category: 'temporal', priority: 5 },
+  { name: 'Temporal Fusion', edgeFunction: 'temporal-fusion-transformer', analysisType: 'temporal_fusion', category: 'temporal', priority: 5, complexity: 'complex' },
+  { name: 'Quantum Cognition', edgeFunction: 'quantum-cognition-engine', analysisType: 'quantum_cognition', category: 'temporal', priority: 5, complexity: 'complex' },
+  { name: 'Morphic Resonance', edgeFunction: 'morphic-resonance-detector', analysisType: 'morphic_resonance', category: 'temporal', priority: 5, complexity: 'complex' },
+  { name: 'Omega Point Tracking', edgeFunction: 'omega-point-tracker', analysisType: 'omega_point', category: 'temporal', priority: 5, complexity: 'complex' },
   
   // Fusion Intelligence (Priority 6) - 5 tasks
-  { name: 'Mosaic Intelligence', edgeFunction: 'mosaic-intelligence-fuser', analysisType: 'full_fusion', category: 'fusion', priority: 6 },
-  { name: 'Unified Data Fusion', edgeFunction: 'unified-data-fusion', analysisType: 'full_unification', category: 'fusion', priority: 6 },
-  { name: 'Omniscient Orchestrator', edgeFunction: 'omniscient-orchestrator', analysisType: 'full_synthesis', category: 'fusion', priority: 6 },
-  { name: 'Intelligence Dossier', edgeFunction: 'generate-intelligence-dossier', analysisType: 'full_dossier', category: 'fusion', priority: 6 },
-  { name: 'Aggregate Intelligence', edgeFunction: 'aggregate-media-intelligence', analysisType: 'full_aggregation', category: 'fusion', priority: 6 },
+  { name: 'Mosaic Intelligence', edgeFunction: 'mosaic-intelligence-fuser', analysisType: 'mosaic_intelligence', category: 'fusion', priority: 6, complexity: 'extreme' },
+  { name: 'Unified Data Fusion', edgeFunction: 'unified-data-fusion', analysisType: 'unified_fusion', category: 'fusion', priority: 6, complexity: 'extreme' },
+  { name: 'Omniscient Orchestrator', edgeFunction: 'omniscient-orchestrator', analysisType: 'omniscient_synthesis', category: 'fusion', priority: 6, complexity: 'extreme' },
+  { name: 'Intelligence Dossier', edgeFunction: 'generate-intelligence-dossier', analysisType: 'full_dossier', category: 'fusion', priority: 6, complexity: 'extreme' },
+  { name: 'Aggregate Intelligence', edgeFunction: 'aggregate-media-intelligence', analysisType: 'aggregate_intelligence', category: 'fusion', priority: 6, complexity: 'extreme' },
   
-  // Defense Operations (Priority 7) - 10 new warfare tasks (v5.0)
-  { name: 'OPSEC Vulnerability', edgeFunction: 'opsec-vulnerability-analyzer', analysisType: 'opsec_assessment', category: 'defense', priority: 7 },
-  { name: 'Social Engineering', edgeFunction: 'social-engineering-detector', analysisType: 'social_engineering', category: 'defense', priority: 7 },
-  { name: 'Crisis Response', edgeFunction: 'crisis-response-orchestrator', analysisType: 'crisis_response', category: 'defense', priority: 7 },
-  { name: 'Lawfare Defense', edgeFunction: 'lawfare-defense-analyzer', analysisType: 'lawfare_defense', category: 'defense', priority: 7 },
-  { name: 'Reputation Defense', edgeFunction: 'reputation-defense-engine', analysisType: 'reputation_defense', category: 'defense', priority: 7 },
-  { name: 'Behavioral Baseline', edgeFunction: 'behavioral-baseline-monitor', analysisType: 'behavioral_baseline', category: 'defense', priority: 7 },
-  { name: 'Family Protection', edgeFunction: 'family-protection-analyzer', analysisType: 'family_protection', category: 'defense', priority: 7 },
-  { name: 'Economic Warfare', edgeFunction: 'economic-warfare-detector', analysisType: 'economic_warfare', category: 'defense', priority: 7 },
-  { name: 'TSCM Sweep', edgeFunction: 'tscm-sweep-analyzer', analysisType: 'tscm_sweep', category: 'defense', priority: 7 },
-  { name: 'Digital Footprint', edgeFunction: 'digital-footprint-scanner', analysisType: 'digital_footprint', category: 'defense', priority: 7 },
+  // Defense Operations (Priority 7) - 10 warfare tasks (v5.0)
+  { name: 'OPSEC Vulnerability', edgeFunction: 'opsec-vulnerability-analyzer', analysisType: 'opsec_assessment', category: 'defense', priority: 7, complexity: 'light' },
+  { name: 'Social Engineering', edgeFunction: 'social-engineering-detector', analysisType: 'social_engineering', category: 'defense', priority: 7, complexity: 'standard' },
+  { name: 'Crisis Response', edgeFunction: 'crisis-response-orchestrator', analysisType: 'crisis_response', category: 'defense', priority: 7, complexity: 'standard' },
+  { name: 'Lawfare Defense', edgeFunction: 'lawfare-defense-analyzer', analysisType: 'lawfare_defense', category: 'defense', priority: 7, complexity: 'standard' },
+  { name: 'Reputation Defense', edgeFunction: 'reputation-defense-engine', analysisType: 'reputation_defense', category: 'defense', priority: 7, complexity: 'standard' },
+  { name: 'Behavioral Baseline', edgeFunction: 'behavioral-baseline-monitor', analysisType: 'behavioral_baseline', category: 'defense', priority: 7, complexity: 'light' },
+  { name: 'Family Protection', edgeFunction: 'family-protection-analyzer', analysisType: 'family_protection', category: 'defense', priority: 7, complexity: 'light' },
+  { name: 'Economic Warfare', edgeFunction: 'economic-warfare-detector', analysisType: 'economic_warfare', category: 'defense', priority: 7, complexity: 'standard' },
+  { name: 'TSCM Sweep', edgeFunction: 'tscm-sweep-analyzer', analysisType: 'tscm_sweep', category: 'defense', priority: 7, complexity: 'light' },
+  { name: 'Digital Footprint', edgeFunction: 'digital-footprint-scanner', analysisType: 'digital_footprint', category: 'defense', priority: 7, complexity: 'light' },
 ];
 
 // Circuit breaker state (in-memory for this execution)
