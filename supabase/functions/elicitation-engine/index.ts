@@ -34,31 +34,57 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit via GET query param - before any auth/body parsing
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ ok: true, function: 'elicitation-engine', timestamp: Date.now() }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const body = await req.json();
+    const token = authHeader?.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseServiceKey;
+    
+    // Normalize parameter names
+    const profileId = body.profileId || body.profile_id;
+    const targetInformation = body.targetInformation || body.target_information || ['general information'];
+    const context = body.context || 'Casual conversation';
+    const conversationHistory = body.conversationHistory || body.conversation_history || [];
+    let userId: string;
+    
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'userId is required for service calls' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token!);
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Invalid token' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      userId = user.id;
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid token' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const request: ElicitationRequest = await req.json();
+    const request = { profileId, targetInformation, context, conversationHistory };
 
     // Get profile data
     const { data: profile } = await supabase
@@ -140,9 +166,9 @@ ${request.conversationHistory ? `Previous Conversation:\n${request.conversationH
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
       ],
-      userId: user.id,
+      userId,
       functionName: 'elicitation-engine',
-      profileId: request.profileId,
+      profileId,
       temperature: 0.7,
     });
 
@@ -153,14 +179,23 @@ ${request.conversationHistory ? `Previous Conversation:\n${request.conversationH
 
     // Store the session
     await supabase.from('elicitation_sessions').insert({
-      user_id: user.id,
-      profile_id: request.profileId,
+      user_id: userId,
+      profile_id: profileId,
       session_type: 'intelligence_extraction',
       techniques_used: plan.elicitationPlan.targetedElicitations.map((t: any) => t.primaryTechnique),
-      target_information: request.targetInformation,
+      target_information: targetInformation,
       follow_up_questions: plan.elicitationPlan.targetedElicitations.flatMap((t: any) => t.followUpQuestions || []),
-      conversation_notes: request.context
+      conversation_notes: context
     });
+
+    // Also persist to ai_analyses for section availability detection
+    await supabase.from('ai_analyses').upsert({
+      user_id: userId,
+      profile_id: profileId,
+      analysis_type: 'elicitation_guide',
+      result: plan,
+      generated_at: new Date().toISOString()
+    }, { onConflict: 'profile_id,analysis_type' });
 
     return new Response(JSON.stringify({
       success: true,

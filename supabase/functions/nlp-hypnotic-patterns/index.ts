@@ -304,15 +304,49 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit via GET query param - before any auth/body parsing
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ ok: true, function: 'nlp-hypnotic-patterns', timestamp: Date.now() }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      supabaseServiceKey
     );
 
-    const { action, profileId, objective, context, variables, userId } = await req.json();
+    const body = await req.json();
+    const { action, profileId, objective, context, variables } = body;
+    
+    // Handle auth - support both user tokens and service role
+    const authHeader = req.headers.get('Authorization');
+    const token = authHeader?.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseServiceKey;
+    
+    let userId: string;
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+      if (!userId) {
+        throw new Error('userId is required for service calls');
+      }
+    } else if (authHeader && token) {
+      const { data: { user }, error } = await supabaseClient.auth.getUser(token);
+      if (error || !user) {
+        throw new Error('Unauthorized');
+      }
+      userId = user.id;
+    } else {
+      throw new Error('No authorization');
+    }
 
-    if (action === 'get_patterns') {
+    // Default action for intelligence session runner
+    const effectiveAction = action || 'get_patterns';
+    
+    if (effectiveAction === 'get_patterns') {
       // Get profile psychology
       const { data: profile } = await supabaseClient
         .from('profiles')
@@ -332,7 +366,16 @@ serve(async (req) => {
         communicationStyle: profile?.communication_patterns?.preferred_style ?? 'mixed'
       };
 
-      const selectedPatterns = selectOptimalPatterns(psychology, objective, context);
+      const selectedPatterns = selectOptimalPatterns(psychology, objective || 'general influence', context || 'conversation');
+
+      // Also persist to ai_analyses for section availability detection
+      await supabaseClient.from('ai_analyses').upsert({
+        user_id: userId,
+        profile_id: profileId,
+        analysis_type: 'hypnotic_patterns',
+        result: { patterns: selectedPatterns, psychology_summary: psychology },
+        generated_at: new Date().toISOString()
+      }, { onConflict: 'profile_id,analysis_type' });
 
       return new Response(JSON.stringify({
         success: true,
@@ -343,7 +386,7 @@ serve(async (req) => {
       });
     }
 
-    if (action === 'generate_script') {
+    if (effectiveAction === 'generate_script') {
       // Get profile psychology
       const { data: profile } = await supabaseClient
         .from('profiles')
@@ -387,7 +430,7 @@ serve(async (req) => {
       });
     }
 
-    if (action === 'list_all_patterns') {
+    if (effectiveAction === 'list_all_patterns') {
       return new Response(JSON.stringify({
         success: true,
         patterns: HYPNOTIC_PATTERNS,

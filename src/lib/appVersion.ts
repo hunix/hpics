@@ -2,6 +2,13 @@
  * Application Version Management
  * Used for cache busting and version tracking
  * 
+ * v3.9.9: Extended Edge Function Schema Alignment Phase 4
+ *         - Fixed ai_analyses insert → upsert: behavioral-dna-sequencer, enhanced-deception-detector
+ *         - Fixed pattern-of-life-engine: added health check, dual auth, ai_analyses persistence,
+ *           fixed table reference interaction_history → contact_interaction_notes
+ *         - Fixed elicitation-engine: added health check, dual auth, ai_analyses persistence
+ *         - Fixed nlp-hypnotic-patterns: added health check, dual auth, ai_analyses persistence
+ *         - Fixed generate-playbook: added health check, dual auth, ai_analyses persistence
  * v3.9.8: Extended Edge Function Schema Alignment Phase 3
  *         - Fixed ai_analyses persistence: insert → upsert for idempotency
  *           (coercion-resistance-assessor, existential-leverage-calculator, network-exploitation-mapper)
@@ -31,19 +38,17 @@
  *         - Fixed analysis type alignment: reality_testing → reality_consensus, precognitive_pattern → precognitive_patterns
  *         - Added health check to semantic-warfare-engine
  * v3.9.4: Edge Function Data Persistence Fix - Resolved disabled sections issue
- *         - Root cause: Edge functions saved to specialized tables but UI checked ai_analyses
- *         - Fixed 12 edge functions to also persist results to ai_analyses table
  * v3.9.3: Analysis Type Alignment - Fixed section data source mapping to match edge function outputs
  * v3.9.2: Enterprise Session Recovery - Fixed edge function bugs causing session deadlock
  * v3.9.1: Force cache purge to fix stale route caching on /dossier-intelligence
  * v3.9.0: DDD Barrel Export Compliance - IDE performance optimization
  * v3.8.9: Schema Remediation - Fixed 13 edge functions with contact_observations column mismatches
  */
-export const APP_VERSION = '3.9.8';
+export const APP_VERSION = '3.9.9';
 export const BUILD_TIMESTAMP = new Date().toISOString();
 
 // Versions that require forced cache clear when upgrading from
-export const FORCE_CLEAR_VERSIONS = ['3.9.7', '3.9.6', '3.9.5', '3.9.4', '3.9.3', '3.9.2', '3.9.1', '3.9.0', '3.8.9', '3.8.8', '3.8.7', '3.8.6', '3.8.5', '3.8.4', '3.8.3', '3.8.2', '3.8.1', '3.8.0', '3.7.7', '3.7.6', '3.7.5', '3.7.4', '3.7.3', '3.7.2', '3.7.1', '3.7.0', '3.6.1', '3.6.0', '3.5.0'];
+export const FORCE_CLEAR_VERSIONS = ['3.9.8', '3.9.7', '3.9.6', '3.9.5', '3.9.4', '3.9.3', '3.9.2', '3.9.1', '3.9.0', '3.8.9', '3.8.8', '3.8.7', '3.8.6', '3.8.5', '3.8.4', '3.8.3', '3.8.2', '3.8.1', '3.8.0', '3.7.7', '3.7.6', '3.7.5', '3.7.4', '3.7.3', '3.7.2', '3.7.1', '3.7.0', '3.6.1', '3.6.0', '3.5.0'];
 
 // Cache key for tracking chunk errors
 const CHUNK_ERROR_KEY = 'chunk_error_count';

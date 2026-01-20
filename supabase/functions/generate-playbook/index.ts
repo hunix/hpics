@@ -13,28 +13,54 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit via GET query param - before any auth/body parsing
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ ok: true, function: 'generate-playbook', timestamp: Date.now() }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'No authorization header' }), { status: 401, headers: corsHeaders });
+    const body = await req.json();
+    const token = authHeader?.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseKey;
+    
+    // Normalize parameter names
+    const profile_id = body.profile_id || body.profileId;
+    let userId: string;
+    
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'userId is required for service calls' }), { status: 400, headers: corsHeaders });
+      }
+    } else {
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: 'No authorization header' }), { status: 401, headers: corsHeaders });
+      }
+      // Try getUser first, fall back to getClaims for compatibility
+      const { data: userData, error: userError } = await supabase.auth.getUser(token!);
+      if (!userError && userData?.user) {
+        userId = userData.user.id;
+      } else {
+        const authClient = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+        );
+        const { data: claimsData, error: authError } = await (authClient.auth as any).getClaims(token);
+        if (authError || !claimsData?.claims) {
+          return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+        }
+        userId = claimsData.claims.sub;
+      }
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const authClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    );
-    const { data: claimsData, error: authError } = await (authClient.auth as any).getClaims(token);
-    if (authError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
-    }
-    const userId = claimsData.claims.sub;
-
-    const { profile_id } = await req.json();
     if (!profile_id) {
       return new Response(JSON.stringify({ error: 'profile_id required' }), { status: 400, headers: corsHeaders });
     }
@@ -199,6 +225,15 @@ Be specific and actionable. Base recommendations on the actual data provided.`;
           ai_generated_at: new Date().toISOString(),
         });
     }
+
+    // Also persist to ai_analyses for section availability detection
+    await supabase.from('ai_analyses').upsert({
+      user_id: userId,
+      profile_id: profile_id,
+      analysis_type: 'playbook',
+      result: playbook,
+      generated_at: new Date().toISOString()
+    }, { onConflict: 'profile_id,analysis_type' });
 
     console.log(`Playbook generated for ${contactName}. Cost: ${aiResponse.costCents}¢`);
 
