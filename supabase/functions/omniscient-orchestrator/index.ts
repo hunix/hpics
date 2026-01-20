@@ -190,14 +190,14 @@ Orchestrate all operations and provide unified command directive in JSON format:
       orchestration = { raw: content, parseError: true };
     }
 
-    // Store orchestration directive
-    await supabase.from('ai_analyses').insert({
+    // Store orchestration directive (upsert for idempotency)
+    await supabase.from('ai_analyses').upsert({
       user_id: userId,
       profile_id: userId,
       analysis_type: 'omniscient_orchestration',
       result: orchestration,
       generated_at: new Date().toISOString()
-    });
+    }, { onConflict: 'profile_id,analysis_type' });
 
     return new Response(JSON.stringify({
       success: true,

@@ -197,13 +197,14 @@ serve(async (req) => {
       analyzedAt: new Date().toISOString(),
     };
 
-    // Store analysis
-    await supabase.from('ai_analyses').insert({
+    // Store analysis (upsert for idempotency)
+    await supabase.from('ai_analyses').upsert({
       profile_id: profiles[0].id, // Store under first profile
       user_id: userId,
       analysis_type: 'network_graph',
       result: result,
-    });
+      generated_at: new Date().toISOString()
+    }, { onConflict: 'profile_id,analysis_type' });
 
     // Log usage
     await supabase.from('ai_usage_logs').insert({

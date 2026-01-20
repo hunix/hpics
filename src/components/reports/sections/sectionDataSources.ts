@@ -82,8 +82,9 @@ export const SECTION_DATA_SOURCES: Record<string, SectionDataSource> = {
   shadowNetwork: { type: 'ai_analyses', analysisType: 'shadow_network' },
   sentimentCascade: { type: 'ai_analyses', analysisType: 'sentiment_cascade' },
   
-  // NEW: Sections mapped to actual edge function outputs (v5.3)
-  manipulationSusceptibility: { type: 'ai_analyses', analysisType: 'manipulation_vulnerability' },
+  // NEW: Sections mapped to actual edge function outputs (v5.4)
+  // FIXED: manipulation-vulnerability-assessment stores 'manipulation_susceptibility' not 'manipulation_vulnerability'
+  manipulationSusceptibility: { type: 'ai_analyses', analysisType: 'manipulation_susceptibility' },
   coercionResistance: { type: 'ai_analyses', analysisType: 'coercion_resistance' },
   existentialLeverage: { type: 'ai_analyses', analysisType: 'existential_leverage' },
   networkExploitation: { type: 'ai_analyses', analysisType: 'network_exploitation' },
@@ -92,6 +93,11 @@ export const SECTION_DATA_SOURCES: Record<string, SectionDataSource> = {
   sentimentAnalysis: { type: 'ai_analyses', analysisType: 'sentiment' },
   relationshipScore: { type: 'ai_analyses', analysisType: 'relationship_score' },
   intelligenceDossier: { type: 'ai_analyses', analysisType: 'intelligence_dossier' },
+  // NEW: Advanced convergence sections (v5.4)
+  omegaPoint: { type: 'ai_analyses', analysisType: 'omega_point' },
+  massFormation: { type: 'ai_analyses', analysisType: 'mass_formation' },
+  morphicResonance: { type: 'ai_analyses', analysisType: 'morphic_resonance' },
+  networkGraph: { type: 'ai_analyses', analysisType: 'network_graph' },
   
   // Defense Operations (10 sections - v5.0) - Now check ai_analyses instead of empty tables
   opsecAssessment: { type: 'ai_analyses', analysisType: 'opsec_assessment' },
