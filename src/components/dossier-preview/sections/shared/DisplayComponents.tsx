@@ -1,6 +1,6 @@
 /**
- * Shared Display Components for Dossier Preview (v3.9.34)
- * Reusable UI elements for rendering section content
+ * Shared Display Components for Dossier Preview (v3.9.20)
+ * Reusable UI elements for rendering section content with proper formatting
  */
 
 import { cn } from '@/lib/utils';
@@ -8,17 +8,35 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle2, AlertTriangle, Info, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import {
+  formatPercent,
+  formatScore,
+  formatNumber,
+  formatText,
+  formatLevel,
+  getScoreVariant,
+  getRiskVariant,
+  isEmpty,
+} from '../../utils/formatters';
 
-// Metric Card
+// Metric Card with proper formatting
 interface MetricCardProps {
   label: string;
-  value: string | number;
+  value: string | number | null | undefined;
   subtitle?: string;
   trend?: 'up' | 'down' | 'stable';
   variant?: 'default' | 'success' | 'warning' | 'danger';
+  format?: 'percent' | 'score' | 'number' | 'text' | 'level' | 'none';
 }
 
-export function MetricCard({ label, value, subtitle, trend, variant = 'default' }: MetricCardProps) {
+export function MetricCard({ 
+  label, 
+  value, 
+  subtitle, 
+  trend, 
+  variant = 'default',
+  format = 'none',
+}: MetricCardProps) {
   const variantStyles = {
     default: 'bg-muted/50',
     success: 'bg-emerald-500/10 border-emerald-500/20',
@@ -26,13 +44,30 @@ export function MetricCard({ label, value, subtitle, trend, variant = 'default' 
     danger: 'bg-rose-500/10 border-rose-500/20',
   };
 
+  // Apply formatting based on format prop
+  let displayValue: string;
+  if (format === 'percent') {
+    displayValue = formatPercent(value);
+  } else if (format === 'score') {
+    displayValue = formatScore(value);
+  } else if (format === 'number') {
+    displayValue = formatNumber(value);
+  } else if (format === 'level') {
+    displayValue = formatLevel(value);
+  } else if (format === 'text') {
+    displayValue = formatText(value);
+  } else {
+    // Auto-detect or use raw value
+    displayValue = isEmpty(value) ? '—' : String(value);
+  }
+
   const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus;
 
   return (
     <div className={cn('rounded-lg border p-3', variantStyles[variant])}>
       <p className="text-xs text-muted-foreground uppercase tracking-wide">{label}</p>
       <div className="flex items-baseline gap-2">
-        <span className="text-2xl font-bold">{value}</span>
+        <span className="text-2xl font-bold">{displayValue}</span>
         {trend && <TrendIcon className={cn(
           'h-4 w-4',
           trend === 'up' ? 'text-emerald-500' :
@@ -100,19 +135,34 @@ export function InsightList({ items, variant = 'default', maxItems }: InsightLis
   );
 }
 
-// Key-Value Row
+// Key-Value Row with formatting
 interface KeyValueRowProps {
   label: string;
   value: string | number | null | undefined;
   variant?: 'default' | 'bold';
+  format?: 'percent' | 'score' | 'number' | 'text' | 'level' | 'none';
 }
 
-export function KeyValueRow({ label, value, variant = 'default' }: KeyValueRowProps) {
+export function KeyValueRow({ label, value, variant = 'default', format = 'text' }: KeyValueRowProps) {
+  // Apply formatting
+  let displayValue: string;
+  if (format === 'percent') {
+    displayValue = formatPercent(value);
+  } else if (format === 'score') {
+    displayValue = formatScore(value);
+  } else if (format === 'number') {
+    displayValue = formatNumber(value);
+  } else if (format === 'level') {
+    displayValue = formatLevel(value);
+  } else {
+    displayValue = formatText(value, 'Not available');
+  }
+
   return (
     <div className="flex items-center justify-between py-1 border-b border-dashed border-muted last:border-0">
       <span className="text-sm text-muted-foreground">{label}</span>
       <span className={cn('text-sm', variant === 'bold' && 'font-semibold')}>
-        {value ?? 'N/A'}
+        {displayValue}
       </span>
     </div>
   );
@@ -152,33 +202,50 @@ export function SectionSubheader({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Score Bar
+// Score Bar with auto-formatting
 interface ScoreBarProps {
   label: string;
-  value: number;
+  value: number | null | undefined;
   max?: number;
-  variant?: 'default' | 'success' | 'warning' | 'danger';
+  variant?: 'default' | 'success' | 'warning' | 'danger' | 'auto' | 'autoRisk';
 }
 
 export function ScoreBar({ label, value, max = 100, variant = 'default' }: ScoreBarProps) {
-  const percentage = Math.min((value / max) * 100, 100);
+  // Handle null/undefined
+  const numValue = typeof value === 'number' ? value : 0;
+  
+  // Normalize: if value is 0-1, multiply by 100
+  const normalizedValue = numValue <= 1 && max === 100 ? numValue * 100 : numValue;
+  const percentage = Math.min((normalizedValue / max) * 100, 100);
+  
+  // Auto-detect variant based on score if needed
+  let finalVariant = variant;
+  if (variant === 'auto') {
+    finalVariant = getScoreVariant(normalizedValue);
+  } else if (variant === 'autoRisk') {
+    finalVariant = getRiskVariant(normalizedValue);
+  }
   
   const colors = {
     default: 'bg-primary',
     success: 'bg-emerald-500',
     warning: 'bg-amber-500',
     danger: 'bg-rose-500',
+    auto: 'bg-primary',
+    autoRisk: 'bg-primary',
   };
 
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between text-sm">
         <span>{label}</span>
-        <span className="font-medium">{value}{max === 100 ? '%' : `/${max}`}</span>
+        <span className="font-medium">
+          {isEmpty(value) ? '—' : `${Math.round(normalizedValue)}${max === 100 ? '%' : `/${max}`}`}
+        </span>
       </div>
       <div className="h-2 bg-muted rounded-full overflow-hidden">
         <div 
-          className={cn('h-full rounded-full transition-all', colors[variant])} 
+          className={cn('h-full rounded-full transition-all', colors[finalVariant])} 
           style={{ width: `${percentage}%` }} 
         />
       </div>

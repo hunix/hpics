@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { 
   Sun, Bell, Fingerprint, HardDrive, Trash2, Link2, 
   Users, Cpu, DollarSign, Bot, Smartphone, Shield, Activity,
-  ChevronRight, Settings2, Sliders
+  ChevronRight, Settings2, Sliders, RefreshCw
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -34,6 +34,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
       { id: 'appearance', label: 'Appearance', icon: Sun },
       { id: 'notifications', label: 'Notifications', icon: Bell },
       { id: 'mobile', label: 'Mobile & PWA', icon: Smartphone },
+      { id: 'cache', label: 'Cache & Updates', icon: RefreshCw, badge: 'Fix' },
     ],
   },
   {
