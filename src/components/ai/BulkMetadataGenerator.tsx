@@ -18,6 +18,7 @@ import { DocumentAnalysisOptions, defaultDocumentAnalysisConfig, type DocumentAn
 interface BulkMetadataGeneratorProps {
   profileId?: string;
   contactName?: string;
+  onProcessingChange?: (isProcessing: boolean) => void;
 }
 
 const MODEL_OPTIONS = [
@@ -42,7 +43,7 @@ const TOKEN_ESTIMATES: Record<string, number> = {
   document: 2000, // Full document analysis
 };
 
-export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGeneratorProps) {
+export function BulkMetadataGenerator({ profileId, contactName, onProcessingChange }: BulkMetadataGeneratorProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -50,7 +51,7 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
   // Mosaic mode hook
   const { generate: generateMosaic, isGenerating: isMosaicGenerating, progress: mosaicProgress, getCostPreview, reset: resetMosaic } = useMosaicMetadataGeneration();
 
-  const [useMosaicMode, setUseMosaicMode] = useState(true); // Default to mosaic for efficiency
+  const [useMosaicMode, setUseMosaicMode] = useState(false); // Default to OFF
   const [selectedTier, setSelectedTier] = useState('standard');
   const [selectedModel, setSelectedModel] = useState('google/gemini-2.5-flash');
   const [includeImages, setIncludeImages] = useState(true);
@@ -80,6 +81,21 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
       setUseMosaicMode(false);
     }
   }, [mosaicApplicable, useMosaicMode]);
+
+  // When mosaic mode is enabled, force only Images and disable other types
+  useEffect(() => {
+    if (useMosaicMode) {
+      setIncludeImages(true);
+      setIncludeAudio(false);
+      setIncludeVideos(false);
+      setIncludeDocuments(false);
+    }
+  }, [useMosaicMode]);
+
+  // Notify parent about processing state changes
+  useEffect(() => {
+    onProcessingChange?.(isProcessing || isMosaicGenerating);
+  }, [isProcessing, isMosaicGenerating, onProcessingChange]);
 
   // Update model when tier changes
   const handleTierChange = (tier: string) => {
@@ -463,35 +479,38 @@ export function BulkMetadataGenerator({ profileId, contactName }: BulkMetadataGe
               <Badge variant="secondary">{mediaCounts?.counts.image || 0}</Badge>
               {useMosaicMode && includeImages && <Badge variant="outline" className="text-xs">Mosaic</Badge>}
             </label>
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className={`flex items-center gap-2 ${useMosaicMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
               <Checkbox
                 checked={includeAudio}
                 onCheckedChange={(c) => setIncludeAudio(!!c)}
-                disabled={isProcessing || isMosaicGenerating}
+                disabled={isProcessing || isMosaicGenerating || useMosaicMode}
               />
               <Music className="h-4 w-4" />
               <span>Audio</span>
               <Badge variant="secondary">{mediaCounts?.counts.audio || 0}</Badge>
+              {useMosaicMode && <Badge variant="outline" className="text-xs text-muted-foreground">N/A</Badge>}
             </label>
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className={`flex items-center gap-2 ${useMosaicMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
               <Checkbox
                 checked={includeVideos}
                 onCheckedChange={(c) => setIncludeVideos(!!c)}
-                disabled={isProcessing || isMosaicGenerating}
+                disabled={isProcessing || isMosaicGenerating || useMosaicMode}
               />
               <Video className="h-4 w-4" />
               <span>Videos</span>
               <Badge variant="secondary">{mediaCounts?.counts.video || 0}</Badge>
+              {useMosaicMode && <Badge variant="outline" className="text-xs text-muted-foreground">N/A</Badge>}
             </label>
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className={`flex items-center gap-2 ${useMosaicMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
               <Checkbox
                 checked={includeDocuments}
                 onCheckedChange={(c) => setIncludeDocuments(!!c)}
-                disabled={isProcessing || isMosaicGenerating}
+                disabled={isProcessing || isMosaicGenerating || useMosaicMode}
               />
               <FileText className="h-4 w-4" />
               <span>Documents</span>
               <Badge variant="secondary">{documentCounts?.count || 0}</Badge>
+              {useMosaicMode && <Badge variant="outline" className="text-xs text-muted-foreground">N/A</Badge>}
             </label>
           </div>
         </div>
