@@ -1,6 +1,6 @@
 /**
- * Warfare Section Renderers (v3.9.31)
- * v3.9.31: Universal extractResult pattern, PDF_DESIGN tokens, fallback to allAnalyses
+ * Warfare Section Renderers (v3.9.33)
+ * v3.9.33: PRIORITIZE getAnalysisForSection() fallback (allAnalyses always populated)
  */
 
 import type { SectionRenderer } from './types';
@@ -10,10 +10,9 @@ import { getAnalysisForSection, extractResult } from '../../utils/sectionDataChe
 export const renderCognitiveWarfare: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
   
-  // v3.9.31: Try specific data field first, then fallback to allAnalyses
-  const rawData = data.cognitiveWarfareData?.length
-    ? data.cognitiveWarfareData
-    : getAnalysisForSection(data, 'cognitiveWarfare');
+  // v3.9.33: PRIORITIZE allAnalyses fallback first
+  const rawData = getAnalysisForSection(data, 'cognitiveWarfare')
+    || (data.cognitiveWarfareData?.length ? data.cognitiveWarfareData : null);
   
   if (!rawData) return;
   
