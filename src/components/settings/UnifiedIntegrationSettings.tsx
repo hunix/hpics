@@ -217,8 +217,8 @@ function IntegrationCard({
         {/* Expandable Content */}
         <CollapsibleContent>
           <div className="px-4 pb-4 pt-2 space-y-4 border-t border-border/50">
-            {/* Secret Configuration */}
-            {!integration.isConnector && (
+            {/* Secret Configuration - Always show for connectors with secrets */}
+            {integration.secrets.length > 0 && (
               <div className="space-y-3">
                 <Label className="text-sm font-medium flex items-center gap-2">
                   <Key className="h-4 w-4" />
@@ -241,7 +241,7 @@ function IntegrationCard({
                         {isConfigured ? (
                           <Badge variant="outline" className="text-emerald-600 text-xs">
                             <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Set
+                            {integration.isConnector ? 'Connected' : 'Set'}
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="text-muted-foreground text-xs">
@@ -327,7 +327,7 @@ function IntegrationCard({
               </div>
             )}
             
-            {/* Connector Info */}
+            {/* Connector Info - Show additional context for connectors */}
             {integration.isConnector && (
               <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
                 <div className="flex items-start gap-2">
@@ -337,7 +337,7 @@ function IntegrationCard({
                       Lovable Connector
                     </p>
                     <p className="text-muted-foreground mt-1">
-                      This integration is pre-configured. No additional setup required.
+                      This integration was set up via Lovable Connectors. You can update the API key above if needed.
                     </p>
                   </div>
                 </div>
