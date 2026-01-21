@@ -31,8 +31,9 @@ const RATE_LIMITS: Record<string, RateLimitConfig> = {
   'default': { maxRequests: 30, windowMs: 60000 }, // 30 per minute
 };
 
-// Map function names to rate limit categories
+// Map function names to rate limit categories - v5.4 with all 40 intelligence tasks
 const FUNCTION_CATEGORIES: Record<string, string> = {
+  // Original media/document analysis
   'analyze-media': 'ai-analysis',
   'analyze-document': 'ai-analysis',
   'generate-relationship-insights': 'ai-analysis',
@@ -41,18 +42,65 @@ const FUNCTION_CATEGORIES: Record<string, string> = {
   'cross-modal-synthesis': 'ai-analysis',
   'aggregate-contact-intelligence': 'ai-analysis',
   
+  // AI Generation
   'generate-message': 'ai-generation',
   'generate-approach-strategy': 'ai-generation',
   'ai-guided-interview': 'ai-generation',
   
+  // Bulk operations
   'batch-intelligence-init': 'bulk-analysis',
   'process-bulk-analysis': 'bulk-analysis',
+  'intelligence-session-runner': 'bulk-analysis',
   
+  // Query operations
   'rag-query': 'query',
   'semantic-search': 'query',
   
+  // Embedding operations
   'process-document-embeddings': 'embedding',
   'generate-embeddings': 'embedding',
+  
+  // Core Intelligence Tasks (40 functions)
+  'mice-recruitment-analyzer': 'ai-analysis',
+  'behavioral-dna-sequencer': 'ai-analysis',
+  'attachment-vulnerability-analyzer': 'ai-analysis',
+  'manipulation-vulnerability-assessment': 'ai-analysis',
+  'phobia-exploitation-engine': 'ai-analysis',
+  'cognitive-warfare-engine': 'ai-analysis',
+  'trauma-exploitation-engine': 'ai-analysis',
+  'enhanced-deception-detector': 'ai-analysis',
+  'analyze-influence-profile': 'ai-analysis',
+  'coercion-resistance-assessor': 'ai-analysis',
+  'existential-leverage-calculator': 'ai-analysis',
+  'memetic-propagation-engine': 'ai-analysis',
+  'reality-consensus-engine': 'ai-analysis',
+  'mass-formation-analyzer': 'ai-analysis',
+  'narrative-control-engine': 'ai-analysis',
+  'predict-behavioral-scenarios': 'ai-analysis',
+  'precognitive-pattern-engine': 'ai-analysis',
+  'analyze-network-graph': 'ai-analysis',
+  'power-network-analyzer': 'ai-analysis',
+  'predict-relationship-trajectory': 'ai-analysis',
+  'network-exploitation-mapper': 'ai-analysis',
+  'temporal-fusion-transformer': 'ai-analysis',
+  'quantum-cognition-engine': 'ai-analysis',
+  'morphic-resonance-detector': 'ai-analysis',
+  'omega-point-tracker': 'ai-analysis',
+  'mosaic-intelligence-fuser': 'ai-analysis',
+  'unified-data-fusion': 'ai-analysis',
+  'omniscient-orchestrator': 'ai-analysis',
+  'generate-intelligence-dossier': 'ai-analysis',
+  'aggregate-media-intelligence': 'ai-analysis',
+  'opsec-vulnerability-analyzer': 'ai-analysis',
+  'social-engineering-detector': 'ai-analysis',
+  'crisis-response-orchestrator': 'ai-analysis',
+  'lawfare-defense-analyzer': 'ai-analysis',
+  'reputation-defense-engine': 'ai-analysis',
+  'behavioral-baseline-monitor': 'ai-analysis',
+  'family-protection-analyzer': 'ai-analysis',
+  'economic-warfare-detector': 'ai-analysis',
+  'tscm-sweep-analyzer': 'ai-analysis',
+  'digital-footprint-scanner': 'ai-analysis',
 };
 
 export interface RateLimitResult {
