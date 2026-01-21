@@ -377,3 +377,87 @@ export function safePrint(value: unknown): string {
   }
   return String(value);
 }
+
+/**
+ * v3.9.32: Render a grid of metric boxes
+ */
+export function renderMetricGrid(
+  ctx: PDFContext,
+  metrics: Array<{ label: string; value: string | number; color?: [number, number, number] }>,
+  cols: number = 3
+): void {
+  const { doc } = ctx;
+  const cellWidth = (ctx.contentWidth - 20) / cols;
+  const cellHeight = 25;
+  const rows = Math.ceil(metrics.length / cols);
+  
+  ctx.checkPageBreak(rows * cellHeight + 10);
+  
+  metrics.forEach((m, i) => {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const x = ctx.margin + 5 + col * cellWidth;
+    const y = ctx.yPos + row * cellHeight;
+    
+    // Background
+    doc.setFillColor(245, 248, 252);
+    doc.roundedRect(x, y, cellWidth - 5, cellHeight - 3, 2, 2, 'F');
+    
+    // Label
+    doc.setFontSize(PDF_DESIGN.fonts.tiny);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text(m.label, x + 3, y + 8);
+    
+    // Value
+    doc.setFontSize(PDF_DESIGN.fonts.subheader);
+    doc.setFont('helvetica', 'bold');
+    if (m.color) {
+      doc.setTextColor(...m.color);
+    } else {
+      doc.setTextColor(0, 0, 0);
+    }
+    doc.text(String(m.value), x + 3, y + 18);
+    doc.setTextColor(0);
+  });
+  
+  ctx.yPos += rows * cellHeight + 5;
+}
+
+/**
+ * v3.9.32: Render a list of insights/bullets with limit
+ */
+export function renderInsightList(
+  ctx: PDFContext,
+  title: string,
+  items: string[] | undefined,
+  maxItems: number = 5
+): void {
+  if (!items || items.length === 0) return;
+  
+  ctx.renderSubsection(title);
+  items.slice(0, maxItems).forEach(item => {
+    ctx.renderBullet(String(item || '').substring(0, 150), 5);
+  });
+  ctx.yPos += 3;
+}
+
+/**
+ * v3.9.32: Render a data box with background
+ */
+export function renderDataBox(
+  ctx: PDFContext,
+  content: () => void,
+  height: number = 40,
+  color: [number, number, number] = [245, 248, 252]
+): void {
+  const { doc } = ctx;
+  ctx.checkPageBreak(height + 10);
+  
+  doc.setFillColor(...color);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, height, 3, 3, 'F');
+  
+  content();
+  
+  ctx.yPos += height + 5;
+}

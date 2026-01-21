@@ -531,7 +531,7 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <Label>Include Sections ({sections.filter(s => s.enabled).length}/{sections.length})</Label>
+            <Label>Include Sections ({sections.filter(s => s.enabled).length}/{DEFAULT_SECTIONS.length})</Label>
             <div className="flex gap-2">
               <Button 
                 variant="ghost" 
@@ -564,7 +564,7 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
               ) : (
                 <span className="flex items-center gap-1">
                   <Database className="h-3 w-3" />
-                  {sectionsWithData}/{sections.length} sections have data
+                  {sectionsWithData}/{DEFAULT_SECTIONS.length} sections have data
                   <Button variant="ghost" size="sm" className="h-5 px-1" onClick={refreshAvailability}>
                     <RefreshCw className="h-3 w-3" />
                   </Button>
