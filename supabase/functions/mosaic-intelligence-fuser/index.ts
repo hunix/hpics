@@ -331,7 +331,7 @@ ${observations.data?.slice(0, 15).map((o: { category?: string; observation?: str
 ${anomalies.data?.map((a: { anomaly_type?: string; description?: string }) => `- ${a.anomaly_type}: ${a.description}`).join('\n') || 'None'}
 
 7. Life Milestones:
-${milestones.data?.map((m: { milestone_type?: string; milestone_date?: string }) => `- ${m.milestone_type}: ${m.milestone_date}`).join('\n') || 'None'}
+${milestones.data?.map((m: { milestone_type?: string; event_date?: string }) => `- ${m.milestone_type}: ${m.event_date}`).join('\n') || 'None'}
 
 8. Betrayal Predictions:
 ${betrayalPredictions.data?.map((b: { defection_probability?: number; trust_score?: number }) => 

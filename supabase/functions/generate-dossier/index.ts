@@ -100,7 +100,7 @@ serve(async (req) => {
       supabase.from('contact_locations').select('*').eq('profile_id', profile_id),
       supabase.from('contact_identity_documents').select('*').eq('profile_id', profile_id),
       supabase.from('contact_travel_history').select('*').eq('profile_id', profile_id).order('travel_date', { ascending: false }),
-      supabase.from('contact_life_milestones').select('*').eq('profile_id', profile_id),
+      supabase.from('contact_life_milestones').select('*').eq('profile_id', profile_id).order('event_date', { ascending: false }),
       supabase.from('contact_communication_preferences').select('*').eq('profile_id', profile_id).maybeSingle(),
     ]);
 

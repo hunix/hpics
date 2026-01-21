@@ -56,6 +56,7 @@ export function useInteractionContext(options: UseInteractionContextOptions = {}
   const startTimeRef = useRef<Date>(new Date());
   const motionSamplesRef = useRef<number[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const ambientSensorRef = useRef<any>(null);
 
   // Detect activity from motion samples
   const detectActivity = useCallback((samples: number[]): 'stationary' | 'walking' | 'driving' | 'unknown' => {
@@ -137,17 +138,17 @@ export function useInteractionContext(options: UseInteractionContextOptions = {}
       window.addEventListener('devicemotion', handleMotion);
     }
 
-    // Start ambient light monitoring
+    // Start ambient light monitoring with cleanup tracking
     if (enableEnvironment && 'AmbientLightSensor' in window) {
       try {
-        const sensor = new (window as any).AmbientLightSensor();
-        sensor.addEventListener('reading', () => {
+        ambientSensorRef.current = new (window as any).AmbientLightSensor();
+        ambientSensorRef.current.addEventListener('reading', () => {
           setContext(prev => ({
             ...prev,
-            ambientLight: sensor.illuminance,
+            ambientLight: ambientSensorRef.current?.illuminance,
           }));
         });
-        sensor.start();
+        ambientSensorRef.current.start();
       } catch (e) {
         console.log('Ambient light sensor not available');
       }
@@ -197,6 +198,15 @@ export function useInteractionContext(options: UseInteractionContextOptions = {}
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
+      }
+      // Stop ambient light sensor to prevent memory leak
+      if (ambientSensorRef.current) {
+        try {
+          ambientSensorRef.current.stop();
+        } catch (e) {
+          // Sensor may already be stopped
+        }
+        ambientSensorRef.current = null;
       }
     };
   }, []);

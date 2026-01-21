@@ -99,6 +99,22 @@ export function NFCTagManager({ className, onTagTapped }: NFCTagManagerProps) {
     }
   };
 
+  // Store NFC reader ref for cleanup
+  const ndefReaderRef = React.useRef<any>(null);
+  const nfcTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup NFC resources on unmount
+  useEffect(() => {
+    return () => {
+      if (nfcTimeoutRef.current) {
+        clearTimeout(nfcTimeoutRef.current);
+        nfcTimeoutRef.current = null;
+      }
+      // NFC reader cleanup is handled by browser when ref goes out of scope
+      ndefReaderRef.current = null;
+    };
+  }, []);
+
   const startNFCScan = async () => {
     if (!nfcSupported) {
       toast({
@@ -113,18 +129,27 @@ export function NFCTagManager({ className, onTagTapped }: NFCTagManagerProps) {
     try {
       // @ts-ignore - NDEFReader is not in TypeScript types
       const ndef = new NDEFReader();
+      ndefReaderRef.current = ndef;
       await ndef.scan();
 
-      ndef.addEventListener('reading', ({ serialNumber }: { serialNumber: string }) => {
+      const handleReading = ({ serialNumber }: { serialNumber: string }) => {
         setScannedTagId(serialNumber);
         setIsScanning(false);
         setIsDialogOpen(true);
+        
+        // Clear timeout since we got a reading
+        if (nfcTimeoutRef.current) {
+          clearTimeout(nfcTimeoutRef.current);
+          nfcTimeoutRef.current = null;
+        }
         
         toast({
           title: 'NFC Tag Detected',
           description: `Tag ID: ${serialNumber.substring(0, 8)}...`,
         });
-      });
+      };
+
+      ndef.addEventListener('reading', handleReading);
 
       toast({
         title: 'Scanning...',
@@ -132,7 +157,7 @@ export function NFCTagManager({ className, onTagTapped }: NFCTagManagerProps) {
       });
 
       // Timeout after 30 seconds
-      setTimeout(() => {
+      nfcTimeoutRef.current = setTimeout(() => {
         if (isScanning) {
           setIsScanning(false);
           toast({
@@ -140,6 +165,7 @@ export function NFCTagManager({ className, onTagTapped }: NFCTagManagerProps) {
             description: 'No NFC tag detected',
           });
         }
+        nfcTimeoutRef.current = null;
       }, 30000);
     } catch (error) {
       console.error('NFC scan error:', error);
