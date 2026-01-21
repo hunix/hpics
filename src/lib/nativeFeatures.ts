@@ -136,13 +136,27 @@ export const hapticFeedback = async (style: 'light' | 'medium' | 'heavy' = 'medi
 
 // Store the install prompt for later use
 let deferredInstallPrompt: any = null;
+let installPromptHandler: ((e: Event) => void) | null = null;
 
-export const captureInstallPrompt = (): void => {
-  window.addEventListener('beforeinstallprompt', (e) => {
+/**
+ * Capture the beforeinstallprompt event for PWA installation.
+ * Returns a cleanup function to remove the event listener.
+ */
+export const captureInstallPrompt = (): (() => void) => {
+  installPromptHandler = (e: Event) => {
     e.preventDefault();
     deferredInstallPrompt = e;
     console.log('[PWA] Install prompt captured');
-  });
+  };
+  window.addEventListener('beforeinstallprompt', installPromptHandler);
+  
+  // Return cleanup function to prevent memory leak
+  return () => {
+    if (installPromptHandler) {
+      window.removeEventListener('beforeinstallprompt', installPromptHandler);
+      installPromptHandler = null;
+    }
+  };
 };
 
 // Check if browser supports native PWA install prompt
