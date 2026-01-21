@@ -1,8 +1,8 @@
 /**
- * Analysis Section Renderers (v3.9.31)
+ * Analysis Section Renderers (v3.9.33)
  * Renders: Behavioral Analysis, Influence Resistance, Behavioral Economics,
  *          Network Position, Prediction Accuracy, Counter-Intel, Proportional Response
- * v3.9.31: Universal extractResult pattern, PDF_DESIGN tokens, fallback to allAnalyses
+ * v3.9.33: PRIORITIZE getAnalysisForSection() fallback (allAnalyses always populated)
  */
 
 import type { SectionRenderer } from './types';

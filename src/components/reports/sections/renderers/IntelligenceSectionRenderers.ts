@@ -1,7 +1,7 @@
 /**
- * Intelligence Section Renderers (v3.9.31)
+ * Intelligence Section Renderers (v3.9.33)
  * Renders: MICE, Cialdini, Psychological Profile, Trust, Behavioral DNA
- * v3.9.31: Universal extractResult pattern, PDF_DESIGN tokens
+ * v3.9.33: PRIORITIZE getAnalysisForSection() fallback (allAnalyses always populated)
  */
 
 import type { SectionRenderer } from './types';
@@ -12,10 +12,9 @@ import { getAnalysisForSection, extractResult } from '../../utils/sectionDataChe
 export const renderMICE: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
   
-  // v3.9.31: Try specific data field first, then fallback to allAnalyses
-  const rawData = data.miceData?.length
-    ? data.miceData[0]
-    : getAnalysisForSection(data, 'mice');
+  // v3.9.33: PRIORITIZE allAnalyses fallback first (mice_recruitment type)
+  const rawData = getAnalysisForSection(data, 'mice')
+    || (data.miceData?.length ? data.miceData[0] : null);
   
   if (!rawData) return;
   

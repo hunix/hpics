@@ -1,7 +1,7 @@
 /**
- * Core Section Renderers (v3.9.31)
+ * Core Section Renderers (v3.9.33)
  * Renders: Executive Brief, Source Dashboard, Contact Overview, Timeline
- * v3.9.31: Consistent extractResult pattern, uses PDF_DESIGN tokens
+ * v3.9.33: PRIORITIZE getAnalysisForSection() fallback (allAnalyses always populated)
  */
 
 import type { SectionRenderer } from './types';
@@ -40,8 +40,8 @@ export const renderExecutiveBrief: SectionRenderer = (ctx, data) => {
     ctx.renderBullet(`Attachment Pattern: ${attachmentStyle.primary_style} (Anxiety: ${attachmentStyle.anxiety_score || 0}%, Avoidance: ${attachmentStyle.avoidance_score || 0}%)`);
   }
   
-  // Try relationshipAnalysis with extractResult
-  const relData = data.relationshipAnalysis || getAnalysisForSection(data, 'relationship');
+  // v3.9.33: Prioritize allAnalyses fallback
+  const relData = getAnalysisForSection(data, 'relationship') || data.relationshipAnalysis;
   if (relData) {
     const rel = extractResult(relData as Record<string, unknown>);
     if (rel.score !== undefined || rel.grade) {
@@ -54,8 +54,10 @@ export const renderExecutiveBrief: SectionRenderer = (ctx, data) => {
     ctx.renderBullet(`Trust Level: ${trust.overall_trust_score || 0}% (${trust.trust_trajectory || 'stable'})`);
   }
   
-  if (data.miceData?.[0]) {
-    const mice = data.miceData[0] as Record<string, unknown>;
+  // v3.9.33: Try allAnalyses for MICE
+  const miceRaw = getAnalysisForSection(data, 'mice') || (data.miceData?.length ? data.miceData[0] : null);
+  if (miceRaw) {
+    const mice = extractResult(miceRaw as Record<string, unknown>);
     ctx.renderBullet(`Primary MICE Vulnerability: ${mice.primary_vulnerability || 'Not assessed'} (${((mice.recruitment_likelihood as number) * 100 || 0).toFixed(0)}% recruitability)`);
   }
   
@@ -122,6 +124,7 @@ export const renderSourceDashboard: SectionRenderer = (ctx, data) => {
     { label: 'MICE Assessment', count: data.miceData?.length || 0, status: data.miceData?.length ? '✓' : '○' },
     { label: 'Influence Profile', count: data.influenceData ? 1 : 0, status: data.influenceData ? '✓' : '○' },
     { label: 'Behavioral DNA', count: data.behavioralDnaAnalysis ? 1 : 0, status: data.behavioralDnaAnalysis ? '✓' : '○' },
+    { label: 'AI Analyses', count: data.allAnalyses?.length || 0, status: data.allAnalyses?.length ? '✓' : '○' },
   ];
   
   sourceBreakdown.forEach(source => {
@@ -214,10 +217,9 @@ export const renderTimeline: SectionRenderer = (ctx, data) => {
 export const renderPatternOfLife: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
   
-  // v3.9.31: Try specific data field first, then fallback to allAnalyses
-  const rawData = data.patternOfLifeData?.length
-    ? data.patternOfLifeData[0]
-    : getAnalysisForSection(data, 'patternOfLife');
+  // v3.9.33: PRIORITIZE allAnalyses fallback first
+  const rawData = getAnalysisForSection(data, 'patternOfLife')
+    || (data.patternOfLifeData?.length ? data.patternOfLifeData[0] : null);
   
   if (!rawData) return;
   
@@ -258,17 +260,17 @@ export const renderPatternOfLife: SectionRenderer = (ctx, data) => {
 export const renderRelationshipEcosystem: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
   
-  // v3.9.31: Check for any relationship data
-  const hasRelData = (Array.isArray(data.relationshipData) && data.relationshipData.length) 
-    || data.relationshipAnalysis 
-    || getAnalysisForSection(data, 'relationship');
+  // v3.9.33: Check for any relationship data (prioritize allAnalyses)
+  const relAnalysis = getAnalysisForSection(data, 'relationship') 
+    || data.relationshipAnalysis;
+  const hasRelData = relAnalysis 
+    || (Array.isArray(data.relationshipData) && data.relationshipData.length);
   
   if (!hasRelData) return;
   
   ctx.renderSectionHeader('Relationship Ecosystem', [150, 100, 50]);
   
   // Relationship analysis from AI
-  const relAnalysis = data.relationshipAnalysis || getAnalysisForSection(data, 'relationship');
   if (relAnalysis) {
     const rel = extractResult(relAnalysis as Record<string, unknown>);
     ctx.checkPageBreak(40);

@@ -1,6 +1,6 @@
 /**
- * Fusion Section Renderers (v3.9.31)
- * v3.9.31: Universal extractResult pattern, PDF_DESIGN tokens, fallback to allAnalyses
+ * Fusion Section Renderers (v3.9.33)
+ * v3.9.33: PRIORITIZE getAnalysisForSection() fallback (allAnalyses always populated)
  */
 
 import type { SectionRenderer } from './types';
@@ -8,10 +8,9 @@ import { PDF_DESIGN } from '../../hooks/usePDFGeneration';
 import { getAnalysisForSection, extractResult } from '../../utils/sectionDataCheck';
 
 export const renderTemporalFusion: SectionRenderer = (ctx, data) => {
-  // v3.9.31: Try specific data field first, then fallback to allAnalyses
-  const rawData = data.temporalFusionData?.length
-    ? data.temporalFusionData[0]
-    : getAnalysisForSection(data, 'temporalFusion');
+  // v3.9.33: PRIORITIZE allAnalyses fallback first
+  const rawData = getAnalysisForSection(data, 'temporalFusion')
+    || (data.temporalFusionData?.length ? data.temporalFusionData[0] : null);
   
   if (!rawData) return;
   
