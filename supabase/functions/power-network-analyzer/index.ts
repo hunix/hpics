@@ -12,23 +12,15 @@ interface PowerNetworkRequest {
   analysisType?: 'full_network' | 'target_focused' | 'opportunity_scan';
 }
 
-// Simplified prompt for faster processing (v3.9.22)
-const POWER_NETWORK_PROMPT = `Analyze this network for power structures. Return concise JSON:
-{
-  "network_overview": { "total_nodes": number, "total_connections": number, "network_density": number },
-  "power_rankings": [{ "profile_id": string, "name": string, "power_score": number, "power_type": "formal"|"informal"|"broker" }],
-  "power_clusters": [{ "cluster_name": string, "members": string[], "power_center": string }],
-  "structural_analysis": { "bridges": [{ "node": string, "criticality": number }], "isolated_valuables": [{ "node": string, "value_indicators": string[] }] },
-  "vulnerability_map": [{ "target": string, "vulnerabilities": string[], "approach_strategy": string }],
-  "strategic_opportunities": [{ "opportunity_type": string, "description": string, "key_actions": string[] }]
-}`;
+// v3.9.23: Ultra-minimal prompt for fastest processing
+const POWER_NETWORK_PROMPT = `Analyze network power. Return JSON: {"overview":{"nodes":N,"edges":N},"rankings":[{"id":"","name":"","score":N}],"clusters":[{"name":"","center":""}],"opportunities":[{"type":"","action":""}]}`;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Health check short-circuit - respond before any auth/validation (GET ?healthCheck=1)
+  // Health check short-circuit
   const url = new URL(req.url);
   if (url.searchParams.get('healthCheck') === '1') {
     return new Response(JSON.stringify({ ok: true, function: 'power-network-analyzer', timestamp: Date.now() }), {
@@ -41,7 +33,6 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
 
-    // Parse body safely (may be empty for health check GET requests that bypassed)
     const rawBody = await req.json().catch(() => ({})) as PowerNetworkRequest;
     const { userId, targetProfileId, analysisType = 'full_network' } = rawBody;
 
@@ -54,60 +45,63 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Gather network data (aggressive limits to prevent timeout - v3.9.22)
-    const [
-      { data: profiles },
-      { data: relationships }
-    ] = await Promise.all([
-      supabase.from('profiles').select('id, first_name, last_name, organization, job_title, relationship_type').eq('user_id', userId).eq('is_active', true).limit(30),
-      supabase.from('contact_relationships').select('from_profile_id, to_profile_id, relationship_type, strength').eq('user_id', userId).limit(100)
+    // v3.9.23: Ultra-aggressive limits to prevent timeout
+    const [{ data: profiles }, { data: relationships }] = await Promise.all([
+      supabase.from('profiles').select('id, first_name, last_name, organization, job_title').eq('user_id', userId).eq('is_active', true).limit(15),
+      supabase.from('contact_relationships').select('from_profile_id, to_profile_id, relationship_type, strength').eq('user_id', userId).limit(50)
     ]);
 
-    // Early exit if minimal data
-    if (!profiles?.length || profiles.length < 2) {
-      console.log('[power-network-analyzer] Insufficient profiles for network analysis');
+    // v3.9.23: Store minimal result and exit early if < 3 profiles
+    if (!profiles?.length || profiles.length < 3) {
+      console.log('[power-network-analyzer] < 3 profiles, storing minimal result');
       
-      // Still store a result in ai_analyses so section enables
-      if (profiles?.[0]?.id) {
+      const minimalResult = {
+        overview: { nodes: profiles?.length || 0, edges: relationships?.length || 0, density: 0 },
+        rankings: profiles?.map((p: { id: string; first_name?: string; last_name?: string }) => ({ 
+          id: p.id, 
+          name: `${p.first_name || ''} ${p.last_name || ''}`.trim(), 
+          score: 50 
+        })) || [],
+        clusters: [],
+        opportunities: [{ type: 'expand', action: 'Add more contacts to enable network analysis' }],
+        status: 'insufficient_data'
+      };
+      
+      const analysisProfileId = targetProfileId || profiles?.[0]?.id;
+      if (analysisProfileId) {
         await supabase.from('ai_analyses').upsert({
           user_id: userId,
-          profile_id: targetProfileId || profiles[0].id,
+          profile_id: analysisProfileId,
           analysis_type: 'power_network',
-          result: { network_overview: { total_nodes: profiles?.length || 0, total_connections: 0 }, message: 'Insufficient data' },
+          result: minimalResult,
           generated_at: new Date().toISOString()
         }, { onConflict: 'profile_id,analysis_type' });
       }
       
       return new Response(JSON.stringify({
         success: true,
-        analysis: {
-          network_overview: { total_nodes: profiles?.length || 0, total_connections: 0, network_density: 0 },
-          power_rankings: [],
-          message: 'Insufficient network data for analysis'
-        },
-        networkStats: { nodesAnalyzed: profiles?.length || 0, edgesAnalyzed: 0 }
+        analysis: minimalResult,
+        networkStats: { nodesAnalyzed: profiles?.length || 0, edgesAnalyzed: relationships?.length || 0 }
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Build minimal network representation for fast processing
+    // Build ultra-minimal network representation
     const networkData = {
-      nodes: profiles.slice(0, 25).map((p: { id: string; first_name?: string; last_name?: string; organization?: string; job_title?: string }) => ({
-        id: p.id,
-        n: `${p.first_name || ''} ${p.last_name || ''}`.trim(),
-        o: p.organization,
-        t: p.job_title
+      n: profiles.slice(0, 12).map((p: { id: string; first_name?: string; last_name?: string; organization?: string }) => ({
+        i: p.id.slice(0, 8),
+        n: `${p.first_name || ''} ${p.last_name || ''}`.trim().slice(0, 20),
+        o: (p.organization || '').slice(0, 15)
       })),
-      edges: relationships?.slice(0, 75).map((r: { from_profile_id: string; to_profile_id: string; relationship_type?: string; strength?: number }) => ({
-        s: r.from_profile_id,
-        t: r.to_profile_id,
-        r: r.relationship_type,
-        w: r.strength
+      e: relationships?.slice(0, 30).map((r: { from_profile_id: string; to_profile_id: string; strength?: number }) => ({
+        s: r.from_profile_id.slice(0, 8),
+        t: r.to_profile_id.slice(0, 8),
+        w: r.strength || 5
       })) || []
     };
 
-    console.log(`[power-network-analyzer] Analyzing ${networkData.nodes.length} nodes, ${networkData.edges.length} edges`);
+    console.log(`[power-network-analyzer] Analyzing ${networkData.n.length} nodes, ${networkData.e.length} edges`);
 
-    // Use faster model to prevent timeout (v3.9.22)
+    // v3.9.23: Use fastest model with strict token limit
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -115,13 +109,13 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-2.5-flash-lite',
         messages: [
           { role: 'system', content: POWER_NETWORK_PROMPT },
           { role: 'user', content: JSON.stringify(networkData) }
         ],
-        temperature: 0.2,
-        max_tokens: 2000
+        temperature: 0.1,
+        max_tokens: 500
       })
     });
 
@@ -137,44 +131,50 @@ serve(async (req) => {
     let analysis;
     try {
       const jsonMatch = content.match(/\{[\s\S]*\}/);
-      analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-    } catch (e) {
-      console.error('Failed to parse AI response:', e);
-      analysis = { error: 'Failed to parse network analysis', raw: content };
+      analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : { overview: { nodes: profiles.length, edges: relationships?.length || 0 } };
+    } catch {
+      console.warn('Failed to parse AI response, using fallback');
+      analysis = { 
+        overview: { nodes: profiles.length, edges: relationships?.length || 0 },
+        rankings: profiles.map((p: { id: string; first_name?: string; last_name?: string }) => ({ 
+          id: p.id, 
+          name: `${p.first_name || ''} ${p.last_name || ''}`.trim(), 
+          score: 50 
+        })),
+        clusters: [],
+        opportunities: []
+      };
     }
 
-    // Store analysis
-    const { error: insertError } = await supabase
-      .from('power_network_analyses')
-      .insert({
-        user_id: userId,
-        target_profile_id: targetProfileId,
-        analysis_type: analysisType,
-        network_overview: analysis.network_overview,
-        power_rankings: analysis.power_rankings,
-        power_clusters: analysis.power_clusters,
-        structural_analysis: analysis.structural_analysis,
-        vulnerability_map: analysis.vulnerability_map,
-        influence_paths: analysis.influence_paths,
-        strategic_opportunities: analysis.strategic_opportunities,
-        coalition_potential: analysis.coalition_potential,
-        network_risks: analysis.network_risks,
-        nodes_analyzed: profiles?.length || 0,
-        edges_analyzed: relationships?.length || 0
-      });
+    // Normalize response structure
+    const normalizedAnalysis = {
+      network_overview: analysis.overview || analysis.network_overview || { total_nodes: profiles.length, total_connections: relationships?.length || 0 },
+      power_rankings: analysis.rankings || analysis.power_rankings || [],
+      power_clusters: analysis.clusters || analysis.power_clusters || [],
+      strategic_opportunities: analysis.opportunities || analysis.strategic_opportunities || []
+    };
 
-    if (insertError) {
-      console.error('Insert error:', insertError);
-    }
+    // Store in power_network_analyses
+    await supabase.from('power_network_analyses').insert({
+      user_id: userId,
+      target_profile_id: targetProfileId,
+      analysis_type: analysisType,
+      network_overview: normalizedAnalysis.network_overview,
+      power_rankings: normalizedAnalysis.power_rankings,
+      power_clusters: normalizedAnalysis.power_clusters,
+      strategic_opportunities: normalizedAnalysis.strategic_opportunities,
+      nodes_analyzed: profiles.length,
+      edges_analyzed: relationships?.length || 0
+    }).then(({ error }) => { if (error) console.warn('Insert error:', error.message); });
 
-    // Store in ai_analyses for section availability (use targetProfileId if provided, otherwise first profile)
-    const analysisProfileId = targetProfileId || profiles?.[0]?.id;
+    // Store in ai_analyses for section availability
+    const analysisProfileId = targetProfileId || profiles[0]?.id;
     if (analysisProfileId) {
       await supabase.from('ai_analyses').upsert({
         user_id: userId,
         profile_id: analysisProfileId,
         analysis_type: 'power_network',
-        result: analysis,
+        result: normalizedAnalysis,
         generated_at: new Date().toISOString()
       }, { onConflict: 'profile_id,analysis_type' });
     }
@@ -183,36 +183,20 @@ serve(async (req) => {
     await supabase.from('ai_usage_logs').insert({
       user_id: userId,
       function_name: 'power-network-analyzer',
-      model_name: 'google/gemini-2.5-flash',
+      model_name: 'google/gemini-2.5-flash-lite',
       provider: 'lovable',
       input_tokens: aiResult.usage?.prompt_tokens || 0,
       output_tokens: aiResult.usage?.completion_tokens || 0,
       total_tokens: aiResult.usage?.total_tokens || 0,
-      estimated_cost_cents: Math.ceil((aiResult.usage?.total_tokens || 0) * 0.00005),
-      status: 'success'
-    });
-    await supabase.from('ai_usage_logs').insert({
-      user_id: userId,
-      function_name: 'power-network-analyzer',
-      model_name: 'google/gemini-2.5-pro',
-      provider: 'lovable',
-      input_tokens: aiResult.usage?.prompt_tokens || 0,
-      output_tokens: aiResult.usage?.completion_tokens || 0,
-      total_tokens: aiResult.usage?.total_tokens || 0,
-      estimated_cost_cents: Math.ceil((aiResult.usage?.total_tokens || 0) * 0.0001),
+      estimated_cost_cents: Math.ceil((aiResult.usage?.total_tokens || 0) * 0.00002),
       status: 'success'
     });
 
     return new Response(JSON.stringify({
       success: true,
-      analysis,
-      networkStats: {
-        nodesAnalyzed: profiles?.length || 0,
-        edgesAnalyzed: relationships?.length || 0
-      }
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+      analysis: normalizedAnalysis,
+      networkStats: { nodesAnalyzed: profiles.length, edgesAnalyzed: relationships?.length || 0 }
+    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error) {
     console.error('Power network analysis error:', error);
