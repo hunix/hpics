@@ -40,6 +40,7 @@ const MediaAnalysis = lazyWithRetry(() => import("./pages/MediaAnalysis"));
 const BulkAnalysisDashboard = lazyWithRetry(() => import("./pages/BulkAnalysisDashboard"));
 const Reports = lazyWithRetry(() => import("./pages/Reports"));
 const DossierIntelligence = lazyWithRetry(() => import("./pages/DossierIntelligence"));
+const DossierPreview = lazyWithRetry(() => import("./pages/DossierPreview"));
 const TeamDashboard = lazyWithRetry(() => import("./pages/TeamDashboard"));
 const Install = lazyWithRetry(() => import("./pages/Install"));
 const Downloads = lazyWithRetry(() => import("./pages/Downloads"));
@@ -154,6 +155,7 @@ const App = () => (
                           <Route path="/analysis/dashboard" element={<BulkAnalysisDashboard />} />
                           <Route path="/reports" element={<Reports />} />
                           <Route path="/dossier-intelligence" element={<DossierIntelligence />} />
+                          <Route path="/dossier-preview/:profileId" element={<DossierPreview />} />
                           <Route path="/team" element={<TeamDashboard />} />
                           <Route path="/install" element={<Install />} />
                           <Route path="/downloads" element={<Downloads />} />
