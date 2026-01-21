@@ -1,7 +1,7 @@
 /**
- * Section Renderers Barrel Export (v3.7.2)
+ * Section Renderers Barrel Export (v3.9.32)
  * Central export for all modular PDF section renderers
- * 64+ sections across 5 categories
+ * 74 sections across 5 categories - aligned with DEFAULT_SECTIONS
  */
 
 export * from './types';
@@ -20,7 +20,8 @@ import { analysisSectionRenderers } from './AnalysisSectionRenderers';
 import { SectionRendererMap } from './types';
 
 /**
- * Complete map of all section renderers by section ID (64+ sections)
+ * Complete map of all 74 section renderers by section ID
+ * v3.9.32: Aligned with DEFAULT_SECTIONS in sectionDefinitions.ts
  */
 export const allSectionRenderers: SectionRendererMap = {
   ...coreSectionRenderers,

@@ -961,4 +961,6 @@ export const warfareSectionRenderers = {
   tscmSweep: renderTscmSweep,
   digitalFootprint: renderDigitalFootprint,
   behavioralBaseline: renderBehavioralBaseline,
+  // Cross-references for complete 74-section coverage
+  crossModal: renderDeceptionOps, // Cross-modal uses deception analysis
 };

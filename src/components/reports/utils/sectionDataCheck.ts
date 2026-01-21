@@ -1,88 +1,93 @@
 /**
- * Section Data Check Utility (v3.9.31)
+ * Section Data Check Utility (v3.9.32)
  * Pre-render check to determine if a section has data worth rendering
- * v3.9.31: Updated aliases to match actual DB analysis_type values
+ * v3.9.32: Prioritize allAnalyses fallback, expanded aliases for all 74 sections
  */
 
 import type { ExtendedDossierData } from '../sections/renderers/types';
 
 /**
  * Analysis type aliases - maps section data field names to actual analysis_type values
- * stored in ai_analyses table by edge functions (v3.9.31 aligned with DB)
+ * stored in ai_analyses table by edge functions (v3.9.32 expanded for full coverage)
  */
 const ANALYSIS_TYPE_ALIASES: Record<string, string[]> = {
+  // Core sections
+  behavioralDna: ['behavioral_dna', 'dna_fingerprint'],
+  patternOfLife: ['behavioral_dna', 'pattern_of_life', 'temporal_fusion'],
+  
   // Intelligence sections
-  quantumCognition: ['quantum_cognition'],
-  playbook: ['playbook'],
-  behavioralDna: ['behavioral_dna'],
-  relationship: ['relationship_score', 'relationship_trajectory'],
-  hypnoticPatterns: ['narrative_control'],
-  cognitiveLoad: ['cognitive_warfare'],
-  sacredValues: ['existential_leverage'],
-  darkTetrad: ['manipulation_susceptibility', 'manipulation_vulnerability'],
-  psychological: ['personality'],
-  mice: ['mice_recruitment'],
+  quantumCognition: ['quantum_cognition', 'cognitive_superposition'],
+  playbook: ['playbook', 'aggregate_intelligence', 'intelligence_dossier'],
+  relationship: ['relationship_score', 'relationship_trajectory', 'behavioral_dna'],
+  hypnoticPatterns: ['narrative_control', 'hypnotic_patterns'],
+  cognitiveLoad: ['cognitive_warfare', 'cognitive_load'],
+  psychological: ['personality', 'psychological_profile'],
+  mice: ['mice_assessment', 'mice_recruitment'],
+  cialdini: ['influence_profile', 'cialdini_profile'],
+  deceptionAnalysis: ['enhanced_deception_detection', 'deception_analysis'],
   
   // Warfare sections
+  sacredValues: ['existential_leverage', 'sacred_values'],
+  realityTesting: ['cognitive_warfare', 'reality_consensus'],
+  identityDestab: ['manipulation_susceptibility', 'identity_destabilization'],
+  semanticWarfare: ['narrative_control', 'semantic_warfare'],
   trauma: ['trauma_exploitation', 'attachment_vulnerability'],
-  realityTesting: ['reality_consensus', 'cognitive_warfare'],
-  identityDestab: ['manipulation_susceptibility'],
-  semanticWarfare: ['narrative_control'],
-  vulnerabilityWindows: ['trauma_exploitation'],
-  deceptionOps: ['enhanced_deception_detection'],
-  influenceOps: ['influence_profile'],
-  betrayal: ['trauma_exploitation'],
-  choiceArchitecture: ['manipulation_susceptibility'],
-  coerciveControl: ['coercion_resistance'],
-  threatActor: ['counter_intelligence', 'shadow_network'],
+  vulnerabilityWindows: ['trauma_exploitation', 'vulnerability_windows'],
+  deceptionOps: ['enhanced_deception_detection', 'deception_operations'],
+  influenceOps: ['influence_profile', 'influence_operations'],
+  betrayal: ['trauma_exploitation', 'betrayal_prediction'],
+  choiceArchitecture: ['manipulation_susceptibility', 'choice_architecture'],
+  coerciveControl: ['coercion_resistance', 'coercive_control'],
+  threatActor: ['counter_intelligence', 'threat_actor', 'shadow_network'],
   cognitiveWarfare: ['cognitive_warfare'],
-  memeticPropagation: ['memetic_propagation'],
-  futureModeling: ['behavioral_prediction'],
-  precognitive: ['precognitive_patterns'],
-  influence: ['influence_profile'],
+  memeticPropagation: ['memetic_propagation', 'meme_analysis'],
+  futureModeling: ['behavioral_prediction', 'future_modeling'],
+  precognitive: ['precognitive_patterns', 'behavioral_prediction'],
+  influence: ['influence_profile', 'cialdini_profile'],
+  darkTetrad: ['manipulation_susceptibility', 'dark_tetrad', 'personality'],
+  mosaicFusion: ['mosaic_intelligence_fusion'],
+  shadowNetwork: ['network_exploitation', 'shadow_network'],
+  trustTrajectory: ['trust_trajectory', 'relationship_score'],
   
-  // New Warfare sections (v5.0)
-  opsecAssessment: ['opsec_assessment'],
-  socialEngineering: ['social_engineering'],
-  crisisResponse: ['crisis_response'],
-  lawfareDefense: ['lawfare_defense'],
-  reputationDefense: ['reputation_defense'],
-  familyProtection: ['family_protection'],
-  economicWarfare: ['economic_warfare'],
-  tscmSweep: ['tscm_sweep'],
-  digitalFootprint: ['digital_footprint'],
-  behavioralBaseline: ['behavioral_baseline'],
+  // Defense Operations (v5.0)
+  opsecAssessment: ['opsec_assessment', 'security_assessment'],
+  socialEngineering: ['social_engineering', 'manipulation_susceptibility'],
+  crisisResponse: ['crisis_response', 'emergency_protocol'],
+  lawfareDefense: ['lawfare_defense', 'legal_threat'],
+  reputationDefense: ['reputation_defense', 'reputation_analysis'],
+  familyProtection: ['family_protection', 'protected_persons'],
+  economicWarfare: ['economic_warfare', 'financial_threat'],
+  tscmSweep: ['tscm_sweep', 'surveillance_detection'],
+  digitalFootprint: ['digital_footprint', 'online_presence'],
+  behavioralBaseline: ['behavioral_baseline', 'baseline_analysis'],
   
   // Fusion sections
-  temporalFusion: ['temporal_fusion'],
-  digitalTwin: ['behavioral_baseline'],
-  graphRag: ['deep_intelligence_comprehensive'],
-  shadowNetwork: ['network_exploitation', 'shadow_network'],
-  dempsterShafer: ['mosaic_intelligence_fusion'],
-  counterfactual: ['behavioral_prediction'],
-  patternOfLife: ['behavioral_dna'],
-  patternOfLifeFusion: ['temporal_fusion'],
-  entityResolution: ['intelligence_dossier'],
-  sentimentCascade: ['sentiment'],
-  crossDomainSynthesis: ['mosaic_intelligence_fusion'],
-  predictiveConvergence: ['behavioral_prediction'],
-  mosaicFusion: ['mosaic_intelligence_fusion'],
+  temporalFusion: ['temporal_fusion', 'pattern_of_life'],
+  digitalTwin: ['behavioral_baseline', 'digital_twin'],
+  graphRag: ['deep_intelligence_comprehensive', 'graph_rag'],
+  dempsterShafer: ['mosaic_intelligence_fusion', 'evidence_fusion'],
+  counterfactual: ['behavioral_prediction', 'counterfactual'],
+  patternOfLifeFusion: ['temporal_fusion', 'behavioral_dna'],
+  entityResolution: ['intelligence_dossier', 'entity_resolution'],
+  sentimentCascade: ['sentiment', 'sentiment_cascade'],
+  crossDomainSynthesis: ['mosaic_intelligence_fusion', 'cross_domain'],
+  predictiveConvergence: ['behavioral_prediction', 'convergence'],
   
   // Analysis sections
-  influenceResistance: ['coercion_resistance'],
-  behavioralEconomics: ['economic_warfare'],
+  influenceResistance: ['coercion_resistance', 'influence_resistance'],
+  behavioralEconomics: ['economic_warfare', 'financial_psychology'],
   network: ['network_exploitation', 'power_network'],
+  networkPosition: ['power_network', 'network_exploitation'],
   counterIntel: ['counter_intelligence'],
   predictionAccuracy: ['behavioral_prediction'],
-  crossModal: ['mosaic_intelligence_fusion', 'enhanced_deception_detection'],
-  deceptionAnalysis: ['enhanced_deception_detection'],
-  actionPlans: ['aggregate_intelligence'],
-  networkPosition: ['power_network', 'network_exploitation'],
-  financialPsychology: ['economic_warfare'],
+  crossModal: ['mosaic_intelligence_fusion', 'enhanced_deception_detection', 'cross_modal'],
+  actionPlans: ['aggregate_intelligence', 'action_plan'],
+  financialPsychology: ['economic_warfare', 'financial_psychology'],
 };
 
 /**
  * Check if a section has enough data to render content
+ * v3.9.32: Prioritize allAnalyses (always populated) over specific arrays (often empty)
  */
 export function checkSectionHasData(
   sectionId: string,
@@ -94,100 +99,106 @@ export function checkSectionHasData(
     return true;
   }
 
-  // Check specific data fields based on section ID
+  // v3.9.32: PRIORITIZE hasAnalysis() check first for most sections
+  // This catches data from allAnalyses even when specific arrays are empty
+  if (hasAnalysis(data, sectionId)) {
+    return true;
+  }
+
+  // Check specific data fields based on section ID as fallback
   const checks: Record<string, () => boolean> = {
     // Core sections
     timeline: () => !!(data.commData?.length),
-    patternOfLife: () => !!(data.patternOfLifeData?.length || hasAnalysis(data, 'patternOfLife')),
+    patternOfLife: () => !!(data.patternOfLifeData?.length),
     relationshipEcosystem: () => !!(data.relationshipData?.length || data.relationshipAnalysis),
     mediaIntel: () => !!(data.mediaData?.length),
     voiceIntel: () => !!(data.voiceData?.length),
     anomalyDetection: () => !!(data.anomaliesData?.length),
     
     // Intelligence sections
-    mice: () => !!(data.miceData?.length || hasAnalysis(data, 'mice')),
-    cialdini: () => !!(data.influenceData?.data || hasAnalysis(data, 'influence')),
-    psychological: () => !!(data.psychData?.length || hasAnalysis(data, 'psychological')),
-    psychProfile: () => !!(data.psychData?.length || hasAnalysis(data, 'psychological')),
+    mice: () => !!(data.miceData?.length),
+    cialdini: () => !!(data.influenceData?.data),
+    psychological: () => !!(data.psychData?.length),
+    psychProfile: () => !!(data.psychData?.length),
     trust: () => !!(data.trustData?.length),
-    behavioralDna: () => !!(data.behavioralDnaAnalysis || hasAnalysis(data, 'behavioralDna')),
-    quantumCognition: () => !!(data.quantumCognitionData?.length || hasAnalysis(data, 'quantumCognition')),
-    relationship: () => !!(data.relationshipAnalysis || hasAnalysis(data, 'relationship')),
-    playbook: () => !!(data.playbookData?.length || hasAnalysis(data, 'playbook')),
-    hypnoticPatterns: () => !!(data.hypnoticPatternsData?.length || hasAnalysis(data, 'hypnoticPatterns')),
+    behavioralDna: () => !!(data.behavioralDnaAnalysis),
+    quantumCognition: () => !!(Array.isArray(data.quantumCognitionData) && data.quantumCognitionData.length),
+    relationship: () => !!(data.relationshipAnalysis),
+    playbook: () => !!(Array.isArray(data.playbookData) && data.playbookData.length),
+    hypnoticPatterns: () => !!(Array.isArray(data.hypnoticPatternsData) && data.hypnoticPatternsData.length),
     elicitation: () => !!(data.elicitationData?.length || data.elicitationSessions?.length),
-    cognitiveLoad: () => !!(data.cognitiveLoadData?.length || hasAnalysis(data, 'cognitiveLoad')),
-    darkTetrad: () => !!(data.darkTetradData?.length || data.psychData?.[0]?.dark_triad_indicators || hasAnalysis(data, 'darkTetrad')),
-    influenceVectors: () => !!(data.influenceVectorData?.length || data.influenceData?.data || hasAnalysis(data, 'influence')),
-    financialPsychology: () => !!(data.financialPsychData?.length || hasAnalysis(data, 'financialPsychology')),
-    sacredValues: () => !!(data.sacredValuesData?.length || hasAnalysis(data, 'sacredValues')),
-    deceptionAnalysis: () => !!(data.deceptionAnalysisData?.length || hasAnalysis(data, 'deceptionAnalysis')),
+    cognitiveLoad: () => !!(Array.isArray(data.cognitiveLoadData) && data.cognitiveLoadData.length),
+    darkTetrad: () => !!(Array.isArray(data.darkTetradData) && data.darkTetradData.length) || !!(data.psychData?.[0] as Record<string, unknown>)?.dark_triad_indicators,
+    influenceVectors: () => !!(Array.isArray(data.influenceVectorData) && data.influenceVectorData.length) || !!(data.influenceData?.data),
+    financialPsychology: () => !!(Array.isArray(data.financialPsychData) && data.financialPsychData.length),
+    sacredValues: () => !!(Array.isArray(data.sacredValuesData) && data.sacredValuesData.length),
+    deceptionAnalysis: () => !!(Array.isArray(data.deceptionAnalysisData) && data.deceptionAnalysisData.length),
     
     // Warfare sections
-    cognitiveWarfare: () => !!(data.cognitiveWarfareData?.length || hasAnalysis(data, 'cognitiveWarfare')),
-    deceptionOps: () => !!(data.deceptionOpsData?.length || hasAnalysis(data, 'deceptionOps')),
-    trauma: () => !!(data.traumaData?.length || hasAnalysis(data, 'trauma')),
-    betrayal: () => !!(data.betrayalData?.length || hasAnalysis(data, 'betrayal')),
-    vulnerabilityWindows: () => !!(data.vulnerabilityWindowsData?.length || hasAnalysis(data, 'vulnerabilityWindows')),
+    cognitiveWarfare: () => !!(data.cognitiveWarfareData?.length),
+    deceptionOps: () => !!(data.deceptionOpsData?.length),
+    trauma: () => !!(data.traumaData?.length),
+    betrayal: () => !!(data.betrayalData?.length),
+    vulnerabilityWindows: () => !!(data.vulnerabilityWindowsData?.length),
     activeDefense: () => !!(data.activeDefenseData?.length),
-    realityTesting: () => !!(data.realityTestingData?.length || hasAnalysis(data, 'realityTesting')),
-    identityDestab: () => !!(data.identityDestabData?.length || hasAnalysis(data, 'identityDestab')),
-    semanticWarfare: () => !!(data.semanticWarfareData?.length || hasAnalysis(data, 'semanticWarfare')),
-    memeticPropagation: () => !!(data.memeticData?.length || hasAnalysis(data, 'memeticPropagation')),
-    futureModeling: () => !!(data.futureModelingData?.length || hasAnalysis(data, 'futureModeling')),
-    precognitive: () => !!(data.precognitiveData?.length || hasAnalysis(data, 'precognitive')),
-    choiceArchitecture: () => !!(data.choiceArchitectureData?.length || hasAnalysis(data, 'choiceArchitecture')),
-    influenceOps: () => !!(data.influenceOpsData?.length || hasAnalysis(data, 'influenceOps')),
-    threatActor: () => !!(data.threatActorData?.length || hasAnalysis(data, 'threatActor')),
+    realityTesting: () => !!(Array.isArray(data.realityTestingData) && data.realityTestingData.length),
+    identityDestab: () => !!(Array.isArray(data.identityDestabData) && data.identityDestabData.length),
+    semanticWarfare: () => !!(Array.isArray(data.semanticWarfareData) && data.semanticWarfareData.length),
+    memeticPropagation: () => !!(Array.isArray(data.memeticData) && data.memeticData.length),
+    futureModeling: () => !!(Array.isArray(data.futureModelingData) && data.futureModelingData.length),
+    precognitive: () => !!(Array.isArray(data.precognitiveData) && data.precognitiveData.length),
+    choiceArchitecture: () => !!(Array.isArray(data.choiceArchitectureData) && data.choiceArchitectureData.length),
+    influenceOps: () => !!(Array.isArray(data.influenceOpsData) && data.influenceOpsData.length),
+    threatActor: () => !!(Array.isArray(data.threatActorData) && data.threatActorData.length),
     trustTrajectory: () => !!(data.trustTrajectoriesData?.length || data.trustData?.length),
-    coerciveControl: () => !!(data.coerciveControlData?.length || hasAnalysis(data, 'coerciveControl')),
-    influence: () => !!(data.influenceData?.data || data.influenceVectorData?.length || hasAnalysis(data, 'influence')),
-    opsecAssessment: () => !!(data.opsecAssessments?.length || hasAnalysis(data, 'opsecAssessment')),
-    socialEngineering: () => !!(data.socialEngineeringIncidents?.length || hasAnalysis(data, 'socialEngineering')),
-    crisisResponse: () => !!(data.crisisEvents?.length || data.emergencyProtocols?.length || hasAnalysis(data, 'crisisResponse')),
-    lawfareDefense: () => !!(data.legalThreats?.length || hasAnalysis(data, 'lawfareDefense')),
-    reputationDefense: () => !!(data.reputationIncidents?.length || hasAnalysis(data, 'reputationDefense')),
-    familyProtection: () => !!(data.protectedPersons?.length || hasAnalysis(data, 'familyProtection')),
-    economicWarfare: () => !!(data.economicThreats?.length || hasAnalysis(data, 'economicWarfare')),
-    tscmSweep: () => !!(data.tscmSweeps?.length || hasAnalysis(data, 'tscmSweep')),
-    digitalFootprint: () => !!(data.digitalFootprints?.length || hasAnalysis(data, 'digitalFootprint')),
-    behavioralBaseline: () => !!(data.behavioralBaselines?.length || hasAnalysis(data, 'behavioralBaseline')),
+    coerciveControl: () => !!(Array.isArray(data.coerciveControlData) && data.coerciveControlData.length),
+    influence: () => !!(data.influenceData?.data || (Array.isArray(data.influenceVectorData) && data.influenceVectorData.length)),
+    mosaicFusion: () => !!(data.mosaicFusionData?.length),
+    shadowNetwork: () => !!(data.shadowNetworkData?.length),
+    opsecAssessment: () => !!(data.opsecAssessments?.length),
+    socialEngineering: () => !!(data.socialEngineeringIncidents?.length),
+    crisisResponse: () => !!(data.crisisEvents?.length || data.emergencyProtocols?.length),
+    lawfareDefense: () => !!(data.legalThreats?.length),
+    reputationDefense: () => !!(data.reputationIncidents?.length),
+    familyProtection: () => !!(data.protectedPersons?.length),
+    economicWarfare: () => !!(data.economicThreats?.length),
+    tscmSweep: () => !!(data.tscmSweeps?.length),
+    digitalFootprint: () => !!(data.digitalFootprints?.length),
+    behavioralBaseline: () => !!(data.behavioralBaselines?.length),
     
     // Fusion sections
-    temporalFusion: () => !!(data.temporalFusionData?.length || hasAnalysis(data, 'temporalFusion')),
-    digitalTwin: () => !!(data.digitalTwinData?.length || hasAnalysis(data, 'digitalTwin')),
-    graphRag: () => !!(data.graphRagData?.length || hasAnalysis(data, 'graphRag')),
-    shadowNetwork: () => !!(data.shadowNetworkData?.length || hasAnalysis(data, 'shadowNetwork')),
-    dempsterShafer: () => !!(data.dempsterShaferData?.length || hasAnalysis(data, 'dempsterShafer')),
-    counterfactual: () => !!(data.counterfactualData?.length || hasAnalysis(data, 'counterfactual')),
-    mosaicFusion: () => !!(data.mosaicFusionData?.length || hasAnalysis(data, 'mosaicFusion')),
-    patternOfLifeFusion: () => !!(data.patternOfLifeEngineData?.length || hasAnalysis(data, 'patternOfLifeFusion')),
-    entityResolution: () => !!(data.entityResolutionData?.length || hasAnalysis(data, 'entityResolution')),
-    sentimentCascade: () => !!(data.sentimentCascadeData?.length || hasAnalysis(data, 'sentimentCascade')),
-    crossDomainSynthesis: () => hasAnalysis(data, 'crossDomainSynthesis'),
-    predictiveConvergence: () => hasAnalysis(data, 'predictiveConvergence'),
+    temporalFusion: () => !!(data.temporalFusionData?.length),
+    digitalTwin: () => !!(data.digitalTwinData?.length),
+    graphRag: () => !!(data.graphRagData?.length),
+    dempsterShafer: () => !!(data.dempsterShaferData?.length),
+    counterfactual: () => !!(data.counterfactualData?.length),
+    patternOfLifeFusion: () => !!(data.patternOfLifeEngineData?.length),
+    entityResolution: () => !!(data.entityResolutionData?.length),
+    sentimentCascade: () => !!(data.sentimentCascadeData?.length),
+    crossDomainSynthesis: () => false, // Check via hasAnalysis
+    predictiveConvergence: () => false, // Check via hasAnalysis
     
     // Analysis sections
     analysis: () => !!(data.allAnalyses?.length),
-    influenceResistance: () => !!(data.influenceResistanceData?.length || hasAnalysis(data, 'influenceResistance')),
-    behavioralEconomics: () => !!(data.financialPsychData?.length || hasAnalysis(data, 'behavioralEconomics')),
-    network: () => !!(data.networkPositionData?.length || hasAnalysis(data, 'network')),
-    networkPosition: () => !!(data.networkPositionData?.length || hasAnalysis(data, 'networkPosition')),
-    predictionAccuracy: () => !!(data.predictionHistoryData?.length || hasAnalysis(data, 'predictionAccuracy')),
-    counterIntel: () => !!(data.counterIntelData?.length || hasAnalysis(data, 'counterIntel')),
+    influenceResistance: () => !!(Array.isArray(data.influenceResistanceData) && data.influenceResistanceData.length),
+    behavioralEconomics: () => !!(Array.isArray(data.financialPsychData) && data.financialPsychData.length),
+    network: () => !!(Array.isArray(data.networkPositionData) && data.networkPositionData.length),
+    networkPosition: () => !!(Array.isArray(data.networkPositionData) && data.networkPositionData.length),
+    predictionAccuracy: () => !!(data.predictionHistoryData?.length),
+    counterIntel: () => !!(Array.isArray(data.counterIntelData) && data.counterIntelData.length),
     proportionalResponse: () => !!(data.proportionalResponseData?.length),
-    crossModal: () => !!(data.deceptionAnalysisData?.length || hasAnalysis(data, 'crossModal')),
+    crossModal: () => !!(Array.isArray(data.deceptionAnalysisData) && data.deceptionAnalysisData.length),
     actionPlans: () => !!(data.actionPlansData?.length),
   };
 
-  // Execute the check if defined, otherwise check allAnalyses for any matching type
+  // Execute the check if defined
   const check = checks[sectionId];
   if (check) {
     return check();
   }
 
-  // Fallback: check if any analysis exists that matches the section ID
-  return hasAnalysis(data, sectionId);
+  // Already checked hasAnalysis at top, return false as final fallback
+  return false;
 }
 
 /**
@@ -204,7 +215,7 @@ function hasAnalysis(data: ExtendedDossierData, sectionKey: string): boolean {
 
 /**
  * Get analysis data from allAnalyses for a section
- * Useful for renderers that need to fallback (v3.9.31)
+ * Useful for renderers that need to fallback (v3.9.32)
  */
 export function getAnalysisForSection(
   data: ExtendedDossierData,
@@ -225,7 +236,7 @@ export function getAnalysisForSection(
 }
 
 /**
- * Extract result from an analysis record (v3.9.31)
+ * Extract result from an analysis record (v3.9.32)
  * Handles nested .result JSONB field from ai_analyses table
  */
 export function extractResult(analysisRecord: Record<string, unknown> | null): Record<string, unknown> {
