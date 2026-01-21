@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Image, Trash2, Plus, X, Play, Music, Sparkles, Users, ScanFace } from 'lucide-react';
+import { Image, Trash2, Plus, X, Play, Music, Sparkles, Users, ScanFace, Loader2 } from 'lucide-react';
 import { MediaUpload } from '@/components/uploads/MediaUpload';
 import { getSignedUrls } from '@/hooks/useSignedUrl';
 import { FileManagerToolbar, type FilterOption } from './FileManagerToolbar';
@@ -57,6 +57,7 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
   
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [showBulkGenerator, setShowBulkGenerator] = useState(false);
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
   const [lightboxItem, setLightboxItem] = useState<{ id: string; url: string; mimeType: string | null; metadata?: any } | null>(null);
   const [signedUrls, setSignedUrls] = useState<Map<string, string>>(new Map());
   const [searchQuery, setSearchQuery] = useState('');
@@ -364,69 +365,84 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
         
         {showBulkGenerator && (
           <div className="px-6 pb-4">
-            <BulkMetadataGenerator profileId={profileId} contactName={contactName} />
+            <BulkMetadataGenerator 
+              profileId={profileId} 
+              contactName={contactName} 
+              onProcessingChange={setIsBulkProcessing}
+            />
           </div>
         )}
-        <CardContent>
-          {allMedia && allMedia.length > 0 ? (
-            <>
-              <FileManagerToolbar
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                viewMode={viewMode}
-                onViewModeChange={updateMediaViewMode}
-                typeFilter={typeFilter}
-                onTypeFilterChange={setTypeFilter}
-                sortOption={sortOption}
-                onSortChange={setSortOption}
-                itemsPerPage={itemsPerPage}
-                onItemsPerPageChange={updateMediaItemsPerPage}
-                filterOptions={filterOptions}
-                sortOptions={SORT_OPTIONS}
-                totalItems={filteredMedia.length}
-              />
-
-              {filteredMedia.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>No media matches your filters</p>
-                </div>
-              ) : (
-                <>
-                  {viewMode === 'grid' && renderGridView()}
-                  {viewMode === 'list' && (
-                    <MediaListView
-                      items={paginatedMedia}
-                      getMediaUrl={getMediaUrl}
-                      onView={(id, url, mimeType) => handleOpenLightbox(id, url, mimeType)}
-                      onDelete={handleDelete}
-                    />
-                  )}
-                  {viewMode === 'detail' && (
-                    <MediaDetailView
-                      items={paginatedMedia}
-                      getMediaUrl={getMediaUrl}
-                      onView={(id, url, mimeType) => handleOpenLightbox(id, url, mimeType)}
-                      onDelete={handleDelete}
-                    />
-                  )}
-                  <FilePagination
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    onPageChange={setCurrentPage}
-                    totalItems={filteredMedia.length}
-                    itemsPerPage={itemsPerPage}
-                  />
-                </>
-              )}
-            </>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <Image className="h-10 w-10 mx-auto mb-2 opacity-50" />
-              <p>No media yet</p>
-              <p className="text-sm">Upload photos and images for this contact</p>
+        {/* Hide gallery during bulk processing to save memory */}
+        {isBulkProcessing ? (
+          <CardContent>
+            <div className="py-12 text-center">
+              <Loader2 className="h-10 w-10 animate-spin mx-auto mb-3 text-primary" />
+              <p className="font-medium">Analysis in Progress</p>
+              <p className="text-sm text-muted-foreground">Gallery hidden to save memory during processing</p>
             </div>
-          )}
-        </CardContent>
+          </CardContent>
+        ) : (
+          <CardContent>
+            {allMedia && allMedia.length > 0 ? (
+              <>
+                <FileManagerToolbar
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  viewMode={viewMode}
+                  onViewModeChange={updateMediaViewMode}
+                  typeFilter={typeFilter}
+                  onTypeFilterChange={setTypeFilter}
+                  sortOption={sortOption}
+                  onSortChange={setSortOption}
+                  itemsPerPage={itemsPerPage}
+                  onItemsPerPageChange={updateMediaItemsPerPage}
+                  filterOptions={filterOptions}
+                  sortOptions={SORT_OPTIONS}
+                  totalItems={filteredMedia.length}
+                />
+
+                {filteredMedia.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>No media matches your filters</p>
+                  </div>
+                ) : (
+                  <>
+                    {viewMode === 'grid' && renderGridView()}
+                    {viewMode === 'list' && (
+                      <MediaListView
+                        items={paginatedMedia}
+                        getMediaUrl={getMediaUrl}
+                        onView={(id, url, mimeType) => handleOpenLightbox(id, url, mimeType)}
+                        onDelete={handleDelete}
+                      />
+                    )}
+                    {viewMode === 'detail' && (
+                      <MediaDetailView
+                        items={paginatedMedia}
+                        getMediaUrl={getMediaUrl}
+                        onView={(id, url, mimeType) => handleOpenLightbox(id, url, mimeType)}
+                        onDelete={handleDelete}
+                      />
+                    )}
+                    <FilePagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                      totalItems={filteredMedia.length}
+                      itemsPerPage={itemsPerPage}
+                    />
+                  </>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Image className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                <p>No media yet</p>
+                <p className="text-sm">Upload photos and images for this contact</p>
+              </div>
+            )}
+          </CardContent>
+        )}
       </Card>
 
       <MediaUpload
