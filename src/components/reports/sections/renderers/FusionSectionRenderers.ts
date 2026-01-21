@@ -1,13 +1,22 @@
 /**
- * Fusion Section Renderers (v3.7.1)
+ * Fusion Section Renderers (v3.9.24)
+ * v3.9.24: Added allAnalyses fallback pattern
  */
 
 import type { SectionRenderer } from './types';
+import { getAnalysisForSection, extractResult } from '../../utils/sectionDataCheck';
 
 export const renderTemporalFusion: SectionRenderer = (ctx, data) => {
-  if (!data.temporalFusionData?.length) return;
+  // v3.9.24: Try specific data field first, then fallback to allAnalyses
+  const rawData = data.temporalFusionData?.length
+    ? data.temporalFusionData[0]
+    : getAnalysisForSection(data, 'temporalFusion');
+  
+  if (!rawData) return;
+  
   ctx.renderSectionHeader('Temporal Fusion Transformer', [50, 100, 150]);
-  const tft = (data.temporalFusionData as Array<Record<string, unknown>>)[0]?.result as Record<string, unknown>;
+  const tft = extractResult(rawData as Record<string, unknown>);
+  
   if (tft?.behavioral_forecasts) {
     ctx.renderSubsection('Behavioral Forecasts');
     ((tft.behavioral_forecasts as Array<Record<string, unknown>>) || []).slice(0, 3).forEach((f) => {

@@ -181,6 +181,7 @@ export function useDossierData() {
     ]);
 
     // Batch 5: Data Fusion Engine Results (from ai_analyses by type)
+    // v3.9.24: Use actual analysis_type values stored by edge functions
     const [
       temporalFusionData,
       digitalTwinData,
@@ -193,17 +194,18 @@ export function useDossierData() {
       sentimentCascadeData,
     ] = await Promise.all([
       supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'temporal_fusion').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'digital_twin').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'graph_rag').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'shadow_network').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'dempster_shafer').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'counterfactual').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'pattern_of_life').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'entity_resolution').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'sentiment_cascade').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'behavioral_baseline').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'deep_intelligence_comprehensive').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'network_exploitation').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'mosaic_intelligence_fusion').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'behavioral_prediction').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'behavioral_dna').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'intelligence_dossier').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'sentiment').order('generated_at', { ascending: false }).limit(1),
     ]);
 
     // Batch 6: Additional AI Analyses by Type (for section renderers expecting specific data)
+    // v3.9.24: Use actual analysis_type values stored by edge functions
     const [
       quantumCognitionData,
       playbookData,
@@ -216,17 +218,18 @@ export function useDossierData() {
       memeticData,
     ] = await Promise.all([
       supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'quantum_cognition').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'engagement_playbook').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'hypnotic_patterns').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'cognitive_load').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'sacred_values').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'reality_testing').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'identity_destabilization').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'semantic_warfare').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'playbook').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'narrative_control').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'cognitive_warfare').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'existential_leverage').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'cognitive_warfare').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'manipulation_susceptibility').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'narrative_control').order('generated_at', { ascending: false }).limit(1),
       supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'memetic_propagation').order('generated_at', { ascending: false }).limit(1),
     ]);
 
     // Batch 7: More AI Analyses by Type
+    // v3.9.24: Use actual analysis_type values stored by edge functions
     const [
       futureModelingData,
       precognitiveData,
@@ -238,18 +241,19 @@ export function useDossierData() {
       predictionHistoryData,
       counterIntelData,
     ] = await Promise.all([
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'future_modeling').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'precognitive').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'choice_architecture').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'influence_operations').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'threat_actor').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'influence_resistance').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'network_position').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'prediction_accuracy').order('generated_at', { ascending: false }).limit(5),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'counter_intel').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'behavioral_prediction').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'precognitive_patterns').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'manipulation_susceptibility').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'influence_profile').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'counter_intelligence').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'coercion_resistance').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'power_network').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'behavioral_prediction').order('generated_at', { ascending: false }).limit(5),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'counter_intelligence').order('generated_at', { ascending: false }).limit(1),
     ]);
 
     // Batch 8: Final batch of AI Analyses
+    // v3.9.24: Use actual analysis_type values stored by edge functions
     const [
       deceptionAnalysisData,
       darkTetradData,
@@ -261,15 +265,15 @@ export function useDossierData() {
       scenarioPredictions,
       milestonesData,
     ] = await Promise.all([
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'deception_analysis').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'dark_tetrad').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'influence_vectors').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'coercive_control').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'pattern_of_life_engine').order('generated_at', { ascending: false }).limit(1),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'financial_psychology_profile').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'enhanced_deception_detection').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'manipulation_susceptibility').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'influence_profile').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'coercion_resistance').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'temporal_fusion').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'economic_warfare').order('generated_at', { ascending: false }).limit(1),
       supabase.from('elicitation_sessions').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(10),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'scenario_prediction').order('generated_at', { ascending: false }).limit(5),
-      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'life_milestones').order('generated_at', { ascending: false }).limit(10),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'behavioral_prediction').order('generated_at', { ascending: false }).limit(5),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'intelligence_dossier').order('generated_at', { ascending: false }).limit(10),
     ]);
 
     // Also fetch relationship data separately
