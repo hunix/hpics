@@ -1,10 +1,11 @@
 /**
- * PDF Generation Hook
+ * PDF Generation Hook (v3.9.30)
  * Handles the actual PDF document generation logic
+ * v3.9.30: Fixed yPos state sync, added safeFormatDate utility
  */
 
 import jsPDF from 'jspdf';
-import { format } from 'date-fns';
+import { format, isValid, parseISO } from 'date-fns';
 import type { DossierSection, DossierTemplate, PDFRenderContext } from '../sections/types';
 
 export interface PDFGenerationOptions {
@@ -24,6 +25,42 @@ export interface PDFContext extends PDFRenderContext {
   renderPriorityBadge: (priority: string, x: number, y: number) => void;
 }
 
+/**
+ * Safe date formatting utility (v3.9.30)
+ * Handles null, undefined, invalid dates gracefully
+ */
+export function safeFormatDate(
+  value: unknown,
+  formatString: string = 'MMM d, yyyy',
+  fallback: string = 'Unknown'
+): string {
+  if (!value) return fallback;
+  
+  try {
+    let date: Date;
+    
+    if (value instanceof Date) {
+      date = value;
+    } else if (typeof value === 'string') {
+      // Try ISO parse first, fall back to Date constructor
+      date = parseISO(value);
+      if (!isValid(date)) {
+        date = new Date(value);
+      }
+    } else if (typeof value === 'number') {
+      date = new Date(value);
+    } else {
+      return fallback;
+    }
+    
+    if (!isValid(date)) return fallback;
+    
+    return format(date, formatString);
+  } catch {
+    return fallback;
+  }
+}
+
 export function createPDFDocument(): { doc: jsPDF; context: PDFContext } {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -34,12 +71,14 @@ export function createPDFDocument(): { doc: jsPDF; context: PDFContext } {
   const footerHeight = 15;
   const maxContentY = pageHeight - footerHeight - margin;
   
-  let yPos = 20;
+  // v3.9.30: Use mutable state object instead of closure variable
+  // This ensures all helper functions share the same yPos state
+  const state = { yPos: 20 };
 
   const checkPageBreak = (neededSpace: number): boolean => {
-    if (yPos + neededSpace > maxContentY) {
+    if (state.yPos + neededSpace > maxContentY) {
       doc.addPage();
-      yPos = margin;
+      state.yPos = margin;
       return true;
     }
     return false;
@@ -49,21 +88,21 @@ export function createPDFDocument(): { doc: jsPDF; context: PDFContext } {
     checkPageBreak(25);
     
     doc.setDrawColor(200, 200, 200);
-    doc.line(margin, yPos - 3, margin + contentWidth, yPos - 3);
-    yPos += 2;
+    doc.line(margin, state.yPos - 3, margin + contentWidth, state.yPos - 3);
+    state.yPos += 2;
     
     doc.setFillColor(color[0], color[1], color[2], 0.1);
-    doc.rect(margin - 2, yPos - 2, contentWidth + 4, 10, 'F');
+    doc.rect(margin - 2, state.yPos - 2, contentWidth + 4, 10, 'F');
     
     doc.setFillColor(...color);
-    doc.rect(margin - 2, yPos - 2, 3, 10, 'F');
+    doc.rect(margin - 2, state.yPos - 2, 3, 10, 'F');
     
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...color);
-    doc.text(title.toUpperCase(), margin + 5, yPos + 5);
+    doc.text(title.toUpperCase(), margin + 5, state.yPos + 5);
     doc.setTextColor(0);
-    yPos += 15;
+    state.yPos += 15;
   };
 
   const renderSubsection = (title: string) => {
@@ -71,9 +110,9 @@ export function createPDFDocument(): { doc: jsPDF; context: PDFContext } {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(60, 60, 60);
-    doc.text(title, margin, yPos);
+    doc.text(title, margin, state.yPos);
     doc.setTextColor(0);
-    yPos += lineHeight + 2;
+    state.yPos += lineHeight + 2;
   };
 
   const renderBullet = (text: string, indent: number = 0, bulletChar: string = '•') => {
@@ -83,28 +122,28 @@ export function createPDFDocument(): { doc: jsPDF; context: PDFContext } {
     
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.text(lines, margin + indent, yPos);
-    yPos += lines.length * lineHeight;
+    doc.text(lines, margin + indent, state.yPos);
+    state.yPos += lines.length * lineHeight;
   };
 
   const renderKeyValue = (key: string, value: string, keyWidth: number = 55) => {
     checkPageBreak(10);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.text(key + ':', margin, yPos);
+    doc.text(key + ':', margin, state.yPos);
     doc.setFont('helvetica', 'normal');
     
     const valueStr = String(value || 'N/A');
     const lines = doc.splitTextToSize(valueStr, contentWidth - keyWidth - 5);
-    doc.text(lines, margin + keyWidth, yPos);
-    yPos += Math.max(lines.length * lineHeight, lineHeight);
+    doc.text(lines, margin + keyWidth, state.yPos);
+    state.yPos += Math.max(lines.length * lineHeight, lineHeight);
   };
 
   const renderScoreBar = (label: string, score: number, maxScore: number = 100, color: [number, number, number] = [0, 100, 200]) => {
     checkPageBreak(14);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text(label, margin, yPos);
+    doc.text(label, margin, state.yPos);
     
     const barX = margin + 50;
     const barWidth = 80;
@@ -112,15 +151,15 @@ export function createPDFDocument(): { doc: jsPDF; context: PDFContext } {
     const fillWidth = (score / maxScore) * barWidth;
     
     doc.setFillColor(230, 230, 230);
-    doc.rect(barX, yPos - 5, barWidth, barHeight, 'F');
+    doc.rect(barX, state.yPos - 5, barWidth, barHeight, 'F');
     
     doc.setFillColor(...color);
-    doc.rect(barX, yPos - 5, fillWidth, barHeight, 'F');
+    doc.rect(barX, state.yPos - 5, fillWidth, barHeight, 'F');
     
     doc.setFont('helvetica', 'bold');
-    doc.text(`${Math.round(score)}%`, barX + barWidth + 5, yPos);
+    doc.text(`${Math.round(score)}%`, barX + barWidth + 5, state.yPos);
     
-    yPos += 8;
+    state.yPos += 8;
   };
 
   const renderPriorityBadge = (priority: string, x: number, y: number) => {
@@ -140,9 +179,11 @@ export function createPDFDocument(): { doc: jsPDF; context: PDFContext } {
     doc.setTextColor(0);
   };
 
+  // v3.9.30: Use getters/setters to ensure state synchronization
   const context: PDFContext = {
     doc,
-    yPos,
+    get yPos() { return state.yPos; },
+    set yPos(v: number) { state.yPos = v; },
     lineHeight,
     pageWidth,
     pageHeight,

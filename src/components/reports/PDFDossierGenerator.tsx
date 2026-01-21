@@ -281,9 +281,21 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
             renderer(context, allData);
             renderedSections++;
           } catch (err) {
-            console.warn(`[PDFDossierGenerator] Section ${section.id} render error:`, err);
-            // Render error placeholder on the page
-            context.renderSubsection(`⚠ Error rendering ${section.label}`);
+            console.error(`[PDF] Section ${section.id} failed:`, err);
+            
+            // v3.9.30: Reset context to known good state after error
+            context.yPos = context.margin + 20;
+            doc.setTextColor(180, 0, 0);
+            doc.setFontSize(10);
+            doc.text(`Section Error: ${section.label}`, context.margin, context.yPos);
+            doc.setTextColor(0);
+            context.yPos += 15;
+            
+            const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Error: ${errorMsg.substring(0, 80)}`, context.margin, context.yPos);
+            context.yPos += 10;
           }
         } else {
           console.warn(`[PDFDossierGenerator] No renderer for section: ${section.id}`);
