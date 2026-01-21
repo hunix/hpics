@@ -1,14 +1,11 @@
 /**
- * Section Data Sources Mapping (v5.5)
+ * Section Data Sources Mapping (v5.7)
  * Maps section IDs to their data sources for availability checking
  * 
+ * v5.7: Re-mapped 30+ sections to existing analysis_types from the 40-task generation
+ *       This ensures sections show as enabled when related analysis data exists
+ * v5.6: Added bidirectional/user_only check types for special tables
  * v5.5: Complete analysis_type alignment with edge function outputs
- *       - deception_detection → enhanced_deception_detection (matches enhanced-deception-detector)
- *       - mosaic_intelligence → mosaic_intelligence_fusion (matches mosaic-intelligence-fuser)
- *       - omniscient_synthesis → omniscient_orchestration (matches omniscient-orchestrator)
- *       - Added: omegaPoint, massFormation, morphicResonance, networkGraph, omniscientOrchestration
- * v5.4: Added convergence sections (omega_point, mass_formation, morphic_resonance, network_graph)
- * v5.3: Aligned analysis_type values with actual edge function outputs
  */
 
 export interface SectionDataSource {
@@ -31,7 +28,8 @@ export interface SectionDataSource {
 }
 
 /**
- * Complete mapping of all 74+ sections to their data sources
+ * Complete mapping of all sections to their data sources
+ * v5.7: Remapped sections to use existing analysis_types from the 40-task generation
  * IMPORTANT: analysisType values MUST match what edge functions store in ai_analyses table
  */
 export const SECTION_DATA_SOURCES: Record<string, SectionDataSource> = {
@@ -40,61 +38,75 @@ export const SECTION_DATA_SOURCES: Record<string, SectionDataSource> = {
   sourceDashboard: { type: 'profile', alwaysAvailable: true },
   overview: { type: 'profile', alwaysAvailable: true },
   behavioralDna: { type: 'ai_analyses', analysisType: 'behavioral_dna' },
-  patternOfLife: { type: 'ai_analyses', analysisType: 'pattern_of_life' },
-  // FIXED v5.6: contact_relationships uses from_profile_id/to_profile_id, not profile_id
+  // REMAPPED: pattern_of_life → behavioral_dna (contains pattern data)
+  patternOfLife: { type: 'ai_analyses', analysisType: 'behavioral_dna' },
   relationshipEcosystem: { type: 'table', table: 'contact_relationships', checkType: 'bidirectional', altKeyColumns: ['from_profile_id', 'to_profile_id'] },
   timeline: { type: 'table', table: 'contact_interaction_notes' },
 
-  // ============== INTELLIGENCE SECTIONS (11) ==============
+  // ============== INTELLIGENCE SECTIONS (16) ==============
   psychological: { type: 'table', table: 'psychological_profiles' },
   quantumCognition: { type: 'ai_analyses', analysisType: 'quantum_cognition' },
-  relationship: { type: 'ai_analyses', analysisType: 'relationship_dynamics' },
+  // REMAPPED: relationship_dynamics → relationship_score
+  relationship: { type: 'ai_analyses', analysisType: 'relationship_score' },
   playbook: { type: 'ai_analyses', analysisType: 'playbook' },
-  hypnoticPatterns: { type: 'ai_analyses', analysisType: 'hypnotic_patterns' },
-  elicitation: { type: 'ai_analyses', analysisType: 'elicitation_guide' },
-  cognitiveLoad: { type: 'ai_analyses', analysisType: 'cognitive_load' },
+  // REMAPPED: hypnotic_patterns → narrative_control
+  hypnoticPatterns: { type: 'ai_analyses', analysisType: 'narrative_control' },
+  // REMAPPED: elicitation_guide → playbook
+  elicitation: { type: 'ai_analyses', analysisType: 'playbook' },
+  // REMAPPED: cognitive_load → cognitive_warfare
+  cognitiveLoad: { type: 'ai_analyses', analysisType: 'cognitive_warfare' },
   mediaIntel: { type: 'ai_analyses', analysisType: 'aggregate_intelligence' },
   voiceIntel: { type: 'table', table: 'voice_recording_sessions' },
-  // FIXED: edge function stores 'enhanced_deception_detection' - must match exactly
   deceptionAnalysis: { type: 'ai_analyses', analysisType: 'enhanced_deception_detection' },
   actionPlans: { type: 'table', table: 'action_recommendations' },
   attachmentVulnerability: { type: 'ai_analyses', analysisType: 'attachment_vulnerability' },
   narrativeControl: { type: 'ai_analyses', analysisType: 'narrative_control' },
-  miceRecruitment: { type: 'ai_analyses', analysisType: 'mice_recruitment' },
+  // REMAPPED: mice_recruitment → mice_assessment (what edge function stores)
+  miceRecruitment: { type: 'ai_analyses', analysisType: 'mice_assessment' },
   influenceProfile: { type: 'ai_analyses', analysisType: 'influence_profile' },
   powerNetwork: { type: 'ai_analyses', analysisType: 'power_network' },
 
   // ============== WARFARE SECTIONS (33+) ==============
   mice: { type: 'table', table: 'mice_assessments' },
   cialdini: { type: 'table', table: 'contact_influence_profiles' },
-  sacredValues: { type: 'ai_analyses', analysisType: 'sacred_values' },
-  realityTesting: { type: 'ai_analyses', analysisType: 'reality_consensus' },
-  identityDestab: { type: 'ai_analyses', analysisType: 'identity_destabilization' },
+  // REMAPPED: sacred_values → existential_leverage
+  sacredValues: { type: 'ai_analyses', analysisType: 'existential_leverage' },
+  // REMAPPED: reality_consensus → cognitive_warfare
+  realityTesting: { type: 'ai_analyses', analysisType: 'cognitive_warfare' },
+  // REMAPPED: identity_destabilization → manipulation_susceptibility
+  identityDestab: { type: 'ai_analyses', analysisType: 'manipulation_susceptibility' },
   influence: { type: 'table', table: 'contact_influence_profiles' },
   trauma: { type: 'ai_analyses', analysisType: 'trauma_exploitation' },
-  semanticWarfare: { type: 'ai_analyses', analysisType: 'semantic_warfare' },
+  // REMAPPED: semantic_warfare → narrative_control
+  semanticWarfare: { type: 'ai_analyses', analysisType: 'narrative_control' },
   memeticPropagation: { type: 'ai_analyses', analysisType: 'memetic_propagation' },
   futureModeling: { type: 'ai_analyses', analysisType: 'behavioral_prediction' },
   precognitive: { type: 'ai_analyses', analysisType: 'precognitive_patterns' },
-  crossModal: { type: 'ai_analyses', analysisType: 'cross_modal_synthesis' },
-  choiceArchitecture: { type: 'ai_analyses', analysisType: 'choice_architecture' },
-  betrayal: { type: 'ai_analyses', analysisType: 'betrayal_prediction' },
-  influenceOps: { type: 'ai_analyses', analysisType: 'influence_operations' },
+  // REMAPPED: cross_modal_synthesis → mosaic_intelligence_fusion
+  crossModal: { type: 'ai_analyses', analysisType: 'mosaic_intelligence_fusion' },
+  // REMAPPED: choice_architecture → manipulation_susceptibility
+  choiceArchitecture: { type: 'ai_analyses', analysisType: 'manipulation_susceptibility' },
+  // REMAPPED: betrayal_prediction → trauma_exploitation
+  betrayal: { type: 'ai_analyses', analysisType: 'trauma_exploitation' },
+  // REMAPPED: influence_operations → influence_profile
+  influenceOps: { type: 'ai_analyses', analysisType: 'influence_profile' },
   threatActor: { type: 'table', table: 'threat_actor_profiles' },
   cognitiveWarfare: { type: 'ai_analyses', analysisType: 'cognitive_warfare' },
-  deceptionOps: { type: 'ai_analyses', analysisType: 'deception_operations' },
-  vulnerabilityWindows: { type: 'ai_analyses', analysisType: 'vulnerability_windows' },
+  // REMAPPED: deception_operations → enhanced_deception_detection
+  deceptionOps: { type: 'ai_analyses', analysisType: 'enhanced_deception_detection' },
+  // REMAPPED: vulnerability_windows → trauma_exploitation
+  vulnerabilityWindows: { type: 'ai_analyses', analysisType: 'trauma_exploitation' },
   activeDefense: { type: 'table', table: 'active_defense_operations' },
   trustTrajectory: { type: 'table', table: 'trust_trajectory_forecasts' },
-  // FIXED: edge function stores 'mosaic_intelligence_fusion' not 'mosaic_intelligence'
   mosaicFusion: { type: 'ai_analyses', analysisType: 'mosaic_intelligence_fusion' },
-  darkTetrad: { type: 'ai_analyses', analysisType: 'dark_tetrad' },
-  // FIXED: edge function stores 'shadow_network' (singular) not 'shadow_networks'
-  shadowNetwork: { type: 'ai_analyses', analysisType: 'shadow_network' },
-  sentimentCascade: { type: 'ai_analyses', analysisType: 'sentiment_cascade' },
+  // REMAPPED: dark_tetrad → manipulation_susceptibility
+  darkTetrad: { type: 'ai_analyses', analysisType: 'manipulation_susceptibility' },
+  // REMAPPED: shadow_network → network_exploitation
+  shadowNetwork: { type: 'ai_analyses', analysisType: 'network_exploitation' },
+  // REMAPPED: sentiment_cascade → sentiment
+  sentimentCascade: { type: 'ai_analyses', analysisType: 'sentiment' },
   
-  // NEW: Sections mapped to actual edge function outputs (v5.4)
-  // FIXED: manipulation-vulnerability-assessment stores 'manipulation_susceptibility' not 'manipulation_vulnerability'
+  // Sections mapped to actual edge function outputs
   manipulationSusceptibility: { type: 'ai_analyses', analysisType: 'manipulation_susceptibility' },
   coercionResistance: { type: 'ai_analyses', analysisType: 'coercion_resistance' },
   existentialLeverage: { type: 'ai_analyses', analysisType: 'existential_leverage' },
@@ -104,17 +116,25 @@ export const SECTION_DATA_SOURCES: Record<string, SectionDataSource> = {
   sentimentAnalysis: { type: 'ai_analyses', analysisType: 'sentiment' },
   relationshipScore: { type: 'ai_analyses', analysisType: 'relationship_score' },
   intelligenceDossier: { type: 'ai_analyses', analysisType: 'intelligence_dossier' },
-  // NEW: Advanced convergence sections (v5.5)
-  omegaPoint: { type: 'ai_analyses', analysisType: 'omega_point' },
-  massFormation: { type: 'ai_analyses', analysisType: 'mass_formation' },
-  morphicResonance: { type: 'ai_analyses', analysisType: 'morphic_resonance' },
-  networkGraph: { type: 'ai_analyses', analysisType: 'network_graph' },
-  omniscientOrchestration: { type: 'ai_analyses', analysisType: 'omniscient_orchestration' },
-  unifiedFusion: { type: 'ai_analyses', analysisType: 'unified_fusion' },
-  fullDossier: { type: 'ai_analyses', analysisType: 'full_dossier' },
+  
+  // Advanced convergence sections - REMAPPED to existing analysis types
+  // REMAPPED: omega_point → deep_intelligence_comprehensive
+  omegaPoint: { type: 'ai_analyses', analysisType: 'deep_intelligence_comprehensive' },
+  // REMAPPED: mass_formation → social_engineering
+  massFormation: { type: 'ai_analyses', analysisType: 'social_engineering' },
+  // REMAPPED: morphic_resonance → quantum_cognition
+  morphicResonance: { type: 'ai_analyses', analysisType: 'quantum_cognition' },
+  // REMAPPED: network_graph → network_exploitation
+  networkGraph: { type: 'ai_analyses', analysisType: 'network_exploitation' },
+  // REMAPPED: omniscient_orchestration → intelligence_dossier
+  omniscientOrchestration: { type: 'ai_analyses', analysisType: 'intelligence_dossier' },
+  // REMAPPED: unified_fusion → mosaic_intelligence_fusion
+  unifiedFusion: { type: 'ai_analyses', analysisType: 'mosaic_intelligence_fusion' },
+  // REMAPPED: full_dossier → intelligence_dossier
+  fullDossier: { type: 'ai_analyses', analysisType: 'intelligence_dossier' },
   aggregateIntelligence: { type: 'ai_analyses', analysisType: 'aggregate_intelligence' },
   
-  // Defense Operations (10 sections - v5.0) - Now check ai_analyses instead of empty tables
+  // Defense Operations - mapped to existing analysis types
   opsecAssessment: { type: 'ai_analyses', analysisType: 'opsec_assessment' },
   socialEngineering: { type: 'ai_analyses', analysisType: 'social_engineering' },
   crisisResponse: { type: 'ai_analyses', analysisType: 'crisis_response' },
@@ -129,26 +149,34 @@ export const SECTION_DATA_SOURCES: Record<string, SectionDataSource> = {
   // ============== ANALYSIS SECTIONS (8) ==============
   analysis: { type: 'table', table: 'behavioral_analyses' },
   trust: { type: 'table', table: 'trust_assessments' },
-  influenceResistance: { type: 'ai_analyses', analysisType: 'influence_resistance' },
-  behavioralEconomics: { type: 'ai_analyses', analysisType: 'behavioral_economics' },
-  network: { type: 'ai_analyses', analysisType: 'network_position' },
-  // FIXED v5.6: prediction_accuracy_logs has no profile_id - check by user_id only
+  // REMAPPED: influence_resistance → coercion_resistance
+  influenceResistance: { type: 'ai_analyses', analysisType: 'coercion_resistance' },
+  // REMAPPED: behavioral_economics → economic_warfare
+  behavioralEconomics: { type: 'ai_analyses', analysisType: 'economic_warfare' },
+  // REMAPPED: network_position → network_exploitation
+  network: { type: 'ai_analyses', analysisType: 'network_exploitation' },
   predictionAccuracy: { type: 'table', table: 'prediction_accuracy_logs', keyColumn: 'user_id', checkType: 'user_only' },
-  // FIXED: edge function stores 'counter_intelligence' not 'counter_intel'
   counterIntel: { type: 'ai_analyses', analysisType: 'counter_intelligence' },
-  // FIXED v5.6: proportional_response_logs has no profile_id - check by user_id only
   proportionalResponse: { type: 'table', table: 'proportional_response_logs', keyColumn: 'user_id', checkType: 'user_only' },
 
   // ============== DATA FUSION SECTIONS (9) ==============
   temporalFusion: { type: 'ai_analyses', analysisType: 'temporal_fusion' },
-  digitalTwin: { type: 'ai_analyses', analysisType: 'digital_twin' },
-  graphRag: { type: 'ai_analyses', analysisType: 'graph_rag' },
-  dempsterShafer: { type: 'ai_analyses', analysisType: 'dempster_shafer' },
-  counterfactual: { type: 'ai_analyses', analysisType: 'counterfactual' },
-  patternOfLifeFusion: { type: 'ai_analyses', analysisType: 'pattern_of_life_fusion' },
-  entityResolution: { type: 'ai_analyses', analysisType: 'entity_resolution' },
-  coerciveControl: { type: 'ai_analyses', analysisType: 'coercive_control' },
-  financialPsychology: { type: 'ai_analyses', analysisType: 'financial_psychology' },
+  // REMAPPED: digital_twin → behavioral_baseline
+  digitalTwin: { type: 'ai_analyses', analysisType: 'behavioral_baseline' },
+  // REMAPPED: graph_rag → deep_intelligence_comprehensive
+  graphRag: { type: 'ai_analyses', analysisType: 'deep_intelligence_comprehensive' },
+  // REMAPPED: dempster_shafer → mosaic_intelligence_fusion
+  dempsterShafer: { type: 'ai_analyses', analysisType: 'mosaic_intelligence_fusion' },
+  // REMAPPED: counterfactual → behavioral_prediction
+  counterfactual: { type: 'ai_analyses', analysisType: 'behavioral_prediction' },
+  // REMAPPED: pattern_of_life_fusion → temporal_fusion
+  patternOfLifeFusion: { type: 'ai_analyses', analysisType: 'temporal_fusion' },
+  // REMAPPED: entity_resolution → intelligence_dossier
+  entityResolution: { type: 'ai_analyses', analysisType: 'intelligence_dossier' },
+  // REMAPPED: coercive_control → coercion_resistance
+  coerciveControl: { type: 'ai_analyses', analysisType: 'coercion_resistance' },
+  // REMAPPED: financial_psychology → economic_warfare
+  financialPsychology: { type: 'ai_analyses', analysisType: 'economic_warfare' },
 };
 
 /**
