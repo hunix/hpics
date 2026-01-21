@@ -842,6 +842,76 @@ export type Database = {
           },
         ]
       }
+      agent_deliberations: {
+        Row: {
+          agent_role: string
+          argument_text: string
+          confidence_score: number
+          cost_cents: number | null
+          created_at: string | null
+          deliberation_session_id: string
+          evidence_references: Json | null
+          id: string
+          position: string
+          profile_id: string | null
+          round_number: number
+          tribunal_type: string
+          user_id: string
+        }
+        Insert: {
+          agent_role: string
+          argument_text: string
+          confidence_score: number
+          cost_cents?: number | null
+          created_at?: string | null
+          deliberation_session_id: string
+          evidence_references?: Json | null
+          id?: string
+          position: string
+          profile_id?: string | null
+          round_number: number
+          tribunal_type: string
+          user_id: string
+        }
+        Update: {
+          agent_role?: string
+          argument_text?: string
+          confidence_score?: number
+          cost_cents?: number | null
+          created_at?: string | null
+          deliberation_session_id?: string
+          evidence_references?: Json | null
+          id?: string
+          position?: string
+          profile_id?: string | null
+          round_number?: number
+          tribunal_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_deliberations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "agent_deliberations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "agent_deliberations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_executions: {
         Row: {
           action_params: Json | null
@@ -900,6 +970,258 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "autonomous_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_spans: {
+        Row: {
+          agent_type: string | null
+          attributes: Json | null
+          cost_cents: number | null
+          duration_ms: number | null
+          ended_at: string | null
+          error_message: string | null
+          events: Json | null
+          function_name: string | null
+          id: string
+          input_summary: string | null
+          output_summary: string | null
+          parent_span_id: string | null
+          span_id: string
+          span_name: string
+          span_type: string
+          started_at: string
+          status: string | null
+          trace_session_id: string
+        }
+        Insert: {
+          agent_type?: string | null
+          attributes?: Json | null
+          cost_cents?: number | null
+          duration_ms?: number | null
+          ended_at?: string | null
+          error_message?: string | null
+          events?: Json | null
+          function_name?: string | null
+          id?: string
+          input_summary?: string | null
+          output_summary?: string | null
+          parent_span_id?: string | null
+          span_id: string
+          span_name: string
+          span_type: string
+          started_at: string
+          status?: string | null
+          trace_session_id: string
+        }
+        Update: {
+          agent_type?: string | null
+          attributes?: Json | null
+          cost_cents?: number | null
+          duration_ms?: number | null
+          ended_at?: string | null
+          error_message?: string | null
+          events?: Json | null
+          function_name?: string | null
+          id?: string
+          input_summary?: string | null
+          output_summary?: string | null
+          parent_span_id?: string | null
+          span_id?: string
+          span_name?: string
+          span_type?: string
+          started_at?: string
+          status?: string | null
+          trace_session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_spans_trace_session_id_fkey"
+            columns: ["trace_session_id"]
+            isOneToOne: false
+            referencedRelation: "agent_trace_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_trace_sessions: {
+        Row: {
+          ended_at: string | null
+          error_count: number | null
+          id: string
+          metadata: Json | null
+          parent_trace_id: string | null
+          session_type: string
+          started_at: string | null
+          status: string | null
+          total_cost_cents: number | null
+          total_spans: number | null
+          trace_id: string
+          user_id: string
+        }
+        Insert: {
+          ended_at?: string | null
+          error_count?: number | null
+          id?: string
+          metadata?: Json | null
+          parent_trace_id?: string | null
+          session_type: string
+          started_at?: string | null
+          status?: string | null
+          total_cost_cents?: number | null
+          total_spans?: number | null
+          trace_id: string
+          user_id: string
+        }
+        Update: {
+          ended_at?: string | null
+          error_count?: number | null
+          id?: string
+          metadata?: Json | null
+          parent_trace_id?: string | null
+          session_type?: string
+          started_at?: string | null
+          status?: string | null
+          total_cost_cents?: number | null
+          total_spans?: number | null
+          trace_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      agent_tribunal_config: {
+        Row: {
+          advocate_roles: Json
+          arbitrator_config: Json | null
+          auto_escalate_to_arbitrator: boolean | null
+          consensus_threshold: number | null
+          created_at: string | null
+          description: string | null
+          display_name: string
+          id: string
+          is_active: boolean | null
+          max_advocates: number | null
+          min_advocates: number | null
+          stability_rounds: number | null
+          tribunal_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          advocate_roles?: Json
+          arbitrator_config?: Json | null
+          auto_escalate_to_arbitrator?: boolean | null
+          consensus_threshold?: number | null
+          created_at?: string | null
+          description?: string | null
+          display_name: string
+          id?: string
+          is_active?: boolean | null
+          max_advocates?: number | null
+          min_advocates?: number | null
+          stability_rounds?: number | null
+          tribunal_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          advocate_roles?: Json
+          arbitrator_config?: Json | null
+          auto_escalate_to_arbitrator?: boolean | null
+          consensus_threshold?: number | null
+          created_at?: string | null
+          description?: string | null
+          display_name?: string
+          id?: string
+          is_active?: boolean | null
+          max_advocates?: number | null
+          min_advocates?: number | null
+          stability_rounds?: number | null
+          tribunal_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      agentic_memory: {
+        Row: {
+          access_count: number | null
+          confidence_score: number | null
+          content: string
+          created_at: string | null
+          decay_rate: number | null
+          id: string
+          is_verified: boolean | null
+          keywords: string[] | null
+          last_accessed_at: string | null
+          memory_tier: string
+          memory_type: string
+          profile_id: string | null
+          source_id: string | null
+          source_type: string | null
+          structured_data: Json | null
+          tags: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_count?: number | null
+          confidence_score?: number | null
+          content: string
+          created_at?: string | null
+          decay_rate?: number | null
+          id?: string
+          is_verified?: boolean | null
+          keywords?: string[] | null
+          last_accessed_at?: string | null
+          memory_tier: string
+          memory_type: string
+          profile_id?: string | null
+          source_id?: string | null
+          source_type?: string | null
+          structured_data?: Json | null
+          tags?: string[] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_count?: number | null
+          confidence_score?: number | null
+          content?: string
+          created_at?: string | null
+          decay_rate?: number | null
+          id?: string
+          is_verified?: boolean | null
+          keywords?: string[] | null
+          last_accessed_at?: string | null
+          memory_tier?: string
+          memory_type?: string
+          profile_id?: string | null
+          source_id?: string | null
+          source_type?: string | null
+          structured_data?: Json | null
+          tags?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agentic_memory_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "agentic_memory_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "agentic_memory_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -4985,6 +5307,89 @@ export type Database = {
           },
           {
             foreignKeyName: "certifications_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chamber_decisions: {
+        Row: {
+          applied_modifications: Json | null
+          blocking_stage: string | null
+          campaign_id: string | null
+          chamber_type: string
+          created_at: string | null
+          final_verdict: string
+          id: string
+          profile_id: string | null
+          review_session_id: string
+          stages_passed: number
+          stages_total: number
+          total_cost_cents: number | null
+          total_processing_ms: number | null
+          unanimous_approval: boolean
+          user_id: string
+        }
+        Insert: {
+          applied_modifications?: Json | null
+          blocking_stage?: string | null
+          campaign_id?: string | null
+          chamber_type: string
+          created_at?: string | null
+          final_verdict: string
+          id?: string
+          profile_id?: string | null
+          review_session_id: string
+          stages_passed: number
+          stages_total: number
+          total_cost_cents?: number | null
+          total_processing_ms?: number | null
+          unanimous_approval: boolean
+          user_id: string
+        }
+        Update: {
+          applied_modifications?: Json | null
+          blocking_stage?: string | null
+          campaign_id?: string | null
+          chamber_type?: string
+          created_at?: string | null
+          final_verdict?: string
+          id?: string
+          profile_id?: string | null
+          review_session_id?: string
+          stages_passed?: number
+          stages_total?: number
+          total_cost_cents?: number | null
+          total_processing_ms?: number | null
+          unanimous_approval?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chamber_decisions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "autonomous_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chamber_decisions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "chamber_decisions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "chamber_decisions_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -11310,6 +11715,95 @@ export type Database = {
           },
         ]
       }
+      decision_reviews: {
+        Row: {
+          campaign_id: string | null
+          chamber_type: string
+          confidence_score: number
+          cost_cents: number | null
+          created_at: string | null
+          id: string
+          identified_risks: Json | null
+          processing_time_ms: number | null
+          profile_id: string | null
+          review_rationale: string
+          review_session_id: string
+          reviewer_verdict: string
+          stage_key: string
+          stage_order: number
+          suggested_modifications: Json | null
+          user_id: string
+          veto_exercised: boolean | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          chamber_type: string
+          confidence_score: number
+          cost_cents?: number | null
+          created_at?: string | null
+          id?: string
+          identified_risks?: Json | null
+          processing_time_ms?: number | null
+          profile_id?: string | null
+          review_rationale: string
+          review_session_id: string
+          reviewer_verdict: string
+          stage_key: string
+          stage_order: number
+          suggested_modifications?: Json | null
+          user_id: string
+          veto_exercised?: boolean | null
+        }
+        Update: {
+          campaign_id?: string | null
+          chamber_type?: string
+          confidence_score?: number
+          cost_cents?: number | null
+          created_at?: string | null
+          id?: string
+          identified_risks?: Json | null
+          processing_time_ms?: number | null
+          profile_id?: string | null
+          review_rationale?: string
+          review_session_id?: string
+          reviewer_verdict?: string
+          stage_key?: string
+          stage_order?: number
+          suggested_modifications?: Json | null
+          user_id?: string
+          veto_exercised?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "decision_reviews_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "autonomous_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "decision_reviews_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "decision_reviews_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "decision_reviews_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       decision_windows: {
         Row: {
           context_factors: Json | null
@@ -15369,6 +15863,84 @@ export type Database = {
             columns: ["source_recording_id"]
             isOneToOne: false
             referencedRelation: "meeting_recordings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      failure_analysis_reports: {
+        Row: {
+          contributing_factors: Json | null
+          created_at: string | null
+          failure_type: string
+          id: string
+          prevented_by_sop_id: string | null
+          profile_id: string | null
+          recommended_fixes: Json | null
+          root_cause_analysis: string
+          severity: string | null
+          source_execution_id: string | null
+          user_id: string
+        }
+        Insert: {
+          contributing_factors?: Json | null
+          created_at?: string | null
+          failure_type: string
+          id?: string
+          prevented_by_sop_id?: string | null
+          profile_id?: string | null
+          recommended_fixes?: Json | null
+          root_cause_analysis: string
+          severity?: string | null
+          source_execution_id?: string | null
+          user_id: string
+        }
+        Update: {
+          contributing_factors?: Json | null
+          created_at?: string | null
+          failure_type?: string
+          id?: string
+          prevented_by_sop_id?: string | null
+          profile_id?: string | null
+          recommended_fixes?: Json | null
+          root_cause_analysis?: string
+          severity?: string | null
+          source_execution_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "failure_analysis_reports_prevented_by_sop_id_fkey"
+            columns: ["prevented_by_sop_id"]
+            isOneToOne: false
+            referencedRelation: "procedural_memory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "failure_analysis_reports_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "failure_analysis_reports_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "failure_analysis_reports_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "failure_analysis_reports_source_execution_id_fkey"
+            columns: ["source_execution_id"]
+            isOneToOne: false
+            referencedRelation: "agent_executions"
             referencedColumns: ["id"]
           },
         ]
@@ -21312,6 +21884,36 @@ export type Database = {
         }
         Relationships: []
       }
+      memory_crystallization_config: {
+        Row: {
+          config_key: string
+          config_value: Json
+          created_at: string | null
+          description: string | null
+          display_name: string
+          id: string
+          is_active: boolean | null
+        }
+        Insert: {
+          config_key: string
+          config_value?: Json
+          created_at?: string | null
+          description?: string | null
+          display_name: string
+          id?: string
+          is_active?: boolean | null
+        }
+        Update: {
+          config_key?: string
+          config_value?: Json
+          created_at?: string | null
+          description?: string | null
+          display_name?: string
+          id?: string
+          is_active?: boolean | null
+        }
+        Relationships: []
+      }
       memory_interventions: {
         Row: {
           created_at: string | null
@@ -21384,6 +21986,128 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      memory_links: {
+        Row: {
+          bidirectional: boolean | null
+          created_at: string | null
+          created_by: string | null
+          evidence: Json | null
+          id: string
+          link_strength: number | null
+          link_type: string
+          source_memory_id: string
+          target_memory_id: string
+        }
+        Insert: {
+          bidirectional?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          evidence?: Json | null
+          id?: string
+          link_strength?: number | null
+          link_type: string
+          source_memory_id: string
+          target_memory_id: string
+        }
+        Update: {
+          bidirectional?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          evidence?: Json | null
+          id?: string
+          link_strength?: number | null
+          link_type?: string
+          source_memory_id?: string
+          target_memory_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memory_links_source_memory_id_fkey"
+            columns: ["source_memory_id"]
+            isOneToOne: false
+            referencedRelation: "agentic_memory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memory_links_target_memory_id_fkey"
+            columns: ["target_memory_id"]
+            isOneToOne: false
+            referencedRelation: "agentic_memory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      memory_reconsolidation_events: {
+        Row: {
+          affected_memory_ids: string[]
+          after_state: Json
+          before_state: Json
+          confidence_delta: number | null
+          created_at: string | null
+          id: string
+          profile_id: string | null
+          reconsolidation_type: string
+          resolution_rationale: string | null
+          trigger_memory_id: string | null
+          user_id: string
+        }
+        Insert: {
+          affected_memory_ids?: string[]
+          after_state?: Json
+          before_state?: Json
+          confidence_delta?: number | null
+          created_at?: string | null
+          id?: string
+          profile_id?: string | null
+          reconsolidation_type: string
+          resolution_rationale?: string | null
+          trigger_memory_id?: string | null
+          user_id: string
+        }
+        Update: {
+          affected_memory_ids?: string[]
+          after_state?: Json
+          before_state?: Json
+          confidence_delta?: number | null
+          created_at?: string | null
+          id?: string
+          profile_id?: string | null
+          reconsolidation_type?: string
+          resolution_rationale?: string | null
+          trigger_memory_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memory_reconsolidation_events_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "memory_reconsolidation_events_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "memory_reconsolidation_events_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memory_reconsolidation_events_trigger_memory_id_fkey"
+            columns: ["trigger_memory_id"]
+            isOneToOne: false
+            referencedRelation: "agentic_memory"
             referencedColumns: ["id"]
           },
         ]
@@ -23698,6 +24422,36 @@ export type Database = {
         }
         Relationships: []
       }
+      observability_config: {
+        Row: {
+          config_key: string
+          config_value: Json
+          created_at: string | null
+          description: string | null
+          display_name: string
+          id: string
+          is_active: boolean | null
+        }
+        Insert: {
+          config_key: string
+          config_value?: Json
+          created_at?: string | null
+          description?: string | null
+          display_name: string
+          id?: string
+          is_active?: boolean | null
+        }
+        Update: {
+          config_key?: string
+          config_value?: Json
+          created_at?: string | null
+          description?: string | null
+          display_name?: string
+          id?: string
+          is_active?: boolean | null
+        }
+        Relationships: []
+      }
       omega_culmination: {
         Row: {
           created_at: string
@@ -25910,6 +26664,63 @@ export type Database = {
           },
         ]
       }
+      procedural_memory: {
+        Row: {
+          action_sequence: Json
+          confidence_score: number | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          last_used_at: string | null
+          sop_key: string
+          sop_name: string
+          source_task_ids: string[] | null
+          success_criteria: Json
+          success_rate: number | null
+          trigger_conditions: Json
+          updated_at: string | null
+          usage_count: number | null
+          user_id: string | null
+        }
+        Insert: {
+          action_sequence?: Json
+          confidence_score?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          sop_key: string
+          sop_name: string
+          source_task_ids?: string[] | null
+          success_criteria?: Json
+          success_rate?: number | null
+          trigger_conditions?: Json
+          updated_at?: string | null
+          usage_count?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          action_sequence?: Json
+          confidence_score?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          sop_key?: string
+          sop_name?: string
+          source_task_ids?: string[] | null
+          success_criteria?: Json
+          success_rate?: number | null
+          trigger_conditions?: Json
+          updated_at?: string | null
+          usage_count?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           activation_date: string | null
@@ -27346,6 +28157,45 @@ export type Database = {
           updated_at?: string
           user_id?: string
           validity_window?: Json | null
+        }
+        Relationships: []
+      }
+      reflect_agent_config: {
+        Row: {
+          created_at: string | null
+          display_name: string
+          evaluation_dimensions: Json
+          failure_analysis_enabled: boolean | null
+          id: string
+          is_active: boolean | null
+          min_confidence_for_sop: number | null
+          prompt_key: string
+          reflection_type: string
+          sop_generation_enabled: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_name: string
+          evaluation_dimensions?: Json
+          failure_analysis_enabled?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          min_confidence_for_sop?: number | null
+          prompt_key: string
+          reflection_type: string
+          sop_generation_enabled?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          display_name?: string
+          evaluation_dimensions?: Json
+          failure_analysis_enabled?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          min_confidence_for_sop?: number | null
+          prompt_key?: string
+          reflection_type?: string
+          sop_generation_enabled?: boolean | null
         }
         Relationships: []
       }
@@ -30056,6 +30906,42 @@ export type Database = {
         }
         Relationships: []
       }
+      span_type_definitions: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          display_name: string
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          span_type: string
+          tracked_attributes: Json | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_name: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          span_type: string
+          tracked_attributes?: Json | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_name?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          span_type?: string
+          tracked_attributes?: Json | null
+        }
+        Relationships: []
+      }
       stockholm_syndrome_tracking: {
         Row: {
           bonding_score: number | null
@@ -31046,6 +31932,97 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      task_reflections: {
+        Row: {
+          cost_cents: number | null
+          created_at: string | null
+          distilled_sop_id: string | null
+          evaluation_scores: Json
+          failure_analysis: Json | null
+          id: string
+          improvement_suggestions: Json | null
+          overall_success: boolean
+          profile_id: string | null
+          reflection_type: string
+          source_analysis_id: string | null
+          source_execution_id: string | null
+          user_id: string
+        }
+        Insert: {
+          cost_cents?: number | null
+          created_at?: string | null
+          distilled_sop_id?: string | null
+          evaluation_scores?: Json
+          failure_analysis?: Json | null
+          id?: string
+          improvement_suggestions?: Json | null
+          overall_success: boolean
+          profile_id?: string | null
+          reflection_type: string
+          source_analysis_id?: string | null
+          source_execution_id?: string | null
+          user_id: string
+        }
+        Update: {
+          cost_cents?: number | null
+          created_at?: string | null
+          distilled_sop_id?: string | null
+          evaluation_scores?: Json
+          failure_analysis?: Json | null
+          id?: string
+          improvement_suggestions?: Json | null
+          overall_success?: boolean
+          profile_id?: string | null
+          reflection_type?: string
+          source_analysis_id?: string | null
+          source_execution_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_reflections_distilled_sop_id_fkey"
+            columns: ["distilled_sop_id"]
+            isOneToOne: false
+            referencedRelation: "procedural_memory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_reflections_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "task_reflections_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "task_reflections_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_reflections_source_analysis_id_fkey"
+            columns: ["source_analysis_id"]
+            isOneToOne: false
+            referencedRelation: "ai_analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_reflections_source_execution_id_fkey"
+            columns: ["source_execution_id"]
+            isOneToOne: false
+            referencedRelation: "agent_executions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_presence: {
         Row: {
@@ -32325,6 +33302,82 @@ export type Database = {
           },
         ]
       }
+      tribunal_verdicts: {
+        Row: {
+          arbitrator_involved: boolean | null
+          consensus_reached: boolean
+          created_at: string | null
+          deliberation_session_id: string
+          dissenting_opinions: Json | null
+          final_confidence: number
+          id: string
+          participating_agents: Json
+          profile_id: string | null
+          total_cost_cents: number | null
+          total_rounds: number
+          tribunal_type: string
+          user_id: string
+          verdict: string
+          verdict_rationale: string
+        }
+        Insert: {
+          arbitrator_involved?: boolean | null
+          consensus_reached: boolean
+          created_at?: string | null
+          deliberation_session_id: string
+          dissenting_opinions?: Json | null
+          final_confidence: number
+          id?: string
+          participating_agents?: Json
+          profile_id?: string | null
+          total_cost_cents?: number | null
+          total_rounds: number
+          tribunal_type: string
+          user_id: string
+          verdict: string
+          verdict_rationale: string
+        }
+        Update: {
+          arbitrator_involved?: boolean | null
+          consensus_reached?: boolean
+          created_at?: string | null
+          deliberation_session_id?: string
+          dissenting_opinions?: Json | null
+          final_confidence?: number
+          id?: string
+          participating_agents?: Json
+          profile_id?: string | null
+          total_cost_cents?: number | null
+          total_rounds?: number
+          tribunal_type?: string
+          user_id?: string
+          verdict?: string
+          verdict_rationale?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tribunal_verdicts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "tribunal_verdicts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "tribunal_verdicts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trust_assessments: {
         Row: {
           ai_assessment: string | null
@@ -33511,6 +34564,93 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      verification_chamber_config: {
+        Row: {
+          auto_reject_on_timeout: boolean | null
+          chamber_type: string
+          created_at: string | null
+          description: string | null
+          display_name: string
+          escalation_config: Json | null
+          id: string
+          is_active: boolean | null
+          require_unanimous: boolean | null
+          timeout_per_stage_ms: number | null
+          updated_at: string | null
+          verification_stages: Json
+        }
+        Insert: {
+          auto_reject_on_timeout?: boolean | null
+          chamber_type: string
+          created_at?: string | null
+          description?: string | null
+          display_name: string
+          escalation_config?: Json | null
+          id?: string
+          is_active?: boolean | null
+          require_unanimous?: boolean | null
+          timeout_per_stage_ms?: number | null
+          updated_at?: string | null
+          verification_stages?: Json
+        }
+        Update: {
+          auto_reject_on_timeout?: boolean | null
+          chamber_type?: string
+          created_at?: string | null
+          description?: string | null
+          display_name?: string
+          escalation_config?: Json | null
+          id?: string
+          is_active?: boolean | null
+          require_unanimous?: boolean | null
+          timeout_per_stage_ms?: number | null
+          updated_at?: string | null
+          verification_stages?: Json
+        }
+        Relationships: []
+      }
+      verification_stages: {
+        Row: {
+          approval_threshold: number | null
+          can_veto: boolean | null
+          created_at: string | null
+          description: string | null
+          display_name: string
+          focus_criteria: Json
+          id: string
+          is_active: boolean | null
+          model_tier: string | null
+          prompt_key: string
+          stage_key: string
+        }
+        Insert: {
+          approval_threshold?: number | null
+          can_veto?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          display_name: string
+          focus_criteria?: Json
+          id?: string
+          is_active?: boolean | null
+          model_tier?: string | null
+          prompt_key: string
+          stage_key: string
+        }
+        Update: {
+          approval_threshold?: number | null
+          can_veto?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          display_name?: string
+          focus_criteria?: Json
+          id?: string
+          is_active?: boolean | null
+          model_tier?: string | null
+          prompt_key?: string
+          stage_key?: string
         }
         Relationships: []
       }
