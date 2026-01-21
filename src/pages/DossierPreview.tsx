@@ -1,5 +1,5 @@
 /**
- * Dossier Preview Page (v3.9.34)
+ * Dossier Preview Page (v3.9.20)
  * Interactive HTML rendering of the full 74-section intelligence dossier
  */
 
@@ -19,6 +19,7 @@ import { DossierContent } from '@/components/dossier-preview/DossierContent';
 import { MobileSectionNav } from '@/components/dossier-preview/MobileSectionNav';
 import { useDossierNavigation } from '@/components/dossier-preview/hooks/useDossierNavigation';
 import { DEFAULT_SECTIONS } from '@/components/reports/sections/sectionDefinitions';
+import { DossierLoadingScreen } from '@/components/dossier-preview/DossierLoadingScreen';
 
 export default function DossierPreview() {
   const { profileId } = useParams<{ profileId: string }>();
@@ -112,6 +113,11 @@ export default function DossierPreview() {
     );
   }
   
+  // Show dedicated loading screen
+  if (isLoading) {
+    return <DossierLoadingScreen contactName={dossierData?.contactName} />;
+  }
+  
   return (
     <div className="flex h-screen bg-background print:bg-white">
       {/* Desktop Sidebar Navigation */}
@@ -122,18 +128,12 @@ export default function DossierPreview() {
             Back
           </Button>
         </div>
-        {isLoading ? (
-          <div className="p-4 space-y-2">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <Skeleton key={i} className="h-8 w-full" />
-            ))}
-          </div>
-        ) : (
-          <DossierSectionNav
-            sections={DEFAULT_SECTIONS}
-            activeSection={activeSection}
-            onSectionClick={scrollToSection}
-            dossierData={dossierData}
+        {dossierData && (
+        <DossierSectionNav
+          sections={DEFAULT_SECTIONS}
+          activeSection={activeSection}
+          onSectionClick={scrollToSection}
+          dossierData={dossierData}
           />
         )}
       </aside>

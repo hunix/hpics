@@ -245,6 +245,69 @@ export default function Settings() {
             <PushNotifications vapidPublicKey={vapidPublicKey} />
           </div>
         );
+      case 'cache':
+        return (
+          <div className="space-y-6">
+            <Card className="border-primary/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <RefreshCw className="h-5 w-5 text-primary" />
+                  Clear Cache & Force Update
+                </CardTitle>
+                <CardDescription>
+                  Use this if you're seeing old UI, missing features, or experiencing navigation issues
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                  <div>
+                    <p className="font-medium">Current Version</p>
+                    <p className="text-lg text-primary font-mono">v{APP_VERSION}</p>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Built: {new Date(BUILD_TIMESTAMP).toLocaleString()}
+                  </p>
+                </div>
+                
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Button 
+                    variant="outline" 
+                    size="lg"
+                    className="h-16 flex-col gap-1"
+                    onClick={async () => {
+                      await clearAllCaches();
+                      toast({ title: 'Cache cleared', description: 'All cached data has been removed.' });
+                    }}
+                  >
+                    <Trash2 className="h-5 w-5" />
+                    <span className="text-sm">Clear Cache Only</span>
+                  </Button>
+                  <Button 
+                    size="lg"
+                    className="h-16 flex-col gap-1"
+                    onClick={async () => {
+                      toast({ title: 'Updating...', description: 'Clearing cache and reloading app.' });
+                      await forceAppUpdate();
+                    }}
+                  >
+                    <RefreshCw className="h-5 w-5" />
+                    <span className="text-sm font-semibold">Force Update & Reload</span>
+                  </Button>
+                </div>
+                
+                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                  <h4 className="font-medium text-amber-700 dark:text-amber-400 mb-2">When to use Force Update:</h4>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>• Seeing an old navigation menu or missing pages</li>
+                    <li>• Getting 404 errors on pages that should exist</li>
+                    <li>• Features not working after an update</li>
+                    <li>• UI looks different than expected</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
       case 'storage':
         return <div className="space-y-6"><AccountStorageConsumption /><StorageAnalytics /></div>;
       case 'cleanup':
