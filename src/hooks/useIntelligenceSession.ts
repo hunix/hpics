@@ -46,6 +46,7 @@ interface UseIntelligenceSessionReturn {
   session: IntelligenceSession | null;
   tasks: IntelligenceSessionTask[];
   isLoading: boolean;
+  isProcessing: boolean;
   // Actions
   startGeneration: (forceRefresh?: boolean) => Promise<void>;
   resumeGeneration: () => Promise<void>;
@@ -116,9 +117,12 @@ export function useIntelligenceSession(profileId: string): UseIntelligenceSessio
   const [session, setSession] = useState<IntelligenceSession | null>(null);
   const [tasks, setTasks] = useState<IntelligenceSessionTask[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const sessionChannelRef = useRef<RealtimeChannel | null>(null);
   const tasksChannelRef = useRef<RealtimeChannel | null>(null);
+  const processingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isProcessingRef = useRef(false); // Prevent concurrent processing calls
 
   // Load existing session and subscribe to updates
   useEffect(() => {
@@ -239,6 +243,82 @@ export function useIntelligenceSession(profileId: string): UseIntelligenceSessio
       }
     };
   }, [session?.id]);
+
+  // Process batch function - called repeatedly while session is running
+  const processBatch = useCallback(async (sessionId: string) => {
+    if (isProcessingRef.current) {
+      console.log('[processBatch] Already processing, skipping');
+      return null;
+    }
+
+    isProcessingRef.current = true;
+    setIsProcessing(true);
+
+    try {
+      console.log('[processBatch] Processing batch for session:', sessionId);
+      
+      const { data, error } = await supabase.functions.invoke('intelligence-session-runner', {
+        body: { action: 'process', sessionId, batchSize: 3 }
+      });
+
+      if (error) {
+        console.error('[processBatch] Error:', error);
+        return null;
+      }
+
+      console.log('[processBatch] Result:', data);
+      return data;
+    } catch (error) {
+      console.error('[processBatch] Exception:', error);
+      return null;
+    } finally {
+      isProcessingRef.current = false;
+      setIsProcessing(false);
+    }
+  }, []);
+
+  // Polling effect - continuously process batches while session is running
+  useEffect(() => {
+    // Clear any existing interval
+    if (processingIntervalRef.current) {
+      clearInterval(processingIntervalRef.current);
+      processingIntervalRef.current = null;
+    }
+
+    // Only poll if session is running
+    if (!session?.id || session.status !== 'running') {
+      console.log('[Polling] Not starting - session status:', session?.status);
+      return;
+    }
+
+    console.log('[Polling] Starting batch processing for session:', session.id);
+
+    // Immediately process first batch
+    processBatch(session.id);
+
+    // Set up polling interval (process next batch after current completes)
+    processingIntervalRef.current = setInterval(async () => {
+      if (!isProcessingRef.current && session?.status === 'running') {
+        const result = await processBatch(session.id);
+        
+        // Stop polling if session is no longer running
+        if (result && result.status !== 'running') {
+          console.log('[Polling] Session finished, stopping polling');
+          if (processingIntervalRef.current) {
+            clearInterval(processingIntervalRef.current);
+            processingIntervalRef.current = null;
+          }
+        }
+      }
+    }, 2000); // Poll every 2 seconds
+
+    return () => {
+      if (processingIntervalRef.current) {
+        clearInterval(processingIntervalRef.current);
+        processingIntervalRef.current = null;
+      }
+    };
+  }, [session?.id, session?.status, processBatch]);
 
   // Actions
   const startGeneration = useCallback(async (forceRefresh = false) => {
@@ -404,6 +484,7 @@ export function useIntelligenceSession(profileId: string): UseIntelligenceSessio
     session,
     tasks,
     isLoading,
+    isProcessing,
     startGeneration,
     resumeGeneration,
     pauseGeneration,
