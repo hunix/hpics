@@ -151,7 +151,7 @@ serve(async (req) => {
       supabase.from('churn_predictions').select('*').eq('profile_id', profileId).eq('user_id', user.id).order('created_at', { ascending: false }).limit(1),
       supabase.from('behavioral_anomalies').select('*').eq('profile_id', profileId).eq('user_id', user.id).eq('is_resolved', false),
       supabase.from('contact_locations').select('*').eq('profile_id', profileId).eq('user_id', user.id),
-      supabase.from('contact_life_milestones').select('*').eq('profile_id', profileId).eq('user_id', user.id).order('milestone_date', { ascending: false }).limit(10),
+      supabase.from('contact_life_milestones').select('*').eq('profile_id', profileId).eq('user_id', user.id).order('event_date', { ascending: false }).limit(10),
     ]);
 
     const profile = profileResult.data;
@@ -339,7 +339,7 @@ serve(async (req) => {
         content: milestoneResult.data.map((m: any) => ({
           type: m.milestone_type,
           title: m.title,
-          date: m.milestone_date,
+          date: m.event_date,
           significance: m.significance_score,
         })),
         confidence: 90,

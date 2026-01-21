@@ -57,7 +57,7 @@ serve(async (req) => {
       supabase.from('contact_life_milestones')
         .select('*')
         .eq('profile_id', profileId)
-        .order('milestone_date', { ascending: false })
+        .order('event_date', { ascending: false })
         .limit(20)
     ]);
 

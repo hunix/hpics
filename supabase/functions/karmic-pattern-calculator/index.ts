@@ -24,7 +24,7 @@ serve(async (req) => {
     // Fetch life pattern data
     const [profileRes, milestonesRes, interactionsRes, predictionsRes, familyRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', profileId).single(),
-      supabase.from('contact_life_milestones').select('*').eq('profile_id', profileId).order('milestone_date', { ascending: true }),
+      supabase.from('contact_life_milestones').select('*').eq('profile_id', profileId).order('event_date', { ascending: true }),
       supabase.from('contact_interaction_notes').select('*').eq('profile_id', profileId).order('created_at', { ascending: true }).limit(200),
       supabase.from('behavioral_predictions').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(50),
       supabase.from('contact_relationships').select('*').eq('from_profile_id', profileId),
