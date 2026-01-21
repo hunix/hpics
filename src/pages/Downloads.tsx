@@ -203,7 +203,7 @@ export default function Downloads() {
   const pwaInstructions = getInstallInstructions();
 
   useEffect(() => {
-    captureInstallPrompt();
+    const cleanupInstallPrompt = captureInstallPrompt();
     setPwaInstalled(isAppInstalled());
 
     const checkPrompt = setInterval(() => {
@@ -213,7 +213,10 @@ export default function Downloads() {
     }, 1000);
 
     setTimeout(() => clearInterval(checkPrompt), 5000);
-    return () => clearInterval(checkPrompt);
+    return () => {
+      clearInterval(checkPrompt);
+      if (cleanupInstallPrompt) cleanupInstallPrompt();
+    };
   }, []);
 
   const handlePwaInstall = async () => {

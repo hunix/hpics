@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -100,6 +100,9 @@ export function WhatsAppImport() {
   const [serverProgress, setServerProgress] = useState<ServerSideProgress | null>(null);
   const [serverSessionId, setServerSessionId] = useState<string | null>(null);
   
+  // Cleanup ref for polling interval
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
   // Duplicate handling
   const [existingConversation, setExistingConversation] = useState<ExistingConversation | null>(null);
   const [duplicateAction, setDuplicateAction] = useState<DuplicateAction>('ask');
@@ -121,6 +124,16 @@ export function WhatsAppImport() {
   // Check for orphaned imports on mount
   const [orphanedCount, setOrphanedCount] = useState(0);
   const [showCleanupBanner, setShowCleanupBanner] = useState(false);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (user?.id && stage === 'idle') {
@@ -489,8 +502,13 @@ export function WhatsAppImport() {
   }, [user, selectedProfile, toast]);
 
   // Poll server for progress updates
-  const pollServerProgress = useCallback(async (sessionId: string) => {
-    const pollInterval = setInterval(async () => {
+  const pollServerProgress = useCallback((sessionId: string) => {
+    // Clear any existing interval
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+    }
+    
+    pollIntervalRef.current = setInterval(async () => {
       try {
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-whatsapp-zip`,
@@ -517,7 +535,10 @@ export function WhatsAppImport() {
         setMessagesImported(progress.messagesProcessed);
 
         if (progress.stage === 'completed') {
-          clearInterval(pollInterval);
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+          }
           setStage('completed');
           queryClient.invalidateQueries({ queryKey: ['conversations'] });
           queryClient.invalidateQueries({ queryKey: ['media'] });
@@ -527,7 +548,10 @@ export function WhatsAppImport() {
           });
           resetState();
         } else if (progress.stage === 'failed') {
-          clearInterval(pollInterval);
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+          }
           setStage('failed');
           toast({
             title: 'Import failed',
@@ -539,9 +563,6 @@ export function WhatsAppImport() {
         console.error('Polling error:', error);
       }
     }, 2000); // Poll every 2 seconds
-
-    // Cleanup on unmount
-    return () => clearInterval(pollInterval);
   }, [queryClient, toast]);
 
   // Handle mode selection
