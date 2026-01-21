@@ -4,10 +4,11 @@
  */
 
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 import { 
   Sun, Bell, Fingerprint, HardDrive, Trash2, Link2, 
   Users, Cpu, DollarSign, Bot, Smartphone, Shield, Activity,
-  ChevronRight, Settings2, Sliders, RefreshCw
+  ChevronRight, Settings2, Sliders, RefreshCw, ExternalLink
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -18,6 +19,8 @@ export interface SettingsSection {
   icon: React.ElementType;
   badge?: string;
   badgeVariant?: 'default' | 'secondary' | 'destructive' | 'outline';
+  isExternal?: boolean;
+  href?: string;
 }
 
 export interface SettingsGroup {
@@ -74,7 +77,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     id: 'platform',
     label: 'Platform Admin',
     sections: [
-      { id: 'platform-config', label: 'Platform Configuration', icon: Sliders, badge: 'Admin' },
+      { id: 'platform-config', label: 'Platform Configuration', icon: Sliders, badge: 'Admin', isExternal: true, href: '/platform-config' },
     ],
   },
   {
@@ -97,6 +100,16 @@ export function SettingsNavigation({
   onSectionChange,
   className 
 }: SettingsNavigationProps) {
+  const navigate = useNavigate();
+
+  const handleSectionClick = (section: SettingsSection) => {
+    if (section.isExternal && section.href) {
+      navigate(section.href);
+    } else {
+      onSectionChange(section.id);
+    }
+  };
+
   return (
     <ScrollArea className={cn("h-full", className)}>
       <nav className="space-y-6 p-4 pr-2">
@@ -108,12 +121,12 @@ export function SettingsNavigation({
             <div className="space-y-1">
               {group.sections.map((section) => {
                 const Icon = section.icon;
-                const isActive = activeSection === section.id;
+                const isActive = !section.isExternal && activeSection === section.id;
                 
                 return (
                   <button
                     key={section.id}
-                    onClick={() => onSectionChange(section.id)}
+                    onClick={() => handleSectionClick(section)}
                     className={cn(
                       "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                       "hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -136,9 +149,11 @@ export function SettingsNavigation({
                         {section.badge}
                       </Badge>
                     )}
-                    {isActive && (
+                    {section.isExternal ? (
+                      <ExternalLink className="h-4 w-4 text-muted-foreground/60" />
+                    ) : isActive ? (
                       <ChevronRight className="h-4 w-4 text-primary/60" />
-                    )}
+                    ) : null}
                   </button>
                 );
               })}
