@@ -12,144 +12,15 @@ interface PowerNetworkRequest {
   analysisType?: 'full_network' | 'target_focused' | 'opportunity_scan';
 }
 
-const POWER_NETWORK_PROMPT = `You are an elite network power analyst specializing in identifying influence structures, power hierarchies, and strategic opportunities within relationship networks.
-
-Analyze the network data to identify:
-
-1. POWER STRUCTURE ANALYSIS:
-   - Identify formal and informal power holders
-   - Map reporting relationships and influence chains
-   - Detect shadow power (unofficial influencers)
-   - Rate each node's network power score
-
-2. STRATEGIC POSITION ASSESSMENT:
-   - Betweenness: Who controls information flow?
-   - Closeness: Who can reach everyone quickly?
-   - Eigenvector: Who is connected to other powerful nodes?
-   - Structural holes: Who bridges disconnected groups?
-
-3. VULNERABILITY MAPPING:
-   - Identify weak links in opponent networks
-   - Find isolated but valuable nodes
-   - Detect dependency relationships
-   - Map leverage points
-
-4. OPPORTUNITY IDENTIFICATION:
-   - Strategic connection opportunities
-   - Influence path optimization
-   - Coalition building potential
-   - Information flow interception points
-
-5. INFLUENCE PATH PLANNING:
-   - Shortest path to any target
-   - Alternative routes if primary blocked
-   - Key intermediaries needed
-   - Relationship investment priorities
-
-Return JSON:
+// Simplified prompt for faster processing (v3.9.22)
+const POWER_NETWORK_PROMPT = `Analyze this network for power structures. Return concise JSON:
 {
-  "network_overview": {
-    "total_nodes": number,
-    "total_connections": number,
-    "network_density": number,
-    "clustering_coefficient": number,
-    "average_path_length": number
-  },
-  "power_rankings": [
-    {
-      "profile_id": string,
-      "name": string,
-      "power_score": number,
-      "power_type": "formal" | "informal" | "emergent" | "broker",
-      "centrality_scores": {
-        "betweenness": number,
-        "closeness": number,
-        "eigenvector": number,
-        "pagerank": number
-      },
-      "influence_reach": number,
-      "dependency_count": number,
-      "vulnerability_score": number
-    }
-  ],
-  "power_clusters": [
-    {
-      "cluster_id": string,
-      "cluster_name": string,
-      "members": string[],
-      "power_center": string,
-      "cohesion_score": number,
-      "external_connections": number
-    }
-  ],
-  "structural_analysis": {
-    "bridges": [
-      {
-        "node": string,
-        "connects": string[],
-        "criticality": number
-      }
-    ],
-    "structural_holes": [
-      {
-        "gap_between": string[],
-        "bridging_opportunity": string,
-        "value_potential": number
-      }
-    ],
-    "isolated_valuables": [
-      {
-        "node": string,
-        "value_indicators": string[],
-        "connection_opportunity": string
-      }
-    ]
-  },
-  "vulnerability_map": [
-    {
-      "target": string,
-      "vulnerabilities": string[],
-      "leverage_points": string[],
-      "approach_strategy": string
-    }
-  ],
-  "influence_paths": [
-    {
-      "from": string,
-      "to": string,
-      "optimal_path": string[],
-      "path_strength": number,
-      "key_intermediary": string,
-      "alternative_paths": string[][]
-    }
-  ],
-  "strategic_opportunities": [
-    {
-      "opportunity_type": string,
-      "description": string,
-      "value_potential": number,
-      "effort_required": number,
-      "key_actions": string[],
-      "timeline": string
-    }
-  ],
-  "coalition_potential": [
-    {
-      "coalition_name": string,
-      "potential_members": string[],
-      "common_interests": string[],
-      "formation_strategy": string,
-      "power_multiplication": number
-    }
-  ],
-  "network_risks": [
-    {
-      "risk_type": string,
-      "description": string,
-      "severity": number,
-      "mitigation_strategy": string
-    }
-  ]
+  "network_overview": { "total_nodes": number, "total_connections": number, "network_density": number },
+  "power_rankings": [{ "profile_id": string, "name": string, "power_score": number, "power_type": "formal"|"informal"|"broker" }],
+  "power_clusters": [{ "cluster_name": string, "members": string[], "power_center": string }],
+  "structural_analysis": { "bridges": [{ "node": string, "criticality": number }], "isolated_valuables": [{ "node": string, "value_indicators": string[] }] },
+  "vulnerability_map": [{ "target": string, "vulnerabilities": string[], "approach_strategy": string }],
+  "strategic_opportunities": [{ "opportunity_type": string, "description": string, "key_actions": string[] }]
 }`;
 
 serve(async (req) => {
@@ -183,22 +54,30 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Gather network data (optimized with tighter limits to prevent timeout - v3.9.21)
+    // Gather network data (aggressive limits to prevent timeout - v3.9.22)
     const [
       { data: profiles },
-      { data: relationships },
-      { data: interactions },
-      { data: personalityProfiles }
+      { data: relationships }
     ] = await Promise.all([
-      supabase.from('profiles').select('id, first_name, last_name, organization, job_title, relationship_type, tags').eq('user_id', userId).eq('is_active', true).limit(100),
-      supabase.from('contact_relationships').select('from_profile_id, to_profile_id, relationship_type, strength').eq('user_id', userId).limit(500),
-      supabase.from('contact_interaction_notes').select('profile_id, interaction_type, mood_observed, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(200),
-      supabase.from('psychological_profiles').select('profile_id, personality_ocean').eq('user_id', userId).limit(100)
+      supabase.from('profiles').select('id, first_name, last_name, organization, job_title, relationship_type').eq('user_id', userId).eq('is_active', true).limit(30),
+      supabase.from('contact_relationships').select('from_profile_id, to_profile_id, relationship_type, strength').eq('user_id', userId).limit(100)
     ]);
 
     // Early exit if minimal data
     if (!profiles?.length || profiles.length < 2) {
       console.log('[power-network-analyzer] Insufficient profiles for network analysis');
+      
+      // Still store a result in ai_analyses so section enables
+      if (profiles?.[0]?.id) {
+        await supabase.from('ai_analyses').upsert({
+          user_id: userId,
+          profile_id: targetProfileId || profiles[0].id,
+          analysis_type: 'power_network',
+          result: { network_overview: { total_nodes: profiles?.length || 0, total_connections: 0 }, message: 'Insufficient data' },
+          generated_at: new Date().toISOString()
+        }, { onConflict: 'profile_id,analysis_type' });
+      }
+      
       return new Response(JSON.stringify({
         success: true,
         analysis: {
@@ -206,30 +85,29 @@ serve(async (req) => {
           power_rankings: [],
           message: 'Insufficient network data for analysis'
         },
-        networkStats: { nodesAnalyzed: profiles?.length || 0, edgesAnalyzed: 0, interactionsProcessed: 0 }
+        networkStats: { nodesAnalyzed: profiles?.length || 0, edgesAnalyzed: 0 }
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Build compact network graph representation (reduced payload for faster processing)
+    // Build minimal network representation for fast processing
     const networkData = {
-      nodes: profiles?.slice(0, 50).map((p: { id: string; first_name?: string; last_name?: string; organization?: string; job_title?: string; relationship_type?: string }) => ({
+      nodes: profiles.slice(0, 25).map((p: { id: string; first_name?: string; last_name?: string; organization?: string; job_title?: string }) => ({
         id: p.id,
-        name: `${p.first_name || ''} ${p.last_name || ''}`.trim(),
-        org: p.organization,
-        title: p.job_title,
-        type: p.relationship_type,
-        personality: personalityProfiles?.find((pp: { profile_id: string }) => pp.profile_id === p.id)?.personality_ocean
+        n: `${p.first_name || ''} ${p.last_name || ''}`.trim(),
+        o: p.organization,
+        t: p.job_title
       })),
-      edges: relationships?.slice(0, 200).map((r: { from_profile_id: string; to_profile_id: string; relationship_type?: string; strength?: number }) => ({
+      edges: relationships?.slice(0, 75).map((r: { from_profile_id: string; to_profile_id: string; relationship_type?: string; strength?: number }) => ({
         s: r.from_profile_id,
         t: r.to_profile_id,
-        type: r.relationship_type,
-        str: r.strength
-      })),
-      context: { type: analysisType, target: targetProfileId }
+        r: r.relationship_type,
+        w: r.strength
+      })) || []
     };
 
-    // Perform power network analysis
+    console.log(`[power-network-analyzer] Analyzing ${networkData.nodes.length} nodes, ${networkData.edges.length} edges`);
+
+    // Use faster model to prevent timeout (v3.9.22)
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -237,12 +115,13 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-pro',
+        model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: POWER_NETWORK_PROMPT },
-          { role: 'user', content: `Analyze this relationship network for power structures and opportunities:\n\n${JSON.stringify(networkData, null, 2)}` }
+          { role: 'user', content: JSON.stringify(networkData) }
         ],
-        temperature: 0.3
+        temperature: 0.2,
+        max_tokens: 2000
       })
     });
 
@@ -288,12 +167,12 @@ serve(async (req) => {
       console.error('Insert error:', insertError);
     }
 
-    // Store in ai_analyses for section availability
-    const primaryProfileId = profiles?.[0]?.id;
-    if (primaryProfileId) {
+    // Store in ai_analyses for section availability (use targetProfileId if provided, otherwise first profile)
+    const analysisProfileId = targetProfileId || profiles?.[0]?.id;
+    if (analysisProfileId) {
       await supabase.from('ai_analyses').upsert({
         user_id: userId,
-        profile_id: primaryProfileId,
+        profile_id: analysisProfileId,
         analysis_type: 'power_network',
         result: analysis,
         generated_at: new Date().toISOString()
@@ -301,6 +180,17 @@ serve(async (req) => {
     }
 
     // Log AI usage
+    await supabase.from('ai_usage_logs').insert({
+      user_id: userId,
+      function_name: 'power-network-analyzer',
+      model_name: 'google/gemini-2.5-flash',
+      provider: 'lovable',
+      input_tokens: aiResult.usage?.prompt_tokens || 0,
+      output_tokens: aiResult.usage?.completion_tokens || 0,
+      total_tokens: aiResult.usage?.total_tokens || 0,
+      estimated_cost_cents: Math.ceil((aiResult.usage?.total_tokens || 0) * 0.00005),
+      status: 'success'
+    });
     await supabase.from('ai_usage_logs').insert({
       user_id: userId,
       function_name: 'power-network-analyzer',
@@ -318,8 +208,7 @@ serve(async (req) => {
       analysis,
       networkStats: {
         nodesAnalyzed: profiles?.length || 0,
-        edgesAnalyzed: relationships?.length || 0,
-        interactionsProcessed: interactions?.length || 0
+        edgesAnalyzed: relationships?.length || 0
       }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

@@ -24,6 +24,10 @@ export interface SectionDataSource {
   alwaysAvailable?: boolean;
   /** Multiple sources to check (for composite sections) */
   sources?: Array<{ type: 'ai_analyses' | 'table'; analysisType?: string; table?: string }>;
+  /** Special check type for tables with non-standard key columns */
+  checkType?: 'bidirectional' | 'user_only' | 'skip';
+  /** For bidirectional: alternative key columns */
+  altKeyColumns?: string[];
 }
 
 /**
@@ -37,7 +41,8 @@ export const SECTION_DATA_SOURCES: Record<string, SectionDataSource> = {
   overview: { type: 'profile', alwaysAvailable: true },
   behavioralDna: { type: 'ai_analyses', analysisType: 'behavioral_dna' },
   patternOfLife: { type: 'ai_analyses', analysisType: 'pattern_of_life' },
-  relationshipEcosystem: { type: 'table', table: 'contact_relationships' },
+  // FIXED v5.6: contact_relationships uses from_profile_id/to_profile_id, not profile_id
+  relationshipEcosystem: { type: 'table', table: 'contact_relationships', checkType: 'bidirectional', altKeyColumns: ['from_profile_id', 'to_profile_id'] },
   timeline: { type: 'table', table: 'contact_interaction_notes' },
 
   // ============== INTELLIGENCE SECTIONS (11) ==============
@@ -127,10 +132,12 @@ export const SECTION_DATA_SOURCES: Record<string, SectionDataSource> = {
   influenceResistance: { type: 'ai_analyses', analysisType: 'influence_resistance' },
   behavioralEconomics: { type: 'ai_analyses', analysisType: 'behavioral_economics' },
   network: { type: 'ai_analyses', analysisType: 'network_position' },
-  predictionAccuracy: { type: 'table', table: 'prediction_accuracy_logs' },
+  // FIXED v5.6: prediction_accuracy_logs has no profile_id - check by user_id only
+  predictionAccuracy: { type: 'table', table: 'prediction_accuracy_logs', keyColumn: 'user_id', checkType: 'user_only' },
   // FIXED: edge function stores 'counter_intelligence' not 'counter_intel'
   counterIntel: { type: 'ai_analyses', analysisType: 'counter_intelligence' },
-  proportionalResponse: { type: 'table', table: 'proportional_response_logs' },
+  // FIXED v5.6: proportional_response_logs has no profile_id - check by user_id only
+  proportionalResponse: { type: 'table', table: 'proportional_response_logs', keyColumn: 'user_id', checkType: 'user_only' },
 
   // ============== DATA FUSION SECTIONS (9) ==============
   temporalFusion: { type: 'ai_analyses', analysisType: 'temporal_fusion' },

@@ -57,7 +57,13 @@ export function useSectionDataAvailability(profileId: string | null): UseSection
 
       // Group sections by check type for efficient batching
       const aiAnalysisTypes: string[] = [];
-      const tableChecks: Array<{ sectionId: string; table: string; keyColumn: string }> = [];
+      const tableChecks: Array<{ 
+        sectionId: string; 
+        table: string; 
+        keyColumn: string; 
+        checkType?: 'bidirectional' | 'user_only' | 'skip';
+        altKeyColumns?: string[];
+      }> = [];
 
       for (const [sectionId, source] of Object.entries(SECTION_DATA_SOURCES)) {
         if (source.alwaysAvailable) {
@@ -76,6 +82,8 @@ export function useSectionDataAvailability(profileId: string | null): UseSection
             sectionId,
             table: source.table,
             keyColumn: source.keyColumn || 'profile_id',
+            checkType: source.checkType,
+            altKeyColumns: source.altKeyColumns,
           });
         }
       }
@@ -111,37 +119,59 @@ export function useSectionDataAvailability(profileId: string | null): UseSection
       for (let i = 0; i < tableChecks.length; i += BATCH_SIZE) {
         const batch = tableChecks.slice(i, i + BATCH_SIZE);
         
-        await Promise.all(batch.map(async ({ sectionId, table, keyColumn }) => {
+        await Promise.all(batch.map(async ({ sectionId, table, keyColumn, checkType, altKeyColumns }) => {
           try {
-            const { count, error: queryError } = await supabase
-              .from(table as any)
-              .select('*', { count: 'exact', head: true })
-              .eq(keyColumn, profileId);
+            let count = 0;
 
-            if (queryError) {
-              console.warn(`[SectionAvailability] Error checking ${table}:`, queryError.message);
-              newMap.set(sectionId, false);
-              newDetails.set(sectionId, {
-                sectionId,
-                hasData: false,
-                dataSource: 'table',
-                lastUpdated: null,
-                recordCount: 0,
-              });
-              return;
+            if (checkType === 'bidirectional' && altKeyColumns?.length === 2) {
+              // Special handling for tables like contact_relationships with from_profile_id/to_profile_id
+              const [col1, col2] = altKeyColumns;
+              const [result1, result2] = await Promise.all([
+                supabase.from(table as any).select('*', { count: 'exact', head: true }).eq(col1, profileId),
+                supabase.from(table as any).select('*', { count: 'exact', head: true }).eq(col2, profileId),
+              ]);
+              count = (result1.count || 0) + (result2.count || 0);
+            } else if (checkType === 'user_only') {
+              // For tables without profile_id, we check by user_id - mark as available if any data exists
+              // Since we can't get user_id here, we check if table has any data
+              const { count: userCount, error: queryError } = await supabase
+                .from(table as any)
+                .select('*', { count: 'exact', head: true })
+                .limit(1);
+              
+              if (queryError) {
+                console.warn(`[SectionAvailability] Error checking ${table}:`, queryError.message);
+                count = 0;
+              } else {
+                count = userCount || 0;
+              }
+            } else {
+              // Standard profile_id check
+              const { count: queryCount, error: queryError } = await supabase
+                .from(table as any)
+                .select('*', { count: 'exact', head: true })
+                .eq(keyColumn, profileId);
+
+              if (queryError) {
+                console.warn(`[SectionAvailability] Error checking ${table} (column: ${keyColumn}):`, queryError.message);
+                count = 0;
+              } else {
+                count = queryCount || 0;
+              }
             }
 
-            const hasData = (count || 0) > 0;
+            const hasData = count > 0;
             newMap.set(sectionId, hasData);
             newDetails.set(sectionId, {
               sectionId,
               hasData,
               dataSource: 'table',
               lastUpdated: null,
-              recordCount: count || 0,
+              recordCount: count,
             });
           } catch (err) {
             // Table might not exist, mark as unavailable
+            console.warn(`[SectionAvailability] Exception checking ${table}:`, err);
             newMap.set(sectionId, false);
             newDetails.set(sectionId, {
               sectionId,
