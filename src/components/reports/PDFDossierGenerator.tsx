@@ -229,7 +229,7 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       doc.text('TABLE OF CONTENTS', context.margin, context.yPos);
       context.yPos += 12;
       
-      const enabledSections = sections.filter(s => s.enabled);
+       const enabledSections = sections.filter(s => s.enabled);
       enabledSections.forEach((section, idx) => {
         doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
@@ -302,7 +302,7 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         }
       }
       
-      console.log(`[PDF] Rendered ${renderedSections} sections, skipped ${skippedSections} empty sections`);
+       console.log(`[PDF] Rendered ${renderedSections} sections, skipped ${skippedSections} empty sections`);
 
       // Add footers to all pages
       addPageFooters(doc, contactName);
@@ -311,8 +311,10 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       const fileName = `intelligence-dossier-${contactName.toLowerCase().replace(/\s+/g, '-')}-${format(new Date(), 'yyyy-MM-dd-HHmm')}.pdf`;
       doc.save(fileName);
 
-      const pageCount = doc.getNumberOfPages();
-      toast.success(`Intelligence dossier generated: ${pageCount} pages, ${enabledSections.length} sections`);
+       const pageCount = doc.getNumberOfPages();
+       toast.success(
+         `Intelligence dossier generated: ${pageCount} pages, ${renderedSections} sections (${skippedSections} skipped)`
+       );
     } catch (error) {
       console.error('PDF generation error:', error);
       toast.error('Failed to generate dossier');
@@ -649,7 +651,7 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
           {isGenerating ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Generating {sections.filter(s => s.enabled).length}-Section Dossier...
+              Generating Ultimate Intelligence Dossier...
             </>
           ) : (
             <>
