@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { FileText, Download, Loader2, Sparkles, SkipForward, Play, Pause, RefreshCw, AlertTriangle, Lock, Database } from 'lucide-react';
+import { FileText, Download, Loader2, Sparkles, SkipForward, Play, Pause, RefreshCw, AlertTriangle, Lock, Database, Eye } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 import { ScalableContactSearch } from '@/components/contacts/ScalableContactSearch';
 
 // Import modular types, sections, and hooks
@@ -46,7 +47,7 @@ interface PDFDossierGeneratorProps {
 export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGeneratorProps) {
   // Version logging for cache debugging
   console.log('[PDFDossierGenerator] v5.2.1 - 74 Sections, 40 Tasks - Auto-Disable Empty Sections');
-  
+  const navigate = useNavigate();
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<string | null>(profileId || null);
   const [selectedContactName, setSelectedContactName] = useState<string>(profileName || '');
@@ -528,6 +529,15 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
                   >
                     <Sparkles className="h-3 w-3 mr-1" />
                     Re-generate All
+                  </Button>
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    className="text-xs"
+                    onClick={() => navigate(`/dossier-preview/${targetProfileId}`)}
+                  >
+                    <Eye className="h-3 w-3 mr-1" />
+                    View Dossier
                   </Button>
                 </div>
               </div>

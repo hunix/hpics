@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Camera, 
   Mic, 
@@ -10,7 +11,8 @@ import {
   ScanLine,
   Brain,
   Globe,
-  Zap
+  Zap,
+  Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { hapticFeedback } from '@/lib/nativeFeatures';
@@ -32,6 +34,7 @@ interface MobileIntelActionsProps {
 
 const actions = [
   { id: 'fullscan', icon: Zap, label: 'Full Scan', color: 'bg-gradient-to-r from-indigo-500 to-purple-500' },
+  { id: 'dossier', icon: Eye, label: 'Dossier', color: 'bg-gradient-to-r from-emerald-500 to-teal-500' },
   { id: 'photo', icon: Camera, label: 'Photo', color: 'bg-blue-500' },
   { id: 'video', icon: Video, label: 'Video', color: 'bg-red-500' },
   { id: 'voice', icon: Mic, label: 'Voice', color: 'bg-orange-500' },
@@ -52,6 +55,7 @@ export function MobileIntelActions({
   onFullScan,
   className,
 }: MobileIntelActionsProps) {
+  const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleToggle = async () => {
@@ -66,6 +70,11 @@ export function MobileIntelActions({
     switch (actionId) {
       case 'fullscan':
         onFullScan?.();
+        break;
+      case 'dossier':
+        if (profileId) {
+          navigate(`/dossier-preview/${profileId}`);
+        }
         break;
       case 'photo':
         onCapturePhoto?.();
