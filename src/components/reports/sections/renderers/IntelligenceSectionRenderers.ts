@@ -1,10 +1,12 @@
 /**
- * Intelligence Section Renderers (v3.7.1)
+ * Intelligence Section Renderers (v3.9.24)
  * Renders: MICE, Cialdini, Psychological Profile, Trust, Behavioral DNA
+ * v3.9.24: Added allAnalyses fallback pattern for better data extraction
  */
 
 import type { SectionRenderer } from './types';
 import { CIALDINI_PRINCIPLES } from '../types';
+import { getAnalysisForSection, extractResult } from '../../utils/sectionDataCheck';
 
 export const renderMICE: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
@@ -157,12 +159,16 @@ export const renderBehavioralDNA: SectionRenderer = (ctx, data) => {
 // Quantum Cognition renderer
 export const renderQuantumCognition: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.quantumCognitionData) || !data.quantumCognitionData.length) return;
+  
+  // v3.9.24: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.quantumCognitionData) && data.quantumCognitionData.length)
+    ? data.quantumCognitionData[0]
+    : getAnalysisForSection(data, 'quantumCognition');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('Quantum Cognition Analysis', [75, 0, 130]);
-  // v3.7.5: Extract from .result field if present (ai_analyses format)
-  const rawData = (data.quantumCognitionData as Array<Record<string, unknown>>)[0];
-  const quantum = ((rawData?.result || rawData) as Record<string, unknown>) || {};
+  const quantum = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(40);
   doc.setFillColor(248, 245, 255);
@@ -204,12 +210,16 @@ export const renderRelationship: SectionRenderer = (ctx, data) => {
 // Engagement Playbook renderer
 export const renderPlaybook: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.playbookData) || !data.playbookData.length) return;
+  
+  // v3.9.24: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.playbookData) && data.playbookData.length)
+    ? data.playbookData[0]
+    : getAnalysisForSection(data, 'playbook');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('Engagement Playbook', [0, 100, 80]);
-  // v3.7.5: Extract from .result field if present (ai_analyses format)
-  const rawData = (data.playbookData as Array<Record<string, unknown>>)[0];
-  const playbook = ((rawData?.result || rawData) as Record<string, unknown>) || {};
+  const playbook = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(60);
   doc.setFillColor(240, 255, 250);
@@ -397,23 +407,30 @@ export const renderFinancialPsychology: SectionRenderer = (ctx, data) => {
 // Sacred Values renderer
 export const renderSacredValues: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.sacredValuesData) || !data.sacredValuesData.length) return;
+  
+  // v3.9.24: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.sacredValuesData) && data.sacredValuesData.length)
+    ? data.sacredValuesData[0]
+    : getAnalysisForSection(data, 'sacredValues');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('Sacred Values Profile', [128, 64, 0]);
-  const sacred = (data.sacredValuesData as Array<Record<string, unknown>>)[0];
+  const sacred = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(50);
   doc.setFillColor(255, 250, 240);
   doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
   
-  if (sacred.core_values) {
-    const values = sacred.core_values as string[];
+  // Handle different data shapes from existential_leverage vs sacred_values
+  const coreValues = (sacred.core_values || sacred.existential_leverage_points || sacred.sacred_values) as string[];
+  if (coreValues) {
     ctx.renderSubsection('Core Sacred Values');
-    values.slice(0, 5).forEach(v => ctx.renderBullet(v, 5));
+    coreValues.slice(0, 5).forEach(v => ctx.renderBullet(v, 5));
   }
   
-  if (sacred.taboo_violations) {
-    const taboos = sacred.taboo_violations as string[];
+  const taboos = (sacred.taboo_violations || sacred.exploitation_risks || sacred.taboo_boundaries) as string[];
+  if (taboos) {
     ctx.yPos += 3;
     ctx.renderSubsection('Taboo Boundaries');
     taboos.slice(0, 3).forEach(t => ctx.renderBullet(`⚠ ${t}`, 5));

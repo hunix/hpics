@@ -30,6 +30,7 @@ import {
   type PDFContext 
 } from './hooks/usePDFGeneration';
 import { allSectionRenderers } from './sections/renderers';
+import { checkSectionHasData } from './utils/sectionDataCheck';
 import { IntelligenceSessionRecovery } from './IntelligenceSessionRecovery';
 import { IntelligenceSessionProgress } from './IntelligenceSessionProgress';
 import { EdgeFunctionHealthPanel } from './EdgeFunctionHealthPanel';
@@ -253,19 +254,32 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       context.yPos = context.margin;
 
       // Render each enabled section using modular renderers
-      // v3.7.5: Each section starts on a new page to prevent overlap
+      // v3.9.24: Only add pages for sections with actual data
       console.log(`[PDF] Starting render: ${enabledSections.length} sections enabled`);
+      
+      let renderedSections = 0;
+      let skippedSections = 0;
       
       for (const section of enabledSections) {
         const renderer = allSectionRenderers[section.id];
         if (renderer) {
+          // v3.9.24: Check if section has data BEFORE adding a page
+          const hasData = checkSectionHasData(section.id, allData);
+          
+          if (!hasData) {
+            console.log(`[PDF] Skipping section ${section.id}: No data available`);
+            skippedSections++;
+            continue;
+          }
+          
           try {
-            // START EACH SECTION ON A NEW PAGE (v3.7.5 fix)
+            // Only add page if we have data to render
             doc.addPage();
             context.yPos = context.margin;
             
             console.log(`[PDF] Rendering: ${section.id} (page ${doc.getNumberOfPages()})`);
             renderer(context, allData);
+            renderedSections++;
           } catch (err) {
             console.warn(`[PDFDossierGenerator] Section ${section.id} render error:`, err);
             // Render error placeholder on the page
@@ -275,6 +289,8 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
           console.warn(`[PDFDossierGenerator] No renderer for section: ${section.id}`);
         }
       }
+      
+      console.log(`[PDF] Rendered ${renderedSections} sections, skipped ${skippedSections} empty sections`);
 
       // Add footers to all pages
       addPageFooters(doc, contactName);
