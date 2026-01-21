@@ -151,7 +151,7 @@ export const renderContactOverview: SectionRenderer = (ctx, data) => {
     ctx.yPos += 3;
     ctx.renderSubsection('Key Life Milestones');
     (data.milestonesData as Record<string, unknown>[]).slice(0, 5).forEach((m) => {
-      ctx.renderBullet(`${format(new Date(m.milestone_date as string), 'MMM yyyy')}: ${m.milestone_type} - ${m.description || ''}`, 5);
+      ctx.renderBullet(`${format(new Date(m.event_date as string), 'MMM yyyy')}: ${m.milestone_type} - ${m.description || ''}`, 5);
     });
   }
   

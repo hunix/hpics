@@ -81,7 +81,7 @@ const KNOWN_SCHEMAS: Record<string, string[]> = {
     'created_at', 'updated_at',
   ],
   contact_life_milestones: [
-    'id', 'user_id', 'profile_id', 'milestone_type', 'milestone_date',
+    'id', 'user_id', 'profile_id', 'milestone_type', 'event_date',
     'description', 'impact_score', 'created_at',
   ],
   contact_observations: [
