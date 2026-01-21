@@ -158,6 +158,16 @@ export const navigationItems: NavItem[] = [
     keywords: ['dossier', 'intelligence', 'pdf', 'report', 'synthesis', 'warfare', 'analysis'],
   },
   {
+    id: 'dossier-preview',
+    title: 'Dossier Preview',
+    url: '/dossier-preview',
+    icon: Eye,
+    description: 'Interactive HTML dossier viewer',
+    category: 'intelligence',
+    requiredRole: 'analyst',
+    keywords: ['dossier', 'preview', 'html', 'view', 'interactive', 'sections'],
+  },
+  {
     id: 'superiority',
     title: 'Strategic Analysis',
     url: '/superiority',
