@@ -27,7 +27,7 @@ serve(async (req) => {
       supabase.from('contact_life_milestones').select('*').eq('profile_id', profileId).order('milestone_date', { ascending: true }),
       supabase.from('contact_interaction_notes').select('*').eq('profile_id', profileId).order('created_at', { ascending: true }).limit(200),
       supabase.from('behavioral_predictions').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(50),
-      supabase.from('relationships').select('*').eq('from_profile_id', profileId),
+      supabase.from('contact_relationships').select('*').eq('from_profile_id', profileId),
     ]);
 
     const KARMIC_PATTERN_PROMPT = `You are a Karmic Pattern analyst studying cyclical life patterns and consequence chains.

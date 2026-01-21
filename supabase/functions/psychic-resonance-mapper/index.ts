@@ -29,7 +29,7 @@ serve(async (req) => {
       supabaseClient.from('profiles').select('*').eq('id', profileId).single(),
       supabaseClient.from('contact_interaction_notes').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(100),
       supabaseClient.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'sentiment').limit(50),
-      supabaseClient.from('relationships').select('*, profiles!relationships_profile_b_id_fkey(*)').eq('profile_a_id', profileId).limit(30),
+      supabaseClient.from('contact_relationships').select('*, profiles!contact_relationships_to_profile_id_fkey(*)').eq('from_profile_id', profileId).limit(30),
       supabaseClient.from('emotional_states').select('*').eq('profile_id', profileId).order('recorded_at', { ascending: false }).limit(50)
     ]);
 

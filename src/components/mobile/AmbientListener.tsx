@@ -3,7 +3,7 @@
  * Wake-word detection, speaker ID, keyword spotting
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, MicOff, Volume2, Users, Settings, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,17 +25,38 @@ export function AmbientListener({ className, onTranscript }: AmbientListenerProp
   const [audioLevel, setAudioLevel] = useState(0);
   const [lastTranscript, setLastTranscript] = useState<string | null>(null);
   const [detectedKeywords, setDetectedKeywords] = useState<string[]>([]);
+  
+  // Ref to track interval for cleanup
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const toggleListening = useCallback(() => {
-    setIsListening(prev => !prev);
-    if (!isListening) {
-      // Simulate audio level changes
-      const interval = setInterval(() => {
-        setAudioLevel(Math.random() * 100);
-      }, 100);
-      setTimeout(() => clearInterval(interval), 5000);
-    }
-  }, [isListening]);
+    setIsListening(prev => {
+      const newState = !prev;
+      if (newState) {
+        // Start simulating audio level changes
+        intervalRef.current = setInterval(() => {
+          setAudioLevel(Math.random() * 100);
+        }, 100);
+      } else {
+        // Stop interval when listening stops
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+        setAudioLevel(0);
+      }
+      return newState;
+    });
+  }, []);
+
+  // Cleanup interval on unmount to prevent memory leak
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
 
   return (
     <Card className={cn("border-border/50", className)}>
