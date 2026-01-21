@@ -1,12 +1,10 @@
 /**
- * Shared Display Components for Dossier Preview (v3.9.20)
+ * Shared Display Components for Dossier Preview (v3.9.35)
  * Reusable UI elements for rendering section content with proper formatting
  */
 
 import { cn } from '@/lib/utils';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { CheckCircle2, AlertTriangle, Info, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import {
   formatPercent,
@@ -18,6 +16,7 @@ import {
   getRiskVariant,
   isEmpty,
 } from '../../utils/formatters';
+import { humanizeLabel, humanizeValue } from '../../utils/labelFormatter';
 
 // Metric Card with proper formatting
 interface MetricCardProps {
@@ -193,16 +192,21 @@ export function DataBox({ children, variant = 'default', title }: DataBoxProps) 
   );
 }
 
-// Section Subheader
+// Section Subheader with auto-humanization
 export function SectionSubheader({ children }: { children: React.ReactNode }) {
+  // Apply humanization if string (converts camelCase/snake_case to readable text)
+  const displayText = typeof children === 'string' 
+    ? humanizeLabel(children)
+    : children;
+    
   return (
     <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
-      {children}
+      {displayText}
     </h4>
   );
 }
 
-// Score Bar with auto-formatting
+// Score Bar with smart auto-formatting
 interface ScoreBarProps {
   label: string;
   value: number | null | undefined;
@@ -214,8 +218,13 @@ export function ScoreBar({ label, value, max = 100, variant = 'default' }: Score
   // Handle null/undefined
   const numValue = typeof value === 'number' ? value : 0;
   
-  // Normalize: if value is 0-1, multiply by 100
-  const normalizedValue = numValue <= 1 && max === 100 ? numValue * 100 : numValue;
+  // Smart normalization:
+  // - Values strictly between 0 and 1 (exclusive of 1) are treated as decimals → multiply by 100
+  // - Values >= 1 are assumed to already be in the target scale (0-100 or 0-max)
+  // This prevents 50 becoming 5000 while still handling 0.5 → 50
+  const normalizedValue = numValue > 0 && numValue < 1 && max === 100 
+    ? numValue * 100 
+    : numValue;
   const percentage = Math.min((normalizedValue / max) * 100, 100);
   
   // Auto-detect variant based on score if needed
@@ -235,10 +244,13 @@ export function ScoreBar({ label, value, max = 100, variant = 'default' }: Score
     autoRisk: 'bg-primary',
   };
 
+  // Humanize the label for display
+  const displayLabel = humanizeLabel(label);
+
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between text-sm">
-        <span>{label}</span>
+        <span>{displayLabel}</span>
         <span className="font-medium">
           {isEmpty(value) ? '—' : `${Math.round(normalizedValue)}${max === 100 ? '%' : `/${max}`}`}
         </span>

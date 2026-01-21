@@ -249,7 +249,7 @@ export function getAnalysisForSection(
 }
 
 /**
- * Extract result from an analysis record (v3.9.33)
+ * Extract result from an analysis record (v3.9.35)
  * Handles nested .result JSONB field from ai_analyses table
  */
 export function extractResult(analysisRecord: Record<string, unknown> | null): Record<string, unknown> {
@@ -262,6 +262,30 @@ export function extractResult(analysisRecord: Record<string, unknown> | null): R
   
   // Otherwise return the record itself (for table-based data)
   return analysisRecord;
+}
+
+/**
+ * Extract a deeply nested field from a record using dot-notation path
+ * e.g., extractNestedField(record, 'miceProfile.money.vulnerabilityScore', 0)
+ */
+export function extractNestedField<T>(
+  record: Record<string, unknown> | null,
+  path: string,
+  defaultValue: T
+): T {
+  if (!record || typeof record !== 'object') return defaultValue;
+  
+  const parts = path.split('.');
+  let current: unknown = record;
+  
+  for (const part of parts) {
+    if (current === null || current === undefined || typeof current !== 'object') {
+      return defaultValue;
+    }
+    current = (current as Record<string, unknown>)[part];
+  }
+  
+  return (current as T) ?? defaultValue;
 }
 
 /**

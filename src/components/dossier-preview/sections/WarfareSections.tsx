@@ -1,12 +1,14 @@
 /**
- * Warfare Sections HTML Renderers (v3.9.34)
+ * Warfare Sections HTML Renderers (v3.9.35)
  * React components for MICE, Cialdini, Trauma, Cognitive Warfare, etc.
  */
 
 import { Badge } from '@/components/ui/badge';
-import { getAnalysisForSection, extractResult } from '@/components/reports/utils/sectionDataCheck';
+import { getAnalysisForSection, extractResult, extractNestedField } from '@/components/reports/utils/sectionDataCheck';
 import { CIALDINI_PRINCIPLES } from '@/components/reports/sections/types';
 import type { ExtendedDossierData } from '../utils/computeExtendedData';
+import { humanizeValue } from '../utils/labelFormatter';
+import { formatPercent } from '../utils/formatters';
 import {
   MetricCard,
   MetricGrid,
@@ -17,64 +19,122 @@ import {
   TagList,
 } from './shared/DisplayComponents';
 
-// MICE Vulnerability Matrix
+// MICE Vulnerability Matrix - Fixed field mapping for nested structure
 function MICE({ data }: { data: ExtendedDossierData }) {
   const rawData = getAnalysisForSection(data, 'mice') || data.miceData?.[0];
   if (!rawData) return <p className="text-muted-foreground">No MICE data</p>;
   
-  const mice = extractResult(rawData as Record<string, unknown>);
-  const factors = ['money', 'ideology', 'compromise', 'ego'];
+  const result = extractResult(rawData as Record<string, unknown>);
+  
+  // Handle nested miceProfile structure OR flat structure
+  const miceProfile = result.miceProfile as Record<string, unknown> || result;
+  
+  // Extract scores from nested structure (e.g., miceProfile.money.vulnerabilityScore)
+  // or fallback to flat keys (e.g., money_score, money)
+  const getFactorScore = (factor: string): number => {
+    // Try nested path first: miceProfile.{factor}.vulnerabilityScore
+    const nested = miceProfile[factor] as Record<string, unknown>;
+    if (nested && typeof nested === 'object') {
+      const score = nested.vulnerabilityScore ?? nested.vulnerability_score ?? nested.score;
+      if (typeof score === 'number') return score;
+    }
+    // Fallback to flat keys
+    const flat = miceProfile[`${factor}_score`] ?? miceProfile[factor] ?? result[`${factor}_score`] ?? result[factor];
+    if (typeof flat === 'number') return flat;
+    return 0;
+  };
+
+  const factors = [
+    { key: 'money', label: 'MONEY' },
+    { key: 'ideology', label: 'IDEOLOGY' },
+    { key: 'compromise', label: 'COMPROMISE' },
+    { key: 'ego', label: 'EGO' },
+  ];
+
+  // Extract overall assessment
+  const overallAssessment = result.overallAssessment as Record<string, unknown> || miceProfile.overallAssessment as Record<string, unknown> || {};
+  const primaryVuln = overallAssessment.primaryVulnerability || result.primary_vulnerability || miceProfile.primary_vulnerability;
+  const recruitmentLikelihood = overallAssessment.recruitmentLikelihood ?? result.recruitment_likelihood ?? miceProfile.recruitment_likelihood ?? result.overallRecruitability;
+  const approachRecs = (result.approach_recommendations || result.recommendations || miceProfile.approach_recommendations || []) as string[];
+  const optimalApproach = result.optimalApproach as Record<string, unknown> || {};
 
   return (
     <div className="space-y-4">
       <MetricGrid 
-        metrics={factors.map(f => ({
-          label: f.toUpperCase(),
-          value: `${((mice[`${f}_score`] || mice[f] || 0) as number * 100).toFixed(0)}%`,
-        }))} 
+        metrics={factors.map(f => {
+          const score = getFactorScore(f.key);
+          // Smart normalization: values < 1 are decimals, >= 1 are already percentages
+          const displayScore = score > 0 && score < 1 ? score * 100 : score;
+          return {
+            label: f.label,
+            value: `${Math.round(displayScore)}%`,
+          };
+        })} 
         columns={4} 
       />
       
-      {mice.primary_vulnerability && (
+      {primaryVuln && (
         <DataBox variant="danger" title="Primary Vulnerability">
-          <p className="font-medium">{String(mice.primary_vulnerability)}</p>
-          {mice.recruitment_likelihood && (
+          <p className="font-medium">{humanizeValue(primaryVuln)}</p>
+          {recruitmentLikelihood != null && (
             <p className="text-sm text-muted-foreground mt-1">
-              Recruitment Likelihood: {((mice.recruitment_likelihood as number) * 100).toFixed(0)}%
+              Recruitment Likelihood: {formatPercent(recruitmentLikelihood)}
             </p>
           )}
         </DataBox>
       )}
+
+      {optimalApproach.approach && (
+        <DataBox variant="warning" title="Optimal Approach">
+          <p className="font-medium">{humanizeValue(optimalApproach.approach)}</p>
+          {optimalApproach.initialPitch && (
+            <p className="text-sm text-muted-foreground mt-1">{String(optimalApproach.initialPitch)}</p>
+          )}
+        </DataBox>
+      )}
       
-      {(mice.approach_recommendations as string[])?.length > 0 && (
+      {approachRecs.length > 0 && (
         <>
           <SectionSubheader>Approach Recommendations</SectionSubheader>
-          <InsightList items={mice.approach_recommendations as string[]} variant="warning" />
+          <InsightList items={approachRecs} variant="warning" />
         </>
       )}
     </div>
   );
 }
 
-// RASCLS/Cialdini Influence Profile
+// RASCLS/Cialdini Influence Profile - Fixed score normalization
 function Cialdini({ data }: { data: ExtendedDossierData }) {
   const rawData = getAnalysisForSection(data, 'cialdini') || data.influenceData?.data;
   if (!rawData) return <p className="text-muted-foreground">No influence profile data</p>;
   
-  const inf = rawData as Record<string, unknown>;
+  const result = extractResult(rawData as Record<string, unknown>);
+  // Handle nested susceptibility_profile structure
+  const susceptibilityProfile = result.susceptibility_profile as Record<string, unknown> || result;
 
   return (
     <div className="space-y-4">
       <SectionSubheader>Influence Susceptibility Scores</SectionSubheader>
       <div className="space-y-2">
         {CIALDINI_PRINCIPLES.map(p => {
-          const score = (inf[`${p.key}_susceptibility`] as number) || (inf[p.key] as number) || 0;
+          // Try multiple field patterns
+          const rawScore = 
+            susceptibilityProfile[`${p.key}_susceptibility`] ??
+            susceptibilityProfile[p.key] ??
+            result[`${p.key}_susceptibility`] ??
+            result[p.key] ??
+            0;
+          const score = typeof rawScore === 'number' ? rawScore : 0;
+          
+          // Smart normalization: values < 1 are decimals, values >= 1 are already in percentage scale
+          const normalizedScore = score > 0 && score < 1 ? score * 100 : score;
+          
           return (
             <ScoreBar 
               key={p.key} 
               label={p.label} 
-              value={score} 
-              variant={score > 70 ? 'danger' : score > 40 ? 'warning' : 'default'}
+              value={normalizedScore} 
+              variant={normalizedScore > 70 ? 'danger' : normalizedScore > 40 ? 'warning' : 'default'}
             />
           );
         })}
@@ -225,23 +285,29 @@ function Trauma({ data }: { data: ExtendedDossierData }) {
   );
 }
 
-// Generic section renderer for remaining warfare sections
+// Generic section renderer for remaining warfare sections - with humanization
 function createGenericWarfareSection(sectionKey: string, title: string) {
   return function GenericSection({ data }: { data: ExtendedDossierData }) {
     const rawData = getAnalysisForSection(data, sectionKey) || (data as any)[`${sectionKey}Data`]?.[0];
     if (!rawData) return <p className="text-muted-foreground">No {title.toLowerCase()} data</p>;
     
     const result = extractResult(rawData as Record<string, unknown>);
-    const keys = Object.keys(result).filter(k => !['id', 'user_id', 'profile_id', 'created_at', 'updated_at'].includes(k));
+    const excludeKeys = ['id', 'user_id', 'profile_id', 'created_at', 'updated_at', 'analysis_type', 'generated_at'];
+    const keys = Object.keys(result).filter(k => !excludeKeys.includes(k));
     
     return (
       <div className="space-y-3">
-        {keys.slice(0, 8).map(key => {
+        {keys.slice(0, 10).map(key => {
           const value = result[key];
+          
+          // Skip null/undefined values
+          if (value === null || value === undefined) return null;
+          
           if (Array.isArray(value)) {
+            if (value.length === 0) return null;
             return (
               <div key={key}>
-                <SectionSubheader>{key.replace(/_/g, ' ')}</SectionSubheader>
+                <SectionSubheader>{key}</SectionSubheader>
                 {typeof value[0] === 'string' ? (
                   <TagList tags={value.slice(0, 10) as string[]} />
                 ) : (
@@ -250,17 +316,35 @@ function createGenericWarfareSection(sectionKey: string, title: string) {
               </div>
             );
           } else if (typeof value === 'number') {
+            // Smart normalization: values < 1 are decimals
+            const normalized = value > 0 && value < 1 ? value * 100 : value;
             return (
               <ScoreBar 
                 key={key} 
-                label={key.replace(/_/g, ' ')} 
-                value={value > 1 ? value : value * 100} 
+                label={key}
+                value={normalized} 
               />
             );
           } else if (typeof value === 'string' && value.length < 200) {
             return (
-              <DataBox key={key} variant="muted" title={key.replace(/_/g, ' ')}>
-                <p className="text-sm">{value}</p>
+              <DataBox key={key} variant="muted" title={key}>
+                <p className="text-sm">{humanizeValue(value)}</p>
+              </DataBox>
+            );
+          } else if (typeof value === 'object' && value !== null) {
+            // Handle nested objects by showing key metrics
+            const objKeys = Object.keys(value as Record<string, unknown>).slice(0, 3);
+            if (objKeys.length === 0) return null;
+            return (
+              <DataBox key={key} variant="muted" title={key}>
+                {objKeys.map(k => {
+                  const v = (value as Record<string, unknown>)[k];
+                  if (typeof v === 'number') {
+                    const norm = v > 0 && v < 1 ? v * 100 : v;
+                    return <p key={k} className="text-sm">{humanizeValue(k)}: {Math.round(norm)}%</p>;
+                  }
+                  return <p key={k} className="text-sm">{humanizeValue(k)}: {humanizeValue(v)}</p>;
+                })}
               </DataBox>
             );
           }
