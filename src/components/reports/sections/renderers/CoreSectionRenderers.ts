@@ -1,11 +1,12 @@
 /**
- * Core Section Renderers (v3.7.1)
+ * Core Section Renderers (v3.9.30)
  * Renders: Executive Brief, Source Dashboard, Contact Overview, Timeline
+ * v3.9.30: Uses safeFormatDate for robust date handling
  */
 
-import { format } from 'date-fns';
 import type { SectionRenderer } from './types';
 import { CIALDINI_PRINCIPLES } from '../types';
+import { safeFormatDate } from '../../hooks/usePDFGeneration';
 
 export const renderExecutiveBrief: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
@@ -133,7 +134,8 @@ export const renderContactOverview: SectionRenderer = (ctx, data) => {
   ctx.renderKeyValue('Organization', String(profile.organization || 'Unknown'));
   ctx.renderKeyValue('Position', String(profile.job_title || 'Unknown'));
   ctx.renderKeyValue('Relationship Type', String(profile.relationship_type || 'Unclassified'));
-  ctx.renderKeyValue('Last Contact', profile.last_contact_date ? format(new Date(profile.last_contact_date as string), 'MMM d, yyyy') : 'Unknown');
+  // v3.9.30: Use safeFormatDate instead of raw format()
+  ctx.renderKeyValue('Last Contact', safeFormatDate(profile.last_contact_date));
   
   if (profile.notes) {
     ctx.yPos += 3;
@@ -151,7 +153,8 @@ export const renderContactOverview: SectionRenderer = (ctx, data) => {
     ctx.yPos += 3;
     ctx.renderSubsection('Key Life Milestones');
     (data.milestonesData as Record<string, unknown>[]).slice(0, 5).forEach((m) => {
-      ctx.renderBullet(`${format(new Date(m.event_date as string), 'MMM yyyy')}: ${m.milestone_type} - ${m.description || ''}`, 5);
+      // v3.9.30: Use safeFormatDate instead of raw format()
+      ctx.renderBullet(`${safeFormatDate(m.event_date, 'MMM yyyy')}: ${m.milestone_type} - ${m.description || ''}`, 5);
     });
   }
   
@@ -170,7 +173,8 @@ export const renderTimeline: SectionRenderer = (ctx, data) => {
     
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    const date = format(new Date(comm.occurred_at as string), 'MMM d, yyyy HH:mm');
+    // v3.9.30: Use safeFormatDate instead of raw format()
+    const date = safeFormatDate(comm.occurred_at, 'MMM d, yyyy HH:mm', 'Date unknown');
     doc.text(`${date} | ${(comm.channel as string)?.toUpperCase() || 'UNKNOWN'}`, ctx.margin, ctx.yPos);
     
     if (comm.sentiment_score !== undefined) {

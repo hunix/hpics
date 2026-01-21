@@ -1,10 +1,10 @@
 /**
- * Analysis Section Renderers (v3.7.2)
+ * Analysis Section Renderers (v3.9.30)
  * Renders: Behavioral Analysis, Influence Resistance, Behavioral Economics,
  *          Network Position, Prediction Accuracy, Counter-Intel, Proportional Response
+ * v3.9.30: Removed unsafe date-fns format import, uses safeFormatDate instead
  */
 
-import { format } from 'date-fns';
 import type { SectionRenderer } from './types';
 
 export const renderBehavioralAnalysis: SectionRenderer = (ctx, data) => {
