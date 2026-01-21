@@ -257,8 +257,14 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       // v3.9.24: Only add pages for sections with actual data
       console.log(`[PDF] Starting render: ${enabledSections.length} sections enabled`);
       
-      let renderedSections = 0;
-      let skippedSections = 0;
+       let renderedSections = 0;
+       let skippedSections = 0;
+       const renderAudit: Array<{
+         sectionId: string;
+         label: string;
+         status: 'rendered' | 'skipped_no_data' | 'skipped_no_renderer' | 'error';
+         details?: string;
+       }> = [];
       
       for (const section of enabledSections) {
         const renderer = allSectionRenderers[section.id];
@@ -266,9 +272,10 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
           // v3.9.24: Check if section has data BEFORE adding a page
           const hasData = checkSectionHasData(section.id, allData);
           
-          if (!hasData) {
+           if (!hasData) {
             console.log(`[PDF] Skipping section ${section.id}: No data available`);
             skippedSections++;
+             renderAudit.push({ sectionId: section.id, label: section.label, status: 'skipped_no_data' });
             continue;
           }
           
@@ -278,10 +285,13 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
             context.yPos = context.margin;
             
             console.log(`[PDF] Rendering: ${section.id} (page ${doc.getNumberOfPages()})`);
-            renderer(context, allData);
-            renderedSections++;
+             renderer(context, allData);
+             renderedSections++;
+             renderAudit.push({ sectionId: section.id, label: section.label, status: 'rendered' });
           } catch (err) {
             console.error(`[PDF] Section ${section.id} failed:`, err);
+             const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+             renderAudit.push({ sectionId: section.id, label: section.label, status: 'error', details: errorMsg });
             
             // v3.9.30: Reset context to known good state after error
             context.yPos = context.margin + 20;
@@ -291,7 +301,6 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
             doc.setTextColor(0);
             context.yPos += 15;
             
-            const errorMsg = err instanceof Error ? err.message : 'Unknown error';
             doc.setFontSize(8);
             doc.setFont('helvetica', 'normal');
             doc.text(`Error: ${errorMsg.substring(0, 80)}`, context.margin, context.yPos);
@@ -299,10 +308,53 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
           }
         } else {
           console.warn(`[PDFDossierGenerator] No renderer for section: ${section.id}`);
+           skippedSections++;
+           renderAudit.push({ sectionId: section.id, label: section.label, status: 'skipped_no_renderer' });
         }
       }
       
        console.log(`[PDF] Rendered ${renderedSections} sections, skipped ${skippedSections} empty sections`);
+
+       // Final audit page: makes exports self-diagnosing and prevents "it looks the same" ambiguity
+       doc.addPage();
+       context.yPos = context.margin;
+       context.renderSectionHeader('Export Audit Summary', [50, 50, 50]);
+
+       const rendered = renderAudit.filter(r => r.status === 'rendered');
+       const skippedNoData = renderAudit.filter(r => r.status === 'skipped_no_data');
+       const skippedNoRenderer = renderAudit.filter(r => r.status === 'skipped_no_renderer');
+       const errored = renderAudit.filter(r => r.status === 'error');
+
+       context.renderKeyValue('Enabled sections', String(enabledSections.length));
+       context.renderKeyValue('Rendered', String(rendered.length));
+       context.renderKeyValue('Skipped (no data)', String(skippedNoData.length));
+       context.renderKeyValue('Skipped (no renderer)', String(skippedNoRenderer.length));
+       context.renderKeyValue('Errored', String(errored.length));
+       context.yPos += 6;
+
+       if (errored.length) {
+         context.renderSubsection('Sections with errors');
+         errored.slice(0, 12).forEach((e) => {
+           context.renderBullet(`${e.label} (${e.sectionId}): ${(e.details || '').substring(0, 90)}`, 5);
+         });
+         context.yPos += 4;
+       }
+
+       if (skippedNoData.length) {
+         context.renderSubsection('Skipped (no data detected)');
+         skippedNoData.slice(0, 18).forEach((s) => {
+           context.renderBullet(`${s.label} (${s.sectionId})`, 5);
+         });
+         context.yPos += 4;
+       }
+
+       if (skippedNoRenderer.length) {
+         context.renderSubsection('Skipped (no renderer registered)');
+         skippedNoRenderer.slice(0, 18).forEach((s) => {
+           context.renderBullet(`${s.label} (${s.sectionId})`, 5);
+         });
+         context.yPos += 4;
+       }
 
       // Add footers to all pages
       addPageFooters(doc, contactName);
