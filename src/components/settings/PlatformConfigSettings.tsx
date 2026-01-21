@@ -265,19 +265,22 @@ export function PlatformConfigSettings() {
       </CardHeader>
       <CardContent>
         <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v as ConfigCategory)}>
-          <ScrollArea className="w-full">
-            <TabsList className="inline-flex w-full justify-start gap-1 p-1">
-              {categories.map((category) => (
-                <TabsTrigger
-                  key={category}
-                  value={category}
-                  className="flex items-center gap-1.5 text-xs whitespace-nowrap"
-                >
-                  {CATEGORY_ICONS[category]}
-                  {CONFIG_CATEGORY_LABELS[category]}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+          <ScrollArea className="w-full whitespace-nowrap">
+            <div className="pb-2">
+              <TabsList className="inline-flex h-auto gap-1 p-1 flex-nowrap min-w-max">
+                {categories.map((category) => (
+                  <TabsTrigger
+                    key={category}
+                    value={category}
+                    className="flex items-center gap-1.5 text-xs whitespace-nowrap px-3 py-2"
+                  >
+                    {CATEGORY_ICONS[category]}
+                    <span className="hidden sm:inline">{CONFIG_CATEGORY_LABELS[category]}</span>
+                    <span className="sm:hidden">{CONFIG_CATEGORY_LABELS[category].split(' ')[0]}</span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
           </ScrollArea>
 
           {categories.map((category) => (

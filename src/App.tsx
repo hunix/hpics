@@ -95,6 +95,7 @@ const AICostDashboard = lazyWithRetry(() => import("./pages/AICostDashboard"));
 const CrossModalAnalysis = lazyWithRetry(() => import("./pages/CrossModalAnalysis"));
 const ComprehensiveSystemHealthDashboard = lazyWithRetry(() => import("./pages/ComprehensiveSystemHealthDashboard"));
 const FusionCommandCenter = lazyWithRetry(() => import("./pages/FusionCommandCenter"));
+const PlatformConfiguration = lazyWithRetry(() => import("./pages/PlatformConfiguration"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -210,6 +211,7 @@ const App = () => (
                           <Route path="/cross-modal-analysis" element={<CrossModalAnalysis />} />
                           <Route path="/system-health-dashboard" element={<ComprehensiveSystemHealthDashboard />} />
                           <Route path="/fusion-command" element={<FusionCommandCenter />} />
+                          <Route path="/platform-config" element={<PlatformConfiguration />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                       </Suspense>

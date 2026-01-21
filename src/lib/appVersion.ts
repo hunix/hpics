@@ -63,7 +63,7 @@
  * v3.9.0: DDD Barrel Export Compliance - IDE performance optimization
  * v3.8.9: Schema Remediation - Fixed 13 edge functions with contact_observations column mismatches
  */
-export const APP_VERSION = '3.9.37';
+export const APP_VERSION = '3.9.38';
 export const BUILD_TIMESTAMP = new Date().toISOString();
 
 // Versions that require forced cache clear when upgrading from
