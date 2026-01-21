@@ -157,16 +157,7 @@ export const navigationItems: NavItem[] = [
     category: 'intelligence',
     keywords: ['dossier', 'intelligence', 'pdf', 'report', 'synthesis', 'warfare', 'analysis'],
   },
-  {
-    id: 'dossier-preview',
-    title: 'Dossier Preview',
-    url: '/dossier-preview',
-    icon: Eye,
-    description: 'Interactive HTML dossier viewer',
-    category: 'intelligence',
-    requiredRole: 'analyst',
-    keywords: ['dossier', 'preview', 'html', 'view', 'interactive', 'sections'],
-  },
+  // Note: dossier-preview removed from nav - requires profileId param, accessible via action buttons only
   {
     id: 'superiority',
     title: 'Strategic Analysis',
