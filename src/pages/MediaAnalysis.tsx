@@ -26,7 +26,9 @@ import {
   DollarSign,
   BarChart3,
   FileSearch,
-  TrendingUp
+  TrendingUp,
+  Cloud,
+  ExternalLink
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MEDIA_ANALYSIS_MODES, MediaType, AnalysisContext } from "@/lib/analysisTypes";
@@ -524,6 +526,19 @@ export default function MediaAnalysis() {
             onRetryItem={bulkSession.retryItem}
             onSkipItem={bulkSession.skipItem}
             onRetryAllFailed={bulkSession.retryAllFailed}
+            onContinueInBackground={async () => {
+              try {
+                await supabase.functions.invoke('process-bulk-session-runner', {
+                  body: { 
+                    sessionId: bulkSession.session?.id,
+                    action: 'continue'
+                  }
+                });
+                toast.success('Analysis will continue in background. You can safely close this page.');
+              } catch (error) {
+                toast.error('Failed to start background processing');
+              }
+            }}
             isOnline={isOnline}
           />
         )}
@@ -631,8 +646,8 @@ export default function MediaAnalysis() {
 
           {/* Main Content Area */}
           <div className="col-span-9 space-y-4">
-            {/* Media Browser - Much Larger */}
-            {selectedContact ? (
+            {/* Media Browser - Hidden during active processing to save memory */}
+            {selectedContact && !showBulkProgress ? (
               <Card>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
@@ -669,6 +684,25 @@ export default function MediaAnalysis() {
                       }}
                     />
                   )}
+                </CardContent>
+              </Card>
+            ) : showBulkProgress ? (
+              /* Compact session indicator when processing - gallery hidden to save memory */
+              <Card className="border-primary/20 bg-primary/5">
+                <CardContent className="py-6">
+                  <div className="flex flex-col items-center text-center space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      <span className="font-semibold text-lg">Analysis in Progress</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Processing {bulkSession.session?.totalItems || 0} files • Gallery hidden to save memory
+                    </p>
+                    <div className="flex items-center gap-2 text-xs text-green-600">
+                      <Cloud className="h-3.5 w-3.5" />
+                      <span>Session auto-saved • Safe to close browser</span>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             ) : (

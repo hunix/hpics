@@ -21,6 +21,8 @@ import {
   DollarSign,
   Wifi,
   WifiOff,
+  Cloud,
+  ExternalLink,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { type BulkSession, type BulkAnalysisItem } from "@/hooks/usePersistentBulkSession";
@@ -239,9 +241,9 @@ export function EnhancedBulkProgress({
                 </Button>
               </div>
             )}
-            {onContinueInBackground && session.status === "running" && runningItems.length === 0 && processed < session.totalItems && (
-              <Button size="sm" variant="default" onClick={onContinueInBackground} disabled={!isOnline}>
-                <Play className="h-4 w-4 mr-1" />
+            {onContinueInBackground && session.status === "running" && (
+              <Button size="sm" variant="outline" onClick={onContinueInBackground} disabled={!isOnline}>
+                <ExternalLink className="h-4 w-4 mr-1" />
                 Continue in Background
               </Button>
             )}
@@ -378,6 +380,14 @@ export function EnhancedBulkProgress({
               )}
             </div>
           </div>
+          
+          {/* Session persistence indicator */}
+          {(session.status === "running" || session.status === "paused") && (
+            <div className="flex items-center justify-center gap-2 text-xs text-green-600 pt-1">
+              <Cloud className="h-3 w-3" />
+              <span>Session auto-saved • Safe to close browser</span>
+            </div>
+          )}
         </div>
 
         {/* Cost tracking */}
