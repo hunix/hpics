@@ -109,12 +109,13 @@ function recordCircuitSuccess(functionName: string): void {
 }
 
 interface SessionAction {
-  action: 'start' | 'resume' | 'pause' | 'cancel' | 'retry_failed' | 'retry_task';
+  action: 'start' | 'resume' | 'pause' | 'cancel' | 'retry_failed' | 'retry_task' | 'process';
   profileId?: string;
   sessionId?: string;
   taskId?: string;
   forceRefresh?: boolean;
   userId?: string;
+  batchSize?: number;
 }
 
 serve(async (req) => {
@@ -147,7 +148,7 @@ serve(async (req) => {
     }
 
     const body: SessionAction = await req.json();
-    const { action, profileId, sessionId, taskId, forceRefresh } = body;
+    const { action, profileId, sessionId, taskId, forceRefresh, batchSize } = body;
 
     console.log(`[Session Runner] Action: ${action}, User: ${user.id}, Profile: ${profileId}, Session: ${sessionId}`);
 
@@ -158,8 +159,8 @@ serve(async (req) => {
     
     if (!effectiveAction) {
       return new Response(JSON.stringify({ 
-        error: 'Action is required. Valid actions: start, resume, pause, cancel, retry_failed, retry_task',
-        validActions: ['start', 'resume', 'pause', 'cancel', 'retry_failed', 'retry_task']
+        error: 'Action is required. Valid actions: start, resume, pause, cancel, retry_failed, retry_task, process',
+        validActions: ['start', 'resume', 'pause', 'cancel', 'retry_failed', 'retry_task', 'process']
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -185,10 +186,14 @@ serve(async (req) => {
       case 'retry_task':
         result = await retryTask(supabase, user.id, taskId!);
         break;
+      case 'process':
+        // NEW: Synchronous batch processing - processes one batch and returns
+        result = await processBatch(supabase, user.id, sessionId!, batchSize || 3);
+        break;
       default:
         return new Response(JSON.stringify({ 
           error: `Unknown action: ${effectiveAction}`,
-          validActions: ['start', 'resume', 'pause', 'cancel', 'retry_failed', 'retry_task']
+          validActions: ['start', 'resume', 'pause', 'cancel', 'retry_failed', 'retry_task', 'process']
         }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -267,14 +272,13 @@ async function startSession(supabase: any, userId: string, profileId: string, fo
 
   if (tasksError) throw tasksError;
 
-  // Start processing in background (fire and forget)
-  processSessionTasks(supabase, session.id, userId, profileId, forceRefresh).catch(console.error);
-
-  // Update session to running
+  // Update session to running (no fire-and-forget - frontend will poll with 'process' action)
   await supabase
     .from('intelligence_sessions')
     .update({ status: 'running', started_at: new Date().toISOString() })
     .eq('id', session.id);
+
+  console.log(`[Session ${session.id}] Created with ${INTELLIGENCE_TASKS.length} tasks - awaiting frontend polling`);
 
   return { sessionId: session.id, status: 'started', totalTasks: INTELLIGENCE_TASKS.length };
 }
@@ -299,7 +303,7 @@ async function resumeSession(supabase: any, userId: string, sessionId: string) {
     .eq('status', 'running')
     .lt('started_at', fiveMinutesAgo);
 
-  // Update session status
+  // Update session status (no fire-and-forget - frontend will poll with 'process' action)
   await supabase
     .from('intelligence_sessions')
     .update({ 
@@ -309,8 +313,7 @@ async function resumeSession(supabase: any, userId: string, sessionId: string) {
     })
     .eq('id', sessionId);
 
-  // Resume processing (fire and forget)
-  processSessionTasks(supabase, sessionId, userId, session.profile_id, session.force_refresh).catch(console.error);
+  console.log(`[Session ${sessionId}] Resumed - awaiting frontend polling`);
 
   return { sessionId, status: 'resumed' };
 }
@@ -378,7 +381,7 @@ async function retryFailedTasks(supabase: any, userId: string, sessionId: string
     .eq('status', 'failed')
     .select();
 
-  // Update session status
+  // Update session status (no fire-and-forget - frontend will poll with 'process' action)
   await supabase
     .from('intelligence_sessions')
     .update({ 
@@ -388,8 +391,7 @@ async function retryFailedTasks(supabase: any, userId: string, sessionId: string
     })
     .eq('id', sessionId);
 
-  // Resume processing (fire and forget)
-  processSessionTasks(supabase, sessionId, userId, session.profile_id, session.force_refresh).catch(console.error);
+  console.log(`[Session ${sessionId}] Retrying ${resetTasks?.length || 0} failed tasks - awaiting frontend polling`);
 
   return { sessionId, status: 'retrying', tasksReset: resetTasks?.length || 0 };
 }
@@ -419,16 +421,145 @@ async function retryTask(supabase: any, userId: string, taskId: string) {
     })
     .eq('id', taskId);
 
-  // Ensure session is running
+  // Ensure session is running (no fire-and-forget - frontend will poll with 'process' action)
   await supabase
     .from('intelligence_sessions')
     .update({ status: 'running' })
     .eq('id', task.session_id);
 
-  // Process this task (fire and forget)
-  processSessionTasks(supabase, task.session_id, userId, task.session.profile_id, task.session.force_refresh).catch(console.error);
+  console.log(`[Task ${taskId}] Reset for retry - awaiting frontend polling`);
 
   return { taskId, status: 'retrying' };
+}
+
+// NEW: Synchronous batch processing - called by frontend polling
+async function processBatch(supabase: any, userId: string, sessionId: string, batchSize: number = 3) {
+  console.log(`[Session ${sessionId}] Processing batch of ${batchSize} tasks`);
+  
+  // Verify ownership and get session details
+  const { data: session, error: sessionError } = await supabase
+    .from('intelligence_sessions')
+    .select('*')
+    .eq('id', sessionId)
+    .eq('user_id', userId)
+    .single();
+
+  if (sessionError || !session) {
+    throw new Error('Session not found');
+  }
+
+  if (session.status !== 'running') {
+    return { 
+      sessionId, 
+      status: session.status, 
+      processed: 0, 
+      remaining: 0,
+      message: `Session is ${session.status}, not processing` 
+    };
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+  // Get pending tasks ordered by priority
+  const { data: pendingTasks } = await supabase
+    .from('intelligence_session_tasks')
+    .select('*')
+    .eq('session_id', sessionId)
+    .eq('status', 'pending')
+    .order('priority', { ascending: true })
+    .order('created_at', { ascending: true })
+    .limit(batchSize);
+
+  if (!pendingTasks || pendingTasks.length === 0) {
+    // No more pending tasks - finalize session
+    const { data: allTasks } = await supabase
+      .from('intelligence_session_tasks')
+      .select('status')
+      .eq('session_id', sessionId);
+
+    const failed = allTasks?.filter((t: any) => t.status === 'failed').length || 0;
+    const completed = allTasks?.filter((t: any) => t.status === 'completed').length || 0;
+    const skipped = allTasks?.filter((t: any) => t.status === 'skipped').length || 0;
+
+    const finalStatus = failed > 0 && completed === 0 ? 'failed' : 'completed';
+    
+    await supabase
+      .from('intelligence_sessions')
+      .update({ 
+        status: finalStatus, 
+        completed_at: new Date().toISOString(),
+        current_category: null,
+        completed_tasks: completed,
+        failed_tasks: failed,
+        skipped_tasks: skipped
+      })
+      .eq('id', sessionId);
+
+    console.log(`[Session ${sessionId}] Completed. Status: ${finalStatus}, Completed: ${completed}, Failed: ${failed}, Skipped: ${skipped}`);
+
+    return { 
+      sessionId, 
+      status: finalStatus, 
+      processed: 0, 
+      remaining: 0,
+      completed,
+      failed,
+      skipped,
+      message: 'Session completed' 
+    };
+  }
+
+  // Update session current category
+  await supabase
+    .from('intelligence_sessions')
+    .update({ current_category: pendingTasks[0].category })
+    .eq('id', sessionId);
+
+  // Process batch in parallel (SYNCHRONOUSLY within this request)
+  const results = await Promise.all(pendingTasks.map((task: any) => 
+    processTask(supabase, supabaseUrl, supabaseAnonKey, task, userId, session.profile_id, session.force_refresh)
+  ));
+
+  // Count remaining pending tasks
+  const { count: remainingCount } = await supabase
+    .from('intelligence_session_tasks')
+    .select('*', { count: 'exact', head: true })
+    .eq('session_id', sessionId)
+    .eq('status', 'pending');
+
+  // Get updated task counts for session
+  const { data: taskCounts } = await supabase
+    .from('intelligence_session_tasks')
+    .select('status')
+    .eq('session_id', sessionId);
+
+  const completedCount = taskCounts?.filter((t: any) => t.status === 'completed').length || 0;
+  const failedCount = taskCounts?.filter((t: any) => t.status === 'failed').length || 0;
+  const skippedCount = taskCounts?.filter((t: any) => t.status === 'skipped').length || 0;
+
+  // Update session counts
+  await supabase
+    .from('intelligence_sessions')
+    .update({ 
+      completed_tasks: completedCount,
+      failed_tasks: failedCount,
+      skipped_tasks: skippedCount
+    })
+    .eq('id', sessionId);
+
+  console.log(`[Session ${sessionId}] Processed batch of ${pendingTasks.length} tasks. Remaining: ${remainingCount || 0}`);
+
+  return { 
+    sessionId, 
+    status: 'running', 
+    processed: pendingTasks.length, 
+    remaining: remainingCount || 0,
+    completed: completedCount,
+    failed: failedCount,
+    skipped: skippedCount,
+    message: `Processed ${pendingTasks.length} tasks` 
+  };
 }
 
 async function processSessionTasks(supabase: any, sessionId: string, userId: string, profileId: string, forceRefresh: boolean) {
