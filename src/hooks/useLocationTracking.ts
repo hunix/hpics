@@ -178,6 +178,9 @@ export function useLocationTracking(config: Partial<TrackingConfig> = {}) {
     });
   }, [toast]);
 
+  // Track permission listener for cleanup
+  const permissionListenerRef = useRef<{ result: PermissionStatus; handler: () => void } | null>(null);
+
   // Check permission status
   const checkPermission = useCallback(async () => {
     if (!('permissions' in navigator)) {
@@ -189,9 +192,20 @@ export function useLocationTracking(config: Partial<TrackingConfig> = {}) {
       const result = await navigator.permissions.query({ name: 'geolocation' });
       setPermissionStatus(result.state);
       
-      result.addEventListener('change', () => {
+      // Clean up previous listener if exists
+      if (permissionListenerRef.current) {
+        permissionListenerRef.current.result.removeEventListener(
+          'change',
+          permissionListenerRef.current.handler
+        );
+      }
+      
+      // Create new handler and store reference for cleanup
+      const handler = () => {
         setPermissionStatus(result.state);
-      });
+      };
+      result.addEventListener('change', handler);
+      permissionListenerRef.current = { result, handler };
 
       return result.state === 'granted';
     } catch {
@@ -302,6 +316,13 @@ export function useLocationTracking(config: Partial<TrackingConfig> = {}) {
       }
       if (syncIntervalRef.current !== null) {
         clearInterval(syncIntervalRef.current);
+      }
+      // Clean up permission listener
+      if (permissionListenerRef.current) {
+        permissionListenerRef.current.result.removeEventListener(
+          'change',
+          permissionListenerRef.current.handler
+        );
       }
     };
   }, []);

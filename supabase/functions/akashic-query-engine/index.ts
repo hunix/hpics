@@ -28,7 +28,7 @@ serve(async (req) => {
     const [profile, interactions, relationships, analyses, milestones, predictions] = await Promise.all([
       supabaseClient.from('profiles').select('*').eq('id', profileId).single(),
       supabaseClient.from('contact_interaction_notes').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(100),
-      supabaseClient.from('relationships').select('*').or(`profile_a_id.eq.${profileId},profile_b_id.eq.${profileId}`).limit(50),
+      supabaseClient.from('contact_relationships').select('*').or(`from_profile_id.eq.${profileId},to_profile_id.eq.${profileId}`).limit(50),
       supabaseClient.from('ai_analyses').select('*').eq('profile_id', profileId).order('generated_at', { ascending: false }).limit(30),
       supabaseClient.from('contact_life_milestones').select('*').eq('profile_id', profileId).limit(30),
       supabaseClient.from('behavioral_predictions').select('*').eq('profile_id', profileId).limit(30)
