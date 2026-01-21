@@ -91,6 +91,14 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
     categoryProgress,
   } = useIntelligenceSession(targetProfileId);
 
+  // Auto-refresh section availability when generation completes (v3.9.21)
+  useEffect(() => {
+    if (session?.status === 'completed' && !isGeneratingIntel) {
+      console.log('[PDFDossierGenerator] Session completed, refreshing section availability');
+      refreshAvailability();
+    }
+  }, [session?.status, isGeneratingIntel, refreshAvailability]);
+
   const handleContactSelect = useCallback(async (id: string | null, contact?: { first_name: string; last_name: string | null }) => {
     setSelectedProfile(id);
     if (contact) {
@@ -444,7 +452,7 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
             )}
             
             {/* Task list for completed sessions */}
-            {session && tasks.length > 0 && !isGeneratingIntel && (
+            {session && tasks.length > 0 && (
               <div className="mt-3 space-y-1.5 p-3 bg-muted/30 rounded-lg border max-h-64 overflow-y-auto">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs font-medium text-muted-foreground">Intelligence Tasks</p>

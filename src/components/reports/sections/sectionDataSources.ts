@@ -53,6 +53,11 @@ export const SECTION_DATA_SOURCES: Record<string, SectionDataSource> = {
   // FIXED: edge function stores 'enhanced_deception_detection' - must match exactly
   deceptionAnalysis: { type: 'ai_analyses', analysisType: 'enhanced_deception_detection' },
   actionPlans: { type: 'table', table: 'action_recommendations' },
+  attachmentVulnerability: { type: 'ai_analyses', analysisType: 'attachment_vulnerability' },
+  narrativeControl: { type: 'ai_analyses', analysisType: 'narrative_control' },
+  miceRecruitment: { type: 'ai_analyses', analysisType: 'mice_recruitment' },
+  influenceProfile: { type: 'ai_analyses', analysisType: 'influence_profile' },
+  powerNetwork: { type: 'ai_analyses', analysisType: 'power_network' },
 
   // ============== WARFARE SECTIONS (33+) ==============
   mice: { type: 'table', table: 'mice_assessments' },
