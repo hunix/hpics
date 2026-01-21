@@ -6,8 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// All intelligence tasks mapped to EXISTING edge functions - GEMINI 3 OPTIMIZED (v5.3)
-// Complexity levels: light (Flash), standard (Flash), complex (Pro), extreme (Pro Max)
+// All intelligence tasks mapped to EXISTING edge functions - v5.4 with complexity timeouts
+// Complexity levels: light (3min), standard (5min), complex (10min), extreme (15min)
 const INTELLIGENCE_TASKS = [
   // Core Intelligence (Priority 1) - 5 tasks
   { name: 'MICE Assessment', edgeFunction: 'mice-recruitment-analyzer', analysisType: 'mice_assessment', category: 'core', priority: 1, complexity: 'complex' },
@@ -19,7 +19,6 @@ const INTELLIGENCE_TASKS = [
   // Psychological Operations (Priority 2) - 6 tasks
   { name: 'Cognitive Warfare', edgeFunction: 'cognitive-warfare-engine', analysisType: 'cognitive_warfare', category: 'psychological', priority: 2, complexity: 'complex' },
   { name: 'Trauma Exploitation', edgeFunction: 'trauma-exploitation-engine', analysisType: 'trauma_exploitation', category: 'psychological', priority: 2, complexity: 'light' },
-  // FIXED: enhanced-deception-detector stores 'enhanced_deception_detection' not 'deception_detection'
   { name: 'Deception Detection', edgeFunction: 'enhanced-deception-detector', analysisType: 'enhanced_deception_detection', category: 'psychological', priority: 2, complexity: 'standard' },
   { name: 'Influence Profile', edgeFunction: 'analyze-influence-profile', analysisType: 'influence_profile', category: 'psychological', priority: 2, complexity: 'standard' },
   { name: 'Coercion Resistance', edgeFunction: 'coercion-resistance-assessor', analysisType: 'coercion_resistance', category: 'psychological', priority: 2, complexity: 'standard' },
@@ -46,14 +45,13 @@ const INTELLIGENCE_TASKS = [
   { name: 'Omega Point Tracking', edgeFunction: 'omega-point-tracker', analysisType: 'omega_point', category: 'temporal', priority: 5, complexity: 'complex' },
   
   // Fusion Intelligence (Priority 6) - 5 tasks
-  // FIXED: mosaic-intelligence-fuser stores 'mosaic_intelligence_fusion' not 'mosaic_intelligence'
   { name: 'Mosaic Intelligence', edgeFunction: 'mosaic-intelligence-fuser', analysisType: 'mosaic_intelligence_fusion', category: 'fusion', priority: 6, complexity: 'extreme' },
   { name: 'Unified Data Fusion', edgeFunction: 'unified-data-fusion', analysisType: 'unified_fusion', category: 'fusion', priority: 6, complexity: 'extreme' },
   { name: 'Omniscient Orchestrator', edgeFunction: 'omniscient-orchestrator', analysisType: 'omniscient_orchestration', category: 'fusion', priority: 6, complexity: 'extreme' },
   { name: 'Intelligence Dossier', edgeFunction: 'generate-intelligence-dossier', analysisType: 'full_dossier', category: 'fusion', priority: 6, complexity: 'extreme' },
   { name: 'Aggregate Intelligence', edgeFunction: 'aggregate-media-intelligence', analysisType: 'aggregate_intelligence', category: 'fusion', priority: 6, complexity: 'extreme' },
   
-  // Defense Operations (Priority 7) - 10 warfare tasks (v5.0)
+  // Defense Operations (Priority 7) - 10 warfare tasks
   { name: 'OPSEC Vulnerability', edgeFunction: 'opsec-vulnerability-analyzer', analysisType: 'opsec_assessment', category: 'defense', priority: 7, complexity: 'light' },
   { name: 'Social Engineering', edgeFunction: 'social-engineering-detector', analysisType: 'social_engineering', category: 'defense', priority: 7, complexity: 'standard' },
   { name: 'Crisis Response', edgeFunction: 'crisis-response-orchestrator', analysisType: 'crisis_response', category: 'defense', priority: 7, complexity: 'standard' },
@@ -65,6 +63,14 @@ const INTELLIGENCE_TASKS = [
   { name: 'TSCM Sweep', edgeFunction: 'tscm-sweep-analyzer', analysisType: 'tscm_sweep', category: 'defense', priority: 7, complexity: 'light' },
   { name: 'Digital Footprint', edgeFunction: 'digital-footprint-scanner', analysisType: 'digital_footprint', category: 'defense', priority: 7, complexity: 'light' },
 ];
+
+// Per-complexity timeout values (in ms) - matches platform_config values
+const COMPLEXITY_TIMEOUTS: Record<string, number> = {
+  light: 180000,    // 3 minutes
+  standard: 300000, // 5 minutes
+  complex: 600000,  // 10 minutes
+  extreme: 900000,  // 15 minutes
+};
 
 // Circuit breaker state (in-memory for this execution)
 const circuitBreakers: Record<string, { failures: number; lastFailure: number; isOpen: boolean }> = {};
@@ -294,16 +300,40 @@ async function resumeSession(supabase: any, userId: string, sessionId: string) {
 
   if (error || !session) throw new Error('Session not found');
 
-  // Reset any stuck 'running' tasks (stale detection)
-  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-  await supabase
+  // Reset stuck 'running' tasks based on per-complexity timeouts
+  // Get all running tasks and check against their complexity timeout
+  const { data: runningTasks } = await supabase
     .from('intelligence_session_tasks')
-    .update({ status: 'pending', started_at: null })
+    .select('id, started_at, edge_function')
     .eq('session_id', sessionId)
-    .eq('status', 'running')
-    .lt('started_at', fiveMinutesAgo);
+    .eq('status', 'running');
 
-  // Update session status (no fire-and-forget - frontend will poll with 'process' action)
+  if (runningTasks?.length) {
+    const now = Date.now();
+    const taskIdsToReset: string[] = [];
+    
+    for (const task of runningTasks) {
+      // Find task complexity from INTELLIGENCE_TASKS
+      const taskDef = INTELLIGENCE_TASKS.find(t => t.edgeFunction === task.edge_function);
+      const complexity = taskDef?.complexity || 'standard';
+      const timeout = COMPLEXITY_TIMEOUTS[complexity] || 300000;
+      
+      const taskStarted = new Date(task.started_at).getTime();
+      if (now - taskStarted > timeout) {
+        taskIdsToReset.push(task.id);
+      }
+    }
+    
+    if (taskIdsToReset.length > 0) {
+      await supabase
+        .from('intelligence_session_tasks')
+        .update({ status: 'pending', started_at: null })
+        .in('id', taskIdsToReset);
+      console.log(`[Session ${sessionId}] Reset ${taskIdsToReset.length} stale tasks based on complexity timeouts`);
+    }
+  }
+
+  // Update session status
   await supabase
     .from('intelligence_sessions')
     .update({ 
@@ -432,9 +462,9 @@ async function retryTask(supabase: any, userId: string, taskId: string) {
   return { taskId, status: 'retrying' };
 }
 
-// NEW: Synchronous batch processing - called by frontend polling
+// NEW: Synchronous batch processing with atomic task claiming (v5.4)
 async function processBatch(supabase: any, userId: string, sessionId: string, batchSize: number = 3) {
-  console.log(`[Session ${sessionId}] Processing batch of ${batchSize} tasks`);
+  console.log(`[Session ${sessionId}] Processing batch of ${batchSize} tasks (atomic claiming)`);
   
   // Verify ownership and get session details
   const { data: session, error: sessionError } = await supabase
@@ -461,17 +491,19 @@ async function processBatch(supabase: any, userId: string, sessionId: string, ba
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
-  // Get pending tasks ordered by priority
-  const { data: pendingTasks } = await supabase
-    .from('intelligence_session_tasks')
-    .select('*')
-    .eq('session_id', sessionId)
-    .eq('status', 'pending')
-    .order('priority', { ascending: true })
-    .order('created_at', { ascending: true })
-    .limit(batchSize);
+  // Use atomic task claiming via RPC to prevent race conditions (SKIP LOCKED pattern)
+  const { data: claimedTasks, error: claimError } = await supabase
+    .rpc('claim_pending_tasks', { 
+      p_session_id: sessionId, 
+      p_limit: batchSize 
+    });
 
-  if (!pendingTasks || pendingTasks.length === 0) {
+  if (claimError) {
+    console.error(`[Session ${sessionId}] Failed to claim tasks:`, claimError);
+    throw new Error(`Task claiming failed: ${claimError.message}`);
+  }
+
+  if (!claimedTasks || claimedTasks.length === 0) {
     // No more pending tasks - finalize session
     const { data: allTasks } = await supabase
       .from('intelligence_session_tasks')
@@ -513,11 +545,11 @@ async function processBatch(supabase: any, userId: string, sessionId: string, ba
   // Update session current category
   await supabase
     .from('intelligence_sessions')
-    .update({ current_category: pendingTasks[0].category })
+    .update({ current_category: claimedTasks[0].category })
     .eq('id', sessionId);
 
-  // Process batch in parallel (SYNCHRONOUSLY within this request)
-  const results = await Promise.all(pendingTasks.map((task: any) => 
+  // Process claimed tasks in parallel (already marked as 'running' by the RPC)
+  const results = await Promise.all(claimedTasks.map((task: any) => 
     processTask(supabase, supabaseUrl, supabaseAnonKey, task, userId, session.profile_id, session.force_refresh)
   ));
 
@@ -548,17 +580,17 @@ async function processBatch(supabase: any, userId: string, sessionId: string, ba
     })
     .eq('id', sessionId);
 
-  console.log(`[Session ${sessionId}] Processed batch of ${pendingTasks.length} tasks. Remaining: ${remainingCount || 0}`);
+  console.log(`[Session ${sessionId}] Processed batch of ${claimedTasks.length} tasks. Remaining: ${remainingCount || 0}`);
 
   return { 
     sessionId, 
     status: 'running', 
-    processed: pendingTasks.length, 
+    processed: claimedTasks.length, 
     remaining: remainingCount || 0,
     completed: completedCount,
     failed: failedCount,
     skipped: skippedCount,
-    message: `Processed ${pendingTasks.length} tasks` 
+    message: `Processed ${claimedTasks.length} tasks` 
   };
 }
 

@@ -34895,6 +34895,34 @@ export type Database = {
         Args: { uid: string; ws_id: string }
         Returns: boolean
       }
+      claim_pending_tasks: {
+        Args: { p_limit?: number; p_session_id: string }
+        Returns: {
+          analysis_type: string | null
+          attempts: number | null
+          category: string
+          completed_at: string | null
+          created_at: string | null
+          edge_function: string
+          error_details: Json | null
+          error_message: string | null
+          id: string
+          max_attempts: number | null
+          priority: number | null
+          processing_time_ms: number | null
+          result: Json | null
+          session_id: string
+          started_at: string | null
+          status: string
+          task_name: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "intelligence_session_tasks"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       clean_expired_cache: { Args: never; Returns: number }
       compute_event_hash: {
         Args: {
