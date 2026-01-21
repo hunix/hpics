@@ -13,8 +13,9 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   Brain, AlertTriangle, CheckCircle, Flag, Target, 
   Zap, RefreshCw, TrendingUp, Shield, Heart,
-  Loader2, Info, AlertCircle, Sparkles
+  Loader2, Info, AlertCircle, Sparkles, Eye
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { PersonalityRadarChart } from './PersonalityRadarChart';
 import { FlagsWarningsPanel } from './FlagsWarningsPanel';
 import { ActionPlansPanel } from './ActionPlansPanel';
@@ -32,6 +33,7 @@ export function DeepIntelligencePanel({ profileId, profileName }: DeepIntelligen
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
 
   // Fetch existing psychological profile
@@ -164,12 +166,21 @@ export function DeepIntelligencePanel({ profileId, profileName }: DeepIntelligen
             size="sm"
             onClick={() => analyzeMutation.mutate()}
             disabled={analyzeMutation.isPending}
+            title="Refresh Analysis"
           >
             {analyzeMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <RefreshCw className="h-4 w-4" />
             )}
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => navigate(`/dossier-preview/${profileId}`)}
+            title="View Full Dossier"
+          >
+            <Eye className="h-4 w-4" />
           </Button>
         </div>
 

@@ -5,9 +5,10 @@
 
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Download, RefreshCw, Printer } from 'lucide-react';
+import { ArrowLeft, Download, RefreshCw, Printer, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useDossierData, DossierDataResult } from '@/components/reports/hooks/useDossierData';
@@ -15,6 +16,7 @@ import { computeExtendedDossierData, ExtendedDossierData } from '@/components/do
 import { DossierSectionNav } from '@/components/dossier-preview/DossierSectionNav';
 import { DossierHeader } from '@/components/dossier-preview/DossierHeader';
 import { DossierContent } from '@/components/dossier-preview/DossierContent';
+import { MobileSectionNav } from '@/components/dossier-preview/MobileSectionNav';
 import { useDossierNavigation } from '@/components/dossier-preview/hooks/useDossierNavigation';
 import { DEFAULT_SECTIONS } from '@/components/reports/sections/sectionDefinitions';
 
@@ -112,7 +114,7 @@ export default function DossierPreview() {
   
   return (
     <div className="flex h-screen bg-background print:bg-white">
-      {/* Sidebar Navigation */}
+      {/* Desktop Sidebar Navigation */}
       <aside className="hidden lg:flex w-72 border-r bg-muted/30 flex-col print:hidden">
         <div className="p-4 border-b">
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
@@ -135,41 +137,88 @@ export default function DossierPreview() {
           />
         )}
       </aside>
+
+      {/* Tablet Sidebar - Collapsible Sheet */}
+      <div className="hidden md:block lg:hidden print:hidden">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="fixed top-4 left-4 z-50"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-72 p-0">
+            <div className="p-4 border-b">
+              <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+            </div>
+            <DossierSectionNav
+              sections={DEFAULT_SECTIONS}
+              activeSection={activeSection}
+              onSectionClick={scrollToSection}
+              dossierData={dossierData}
+            />
+          </SheetContent>
+        </Sheet>
+      </div>
       
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 print:hidden">
-          <div className="flex items-center justify-between p-4">
+          <div className="flex items-center justify-between p-4 gap-2">
+            {/* Mobile back button */}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => navigate(-1)}
+              className="lg:hidden md:hidden shrink-0"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            
             {isLoading ? (
-              <Skeleton className="h-10 w-64" />
+              <Skeleton className="h-10 w-64 flex-1" />
             ) : (
-              <DossierHeader
-                contactName={dossierData?.contactName || 'Loading...'}
-                organization={dossierData?.profile?.organization}
-                intelligenceCompleteness={dossierData?.intelligenceCompleteness || 0}
-              />
+              <div className="flex-1 min-w-0">
+                <DossierHeader
+                  contactName={dossierData?.contactName || 'Loading...'}
+                  organization={dossierData?.profile?.organization}
+                  intelligenceCompleteness={dossierData?.intelligenceCompleteness || 0}
+                />
+              </div>
             )}
             
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading}>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading} className="hidden sm:flex">
                 <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
-              <Button variant="outline" size="sm" onClick={handlePrint}>
+              <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isLoading} className="sm:hidden">
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              </Button>
+              <Button variant="outline" size="sm" onClick={handlePrint} className="hidden sm:flex">
                 <Printer className="h-4 w-4 mr-2" />
                 Print
               </Button>
-              <Button variant="default" size="sm" onClick={() => navigate(`/dossier-intelligence?contact=${profileId}`)}>
+              <Button variant="default" size="sm" onClick={() => navigate(`/dossier-intelligence?contact=${profileId}`)} className="hidden sm:flex">
                 <Download className="h-4 w-4 mr-2" />
                 Export PDF
+              </Button>
+              <Button variant="default" size="icon" onClick={() => navigate(`/dossier-intelligence?contact=${profileId}`)} className="sm:hidden">
+                <Download className="h-4 w-4" />
               </Button>
             </div>
           </div>
         </header>
         
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto pb-24 lg:pb-6">
           {isLoading ? (
             <div className="p-6 space-y-6">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -188,6 +237,16 @@ export default function DossierPreview() {
           ) : null}
         </div>
       </main>
+      
+      {/* Mobile Section Navigation */}
+      {!isLoading && dossierData && (
+        <MobileSectionNav
+          sections={DEFAULT_SECTIONS}
+          activeSection={activeSection}
+          onSectionClick={scrollToSection}
+          dossierData={dossierData}
+        />
+      )}
     </div>
   );
 }
