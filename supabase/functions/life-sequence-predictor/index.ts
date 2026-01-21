@@ -463,11 +463,11 @@ serve(async (req) => {
         .from('contact_life_milestones')
         .select('*')
         .eq('profile_id', profile_id)
-        .order('milestone_date', { ascending: false });
+        .order('event_date', { ascending: false });
       
       if (milestones) {
         sequence.events = milestones.map(m => ({
-          timestamp: m.milestone_date,
+          timestamp: m.event_date,
           category: m.category || 'social',
           event_type: m.milestone_type,
           magnitude: m.significance === 'high' ? 'major' : 'moderate',

@@ -27,7 +27,7 @@ serve(async (req) => {
     // Fetch events from multiple domains for synchronicity detection
     const [interactionsRes, milestonesRes, anomaliesRes, predictionsRes] = await Promise.all([
       supabase.from('contact_interaction_notes').select('*').eq('profile_id', profileId).gte('created_at', startDate.toISOString()).order('created_at', { ascending: false }),
-      supabase.from('contact_life_milestones').select('*').eq('profile_id', profileId).gte('milestone_date', startDate.toISOString()),
+      supabase.from('contact_life_milestones').select('*').eq('profile_id', profileId).gte('event_date', startDate.toISOString()),
       supabase.from('behavioral_anomalies').select('*').eq('profile_id', profileId).gte('detected_at', startDate.toISOString()),
       supabase.from('behavioral_predictions').select('*').eq('profile_id', profileId).gte('created_at', startDate.toISOString()),
     ]);
