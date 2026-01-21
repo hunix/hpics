@@ -183,53 +183,50 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Gather network data
+    // Gather network data (optimized with tighter limits to prevent timeout - v3.9.21)
     const [
       { data: profiles },
       { data: relationships },
       { data: interactions },
-      { data: personalityProfiles },
-      { data: financialIntel },
-      { data: previousAnalyses }
+      { data: personalityProfiles }
     ] = await Promise.all([
-      supabase.from('profiles').select('id, first_name, last_name, organization, job_title, relationship_type, tags').eq('user_id', userId).eq('is_active', true).limit(500),
-      supabase.from('contact_relationships').select('from_profile_id, to_profile_id, relationship_type, strength').eq('user_id', userId),
-      supabase.from('contact_interaction_notes').select('profile_id, interaction_type, mood_observed, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(1000),
-      supabase.from('psychological_profiles').select('profile_id, personality_ocean').eq('user_id', userId),
-      supabase.from('ai_analyses').select('profile_id, result').eq('user_id', userId).eq('analysis_type', 'financial_intelligence'),
-      supabase.from('power_network_analyses').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(3)
+      supabase.from('profiles').select('id, first_name, last_name, organization, job_title, relationship_type, tags').eq('user_id', userId).eq('is_active', true).limit(100),
+      supabase.from('contact_relationships').select('from_profile_id, to_profile_id, relationship_type, strength').eq('user_id', userId).limit(500),
+      supabase.from('contact_interaction_notes').select('profile_id, interaction_type, mood_observed, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(200),
+      supabase.from('psychological_profiles').select('profile_id, personality_ocean').eq('user_id', userId).limit(100)
     ]);
 
-    // Build network graph representation
+    // Early exit if minimal data
+    if (!profiles?.length || profiles.length < 2) {
+      console.log('[power-network-analyzer] Insufficient profiles for network analysis');
+      return new Response(JSON.stringify({
+        success: true,
+        analysis: {
+          network_overview: { total_nodes: profiles?.length || 0, total_connections: 0, network_density: 0 },
+          power_rankings: [],
+          message: 'Insufficient network data for analysis'
+        },
+        networkStats: { nodesAnalyzed: profiles?.length || 0, edgesAnalyzed: 0, interactionsProcessed: 0 }
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // Build compact network graph representation (reduced payload for faster processing)
     const networkData = {
-      nodes: profiles?.map((p: { id: string; first_name?: string; last_name?: string; organization?: string; job_title?: string; relationship_type?: string; tags?: string[] }) => ({
+      nodes: profiles?.slice(0, 50).map((p: { id: string; first_name?: string; last_name?: string; organization?: string; job_title?: string; relationship_type?: string }) => ({
         id: p.id,
         name: `${p.first_name || ''} ${p.last_name || ''}`.trim(),
-        company: p.organization,
+        org: p.organization,
         title: p.job_title,
-        relationshipType: p.relationship_type,
-        tags: p.tags,
-        personality: personalityProfiles?.find((pp: { profile_id: string }) => pp.profile_id === p.id),
-        financial: financialIntel?.find((fi: { profile_id: string }) => fi.profile_id === p.id)
+        type: p.relationship_type,
+        personality: personalityProfiles?.find((pp: { profile_id: string }) => pp.profile_id === p.id)?.personality_ocean
       })),
-      edges: relationships?.map((r: { from_profile_id: string; to_profile_id: string; relationship_type?: string; strength?: number }) => ({
-        source: r.from_profile_id,
-        target: r.to_profile_id,
-        relationshipType: r.relationship_type,
-        strength: r.strength
+      edges: relationships?.slice(0, 200).map((r: { from_profile_id: string; to_profile_id: string; relationship_type?: string; strength?: number }) => ({
+        s: r.from_profile_id,
+        t: r.to_profile_id,
+        type: r.relationship_type,
+        str: r.strength
       })),
-      interactionPatterns: interactions?.reduce((acc: Record<string, { count: number; moods: string[] }>, i: { profile_id: string; mood_observed?: string }) => {
-        const key = i.profile_id;
-        if (!acc[key]) acc[key] = { count: 0, moods: [] };
-        acc[key].count++;
-        if (i.mood_observed) acc[key].moods.push(i.mood_observed);
-        return acc;
-      }, {} as Record<string, { count: number; moods: string[] }>),
-      analysisContext: {
-        type: analysisType,
-        targetProfile: targetProfileId,
-        previousInsights: previousAnalyses?.map((a: { key_insights?: string[] }) => a.key_insights)
-      }
+      context: { type: analysisType, target: targetProfileId }
     };
 
     // Perform power network analysis
