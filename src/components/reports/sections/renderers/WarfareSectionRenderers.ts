@@ -1,19 +1,33 @@
 /**
- * Warfare Section Renderers (v3.7.1)
+ * Warfare Section Renderers (v3.9.31)
+ * v3.9.31: Universal extractResult pattern, PDF_DESIGN tokens, fallback to allAnalyses
  */
 
 import type { SectionRenderer } from './types';
+import { PDF_DESIGN } from '../../hooks/usePDFGeneration';
+import { getAnalysisForSection, extractResult } from '../../utils/sectionDataCheck';
 
 export const renderCognitiveWarfare: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.cognitiveWarfareData?.length) return;
   
-  ctx.renderSectionHeader('Cognitive Warfare Operations', [128, 0, 128]);
-  (data.cognitiveWarfareData as Array<Record<string, unknown>>).slice(0, 3).forEach((op) => {
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = data.cognitiveWarfareData?.length
+    ? data.cognitiveWarfareData
+    : getAnalysisForSection(data, 'cognitiveWarfare');
+  
+  if (!rawData) return;
+  
+  ctx.renderSectionHeader('Cognitive Warfare Operations', PDF_DESIGN.colors.fusion);
+  
+  // Handle both array (from table) and object (from ai_analyses)
+  const operations = Array.isArray(rawData) ? rawData : [rawData];
+  
+  (operations as Array<Record<string, unknown>>).slice(0, 3).forEach((op) => {
+    const opData = extractResult(op);
     ctx.checkPageBreak(30);
-    ctx.renderSubsection((op.operation_name as string) || 'Unnamed Operation');
-    doc.setFontSize(9);
-    doc.text(`Type: ${op.operation_type || 'Standard'} | Status: ${(op.status as string)?.toUpperCase() || 'PLANNING'}`, ctx.margin, ctx.yPos);
+    ctx.renderSubsection((opData.operation_name as string) || 'Cognitive Warfare Analysis');
+    doc.setFontSize(PDF_DESIGN.fonts.body);
+    doc.text(`Type: ${opData.operation_type || 'Strategic'} | Status: ${(opData.status as string)?.toUpperCase() || 'ACTIVE'}`, ctx.margin, ctx.yPos);
     ctx.yPos += ctx.lineHeight + 5;
   });
   ctx.yPos += 8;
@@ -21,53 +35,101 @@ export const renderCognitiveWarfare: SectionRenderer = (ctx, data) => {
 
 export const renderDeceptionOps: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.deceptionOpsData?.length) return;
+  
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = data.deceptionOpsData?.length
+    ? data.deceptionOpsData
+    : getAnalysisForSection(data, 'deceptionOps');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('Deception Operations', [139, 69, 19]);
-  (data.deceptionOpsData as Array<Record<string, unknown>>).slice(0, 3).forEach((op) => {
+  
+  const operations = Array.isArray(rawData) ? rawData : [rawData];
+  
+  (operations as Array<Record<string, unknown>>).slice(0, 3).forEach((op) => {
+    const opData = extractResult(op);
     ctx.checkPageBreak(25);
-    ctx.renderSubsection((op.operation_name as string) || 'Unnamed Deception');
-    doc.setFontSize(9);
-    doc.text(`Type: ${op.deception_type || 'Unknown'}`, ctx.margin, ctx.yPos);
+    ctx.renderSubsection((opData.operation_name as string) || 'Deception Analysis');
+    doc.setFontSize(PDF_DESIGN.fonts.body);
+    doc.text(`Type: ${opData.deception_type || opData.type || 'Unknown'}`, ctx.margin, ctx.yPos);
     ctx.yPos += ctx.lineHeight + 5;
   });
   ctx.yPos += 8;
 };
 
 export const renderTrauma: SectionRenderer = (ctx, data) => {
-  if (!data.traumaData?.length) return;
-  ctx.renderSectionHeader('Trauma & Vulnerability Windows', [150, 50, 50]);
-  const trauma = data.traumaData[0] as Record<string, unknown>;
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = data.traumaData?.length
+    ? data.traumaData[0]
+    : getAnalysisForSection(data, 'trauma');
+  
+  if (!rawData) return;
+  
+  ctx.renderSectionHeader('Trauma & Vulnerability Windows', PDF_DESIGN.colors.danger);
+  const trauma = extractResult(rawData as Record<string, unknown>);
+  
   if (trauma.vulnerability_score !== undefined) {
-    ctx.renderScoreBar('Vulnerability Score', (trauma.vulnerability_score as number) * 100, 100, [180, 0, 0]);
+    ctx.renderScoreBar('Vulnerability Score', (trauma.vulnerability_score as number) * 100, 100, PDF_DESIGN.colors.danger);
   }
+  
+  if (trauma.exploitation_vectors) {
+    const vectors = trauma.exploitation_vectors as string[];
+    ctx.renderSubsection('Exploitation Vectors');
+    vectors.slice(0, 4).forEach(v => ctx.renderBullet(v, 5));
+  }
+  
   ctx.yPos += 8;
 };
 
 export const renderBetrayal: SectionRenderer = (ctx, data) => {
-  if (!data.betrayalData?.length) return;
-  ctx.renderSectionHeader('Betrayal & Crisis Prediction', [150, 0, 0]);
-  const betrayal = data.betrayalData[0] as Record<string, unknown>;
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = data.betrayalData?.length
+    ? data.betrayalData[0]
+    : getAnalysisForSection(data, 'betrayal');
+  
+  if (!rawData) return;
+  
+  ctx.renderSectionHeader('Betrayal & Crisis Prediction', PDF_DESIGN.colors.danger);
+  const betrayal = extractResult(rawData as Record<string, unknown>);
+  
   if (betrayal.betrayal_likelihood !== undefined) {
-    ctx.renderScoreBar('Betrayal Likelihood', (betrayal.betrayal_likelihood as number) * 100, 100, [180, 0, 0]);
+    ctx.renderScoreBar('Betrayal Likelihood', (betrayal.betrayal_likelihood as number) * 100, 100, PDF_DESIGN.colors.danger);
   }
+  
+  if (betrayal.warning_signs) {
+    const signs = betrayal.warning_signs as string[];
+    ctx.renderSubsection('Warning Signs');
+    signs.slice(0, 4).forEach(s => ctx.renderBullet(s, 5));
+  }
+  
   ctx.yPos += 8;
 };
 
 export const renderVulnerabilityWindows: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.vulnerabilityWindowsData?.length) return;
+  
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = data.vulnerabilityWindowsData?.length
+    ? data.vulnerabilityWindowsData
+    : getAnalysisForSection(data, 'vulnerabilityWindows');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('Vulnerability Windows', [220, 20, 60]);
-  const activeWindows = (data.vulnerabilityWindowsData as Array<Record<string, unknown>>).filter(w => w.current_status === 'active');
+  
+  const windows = Array.isArray(rawData) ? rawData : [rawData];
+  const activeWindows = (windows as Array<Record<string, unknown>>).filter(w => 
+    extractResult(w).current_status === 'active' || extractResult(w).status === 'active'
+  );
   
   if (activeWindows.length > 0) {
     ctx.checkPageBreak(20);
     doc.setFillColor(255, 230, 230);
     doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 15, 2, 2, 'F');
-    doc.setFontSize(10);
+    doc.setFontSize(PDF_DESIGN.fonts.subheader);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(180, 0, 0);
+    doc.setTextColor(...PDF_DESIGN.colors.danger);
     doc.text(`${activeWindows.length} ACTIVE VULNERABILITY WINDOWS`, ctx.margin + 5, ctx.yPos + 5);
     doc.setTextColor(0);
     ctx.yPos += 20;
@@ -79,10 +141,10 @@ export const renderActiveDefense: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
   if (!data.activeDefenseData?.length) return;
   
-  ctx.renderSectionHeader('Active Defense Posture', [0, 128, 0]);
-  const defense = (data.activeDefenseData as Array<Record<string, unknown>>)[0];
+  ctx.renderSectionHeader('Active Defense Posture', PDF_DESIGN.colors.success);
+  const defense = extractResult((data.activeDefenseData as Array<Record<string, unknown>>)[0]);
   ctx.checkPageBreak(20);
-  doc.setFontSize(10);
+  doc.setFontSize(PDF_DESIGN.fonts.subheader);
   doc.setFont('helvetica', 'bold');
   doc.text(`Defense Type: ${(defense.defense_type as string)?.toUpperCase() || 'UNKNOWN'}`, ctx.margin, ctx.yPos);
   ctx.yPos += ctx.lineHeight + 8;
@@ -91,17 +153,23 @@ export const renderActiveDefense: SectionRenderer = (ctx, data) => {
 // Reality Testing renderer
 export const renderRealityTesting: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.realityTestingData) || !data.realityTestingData.length) return;
   
-  ctx.renderSectionHeader('Reality Testing Vulnerability', [128, 0, 128]);
-  const reality = (data.realityTestingData as Array<Record<string, unknown>>)[0];
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.realityTestingData) && data.realityTestingData.length)
+    ? data.realityTestingData[0]
+    : getAnalysisForSection(data, 'realityTesting');
+  
+  if (!rawData) return;
+  
+  ctx.renderSectionHeader('Reality Testing Vulnerability', PDF_DESIGN.colors.fusion);
+  const reality = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(40);
   doc.setFillColor(255, 245, 255);
   doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 35, 3, 3, 'F');
   
   if (reality.reality_distortion_score !== undefined) {
-    ctx.renderScoreBar('Reality Distortion', (reality.reality_distortion_score as number) * 100, 100, [128, 0, 128]);
+    ctx.renderScoreBar('Reality Distortion', (reality.reality_distortion_score as number) * 100, 100, PDF_DESIGN.colors.fusion);
   }
   
   if (reality.vulnerable_beliefs) {
@@ -116,17 +184,23 @@ export const renderRealityTesting: SectionRenderer = (ctx, data) => {
 // Identity Destabilization renderer
 export const renderIdentityDestab: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.identityDestabData) || !data.identityDestabData.length) return;
+  
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.identityDestabData) && data.identityDestabData.length)
+    ? data.identityDestabData[0]
+    : getAnalysisForSection(data, 'identityDestab');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('Identity Destabilization Profile', [100, 0, 80]);
-  const identity = (data.identityDestabData as Array<Record<string, unknown>>)[0];
+  const identity = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(45);
   doc.setFillColor(255, 240, 250);
   doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 40, 3, 3, 'F');
   
   if (identity.identity_stability !== undefined) {
-    ctx.renderScoreBar('Identity Stability', (identity.identity_stability as number) * 100, 100, [0, 150, 100]);
+    ctx.renderScoreBar('Identity Stability', (identity.identity_stability as number) * 100, 100, PDF_DESIGN.colors.success);
   }
   
   if (identity.destabilization_vectors) {
@@ -141,10 +215,16 @@ export const renderIdentityDestab: SectionRenderer = (ctx, data) => {
 // Semantic Warfare renderer
 export const renderSemanticWarfare: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.semanticWarfareData) || !data.semanticWarfareData.length) return;
   
-  ctx.renderSectionHeader('Semantic Warfare Profile', [0, 80, 100]);
-  const semantic = (data.semanticWarfareData as Array<Record<string, unknown>>)[0];
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.semanticWarfareData) && data.semanticWarfareData.length)
+    ? data.semanticWarfareData[0]
+    : getAnalysisForSection(data, 'semanticWarfare');
+  
+  if (!rawData) return;
+  
+  ctx.renderSectionHeader('Semantic Warfare Profile', PDF_DESIGN.colors.analysis);
+  const semantic = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(45);
   doc.setFillColor(240, 250, 255);
@@ -168,10 +248,16 @@ export const renderSemanticWarfare: SectionRenderer = (ctx, data) => {
 // Memetic Propagation renderer
 export const renderMemeticPropagation: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.memeticData) || !data.memeticData.length) return;
+  
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.memeticData) && data.memeticData.length)
+    ? data.memeticData[0]
+    : getAnalysisForSection(data, 'memeticPropagation');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('Memetic Propagation Analysis', [150, 50, 100]);
-  const memetic = (data.memeticData as Array<Record<string, unknown>>)[0];
+  const memetic = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(45);
   doc.setFillColor(255, 245, 250);
@@ -193,10 +279,16 @@ export const renderMemeticPropagation: SectionRenderer = (ctx, data) => {
 // Future Modeling renderer
 export const renderFutureModeling: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.futureModelingData) || !data.futureModelingData.length) return;
+  
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.futureModelingData) && data.futureModelingData.length)
+    ? data.futureModelingData[0]
+    : getAnalysisForSection(data, 'futureModeling');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('Behavioral Future Modeling', [50, 80, 150]);
-  const future = (data.futureModelingData as Array<Record<string, unknown>>)[0];
+  const future = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(50);
   doc.setFillColor(245, 248, 255);
@@ -217,10 +309,16 @@ export const renderFutureModeling: SectionRenderer = (ctx, data) => {
 // Precognitive Patterns renderer
 export const renderPrecognitive: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.precognitiveData) || !data.precognitiveData.length) return;
+  
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.precognitiveData) && data.precognitiveData.length)
+    ? data.precognitiveData[0]
+    : getAnalysisForSection(data, 'precognitive');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('Precognitive Pattern Analysis', [100, 50, 150]);
-  const precog = (data.precognitiveData as Array<Record<string, unknown>>)[0];
+  const precog = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(40);
   doc.setFillColor(250, 245, 255);
@@ -239,10 +337,16 @@ export const renderPrecognitive: SectionRenderer = (ctx, data) => {
 // Choice Architecture renderer
 export const renderChoiceArchitecture: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.choiceArchitectureData) || !data.choiceArchitectureData.length) return;
+  
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.choiceArchitectureData) && data.choiceArchitectureData.length)
+    ? data.choiceArchitectureData[0]
+    : getAnalysisForSection(data, 'choiceArchitecture');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('Choice Architecture Exploitation', [0, 128, 100]);
-  const choice = (data.choiceArchitectureData as Array<Record<string, unknown>>)[0];
+  const choice = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(50);
   doc.setFillColor(240, 255, 250);
@@ -266,23 +370,31 @@ export const renderChoiceArchitecture: SectionRenderer = (ctx, data) => {
 // Influence Operations renderer
 export const renderInfluenceOps: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.influenceOpsData) || !data.influenceOpsData.length) return;
+  
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.influenceOpsData) && data.influenceOpsData.length)
+    ? data.influenceOpsData
+    : getAnalysisForSection(data, 'influenceOps');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('Influence Operation Planning', [64, 0, 128]);
-  const ops = data.influenceOpsData as Array<Record<string, unknown>>;
   
-  ops.slice(0, 3).forEach((op) => {
+  const ops = Array.isArray(rawData) ? rawData : [rawData];
+  
+  (ops as Array<Record<string, unknown>>).slice(0, 3).forEach((op) => {
+    const opData = extractResult(op);
     ctx.checkPageBreak(30);
-    ctx.renderSubsection((op.operation_name as string) || 'Unnamed Operation');
-    doc.setFontSize(9);
+    ctx.renderSubsection((opData.operation_name as string) || 'Influence Analysis');
+    doc.setFontSize(PDF_DESIGN.fonts.body);
     doc.setFont('helvetica', 'normal');
     
-    if (op.target_outcome) {
-      doc.text(`Objective: ${op.target_outcome}`, ctx.margin, ctx.yPos);
+    if (opData.target_outcome) {
+      doc.text(`Objective: ${opData.target_outcome}`, ctx.margin, ctx.yPos);
       ctx.yPos += ctx.lineHeight;
     }
-    if (op.success_probability !== undefined) {
-      doc.text(`Success Probability: ${Math.round((op.success_probability as number) * 100)}%`, ctx.margin, ctx.yPos);
+    if (opData.success_probability !== undefined) {
+      doc.text(`Success Probability: ${Math.round((opData.success_probability as number) * 100)}%`, ctx.margin, ctx.yPos);
       ctx.yPos += ctx.lineHeight;
     }
     ctx.yPos += 5;
@@ -293,10 +405,16 @@ export const renderInfluenceOps: SectionRenderer = (ctx, data) => {
 // Threat Actor renderer
 export const renderThreatActor: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.threatActorData) || !data.threatActorData.length) return;
   
-  ctx.renderSectionHeader('Threat Assessment Profile', [200, 0, 0]);
-  const threat = (data.threatActorData as Array<Record<string, unknown>>)[0];
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.threatActorData) && data.threatActorData.length)
+    ? data.threatActorData[0]
+    : getAnalysisForSection(data, 'threatActor');
+  
+  if (!rawData) return;
+  
+  ctx.renderSectionHeader('Threat Assessment Profile', PDF_DESIGN.colors.danger);
+  const threat = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(50);
   doc.setFillColor(255, 240, 240);
@@ -304,7 +422,7 @@ export const renderThreatActor: SectionRenderer = (ctx, data) => {
   
   if (threat.threat_level !== undefined) {
     const level = threat.threat_level as number;
-    const color: [number, number, number] = level > 7 ? [200, 0, 0] : level > 4 ? [200, 150, 0] : [0, 150, 0];
+    const color: [number, number, number] = level > 7 ? PDF_DESIGN.colors.danger : level > 4 ? PDF_DESIGN.colors.warning : PDF_DESIGN.colors.success;
     ctx.renderScoreBar('Threat Level', level * 10, 100, color);
   }
   
@@ -323,7 +441,7 @@ export const renderTrustTrajectory: SectionRenderer = (ctx, data) => {
   if (!data.trustData?.length) return;
   
   ctx.renderSectionHeader('180-Day Trust Trajectory', [0, 128, 128]);
-  const trust = (data.trustData as Array<Record<string, unknown>>)[0];
+  const trust = extractResult((data.trustData as Array<Record<string, unknown>>)[0]);
   
   ctx.checkPageBreak(50);
   doc.setFillColor(240, 255, 255);
@@ -333,8 +451,8 @@ export const renderTrustTrajectory: SectionRenderer = (ctx, data) => {
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     const trajectory = trust.trust_trajectory as string;
-    const color: [number, number, number] = trajectory === 'improving' ? [0, 150, 0] : 
-      trajectory === 'declining' ? [200, 0, 0] : [100, 100, 100];
+    const color: [number, number, number] = trajectory === 'improving' ? PDF_DESIGN.colors.success : 
+      trajectory === 'declining' ? PDF_DESIGN.colors.danger : PDF_DESIGN.colors.muted;
     doc.setTextColor(...color);
     doc.text(`Trajectory: ${trajectory.toUpperCase()}`, ctx.margin + 5, ctx.yPos + 10);
     doc.setTextColor(0);
@@ -356,10 +474,16 @@ export const renderTrustTrajectory: SectionRenderer = (ctx, data) => {
 // Coercive Control renderer
 export const renderCoerciveControl: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.coerciveControlData) || !data.coerciveControlData.length) return;
+  
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.coerciveControlData) && data.coerciveControlData.length)
+    ? data.coerciveControlData[0]
+    : getAnalysisForSection(data, 'coerciveControl');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('Coercive Control Assessment', [180, 0, 60]);
-  const coercive = (data.coerciveControlData as Array<Record<string, unknown>>)[0];
+  const coercive = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(45);
   doc.setFillColor(255, 245, 250);
@@ -378,36 +502,40 @@ export const renderCoerciveControl: SectionRenderer = (ctx, data) => {
   ctx.yPos += 8;
 };
 
-// Influence renderer (v3.7.5 - missing renderer fix)
+// Influence renderer
 export const renderInfluence: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  // Try influenceVectorData first, then fall back to influenceData
-  const vectors = Array.isArray(data.influenceVectorData) && data.influenceVectorData.length
+  
+  // v3.9.31: Try influenceVectorData first, then influenceData, then allAnalyses
+  const vectors = (Array.isArray(data.influenceVectorData) && data.influenceVectorData.length)
     ? data.influenceVectorData
     : data.influenceData
       ? [data.influenceData]
-      : [];
+      : (() => {
+          const analysis = getAnalysisForSection(data, 'influence');
+          return analysis ? [analysis] : [];
+        })();
   
   if (!vectors.length) return;
   
-  ctx.renderSectionHeader('Influence Profile Analysis', [0, 100, 180]);
+  ctx.renderSectionHeader('Influence Profile Analysis', PDF_DESIGN.colors.info);
   
   ctx.checkPageBreak(60);
   doc.setFillColor(240, 248, 255);
   doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 55, 3, 3, 'F');
   
   // Render influence vectors from Cialdini profile or vector data
-  const inf = (vectors[0] as Record<string, unknown>)?.data || vectors[0] as Record<string, unknown>;
-  if (inf) {
-    const principles = ['reciprocity', 'authority', 'scarcity', 'commitment', 'liking', 'social_proof', 'unity'];
-    
-    principles.forEach(p => {
-      const score = (inf[`${p}_susceptibility`] as number) || (inf[p] as number) || 0;
-      if (score > 0) {
-        ctx.renderScoreBar(p.replace('_', ' ').toUpperCase(), score, 100, [0, 100, 180]);
-      }
-    });
-  }
+  const rawInf = (vectors[0] as Record<string, unknown>);
+  const inf = extractResult(rawInf);
+  
+  const principles = ['reciprocity', 'authority', 'scarcity', 'commitment', 'liking', 'social_proof', 'unity'];
+  
+  principles.forEach(p => {
+    const score = (inf[`${p}_susceptibility`] as number) || (inf[p] as number) || 0;
+    if (score > 0) {
+      ctx.renderScoreBar(p.replace('_', ' ').toUpperCase(), score, 100, PDF_DESIGN.colors.info);
+    }
+  });
   ctx.yPos += 8;
 };
 
@@ -416,23 +544,29 @@ export const renderInfluence: SectionRenderer = (ctx, data) => {
 // ============================================
 export const renderOpsecAssessment: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.opsecAssessments) || !data.opsecAssessments.length) return;
+  
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.opsecAssessments) && data.opsecAssessments.length)
+    ? data.opsecAssessments[0]
+    : getAnalysisForSection(data, 'opsecAssessment');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('OPSEC Vulnerability Assessment', [220, 20, 60]);
-  const assessment = (data.opsecAssessments as Array<Record<string, unknown>>)[0];
+  const assessment = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(60);
   doc.setFillColor(255, 240, 245);
   doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 55, 3, 3, 'F');
   
   if (assessment.overall_score !== undefined) {
-    ctx.renderScoreBar('Overall OPSEC Score', (assessment.overall_score as number), 100, [0, 128, 0]);
+    ctx.renderScoreBar('Overall OPSEC Score', (assessment.overall_score as number), 100, PDF_DESIGN.colors.success);
   }
   if (assessment.digital_exposure_score !== undefined) {
-    ctx.renderScoreBar('Digital Exposure', (assessment.digital_exposure_score as number), 100, [200, 100, 0]);
+    ctx.renderScoreBar('Digital Exposure', (assessment.digital_exposure_score as number), 100, PDF_DESIGN.colors.mediumRisk);
   }
   if (assessment.communication_security_score !== undefined) {
-    ctx.renderScoreBar('Communication Security', (assessment.communication_security_score as number), 100, [0, 100, 200]);
+    ctx.renderScoreBar('Communication Security', (assessment.communication_security_score as number), 100, PDF_DESIGN.colors.info);
   }
   
   if (assessment.vulnerabilities) {
@@ -449,10 +583,17 @@ export const renderOpsecAssessment: SectionRenderer = (ctx, data) => {
 // ============================================
 export const renderSocialEngineering: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.socialEngineeringIncidents) || !data.socialEngineeringIncidents.length) return;
   
-  ctx.renderSectionHeader('Social Engineering Detection', [200, 50, 50]);
-  const incidents = data.socialEngineeringIncidents as Array<Record<string, unknown>>;
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.socialEngineeringIncidents) && data.socialEngineeringIncidents.length)
+    ? data.socialEngineeringIncidents
+    : getAnalysisForSection(data, 'socialEngineering');
+  
+  if (!rawData) return;
+  
+  ctx.renderSectionHeader('Social Engineering Detection', PDF_DESIGN.colors.danger);
+  
+  const incidents = Array.isArray(rawData) ? rawData : [rawData];
   
   ctx.checkPageBreak(50);
   doc.setFillColor(255, 245, 245);
@@ -460,16 +601,17 @@ export const renderSocialEngineering: SectionRenderer = (ctx, data) => {
   
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(200, 0, 0);
+  doc.setTextColor(...PDF_DESIGN.colors.danger);
   doc.text(`${incidents.length} Incident(s) Detected`, ctx.margin + 5, ctx.yPos + 8);
   doc.setTextColor(0);
   ctx.yPos += 15;
   
-  incidents.slice(0, 3).forEach((inc) => {
+  (incidents as Array<Record<string, unknown>>).slice(0, 3).forEach((inc) => {
+    const incData = extractResult(inc);
     ctx.checkPageBreak(20);
-    ctx.renderSubsection(`${inc.incident_type || 'Unknown Attack'}`);
-    doc.setFontSize(9);
-    doc.text(`Vector: ${inc.attack_vector || 'Unknown'} | Threat Level: ${inc.threat_level || 'N/A'}`, ctx.margin, ctx.yPos);
+    ctx.renderSubsection(`${incData.incident_type || 'Unknown Attack'}`);
+    doc.setFontSize(PDF_DESIGN.fonts.body);
+    doc.text(`Vector: ${incData.attack_vector || 'Unknown'} | Threat Level: ${incData.threat_level || 'N/A'}`, ctx.margin, ctx.yPos);
     ctx.yPos += ctx.lineHeight + 5;
   });
   ctx.yPos += 8;
@@ -480,11 +622,21 @@ export const renderSocialEngineering: SectionRenderer = (ctx, data) => {
 // ============================================
 export const renderCrisisResponse: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.crisisEvents) || !data.crisisEvents.length) return;
   
-  ctx.renderSectionHeader('Crisis Response Status', [180, 0, 0]);
-  const crises = data.crisisEvents as Array<Record<string, unknown>>;
-  const activeCrises = crises.filter(c => c.status === 'active');
+  // v3.9.31: Try multiple sources
+  const crises = (Array.isArray(data.crisisEvents) && data.crisisEvents.length)
+    ? data.crisisEvents
+    : getAnalysisForSection(data, 'crisisResponse');
+  
+  if (!crises) return;
+  
+  ctx.renderSectionHeader('Crisis Response Status', PDF_DESIGN.colors.danger);
+  
+  const crisisArray = Array.isArray(crises) ? crises : [crises];
+  const activeCrises = (crisisArray as Array<Record<string, unknown>>).filter(c => {
+    const cData = extractResult(c);
+    return cData.status === 'active';
+  });
   
   ctx.checkPageBreak(45);
   if (activeCrises.length > 0) {
@@ -492,17 +644,18 @@ export const renderCrisisResponse: SectionRenderer = (ctx, data) => {
     doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 20, 2, 2, 'F');
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(180, 0, 0);
+    doc.setTextColor(...PDF_DESIGN.colors.danger);
     doc.text(`${activeCrises.length} ACTIVE CRISIS EVENT(S)`, ctx.margin + 5, ctx.yPos + 10);
     doc.setTextColor(0);
     ctx.yPos += 25;
   }
   
-  crises.slice(0, 3).forEach((crisis) => {
+  (crisisArray as Array<Record<string, unknown>>).slice(0, 3).forEach((crisis) => {
+    const crisisData = extractResult(crisis);
     ctx.checkPageBreak(25);
-    ctx.renderSubsection(`${crisis.crisis_type || 'Unknown Crisis'}`);
-    doc.setFontSize(9);
-    doc.text(`Severity: ${crisis.severity || 'N/A'} | Escalation: Level ${crisis.escalation_level || 0}`, ctx.margin, ctx.yPos);
+    ctx.renderSubsection(`${crisisData.crisis_type || 'Unknown Crisis'}`);
+    doc.setFontSize(PDF_DESIGN.fonts.body);
+    doc.text(`Severity: ${crisisData.severity || 'N/A'} | Escalation: Level ${crisisData.escalation_level || 0}`, ctx.margin, ctx.yPos);
     ctx.yPos += ctx.lineHeight + 5;
   });
   ctx.yPos += 8;
@@ -513,23 +666,31 @@ export const renderCrisisResponse: SectionRenderer = (ctx, data) => {
 // ============================================
 export const renderLawfareDefense: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.legalThreats) || !data.legalThreats.length) return;
+  
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.legalThreats) && data.legalThreats.length)
+    ? data.legalThreats
+    : getAnalysisForSection(data, 'lawfareDefense');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('Lawfare Defense Analysis', [100, 50, 150]);
-  const threats = data.legalThreats as Array<Record<string, unknown>>;
+  
+  const threats = Array.isArray(rawData) ? rawData : [rawData];
   
   ctx.checkPageBreak(50);
   doc.setFillColor(250, 245, 255);
   doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
   
-  threats.slice(0, 3).forEach((threat) => {
+  (threats as Array<Record<string, unknown>>).slice(0, 3).forEach((threat) => {
+    const threatData = extractResult(threat);
     ctx.checkPageBreak(25);
-    ctx.renderSubsection(`${threat.threat_type || 'Legal Threat'}`);
-    doc.setFontSize(9);
-    doc.text(`Jurisdiction: ${threat.jurisdiction || 'Unknown'} | Severity: ${threat.severity || 'N/A'}`, ctx.margin, ctx.yPos);
+    ctx.renderSubsection(`${threatData.threat_type || 'Legal Threat'}`);
+    doc.setFontSize(PDF_DESIGN.fonts.body);
+    doc.text(`Jurisdiction: ${threatData.jurisdiction || 'Unknown'} | Severity: ${threatData.severity || 'N/A'}`, ctx.margin, ctx.yPos);
     ctx.yPos += ctx.lineHeight;
-    if (threat.likelihood !== undefined) {
-      doc.text(`Likelihood: ${Math.round((threat.likelihood as number) * 100)}%`, ctx.margin, ctx.yPos);
+    if (threatData.likelihood !== undefined) {
+      doc.text(`Likelihood: ${Math.round((threatData.likelihood as number) * 100)}%`, ctx.margin, ctx.yPos);
       ctx.yPos += ctx.lineHeight;
     }
     ctx.yPos += 5;
@@ -542,24 +703,32 @@ export const renderLawfareDefense: SectionRenderer = (ctx, data) => {
 // ============================================
 export const renderReputationDefense: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.reputationIncidents) || !data.reputationIncidents.length) return;
+  
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.reputationIncidents) && data.reputationIncidents.length)
+    ? data.reputationIncidents
+    : getAnalysisForSection(data, 'reputationDefense');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('Reputation Defense Status', [150, 100, 0]);
-  const incidents = data.reputationIncidents as Array<Record<string, unknown>>;
+  
+  const incidents = Array.isArray(rawData) ? rawData : [rawData];
   
   ctx.checkPageBreak(50);
   doc.setFillColor(255, 250, 240);
   doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
   
-  doc.setFontSize(10);
+  doc.setFontSize(PDF_DESIGN.fonts.subheader);
   doc.setFont('helvetica', 'bold');
   doc.text(`${incidents.length} Reputation Incident(s) Tracked`, ctx.margin + 5, ctx.yPos + 8);
   ctx.yPos += 15;
   
-  incidents.slice(0, 3).forEach((inc) => {
+  (incidents as Array<Record<string, unknown>>).slice(0, 3).forEach((inc) => {
+    const incData = extractResult(inc);
     ctx.checkPageBreak(20);
-    doc.setFontSize(9);
-    doc.text(`• ${inc.incident_type || 'Incident'} on ${inc.platform || 'Unknown Platform'} (Severity: ${inc.severity || 'N/A'})`, ctx.margin, ctx.yPos);
+    doc.setFontSize(PDF_DESIGN.fonts.body);
+    doc.text(`• ${incData.incident_type || 'Incident'} on ${incData.platform || 'Unknown Platform'} (Severity: ${incData.severity || 'N/A'})`, ctx.margin, ctx.yPos);
     ctx.yPos += ctx.lineHeight + 3;
   });
   ctx.yPos += 8;
@@ -570,11 +739,14 @@ export const renderReputationDefense: SectionRenderer = (ctx, data) => {
 // ============================================
 export const renderFamilyProtection: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
+  
   const hasPersons = Array.isArray(data.protectedPersons) && data.protectedPersons.length > 0;
   const hasProtocols = Array.isArray(data.emergencyProtocols) && data.emergencyProtocols.length > 0;
-  if (!hasPersons && !hasProtocols) return;
+  const analysisData = getAnalysisForSection(data, 'familyProtection');
   
-  ctx.renderSectionHeader('Family & VIP Protection', [0, 100, 150]);
+  if (!hasPersons && !hasProtocols && !analysisData) return;
+  
+  ctx.renderSectionHeader('Family & VIP Protection', PDF_DESIGN.colors.info);
   
   ctx.checkPageBreak(60);
   doc.setFillColor(240, 250, 255);
@@ -604,24 +776,32 @@ export const renderFamilyProtection: SectionRenderer = (ctx, data) => {
 // ============================================
 export const renderEconomicWarfare: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.economicThreats) || !data.economicThreats.length) return;
+  
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.economicThreats) && data.economicThreats.length)
+    ? data.economicThreats
+    : getAnalysisForSection(data, 'economicWarfare');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('Economic Warfare Assessment', [150, 50, 50]);
-  const threats = data.economicThreats as Array<Record<string, unknown>>;
+  
+  const threats = Array.isArray(rawData) ? rawData : [rawData];
   
   ctx.checkPageBreak(50);
   doc.setFillColor(255, 245, 245);
   doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
   
-  threats.slice(0, 3).forEach((threat) => {
+  (threats as Array<Record<string, unknown>>).slice(0, 3).forEach((threat) => {
+    const threatData = extractResult(threat);
     ctx.checkPageBreak(25);
-    ctx.renderSubsection(`${threat.threat_type || 'Economic Threat'}`);
-    doc.setFontSize(9);
-    if (threat.financial_exposure !== undefined) {
-      doc.text(`Financial Exposure: $${(threat.financial_exposure as number).toLocaleString()}`, ctx.margin, ctx.yPos);
+    ctx.renderSubsection(`${threatData.threat_type || 'Economic Threat'}`);
+    doc.setFontSize(PDF_DESIGN.fonts.body);
+    if (threatData.financial_exposure !== undefined) {
+      doc.text(`Financial Exposure: $${(threatData.financial_exposure as number).toLocaleString()}`, ctx.margin, ctx.yPos);
       ctx.yPos += ctx.lineHeight;
     }
-    doc.text(`Status: ${threat.status || 'Active'}`, ctx.margin, ctx.yPos);
+    doc.text(`Status: ${threatData.status || 'Active'}`, ctx.margin, ctx.yPos);
     ctx.yPos += ctx.lineHeight + 5;
   });
   ctx.yPos += 8;
@@ -632,26 +812,34 @@ export const renderEconomicWarfare: SectionRenderer = (ctx, data) => {
 // ============================================
 export const renderTscmSweep: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.tscmSweeps) || !data.tscmSweeps.length) return;
+  
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.tscmSweeps) && data.tscmSweeps.length)
+    ? data.tscmSweeps
+    : getAnalysisForSection(data, 'tscmSweep');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('TSCM Sweep Results', [50, 100, 150]);
-  const sweeps = data.tscmSweeps as Array<Record<string, unknown>>;
+  
+  const sweeps = Array.isArray(rawData) ? rawData : [rawData];
   
   ctx.checkPageBreak(50);
   doc.setFillColor(245, 250, 255);
   doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
   
-  sweeps.slice(0, 3).forEach((sweep) => {
+  (sweeps as Array<Record<string, unknown>>).slice(0, 3).forEach((sweep) => {
+    const sweepData = extractResult(sweep);
     ctx.checkPageBreak(25);
-    ctx.renderSubsection(`${sweep.sweep_type || 'TSCM Sweep'} - ${sweep.location || 'Unknown Location'}`);
-    doc.setFontSize(9);
-    doc.text(`Date: ${sweep.sweep_date || 'N/A'} | Status: ${sweep.status || 'Completed'}`, ctx.margin, ctx.yPos);
+    ctx.renderSubsection(`${sweepData.sweep_type || 'TSCM Sweep'} - ${sweepData.location || 'Unknown Location'}`);
+    doc.setFontSize(PDF_DESIGN.fonts.body);
+    doc.text(`Date: ${sweepData.sweep_date || 'N/A'} | Status: ${sweepData.status || 'Completed'}`, ctx.margin, ctx.yPos);
     ctx.yPos += ctx.lineHeight;
     
-    if (sweep.devices_detected) {
-      const devices = sweep.devices_detected as any[];
+    if (sweepData.devices_detected) {
+      const devices = sweepData.devices_detected as any[];
       if (devices.length > 0) {
-        doc.setTextColor(200, 0, 0);
+        doc.setTextColor(...PDF_DESIGN.colors.danger);
         doc.text(`⚠ ${devices.length} Device(s) Detected`, ctx.margin, ctx.yPos);
         doc.setTextColor(0);
         ctx.yPos += ctx.lineHeight;
@@ -667,26 +855,33 @@ export const renderTscmSweep: SectionRenderer = (ctx, data) => {
 // ============================================
 export const renderDigitalFootprint: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.digitalFootprints) || !data.digitalFootprints.length) return;
+  
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.digitalFootprints) && data.digitalFootprints.length)
+    ? data.digitalFootprints
+    : getAnalysisForSection(data, 'digitalFootprint');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('Digital Footprint Analysis', [100, 0, 150]);
-  const items = data.digitalFootprints as Array<Record<string, unknown>>;
+  
+  const items = Array.isArray(rawData) ? rawData : [rawData];
   
   ctx.checkPageBreak(50);
   doc.setFillColor(250, 245, 255);
   doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
   
-  doc.setFontSize(10);
+  doc.setFontSize(PDF_DESIGN.fonts.subheader);
   doc.setFont('helvetica', 'bold');
   doc.text(`${items.length} Digital Footprint Items Discovered`, ctx.margin + 5, ctx.yPos + 8);
   ctx.yPos += 15;
   
   // Group by platform
-  const platforms = new Set(items.map(i => i.platform as string));
-  doc.setFontSize(9);
+  const platforms = new Set((items as Array<Record<string, unknown>>).map(i => extractResult(i).platform as string).filter(Boolean));
+  doc.setFontSize(PDF_DESIGN.fonts.body);
   doc.setFont('helvetica', 'normal');
   Array.from(platforms).slice(0, 5).forEach(platform => {
-    const count = items.filter(i => i.platform === platform).length;
+    const count = (items as Array<Record<string, unknown>>).filter(i => extractResult(i).platform === platform).length;
     doc.text(`• ${platform}: ${count} item(s)`, ctx.margin, ctx.yPos);
     ctx.yPos += ctx.lineHeight;
   });
@@ -698,16 +893,22 @@ export const renderDigitalFootprint: SectionRenderer = (ctx, data) => {
 // ============================================
 export const renderBehavioralBaseline: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.behavioralBaselines) || !data.behavioralBaselines.length) return;
+  
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.behavioralBaselines) && data.behavioralBaselines.length)
+    ? data.behavioralBaselines[0]
+    : getAnalysisForSection(data, 'behavioralBaseline');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('Behavioral Baseline', [0, 128, 100]);
-  const baseline = (data.behavioralBaselines as Array<Record<string, unknown>>)[0];
+  const baseline = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(50);
   doc.setFillColor(240, 255, 250);
   doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
   
-  doc.setFontSize(10);
+  doc.setFontSize(PDF_DESIGN.fonts.subheader);
   doc.text(`Baseline Date: ${baseline.baseline_date || 'N/A'}`, ctx.margin + 5, ctx.yPos + 8);
   ctx.yPos += 15;
   

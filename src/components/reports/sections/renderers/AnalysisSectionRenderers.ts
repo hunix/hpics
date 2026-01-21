@@ -1,11 +1,13 @@
 /**
- * Analysis Section Renderers (v3.9.30)
+ * Analysis Section Renderers (v3.9.31)
  * Renders: Behavioral Analysis, Influence Resistance, Behavioral Economics,
  *          Network Position, Prediction Accuracy, Counter-Intel, Proportional Response
- * v3.9.30: Removed unsafe date-fns format import, uses safeFormatDate instead
+ * v3.9.31: Universal extractResult pattern, PDF_DESIGN tokens, fallback to allAnalyses
  */
 
 import type { SectionRenderer } from './types';
+import { PDF_DESIGN } from '../../hooks/usePDFGeneration';
+import { getAnalysisForSection, extractResult } from '../../utils/sectionDataCheck';
 
 export const renderBehavioralAnalysis: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
@@ -23,10 +25,10 @@ export const renderBehavioralAnalysis: SectionRenderer = (ctx, data) => {
     ctx.checkPageBreak(25);
     const analysisType = (analysis.analysis_type as string)?.replace(/_/g, ' ').toUpperCase() || 'UNKNOWN';
     ctx.renderSubsection(analysisType);
-    const result = analysis.result as Record<string, unknown>;
+    const result = extractResult(analysis);
     if (result?.summary) {
       const lines = doc.splitTextToSize(String(result.summary), ctx.contentWidth - 10);
-      doc.setFontSize(9);
+      doc.setFontSize(PDF_DESIGN.fonts.body);
       doc.setFont('helvetica', 'normal');
       doc.text(lines.slice(0, 3), ctx.margin, ctx.yPos);
       ctx.yPos += Math.min(lines.length, 3) * ctx.lineHeight + 5;
@@ -37,12 +39,16 @@ export const renderBehavioralAnalysis: SectionRenderer = (ctx, data) => {
 
 export const renderInfluenceResistance: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.influenceResistanceData) || !data.influenceResistanceData.length) return;
   
-  ctx.renderSectionHeader('Influence Resistance Profile', [0, 100, 150]);
-  // v3.7.5: Extract from .result field if present (ai_analyses format)
-  const rawData = (data.influenceResistanceData as Array<Record<string, unknown>>)[0];
-  const resistance = ((rawData?.result || rawData) as Record<string, unknown>) || {};
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.influenceResistanceData) && data.influenceResistanceData.length)
+    ? data.influenceResistanceData[0]
+    : getAnalysisForSection(data, 'influenceResistance');
+  
+  if (!rawData) return;
+  
+  ctx.renderSectionHeader('Influence Resistance Profile', PDF_DESIGN.colors.info);
+  const resistance = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(45);
   doc.setFillColor(240, 248, 255);
@@ -63,22 +69,26 @@ export const renderInfluenceResistance: SectionRenderer = (ctx, data) => {
 
 export const renderBehavioralEconomics: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.financialPsychData) || !data.financialPsychData.length) return;
+  
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.financialPsychData) && data.financialPsychData.length)
+    ? data.financialPsychData[0]
+    : getAnalysisForSection(data, 'behavioralEconomics');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('Behavioral Economics Profile', [0, 128, 64]);
-  // v3.7.5: Extract from .result field if present (ai_analyses format)
-  const rawData = (data.financialPsychData as Array<Record<string, unknown>>)[0];
-  const finPsych = ((rawData?.result || rawData) as Record<string, unknown>) || {};
+  const finPsych = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(50);
   doc.setFillColor(240, 255, 245);
   doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
   
   if (finPsych.loss_aversion_score !== undefined) {
-    ctx.renderScoreBar('Loss Aversion', (finPsych.loss_aversion_score as number) * 100, 100, [200, 100, 0]);
+    ctx.renderScoreBar('Loss Aversion', (finPsych.loss_aversion_score as number) * 100, 100, PDF_DESIGN.colors.mediumRisk);
   }
   if (finPsych.risk_tolerance !== undefined) {
-    ctx.renderScoreBar('Risk Tolerance', (finPsych.risk_tolerance as number) * 100, 100, [0, 150, 100]);
+    ctx.renderScoreBar('Risk Tolerance', (finPsych.risk_tolerance as number) * 100, 100, PDF_DESIGN.colors.success);
   }
   
   if (finPsych.cognitive_biases) {
@@ -92,12 +102,16 @@ export const renderBehavioralEconomics: SectionRenderer = (ctx, data) => {
 
 export const renderNetworkPosition: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.networkPositionData) || !data.networkPositionData.length) return;
+  
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.networkPositionData) && data.networkPositionData.length)
+    ? data.networkPositionData[0]
+    : getAnalysisForSection(data, 'networkPosition');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('Network Position Analysis', [100, 50, 150]);
-  // v3.7.5: Extract from .result field if present (ai_analyses format)
-  const rawData = (data.networkPositionData as Array<Record<string, unknown>>)[0];
-  const position = ((rawData?.result || rawData) as Record<string, unknown>) || {};
+  const position = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(40);
   doc.setFillColor(250, 245, 255);
@@ -113,7 +127,7 @@ export const renderNetworkPosition: SectionRenderer = (ctx, data) => {
   metrics.forEach((m, i) => {
     if (m.value === undefined) return;
     const x = ctx.margin + 5 + (i * boxWidth);
-    doc.setFontSize(8);
+    doc.setFontSize(PDF_DESIGN.fonts.small);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(100, 50, 150);
     doc.text(m.label, x, ctx.yPos + 8);
@@ -127,24 +141,35 @@ export const renderNetworkPosition: SectionRenderer = (ctx, data) => {
 
 export const renderPredictionAccuracy: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.predictionHistoryData) || !data.predictionHistoryData.length) return;
   
-  ctx.renderSectionHeader('Prediction Accuracy Tracking', [80, 80, 80]);
-  const predictions = data.predictionHistoryData as Array<Record<string, unknown>>;
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.predictionHistoryData) && data.predictionHistoryData.length)
+    ? data.predictionHistoryData
+    : getAnalysisForSection(data, 'predictionAccuracy');
   
-  const totalPredictions = predictions.length;
-  const accuratePredictions = predictions.filter(p => p.was_accurate === true).length;
+  if (!rawData) return;
+  
+  ctx.renderSectionHeader('Prediction Accuracy Tracking', PDF_DESIGN.colors.core);
+  
+  const predictions = Array.isArray(rawData) ? rawData : [rawData];
+  const predArray = predictions as Array<Record<string, unknown>>;
+  
+  const totalPredictions = predArray.length;
+  const accuratePredictions = predArray.filter(p => {
+    const pData = extractResult(p);
+    return pData.was_accurate === true;
+  }).length;
   const accuracy = totalPredictions > 0 ? (accuratePredictions / totalPredictions) * 100 : 0;
   
   ctx.checkPageBreak(30);
   doc.setFillColor(245, 245, 245);
   doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 25, 3, 3, 'F');
   
-  doc.setFontSize(10);
+  doc.setFontSize(PDF_DESIGN.fonts.subheader);
   doc.setFont('helvetica', 'bold');
   doc.text(`Historical Accuracy: ${accuracy.toFixed(1)}%`, ctx.margin + 5, ctx.yPos + 8);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
+  doc.setFontSize(PDF_DESIGN.fonts.small);
   doc.text(`(${accuratePredictions}/${totalPredictions} predictions verified)`, ctx.margin + 5, ctx.yPos + 16);
   ctx.yPos += 30;
   ctx.yPos += 8;
@@ -152,12 +177,16 @@ export const renderPredictionAccuracy: SectionRenderer = (ctx, data) => {
 
 export const renderCounterIntel: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.counterIntelData) || !data.counterIntelData.length) return;
+  
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.counterIntelData) && data.counterIntelData.length)
+    ? data.counterIntelData[0]
+    : getAnalysisForSection(data, 'counterIntel');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('Counter-Intelligence Assessment', [128, 0, 64]);
-  // v3.7.5: Extract from .result field if present (ai_analyses format)
-  const rawData = (data.counterIntelData as Array<Record<string, unknown>>)[0];
-  const counterIntel = ((rawData?.result || rawData) as Record<string, unknown>) || {};
+  const counterIntel = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(40);
   doc.setFillColor(255, 245, 250);
@@ -168,8 +197,15 @@ export const renderCounterIntel: SectionRenderer = (ctx, data) => {
   }
   
   if (counterIntel.operational_security_score !== undefined) {
-    ctx.renderScoreBar('OpSec Score', (counterIntel.operational_security_score as number) * 100, 100, [0, 128, 64]);
+    ctx.renderScoreBar('OpSec Score', (counterIntel.operational_security_score as number) * 100, 100, PDF_DESIGN.colors.success);
   }
+  
+  if (counterIntel.counter_measures) {
+    const measures = counterIntel.counter_measures as string[];
+    ctx.renderSubsection('Recommended Counter-Measures');
+    measures.slice(0, 3).forEach(m => ctx.renderBullet(m, 5));
+  }
+  
   ctx.yPos += 8;
 };
 
@@ -181,17 +217,18 @@ export const renderProportionalResponse: SectionRenderer = (ctx, data) => {
   const responses = data.proportionalResponseData as Array<Record<string, unknown>>;
   
   responses.slice(0, 5).forEach((response) => {
+    const respData = extractResult(response);
     ctx.checkPageBreak(25);
-    const incidentType = (response.incident_type as string)?.toUpperCase() || 'INCIDENT';
+    const incidentType = (respData.incident_type as string)?.toUpperCase() || 'INCIDENT';
     ctx.renderSubsection(incidentType);
-    doc.setFontSize(9);
+    doc.setFontSize(PDF_DESIGN.fonts.body);
     doc.setFont('helvetica', 'normal');
-    if (response.recommended_response) {
-      doc.text(`Response: ${response.recommended_response}`, ctx.margin, ctx.yPos);
+    if (respData.recommended_response) {
+      doc.text(`Response: ${respData.recommended_response}`, ctx.margin, ctx.yPos);
       ctx.yPos += ctx.lineHeight;
     }
-    if (response.severity_level !== undefined) {
-      doc.text(`Severity: ${response.severity_level}/10`, ctx.margin, ctx.yPos);
+    if (respData.severity_level !== undefined) {
+      doc.text(`Severity: ${respData.severity_level}/10`, ctx.margin, ctx.yPos);
       ctx.yPos += ctx.lineHeight;
     }
     ctx.yPos += 3;
@@ -201,12 +238,16 @@ export const renderProportionalResponse: SectionRenderer = (ctx, data) => {
 
 export const renderCrossModalDeception: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.deceptionAnalysisData) || !data.deceptionAnalysisData.length) return;
   
-  ctx.renderSectionHeader('Cross-Modal Deception Analysis', [180, 0, 0]);
-  // v3.7.5: Extract from .result field if present (ai_analyses format)
-  const rawData = (data.deceptionAnalysisData as Array<Record<string, unknown>>)[0];
-  const deception = ((rawData?.result || rawData) as Record<string, unknown>) || {};
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.deceptionAnalysisData) && data.deceptionAnalysisData.length)
+    ? data.deceptionAnalysisData[0]
+    : getAnalysisForSection(data, 'crossModal');
+  
+  if (!rawData) return;
+  
+  ctx.renderSectionHeader('Cross-Modal Deception Analysis', PDF_DESIGN.colors.danger);
+  const deception = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(45);
   doc.setFillColor(255, 240, 240);
@@ -214,7 +255,7 @@ export const renderCrossModalDeception: SectionRenderer = (ctx, data) => {
   
   if (deception.overall_deception_score !== undefined) {
     const score = (deception.overall_deception_score as number) * 100;
-    const color: [number, number, number] = score > 70 ? [180, 0, 0] : score > 40 ? [200, 150, 0] : [0, 150, 0];
+    const color: [number, number, number] = score > 70 ? PDF_DESIGN.colors.danger : score > 40 ? PDF_DESIGN.colors.warning : PDF_DESIGN.colors.success;
     ctx.renderScoreBar('Deception Likelihood', score, 100, color);
   }
   
@@ -235,25 +276,26 @@ export const renderActionPlans: SectionRenderer = (ctx, data) => {
   const plans = data.actionPlansData as Array<Record<string, unknown>>;
   
   plans.slice(0, 5).forEach((plan) => {
+    const planData = extractResult(plan);
     ctx.checkPageBreak(30);
-    const title = (plan.title as string) || 'Untitled Plan';
+    const title = (planData.title as string) || 'Untitled Plan';
     ctx.renderSubsection(title);
     
-    if (plan.priority_score !== undefined) {
-      doc.setFontSize(8);
+    if (planData.priority_score !== undefined) {
+      doc.setFontSize(PDF_DESIGN.fonts.small);
       doc.setFont('helvetica', 'bold');
-      const priority = plan.priority_score as number;
-      const color: [number, number, number] = priority > 80 ? [180, 0, 0] : priority > 50 ? [200, 150, 0] : [100, 100, 100];
+      const priority = planData.priority_score as number;
+      const color: [number, number, number] = priority > 80 ? PDF_DESIGN.colors.danger : priority > 50 ? PDF_DESIGN.colors.warning : PDF_DESIGN.colors.muted;
       doc.setTextColor(...color);
       doc.text(`PRIORITY: ${priority}`, ctx.margin, ctx.yPos);
       doc.setTextColor(0);
       ctx.yPos += ctx.lineHeight;
     }
     
-    if (plan.suggested_action) {
-      doc.setFontSize(9);
+    if (planData.suggested_action) {
+      doc.setFontSize(PDF_DESIGN.fonts.body);
       doc.setFont('helvetica', 'normal');
-      const lines = doc.splitTextToSize(String(plan.suggested_action), ctx.contentWidth - 10);
+      const lines = doc.splitTextToSize(String(planData.suggested_action), ctx.contentWidth - 10);
       doc.text(lines.slice(0, 2), ctx.margin, ctx.yPos);
       ctx.yPos += Math.min(lines.length, 2) * ctx.lineHeight + 3;
     }
@@ -267,6 +309,7 @@ export const analysisSectionRenderers = {
   influenceResistance: renderInfluenceResistance,
   behavioralEconomics: renderBehavioralEconomics,
   network: renderNetworkPosition,
+  networkPosition: renderNetworkPosition,
   predictionAccuracy: renderPredictionAccuracy,
   counterIntel: renderCounterIntel,
   proportionalResponse: renderProportionalResponse,

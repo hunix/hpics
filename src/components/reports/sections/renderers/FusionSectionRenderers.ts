@@ -1,13 +1,14 @@
 /**
- * Fusion Section Renderers (v3.9.24)
- * v3.9.24: Added allAnalyses fallback pattern
+ * Fusion Section Renderers (v3.9.31)
+ * v3.9.31: Universal extractResult pattern, PDF_DESIGN tokens, fallback to allAnalyses
  */
 
 import type { SectionRenderer } from './types';
+import { PDF_DESIGN } from '../../hooks/usePDFGeneration';
 import { getAnalysisForSection, extractResult } from '../../utils/sectionDataCheck';
 
 export const renderTemporalFusion: SectionRenderer = (ctx, data) => {
-  // v3.9.24: Try specific data field first, then fallback to allAnalyses
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
   const rawData = data.temporalFusionData?.length
     ? data.temporalFusionData[0]
     : getAnalysisForSection(data, 'temporalFusion');
@@ -23,81 +24,185 @@ export const renderTemporalFusion: SectionRenderer = (ctx, data) => {
       ctx.renderBullet(`${f.behavior || f.prediction}: ${f.timeframe || '30d'}`, 5);
     });
   }
+  
+  if (tft?.temporal_patterns) {
+    const patterns = tft.temporal_patterns as string[];
+    ctx.renderSubsection('Temporal Patterns');
+    patterns.slice(0, 3).forEach(p => ctx.renderBullet(p, 5));
+  }
+  
   ctx.yPos += 8;
 };
 
 export const renderDigitalTwin: SectionRenderer = (ctx, data) => {
-  if (!data.digitalTwinData?.length) return;
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = data.digitalTwinData?.length
+    ? data.digitalTwinData[0]
+    : getAnalysisForSection(data, 'digitalTwin');
+  
+  if (!rawData) return;
+  
   ctx.renderSectionHeader('Behavioral Digital Twin', [100, 50, 150]);
-  const twin = (data.digitalTwinData as Array<Record<string, unknown>>)[0]?.result as Record<string, unknown>;
-  if (twin?.fidelity_score) {
+  const twin = extractResult(rawData as Record<string, unknown>);
+  
+  if (twin?.fidelity_score !== undefined) {
     ctx.renderScoreBar('Twin Fidelity', (twin.fidelity_score as number) * 100, 100, [100, 50, 150]);
   }
+  
+  if (twin?.simulation_accuracy !== undefined) {
+    ctx.renderScoreBar('Simulation Accuracy', (twin.simulation_accuracy as number) * 100, 100, PDF_DESIGN.colors.success);
+  }
+  
   ctx.yPos += 8;
 };
 
 export const renderGraphRAG: SectionRenderer = (ctx, data) => {
-  if (!data.graphRagData?.length) return;
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = data.graphRagData?.length
+    ? data.graphRagData[0]
+    : getAnalysisForSection(data, 'graphRag');
+  
+  if (!rawData) return;
+  
   ctx.renderSectionHeader('Graph RAG Intelligence', [0, 150, 100]);
-  const graph = (data.graphRagData as Array<Record<string, unknown>>)[0]?.result as Record<string, unknown>;
-  if (graph?.retrieval_quality) {
+  const graph = extractResult(rawData as Record<string, unknown>);
+  
+  if (graph?.retrieval_quality !== undefined) {
     ctx.renderScoreBar('Retrieval Quality', (graph.retrieval_quality as number) * 100, 100, [0, 150, 100]);
   }
+  
+  if (graph?.key_entities) {
+    const entities = graph.key_entities as string[];
+    ctx.renderSubsection('Key Entities');
+    entities.slice(0, 5).forEach(e => ctx.renderBullet(e, 5));
+  }
+  
   ctx.yPos += 8;
 };
 
 export const renderShadowNetwork: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.shadowNetworkData?.length) return;
+  
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = data.shadowNetworkData?.length
+    ? data.shadowNetworkData[0]
+    : getAnalysisForSection(data, 'shadowNetwork');
+  
+  if (!rawData) return;
+  
   ctx.renderSectionHeader('Shadow Network Analysis', [50, 50, 80]);
-  const shadow = (data.shadowNetworkData as Array<Record<string, unknown>>)[0]?.result as Record<string, unknown>;
-  if (shadow) {
-    ctx.checkPageBreak(25);
-    doc.setFillColor(245, 245, 250);
-    doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 20, 3, 3, 'F');
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`Hidden Connections: ${shadow.hidden_connection_count || 0}`, ctx.margin + 5, ctx.yPos + 5);
-    ctx.yPos += 25;
+  const shadow = extractResult(rawData as Record<string, unknown>);
+  
+  ctx.checkPageBreak(25);
+  doc.setFillColor(245, 245, 250);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 20, 3, 3, 'F');
+  doc.setFontSize(PDF_DESIGN.fonts.body);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Hidden Connections: ${shadow.hidden_connection_count || shadow.connection_count || 0}`, ctx.margin + 5, ctx.yPos + 5);
+  ctx.yPos += 25;
+  
+  if (shadow.hidden_relationships) {
+    const relationships = shadow.hidden_relationships as Array<Record<string, unknown>>;
+    ctx.renderSubsection('Hidden Relationships');
+    relationships.slice(0, 3).forEach(r => {
+      ctx.renderBullet(`${r.entity_a || 'Unknown'} ↔ ${r.entity_b || 'Unknown'}`, 5);
+    });
   }
+  
   ctx.yPos += 8;
 };
 
 export const renderDempsterShafer: SectionRenderer = (ctx, data) => {
-  if (!data.dempsterShaferData?.length) return;
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = data.dempsterShaferData?.length
+    ? data.dempsterShaferData[0]
+    : getAnalysisForSection(data, 'dempsterShafer');
+  
+  if (!rawData) return;
+  
   ctx.renderSectionHeader('Dempster-Shafer Evidence Fusion', [150, 100, 0]);
-  const ds = (data.dempsterShaferData as Array<Record<string, unknown>>)[0]?.result as Record<string, unknown>;
+  const ds = extractResult(rawData as Record<string, unknown>);
+  
   if (ds?.uncertainty_score !== undefined) {
-    ctx.renderScoreBar('Uncertainty', (ds.uncertainty_score as number) * 100, 100, [200, 50, 50]);
+    ctx.renderScoreBar('Uncertainty', (ds.uncertainty_score as number) * 100, 100, PDF_DESIGN.colors.danger);
   }
+  
+  if (ds?.belief_mass !== undefined) {
+    ctx.renderScoreBar('Belief Mass', (ds.belief_mass as number) * 100, 100, PDF_DESIGN.colors.success);
+  }
+  
+  if (ds?.evidence_sources) {
+    const sources = ds.evidence_sources as string[];
+    ctx.renderSubsection('Evidence Sources');
+    sources.slice(0, 4).forEach(s => ctx.renderBullet(s, 5));
+  }
+  
   ctx.yPos += 8;
 };
 
 export const renderCounterfactual: SectionRenderer = (ctx, data) => {
-  if (!data.counterfactualData?.length) return;
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = data.counterfactualData?.length
+    ? data.counterfactualData[0]
+    : getAnalysisForSection(data, 'counterfactual');
+  
+  if (!rawData) return;
+  
   ctx.renderSectionHeader('Counterfactual Analysis', [120, 80, 160]);
+  const cf = extractResult(rawData as Record<string, unknown>);
+  
+  if (cf?.scenarios) {
+    const scenarios = cf.scenarios as Array<Record<string, unknown>>;
+    ctx.renderSubsection('Alternative Scenarios');
+    scenarios.slice(0, 4).forEach(s => {
+      const label = s.scenario as string || s.label as string || 'Unknown';
+      const probability = (s.probability as number) || 0;
+      ctx.renderBullet(`${label} (${Math.round(probability * 100)}%)`, 5);
+    });
+  }
+  
   ctx.yPos += 8;
 };
 
 export const renderMosaicFusion: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.mosaicFusionData?.length) return;
-  ctx.renderSectionHeader('Mosaic Intelligence Fusion', [75, 0, 130]);
-  const fusion = (data.mosaicFusionData as Array<Record<string, unknown>>)[0];
+  
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = data.mosaicFusionData?.length
+    ? data.mosaicFusionData[0]
+    : getAnalysisForSection(data, 'mosaicFusion');
+  
+  if (!rawData) return;
+  
+  ctx.renderSectionHeader('Mosaic Intelligence Fusion', PDF_DESIGN.colors.fusion);
+  const fusion = extractResult(rawData as Record<string, unknown>);
+  
   ctx.checkPageBreak(20);
-  doc.setFontSize(10);
+  doc.setFontSize(PDF_DESIGN.fonts.subheader);
   doc.setFont('helvetica', 'bold');
   doc.text(`Fusion Type: ${(fusion.fusion_type as string)?.toUpperCase() || 'COMPREHENSIVE'}`, ctx.margin, ctx.yPos);
   ctx.yPos += ctx.lineHeight + 8;
+  
+  if (fusion.synthesis_insights) {
+    const insights = fusion.synthesis_insights as string[];
+    ctx.renderSubsection('Synthesis Insights');
+    insights.slice(0, 4).forEach(i => ctx.renderBullet(i, 5));
+  }
 };
 
 // Pattern of Life Fusion renderer
 export const renderPatternOfLifeFusion: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.patternOfLifeEngineData) || !data.patternOfLifeEngineData.length) return;
+  
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = (Array.isArray(data.patternOfLifeEngineData) && data.patternOfLifeEngineData.length)
+    ? data.patternOfLifeEngineData[0]
+    : getAnalysisForSection(data, 'patternOfLifeFusion');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('Pattern-of-Life Engine', [80, 100, 130]);
-  const pol = (data.patternOfLifeEngineData as Array<Record<string, unknown>>)[0]?.result as Record<string, unknown>;
+  const pol = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(50);
   doc.setFillColor(245, 248, 255);
@@ -124,10 +229,16 @@ export const renderPatternOfLifeFusion: SectionRenderer = (ctx, data) => {
 // Entity Resolution renderer
 export const renderEntityResolution: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.entityResolutionData?.length) return;
+  
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = data.entityResolutionData?.length
+    ? data.entityResolutionData[0]
+    : getAnalysisForSection(data, 'entityResolution');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('Entity Resolution & Alias Detection', [100, 80, 60]);
-  const entity = (data.entityResolutionData as Array<Record<string, unknown>>)[0]?.result as Record<string, unknown>;
+  const entity = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(50);
   doc.setFillColor(255, 250, 245);
@@ -143,9 +254,9 @@ export const renderEntityResolution: SectionRenderer = (ctx, data) => {
     });
   }
   
-  if (entity?.merged_profiles) {
+  if (entity?.merged_profiles !== undefined) {
     const merged = entity.merged_profiles as number;
-    doc.setFontSize(9);
+    doc.setFontSize(PDF_DESIGN.fonts.body);
     doc.setFont('helvetica', 'normal');
     doc.text(`Merged Profiles: ${merged}`, ctx.margin + 5, ctx.yPos);
     ctx.yPos += ctx.lineHeight;
@@ -156,10 +267,16 @@ export const renderEntityResolution: SectionRenderer = (ctx, data) => {
 // Sentiment Cascade renderer
 export const renderSentimentCascade: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.sentimentCascadeData?.length) return;
+  
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = data.sentimentCascadeData?.length
+    ? data.sentimentCascadeData[0]
+    : getAnalysisForSection(data, 'sentimentCascade');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('Sentiment Cascade Prediction (SIR Model)', [150, 80, 80]);
-  const sentiment = (data.sentimentCascadeData as Array<Record<string, unknown>>)[0]?.result as Record<string, unknown>;
+  const sentiment = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(50);
   doc.setFillColor(255, 248, 248);
@@ -185,10 +302,16 @@ export const renderSentimentCascade: SectionRenderer = (ctx, data) => {
 // Cross-Domain Synthesis renderer
 export const renderCrossDomainSynthesis: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.crossDomainData) || !data.crossDomainData.length) return;
+  
+  // v3.9.31: Try multiple sources
+  const rawData = (Array.isArray((data as Record<string, unknown>).crossDomainData) && ((data as Record<string, unknown>).crossDomainData as unknown[]).length)
+    ? ((data as Record<string, unknown>).crossDomainData as unknown[])[0]
+    : getAnalysisForSection(data, 'crossDomainSynthesis');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('Cross-Domain Intelligence Synthesis', [75, 100, 150]);
-  const cross = (data.crossDomainData as Array<Record<string, unknown>>)[0]?.result as Record<string, unknown>;
+  const cross = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(50);
   doc.setFillColor(245, 250, 255);
@@ -216,10 +339,16 @@ export const renderCrossDomainSynthesis: SectionRenderer = (ctx, data) => {
 // Predictive Convergence renderer
 export const renderPredictiveConvergence: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!Array.isArray(data.convergenceData) || !data.convergenceData.length) return;
+  
+  // v3.9.31: Try multiple sources
+  const rawData = (Array.isArray((data as Record<string, unknown>).convergenceData) && ((data as Record<string, unknown>).convergenceData as unknown[]).length)
+    ? ((data as Record<string, unknown>).convergenceData as unknown[])[0]
+    : getAnalysisForSection(data, 'predictiveConvergence');
+  
+  if (!rawData) return;
   
   ctx.renderSectionHeader('Predictive Convergence Analysis', [100, 50, 150]);
-  const convergence = (data.convergenceData as Array<Record<string, unknown>>)[0];
+  const convergence = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(40);
   doc.setFillColor(250, 245, 255);

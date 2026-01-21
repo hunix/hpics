@@ -1,22 +1,27 @@
 /**
- * Core Section Renderers (v3.9.30)
+ * Core Section Renderers (v3.9.31)
  * Renders: Executive Brief, Source Dashboard, Contact Overview, Timeline
- * v3.9.30: Uses safeFormatDate for robust date handling
+ * v3.9.31: Consistent extractResult pattern, uses PDF_DESIGN tokens
  */
 
 import type { SectionRenderer } from './types';
 import { CIALDINI_PRINCIPLES } from '../types';
-import { safeFormatDate } from '../../hooks/usePDFGeneration';
+import { safeFormatDate, PDF_DESIGN } from '../../hooks/usePDFGeneration';
+import { getAnalysisForSection, extractResult } from '../../utils/sectionDataCheck';
 
 export const renderExecutiveBrief: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
   
   const psych = data.psychData?.[0] as Record<string, unknown> | undefined;
   const attachmentStyle = psych?.attachment_style as Record<string, unknown> | undefined;
-  const riskColor: [number, number, number] = data.totalAnomalies > 2 ? [180, 0, 0] : data.totalAnomalies > 0 ? [180, 100, 0] : [0, 120, 0];
+  const riskColor: [number, number, number] = data.totalAnomalies > 2 
+    ? PDF_DESIGN.colors.highRisk 
+    : data.totalAnomalies > 0 
+      ? PDF_DESIGN.colors.mediumRisk 
+      : PDF_DESIGN.colors.lowRisk;
   const riskLevel = data.totalAnomalies > 2 ? 'HIGH' : data.totalAnomalies > 0 ? 'MEDIUM' : 'LOW';
   
-  ctx.renderSectionHeader('Executive Intelligence Brief', [0, 51, 102]);
+  ctx.renderSectionHeader('Executive Intelligence Brief', PDF_DESIGN.colors.intelligence);
   
   // Subject Classification Box
   ctx.checkPageBreak(20);
@@ -35,9 +40,13 @@ export const renderExecutiveBrief: SectionRenderer = (ctx, data) => {
     ctx.renderBullet(`Attachment Pattern: ${attachmentStyle.primary_style} (Anxiety: ${attachmentStyle.anxiety_score || 0}%, Avoidance: ${attachmentStyle.avoidance_score || 0}%)`);
   }
   
-  if (data.relationshipAnalysis?.result) {
-    const rel = data.relationshipAnalysis.result as Record<string, unknown>;
-    ctx.renderBullet(`Relationship Status: Score ${rel.score || 0}/100, Grade ${rel.grade || 'N/A'}`);
+  // Try relationshipAnalysis with extractResult
+  const relData = data.relationshipAnalysis || getAnalysisForSection(data, 'relationship');
+  if (relData) {
+    const rel = extractResult(relData as Record<string, unknown>);
+    if (rel.score !== undefined || rel.grade) {
+      ctx.renderBullet(`Relationship Status: Score ${rel.score || 0}/100, Grade ${rel.grade || 'N/A'}`);
+    }
   }
   
   if (data.trustData?.[0]) {
@@ -50,7 +59,7 @@ export const renderExecutiveBrief: SectionRenderer = (ctx, data) => {
     ctx.renderBullet(`Primary MICE Vulnerability: ${mice.primary_vulnerability || 'Not assessed'} (${((mice.recruitment_likelihood as number) * 100 || 0).toFixed(0)}% recruitability)`);
   }
   
-  if (data.influenceData.data) {
+  if (data.influenceData?.data) {
     const inf = data.influenceData.data as Record<string, unknown>;
     let topScore = 0;
     let topLabel = '';
@@ -72,14 +81,14 @@ export const renderExecutiveBrief: SectionRenderer = (ctx, data) => {
 export const renderSourceDashboard: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
   
-  ctx.renderSectionHeader('Intelligence Source Dashboard', [80, 80, 80]);
+  ctx.renderSectionHeader('Intelligence Source Dashboard', PDF_DESIGN.colors.core);
   
   // Data Completeness Score
   ctx.checkPageBreak(35);
   doc.setFillColor(240, 245, 250);
   doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 30, 3, 3, 'F');
   
-  doc.setFontSize(10);
+  doc.setFontSize(PDF_DESIGN.fonts.subheader);
   doc.setFont('helvetica', 'bold');
   doc.text('Intelligence Completeness', ctx.margin + 5, ctx.yPos + 5);
   
@@ -88,7 +97,11 @@ export const renderSourceDashboard: SectionRenderer = (ctx, data) => {
   const barWidth = ctx.contentWidth - 50;
   doc.setFillColor(220, 220, 220);
   doc.rect(barX, ctx.yPos + 10, barWidth, 8, 'F');
-  const complColor: [number, number, number] = data.intelligenceCompleteness >= 80 ? [0, 150, 0] : data.intelligenceCompleteness >= 50 ? [200, 150, 0] : [200, 50, 0];
+  const complColor: [number, number, number] = data.intelligenceCompleteness >= 80 
+    ? PDF_DESIGN.colors.success 
+    : data.intelligenceCompleteness >= 50 
+      ? PDF_DESIGN.colors.warning 
+      : PDF_DESIGN.colors.danger;
   doc.setFillColor(...complColor);
   doc.rect(barX, ctx.yPos + 10, (data.intelligenceCompleteness / 100) * barWidth, 8, 'F');
   
@@ -112,8 +125,8 @@ export const renderSourceDashboard: SectionRenderer = (ctx, data) => {
   ];
   
   sourceBreakdown.forEach(source => {
-    doc.setFontSize(8);
-    const statusColor: [number, number, number] = source.status === '✓' ? [0, 150, 0] : [200, 200, 200];
+    doc.setFontSize(PDF_DESIGN.fonts.small);
+    const statusColor: [number, number, number] = source.status === '✓' ? PDF_DESIGN.colors.success : [200, 200, 200];
     doc.setTextColor(...statusColor);
     doc.text(source.status, ctx.margin, ctx.yPos);
     doc.setTextColor(0);
@@ -127,14 +140,13 @@ export const renderSourceDashboard: SectionRenderer = (ctx, data) => {
 export const renderContactOverview: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
   
-  ctx.renderSectionHeader('Contact Overview', [50, 50, 50]);
+  ctx.renderSectionHeader('Contact Overview', PDF_DESIGN.colors.core);
   
   const profile = data.profile;
   ctx.renderKeyValue('Full Name', data.contactName);
   ctx.renderKeyValue('Organization', String(profile.organization || 'Unknown'));
   ctx.renderKeyValue('Position', String(profile.job_title || 'Unknown'));
   ctx.renderKeyValue('Relationship Type', String(profile.relationship_type || 'Unclassified'));
-  // v3.9.30: Use safeFormatDate instead of raw format()
   ctx.renderKeyValue('Last Contact', safeFormatDate(profile.last_contact_date));
   
   if (profile.notes) {
@@ -142,7 +154,7 @@ export const renderContactOverview: SectionRenderer = (ctx, data) => {
     ctx.renderSubsection('Notes');
     const noteLines = doc.splitTextToSize(String(profile.notes), ctx.contentWidth);
     ctx.checkPageBreak(noteLines.length * ctx.lineHeight + 5);
-    doc.setFontSize(9);
+    doc.setFontSize(PDF_DESIGN.fonts.body);
     doc.setFont('helvetica', 'normal');
     doc.text(noteLines, ctx.margin, ctx.yPos);
     ctx.yPos += noteLines.length * ctx.lineHeight;
@@ -153,7 +165,6 @@ export const renderContactOverview: SectionRenderer = (ctx, data) => {
     ctx.yPos += 3;
     ctx.renderSubsection('Key Life Milestones');
     (data.milestonesData as Record<string, unknown>[]).slice(0, 5).forEach((m) => {
-      // v3.9.30: Use safeFormatDate instead of raw format()
       ctx.renderBullet(`${safeFormatDate(m.event_date, 'MMM yyyy')}: ${m.milestone_type} - ${m.description || ''}`, 5);
     });
   }
@@ -166,20 +177,19 @@ export const renderTimeline: SectionRenderer = (ctx, data) => {
   
   if (!data.commData?.length) return;
   
-  ctx.renderSectionHeader('Interaction Timeline', [80, 80, 80]);
+  ctx.renderSectionHeader('Interaction Timeline', PDF_DESIGN.colors.core);
   
   (data.commData as Record<string, unknown>[]).slice(0, 15).forEach((comm) => {
     ctx.checkPageBreak(20);
     
-    doc.setFontSize(9);
+    doc.setFontSize(PDF_DESIGN.fonts.body);
     doc.setFont('helvetica', 'bold');
-    // v3.9.30: Use safeFormatDate instead of raw format()
-    const date = safeFormatDate(comm.occurred_at, 'MMM d, yyyy HH:mm', 'Date unknown');
+    const date = safeFormatDate(comm.occurred_at || comm.communication_date, 'MMM d, yyyy HH:mm', 'Date unknown');
     doc.text(`${date} | ${(comm.channel as string)?.toUpperCase() || 'UNKNOWN'}`, ctx.margin, ctx.yPos);
     
     if (comm.sentiment_score !== undefined) {
       const score = comm.sentiment_score as number;
-      const sentColor: [number, number, number] = score > 0 ? [0, 150, 0] : score < 0 ? [180, 0, 0] : [100, 100, 100];
+      const sentColor: [number, number, number] = score > 0 ? PDF_DESIGN.colors.success : score < 0 ? PDF_DESIGN.colors.danger : PDF_DESIGN.colors.muted;
       doc.setTextColor(...sentColor);
       doc.text(`[${score > 0 ? '+' : ''}${score}]`, ctx.margin + 100, ctx.yPos);
       doc.setTextColor(0);
@@ -203,10 +213,16 @@ export const renderTimeline: SectionRenderer = (ctx, data) => {
 // Pattern of Life renderer
 export const renderPatternOfLife: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.patternOfLifeData?.length) return;
   
-  ctx.renderSectionHeader('Pattern of Life Analysis', [80, 100, 120]);
-  const pol = (data.patternOfLifeData as Array<Record<string, unknown>>)[0];
+  // v3.9.31: Try specific data field first, then fallback to allAnalyses
+  const rawData = data.patternOfLifeData?.length
+    ? data.patternOfLifeData[0]
+    : getAnalysisForSection(data, 'patternOfLife');
+  
+  if (!rawData) return;
+  
+  ctx.renderSectionHeader('Pattern of Life Analysis', PDF_DESIGN.colors.analysis);
+  const pol = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(50);
   doc.setFillColor(245, 248, 252);
@@ -221,7 +237,7 @@ export const renderPatternOfLife: SectionRenderer = (ctx, data) => {
   
   // Routine score
   if (pol.routine_predictability !== undefined) {
-    ctx.renderScoreBar('Routine Predictability', (pol.routine_predictability as number) * 100, 100, [80, 100, 120]);
+    ctx.renderScoreBar('Routine Predictability', (pol.routine_predictability as number) * 100, 100, PDF_DESIGN.colors.analysis);
   }
   
   // Deviation alerts
@@ -241,13 +257,20 @@ export const renderPatternOfLife: SectionRenderer = (ctx, data) => {
 // Relationship Ecosystem renderer
 export const renderRelationshipEcosystem: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if ((!Array.isArray(data.relationshipData) || !data.relationshipData.length) && !data.relationshipAnalysis) return;
+  
+  // v3.9.31: Check for any relationship data
+  const hasRelData = (Array.isArray(data.relationshipData) && data.relationshipData.length) 
+    || data.relationshipAnalysis 
+    || getAnalysisForSection(data, 'relationship');
+  
+  if (!hasRelData) return;
   
   ctx.renderSectionHeader('Relationship Ecosystem', [150, 100, 50]);
   
   // Relationship analysis from AI
-  if (data.relationshipAnalysis?.result) {
-    const rel = data.relationshipAnalysis.result as Record<string, unknown>;
+  const relAnalysis = data.relationshipAnalysis || getAnalysisForSection(data, 'relationship');
+  if (relAnalysis) {
+    const rel = extractResult(relAnalysis as Record<string, unknown>);
     ctx.checkPageBreak(40);
     doc.setFillColor(255, 250, 245);
     doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 35, 3, 3, 'F');
@@ -256,7 +279,7 @@ export const renderRelationshipEcosystem: SectionRenderer = (ctx, data) => {
       ctx.renderScoreBar('Relationship Health', rel.score as number, 100, [150, 100, 50]);
     }
     if (rel.grade) {
-      doc.setFontSize(10);
+      doc.setFontSize(PDF_DESIGN.fonts.subheader);
       doc.setFont('helvetica', 'bold');
       doc.text(`Grade: ${rel.grade}`, ctx.margin + 5, ctx.yPos + 8);
       ctx.yPos += 15;
@@ -268,7 +291,10 @@ export const renderRelationshipEcosystem: SectionRenderer = (ctx, data) => {
     ctx.yPos += 5;
     ctx.renderSubsection('Key Relationships');
     (data.relationshipData as Array<Record<string, unknown>>).slice(0, 5).forEach((r) => {
-      const name = r.related_profile_name as string || 'Unknown';
+      const relatedProfile = r.related_profile as Record<string, unknown> | undefined;
+      const name = relatedProfile 
+        ? `${relatedProfile.first_name || ''} ${relatedProfile.last_name || ''}`.trim() || 'Unknown'
+        : (r.related_profile_name as string) || 'Unknown';
       const type = r.relationship_type as string || 'connection';
       const strength = r.relationship_strength as number || 0;
       ctx.renderBullet(`${name} (${type}) - Strength: ${Math.round(strength * 100)}%`, 5);
@@ -282,7 +308,7 @@ export const renderMediaIntel: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
   if (!data.mediaData?.length) return;
   
-  ctx.renderSectionHeader('Visual Media Intelligence', [50, 50, 100]);
+  ctx.renderSectionHeader('Visual Media Intelligence', PDF_DESIGN.colors.intelligence);
   const media = data.mediaData as Array<Record<string, unknown>>;
   
   ctx.checkPageBreak(60);
@@ -290,7 +316,7 @@ export const renderMediaIntel: SectionRenderer = (ctx, data) => {
   doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 55, 3, 3, 'F');
   
   // Summary stats
-  doc.setFontSize(10);
+  doc.setFontSize(PDF_DESIGN.fonts.subheader);
   doc.setFont('helvetica', 'bold');
   doc.text(`Total Media Analyzed: ${media.length}`, ctx.margin + 5, ctx.yPos + 8);
   
@@ -299,7 +325,7 @@ export const renderMediaIntel: SectionRenderer = (ctx, data) => {
   const withFaces = media.filter(m => m.faces_detected && (m.faces_detected as number) > 0).length;
   const withObjects = media.filter(m => m.detected_objects).length;
   
-  doc.setFontSize(8);
+  doc.setFontSize(PDF_DESIGN.fonts.small);
   doc.setFont('helvetica', 'normal');
   doc.text(`Location data: ${withLocation} items`, ctx.margin + 5, ctx.yPos + 20);
   doc.text(`Face detections: ${withFaces} items`, ctx.margin + 5, ctx.yPos + 28);
@@ -307,15 +333,15 @@ export const renderMediaIntel: SectionRenderer = (ctx, data) => {
   
   ctx.yPos += 60;
   
-  // Intelligence indicators
-  const intelIndicators = media.filter(m => m.intelligence_indicators);
-  if (intelIndicators.length > 0) {
+  // Intelligence indicators from AI metadata
+  const withMetadata = media.filter(m => m.ai_metadata);
+  if (withMetadata.length > 0) {
     ctx.renderSubsection('Key Intelligence Indicators');
-    intelIndicators.slice(0, 5).forEach((m) => {
-      const indicators = m.intelligence_indicators as Record<string, unknown>;
-      const wealth = indicators?.wealth_indicators || indicators?.lifestyle_indicators;
-      if (wealth) {
-        ctx.renderBullet(String(wealth).substring(0, 80), 5);
+    withMetadata.slice(0, 5).forEach((m) => {
+      const metadata = m.ai_metadata as Record<string, unknown>;
+      const indicators = metadata?.intelligence_indicators || metadata?.wealth_indicators;
+      if (indicators) {
+        ctx.renderBullet(String(indicators).substring(0, 80), 5);
       }
     });
   }
@@ -335,7 +361,7 @@ export const renderVoiceIntel: SectionRenderer = (ctx, data) => {
   doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
   
   // Summary
-  doc.setFontSize(10);
+  doc.setFontSize(PDF_DESIGN.fonts.subheader);
   doc.setFont('helvetica', 'bold');
   doc.text(`Voice Sessions Analyzed: ${voice.length}`, ctx.margin + 5, ctx.yPos + 8);
   
@@ -365,7 +391,7 @@ export const renderVoiceIntel: SectionRenderer = (ctx, data) => {
   // Stress indicators
   const avgStress = voice.reduce((sum, v) => sum + ((v.stress_level as number) || 0), 0) / voice.length;
   if (avgStress > 0) {
-    ctx.renderScoreBar('Average Stress Level', avgStress * 100, 100, [180, 80, 80]);
+    ctx.renderScoreBar('Average Stress Level', avgStress * 100, 100, PDF_DESIGN.colors.danger);
   }
   ctx.yPos += 8;
 };
@@ -375,7 +401,7 @@ export const renderAnomalyDetection: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
   if (!data.anomaliesData?.length) return;
   
-  ctx.renderSectionHeader('Anomaly Detection Report', [200, 50, 50]);
+  ctx.renderSectionHeader('Anomaly Detection Report', PDF_DESIGN.colors.danger);
   const anomalies = data.anomaliesData as Array<Record<string, unknown>>;
   
   ctx.checkPageBreak(30);
@@ -385,7 +411,7 @@ export const renderAnomalyDetection: SectionRenderer = (ctx, data) => {
   doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 20, 2, 2, 'F');
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(180, 0, 0);
+  doc.setTextColor(...PDF_DESIGN.colors.danger);
   doc.text(`${anomalies.length} ANOMALIES DETECTED`, ctx.margin + 5, ctx.yPos + 8);
   doc.setTextColor(0);
   ctx.yPos += 25;
@@ -395,9 +421,13 @@ export const renderAnomalyDetection: SectionRenderer = (ctx, data) => {
     ctx.checkPageBreak(20);
     const type = (a.anomaly_type as string)?.toUpperCase() || 'UNKNOWN';
     const severity = a.severity as string || 'medium';
-    const color: [number, number, number] = severity === 'high' ? [180, 0, 0] : severity === 'medium' ? [200, 150, 0] : [100, 100, 100];
+    const color: [number, number, number] = severity === 'high' 
+      ? PDF_DESIGN.colors.danger 
+      : severity === 'medium' 
+        ? PDF_DESIGN.colors.warning 
+        : PDF_DESIGN.colors.muted;
     
-    doc.setFontSize(9);
+    doc.setFontSize(PDF_DESIGN.fonts.body);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...color);
     doc.text(`[${severity.toUpperCase()}]`, ctx.margin, ctx.yPos);
