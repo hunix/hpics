@@ -130,23 +130,68 @@ function parseCSVLine(line: string): string[] {
   return result;
 }
 
-// Extract email and name from formats like "John Doe <john@example.com>" or "john@example.com"
-function extractEmailParts(fullAddress: string): { email: string; name: string } {
+/**
+ * Extract email and name from various RFC 5322 formats including malformed strings.
+ * Handles formats like:
+ * - "John Doe <john@example.com>"
+ * - "john@example.com"
+ * - "John Doe <john@example.com <mailto:john@example.com>>" (malformed from PST exports)
+ * - "'John Doe' <john@example.com>"
+ * - "john@example.com (John Doe)"
+ */
+export function extractEmailParts(fullAddress: string): { email: string; name: string } {
   const trimmed = fullAddress.trim();
   
-  const matchAngleBrackets = trimmed.match(/^([^<]*)<([^>]+)>$/);
-  if (matchAngleBrackets) {
+  if (!trimmed) {
+    return { email: '', name: '' };
+  }
+  
+  // 1. Handle malformed mailto: nested format from PST exports
+  // e.g., "Name <email@domain.com <mailto:email@domain.com>>"
+  const mailtoMatch = trimmed.match(/<mailto:([^>]+)>/i);
+  if (mailtoMatch) {
+    const email = mailtoMatch[1].toLowerCase().trim();
+    // Extract name from before the first angle bracket
+    const nameMatch = trimmed.match(/^([^<]*)/);
+    const name = nameMatch ? nameMatch[1].trim().replace(/['"]/g, '') : '';
+    return { email, name };
+  }
+  
+  // 2. Handle standard "Name <email>" format - get the innermost valid email
+  // Use a more robust pattern that handles nested brackets
+  const angleMatches = trimmed.match(/<([^<>]+@[^<>]+)>/g);
+  if (angleMatches && angleMatches.length > 0) {
+    // Take the last (innermost) email match
+    const lastMatch = angleMatches[angleMatches.length - 1];
+    const email = lastMatch.replace(/[<>]/g, '').toLowerCase().trim();
+    
+    // Extract name from before the first angle bracket
+    const firstAngleIdx = trimmed.indexOf('<');
+    const name = firstAngleIdx > 0 
+      ? trimmed.substring(0, firstAngleIdx).trim().replace(/['"]/g, '') 
+      : '';
+    
+    return { email, name };
+  }
+  
+  // 3. Handle "email (Name)" format
+  const parenMatch = trimmed.match(/^([^(]+@[^(]+)\s*\(([^)]+)\)$/);
+  if (parenMatch) {
     return {
-      name: matchAngleBrackets[1].trim().replace(/['"]/g, ''),
-      email: matchAngleBrackets[2].toLowerCase().trim(),
+      email: parenMatch[1].toLowerCase().trim(),
+      name: parenMatch[2].trim().replace(/['"]/g, ''),
     };
   }
   
+  // 4. Plain email address
   if (trimmed.includes('@')) {
-    return { email: trimmed.toLowerCase(), name: '' };
+    // Remove any remaining angle brackets or quotes
+    const cleanEmail = trimmed.replace(/[<>"']/g, '').toLowerCase().trim();
+    return { email: cleanEmail, name: '' };
   }
   
-  return { email: '', name: trimmed };
+  // 5. Just a name, no email
+  return { email: '', name: trimmed.replace(/['"]/g, '') };
 }
 
 // Parse various date formats
