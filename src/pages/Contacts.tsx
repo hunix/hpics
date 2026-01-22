@@ -9,10 +9,6 @@ import { Plus, User, AlertCircle, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { ContactDialog } from '@/components/contacts/ContactDialog';
 import { ContactsToolbar, ViewMode, SortOption } from '@/components/contacts/ContactsToolbar';
-import { ContactsCardsView } from '@/components/contacts/ContactsCardsView';
-import { ContactsTableView } from '@/components/contacts/ContactsTableView';
-import { ContactsListView } from '@/components/contacts/ContactsListView';
-import { ContactsAvatarsView } from '@/components/contacts/ContactsAvatarsView';
 import { VirtualizedContactsList } from '@/components/contacts/VirtualizedContactsList';
 import { VirtualizedContactsGrid } from '@/components/contacts/VirtualizedContactsGrid';
 import { AlphabeticalSidebar } from '@/components/contacts/AlphabeticalSidebar';
@@ -23,12 +19,14 @@ import { getSubtypesForRelationship } from '@/lib/relationshipSubtypes';
 import { useSecurityMonitor } from '@/hooks/useSecurityMonitor';
 import { useDeviceDetection } from '@/hooks/useDeviceDetection';
 import { 
-  useEnhancedContacts, 
-  useContactLetterCounts, 
-  useContactFilterOptions,
-  useActiveContactCounts,
-  type SortBy 
-} from '@/hooks/useEnhancedContacts';
+  useContactsInfinite, 
+  useLetterCounts, 
+  useFilterOptions,
+  useContactCounts,
+  useToggleFavoriteById,
+  profileKeys,
+  type EnhancedContactRow,
+} from '@/domains/profile';
 import type { Profile as BaseProfile } from '@/types/database-helpers';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sparkles, BookUser } from 'lucide-react';
@@ -38,6 +36,8 @@ type Profile = BaseProfile & {
   hierarchy_level?: string;
   country?: string | null;
 };
+
+type SortBy = 'name' | 'recent' | 'oldest' | 'organization' | 'relationship' | 'engagement';
 
 // Map toolbar sort options to server-side params
 const sortOptionMap: Record<SortOption, { sortBy: SortBy; sortOrder: 'asc' | 'desc' }> = {
@@ -88,7 +88,7 @@ export default function Contacts() {
   // Get sort params
   const { sortBy, sortOrder } = sortOptionMap[sortOption];
 
-  // Server-side data fetching
+  // Server-side data fetching using domain hooks
   const {
     data,
     isLoading,
@@ -97,7 +97,7 @@ export default function Contacts() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useEnhancedContacts({
+  } = useContactsInfinite({
     searchQuery: debouncedSearch || undefined,
     relationshipFilter,
     subtypeFilter,
@@ -117,14 +117,14 @@ export default function Contacts() {
 
   const totalCount = data?.pages[0]?.totalCount ?? 0;
 
-  // Letter counts for sidebar
-  const { data: letterCounts = [] } = useContactLetterCounts();
+  // Letter counts for sidebar - using domain hook
+  const { data: letterCounts = [] } = useLetterCounts();
   
-  // Active contact counts
-  const { data: activeCounts } = useActiveContactCounts();
+  // Active contact counts - using domain hook
+  const { data: activeCounts } = useContactCounts();
 
-  // Filter options
-  const { data: filterOptions } = useContactFilterOptions();
+  // Filter options - using domain hook
+  const { data: filterOptions } = useFilterOptions();
   const availableRelationships = filterOptions?.relationships ?? [];
   const availableTags = filterOptions?.tags ?? [];
 
@@ -133,19 +133,8 @@ export default function Contacts() {
     return getSubtypesForRelationship(relationshipFilter);
   }, [relationshipFilter]);
 
-  const toggleFavoriteMutation = useMutation({
-    mutationFn: async ({ id, isFavorite }: { id: string; isFavorite: boolean }) => {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ is_favorite: !isFavorite })
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['enhanced-contacts'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-    },
-  });
+  // Toggle favorite using domain hook
+  const toggleFavoriteMutation = useToggleFavoriteById();
 
   const bulkDeleteMutation = useMutation({
     mutationFn: async (ids: string[]) => {
@@ -195,9 +184,8 @@ export default function Contacts() {
       toast.success(`Deleted ${ids.length} contact${ids.length > 1 ? 's' : ''} successfully`);
       setSelectedIds(new Set());
       setIsDeleteDialogOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['enhanced-contacts'] });
-      queryClient.invalidateQueries({ queryKey: ['contact-letter-counts'] });
-      queryClient.invalidateQueries({ queryKey: ['contact-filter-options'] });
+      // Use domain query keys for invalidation
+      queryClient.invalidateQueries({ queryKey: profileKeys.all });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
     },
     onError: (error) => {
@@ -299,6 +287,12 @@ export default function Contacts() {
       );
     }
 
+    // Map EnhancedContactRow to Profile type for virtualized views
+    const mappedContacts = contacts.map((c: EnhancedContactRow) => ({
+      ...c,
+      user_id: user?.id || '',
+    })) as unknown as Profile[];
+
     // Always use virtualized views for server-side pagination
     const viewContent = (() => {
       switch (viewMode) {
@@ -306,7 +300,7 @@ export default function Contacts() {
         case 'list':
           return (
             <VirtualizedContactsList
-              contacts={contacts as unknown as Profile[]}
+              contacts={mappedContacts}
               selectedIds={selectedIds}
               onSelectionChange={handleSelectionChange}
               onToggleFavorite={(id, isFav) => toggleFavoriteMutation.mutate({ id, isFavorite: isFav })}
@@ -323,7 +317,7 @@ export default function Contacts() {
         default:
           return (
             <VirtualizedContactsGrid
-              contacts={contacts as unknown as Profile[]}
+              contacts={mappedContacts}
               selectedIds={selectedIds}
               onSelectionChange={handleSelectionChange}
               onToggleFavorite={(id, isFav) => toggleFavoriteMutation.mutate({ id, isFavorite: isFav })}
@@ -340,6 +334,15 @@ export default function Contacts() {
 
     return viewContent;
   };
+
+  // Invalidate handler for dialog close
+  const handleDialogClose = useCallback((open: boolean) => {
+    setIsCreateDialogOpen(open);
+    if (!open) {
+      // Use domain query keys for invalidation
+      queryClient.invalidateQueries({ queryKey: profileKeys.all });
+    }
+  }, [queryClient]);
 
   // Mobile view
   if (isMobile) {
@@ -364,12 +367,7 @@ export default function Contacts() {
         />
         <ContactDialog
           open={isCreateDialogOpen}
-          onOpenChange={(open) => {
-            setIsCreateDialogOpen(open);
-            if (!open) {
-              queryClient.invalidateQueries({ queryKey: ['enhanced-contacts'] });
-            }
-          }}
+          onOpenChange={handleDialogClose}
         />
       </AppLayout>
     );
@@ -439,14 +437,7 @@ export default function Contacts() {
 
       <ContactDialog
         open={isCreateDialogOpen}
-        onOpenChange={(open) => {
-          setIsCreateDialogOpen(open);
-          if (!open) {
-            queryClient.invalidateQueries({ queryKey: ['enhanced-contacts'] });
-            queryClient.invalidateQueries({ queryKey: ['contact-letter-counts'] });
-            queryClient.invalidateQueries({ queryKey: ['contact-filter-options'] });
-          }
-        }}
+        onOpenChange={handleDialogClose}
       />
 
       <BulkDeleteDialog

@@ -3,7 +3,14 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
-import { IProfileRepository, ProfileQueryOptions } from '@/domains/profile/repositories/IProfileRepository';
+import { 
+  IProfileRepository, 
+  ProfileQueryOptions, 
+  ContactCounts, 
+  LetterCount, 
+  FilterOptions,
+  EnhancedContactRow 
+} from '@/domains/profile/repositories/IProfileRepository';
 import { Profile, RelationshipType, ProfileStatus, ProfileProps } from '@/domains/profile/entities/Profile';
 import { QuerySpec, PaginatedResult } from '@/domains/shared/repositories/BaseRepository';
 
@@ -102,11 +109,50 @@ export class SupabaseProfileRepository implements IProfileRepository {
   async searchProfiles(userId: string, options: ProfileQueryOptions, spec?: QuerySpec<Profile>): Promise<PaginatedResult<Profile>> {
     const page = spec?.pagination?.page || 0;
     const pageSize = spec?.pagination?.pageSize || 50;
-    const { data, error } = await this.supabase.rpc('search_contacts_v5', { p_user_id: userId, p_search_query: options.searchTerm || '', p_relationship_filter: options.relationshipType || null, p_favorite_filter: options.includeFavorites ?? null, p_page_offset: page, p_page_size: pageSize });
+    const { data, error } = await (this.supabase.rpc as Function)('search_contacts_v5', {
+      p_user_id: userId,
+      p_search_query: options.searchTerm || null,
+      p_relationship_type: options.relationshipType || null,
+      p_relationship_subtype: options.relationshipSubtype || null,
+      p_tag: options.tag || null,
+      p_is_favorite: options.isFavorite || null,
+      p_is_active: options.isActive ?? null,
+      p_first_letter: options.firstLetter || null,
+      p_sort_by: options.sortBy || 'name',
+      p_sort_order: options.sortOrder || 'asc',
+      p_limit: pageSize,
+      p_offset: page * pageSize,
+    });
     if (error) throw error;
     const profiles = (data || []).map((row: Record<string, unknown>) => this.mapToProfile(row));
     const totalCount = (data as Array<{ total_count?: number }>)?.[0]?.total_count || profiles.length;
     return { items: profiles, totalCount, page, pageSize, totalPages: Math.ceil(totalCount / pageSize), hasNextPage: profiles.length === pageSize, hasPreviousPage: page > 0 };
+  }
+
+  async searchContactsV5(
+    userId: string,
+    options: ProfileQueryOptions,
+    limit: number,
+    offset: number
+  ): Promise<{ contacts: EnhancedContactRow[]; totalCount: number }> {
+    const { data, error } = await (this.supabase.rpc as Function)('search_contacts_v5', {
+      p_user_id: userId,
+      p_search_query: options.searchTerm || null,
+      p_relationship_type: options.relationshipType || null,
+      p_relationship_subtype: options.relationshipSubtype || null,
+      p_tag: options.tag || null,
+      p_is_favorite: options.isFavorite || null,
+      p_is_active: options.isActive ?? null,
+      p_first_letter: options.firstLetter || null,
+      p_sort_by: options.sortBy || 'name',
+      p_sort_order: options.sortOrder || 'asc',
+      p_limit: limit,
+      p_offset: offset,
+    });
+    if (error) throw error;
+    const contacts = (data || []) as EnhancedContactRow[];
+    const totalCount = contacts[0]?.total_count ?? 0;
+    return { contacts, totalCount };
   }
 
   async updateFavoriteStatus(profileId: string, userId: string, isFavorite: boolean): Promise<void> {
@@ -129,6 +175,34 @@ export class SupabaseProfileRepository implements IProfileRepository {
     const { data, error } = await this.supabase.from('profiles').select('*').eq('user_id', userId).order('updated_at', { ascending: false }).limit(limit);
     if (error) throw error;
     return (data || []).map(row => this.mapToProfile(row));
+  }
+
+  async getContactCounts(userId: string): Promise<ContactCounts> {
+    const { data, error } = await this.supabase.rpc('get_contact_counts', { p_user_id: userId });
+    if (error) throw error;
+    const result = data?.[0] || { active_count: 0, inactive_count: 0, total_count: 0 };
+    return {
+      active: Number(result.active_count) || 0,
+      inactive: Number(result.inactive_count) || 0,
+      total: Number(result.total_count) || 0,
+    };
+  }
+
+  async getLetterCounts(userId: string): Promise<LetterCount[]> {
+    const { data, error } = await this.supabase.rpc('get_contact_letter_counts', { p_user_id: userId });
+    if (error) throw error;
+    return (data || []) as LetterCount[];
+  }
+
+  async getFilterOptions(userId: string): Promise<FilterOptions> {
+    const { data, error } = await this.supabase.rpc('get_contact_filter_options', { p_user_id: userId });
+    if (error) throw error;
+    const result = data?.[0] || { relationships: [], subtypes: [], tags: [] };
+    return {
+      relationships: (result.relationships || []) as string[],
+      subtypes: (result.subtypes || []) as string[],
+      tags: (result.tags || []) as string[],
+    };
   }
 
   private mapToProfile(row: Record<string, unknown>): Profile {

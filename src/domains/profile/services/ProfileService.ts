@@ -7,7 +7,14 @@
 import { getEventBus, IEventBus } from '@/domains/shared/events/EventBus';
 import { Profile, ProfileProps, RelationshipType, ProfileStatus, ContactInfo } from '../entities/Profile';
 import { ContactScore } from '../value-objects/ContactScore';
-import { IProfileRepository, ProfileQueryOptions } from '../repositories/IProfileRepository';
+import { 
+  IProfileRepository, 
+  ProfileQueryOptions, 
+  ContactCounts, 
+  LetterCount, 
+  FilterOptions,
+  EnhancedContactRow 
+} from '../repositories/IProfileRepository';
 import {
   ProfileCreated,
   ProfileUpdated,
@@ -45,10 +52,16 @@ export interface UpdateProfileRequest {
 export interface ProfileSearchCriteria {
   searchQuery?: string;
   relationshipType?: RelationshipType;
+  relationshipSubtype?: string;
+  tag?: string;
   status?: ProfileStatus;
   isFavorite?: boolean;
+  isActive?: boolean | null;
+  firstLetter?: string;
   tags?: string[];
   minCompleteness?: number;
+  sortBy?: 'name' | 'recent' | 'oldest' | 'organization' | 'relationship' | 'engagement';
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface ProfileSummary {
@@ -68,6 +81,9 @@ export interface EnrichmentResult {
   source: string;
   error?: string;
 }
+
+// Re-export types for hooks
+export type { ContactCounts, LetterCount, FilterOptions, EnhancedContactRow };
 
 export class ProfileService {
   private eventBus: IEventBus;
@@ -166,6 +182,47 @@ export class ProfileService {
 
   async getRecentProfiles(userId: string, limit = 10): Promise<Profile[]> {
     return this.repository.findRecentlyUpdated(userId, limit);
+  }
+
+  // ============================================
+  // Contacts Page Support Methods (for DDD migration)
+  // ============================================
+
+  async searchContactsV5(
+    userId: string,
+    criteria: ProfileSearchCriteria,
+    limit: number,
+    offset: number
+  ): Promise<{ contacts: EnhancedContactRow[]; totalCount: number }> {
+    const options: ProfileQueryOptions = {
+      searchTerm: criteria.searchQuery,
+      relationshipType: criteria.relationshipType,
+      relationshipSubtype: criteria.relationshipSubtype,
+      tag: criteria.tag,
+      isFavorite: criteria.isFavorite,
+      isActive: criteria.isActive,
+      firstLetter: criteria.firstLetter,
+      sortBy: criteria.sortBy,
+      sortOrder: criteria.sortOrder,
+    };
+    return this.repository.searchContactsV5(userId, options, limit, offset);
+  }
+
+  async getContactCounts(userId: string): Promise<ContactCounts> {
+    return this.repository.getContactCounts(userId);
+  }
+
+  async getLetterCounts(userId: string): Promise<LetterCount[]> {
+    return this.repository.getLetterCounts(userId);
+  }
+
+  async getFilterOptions(userId: string): Promise<FilterOptions> {
+    return this.repository.getFilterOptions(userId);
+  }
+
+  async toggleFavoriteById(profileId: string, userId: string, currentState: boolean): Promise<void> {
+    await this.repository.updateFavoriteStatus(profileId, userId, !currentState);
+    await this.eventBus.publish(new ProfileFavoriteToggled(profileId, userId, !currentState));
   }
 
   async toggleFavorite(profileId: string, userId: string): Promise<boolean> {
