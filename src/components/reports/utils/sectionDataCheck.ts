@@ -78,12 +78,12 @@ const ANALYSIS_TYPE_ALIASES: Record<string, string[]> = {
   temporalFusion: ['temporal_fusion', 'behavioral_baseline'],
   digitalTwin: ['behavioral_digital_twin', 'behavioral_baseline', 'behavioral_dna'],
   graphRag: ['graph_rag_synthesis', 'deep_intelligence_comprehensive', 'intelligence_dossier'],
-  dempsterShafer: ['dempster_shafer_fusion'],  // Now unique, no longer shared with mosaic
+  dempsterShafer: ['dempster_shafer_fusion'],
   counterfactual: ['counterfactual_reasoning', 'behavioral_prediction'],
   patternOfLifeFusion: ['pattern_of_life', 'temporal_fusion', 'behavioral_dna'],
   entityResolution: ['entity_resolution', 'intelligence_dossier', 'aggregate_intelligence'],
   sentimentCascade: ['sentiment_cascade', 'sentiment'],
-  shadowNetwork: ['shadow_network_analysis', 'network_exploitation', 'shadow_network'],
+  shadowNetworkAnalysis: ['shadow_network_analysis', 'network_exploitation', 'shadow_network'],
   crossDomainSynthesis: ['mosaic_intelligence_fusion', 'aggregate_intelligence'],
   predictiveConvergence: ['behavioral_prediction', 'precognitive_patterns'],
   

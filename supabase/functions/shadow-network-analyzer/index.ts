@@ -322,6 +322,14 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit - respond before any auth/validation
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ ok: true, function: 'shadow-network-analyzer', timestamp: Date.now() }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -415,6 +423,20 @@ serve(async (req) => {
         riskIndicators: identifyRiskIndicators(result),
         recommendations: generateRecommendations(result)
       };
+    }
+
+    // Store in ai_analyses for section availability detection
+    if (profiles && profiles.length > 0) {
+      const primaryProfileId = profileIds?.[0] || profiles[0]?.id;
+      if (primaryProfileId) {
+        await supabase.from('ai_analyses').upsert({
+          user_id: user.id,
+          profile_id: primaryProfileId,
+          analysis_type: 'shadow_network_analysis',
+          result: result,
+          generated_at: new Date().toISOString()
+        }, { onConflict: 'profile_id,analysis_type' });
+      }
     }
 
     console.log(`[Shadow Network] Complete. ${result.shadowEntityCount || 0} shadow entities, ${result.gapCount || 0} gaps`);

@@ -226,6 +226,14 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit - respond before any auth/validation
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ ok: true, function: 'sentiment-cascade-predictor', timestamp: Date.now() }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -368,6 +376,17 @@ serve(async (req) => {
       }, {
         onConflict: 'profile_id,cascade_type'
       });
+    }
+
+    // Store in ai_analyses for section availability detection
+    if (profileId) {
+      await supabase.from('ai_analyses').upsert({
+        user_id: user.id,
+        profile_id: profileId,
+        analysis_type: 'sentiment_cascade',
+        result: result,
+        generated_at: new Date().toISOString()
+      }, { onConflict: 'profile_id,analysis_type' });
     }
 
     console.log(`[Cascade Predictor] Complete. R0: ${sirParams.R0.toFixed(2)}, Reach: ${result.simulation?.finalReach || 'N/A'}`);
