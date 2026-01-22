@@ -1,11 +1,11 @@
 /**
- * Dossier Preview Page (v3.9.20)
+ * Dossier Preview Page (v3.9.21)
  * Interactive HTML rendering of the full 74-section intelligence dossier
  */
 
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { ArrowLeft, Download, RefreshCw, Printer, Menu } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { ArrowLeft, RefreshCw, Printer, Menu, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -20,6 +20,7 @@ import { MobileSectionNav } from '@/components/dossier-preview/MobileSectionNav'
 import { useDossierNavigation } from '@/components/dossier-preview/hooks/useDossierNavigation';
 import { DEFAULT_SECTIONS } from '@/components/reports/sections/sectionDefinitions';
 import { DossierLoadingScreen } from '@/components/dossier-preview/DossierLoadingScreen';
+import { DossierExporter } from '@/components/intelligence/DossierExporter';
 
 export default function DossierPreview() {
   const { profileId } = useParams<{ profileId: string }>();
@@ -92,6 +93,50 @@ export default function DossierPreview() {
   const handlePrint = () => {
     window.print();
   };
+  
+  // Build export-ready dossier object for DossierExporter
+  const exportDossier = useMemo(() => {
+    if (!dossierData) return null;
+    
+    // Extract executive summary from analyses
+    const execSummaryAnalysis = dossierData.allAnalyses?.find(
+      (a: any) => a.analysis_type === 'executive_summary' || a.analysis_type === 'dossier_executive'
+    );
+    
+    // Extract psychological profile
+    const psychAnalysis = dossierData.allAnalyses?.find(
+      (a: any) => a.analysis_type === 'behavioral_dna' || a.analysis_type === 'psychological_profile'
+    );
+    
+    return {
+      contact: {
+        first_name: dossierData.profile?.first_name || '',
+        last_name: dossierData.profile?.last_name || null,
+        organization: dossierData.profile?.organization || null,
+        title: dossierData.profile?.job_title || null,
+      },
+      generated_at: new Date().toISOString(),
+      content: {
+        executive_summary: (execSummaryAnalysis?.result as any)?.summary || 
+          (dossierData.behavioralDnaAnalysis?.result as any)?.executive_summary || '',
+        background: dossierData.profile?.notes || '',
+        psychological_profile: (psychAnalysis?.result as any)?.profile_summary || 
+          JSON.stringify(dossierData.psychData?.[0]?.result || '', null, 2),
+        communication_patterns: dossierData.commData?.length 
+          ? `${dossierData.commData.length} communication records analyzed`
+          : '',
+        network_analysis: dossierData.relationshipsData?.length
+          ? `${dossierData.relationshipsData.length} relationship connections mapped`
+          : '',
+        risk_assessment: dossierData.anomaliesData?.length
+          ? `${dossierData.anomaliesData.length} anomalies detected`
+          : '',
+        opportunities: '',
+        recommendations: [],
+      },
+      classification: 'confidential',
+    };
+  }, [dossierData]);
   
   if (!profileId) {
     return (
@@ -206,12 +251,28 @@ export default function DossierPreview() {
                 <Printer className="h-4 w-4 mr-2" />
                 Print
               </Button>
-              <Button variant="default" size="sm" onClick={() => navigate(`/dossier-intelligence?contact=${profileId}`)} className="hidden sm:flex">
-                <Download className="h-4 w-4 mr-2" />
-                Export PDF
-              </Button>
-              <Button variant="default" size="icon" onClick={() => navigate(`/dossier-intelligence?contact=${profileId}`)} className="sm:hidden">
-                <Download className="h-4 w-4" />
+              {/* Quick Export via DossierExporter dialog */}
+              {exportDossier && (
+                <div className="hidden sm:block">
+                  <DossierExporter dossier={exportDossier} variant="default" size="sm" />
+                </div>
+              )}
+              {exportDossier && (
+                <div className="sm:hidden">
+                  <DossierExporter dossier={exportDossier} variant="default" size="icon" />
+                </div>
+              )}
+              
+              {/* Full Intelligence PDF link */}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => navigate(`/dossier-intelligence?contact=${profileId}`)} 
+                className="hidden sm:flex"
+                title="Generate comprehensive 74-section PDF"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Full PDF
               </Button>
             </div>
           </div>
