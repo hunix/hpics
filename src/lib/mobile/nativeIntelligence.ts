@@ -457,16 +457,42 @@ class NativeIntelligenceManager {
       if ('AmbientLightSensor' in window) {
         try {
           const sensor = new (window as any).AmbientLightSensor();
-          sensor.addEventListener('reading', () => {
-            resolve(sensor.illuminance);
-            sensor.stop();
-          });
-          sensor.addEventListener('error', () => resolve(null));
+          let resolved = false;
+          
+          const handleReading = () => {
+            if (!resolved) {
+              resolved = true;
+              const value = sensor.illuminance;
+              sensor.removeEventListener('reading', handleReading);
+              sensor.removeEventListener('error', handleError);
+              sensor.stop();
+              resolve(value);
+            }
+          };
+          
+          const handleError = () => {
+            if (!resolved) {
+              resolved = true;
+              sensor.removeEventListener('reading', handleReading);
+              sensor.removeEventListener('error', handleError);
+              sensor.stop();
+              resolve(null);
+            }
+          };
+          
+          sensor.addEventListener('reading', handleReading);
+          sensor.addEventListener('error', handleError);
           sensor.start();
+          
           // Timeout after 1 second
           setTimeout(() => {
-            sensor.stop();
-            resolve(null);
+            if (!resolved) {
+              resolved = true;
+              sensor.removeEventListener('reading', handleReading);
+              sensor.removeEventListener('error', handleError);
+              sensor.stop();
+              resolve(null);
+            }
           }, 1000);
         } catch {
           resolve(null);
