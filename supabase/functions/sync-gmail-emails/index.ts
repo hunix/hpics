@@ -24,6 +24,16 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check endpoint
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ 
+      ok: true, 
+      function: 'sync-gmail-emails', 
+      timestamp: Date.now() 
+    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -80,29 +90,35 @@ serve(async (req) => {
     if (tokenExpiry < new Date() && gmailConfig.refresh_token) {
       console.log('[sync-gmail-emails] Token expired, refreshing...');
       
-      // Get client credentials
-      const { data: secrets } = await supabase
-        .from('integration_secrets')
-        .select('secret_value')
+      // Get client credentials from oauth_tokens or platform_config
+      const { data: oauthConfig } = await supabase
+        .from('oauth_tokens')
+        .select('*')
         .eq('user_id', userId)
-        .eq('secret_name', 'GOOGLE_CLIENT_SECRET')
+        .eq('provider', 'google')
         .single();
 
-      const { data: clientIdSecret } = await supabase
-        .from('integration_secrets')
-        .select('secret_value')
-        .eq('user_id', userId)
-        .eq('secret_name', 'GOOGLE_CLIENT_ID')
+      // Try to get client credentials from platform config
+      const { data: clientIdConfig } = await supabase
+        .from('platform_config')
+        .select('config_value')
+        .eq('config_key', 'GOOGLE_CLIENT_ID')
         .single();
 
-      if (secrets && clientIdSecret) {
+      const { data: clientSecretConfig } = await supabase
+        .from('platform_config')
+        .select('config_value')
+        .eq('config_key', 'GOOGLE_CLIENT_SECRET')
+        .single();
+
+      if (clientIdConfig && clientSecretConfig) {
         const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: new URLSearchParams({
             refresh_token: gmailConfig.refresh_token,
-            client_id: clientIdSecret.secret_value,
-            client_secret: secrets.secret_value,
+            client_id: clientIdConfig.config_value,
+            client_secret: clientSecretConfig.config_value,
             grant_type: 'refresh_token',
           }),
         });
@@ -149,16 +165,26 @@ serve(async (req) => {
 
     console.log(`[sync-gmail-emails] Found ${messageIds.length} messages`);
 
-    // Get contact emails for matching
-    const { data: contactMethods } = await supabase
-      .from('contact_methods')
-      .select('profile_id, value')
-      .eq('user_id', userId)
-      .eq('method_type', 'email');
+    // Get contact emails for matching - scope via profiles table
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select(`
+        id,
+        contact_methods (
+          value,
+          profile_id
+        )
+      `)
+      .eq('user_id', userId);
 
-    const emailToProfile = new Map(
-      contactMethods?.map(cm => [cm.value.toLowerCase(), cm.profile_id]) || []
-    );
+    const emailToProfile = new Map<string, string>();
+    for (const profile of profiles || []) {
+      for (const method of profile.contact_methods || []) {
+        if (method.value) {
+          emailToProfile.set(method.value.toLowerCase(), method.profile_id);
+        }
+      }
+    }
 
     let syncedCount = 0;
     let matchedCount = 0;
@@ -184,37 +210,44 @@ serve(async (req) => {
         const from = getHeader('From');
         const to = getHeader('To');
         const subject = getHeader('Subject');
-        const date = getHeader('Date');
 
         // Extract email addresses
         const fromMatch = from.match(/<([^>]+)>/) || [null, from.split(' ')[0]];
         const fromEmail = (fromMatch[1] || from).toLowerCase().trim();
         const fromName = from.replace(/<[^>]+>/, '').trim();
 
-        // Check if this matches a contact
-        const profileId = emailToProfile.get(fromEmail) || 
-          to.split(',').map(t => {
-            const match = t.match(/<([^>]+)>/);
-            return (match?.[1] || t).toLowerCase().trim();
-          }).find(e => emailToProfile.has(e)) ? emailToProfile.get(
-            to.split(',').map(t => {
-              const match = t.match(/<([^>]+)>/);
-              return (match?.[1] || t).toLowerCase().trim();
-            }).find(e => emailToProfile.has(e))!
-          ) : null;
+        // Parse recipients
+        const recipientEmails = to.split(',').map(t => {
+          const match = t.match(/<([^>]+)>/);
+          return (match?.[1] || t).toLowerCase().trim();
+        }).filter(Boolean);
 
-        // Decode body
-        let bodyText = '';
-        if (message.payload.body?.data) {
-          bodyText = atob(message.payload.body.data.replace(/-/g, '+').replace(/_/g, '/'));
-        } else if (message.payload.parts) {
-          const textPart = message.payload.parts.find(p => p.mimeType === 'text/plain');
-          if (textPart?.body?.data) {
-            bodyText = atob(textPart.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+        // Check if this matches a contact
+        let profileId: string | null = null;
+        if (emailToProfile.has(fromEmail)) {
+          profileId = emailToProfile.get(fromEmail)!;
+        } else {
+          for (const recipientEmail of recipientEmails) {
+            if (emailToProfile.has(recipientEmail)) {
+              profileId = emailToProfile.get(recipientEmail)!;
+              break;
+            }
           }
         }
 
-        // Upsert thread
+        // Decode body
+        let bodyPreview = '';
+        if (message.payload.body?.data) {
+          bodyPreview = atob(message.payload.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+        } else if (message.payload.parts) {
+          const textPart = message.payload.parts.find(p => p.mimeType === 'text/plain');
+          if (textPart?.body?.data) {
+            bodyPreview = atob(textPart.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+          }
+        }
+        bodyPreview = bodyPreview.slice(0, 500); // Limit preview size
+
+        // Upsert thread - removed non-existent columns
         const { data: thread } = await supabase
           .from('email_threads')
           .upsert({
@@ -223,30 +256,27 @@ serve(async (req) => {
             profile_id: profileId,
             conversation_id: message.threadId,
             subject: subject || '(No Subject)',
-            participant_emails: [fromEmail, ...to.split(',').map(t => t.trim())],
             message_count: 1,
             last_message_at: new Date(parseInt(message.internalDate)).toISOString(),
-            source: 'gmail',
           }, { onConflict: 'id' })
           .select()
           .single();
 
-        // Upsert message
+        // Upsert message - fixed column names
         await supabase
           .from('email_messages')
           .upsert({
             id: `gmail-${message.id}`,
             thread_id: thread?.id || `gmail-${message.threadId}`,
             user_id: userId,
-            message_id: message.id,
+            external_id: message.id,
             subject,
-            body_text: bodyText.slice(0, 50000), // Limit body size
+            body_preview: bodyPreview,
             sender_email: fromEmail,
             sender_name: fromName,
-            recipient_emails: to.split(',').map(t => t.trim()),
+            recipients: recipientEmails,
             sent_at: new Date(parseInt(message.internalDate)).toISOString(),
             is_from_contact: profileId ? emailToProfile.has(fromEmail) : false,
-            source: 'gmail',
           }, { onConflict: 'id' });
 
         syncedCount++;
@@ -277,9 +307,10 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('[sync-gmail-emails] Error:', error);
-    return new Response(JSON.stringify({ error: error.message || 'Unknown error' }), {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

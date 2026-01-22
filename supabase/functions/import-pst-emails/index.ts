@@ -88,19 +88,29 @@ Deno.serve(async (req) => {
     // PHASE 1: Bulk fetch all required data
     // ==========================================
 
-    // Fetch contact email mappings in bulk
-    const { data: contactMethods } = await supabase
-      .from('contact_methods')
-      .select('value, profile_id')
-      .eq('contact_type', 'email');
+    // Fetch contact email mappings in bulk - scope via profiles for user isolation
+    const { data: userProfiles } = await supabase
+      .from('profiles')
+      .select(`
+        id,
+        contact_methods (
+          value,
+          profile_id
+        )
+      `)
+      .eq('user_id', userId);
     
     const emailToProfile = new Map<string, string>();
     const profileToEmail = new Map<string, string>(); // Reverse lookup for O(1) is_from_contact check
-    if (contactMethods) {
-      for (const method of contactMethods) {
-        const lowerEmail = method.value.toLowerCase();
-        emailToProfile.set(lowerEmail, method.profile_id);
-        profileToEmail.set(method.profile_id, lowerEmail); // Build reverse map once
+    if (userProfiles) {
+      for (const profile of userProfiles) {
+        for (const method of profile.contact_methods || []) {
+          if (method.value) {
+            const lowerEmail = method.value.toLowerCase();
+            emailToProfile.set(lowerEmail, method.profile_id);
+            profileToEmail.set(method.profile_id, lowerEmail);
+          }
+        }
       }
     }
 

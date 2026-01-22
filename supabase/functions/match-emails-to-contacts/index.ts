@@ -21,6 +21,16 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check endpoint
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ 
+      ok: true, 
+      function: 'match-emails-to-contacts', 
+      timestamp: Date.now() 
+    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -56,10 +66,16 @@ serve(async (req) => {
 
     console.log(`[match-emails-to-contacts] Starting matching for user: ${userId}`);
 
-    // Get unmatched email addresses
+    // Get unmatched email threads with their messages to extract sender emails
     const { data: unmatchedThreads, error: threadsError } = await supabase
       .from('email_threads')
-      .select('id, participant_emails, subject')
+      .select(`
+        id, 
+        subject,
+        email_messages (
+          sender_email
+        )
+      `)
       .eq('user_id', userId)
       .is('profile_id', null)
       .limit(batchSize);
@@ -79,10 +95,12 @@ serve(async (req) => {
       });
     }
 
-    // Get unique email addresses from unmatched threads
+    // Get unique email addresses from unmatched threads via their messages
     const allEmails = new Set<string>();
     for (const thread of unmatchedThreads) {
-      for (const email of thread.participant_emails || []) {
+      const messages = thread.email_messages || [];
+      for (const msg of messages) {
+        const email = msg.sender_email;
         if (email && !email.includes('noreply') && !email.includes('no-reply')) {
           allEmails.add(email.toLowerCase());
         }
@@ -91,7 +109,7 @@ serve(async (req) => {
 
     console.log(`[match-emails-to-contacts] Found ${allEmails.size} unique email addresses`);
 
-    // Get all contacts with their email methods
+    // Get all contacts with their email methods - scoped to current user via profiles
     const { data: profiles } = await supabase
       .from('profiles')
       .select(`
@@ -99,7 +117,7 @@ serve(async (req) => {
         first_name,
         last_name,
         contact_methods (
-          method_type,
+          contact_type,
           value
         )
       `)
@@ -114,9 +132,9 @@ serve(async (req) => {
       const name = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
       const nameLower = name.toLowerCase();
       
-      // Index by email
+      // Index by email - use contact_type not method_type
       for (const method of profile.contact_methods || []) {
-        if (method.method_type === 'email' && method.value) {
+        if (method.contact_type === 'email' && method.value) {
           emailToProfile.set(method.value.toLowerCase(), { id: profile.id, name });
           
           // Index by domain
@@ -288,9 +306,13 @@ serve(async (req) => {
     // Auto-apply high-confidence matches
     const highConfidenceMatches = suggestions.filter(s => s.confidence >= 0.9 && s.profileId);
     for (const match of highConfidenceMatches) {
-      // Find threads with this email and update profile_id
+      // Find threads with messages from this email and update profile_id
       for (const thread of unmatchedThreads) {
-        if (thread.participant_emails?.includes(match.email)) {
+        const messages = thread.email_messages || [];
+        const hasMatch = messages.some((m: any) => 
+          m.sender_email?.toLowerCase() === match.email
+        );
+        if (hasMatch) {
           await supabase
             .from('email_threads')
             .update({ profile_id: match.profileId })
@@ -312,9 +334,10 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('[match-emails-to-contacts] Error:', error);
-    return new Response(JSON.stringify({ error: error.message || 'Unknown error' }), {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
