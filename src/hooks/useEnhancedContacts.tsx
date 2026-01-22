@@ -1,9 +1,12 @@
 /**
- * @deprecated Use useProfiles from @/domains/profile/hooks/useProfileService instead.
- * This hook is maintained for backward compatibility during DDD migration.
- * Will be removed in a future version.
+ * @deprecated This entire file is deprecated. Use hooks from @/domains/profile instead:
+ * - useContactsInfinite (replaces useEnhancedContacts)
+ * - useContactCounts (replaces useActiveContactCounts)
+ * - useLetterCounts (replaces useContactLetterCounts)
+ * - useFilterOptions (replaces useContactFilterOptions)
  * 
- * v3.6.0: Refactored to thin wrapper delegating to RPC calls.
+ * This file is maintained for backward compatibility during DDD migration.
+ * Will be removed in a future version.
  */
 
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';

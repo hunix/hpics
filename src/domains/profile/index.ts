@@ -64,6 +64,20 @@ export {
   useProfiles,
   useProfileDomain,
   profileKeys,
+  // New hooks for Contacts page (DDD migration)
+  useContactsInfinite,
+  useContactCounts,
+  useLetterCounts,
+  useFilterOptions,
+  useToggleFavoriteById,
 } from './hooks/useProfileService';
 
-export type { UseProfilesOptions } from './hooks/useProfileService';
+export type { 
+  UseProfilesOptions,
+  // New types for Contacts page
+  ContactsInfiniteOptions,
+  ContactCounts,
+  LetterCount,
+  FilterOptions,
+  EnhancedContactRow,
+} from './hooks/useProfileService';

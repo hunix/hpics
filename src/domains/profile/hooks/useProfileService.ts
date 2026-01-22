@@ -4,13 +4,17 @@
  * React hooks for consuming Profile domain services.
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { 
   ProfileService, 
   CreateProfileRequest, 
   UpdateProfileRequest,
   ProfileSearchCriteria,
+  ContactCounts,
+  LetterCount,
+  FilterOptions,
+  EnhancedContactRow,
 } from '../services/ProfileService';
 import { Profile, RelationshipType, ProfileStatus } from '../entities/Profile';
 
@@ -35,6 +39,11 @@ export const profileKeys = {
   recent: () => [...profileKeys.all, 'recent'] as const,
   summary: () => [...profileKeys.all, 'summary'] as const,
   score: (id: string) => [...profileKeys.all, 'score', id] as const,
+  // New keys for contacts page
+  contactsInfinite: (criteria: ProfileSearchCriteria) => [...profileKeys.all, 'contacts-infinite', criteria] as const,
+  contactCounts: () => [...profileKeys.all, 'contact-counts'] as const,
+  letterCounts: () => [...profileKeys.all, 'letter-counts'] as const,
+  filterOptions: () => [...profileKeys.all, 'filter-options'] as const,
 };
 
 // ============================================
@@ -327,3 +336,140 @@ export function useProfileDomain() {
     isAuthenticated: !!user,
   };
 }
+
+// ============================================
+// Contacts Page Hooks (DDD Migration)
+// ============================================
+
+/**
+ * Options for useContactsInfinite hook
+ */
+export interface ContactsInfiniteOptions {
+  searchQuery?: string;
+  relationshipFilter?: string | null;
+  subtypeFilter?: string | null;
+  tagFilter?: string | null;
+  favoriteFilter?: boolean;
+  activeFilter?: boolean | null;
+  letterFilter?: string | null;
+  sortBy?: 'name' | 'recent' | 'oldest' | 'organization' | 'relationship' | 'engagement';
+  sortOrder?: 'asc' | 'desc';
+  pageSize?: number;
+  enabled?: boolean;
+}
+
+/**
+ * Infinite scroll hook for contacts page - replaces deprecated useEnhancedContacts
+ */
+export function useContactsInfinite(options: ContactsInfiniteOptions) {
+  const { user } = useAuth();
+  const service = getProfileService();
+  const {
+    searchQuery,
+    relationshipFilter,
+    subtypeFilter,
+    tagFilter,
+    favoriteFilter,
+    activeFilter,
+    letterFilter,
+    sortBy = 'name',
+    sortOrder = 'asc',
+    pageSize = 50,
+    enabled = true,
+  } = options;
+
+  const criteria: ProfileSearchCriteria = {
+    searchQuery: searchQuery || undefined,
+    relationshipType: relationshipFilter as RelationshipType | undefined,
+    relationshipSubtype: subtypeFilter || undefined,
+    tag: tagFilter || undefined,
+    isFavorite: favoriteFilter || undefined,
+    isActive: activeFilter,
+    firstLetter: letterFilter || undefined,
+    sortBy,
+    sortOrder,
+  };
+
+  return useInfiniteQuery({
+    queryKey: profileKeys.contactsInfinite(criteria),
+    queryFn: async ({ pageParam = 0 }) => {
+      if (!user?.id) throw new Error('No user');
+      const result = await service.searchContactsV5(user.id, criteria, pageSize, pageParam * pageSize);
+      return {
+        contacts: result.contacts,
+        totalCount: result.totalCount,
+        nextPage: result.contacts.length === pageSize ? pageParam + 1 : undefined,
+      };
+    },
+    getNextPageParam: (lastPage) => lastPage.nextPage,
+    initialPageParam: 0,
+    enabled: enabled && !!user?.id,
+    staleTime: 30000,
+  });
+}
+
+/**
+ * Hook for contact counts (active/inactive/total) - replaces deprecated useActiveContactCounts
+ */
+export function useContactCounts() {
+  const { user } = useAuth();
+  const service = getProfileService();
+
+  return useQuery({
+    queryKey: profileKeys.contactCounts(),
+    queryFn: () => service.getContactCounts(user!.id),
+    enabled: !!user?.id,
+    staleTime: 60000,
+  });
+}
+
+/**
+ * Hook for letter counts (alphabetical sidebar) - replaces deprecated useContactLetterCounts
+ */
+export function useLetterCounts() {
+  const { user } = useAuth();
+  const service = getProfileService();
+
+  return useQuery({
+    queryKey: profileKeys.letterCounts(),
+    queryFn: () => service.getLetterCounts(user!.id),
+    enabled: !!user?.id,
+    staleTime: 60000,
+  });
+}
+
+/**
+ * Hook for filter options (relationships, subtypes, tags) - replaces deprecated useContactFilterOptions
+ */
+export function useFilterOptions() {
+  const { user } = useAuth();
+  const service = getProfileService();
+
+  return useQuery({
+    queryKey: profileKeys.filterOptions(),
+    queryFn: () => service.getFilterOptions(user!.id),
+    enabled: !!user?.id,
+    staleTime: 60000,
+  });
+}
+
+/**
+ * Hook for toggling favorite with explicit current state - for Contacts page inline mutations
+ */
+export function useToggleFavoriteById() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const service = getProfileService();
+
+  return useMutation({
+    mutationFn: ({ id, isFavorite }: { id: string; isFavorite: boolean }) => 
+      service.toggleFavoriteById(id, user!.id, isFavorite),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: profileKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+    },
+  });
+}
+
+// Re-export types for external use
+export type { ContactCounts, LetterCount, FilterOptions, EnhancedContactRow };
