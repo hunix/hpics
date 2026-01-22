@@ -37,38 +37,39 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { 
-  Plus, GitBranch, Play, Pause, RefreshCw, AlertTriangle,
-  CheckCircle, Clock, Settings2, Trash2, Copy
+  Plus, GitBranch, Play, RefreshCw, AlertTriangle,
+  CheckCircle, Settings2, Trash2, Copy
 } from 'lucide-react';
-import { useAgentWorkflows } from '@/hooks/useAgentWorkflows';
+import { useAgentWorkflows, AgentWorkflow, WorkflowState, WorkflowTransition } from '@/hooks/useAgentWorkflows';
 import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns';
 
-const WORKFLOW_TYPES = [
-  { value: 'sequential', label: 'Sequential', description: 'Linear step-by-step execution' },
+const WORKFLOW_TYPES: Array<{ value: AgentWorkflow['workflow_type']; label: string; description: string }> = [
+  { value: 'linear', label: 'Linear', description: 'Step-by-step execution' },
   { value: 'parallel', label: 'Parallel', description: 'Concurrent state execution' },
   { value: 'conditional', label: 'Conditional', description: 'Branch based on conditions' },
-  { value: 'loop', label: 'Loop', description: 'Iterative state execution' },
+  { value: 'cyclical', label: 'Cyclical', description: 'Iterative with backtracking' },
 ];
 
 interface WorkflowFormData {
   workflow_name: string;
-  workflow_type: string;
+  workflow_key: string;
+  workflow_type: AgentWorkflow['workflow_type'];
   description: string;
   initial_state: string;
-  timeout_seconds: number;
-  backtrack_enabled: boolean;
+  timeout_ms: number;
+  enable_backtracking: boolean;
   max_backtrack_depth: number;
   checkpoint_enabled: boolean;
 }
 
 const DEFAULT_FORM: WorkflowFormData = {
   workflow_name: '',
-  workflow_type: 'sequential',
+  workflow_key: '',
+  workflow_type: 'linear',
   description: '',
   initial_state: 'start',
-  timeout_seconds: 300,
-  backtrack_enabled: true,
+  timeout_ms: 300000,
+  enable_backtracking: true,
   max_backtrack_depth: 3,
   checkpoint_enabled: true,
 };
@@ -83,7 +84,6 @@ export function AgentWorkflowDesigner() {
     createWorkflow,
     updateWorkflow,
     deleteWorkflow,
-    toggleWorkflowStatus,
   } = useAgentWorkflows();
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -98,32 +98,45 @@ export function AgentWorkflowDesigner() {
   );
 
   const handleCreateWorkflow = async () => {
-    if (!formData.workflow_name) {
-      toast.error('Please enter a workflow name');
+    if (!formData.workflow_name || !formData.workflow_key) {
+      toast.error('Please enter workflow name and key');
       return;
     }
+
+    const defaultStates: WorkflowState[] = [
+      { name: 'start', action: 'initialize', description: 'Initial state' },
+      { name: 'processing', action: 'process', description: 'Processing state' },
+      { name: 'completed', action: 'finalize', description: 'Terminal success state' },
+      { name: 'failed', action: 'handle_error', description: 'Terminal error state' },
+    ];
+
+    const defaultTransitions: WorkflowTransition[] = [
+      { from: 'start', to: 'processing', condition: 'always' },
+      { from: 'processing', to: 'completed', condition: 'success' },
+      { from: 'processing', to: 'failed', condition: 'error' },
+    ];
 
     try {
       await createWorkflow.mutateAsync({
         workflow_name: formData.workflow_name,
+        workflow_key: formData.workflow_key,
         workflow_type: formData.workflow_type,
         description: formData.description || null,
         initial_state: formData.initial_state,
-        timeout_seconds: formData.timeout_seconds,
-        backtrack_enabled: formData.backtrack_enabled,
+        timeout_ms: formData.timeout_ms,
+        enable_backtracking: formData.enable_backtracking,
         max_backtrack_depth: formData.max_backtrack_depth,
         checkpoint_enabled: formData.checkpoint_enabled,
-        states: [
-          { name: 'start', type: 'initial' },
-          { name: 'processing', type: 'intermediate' },
-          { name: 'completed', type: 'terminal' },
-          { name: 'failed', type: 'terminal' },
-        ],
-        transitions: [
-          { from: 'start', to: 'processing', condition: 'always' },
-          { from: 'processing', to: 'completed', condition: 'success' },
-          { from: 'processing', to: 'failed', condition: 'error' },
-        ],
+        states: defaultStates,
+        transitions: defaultTransitions,
+        self_correction_rules: [],
+        max_iterations: 100,
+        requires_human_approval: false,
+        approval_stages: [],
+        tags: [],
+        priority: 100,
+        is_active: true,
+        is_system: false,
       });
       toast.success('Workflow created');
       setCreateDialogOpen(false);
@@ -133,15 +146,16 @@ export function AgentWorkflowDesigner() {
     }
   };
 
-  const handleEditWorkflow = (wf: typeof workflows[0]) => {
+  const handleEditWorkflow = (wf: AgentWorkflow) => {
     setEditingWorkflowId(wf.id);
     setFormData({
       workflow_name: wf.workflow_name,
+      workflow_key: wf.workflow_key,
       workflow_type: wf.workflow_type,
       description: wf.description || '',
       initial_state: wf.initial_state,
-      timeout_seconds: wf.timeout_seconds,
-      backtrack_enabled: wf.backtrack_enabled,
+      timeout_ms: wf.timeout_ms,
+      enable_backtracking: wf.enable_backtracking,
       max_backtrack_depth: wf.max_backtrack_depth,
       checkpoint_enabled: wf.checkpoint_enabled,
     });
@@ -156,8 +170,8 @@ export function AgentWorkflowDesigner() {
         id: editingWorkflowId,
         updates: {
           description: formData.description || null,
-          timeout_seconds: formData.timeout_seconds,
-          backtrack_enabled: formData.backtrack_enabled,
+          timeout_ms: formData.timeout_ms,
+          enable_backtracking: formData.enable_backtracking,
           max_backtrack_depth: formData.max_backtrack_depth,
           checkpoint_enabled: formData.checkpoint_enabled,
         },
@@ -171,7 +185,11 @@ export function AgentWorkflowDesigner() {
     }
   };
 
-  const handleDeleteWorkflow = async (wf: typeof workflows[0]) => {
+  const handleDeleteWorkflow = async (wf: AgentWorkflow) => {
+    if (wf.is_system) {
+      toast.error('Cannot delete system workflows');
+      return;
+    }
     try {
       await deleteWorkflow.mutateAsync(wf.id);
       toast.success('Workflow deleted');
@@ -180,23 +198,44 @@ export function AgentWorkflowDesigner() {
     }
   };
 
-  const handleDuplicateWorkflow = async (wf: typeof workflows[0]) => {
+  const handleDuplicateWorkflow = async (wf: AgentWorkflow) => {
     try {
       await createWorkflow.mutateAsync({
-        workflow_name: `${wf.workflow_name}_copy`,
+        workflow_name: `${wf.workflow_name} (Copy)`,
+        workflow_key: `${wf.workflow_key}_copy_${Date.now()}`,
         workflow_type: wf.workflow_type,
         description: wf.description,
         initial_state: wf.initial_state,
-        timeout_seconds: wf.timeout_seconds,
-        backtrack_enabled: wf.backtrack_enabled,
+        timeout_ms: wf.timeout_ms,
+        enable_backtracking: wf.enable_backtracking,
         max_backtrack_depth: wf.max_backtrack_depth,
         checkpoint_enabled: wf.checkpoint_enabled,
         states: wf.states,
         transitions: wf.transitions,
+        self_correction_rules: wf.self_correction_rules,
+        max_iterations: wf.max_iterations,
+        requires_human_approval: wf.requires_human_approval,
+        approval_stages: wf.approval_stages,
+        tags: wf.tags,
+        priority: wf.priority,
+        is_active: true,
+        is_system: false,
       });
       toast.success('Workflow duplicated');
     } catch (err) {
       toast.error('Failed to duplicate workflow');
+    }
+  };
+
+  const handleToggleActive = async (wf: AgentWorkflow) => {
+    try {
+      await updateWorkflow.mutateAsync({
+        id: wf.id,
+        updates: { is_active: !wf.is_active },
+      });
+      toast.success(wf.is_active ? 'Workflow disabled' : 'Workflow enabled');
+    } catch (err) {
+      toast.error('Failed to toggle workflow status');
     }
   };
 
@@ -245,29 +284,38 @@ export function AgentWorkflowDesigner() {
           <Input
             value={formData.workflow_name}
             onChange={(e) => setFormData({ ...formData, workflow_name: e.target.value })}
-            placeholder="e.g., profile_analysis"
+            placeholder="e.g., Profile Analysis"
             disabled={!!editingWorkflowId}
           />
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium">Type</label>
-          <Select
-            value={formData.workflow_type}
-            onValueChange={(v) => setFormData({ ...formData, workflow_type: v })}
+          <label className="text-sm font-medium">Workflow Key</label>
+          <Input
+            value={formData.workflow_key}
+            onChange={(e) => setFormData({ ...formData, workflow_key: e.target.value })}
+            placeholder="e.g., profile_analysis"
             disabled={!!editingWorkflowId}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {WORKFLOW_TYPES.map(type => (
-                <SelectItem key={type.value} value={type.value}>
-                  {type.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          />
         </div>
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Type</label>
+        <Select
+          value={formData.workflow_type}
+          onValueChange={(v) => setFormData({ ...formData, workflow_type: v as AgentWorkflow['workflow_type'] })}
+          disabled={!!editingWorkflowId}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {WORKFLOW_TYPES.map(type => (
+              <SelectItem key={type.value} value={type.value}>
+                {type.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="space-y-2">
         <label className="text-sm font-medium">Description</label>
@@ -286,11 +334,11 @@ export function AgentWorkflowDesigner() {
           />
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium">Timeout (seconds)</label>
+          <label className="text-sm font-medium">Timeout (ms)</label>
           <Input
             type="number"
-            value={formData.timeout_seconds}
-            onChange={(e) => setFormData({ ...formData, timeout_seconds: parseInt(e.target.value) || 300 })}
+            value={formData.timeout_ms}
+            onChange={(e) => setFormData({ ...formData, timeout_ms: parseInt(e.target.value) || 300000 })}
           />
         </div>
       </div>
@@ -301,11 +349,11 @@ export function AgentWorkflowDesigner() {
             <p className="text-xs text-muted-foreground">Allow workflow to revert to previous states</p>
           </div>
           <Switch
-            checked={formData.backtrack_enabled}
-            onCheckedChange={(checked) => setFormData({ ...formData, backtrack_enabled: checked })}
+            checked={formData.enable_backtracking}
+            onCheckedChange={(checked) => setFormData({ ...formData, enable_backtracking: checked })}
           />
         </div>
-        {formData.backtrack_enabled && (
+        {formData.enable_backtracking && (
           <div className="space-y-2 pl-4 border-l-2">
             <label className="text-sm font-medium">Max Backtrack Depth</label>
             <Input
@@ -370,7 +418,7 @@ export function AgentWorkflowDesigner() {
               <span className="text-sm text-muted-foreground">With Backtrack</span>
             </div>
             <p className="text-2xl font-bold">
-              {workflows.filter(w => w.backtrack_enabled).length}
+              {workflows.filter(w => w.enable_backtracking).length}
             </p>
           </CardContent>
         </Card>
@@ -421,7 +469,7 @@ export function AgentWorkflowDesigner() {
                     </Button>
                     <Button 
                       onClick={handleCreateWorkflow}
-                      disabled={!formData.workflow_name || createWorkflow.isPending}
+                      disabled={!formData.workflow_name || !formData.workflow_key || createWorkflow.isPending}
                     >
                       Create
                     </Button>
@@ -457,7 +505,12 @@ export function AgentWorkflowDesigner() {
                     <TableRow key={wf.id}>
                       <TableCell>
                         <div className="flex flex-col">
-                          <span className="font-medium">{wf.workflow_name}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{wf.workflow_name}</span>
+                            {wf.is_system && (
+                              <Badge variant="secondary" className="text-xs">System</Badge>
+                            )}
+                          </div>
                           {wf.description && (
                             <span className="text-xs text-muted-foreground line-clamp-1">
                               {wf.description}
@@ -469,14 +522,14 @@ export function AgentWorkflowDesigner() {
                         <Badge variant="outline">{wf.workflow_type}</Badge>
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm">{(wf.states as unknown[])?.length || 0}</span>
+                        <span className="text-sm">{wf.states?.length || 0}</span>
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm">{wf.timeout_seconds}s</span>
+                        <span className="text-sm">{Math.round(wf.timeout_ms / 1000)}s</span>
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          {wf.backtrack_enabled && (
+                          {wf.enable_backtracking && (
                             <Badge variant="secondary" className="text-xs">Backtrack</Badge>
                           )}
                           {wf.checkpoint_enabled && (
@@ -487,11 +540,8 @@ export function AgentWorkflowDesigner() {
                       <TableCell>
                         <Switch
                           checked={wf.is_active}
-                          onCheckedChange={() => toggleWorkflowStatus.mutate({
-                            id: wf.id,
-                            isActive: !wf.is_active
-                          })}
-                          disabled={toggleWorkflowStatus.isPending}
+                          onCheckedChange={() => handleToggleActive(wf)}
+                          disabled={updateWorkflow.isPending}
                         />
                       </TableCell>
                       <TableCell className="text-right">
@@ -514,7 +564,7 @@ export function AgentWorkflowDesigner() {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleDeleteWorkflow(wf)}
-                            disabled={deleteWorkflow.isPending}
+                            disabled={wf.is_system || deleteWorkflow.isPending}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

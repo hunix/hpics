@@ -48,86 +48,107 @@ import {
 } from '@/components/ui/alert-dialog';
 import { 
   Plus, ShieldOff, ShieldCheck, AlertTriangle, RefreshCw,
-  Power, PowerOff, Clock, Zap, History
+  Power, PowerOff, Zap
 } from 'lucide-react';
-import { useKillSwitch } from '@/hooks/useKillSwitch';
+import { useKillSwitch, KillSwitch, AgentType, ContainmentMode } from '@/hooks/useKillSwitch';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 
-const AGENT_TYPES = [
-  { value: 'genesis_engine', label: 'Genesis Engine' },
-  { value: 'behavioral_analyzer', label: 'Behavioral Analyzer' },
-  { value: 'influence_optimizer', label: 'Influence Optimizer' },
-  { value: 'relationship_orchestrator', label: 'Relationship Orchestrator' },
-  { value: 'predictive_engine', label: 'Predictive Engine' },
-  { value: 'vulnerability_scanner', label: 'Vulnerability Scanner' },
-  { value: 'all_agents', label: 'All Agents (Global)' },
+const AGENT_TYPES: Array<{ value: AgentType; label: string }> = [
+  { value: 'edge_function', label: 'Edge Function' },
+  { value: 'workflow', label: 'Workflow' },
+  { value: 'tribunal', label: 'Tribunal' },
+  { value: 'agent', label: 'Agent' },
 ];
 
-const CONTAINMENT_MODES = [
-  { value: 'soft', label: 'Soft', description: 'Graceful shutdown, complete pending operations' },
-  { value: 'hard', label: 'Hard', description: 'Immediate termination, abort all operations' },
+const CONTAINMENT_MODES: Array<{ value: ContainmentMode; label: string; description: string }> = [
+  { value: 'none', label: 'None', description: 'No containment' },
+  { value: 'soft', label: 'Soft', description: 'Graceful shutdown' },
+  { value: 'hard', label: 'Hard', description: 'Immediate termination' },
 ];
 
 export function KillSwitchPanel() {
   const {
     killSwitches,
-    activeKillSwitches,
+    disabledAgents,
+    containedAgents,
+    highErrorAgents,
     isLoading,
     error,
     refetch,
-    createKillSwitch,
-    updateKillSwitch,
-    toggleKillSwitch,
+    disableAgent,
+    enableAgent,
+    setContainmentMode,
     emergencyShutdown,
+    registerKillSwitch,
   } = useKillSwitch();
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [emergencyDialogOpen, setEmergencyDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
-    agent_type: '',
-    function_name: '',
-    containment_mode: 'soft',
+    agent_id: '',
+    agent_type: 'agent' as AgentType,
+    display_name: '',
+    containment_mode: 'soft' as ContainmentMode,
     reason: '',
   });
 
   const handleCreateKillSwitch = async () => {
-    if (!formData.agent_type) {
-      toast.error('Please select an agent type');
+    if (!formData.agent_id) {
+      toast.error('Please enter an agent ID');
       return;
     }
 
     try {
-      await createKillSwitch.mutateAsync({
+      await registerKillSwitch.mutateAsync({
+        agent_id: formData.agent_id,
         agent_type: formData.agent_type,
-        function_name: formData.function_name || null,
-        containment_mode: formData.containment_mode,
-        reason: formData.reason || null,
+        display_name: formData.display_name || formData.agent_id,
       });
-      toast.success('Kill switch created');
+      toast.success('Kill switch registered');
       setCreateDialogOpen(false);
-      setFormData({ agent_type: '', function_name: '', containment_mode: 'soft', reason: '' });
+      setFormData({ agent_id: '', agent_type: 'agent', display_name: '', containment_mode: 'soft', reason: '' });
     } catch (err) {
-      toast.error('Failed to create kill switch');
+      toast.error('Failed to register kill switch');
     }
   };
 
-  const handleToggle = async (ks: typeof killSwitches[0]) => {
+  const handleToggle = async (ks: KillSwitch) => {
     try {
-      await toggleKillSwitch.mutateAsync({
-        id: ks.id,
-        isEnabled: !ks.is_enabled,
-        reason: ks.is_enabled ? 'Manually disabled' : 'Manually enabled',
-      });
-      toast.success(ks.is_enabled ? 'Kill switch disabled' : 'Kill switch enabled');
+      if (ks.is_enabled) {
+        await disableAgent.mutateAsync({
+          agentId: ks.agent_id,
+          agentType: ks.agent_type,
+          reason: 'Manually disabled',
+        });
+        toast.success('Agent disabled');
+      } else {
+        await enableAgent.mutateAsync(ks.agent_id);
+        toast.success('Agent enabled');
+      }
     } catch (err) {
-      toast.error('Failed to toggle kill switch');
+      toast.error('Failed to toggle agent status');
+    }
+  };
+
+  const handleSetContainment = async (ks: KillSwitch, mode: ContainmentMode) => {
+    try {
+      await setContainmentMode.mutateAsync({
+        agentId: ks.agent_id,
+        mode,
+      });
+      toast.success(`Containment set to ${mode}`);
+    } catch (err) {
+      toast.error('Failed to set containment mode');
     }
   };
 
   const handleEmergencyShutdown = async () => {
     try {
-      await emergencyShutdown.mutateAsync('Emergency shutdown initiated by operator');
+      await emergencyShutdown.mutateAsync({
+        agentType: 'all',
+        reason: 'Emergency shutdown initiated by operator',
+      });
       toast.success('All agents have been shut down');
       setEmergencyDialogOpen(false);
     } catch (err) {
@@ -172,6 +193,8 @@ export function KillSwitchPanel() {
     );
   }
 
+  const activeKillSwitches = killSwitches?.filter(ks => !ks.is_enabled) || [];
+
   return (
     <div className="space-y-4">
       {/* Emergency Banner */}
@@ -183,7 +206,7 @@ export function KillSwitchPanel() {
                 <ShieldOff className="h-6 w-6 text-red-500" />
                 <div>
                   <p className="font-semibold text-red-500">
-                    {activeKillSwitches.length} Kill Switch{activeKillSwitches.length > 1 ? 'es' : ''} Active
+                    {activeKillSwitches.length} Agent{activeKillSwitches.length > 1 ? 's' : ''} Disabled
                   </p>
                   <p className="text-sm text-muted-foreground">
                     Some agents are currently disabled
@@ -203,36 +226,34 @@ export function KillSwitchPanel() {
               <ShieldOff className="h-4 w-4 text-primary" />
               <span className="text-sm text-muted-foreground">Total Switches</span>
             </div>
-            <p className="text-2xl font-bold">{killSwitches.length}</p>
+            <p className="text-2xl font-bold">{killSwitches?.length || 0}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
               <Power className="h-4 w-4 text-red-500" />
-              <span className="text-sm text-muted-foreground">Active</span>
+              <span className="text-sm text-muted-foreground">Disabled</span>
             </div>
-            <p className="text-2xl font-bold">{activeKillSwitches.length}</p>
+            <p className="text-2xl font-bold">{disabledAgents.length}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-green-500" />
-              <span className="text-sm text-muted-foreground">Inactive</span>
+              <ShieldCheck className="h-4 w-4 text-amber-500" />
+              <span className="text-sm text-muted-foreground">Contained</span>
             </div>
-            <p className="text-2xl font-bold">{killSwitches.length - activeKillSwitches.length}</p>
+            <p className="text-2xl font-bold">{containedAgents.length}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
-              <History className="h-4 w-4 text-amber-500" />
-              <span className="text-sm text-muted-foreground">Activations</span>
+              <AlertTriangle className="h-4 w-4 text-orange-500" />
+              <span className="text-sm text-muted-foreground">High Errors</span>
             </div>
-            <p className="text-2xl font-bold">
-              {killSwitches.reduce((acc, ks) => acc + (ks.activation_count || 0), 0)}
-            </p>
+            <p className="text-2xl font-bold">{highErrorAgents.length}</p>
           </CardContent>
         </Card>
       </div>
@@ -285,68 +306,45 @@ export function KillSwitchPanel() {
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Create Kill Switch</DialogTitle>
+                    <DialogTitle>Register Kill Switch</DialogTitle>
                     <DialogDescription>
                       Configure emergency containment for an AI agent.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Agent Type</label>
-                      <Select
-                        value={formData.agent_type}
-                        onValueChange={(v) => setFormData({ ...formData, agent_type: v })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select agent..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {AGENT_TYPES.map(agent => (
-                            <SelectItem key={agent.value} value={agent.value}>
-                              {agent.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Function Name (optional)</label>
+                      <label className="text-sm font-medium">Agent ID</label>
                       <Input
-                        value={formData.function_name}
-                        onChange={(e) => setFormData({ ...formData, function_name: e.target.value })}
-                        placeholder="Specific function to disable"
+                        value={formData.agent_id}
+                        onChange={(e) => setFormData({ ...formData, agent_id: e.target.value })}
+                        placeholder="e.g., genesis_engine"
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Containment Mode</label>
+                      <label className="text-sm font-medium">Display Name</label>
+                      <Input
+                        value={formData.display_name}
+                        onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
+                        placeholder="e.g., Genesis Engine"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Agent Type</label>
                       <Select
-                        value={formData.containment_mode}
-                        onValueChange={(v) => setFormData({ ...formData, containment_mode: v })}
+                        value={formData.agent_type}
+                        onValueChange={(v) => setFormData({ ...formData, agent_type: v as AgentType })}
                       >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {CONTAINMENT_MODES.map(mode => (
-                            <SelectItem key={mode.value} value={mode.value}>
-                              <div>
-                                <span>{mode.label}</span>
-                                <span className="text-xs text-muted-foreground ml-2">
-                                  - {mode.description}
-                                </span>
-                              </div>
+                          {AGENT_TYPES.map(type => (
+                            <SelectItem key={type.value} value={type.value}>
+                              {type.label}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Reason</label>
-                      <Textarea
-                        value={formData.reason}
-                        onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                        placeholder="Why is this kill switch being created?"
-                      />
                     </div>
                   </div>
                   <DialogFooter>
@@ -355,9 +353,9 @@ export function KillSwitchPanel() {
                     </Button>
                     <Button 
                       onClick={handleCreateKillSwitch}
-                      disabled={!formData.agent_type || createKillSwitch.isPending}
+                      disabled={!formData.agent_id || registerKillSwitch.isPending}
                     >
-                      Create Switch
+                      Register
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -371,19 +369,18 @@ export function KillSwitchPanel() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Agent</TableHead>
-                  <TableHead>Function</TableHead>
-                  <TableHead>Mode</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Containment</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Activations</TableHead>
-                  <TableHead>Last Active</TableHead>
+                  <TableHead>Errors</TableHead>
                   <TableHead className="text-right">Control</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {killSwitches.length === 0 ? (
+                {!killSwitches || killSwitches.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                      No kill switches configured. Create one to enable emergency containment.
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      No kill switches configured. Register one to enable emergency containment.
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -392,49 +389,59 @@ export function KillSwitchPanel() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Zap className="h-4 w-4 text-amber-500" />
-                          <span className="font-medium">
-                            {AGENT_TYPES.find(a => a.value === ks.agent_type)?.label || ks.agent_type}
-                          </span>
+                          <div className="flex flex-col">
+                            <span className="font-medium">
+                              {ks.display_name || ks.agent_id}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {ks.agent_id}
+                            </span>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        {ks.function_name ? (
-                          <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                            {ks.function_name}
-                          </code>
-                        ) : (
-                          <span className="text-muted-foreground">All</span>
-                        )}
+                        <Badge variant="outline">{ks.agent_type}</Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={ks.containment_mode === 'hard' ? 'destructive' : 'secondary'}>
-                          {ks.containment_mode}
-                        </Badge>
+                        <Select
+                          value={ks.containment_mode}
+                          onValueChange={(v) => handleSetContainment(ks, v as ContainmentMode)}
+                        >
+                          <SelectTrigger className="w-24 h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CONTAINMENT_MODES.map(mode => (
+                              <SelectItem key={mode.value} value={mode.value}>
+                                {mode.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell>
                         {ks.is_enabled ? (
-                          <Badge className="bg-red-500/10 text-red-500">
-                            <Power className="h-3 w-3 mr-1" />
-                            Active
+                          <Badge className="bg-green-500/10 text-green-500">
+                            <ShieldCheck className="h-3 w-3 mr-1" />
+                            Enabled
                           </Badge>
                         ) : (
-                          <Badge variant="outline">
-                            <ShieldCheck className="h-3 w-3 mr-1" />
-                            Inactive
+                          <Badge className="bg-red-500/10 text-red-500">
+                            <Power className="h-3 w-3 mr-1" />
+                            Disabled
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell>{ks.activation_count || 0}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {ks.last_activation_at 
-                          ? formatDistanceToNow(new Date(ks.last_activation_at), { addSuffix: true })
-                          : 'Never'}
+                      <TableCell>
+                        <span className={ks.current_error_count >= ks.error_threshold * 0.8 ? 'text-red-500 font-medium' : ''}>
+                          {ks.current_error_count} / {ks.error_threshold}
+                        </span>
                       </TableCell>
                       <TableCell className="text-right">
                         <Switch
                           checked={ks.is_enabled}
                           onCheckedChange={() => handleToggle(ks)}
-                          disabled={toggleKillSwitch.isPending}
+                          disabled={disableAgent.isPending || enableAgent.isPending}
                         />
                       </TableCell>
                     </TableRow>
