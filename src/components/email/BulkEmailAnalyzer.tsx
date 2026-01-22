@@ -1,6 +1,7 @@
 /**
- * Bulk Email Analyzer (v3.9.33)
+ * Bulk Email Analyzer (v3.9.34)
  * UI for analyzing email intelligence across all matched contacts
+ * Now includes orphaned thread re-linking capability
  */
 
 import { useState } from 'react';
@@ -22,7 +23,8 @@ import {
   MessageSquare,
   Clock,
   Play,
-  RefreshCw
+  RefreshCw,
+  Link2
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -40,6 +42,9 @@ export function BulkEmailAnalyzer({ onComplete }: BulkEmailAnalyzerProps) {
     analyzeAll,
     analyzeSelected,
     refetchContacts,
+    orphanedThreadCount,
+    isRelinking,
+    relinkThreads,
   } = useBulkEmailAnalysis();
 
   const [selectedContacts, setSelectedContacts] = useState<Set<string>>(new Set());
@@ -107,7 +112,35 @@ export function BulkEmailAnalyzer({ onComplete }: BulkEmailAnalyzerProps) {
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
             <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Import emails first to analyze contact communication patterns</p>
+            <p className="mb-4">Import emails first to analyze contact communication patterns</p>
+            
+            {/* Show re-link option if there are orphaned threads */}
+            {orphanedThreadCount > 0 && (
+              <div className="mt-4 p-4 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                <p className="text-sm text-amber-600 mb-3">
+                  <strong>{orphanedThreadCount.toLocaleString()}</strong> email threads are not linked to any contacts.
+                  Add email addresses to your contacts, then click re-link.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => relinkThreads()}
+                  disabled={isRelinking}
+                >
+                  {isRelinking ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Re-linking...
+                    </>
+                  ) : (
+                    <>
+                      <Link2 className="mr-2 h-4 w-4" />
+                      Re-link Threads to Contacts
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -127,14 +160,34 @@ export function BulkEmailAnalyzer({ onComplete }: BulkEmailAnalyzerProps) {
               Extract insights from email threads with AI
             </CardDescription>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => refetchContacts()}
-            disabled={isAnalyzing}
-          >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {orphanedThreadCount > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => relinkThreads()}
+                disabled={isRelinking || isAnalyzing}
+                className="text-amber-600 border-amber-500/30 hover:bg-amber-500/10"
+              >
+                {isRelinking ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <Link2 className="h-4 w-4 mr-1" />
+                    Re-link ({orphanedThreadCount.toLocaleString()})
+                  </>
+                )}
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => refetchContacts()}
+              disabled={isAnalyzing || isRelinking}
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </CardHeader>
 

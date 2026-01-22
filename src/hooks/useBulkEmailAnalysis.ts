@@ -1,6 +1,7 @@
 /**
- * Bulk Email Analysis Hook (v3.9.33)
+ * Bulk Email Analysis Hook (v3.9.34)
  * Processes email intelligence for multiple contacts at once
+ * Now includes orphaned thread re-linking capability
  */
 
 import { useState, useCallback } from 'react';
@@ -31,6 +32,11 @@ export interface BulkAnalysisProgress {
   }>;
 }
 
+export interface RelinkResult {
+  threadsLinked: number;
+  profilesMatched: number;
+}
+
 export function useBulkEmailAnalysis() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -40,6 +46,27 @@ export function useBulkEmailAnalysis() {
     currentContact: '',
     status: 'idle',
     results: [],
+  });
+
+  // Count orphaned threads (threads without a profile_id)
+  const { data: orphanedCount, refetch: refetchOrphanedCount } = useQuery({
+    queryKey: ['orphaned-email-threads-count', user?.id],
+    queryFn: async () => {
+      if (!user) return 0;
+      const { count, error } = await supabase
+        .from('email_threads')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .is('profile_id', null);
+      
+      if (error) {
+        console.error('Error counting orphaned threads:', error);
+        return 0;
+      }
+      return count || 0;
+    },
+    enabled: !!user,
+    staleTime: 1000 * 60 * 2,
   });
 
   // Fetch all contacts with email threads
@@ -71,7 +98,7 @@ export function useBulkEmailAnalysis() {
       
       for (const thread of threads) {
         const profileId = thread.profile_id!;
-        const profile = thread.profiles as any;
+        const profile = thread.profiles as unknown as { id: string; first_name: string | null; last_name: string | null };
         const name = `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || 'Unknown';
         
         if (!profileMap.has(profileId)) {
@@ -118,6 +145,48 @@ export function useBulkEmailAnalysis() {
     },
     enabled: !!user,
     staleTime: 1000 * 60 * 5, // 5 min
+  });
+
+  // Re-link orphaned threads mutation
+  const relinkMutation = useMutation({
+    mutationFn: async (): Promise<RelinkResult> => {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session?.access_token) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await supabase.functions.invoke('relink-email-threads', {
+        headers: { Authorization: `Bearer ${session.session.access_token}` },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      return {
+        threadsLinked: response.data?.threadsLinked || 0,
+        profilesMatched: response.data?.profilesMatched || 0,
+      };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['contacts-with-email-threads'] });
+      queryClient.invalidateQueries({ queryKey: ['orphaned-email-threads-count'] });
+      
+      if (result.threadsLinked > 0) {
+        toast.success(`Linked ${result.threadsLinked.toLocaleString()} threads`, {
+          description: `Matched to ${result.profilesMatched} contact(s)`,
+        });
+      } else {
+        toast.info('No new threads to link', {
+          description: 'All threads with matching contact emails are already linked',
+        });
+      }
+    },
+    onError: (error) => {
+      toast.error('Failed to re-link threads', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    },
   });
 
   // Analyze a single contact's emails
@@ -222,15 +291,24 @@ export function useBulkEmailAnalysis() {
     });
   }, []);
 
+  const handleRefetch = useCallback(() => {
+    refetchContacts();
+    refetchOrphanedCount();
+  }, [refetchContacts, refetchOrphanedCount]);
+
   return {
     contactsWithEmails: contactsWithEmails || [],
     loadingContacts,
-    refetchContacts,
+    refetchContacts: handleRefetch,
     progress,
     resetProgress,
     isAnalyzing: bulkAnalyzeMutation.isPending,
     analyzeAll: () => bulkAnalyzeMutation.mutate(undefined),
     analyzeSelected: (profileIds: string[]) => bulkAnalyzeMutation.mutate(profileIds),
     analyzeContact,
+    // Re-linking functionality
+    orphanedThreadCount: orphanedCount || 0,
+    isRelinking: relinkMutation.isPending,
+    relinkThreads: () => relinkMutation.mutate(),
   };
 }
