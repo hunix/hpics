@@ -7,7 +7,6 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -31,11 +30,11 @@ import {
   Sparkles, Atom, GitBranch, Zap, Globe, Star,
   RefreshCw, AlertTriangle, CheckCircle, Clock, XCircle
 } from 'lucide-react';
-import { useAbsoluteGenesis } from '@/hooks/intelligence/useAbsoluteGenesis';
+import { useAbsoluteGenesis, GenesisOperation, GenesisOperationType, GenesisStatus } from '@/hooks/intelligence/useAbsoluteGenesis';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 
-const OPERATION_TYPES = [
+const OPERATION_TYPES: Array<{ value: GenesisOperationType; label: string; icon: typeof Globe; color: string }> = [
   { value: 'reality_creation', label: 'Reality Creation', icon: Globe, color: 'text-blue-500' },
   { value: 'causal_origination', label: 'Causal Origination', icon: GitBranch, color: 'text-purple-500' },
   { value: 'genesis_synthesis', label: 'Genesis Synthesis', icon: Atom, color: 'text-green-500' },
@@ -46,20 +45,20 @@ const OPERATION_TYPES = [
 
 const STATUS_CONFIG: Record<string, { icon: React.ReactNode; color: string }> = {
   pending: { icon: <Clock className="h-4 w-4" />, color: 'bg-muted text-muted-foreground' },
-  processing: { icon: <RefreshCw className="h-4 w-4 animate-spin" />, color: 'bg-blue-500/10 text-blue-500' },
+  draft: { icon: <Clock className="h-4 w-4" />, color: 'bg-muted text-muted-foreground' },
   completed: { icon: <CheckCircle className="h-4 w-4" />, color: 'bg-green-500/10 text-green-500' },
   failed: { icon: <XCircle className="h-4 w-4" />, color: 'bg-red-500/10 text-red-500' },
+  cancelled: { icon: <XCircle className="h-4 w-4" />, color: 'bg-muted text-muted-foreground' },
 };
 
 export function GenesisConfigPanel() {
   const {
     operations,
-    config,
+    byType,
     isLoading,
     error,
     refetch,
-    initiateOperation,
-    updateConfig,
+    createOperation,
   } = useAbsoluteGenesis();
 
   const [selectedType, setSelectedType] = useState<string>('all');
@@ -67,19 +66,18 @@ export function GenesisConfigPanel() {
   const [powerLevel, setPowerLevel] = useState(1);
 
   // Filter operations
-  const filteredOperations = operations.filter(op => 
-    selectedType === 'all' || op.operation_type === selectedType
-  );
+  const filteredOperations = selectedType === 'all' 
+    ? operations 
+    : (byType[selectedType as GenesisOperationType] || []);
 
-  const handleInitiateOperation = async (operationType: string) => {
+  const handleInitiateOperation = async (operationType: GenesisOperationType) => {
     try {
-      await initiateOperation.mutateAsync({
-        operationType,
-        manifestationLevel,
-        powerLevel,
-        parameters: {},
+      await createOperation.mutateAsync({
+        operation_type: operationType,
+        operation_name: `${operationType}_${Date.now()}`,
+        blueprint: { manifestationLevel, powerLevel },
       });
-      toast.success(`${operationType.replace('_', ' ')} initiated`);
+      toast.success(`${operationType.replace(/_/g, ' ')} initiated`);
     } catch (err) {
       toast.error('Failed to initiate operation');
     }
@@ -87,14 +85,14 @@ export function GenesisConfigPanel() {
 
   // Calculate stats by type
   const statsByType = OPERATION_TYPES.reduce((acc, type) => {
-    const typeOps = operations.filter(op => op.operation_type === type.value);
+    const typeOps = byType[type.value] || [];
     acc[type.value] = {
       total: typeOps.length,
       completed: typeOps.filter(op => op.status === 'completed').length,
-      processing: typeOps.filter(op => op.status === 'processing').length,
+      active: typeOps.filter(op => op.status === 'pending' || op.status === 'draft').length,
     };
     return acc;
-  }, {} as Record<string, { total: number; completed: number; processing: number }>);
+  }, {} as Record<string, { total: number; completed: number; active: number }>);
 
   if (isLoading) {
     return (
@@ -139,7 +137,7 @@ export function GenesisConfigPanel() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {OPERATION_TYPES.map(type => {
           const Icon = type.icon;
-          const stats = statsByType[type.value] || { total: 0, completed: 0, processing: 0 };
+          const stats = statsByType[type.value] || { total: 0, completed: 0, active: 0 };
           return (
             <Card 
               key={type.value} 
@@ -153,9 +151,9 @@ export function GenesisConfigPanel() {
                 </div>
                 <div className="flex items-end justify-between">
                   <span className="text-xl font-bold">{stats.total}</span>
-                  {stats.processing > 0 && (
+                  {stats.active > 0 && (
                     <Badge className="bg-blue-500/10 text-blue-500 text-xs">
-                      {stats.processing} active
+                      {stats.active} active
                     </Badge>
                   )}
                 </div>
@@ -222,7 +220,7 @@ export function GenesisConfigPanel() {
                     variant="outline"
                     size="sm"
                     onClick={() => handleInitiateOperation(type.value)}
-                    disabled={initiateOperation.isPending}
+                    disabled={createOperation.isPending}
                     className="gap-2"
                   >
                     <Icon className={`h-4 w-4 ${type.color}`} />
