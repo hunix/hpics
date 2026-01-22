@@ -57,6 +57,8 @@ export function useInteractionContext(options: UseInteractionContextOptions = {}
   const motionSamplesRef = useRef<number[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const ambientSensorRef = useRef<any>(null);
+  const motionHandlerRef = useRef<((e: DeviceMotionEvent) => void) | null>(null);
+  const ambientReadingHandlerRef = useRef<(() => void) | null>(null);
 
   // Detect activity from motion samples
   const detectActivity = useCallback((samples: number[]): 'stationary' | 'walking' | 'driving' | 'unknown' => {
@@ -135,6 +137,7 @@ export function useInteractionContext(options: UseInteractionContextOptions = {}
           motionSamplesRef.current.shift();
         }
       };
+      motionHandlerRef.current = handleMotion;
       window.addEventListener('devicemotion', handleMotion);
     }
 
@@ -142,12 +145,14 @@ export function useInteractionContext(options: UseInteractionContextOptions = {}
     if (enableEnvironment && 'AmbientLightSensor' in window) {
       try {
         ambientSensorRef.current = new (window as any).AmbientLightSensor();
-        ambientSensorRef.current.addEventListener('reading', () => {
+        const handleReading = () => {
           setContext(prev => ({
             ...prev,
             ambientLight: ambientSensorRef.current?.illuminance,
           }));
-        });
+        };
+        ambientReadingHandlerRef.current = handleReading;
+        ambientSensorRef.current.addEventListener('reading', handleReading);
         ambientSensorRef.current.start();
       } catch (e) {
         console.log('Ambient light sensor not available');
@@ -198,10 +203,20 @@ export function useInteractionContext(options: UseInteractionContextOptions = {}
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
+        timerRef.current = null;
       }
-      // Stop ambient light sensor to prevent memory leak
+      // Remove devicemotion listener to prevent memory leak
+      if (motionHandlerRef.current) {
+        window.removeEventListener('devicemotion', motionHandlerRef.current);
+        motionHandlerRef.current = null;
+      }
+      // Stop ambient light sensor with explicit listener removal
       if (ambientSensorRef.current) {
         try {
+          if (ambientReadingHandlerRef.current) {
+            ambientSensorRef.current.removeEventListener('reading', ambientReadingHandlerRef.current);
+            ambientReadingHandlerRef.current = null;
+          }
           ambientSensorRef.current.stop();
         } catch (e) {
           // Sensor may already be stopped
