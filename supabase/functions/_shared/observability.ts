@@ -162,13 +162,27 @@ export async function startTraceSession(
 export async function endTraceSession(
   supabase: SupabaseClient,
   sessionId: string,
-  status: 'completed' | 'failed' = 'completed'
+  status: 'completed' | 'failed' = 'completed',
+  additionalCostCents: number = 0
 ): Promise<void> {
+  // Get span counts and costs
+  const { data: spanStats } = await supabase
+    .from('agent_spans')
+    .select('cost_cents, status')
+    .eq('trace_session_id', sessionId);
+
+  const totalSpans = spanStats?.length || 0;
+  const errorCount = spanStats?.filter((s: { status: string }) => s.status === 'error').length || 0;
+  const totalCostCents = (spanStats?.reduce((sum: number, s: { cost_cents: number | null }) => sum + (s.cost_cents || 0), 0) || 0) + additionalCostCents;
+
   const { error } = await supabase
     .from('agent_trace_sessions')
     .update({
       status,
       ended_at: new Date().toISOString(),
+      total_spans: totalSpans,
+      error_count: errorCount,
+      total_cost_cents: totalCostCents
     })
     .eq('id', sessionId);
 
@@ -375,7 +389,7 @@ export async function withSpan<T>(
  * Create a trace context for passing between functions
  */
 export function serializeContext(context: SpanContext): string {
-  return Buffer.from(JSON.stringify(context)).toString('base64');
+  return btoa(JSON.stringify(context));
 }
 
 /**
@@ -383,7 +397,7 @@ export function serializeContext(context: SpanContext): string {
  */
 export function deserializeContext(encoded: string): SpanContext | null {
   try {
-    return JSON.parse(Buffer.from(encoded, 'base64').toString());
+    return JSON.parse(atob(encoded));
   } catch {
     return null;
   }

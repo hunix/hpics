@@ -239,18 +239,25 @@ If successful, include distilled_sop. If failed, include failure_analysis. Alway
         sopGenerationEnabled && weightedScore >= minConfidenceForSOP) {
       
       const sop = reflection.distilled_sop;
+      const sopKey = sop.sop_key;
       
       // Check for existing SOP
       const { data: existingSop } = await supabase
         .from('procedural_memory')
-        .select('id, usage_count, success_rate')
+        .select('id, usage_count, success_rate, source_task_ids')
         .eq('user_id', userId)
-        .eq('sop_key', sop.sop_key)
+        .eq('sop_key', sopKey)
         .single();
 
       if (existingSop) {
-        // Update existing SOP
-        const newSuccessRate = (existingSop.success_rate + weightedScore) / 2;
+        // Update existing SOP - manually append to array
+        const existingTaskIds = (existingSop.source_task_ids || []) as string[];
+        const newTaskId = executionId || analysisId;
+        const updatedTaskIds = newTaskId && !existingTaskIds.includes(newTaskId) 
+          ? [...existingTaskIds, newTaskId]
+          : existingTaskIds;
+        
+        const newSuccessRate = ((existingSop.success_rate || 0) + weightedScore) / 2;
         await supabase
           .from('procedural_memory')
           .update({
@@ -258,7 +265,7 @@ If successful, include distilled_sop. If failed, include failure_analysis. Alway
             success_criteria: sop.success_criteria,
             confidence_score: weightedScore,
             success_rate: newSuccessRate,
-            source_task_ids: supabase.sql`array_append(source_task_ids, ${executionId || analysisId}::uuid)`,
+            source_task_ids: updatedTaskIds,
             updated_at: new Date().toISOString(),
           })
           .eq('id', existingSop.id);
@@ -270,7 +277,7 @@ If successful, include distilled_sop. If failed, include failure_analysis. Alway
           .from('procedural_memory')
           .insert({
             user_id: userId,
-            sop_key: sop.sop_key,
+            sop_key: sopKey,
             sop_name: sop.sop_name,
             description: sop.description,
             trigger_conditions: sop.trigger_conditions,

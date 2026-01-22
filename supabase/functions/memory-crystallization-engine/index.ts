@@ -292,28 +292,38 @@ Return JSON array of link suggestions:
           weighted_score: m.confidence_score * (tierWeights[m.memory_tier] || 0.5),
         })).sort((a, b) => b.weighted_score - a.weighted_score).slice(0, limit);
 
-        // Update access counts
+        // Update access counts - fetch and increment each memory
         const memoryIds = rankedMemories.map(m => m.id);
-        if (memoryIds.length > 0) {
+        for (const memId of memoryIds) {
+          const { data: currentMem } = await supabase
+            .from('agentic_memory')
+            .select('access_count')
+            .eq('id', memId)
+            .single();
+          
           await supabase
             .from('agentic_memory')
             .update({ 
               last_accessed_at: new Date().toISOString(),
-              access_count: supabase.sql`access_count + 1`
+              access_count: (currentMem?.access_count || 0) + 1
             })
-            .in('id', memoryIds);
+            .eq('id', memId);
         }
 
         // Fetch linked memories for context
-        const { data: links } = await supabase
-          .from('memory_links')
-          .select('source_memory_id, target_memory_id, link_type, link_strength')
-          .or(`source_memory_id.in.(${memoryIds.join(',')}),target_memory_id.in.(${memoryIds.join(',')})`)
-          .limit(100);
+        let links: unknown[] = [];
+        if (memoryIds.length > 0) {
+          const { data: linkData } = await supabase
+            .from('memory_links')
+            .select('source_memory_id, target_memory_id, link_type, link_strength')
+            .or(`source_memory_id.in.(${memoryIds.join(',')}),target_memory_id.in.(${memoryIds.join(',')})`)
+            .limit(100);
+          links = linkData || [];
+        }
 
         result = {
           memories: rankedMemories,
-          links: links || [],
+          links,
           queryKeywords,
         };
         break;
