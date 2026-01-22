@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,24 +15,35 @@ import {
   Upload, 
   Loader2, 
   Mail, 
-  Inbox, 
-  Send, 
-  Trash2, 
   FileText, 
-  Calendar,
   CheckCircle,
   AlertCircle,
   FileArchive,
-  Info
+  Info,
+  Gauge,
+  Timer
 } from 'lucide-react';
 import { parseOutlookCSV, parseEMLFile, parseEMLZip, batchEmails, ParsedEmail } from '@/lib/pstParser';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+
+// Performance constants
+const BATCH_SIZE = 500; // 5x larger batches
+const CONCURRENT_BATCHES = 3; // Process 3 batches in parallel
 
 interface ImportStats {
   imported: number;
   skipped: number;
   matchedContacts: number;
   unmatchedEmails: number;
+}
+
+interface UploadProgress {
+  current: number;
+  total: number;
+  bytesPerSecond: number;
+  etaSeconds: number;
+  startTime: number;
+  processedEmails: number;
 }
 
 export function PSTImport() {
@@ -47,10 +58,13 @@ export function PSTImport() {
     createUnmatchedThreads: true,
   });
   
-  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const [parsedEmails, setParsedEmails] = useState<ParsedEmail[] | null>(null);
   const [importStats, setImportStats] = useState<ImportStats | null>(null);
   const [isParsing, setIsParsing] = useState(false);
+  
+  // Track processed emails for speed calculation
+  const processedCountRef = useRef(0);
 
   // Fetch contacts for matching preview
   const { data: contacts } = useQuery({
@@ -131,7 +145,7 @@ export function PSTImport() {
       } else {
         toast({
           title: 'Parsing complete',
-          description: `Found ${emails.length} emails ready for import`,
+          description: `Found ${emails.length.toLocaleString()} emails ready for import`,
         });
       }
     } catch (error) {
@@ -150,35 +164,67 @@ export function PSTImport() {
     mutationFn: async (emails: ParsedEmail[]) => {
       if (!user) throw new Error('Not authenticated');
       
-      const batches = batchEmails(emails, 100);
+      const batches = batchEmails(emails, BATCH_SIZE);
       let imported = 0;
       let skipped = 0;
       let matchedContacts = 0;
       let unmatchedEmails = 0;
       
-      for (let i = 0; i < batches.length; i++) {
-        const batch = batches[i];
-        setUploadProgress({ current: i + 1, total: batches.length });
+      const startTime = Date.now();
+      processedCountRef.current = 0;
+      
+      // Process batches in parallel chunks
+      for (let i = 0; i < batches.length; i += CONCURRENT_BATCHES) {
+        const chunk = batches.slice(i, Math.min(i + CONCURRENT_BATCHES, batches.length));
+        const chunkStartTime = Date.now();
         
-        const { data, error } = await supabase.functions.invoke('import-pst-emails', {
-          body: {
-            emails: batch,
-            options: {
-              skipDuplicates: options.skipDuplicates,
-              createUnmatchedThreads: options.createUnmatchedThreads,
-            },
-          },
-        });
+        // Fire off all requests in the chunk simultaneously
+        const results = await Promise.all(
+          chunk.map(batch => 
+            supabase.functions.invoke('import-pst-emails', {
+              body: {
+                emails: batch,
+                options: {
+                  skipDuplicates: options.skipDuplicates,
+                  createUnmatchedThreads: options.createUnmatchedThreads,
+                },
+              },
+            })
+          )
+        );
         
-        if (error) {
-          console.error('Batch import error:', error);
-          skipped += batch.length;
-        } else if (data) {
-          imported += data.imported || 0;
-          skipped += data.skipped || 0;
-          matchedContacts += data.matchedContacts?.length || 0;
-          unmatchedEmails += data.unmatchedEmails || 0;
+        // Aggregate results from all parallel requests
+        for (let j = 0; j < results.length; j++) {
+          const { data, error } = results[j];
+          const batchSize = chunk[j].length;
+          
+          if (error) {
+            console.error('Batch import error:', error);
+            skipped += batchSize;
+          } else if (data) {
+            imported += data.imported || 0;
+            skipped += data.skipped || 0;
+            matchedContacts += data.matchedContacts?.length || 0;
+            unmatchedEmails += data.unmatchedEmails || 0;
+          }
+          
+          processedCountRef.current += batchSize;
         }
+        
+        // Calculate speed and ETA
+        const elapsed = (Date.now() - startTime) / 1000;
+        const emailsPerSecond = processedCountRef.current / elapsed;
+        const remainingEmails = emails.length - processedCountRef.current;
+        const etaSeconds = emailsPerSecond > 0 ? remainingEmails / emailsPerSecond : 0;
+        
+        setUploadProgress({ 
+          current: Math.min(i + CONCURRENT_BATCHES, batches.length), 
+          total: batches.length,
+          bytesPerSecond: emailsPerSecond, // Actually emails per second
+          etaSeconds,
+          startTime,
+          processedEmails: processedCountRef.current
+        });
       }
       
       return { imported, skipped, matchedContacts, unmatchedEmails };
@@ -190,7 +236,7 @@ export function PSTImport() {
       queryClient.invalidateQueries({ queryKey: ['email-messages'] });
       toast({
         title: 'Import complete',
-        description: `Imported ${result.imported} emails, matched to ${result.matchedContacts} contacts`,
+        description: `Imported ${result.imported.toLocaleString()} emails, matched to ${result.matchedContacts} contacts`,
       });
     },
     onError: (error) => {
@@ -241,6 +287,25 @@ export function PSTImport() {
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
     return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
+  };
+
+  const formatEta = (seconds: number) => {
+    if (seconds <= 0) return 'Calculating...';
+    if (seconds < 60) return `~${Math.ceil(seconds)}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    if (minutes < 60) {
+      return remainingSeconds > 0 ? `~${minutes}m ${remainingSeconds}s` : `~${minutes}m`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return `~${hours}h ${remainingMinutes}m`;
+  };
+
+  const formatSpeed = (emailsPerSecond: number) => {
+    if (emailsPerSecond < 1) return '<1 emails/s';
+    if (emailsPerSecond < 100) return `${Math.round(emailsPerSecond)} emails/s`;
+    return `${(emailsPerSecond / 1000).toFixed(1)}k emails/s`;
   };
 
   return (
@@ -384,14 +449,29 @@ export function PSTImport() {
               )}
             </div>
 
-            {/* Upload Progress */}
+            {/* Upload Progress with Speed & ETA */}
             {uploadProgress && (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between text-sm">
-                  <span>Uploading batch {uploadProgress.current} of {uploadProgress.total}</span>
+                  <span>Processing batch {uploadProgress.current} of {uploadProgress.total}</span>
                   <span>{Math.round((uploadProgress.current / uploadProgress.total) * 100)}%</span>
                 </div>
                 <Progress value={(uploadProgress.current / uploadProgress.total) * 100} />
+                
+                {/* Speed and ETA Row */}
+                <div className="flex items-center gap-4 text-sm bg-primary/5 rounded-lg p-3">
+                  <div className="flex items-center gap-1.5 text-primary">
+                    <Gauge className="h-4 w-4" />
+                    <span className="font-medium">{formatSpeed(uploadProgress.bytesPerSecond)}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <Timer className="h-4 w-4" />
+                    <span>{formatEta(uploadProgress.etaSeconds)} remaining</span>
+                  </div>
+                  <div className="ml-auto text-xs text-muted-foreground">
+                    {uploadProgress.processedEmails.toLocaleString()} / {parsedEmails.length.toLocaleString()} emails
+                  </div>
+                </div>
               </div>
             )}
 
@@ -453,6 +533,7 @@ export function PSTImport() {
           <p>• Emails are parsed in your browser before upload - your data stays private</p>
           <p>• After import, emails will be matched to existing contacts by email address</p>
           <p>• Imported emails become available for deep psychological analysis</p>
+          <p>• <strong>Performance:</strong> Processes {BATCH_SIZE} emails per batch with {CONCURRENT_BATCHES} parallel connections</p>
         </div>
       </CardContent>
     </Card>
