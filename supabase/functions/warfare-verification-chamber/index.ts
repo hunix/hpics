@@ -281,7 +281,9 @@ Respond with a JSON object:
     });
 
     // End trace session
-    await endTraceSession(supabase, traceSession.sessionId, 'completed', totalCostCents);
+    if (traceSession) {
+      await endTraceSession(supabase, traceSession.sessionId, 'completed', totalCostCents);
+    }
 
     return new Response(JSON.stringify({
       success: true,
