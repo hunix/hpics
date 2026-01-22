@@ -409,6 +409,14 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit - respond before any auth/validation
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ ok: true, function: 'graph-rag-engine', timestamp: Date.now() }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -583,6 +591,17 @@ serve(async (req) => {
           topNode: members.sort((a, b) => (b.centrality || 0) - (a.centrality || 0))[0]?.label
         }))
       };
+    }
+
+    // Store in ai_analyses for section availability detection
+    if (profileId) {
+      await supabase.from('ai_analyses').upsert({
+        user_id: user.id,
+        profile_id: profileId,
+        analysis_type: 'graph_rag_synthesis',
+        result: result,
+        generated_at: new Date().toISOString()
+      }, { onConflict: 'profile_id,analysis_type' });
     }
 
     console.log(`[GraphRAG] Complete. ${nodes.length} nodes, ${edges.length} edges`);

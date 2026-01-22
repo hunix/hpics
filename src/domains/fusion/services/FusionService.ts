@@ -2,6 +2,9 @@
  * Fusion Service - Core domain service for data fusion operations
  * 
  * Coordinates fusion engine execution and result management.
+ * Uses repository pattern for DDD compliance.
+ * 
+ * @version 3.9.0 - DDD Migration
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +12,23 @@ import { FusionResult, FusionEngineType, FusionPayload, FusionMetrics } from '..
 import { DigitalTwin, BehaviorPattern, SimulationScenario } from '../entities/DigitalTwin';
 import { getEventBus } from '@/domains/shared';
 import { FusionCompleted, DigitalTwinUpdated } from '../events/FusionEvents';
+import { IFusionRepository, IDigitalTwinRepository, FusionQueryOptions } from '../repositories';
+
+/**
+ * Standard analysis types for each fusion engine
+ * Used for ai_analyses table persistence and lookup
+ */
+export const FUSION_ANALYSIS_TYPES: Record<FusionEngineType, string> = {
+  'temporal-fusion-transformer': 'temporal_fusion',
+  'behavioral-digital-twin': 'behavioral_digital_twin',
+  'graph-rag': 'graph_rag_synthesis',
+  'shadow-network': 'shadow_network_analysis',
+  'dempster-shafer': 'dempster_shafer_fusion',
+  'counterfactual': 'counterfactual_reasoning',
+  'pattern-of-life': 'pattern_of_life',
+  'entity-resolution': 'entity_resolution',
+  'sentiment-cascade': 'sentiment_cascade',
+};
 
 export interface FusionRequest {
   profileId: string;
@@ -36,10 +56,24 @@ export interface BatchFusionRequest {
 
 export class FusionService {
   private edgeFunctionBaseUrl: string;
+  private fusionRepository: IFusionRepository | null = null;
+  private twinRepository: IDigitalTwinRepository | null = null;
 
-  constructor() {
+  constructor(
+    fusionRepository?: IFusionRepository,
+    twinRepository?: IDigitalTwinRepository
+  ) {
     const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || 'yibszncvwmefwamayfty';
     this.edgeFunctionBaseUrl = `https://${projectId}.supabase.co/functions/v1`;
+    this.fusionRepository = fusionRepository || null;
+    this.twinRepository = twinRepository || null;
+  }
+
+  /**
+   * Get analysis type for a fusion engine
+   */
+  getAnalysisType(engineType: FusionEngineType): string {
+    return FUSION_ANALYSIS_TYPES[engineType];
   }
 
   /**
@@ -127,35 +161,54 @@ export class FusionService {
   }
 
   /**
-   * Get fusion results for a profile
+   * Get fusion results for a profile (DDD-compliant via repository)
    */
   async getFusionResults(profileId: string, engineType?: FusionEngineType): Promise<FusionResult[]> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
 
-    // Query appropriate table based on engine type
-    // This is a simplified version - in production, each engine would have its own repository
+    // Use repository if available (DDD pattern)
+    if (this.fusionRepository) {
+      const options: FusionQueryOptions = {
+        profileId,
+        engineType,
+        limit: 10,
+        orderBy: 'created_at'
+      };
+      return this.fusionRepository.findByProfile(user.id, profileId, options);
+    }
+
+    // Fallback: Query ai_analyses table directly
     const results: FusionResult[] = [];
+    const analysisTypes = engineType 
+      ? [this.getAnalysisType(engineType)]
+      : Object.values(FUSION_ANALYSIS_TYPES);
 
-    // Example: Query temporal fusion results
-    if (!engineType || engineType === 'temporal-fusion-transformer') {
-      const { data } = await (supabase as any)
-        .from('temporal_fusion_results')
-        .select('*')
-        .eq('profile_id', profileId)
-        .order('created_at', { ascending: false })
-        .limit(10);
+    const { data, error } = await supabase
+      .from('ai_analyses')
+      .select('*')
+      .eq('profile_id', profileId)
+      .in('analysis_type', analysisTypes)
+      .order('generated_at', { ascending: false })
+      .limit(20);
 
-      if (data) {
-        results.push(...data.map((row: any) => this.mapRowToFusionResult(row, 'temporal-fusion-transformer')));
-      }
+    if (error) {
+      console.error('[FusionService] Error fetching results:', error);
+      return [];
+    }
+
+    if (data) {
+      results.push(...data.map((row: any) => {
+        const engine = this.getEngineFromAnalysisType(row.analysis_type);
+        return this.mapRowToFusionResult(row, engine);
+      }));
     }
 
     return results;
   }
 
   /**
-   * Update or create a digital twin
+   * Update or create a digital twin (DDD-compliant via repository)
    */
   async updateDigitalTwin(
     profileId: string,
@@ -164,7 +217,32 @@ export class FusionService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
-    // Check if twin exists
+    // Use repository if available (DDD pattern)
+    if (this.twinRepository) {
+      let twin = await this.twinRepository.findByProfile(user.id, profileId);
+      
+      if (!twin) {
+        twin = new DigitalTwin(
+          crypto.randomUUID(),
+          profileId,
+          user.id
+        );
+      }
+
+      // Add new patterns
+      patterns.forEach(pattern => twin!.addBehaviorPattern(pattern));
+
+      // Save via repository
+      const savedTwin = await this.twinRepository.save(twin);
+
+      // Publish event
+      const eventBus = getEventBus();
+      await eventBus.publish(new DigitalTwinUpdated(profileId, patterns.length));
+
+      return savedTwin;
+    }
+
+    // Fallback: Direct Supabase query
     const { data: existing } = await (supabase as any)
       .from('behavioral_twins')
       .select('*')
@@ -249,6 +327,20 @@ export class FusionService {
       if (!response.ok) return null;
 
       const data = await response.json();
+      
+      // Store simulation in repository if available
+      if (this.twinRepository && data.scenarioId) {
+        const scenario: SimulationScenario = {
+          scenarioId: data.scenarioId,
+          name: scenarioName,
+          conditions,
+          predictedOutcome: data.predictedOutcome,
+          probability: data.probability,
+          timestamp: new Date(),
+        };
+        await this.twinRepository.addSimulation(data.twinId, scenario);
+      }
+
       return {
         scenarioId: data.scenarioId || crypto.randomUUID(),
         name: scenarioName,
@@ -278,6 +370,14 @@ export class FusionService {
       'sentiment-cascade': 'sentiment-cascade-predictor',
     };
     return mapping[engineType];
+  }
+
+  private getEngineFromAnalysisType(analysisType: string): FusionEngineType {
+    const reverseMapping: Record<string, FusionEngineType> = {};
+    for (const [engine, type] of Object.entries(FUSION_ANALYSIS_TYPES)) {
+      reverseMapping[type] = engine as FusionEngineType;
+    }
+    return reverseMapping[analysisType] || 'temporal-fusion-transformer';
   }
 
   private mapToFusionResult(
@@ -321,8 +421,8 @@ export class FusionService {
       },
       row.input_sources || [],
       row.processing_version || '1.0.0',
-      new Date(row.created_at),
-      new Date(row.updated_at)
+      row.created_at ? new Date(row.created_at) : row.generated_at ? new Date(row.generated_at) : undefined,
+      row.updated_at ? new Date(row.updated_at) : row.generated_at ? new Date(row.generated_at) : undefined
     );
   }
 }
@@ -335,4 +435,14 @@ export function getFusionService(): FusionService {
     fusionServiceInstance = new FusionService();
   }
   return fusionServiceInstance;
+}
+
+/**
+ * Factory function to create FusionService with DI repositories
+ */
+export function createFusionService(
+  fusionRepository: IFusionRepository,
+  twinRepository: IDigitalTwinRepository
+): FusionService {
+  return new FusionService(fusionRepository, twinRepository);
 }
