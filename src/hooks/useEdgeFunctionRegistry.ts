@@ -146,10 +146,10 @@ export function useEdgeFunctionRegistry() {
   // Update function status
   const updateFunctionStatus = useMutation({
     mutationFn: async ({ functionName, isActive }: { functionName: string; isActive: boolean }) => {
-      const { error } = await supabase
-        .from('edge_function_registry')
+      const { error } = await (supabase
+        .from('edge_function_registry' as any)
         .update({ is_active: isActive, updated_at: new Date().toISOString() })
-        .eq('function_name', functionName);
+        .eq('function_name', functionName)) as any;
 
       if (error) throw error;
     },
@@ -161,10 +161,10 @@ export function useEdgeFunctionRegistry() {
   // Update function configuration
   const updateFunctionConfig = useMutation({
     mutationFn: async ({ functionName, updates }: { functionName: string; updates: Partial<FunctionConfig> }) => {
-      const { error } = await supabase
-        .from('edge_function_registry')
+      const { error } = await (supabase
+        .from('edge_function_registry' as any)
         .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('function_name', functionName);
+        .eq('function_name', functionName)) as any;
 
       if (error) throw error;
     },
@@ -176,8 +176,8 @@ export function useEdgeFunctionRegistry() {
   // Register a new function
   const registerFunction = useMutation({
     mutationFn: async (config: Partial<FunctionConfig> & { function_name: string; display_name: string }) => {
-      const { data, error } = await supabase
-        .from('edge_function_registry')
+      const { data, error } = await (supabase
+        .from('edge_function_registry' as any)
         .upsert({
           ...config,
           category: config.category || 'core',
@@ -185,7 +185,7 @@ export function useEdgeFunctionRegistry() {
           updated_at: new Date().toISOString()
         }, { onConflict: 'function_name' })
         .select()
-        .single();
+        .single()) as any;
 
       if (error) throw error;
       return data as unknown as FunctionConfig;

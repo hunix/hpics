@@ -9,9 +9,9 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/components/auth/AuthProvider';
+import { useAuth } from '@/hooks/useAuth';
 import { useMemo } from 'react';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export interface ConstitutionalRule {
   id: string;
@@ -69,10 +69,10 @@ export function useConstitutionalRules() {
   } = useQuery({
     queryKey: RULES_QUERY_KEY,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('constitutional_rules')
+      const { data, error } = await (supabase
+        .from('constitutional_rules' as any)
         .select('*')
-        .order('priority', { ascending: true });
+        .order('priority', { ascending: true })) as any;
 
       if (error) throw error;
       return (data || []) as unknown as ConstitutionalRule[];
@@ -118,33 +118,33 @@ export function useConstitutionalRules() {
   // Create new rule
   const createRule = useMutation({
     mutationFn: async (rule: Omit<ConstitutionalRule, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'updated_by'>) => {
-      const { data, error } = await supabase
-        .from('constitutional_rules')
+      const { data, error } = await (supabase
+        .from('constitutional_rules' as any)
         .insert({
           ...rule,
           created_by: user?.id,
           updated_by: user?.id
         })
         .select()
-        .single();
+        .single()) as any;
 
       if (error) throw error;
       return data as unknown as ConstitutionalRule;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: RULES_QUERY_KEY });
-      toast({ title: 'Rule created', description: 'Constitutional rule has been added.' });
+      toast.success('Constitutional rule created');
     },
-    onError: (error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    onError: (error: Error) => {
+      toast.error('Failed to create rule', { description: error.message });
     }
   });
 
   // Update existing rule
   const updateRule = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<ConstitutionalRule> }) => {
-      const { data, error } = await supabase
-        .from('constitutional_rules')
+      const { data, error } = await (supabase
+        .from('constitutional_rules' as any)
         .update({
           ...updates,
           updated_by: user?.id,
@@ -152,56 +152,55 @@ export function useConstitutionalRules() {
         })
         .eq('id', id)
         .select()
-        .single();
+        .single()) as any;
 
       if (error) throw error;
       return data as unknown as ConstitutionalRule;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: RULES_QUERY_KEY });
-      toast({ title: 'Rule updated', description: 'Constitutional rule has been updated.' });
+      toast.success('Rule updated');
     },
-    onError: (error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    onError: (error: Error) => {
+      toast.error('Failed to update rule', { description: error.message });
     }
   });
 
   // Delete rule (only non-system rules)
   const deleteRule = useMutation({
     mutationFn: async (id: string) => {
-      // First check if it's a system rule
       const rule = rules?.find(r => r.id === id);
       if (rule?.is_system) {
         throw new Error('Cannot delete system rules');
       }
 
-      const { error } = await supabase
-        .from('constitutional_rules')
+      const { error } = await (supabase
+        .from('constitutional_rules' as any)
         .delete()
-        .eq('id', id);
+        .eq('id', id)) as any;
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: RULES_QUERY_KEY });
-      toast({ title: 'Rule deleted', description: 'Constitutional rule has been removed.' });
+      toast.success('Rule deleted');
     },
-    onError: (error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    onError: (error: Error) => {
+      toast.error('Failed to delete rule', { description: error.message });
     }
   });
 
   // Toggle rule active status
   const toggleRuleStatus = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      const { error } = await supabase
-        .from('constitutional_rules')
+      const { error } = await (supabase
+        .from('constitutional_rules' as any)
         .update({
           is_active: isActive,
           updated_by: user?.id,
           updated_at: new Date().toISOString()
         })
-        .eq('id', id);
+        .eq('id', id)) as any;
 
       if (error) throw error;
     },
@@ -245,14 +244,11 @@ export function useConstitutionalViolations(options?: { functionName?: string; l
   } = useQuery({
     queryKey: [...VIOLATIONS_QUERY_KEY, options?.functionName, options?.limit],
     queryFn: async () => {
-      let query = supabase
-        .from('constitutional_violations')
-        .select(`
-          *,
-          rule:constitutional_rules(rule_name, rule_category, severity)
-        `)
+      let query = (supabase
+        .from('constitutional_violations' as any)
+        .select('*')
         .order('created_at', { ascending: false })
-        .limit(options?.limit || 100);
+        .limit(options?.limit || 100)) as any;
 
       if (options?.functionName) {
         query = query.eq('function_name', options.functionName);
@@ -260,7 +256,7 @@ export function useConstitutionalViolations(options?: { functionName?: string; l
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as unknown as (ConstitutionalViolation & { rule: Partial<ConstitutionalRule> | null })[];
+      return (data || []) as unknown as ConstitutionalViolation[];
     },
     staleTime: 60 * 1000,
     enabled: !!user

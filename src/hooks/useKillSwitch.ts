@@ -9,9 +9,9 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/components/auth/AuthProvider';
+import { useAuth } from '@/hooks/useAuth';
 import { useMemo } from 'react';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export interface KillSwitch {
   id: string;
@@ -51,10 +51,10 @@ export function useKillSwitch() {
   } = useQuery({
     queryKey: KILL_SWITCH_QUERY_KEY,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('agent_kill_switches')
+      const { data, error } = await (supabase
+        .from('agent_kill_switches' as any)
         .select('*')
-        .order('agent_id');
+        .order('agent_id')) as any;
 
       if (error) throw error;
       return (data || []) as unknown as KillSwitch[];
@@ -103,8 +103,8 @@ export function useKillSwitch() {
       agentType: AgentType;
       reason: string;
     }) => {
-      const { error } = await supabase
-        .from('agent_kill_switches')
+      const { error } = await (supabase
+        .from('agent_kill_switches' as any)
         .upsert({
           agent_id: agentId,
           agent_type: agentType,
@@ -113,28 +113,24 @@ export function useKillSwitch() {
           disabled_at: new Date().toISOString(),
           disabled_by: user?.id,
           updated_at: new Date().toISOString()
-        }, { onConflict: 'agent_id' });
+        }, { onConflict: 'agent_id' })) as any;
 
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: KILL_SWITCH_QUERY_KEY });
-      toast({ 
-        title: 'Agent disabled', 
-        description: `${variables.agentId} has been disabled.`,
-        variant: 'destructive'
-      });
+      toast.error(`Agent ${variables.agentId} disabled`);
     },
-    onError: (error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    onError: (error: Error) => {
+      toast.error('Failed to disable agent', { description: error.message });
     }
   });
 
   // Enable an agent
   const enableAgent = useMutation({
     mutationFn: async (agentId: string) => {
-      const { error } = await supabase
-        .from('agent_kill_switches')
+      const { error } = await (supabase
+        .from('agent_kill_switches' as any)
         .update({
           is_enabled: true,
           containment_mode: 'none',
@@ -144,16 +140,16 @@ export function useKillSwitch() {
           current_error_count: 0,
           updated_at: new Date().toISOString()
         })
-        .eq('agent_id', agentId);
+        .eq('agent_id', agentId)) as any;
 
       if (error) throw error;
     },
     onSuccess: (_, agentId) => {
       queryClient.invalidateQueries({ queryKey: KILL_SWITCH_QUERY_KEY });
-      toast({ title: 'Agent enabled', description: `${agentId} has been re-enabled.` });
+      toast.success(`Agent ${agentId} re-enabled`);
     },
-    onError: (error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    onError: (error: Error) => {
+      toast.error('Failed to enable agent', { description: error.message });
     }
   });
 
@@ -164,26 +160,23 @@ export function useKillSwitch() {
       mode: ContainmentMode;
       reason?: string;
     }) => {
-      const { error } = await supabase
-        .from('agent_kill_switches')
+      const { error } = await (supabase
+        .from('agent_kill_switches' as any)
         .update({
           containment_mode: mode,
           disabled_reason: reason || null,
           updated_at: new Date().toISOString()
         })
-        .eq('agent_id', agentId);
+        .eq('agent_id', agentId)) as any;
 
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: KILL_SWITCH_QUERY_KEY });
-      toast({ 
-        title: 'Containment mode updated', 
-        description: `${variables.agentId} set to ${variables.mode} containment.`
-      });
+      toast.success(`Containment mode set to ${variables.mode}`);
     },
-    onError: (error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    onError: (error: Error) => {
+      toast.error('Failed to update containment', { description: error.message });
     }
   });
 
@@ -194,31 +187,31 @@ export function useKillSwitch() {
       errorThreshold: number;
       errorWindowMinutes: number;
     }) => {
-      const { error } = await supabase
-        .from('agent_kill_switches')
+      const { error } = await (supabase
+        .from('agent_kill_switches' as any)
         .update({
           error_threshold: errorThreshold,
           error_window_minutes: errorWindowMinutes,
           updated_at: new Date().toISOString()
         })
-        .eq('agent_id', agentId);
+        .eq('agent_id', agentId)) as any;
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: KILL_SWITCH_QUERY_KEY });
-      toast({ title: 'Thresholds updated' });
+      toast.success('Thresholds updated');
     }
   });
 
-  // Emergency shutdown - disable all agents of a type
+  // Emergency shutdown
   const emergencyShutdown = useMutation({
     mutationFn: async ({ agentType, reason }: {
       agentType: AgentType | 'all';
       reason: string;
     }) => {
-      let query = supabase
-        .from('agent_kill_switches')
+      let query = (supabase
+        .from('agent_kill_switches' as any)
         .update({
           is_enabled: false,
           containment_mode: 'hard',
@@ -226,7 +219,7 @@ export function useKillSwitch() {
           disabled_at: new Date().toISOString(),
           disabled_by: user?.id,
           updated_at: new Date().toISOString()
-        });
+        })) as any;
 
       if (agentType !== 'all') {
         query = query.eq('agent_type', agentType);
@@ -238,28 +231,24 @@ export function useKillSwitch() {
     },
     onSuccess: (count, variables) => {
       queryClient.invalidateQueries({ queryKey: KILL_SWITCH_QUERY_KEY });
-      toast({ 
-        title: 'EMERGENCY SHUTDOWN', 
-        description: `${count} agents have been disabled. Reason: ${variables.reason}`,
-        variant: 'destructive'
-      });
+      toast.error(`EMERGENCY: ${count} agents disabled - ${variables.reason}`);
     },
-    onError: (error) => {
-      toast({ title: 'Shutdown failed', description: error.message, variant: 'destructive' });
+    onError: (error: Error) => {
+      toast.error('Shutdown failed', { description: error.message });
     }
   });
 
   // Register new kill switch
   const registerKillSwitch = useMutation({
     mutationFn: async (config: Partial<KillSwitch> & { agent_id: string; agent_type: AgentType }) => {
-      const { data, error } = await supabase
-        .from('agent_kill_switches')
+      const { data, error } = await (supabase
+        .from('agent_kill_switches' as any)
         .upsert({
           ...config,
           updated_at: new Date().toISOString()
         }, { onConflict: 'agent_id' })
         .select()
-        .single();
+        .single()) as any;
 
       if (error) throw error;
       return data as unknown as KillSwitch;
