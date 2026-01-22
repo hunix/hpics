@@ -25,6 +25,16 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check endpoint
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ 
+      ok: true, 
+      function: 'analyze-email-insights', 
+      timestamp: Date.now() 
+    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -76,7 +86,8 @@ serve(async (req) => {
         email_messages (
           id,
           subject,
-          body_text,
+          body_preview,
+          body_html,
           sender_email,
           sender_name,
           sent_at,
@@ -132,7 +143,7 @@ serve(async (req) => {
       // Build conversation context
       const conversationText = messages
         .slice(0, 10) // Limit to recent 10 messages
-        .map((m: any) => `[${m.is_from_contact ? profileName : 'You'}]: ${m.body_text?.slice(0, 500) || m.subject}`)
+        .map((m: any) => `[${m.is_from_contact ? profileName : 'You'}]: ${m.body_preview || m.body_html?.slice(0, 500) || m.subject}`)
         .join('\n\n');
 
       const prompt = `Analyze this email thread and provide insights:
