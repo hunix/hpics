@@ -96,6 +96,7 @@ const CrossModalAnalysis = lazyWithRetry(() => import("./pages/CrossModalAnalysi
 const ComprehensiveSystemHealthDashboard = lazyWithRetry(() => import("./pages/ComprehensiveSystemHealthDashboard"));
 const FusionCommandCenter = lazyWithRetry(() => import("./pages/FusionCommandCenter"));
 const PlatformConfiguration = lazyWithRetry(() => import("./pages/PlatformConfiguration"));
+const AgentIntelligenceConfig = lazyWithRetry(() => import("./pages/AgentIntelligenceConfig"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -212,6 +213,7 @@ const App = () => (
                           <Route path="/system-health-dashboard" element={<ComprehensiveSystemHealthDashboard />} />
                           <Route path="/fusion-command" element={<FusionCommandCenter />} />
                           <Route path="/platform-config" element={<PlatformConfiguration />} />
+                          <Route path="/agent-intelligence" element={<AgentIntelligenceConfig />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                       </Suspense>
