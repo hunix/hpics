@@ -13,6 +13,8 @@
  * All other features should use the `activeContactsOnly` filter.
  */
 
+import { supabase } from '@/integrations/supabase/client';
+
 /**
  * Standard filter to apply to all profile queries for active-only scope.
  * Use this in Supabase queries: `.eq('is_active', true)`
@@ -54,23 +56,41 @@ export function isInactiveContactException(feature: string): boolean {
 
 /**
  * Document when a feature intentionally accesses inactive contacts.
- * This can be extended to log to a database table for audit purposes.
+ * In production, logs to database for audit purposes.
  */
-export function logInactiveContactAccess(
+export async function logInactiveContactAccess(
   feature: InactiveContactException,
   reason: string,
   metadata?: Record<string, unknown>
-): void {
-  // For now, just log to console in development
-  if (process.env.NODE_ENV === 'development') {
+): Promise<void> {
+  // Always log to console in development
+  if (import.meta.env.DEV) {
     console.info(`[ContactScope] Inactive access: ${feature} - ${reason}`, metadata);
   }
   
-  // TODO: In production, this could log to a database audit table
-  // supabase.from('contact_scope_audit_log').insert({
-  //   feature,
-  //   reason,
-  //   metadata,
-  //   accessed_at: new Date().toISOString()
-  // });
+  // In production, log to database audit table
+  if (!import.meta.env.DEV) {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData?.session?.user?.id;
+      
+      await supabase.from('error_logs').insert({
+        user_id: userId || null,
+        reference_id: `scope_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        code: 'CONTACT_SCOPE_AUDIT',
+        message: `Inactive contact access: ${feature}`,
+        context: {
+          feature,
+          reason,
+          metadata,
+          timestamp: new Date().toISOString(),
+        } as unknown as Record<string, unknown>,
+        severity: 'info',
+        category: 'audit',
+      } as never);
+    } catch (error) {
+      // Silently fail - don't break the feature for audit logging
+      console.error('[ContactScope] Failed to log audit:', error);
+    }
+  }
 }
