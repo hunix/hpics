@@ -104,22 +104,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Bulk fetch existing external IDs to skip duplicates
-    let existingIds = new Set<string>();
-    if (options.skipDuplicates && emails.length > 0) {
-      const messageIds = emails.map(e => e.messageId).filter(Boolean);
-      if (messageIds.length > 0) {
-        const { data: existing } = await supabase
-          .from('email_messages')
-          .select('external_id')
-          .eq('user_id', userId)
-          .in('external_id', messageIds);
-        
-        if (existing) {
-          existingIds = new Set(existing.map(e => e.external_id));
-        }
-      }
-    }
+    // SKIP duplicate check here - use upsert with onConflict at insert time instead
+    // This eliminates the round-trip query for existing IDs
 
     // ==========================================
     // PHASE 2: Pre-compute all unique threads
@@ -142,10 +128,7 @@ Deno.serve(async (req) => {
     for (let i = 0; i < emails.length; i++) {
       const email = emails[i];
       
-      // Skip duplicates early
-      if (options.skipDuplicates && existingIds.has(email.messageId)) {
-        continue;
-      }
+      // Skip duplicates handled at insert time via upsert with onConflict
 
       // Find matching profile from sender or recipients
       let matchedProfileId: string | null = null;
@@ -308,15 +291,15 @@ Deno.serve(async (req) => {
     if (messagesToInsert.length > 0) {
       console.log(`[import-pst-emails] Bulk inserting ${messagesToInsert.length} messages`);
       
-      // Insert in chunks of 500 to avoid payload limits
+      // Upsert in chunks - use ignoreDuplicates to skip existing messages at DB level
       const CHUNK_SIZE = 500;
       for (let i = 0; i < messagesToInsert.length; i += CHUNK_SIZE) {
         const chunk = messagesToInsert.slice(i, i + CHUNK_SIZE);
         
-        // Remove .select() to reduce overhead - we just need success/failure
+        // Use upsert with ignoreDuplicates - skips rows that violate unique constraints
         const { error: bulkError } = await supabase
           .from('email_messages')
-          .insert(chunk);
+          .upsert(chunk, { onConflict: 'user_id,external_id', ignoreDuplicates: true });
         
         if (bulkError) {
           console.error(`[import-pst-emails] Bulk insert failed for chunk ${i}-${i + chunk.length}:`, bulkError);

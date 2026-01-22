@@ -26,9 +26,9 @@ import {
 import { parseOutlookCSV, parseEMLFile, parseEMLZip, batchEmails, ParsedEmail } from '@/lib/pstParser';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-// Performance constants
-const BATCH_SIZE = 500; // 5x larger batches
-const CONCURRENT_BATCHES = 3; // Process 3 batches in parallel
+// Performance constants - aggressive parallelization
+const BATCH_SIZE = 500; // 500 emails per batch
+const CONCURRENT_BATCHES = 5; // Process 5 batches in parallel (increased from 3)
 
 interface ImportStats {
   imported: number;
