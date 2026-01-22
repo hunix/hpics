@@ -11916,6 +11916,101 @@ export type Database = {
           },
         ]
       }
+      data_retention_execution_log: {
+        Row: {
+          completed_at: string | null
+          duration_ms: number | null
+          error_message: string | null
+          execution_status: string
+          id: string
+          policy_id: string | null
+          records_anonymized: number
+          records_deleted: number
+          records_processed: number
+          started_at: string
+          table_name: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          execution_status?: string
+          id?: string
+          policy_id?: string | null
+          records_anonymized?: number
+          records_deleted?: number
+          records_processed?: number
+          started_at?: string
+          table_name: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          execution_status?: string
+          id?: string
+          policy_id?: string | null
+          records_anonymized?: number
+          records_deleted?: number
+          records_processed?: number
+          started_at?: string
+          table_name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_retention_execution_log_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "data_retention_policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_retention_policies: {
+        Row: {
+          created_at: string
+          data_category: string
+          delete_strategy: string
+          id: string
+          is_enabled: boolean
+          last_executed_at: string | null
+          records_deleted: number | null
+          retention_days: number
+          table_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_category: string
+          delete_strategy?: string
+          id?: string
+          is_enabled?: boolean
+          last_executed_at?: string | null
+          records_deleted?: number | null
+          retention_days?: number
+          table_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data_category?: string
+          delete_strategy?: string
+          id?: string
+          is_enabled?: boolean
+          last_executed_at?: string | null
+          records_deleted?: number | null
+          retention_days?: number
+          table_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       deception_analyses: {
         Row: {
           analysis_version: string | null
