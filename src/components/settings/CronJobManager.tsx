@@ -58,6 +58,14 @@ const defaultJobs: Omit<CronJob, 'enabled'>[] = [
     functionName: 'trigger-push-notifications',
     icon: Zap,
   },
+  {
+    id: 'data-retention',
+    name: 'Data Retention Cleanup',
+    description: 'Execute GDPR/CCPA compliant data retention policies',
+    schedule: '0 3 * * *', // Daily 3 AM
+    functionName: 'execute-data-retention',
+    icon: Clock,
+  },
 ];
 
 export function CronJobManager() {

@@ -584,3 +584,6 @@ verify_jwt = false
 
 [functions.memory-crystallization-engine]
 verify_jwt = false
+
+[functions.execute-data-retention]
+verify_jwt = false
