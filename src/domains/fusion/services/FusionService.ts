@@ -329,7 +329,7 @@ export class FusionService {
       const data = await response.json();
       
       // Store simulation in repository if available
-      if (this.twinRepository && data.scenarioId) {
+      if (this.twinRepository && data.scenarioId && session.user) {
         const scenario: SimulationScenario = {
           scenarioId: data.scenarioId,
           name: scenarioName,
@@ -338,7 +338,7 @@ export class FusionService {
           probability: data.probability,
           timestamp: new Date(),
         };
-        await this.twinRepository.addSimulation(data.twinId, scenario);
+        await this.twinRepository.addSimulation(session.user.id, data.twinId, scenario);
       }
 
       return {
