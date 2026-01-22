@@ -60,17 +60,33 @@ const CATEGORY_LABELS: Record<RuleCategory, string> = {
 };
 
 interface RuleFormData {
+  rule_key: string;
   rule_name: string;
+  rule_text: string;
+  evaluation_prompt: string;
   rule_category: RuleCategory;
   severity: RuleSeverity;
+  action_on_violation: ViolationAction;
+  applies_to_functions: string[];
+  applies_to_categories: string[];
   priority: number;
+  is_active: boolean;
+  is_system: boolean;
 }
 
 const DEFAULT_FORM: RuleFormData = {
+  rule_key: '',
   rule_name: '',
+  rule_text: '',
+  evaluation_prompt: '',
   rule_category: 'ethical',
   severity: 'warning',
+  action_on_violation: 'warn',
+  applies_to_functions: [],
+  applies_to_categories: [],
   priority: 100,
+  is_active: true,
+  is_system: false,
 };
 
 export function ConstitutionalRulesPanel() {
@@ -98,7 +114,7 @@ export function ConstitutionalRulesPanel() {
   // Filter rules
   const filteredRules = rules.filter(rule => {
     const matchesSearch = rule.rule_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         (rule.rule_content?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
+                         (rule.rule_text?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
     const matchesCategory = selectedCategory === 'all' || rule.rule_category === selectedCategory;
     const matchesSeverity = selectedSeverity === 'all' || rule.severity === selectedSeverity;
     return matchesSearch && matchesCategory && matchesSeverity;
@@ -107,12 +123,18 @@ export function ConstitutionalRulesPanel() {
   const handleCreateRule = async () => {
     try {
       await createRule.mutateAsync({
+        rule_key: formData.rule_key || formData.rule_name.toLowerCase().replace(/\s+/g, '_'),
         rule_name: formData.rule_name,
-        rule_content: formData.rule_content,
+        rule_text: formData.rule_text,
+        evaluation_prompt: formData.evaluation_prompt || null,
         rule_category: formData.rule_category,
         severity: formData.severity,
-        enforcement_action: formData.enforcement_action,
+        action_on_violation: formData.action_on_violation,
+        applies_to_functions: formData.applies_to_functions,
+        applies_to_categories: formData.applies_to_categories,
         priority: formData.priority,
+        is_active: formData.is_active,
+        is_system: false,
       });
       toast.success('Rule created successfully');
       setCreateDialogOpen(false);
@@ -125,12 +147,18 @@ export function ConstitutionalRulesPanel() {
   const handleEditRule = (rule: ConstitutionalRule) => {
     setEditingRuleId(rule.id);
     setFormData({
+      rule_key: rule.rule_key,
       rule_name: rule.rule_name,
-      rule_content: rule.rule_content || '',
-      rule_category: rule.rule_category,
+      rule_text: rule.rule_text || '',
+      evaluation_prompt: rule.evaluation_prompt || '',
+      rule_category: rule.rule_category as RuleCategory,
       severity: rule.severity,
-      enforcement_action: rule.enforcement_action,
+      action_on_violation: rule.action_on_violation,
+      applies_to_functions: rule.applies_to_functions || [],
+      applies_to_categories: rule.applies_to_categories || [],
       priority: rule.priority,
+      is_active: rule.is_active,
+      is_system: rule.is_system,
     });
     setEditDialogOpen(true);
   };
@@ -142,11 +170,15 @@ export function ConstitutionalRulesPanel() {
       await updateRule.mutateAsync({
         id: editingRuleId,
         updates: {
+          rule_key: formData.rule_key,
           rule_name: formData.rule_name,
-          rule_content: formData.rule_content,
+          rule_text: formData.rule_text,
+          evaluation_prompt: formData.evaluation_prompt || null,
           rule_category: formData.rule_category,
           severity: formData.severity,
-          enforcement_action: formData.enforcement_action,
+          action_on_violation: formData.action_on_violation,
+          applies_to_functions: formData.applies_to_functions,
+          applies_to_categories: formData.applies_to_categories,
           priority: formData.priority,
         },
       });
@@ -212,21 +244,40 @@ export function ConstitutionalRulesPanel() {
 
   const RuleFormFields = () => (
     <div className="space-y-4 py-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Rule Key</label>
+          <Input
+            value={formData.rule_key}
+            onChange={(e) => setFormData({ ...formData, rule_key: e.target.value })}
+            placeholder="e.g., no_pii_exposure"
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Rule Name</label>
+          <Input
+            value={formData.rule_name}
+            onChange={(e) => setFormData({ ...formData, rule_name: e.target.value })}
+            placeholder="e.g., No PII Exposure"
+          />
+        </div>
+      </div>
       <div className="space-y-2">
-        <label className="text-sm font-medium">Rule Name</label>
-        <Input
-          value={formData.rule_name}
-          onChange={(e) => setFormData({ ...formData, rule_name: e.target.value })}
-          placeholder="e.g., no_pii_exposure"
+        <label className="text-sm font-medium">Rule Text</label>
+        <Textarea
+          value={formData.rule_text}
+          onChange={(e) => setFormData({ ...formData, rule_text: e.target.value })}
+          placeholder="What does this rule enforce?"
+          rows={3}
         />
       </div>
       <div className="space-y-2">
-        <label className="text-sm font-medium">Rule Content</label>
+        <label className="text-sm font-medium">Evaluation Prompt (Optional)</label>
         <Textarea
-          value={formData.rule_content}
-          onChange={(e) => setFormData({ ...formData, rule_content: e.target.value })}
-          placeholder="What does this rule enforce?"
-          rows={3}
+          value={formData.evaluation_prompt}
+          onChange={(e) => setFormData({ ...formData, evaluation_prompt: e.target.value })}
+          placeholder="AI prompt for evaluating compliance"
+          rows={2}
         />
       </div>
       <div className="grid grid-cols-2 gap-4">
@@ -266,10 +317,10 @@ export function ConstitutionalRulesPanel() {
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <label className="text-sm font-medium">Enforcement Action</label>
+          <label className="text-sm font-medium">Action on Violation</label>
           <Select
-            value={formData.enforcement_action}
-            onValueChange={(v) => setFormData({ ...formData, enforcement_action: v as ViolationAction })}
+            value={formData.action_on_violation}
+            onValueChange={(v) => setFormData({ ...formData, action_on_violation: v as ViolationAction })}
           >
             <SelectTrigger>
               <SelectValue />
@@ -400,7 +451,7 @@ export function ConstitutionalRulesPanel() {
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
                 {categories.map(cat => (
-                  <SelectItem key={cat} value={cat}>{CATEGORY_LABELS[cat] || cat}</SelectItem>
+                  <SelectItem key={cat} value={cat}>{CATEGORY_LABELS[cat as RuleCategory] || cat}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -451,16 +502,16 @@ export function ConstitutionalRulesPanel() {
                                 <Badge variant="secondary" className="text-xs">System</Badge>
                               )}
                             </div>
-                            {rule.rule_content && (
+                            {rule.rule_text && (
                               <span className="text-xs text-muted-foreground line-clamp-1">
-                                {rule.rule_content}
+                                {rule.rule_text}
                               </span>
                             )}
                           </div>
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">
-                            {CATEGORY_LABELS[rule.rule_category] || rule.rule_category}
+                            {CATEGORY_LABELS[rule.rule_category as RuleCategory] || rule.rule_category}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -472,7 +523,7 @@ export function ConstitutionalRulesPanel() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-sm">
-                          {rule.enforcement_action}
+                          {rule.action_on_violation}
                         </TableCell>
                         <TableCell>
                           <Switch
@@ -481,7 +532,7 @@ export function ConstitutionalRulesPanel() {
                               id: rule.id,
                               isActive: !rule.is_active
                             })}
-                            disabled={toggleRuleStatus.isPending}
+                            disabled={rule.is_system}
                           />
                         </TableCell>
                         <TableCell className="text-right">
@@ -490,6 +541,7 @@ export function ConstitutionalRulesPanel() {
                               variant="ghost"
                               size="icon"
                               onClick={() => handleEditRule(rule)}
+                              disabled={rule.is_system}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -497,7 +549,8 @@ export function ConstitutionalRulesPanel() {
                               variant="ghost"
                               size="icon"
                               onClick={() => handleDeleteRule(rule)}
-                              disabled={rule.is_system || deleteRule.isPending}
+                              disabled={rule.is_system}
+                              className="text-destructive hover:text-destructive"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -519,7 +572,7 @@ export function ConstitutionalRulesPanel() {
           <DialogHeader>
             <DialogTitle>Edit Rule</DialogTitle>
             <DialogDescription>
-              Modify the constitutional rule settings.
+              Update the constitutional rule settings.
             </DialogDescription>
           </DialogHeader>
           <RuleFormFields />
@@ -535,7 +588,7 @@ export function ConstitutionalRulesPanel() {
               onClick={handleUpdateRule}
               disabled={!formData.rule_name || updateRule.isPending}
             >
-              Save Changes
+              Update Rule
             </Button>
           </DialogFooter>
         </DialogContent>
