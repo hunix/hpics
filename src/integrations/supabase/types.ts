@@ -6636,59 +6636,83 @@ export type Database = {
       }
       constitutional_rules: {
         Row: {
+          action_on_violation: string | null
           applies_to_agents: string[] | null
+          applies_to_categories: string[] | null
           applies_to_functions: string[] | null
           category: string
           created_at: string
+          created_by: string | null
           description: string | null
           escalation_contact: string | null
+          evaluation_prompt: string | null
           id: string
           is_active: boolean
           is_system: boolean
           pattern: string | null
           priority: number
+          rule_category: string | null
+          rule_key: string
           rule_name: string
+          rule_text: string | null
           rule_type: string
           severity: string
           updated_at: string
+          updated_by: string | null
           validation_logic: Json | null
           violation_action: string
         }
         Insert: {
+          action_on_violation?: string | null
           applies_to_agents?: string[] | null
+          applies_to_categories?: string[] | null
           applies_to_functions?: string[] | null
           category?: string
           created_at?: string
+          created_by?: string | null
           description?: string | null
           escalation_contact?: string | null
+          evaluation_prompt?: string | null
           id?: string
           is_active?: boolean
           is_system?: boolean
           pattern?: string | null
           priority?: number
+          rule_category?: string | null
+          rule_key: string
           rule_name: string
+          rule_text?: string | null
           rule_type: string
           severity?: string
           updated_at?: string
+          updated_by?: string | null
           validation_logic?: Json | null
           violation_action?: string
         }
         Update: {
+          action_on_violation?: string | null
           applies_to_agents?: string[] | null
+          applies_to_categories?: string[] | null
           applies_to_functions?: string[] | null
           category?: string
           created_at?: string
+          created_by?: string | null
           description?: string | null
           escalation_contact?: string | null
+          evaluation_prompt?: string | null
           id?: string
           is_active?: boolean
           is_system?: boolean
           pattern?: string | null
           priority?: number
+          rule_category?: string | null
+          rule_key?: string
           rule_name?: string
+          rule_text?: string | null
           rule_type?: string
           severity?: string
           updated_at?: string
+          updated_by?: string | null
           validation_logic?: Json | null
           violation_action?: string
         }
