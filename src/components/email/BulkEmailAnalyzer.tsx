@@ -272,7 +272,7 @@ function ContactRow({ contact, isSelected, onToggle }: ContactRowProps) {
       `}
       onClick={onToggle}
     >
-      <Checkbox checked={isSelected} onChange={onToggle} />
+      <Checkbox checked={isSelected} onCheckedChange={onToggle} />
       
       <div className="flex-1 min-w-0">
         <div className="font-medium truncate">{contact.contactName}</div>
