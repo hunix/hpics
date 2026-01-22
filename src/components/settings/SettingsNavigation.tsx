@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Sun, Bell, Fingerprint, HardDrive, Trash2, Link2, 
   Users, Cpu, DollarSign, Bot, Smartphone, Shield, Activity,
-  ChevronRight, Settings2, Sliders, RefreshCw, ExternalLink
+  ChevronRight, Settings2, Sliders, RefreshCw, ExternalLink, Network
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -78,6 +78,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     label: 'Platform Admin',
     sections: [
       { id: 'platform-config', label: 'Platform Configuration', icon: Sliders, badge: 'Admin', isExternal: true, href: '/platform-config' },
+      { id: 'agent-intelligence', label: 'Agent Intelligence', icon: Network, badge: 'New', isExternal: true, href: '/agent-intelligence' },
     ],
   },
   {

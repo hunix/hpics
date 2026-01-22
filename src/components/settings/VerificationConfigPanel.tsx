@@ -2,14 +2,13 @@
  * Verification Chamber Configuration Panel
  * 
  * Admin interface for configuring the warfare verification pipeline.
- * Manages verification stages, risk thresholds, and approval workflows.
+ * Manages verification stages, timeout settings, and approval workflows.
  */
 
 import { useState } from 'react';
 import { useChamberConfigs, useUpdateChamberConfig } from '@/hooks/intelligence/useVerificationChamber';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
@@ -18,28 +17,26 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
-  Shield, CheckCircle2, AlertTriangle, XCircle,
+  Shield, CheckCircle2, AlertTriangle, Clock,
   ChevronDown, Save, RotateCcw, Target, Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface VerificationStage {
-  stage_name: string;
-  stage_order: number;
-  prompt_key: string;
-  is_required: boolean;
-  timeout_seconds: number;
+interface VerificationStageRef {
+  stage_key: string;
+  order: number;
 }
 
-interface VerificationConfig {
+interface ChamberConfig {
   id: string;
   chamber_type: string;
   display_name: string;
   description: string | null;
-  verification_stages: Array<{ stage_key: string; order: number }>;
+  verification_stages: VerificationStageRef[];
   require_unanimous: boolean;
   timeout_per_stage_ms: number;
   auto_reject_on_timeout: boolean;
+  escalation_config: Record<string, unknown>;
   is_active: boolean;
 }
 
@@ -50,7 +47,7 @@ const STAGE_ICONS: Record<string, React.ReactNode> = {
   verifier: <CheckCircle2 className="h-4 w-4" />,
 };
 
-function StageCard({ stage, index }: { stage: VerificationStage; index: number }) {
+function StageCard({ stageRef, index }: { stageRef: VerificationStageRef; index: number }) {
   return (
     <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted/30">
       <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-sm">
@@ -58,32 +55,29 @@ function StageCard({ stage, index }: { stage: VerificationStage; index: number }
       </div>
       <div className="flex-1">
         <div className="flex items-center gap-2">
-          {STAGE_ICONS[stage.stage_name.toLowerCase()] || <Zap className="h-4 w-4" />}
-          <span className="font-medium">{stage.stage_name}</span>
-          {stage.is_required && (
-            <Badge variant="outline" className="text-xs">Required</Badge>
-          )}
+          {STAGE_ICONS[stageRef.stage_key.toLowerCase()] || <Zap className="h-4 w-4" />}
+          <span className="font-medium capitalize">{stageRef.stage_key.replace(/_/g, ' ')}</span>
         </div>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Timeout: {stage.timeout_seconds}s • Prompt: {stage.prompt_key}
+          Order: {stageRef.order}
         </p>
       </div>
     </div>
   );
 }
 
-function VerificationConfigCard({ 
+function ChamberConfigCard({ 
   config, 
   onUpdate 
 }: { 
-  config: VerificationConfig; 
-  onUpdate: (updates: Partial<VerificationConfig> & { id: string }) => void;
+  config: ChamberConfig; 
+  onUpdate: (updates: Partial<ChamberConfig> & { id: string }) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [localConfig, setLocalConfig] = useState(config);
   const [hasChanges, setHasChanges] = useState(false);
   
-  const handleChange = <K extends keyof VerificationConfig>(key: K, value: VerificationConfig[K]) => {
+  const handleChange = <K extends keyof ChamberConfig>(key: K, value: ChamberConfig[K]) => {
     setLocalConfig(prev => ({ ...prev, [key]: value }));
     setHasChanges(true);
   };
@@ -98,7 +92,8 @@ function VerificationConfigCard({
     setHasChanges(false);
   };
   
-  const requiredStages = localConfig.stages?.filter(s => s.is_required).length || 0;
+  const stageCount = localConfig.verification_stages?.length || 0;
+  const timeoutSeconds = Math.round((localConfig.timeout_per_stage_ms || 30000) / 1000);
   
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -125,8 +120,7 @@ function VerificationConfigCard({
                     )}
                   </div>
                   <CardDescription className="text-xs">
-                    {localConfig.stages?.length || 0} stages ({requiredStages} required) • 
-                    Risk threshold: {localConfig.risk_threshold}%
+                    {stageCount} stages • Timeout: {timeoutSeconds}s per stage
                   </CardDescription>
                 </div>
               </div>
@@ -144,58 +138,61 @@ function VerificationConfigCard({
             
             {/* Active Toggle */}
             <div className="flex items-center justify-between">
-              <Label>Verification Active</Label>
+              <Label>Chamber Active</Label>
               <Switch
                 checked={localConfig.is_active}
                 onCheckedChange={(checked) => handleChange('is_active', checked)}
               />
             </div>
             
-            {/* Risk Threshold */}
+            {/* Timeout per Stage */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label>Risk Threshold</Label>
+                <Label className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Timeout per Stage
+                </Label>
                 <span className="text-sm font-mono text-muted-foreground">
-                  {localConfig.risk_threshold}%
+                  {timeoutSeconds}s
                 </span>
               </div>
               <Slider
-                value={[localConfig.risk_threshold]}
-                onValueChange={([v]) => handleChange('risk_threshold', v)}
-                min={0}
-                max={100}
-                step={5}
+                value={[timeoutSeconds]}
+                onValueChange={([v]) => handleChange('timeout_per_stage_ms', v * 1000)}
+                min={10}
+                max={300}
+                step={10}
               />
               <p className="text-xs text-muted-foreground">
-                Operations below this threshold may be auto-approved
+                Maximum time allowed for each verification stage
               </p>
             </div>
             
-            {/* Auto Approve */}
+            {/* Require Unanimous */}
             <div className="flex items-center justify-between">
               <div>
-                <Label>Auto-Approve Low Risk</Label>
+                <Label>Require Unanimous Approval</Label>
                 <p className="text-xs text-muted-foreground">
-                  Skip human review for operations below threshold
+                  All stages must approve for campaign to proceed
                 </p>
               </div>
               <Switch
-                checked={localConfig.auto_approve_below_threshold}
-                onCheckedChange={(checked) => handleChange('auto_approve_below_threshold', checked)}
+                checked={localConfig.require_unanimous}
+                onCheckedChange={(checked) => handleChange('require_unanimous', checked)}
               />
             </div>
             
-            {/* Require Human Approval */}
+            {/* Auto Reject on Timeout */}
             <div className="flex items-center justify-between">
               <div>
-                <Label>Require Human Approval</Label>
+                <Label>Auto-Reject on Timeout</Label>
                 <p className="text-xs text-muted-foreground">
-                  Always require human sign-off regardless of risk
+                  Automatically reject if stage times out
                 </p>
               </div>
               <Switch
-                checked={localConfig.require_human_approval}
-                onCheckedChange={(checked) => handleChange('require_human_approval', checked)}
+                checked={localConfig.auto_reject_on_timeout}
+                onCheckedChange={(checked) => handleChange('auto_reject_on_timeout', checked)}
               />
             </div>
             
@@ -206,11 +203,14 @@ function VerificationConfigCard({
                 Verification Stages
               </Label>
               <div className="space-y-2">
-                {(localConfig.stages || [])
-                  .sort((a, b) => a.stage_order - b.stage_order)
-                  .map((stage, idx) => (
-                    <StageCard key={idx} stage={stage} index={idx} />
+                {(localConfig.verification_stages || [])
+                  .sort((a, b) => a.order - b.order)
+                  .map((stageRef, idx) => (
+                    <StageCard key={idx} stageRef={stageRef} index={idx} />
                   ))}
+                {stageCount === 0 && (
+                  <p className="text-sm text-muted-foreground italic">No stages configured</p>
+                )}
               </div>
             </div>
             
@@ -247,7 +247,7 @@ export function VerificationConfigPanel() {
   }
   
   const activeCount = configs?.filter(c => c.is_active).length || 0;
-  const totalStages = configs?.reduce((sum, c) => sum + (c.stages?.length || 0), 0) || 0;
+  const totalStages = configs?.reduce((sum, c) => sum + (c.verification_stages?.length || 0), 0) || 0;
   
   return (
     <Card>
@@ -270,7 +270,7 @@ export function VerificationConfigPanel() {
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="text-center p-3 border rounded-lg">
             <p className="text-2xl font-bold">{configs?.length || 0}</p>
-            <p className="text-xs text-muted-foreground">Verification Types</p>
+            <p className="text-xs text-muted-foreground">Chamber Types</p>
           </div>
           <div className="text-center p-3 border rounded-lg">
             <p className="text-2xl font-bold text-emerald-500">{activeCount}</p>
@@ -287,17 +287,17 @@ export function VerificationConfigPanel() {
           <div className="space-y-4">
             {configs && configs.length > 0 ? (
               configs.map(config => (
-                <VerificationConfigCard
+                <ChamberConfigCard
                   key={config.id}
-                  config={config as unknown as VerificationConfig}
+                  config={config as unknown as ChamberConfig}
                   onUpdate={(updates) => updateMutation.mutate(updates)}
                 />
               ))
             ) : (
               <div className="text-center py-12 text-muted-foreground">
                 <Shield className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                <p>No verification configurations found</p>
-                <p className="text-sm">Verifications are created via database migrations</p>
+                <p>No chamber configurations found</p>
+                <p className="text-sm">Chambers are created via database migrations</p>
               </div>
             )}
           </div>
