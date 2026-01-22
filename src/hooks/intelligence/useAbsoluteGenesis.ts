@@ -315,7 +315,7 @@ export function useAbsoluteGenesis(profileId?: string) {
     config: genesisConfig,
 
     // State
-    isLoading: operationsLoading || configLoading,
+    isLoading,
     error,
     refetch,
 
