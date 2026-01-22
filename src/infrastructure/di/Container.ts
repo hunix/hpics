@@ -121,6 +121,7 @@ export const ServiceKeys = {
   DossierRepository: 'DossierRepository',
   InsightRepository: 'InsightRepository',
   FusionRepository: 'FusionRepository',
+  DigitalTwinRepository: 'DigitalTwinRepository',
   NetworkRepository: 'NetworkRepository',
   WarfareRepository: 'WarfareRepository',
   

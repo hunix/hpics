@@ -1,5 +1,5 @@
 /**
- * DI Container Bootstrap
+ * DI Container Bootstrap (v3.9.0)
  * 
  * Initializes all domain services, facades, and infrastructure.
  * Must be called before rendering the React app.
@@ -28,6 +28,8 @@ import {
   SupabaseInsightRepository 
 } from '@/infrastructure/repositories/SupabaseAnalysisRepository';
 import { SupabaseCampaignRepository, SupabaseThreatRepository, SupabaseStrategyRepository } from '@/infrastructure/repositories/SupabaseWarfareRepository';
+import { SupabaseFusionRepository } from '@/infrastructure/repositories/SupabaseFusionRepository';
+import { SupabaseDigitalTwinRepository } from '@/infrastructure/repositories/SupabaseDigitalTwinRepository';
 
 let isBootstrapped = false;
 
@@ -46,6 +48,8 @@ export function bootstrapContainer(): void {
   container.register(ServiceKeys.AnalysisRepository, () => new SupabaseAnalysisRepository(), 'singleton');
   container.register(ServiceKeys.DossierRepository, () => new SupabaseDossierRepository(), 'singleton');
   container.register(ServiceKeys.InsightRepository, () => new SupabaseInsightRepository(), 'singleton');
+  container.register(ServiceKeys.FusionRepository, () => new SupabaseFusionRepository(supabase), 'singleton');
+  container.register(ServiceKeys.DigitalTwinRepository, () => new SupabaseDigitalTwinRepository(supabase), 'singleton');
   container.register(ServiceKeys.WarfareRepository, () => ({
     campaigns: new SupabaseCampaignRepository(supabase),
     threats: new SupabaseThreatRepository(supabase),
