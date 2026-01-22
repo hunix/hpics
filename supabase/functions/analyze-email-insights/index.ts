@@ -80,7 +80,6 @@ serve(async (req) => {
         id,
         conversation_id,
         subject,
-        participant_emails,
         message_count,
         last_message_at,
         email_messages (

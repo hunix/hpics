@@ -144,16 +144,26 @@ Deno.serve(async (req) => {
         .eq('id', oauthToken.id);
     }
 
-    // Get contact emails for matching
-    const { data: contactMethods } = await supabase
-      .from('contact_methods')
-      .select('profile_id, value')
-      .eq('contact_type', 'email');
+    // Get contact emails for matching - scope via profiles table for user isolation
+    const { data: userProfiles } = await supabase
+      .from('profiles')
+      .select(`
+        id,
+        contact_methods (
+          value,
+          profile_id
+        )
+      `)
+      .eq('user_id', userId);
 
     const emailToProfileMap = new Map<string, string>();
-    contactMethods?.forEach(cm => {
-      emailToProfileMap.set(cm.value.toLowerCase(), cm.profile_id);
-    });
+    for (const profile of userProfiles || []) {
+      for (const method of profile.contact_methods || []) {
+        if (method.value) {
+          emailToProfileMap.set(method.value.toLowerCase(), method.profile_id);
+        }
+      }
+    }
 
     // Build Graph API URL with filters
     const sinceDate = new Date();
