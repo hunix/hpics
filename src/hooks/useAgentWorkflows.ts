@@ -9,9 +9,9 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/components/auth/AuthProvider';
+import { useAuth } from '@/hooks/useAuth';
 import { useMemo, useCallback } from 'react';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export interface WorkflowState {
   name: string;
@@ -105,11 +105,11 @@ export function useAgentWorkflows() {
   } = useQuery({
     queryKey: WORKFLOWS_QUERY_KEY,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('agent_workflows')
+      const { data, error } = await (supabase
+        .from('agent_workflows' as any)
         .select('*')
         .or(`user_id.is.null,user_id.eq.${user?.id}`)
-        .order('workflow_name');
+        .order('workflow_name')) as any;
 
       if (error) throw error;
       return (data || []) as unknown as AgentWorkflow[];
@@ -148,55 +148,54 @@ export function useAgentWorkflows() {
   // Create new workflow
   const createWorkflow = useMutation({
     mutationFn: async (workflow: Omit<AgentWorkflow, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
-      const { data, error } = await supabase
-        .from('agent_workflows')
+      const { data, error } = await (supabase
+        .from('agent_workflows' as any)
         .insert({
           ...workflow,
           user_id: user?.id
         })
         .select()
-        .single();
+        .single()) as any;
 
       if (error) throw error;
       return data as unknown as AgentWorkflow;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: WORKFLOWS_QUERY_KEY });
-      toast({ title: 'Workflow created', description: 'Agent workflow has been saved.' });
+      toast.success('Workflow created');
     },
-    onError: (error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    onError: (error: Error) => {
+      toast.error('Failed to create workflow', { description: error.message });
     }
   });
 
   // Update workflow
   const updateWorkflow = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<AgentWorkflow> }) => {
-      // Check if it's a system workflow
       const workflow = workflows?.find(w => w.id === id);
       if (workflow?.is_system && workflow.user_id !== user?.id) {
         throw new Error('Cannot modify system workflows');
       }
 
-      const { data, error } = await supabase
-        .from('agent_workflows')
+      const { data, error } = await (supabase
+        .from('agent_workflows' as any)
         .update({
           ...updates,
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
         .select()
-        .single();
+        .single()) as any;
 
       if (error) throw error;
       return data as unknown as AgentWorkflow;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: WORKFLOWS_QUERY_KEY });
-      toast({ title: 'Workflow updated', description: 'Changes have been saved.' });
+      toast.success('Workflow updated');
     },
-    onError: (error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    onError: (error: Error) => {
+      toast.error('Failed to update workflow', { description: error.message });
     }
   });
 
@@ -208,19 +207,19 @@ export function useAgentWorkflows() {
         throw new Error('Cannot delete system workflows');
       }
 
-      const { error } = await supabase
-        .from('agent_workflows')
+      const { error } = await (supabase
+        .from('agent_workflows' as any)
         .delete()
-        .eq('id', id);
+        .eq('id', id)) as any;
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: WORKFLOWS_QUERY_KEY });
-      toast({ title: 'Workflow deleted', description: 'Workflow has been removed.' });
+      toast.success('Workflow deleted');
     },
-    onError: (error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    onError: (error: Error) => {
+      toast.error('Failed to delete workflow', { description: error.message });
     }
   });
 
@@ -246,8 +245,8 @@ export function useAgentWorkflows() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: EXECUTIONS_QUERY_KEY });
     },
-    onError: (error) => {
-      toast({ title: 'Workflow execution failed', description: error.message, variant: 'destructive' });
+    onError: (error: Error) => {
+      toast.error('Workflow execution failed', { description: error.message });
     }
   });
 
@@ -299,15 +298,12 @@ export function useWorkflowExecutions(options?: {
   } = useQuery({
     queryKey: [...EXECUTIONS_QUERY_KEY, options?.workflowId, options?.status, options?.limit],
     queryFn: async () => {
-      let query = supabase
-        .from('agent_workflow_executions')
-        .select(`
-          *,
-          workflow:agent_workflows(workflow_name, workflow_type)
-        `)
+      let query = (supabase
+        .from('agent_workflow_executions' as any)
+        .select('*')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false })
-        .limit(options?.limit || 50);
+        .limit(options?.limit || 50)) as any;
 
       if (options?.workflowId) {
         query = query.eq('workflow_id', options.workflowId);
@@ -319,7 +315,7 @@ export function useWorkflowExecutions(options?: {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as unknown as (WorkflowExecution & { workflow: { workflow_name: string; workflow_type: string } | null })[];
+      return (data || []) as unknown as WorkflowExecution[];
     },
     staleTime: 30 * 1000,
     enabled: !!user
@@ -350,21 +346,21 @@ export function useWorkflowExecutions(options?: {
   // Cancel execution
   const cancelExecution = useMutation({
     mutationFn: async (executionId: string) => {
-      const { error } = await supabase
-        .from('agent_workflow_executions')
+      const { error } = await (supabase
+        .from('agent_workflow_executions' as any)
         .update({
           status: 'cancelled',
           completed_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
         .eq('id', executionId)
-        .eq('user_id', user?.id);
+        .eq('user_id', user?.id)) as any;
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: EXECUTIONS_QUERY_KEY });
-      toast({ title: 'Execution cancelled' });
+      toast.success('Execution cancelled');
     }
   });
 

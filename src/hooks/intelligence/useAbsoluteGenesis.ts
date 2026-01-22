@@ -10,10 +10,10 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/components/auth/AuthProvider';
+import { useAuth } from '@/hooks/useAuth';
+import { useConfigValue } from '@/hooks/usePlatformConfig';
 import { useMemo, useCallback } from 'react';
-import { toast } from '@/hooks/use-toast';
-import { usePlatformConfig } from '@/hooks/usePlatformConfig';
+import { toast } from 'sonner';
 
 export type GenesisOperationType = 
   | 'reality_creation'
@@ -58,36 +58,36 @@ export interface GenesisConfig {
 }
 
 const GENESIS_QUERY_KEY = ['genesis-operations'];
-const GENESIS_CONFIG_PREFIX = 'genesis.';
 
 export function useAbsoluteGenesis(profileId?: string) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { getConfig, isLoading: configLoading } = usePlatformConfig();
 
   // Load genesis configuration from platform_config
-  const genesisConfig = useMemo<GenesisConfig>(() => {
-    return {
-      realityCreationEnabled: getConfig('genesis.reality_creation.enabled', 'true') === 'true',
-      causalMaxDepth: parseInt(getConfig('genesis.causal_origination.max_depth', '10') || '10'),
-      synthesisIntensity: parseFloat(getConfig('genesis.synthesis.intensity_default', '0.7') || '0.7')
-    };
-  }, [getConfig]);
+  const { data: realityEnabled } = useConfigValue<string>('genesis.reality_creation.enabled');
+  const { data: causalDepth } = useConfigValue<string>('genesis.causal_origination.max_depth');
+  const { data: synthesisIntensity } = useConfigValue<string>('genesis.synthesis.intensity_default');
+
+  const genesisConfig = useMemo<GenesisConfig>(() => ({
+    realityCreationEnabled: realityEnabled === 'true',
+    causalMaxDepth: parseInt(causalDepth || '10'),
+    synthesisIntensity: parseFloat(synthesisIntensity || '0.7')
+  }), [realityEnabled, causalDepth, synthesisIntensity]);
 
   // Load all genesis operations
   const {
     data: operations,
-    isLoading: operationsLoading,
+    isLoading,
     error,
     refetch
   } = useQuery({
     queryKey: [...GENESIS_QUERY_KEY, profileId],
     queryFn: async () => {
-      let query = supabase
-        .from('genesis_operations')
+      let query = (supabase
+        .from('genesis_operations' as any)
         .select('*')
         .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })) as any;
 
       if (profileId) {
         query = query.eq('profile_id', profileId);
@@ -164,13 +164,12 @@ export function useAbsoluteGenesis(profileId?: string) {
       constraints?: unknown[];
       profile_id?: string;
     }) => {
-      // Check if operation type is enabled
       if (operation.operation_type === 'reality_creation' && !genesisConfig.realityCreationEnabled) {
         throw new Error('Reality creation is currently disabled');
       }
 
-      const { data, error } = await supabase
-        .from('genesis_operations')
+      const { data, error } = await (supabase
+        .from('genesis_operations' as any)
         .insert({
           ...operation,
           user_id: user?.id,
@@ -181,24 +180,23 @@ export function useAbsoluteGenesis(profileId?: string) {
           cascading_effects: []
         })
         .select()
-        .single();
+        .single()) as any;
 
       if (error) throw error;
       return data as unknown as GenesisOperation;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: GENESIS_QUERY_KEY });
-      toast({ title: 'Genesis operation created', description: 'Blueprint saved as draft.' });
+      toast.success('Genesis operation created');
     },
-    onError: (error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    onError: (error: Error) => {
+      toast.error('Failed to create operation', { description: error.message });
     }
   });
 
   // Initiate manifestation
   const initiateManifestion = useMutation({
     mutationFn: async (operationId: string) => {
-      // Call the genesis engine edge function
       const { data, error } = await supabase.functions.invoke('genesis-engine', {
         body: {
           operation: 'initiate',
@@ -212,18 +210,18 @@ export function useAbsoluteGenesis(profileId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: GENESIS_QUERY_KEY });
-      toast({ title: 'Manifestation initiated', description: 'Genesis process has begun.' });
+      toast.success('Manifestation initiated');
     },
-    onError: (error) => {
-      toast({ title: 'Manifestation failed', description: error.message, variant: 'destructive' });
+    onError: (error: Error) => {
+      toast.error('Manifestation failed', { description: error.message });
     }
   });
 
   // Update operation
   const updateOperation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<GenesisOperation> }) => {
-      const { data, error } = await supabase
-        .from('genesis_operations')
+      const { data, error } = await (supabase
+        .from('genesis_operations' as any)
         .update({
           ...updates,
           updated_at: new Date().toISOString()
@@ -231,7 +229,7 @@ export function useAbsoluteGenesis(profileId?: string) {
         .eq('id', id)
         .eq('user_id', user?.id)
         .select()
-        .single();
+        .single()) as any;
 
       if (error) throw error;
       return data as unknown as GenesisOperation;
@@ -244,21 +242,21 @@ export function useAbsoluteGenesis(profileId?: string) {
   // Cancel operation
   const cancelOperation = useMutation({
     mutationFn: async (operationId: string) => {
-      const { error } = await supabase
-        .from('genesis_operations')
+      const { error } = await (supabase
+        .from('genesis_operations' as any)
         .update({
           status: 'cancelled',
           completed_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
         .eq('id', operationId)
-        .eq('user_id', user?.id);
+        .eq('user_id', user?.id)) as any;
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: GENESIS_QUERY_KEY });
-      toast({ title: 'Operation cancelled' });
+      toast.success('Operation cancelled');
     }
   });
 
@@ -270,17 +268,17 @@ export function useAbsoluteGenesis(profileId?: string) {
         throw new Error('Can only delete draft operations');
       }
 
-      const { error } = await supabase
-        .from('genesis_operations')
+      const { error } = await (supabase
+        .from('genesis_operations' as any)
         .delete()
         .eq('id', operationId)
-        .eq('user_id', user?.id);
+        .eq('user_id', user?.id)) as any;
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: GENESIS_QUERY_KEY });
-      toast({ title: 'Operation deleted' });
+      toast.success('Operation deleted');
     }
   });
 
