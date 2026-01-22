@@ -572,3 +572,15 @@ verify_jwt = false
 
 [functions.memetic-propagation-engine]
 verify_jwt = false
+
+[functions.intelligence-tribunal-engine]
+verify_jwt = false
+
+[functions.warfare-verification-chamber]
+verify_jwt = false
+
+[functions.sop-distillation-engine]
+verify_jwt = false
+
+[functions.memory-crystallization-engine]
+verify_jwt = false
