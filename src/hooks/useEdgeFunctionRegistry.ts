@@ -9,7 +9,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/components/auth/AuthProvider';
+import { useAuth } from '@/hooks/useAuth';
 import { useMemo, useCallback } from 'react';
 
 export interface FunctionConfig {
@@ -61,11 +61,11 @@ export function useEdgeFunctionRegistry() {
   } = useQuery({
     queryKey: REGISTRY_QUERY_KEY,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('edge_function_registry')
+      const { data, error } = await (supabase
+        .from('edge_function_registry' as any)
         .select('*')
         .order('category', { ascending: true })
-        .order('display_name', { ascending: true });
+        .order('display_name', { ascending: true })) as any;
 
       if (error) throw error;
       return (data || []) as unknown as FunctionConfig[];
