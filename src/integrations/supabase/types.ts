@@ -974,6 +974,66 @@ export type Database = {
           },
         ]
       }
+      agent_kill_switches: {
+        Row: {
+          activation_count: number
+          agent_type: string
+          auto_disable_conditions: Json | null
+          containment_mode: string
+          created_at: string
+          disabled_at: string | null
+          disabled_by: string | null
+          enabled_at: string | null
+          enabled_by: string | null
+          escalation_contacts: string[] | null
+          function_name: string | null
+          id: string
+          is_enabled: boolean
+          last_activation_at: string | null
+          reason: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activation_count?: number
+          agent_type: string
+          auto_disable_conditions?: Json | null
+          containment_mode?: string
+          created_at?: string
+          disabled_at?: string | null
+          disabled_by?: string | null
+          enabled_at?: string | null
+          enabled_by?: string | null
+          escalation_contacts?: string[] | null
+          function_name?: string | null
+          id?: string
+          is_enabled?: boolean
+          last_activation_at?: string | null
+          reason?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activation_count?: number
+          agent_type?: string
+          auto_disable_conditions?: Json | null
+          containment_mode?: string
+          created_at?: string
+          disabled_at?: string | null
+          disabled_by?: string | null
+          enabled_at?: string | null
+          enabled_by?: string | null
+          escalation_contacts?: string[] | null
+          function_name?: string | null
+          id?: string
+          is_enabled?: boolean
+          last_activation_at?: string | null
+          reason?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       agent_spans: {
         Row: {
           agent_type: string | null
@@ -1138,6 +1198,155 @@ export type Database = {
           stability_rounds?: number | null
           tribunal_type?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      agent_workflow_executions: {
+        Row: {
+          backtrack_count: number
+          checkpoints: Json | null
+          completed_at: string | null
+          context_data: Json | null
+          correction_count: number
+          created_at: string
+          current_state: string
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          profile_id: string | null
+          started_at: string
+          state_history: Json
+          status: string
+          user_id: string
+          workflow_id: string
+        }
+        Insert: {
+          backtrack_count?: number
+          checkpoints?: Json | null
+          completed_at?: string | null
+          context_data?: Json | null
+          correction_count?: number
+          created_at?: string
+          current_state: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          profile_id?: string | null
+          started_at?: string
+          state_history?: Json
+          status?: string
+          user_id: string
+          workflow_id: string
+        }
+        Update: {
+          backtrack_count?: number
+          checkpoints?: Json | null
+          completed_at?: string | null
+          context_data?: Json | null
+          correction_count?: number
+          created_at?: string
+          current_state?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          profile_id?: string | null
+          started_at?: string
+          state_history?: Json
+          status?: string
+          user_id?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_workflow_executions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "agent_workflow_executions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "agent_workflow_executions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_workflow_executions_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "agent_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_workflows: {
+        Row: {
+          backtrack_enabled: boolean
+          checkpoint_enabled: boolean
+          created_at: string
+          description: string | null
+          id: string
+          initial_state: string
+          is_active: boolean
+          max_backtrack_depth: number
+          self_correction_rules: Json | null
+          states: Json
+          terminal_states: string[] | null
+          timeout_seconds: number
+          transitions: Json
+          updated_at: string
+          user_id: string
+          version: number
+          workflow_name: string
+          workflow_type: string
+        }
+        Insert: {
+          backtrack_enabled?: boolean
+          checkpoint_enabled?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          initial_state?: string
+          is_active?: boolean
+          max_backtrack_depth?: number
+          self_correction_rules?: Json | null
+          states?: Json
+          terminal_states?: string[] | null
+          timeout_seconds?: number
+          transitions?: Json
+          updated_at?: string
+          user_id: string
+          version?: number
+          workflow_name: string
+          workflow_type?: string
+        }
+        Update: {
+          backtrack_enabled?: boolean
+          checkpoint_enabled?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          initial_state?: string
+          is_active?: boolean
+          max_backtrack_depth?: number
+          self_correction_rules?: Json | null
+          states?: Json
+          terminal_states?: string[] | null
+          timeout_seconds?: number
+          transitions?: Json
+          updated_at?: string
+          user_id?: string
+          version?: number
+          workflow_name?: string
+          workflow_type?: string
         }
         Relationships: []
       }
@@ -5189,6 +5398,91 @@ export type Database = {
           },
         ]
       }
+      causal_models: {
+        Row: {
+          causal_effects: Json | null
+          confounders: Json | null
+          created_at: string
+          description: string | null
+          edges: Json
+          estimation_method: string | null
+          id: string
+          identifiability_status: string | null
+          is_validated: boolean
+          mediators: Json | null
+          model_name: string
+          moderators: Json | null
+          nodes: Json
+          profile_id: string | null
+          structural_equations: Json | null
+          updated_at: string
+          user_id: string
+          validation_score: number | null
+        }
+        Insert: {
+          causal_effects?: Json | null
+          confounders?: Json | null
+          created_at?: string
+          description?: string | null
+          edges?: Json
+          estimation_method?: string | null
+          id?: string
+          identifiability_status?: string | null
+          is_validated?: boolean
+          mediators?: Json | null
+          model_name: string
+          moderators?: Json | null
+          nodes?: Json
+          profile_id?: string | null
+          structural_equations?: Json | null
+          updated_at?: string
+          user_id: string
+          validation_score?: number | null
+        }
+        Update: {
+          causal_effects?: Json | null
+          confounders?: Json | null
+          created_at?: string
+          description?: string | null
+          edges?: Json
+          estimation_method?: string | null
+          id?: string
+          identifiability_status?: string | null
+          is_validated?: boolean
+          mediators?: Json | null
+          model_name?: string
+          moderators?: Json | null
+          nodes?: Json
+          profile_id?: string | null
+          structural_equations?: Json | null
+          updated_at?: string
+          user_id?: string
+          validation_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "causal_models_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "causal_models_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "causal_models_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       causal_origination: {
         Row: {
           causal_depth: number | null
@@ -6339,6 +6633,152 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      constitutional_rules: {
+        Row: {
+          applies_to_agents: string[] | null
+          applies_to_functions: string[] | null
+          category: string
+          created_at: string
+          description: string | null
+          escalation_contact: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          pattern: string | null
+          priority: number
+          rule_name: string
+          rule_type: string
+          severity: string
+          updated_at: string
+          validation_logic: Json | null
+          violation_action: string
+        }
+        Insert: {
+          applies_to_agents?: string[] | null
+          applies_to_functions?: string[] | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          escalation_contact?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          pattern?: string | null
+          priority?: number
+          rule_name: string
+          rule_type: string
+          severity?: string
+          updated_at?: string
+          validation_logic?: Json | null
+          violation_action?: string
+        }
+        Update: {
+          applies_to_agents?: string[] | null
+          applies_to_functions?: string[] | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          escalation_contact?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          pattern?: string | null
+          priority?: number
+          rule_name?: string
+          rule_type?: string
+          severity?: string
+          updated_at?: string
+          validation_logic?: Json | null
+          violation_action?: string
+        }
+        Relationships: []
+      }
+      constitutional_violations: {
+        Row: {
+          action_taken: string
+          agent_type: string | null
+          created_at: string
+          function_name: string | null
+          id: string
+          profile_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          rewritten_content: string | null
+          rule_id: string
+          severity: string
+          user_id: string
+          violation_content: string | null
+          violation_context: Json | null
+          was_blocked: boolean
+          was_rewritten: boolean
+        }
+        Insert: {
+          action_taken: string
+          agent_type?: string | null
+          created_at?: string
+          function_name?: string | null
+          id?: string
+          profile_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          rewritten_content?: string | null
+          rule_id: string
+          severity: string
+          user_id: string
+          violation_content?: string | null
+          violation_context?: Json | null
+          was_blocked?: boolean
+          was_rewritten?: boolean
+        }
+        Update: {
+          action_taken?: string
+          agent_type?: string | null
+          created_at?: string
+          function_name?: string | null
+          id?: string
+          profile_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          rewritten_content?: string | null
+          rule_id?: string
+          severity?: string
+          user_id?: string
+          violation_content?: string | null
+          violation_context?: Json | null
+          was_blocked?: boolean
+          was_rewritten?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "constitutional_violations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "constitutional_violations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "constitutional_violations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "constitutional_violations_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "constitutional_rules"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contact_activity_feed: {
         Row: {
@@ -10344,6 +10784,95 @@ export type Database = {
           },
         ]
       }
+      counterfactual_simulations: {
+        Row: {
+          causal_effect: Json | null
+          causal_model_id: string | null
+          completed_at: string | null
+          confidence_interval: Json | null
+          counterfactual_outcome: Json | null
+          created_at: string
+          explanation: string | null
+          factual_outcome: Json | null
+          id: string
+          intervention_value: Json
+          intervention_variable: string
+          outcome_variable: string
+          profile_id: string | null
+          sensitivity_analysis: Json | null
+          simulation_params: Json | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          causal_effect?: Json | null
+          causal_model_id?: string | null
+          completed_at?: string | null
+          confidence_interval?: Json | null
+          counterfactual_outcome?: Json | null
+          created_at?: string
+          explanation?: string | null
+          factual_outcome?: Json | null
+          id?: string
+          intervention_value: Json
+          intervention_variable: string
+          outcome_variable: string
+          profile_id?: string | null
+          sensitivity_analysis?: Json | null
+          simulation_params?: Json | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          causal_effect?: Json | null
+          causal_model_id?: string | null
+          completed_at?: string | null
+          confidence_interval?: Json | null
+          counterfactual_outcome?: Json | null
+          created_at?: string
+          explanation?: string | null
+          factual_outcome?: Json | null
+          id?: string
+          intervention_value?: Json
+          intervention_variable?: string
+          outcome_variable?: string
+          profile_id?: string | null
+          sensitivity_analysis?: Json | null
+          simulation_params?: Json | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "counterfactual_simulations_causal_model_id_fkey"
+            columns: ["causal_model_id"]
+            isOneToOne: false
+            referencedRelation: "causal_models"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "counterfactual_simulations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "counterfactual_simulations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "counterfactual_simulations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credential_exposures: {
         Row: {
           affected_service: string | null
@@ -13657,6 +14186,75 @@ export type Database = {
           },
         ]
       }
+      edge_function_registry: {
+        Row: {
+          category: string
+          cost_tier: string
+          created_at: string
+          dependencies: string[] | null
+          description: string | null
+          display_name: string
+          expected_columns: Json | null
+          expected_tables: string[] | null
+          function_name: string
+          health_check_enabled: boolean
+          id: string
+          input_schema: Json | null
+          is_active: boolean
+          is_critical: boolean
+          output_schema: Json | null
+          phase_level: number
+          rate_limit_per_minute: number
+          retry_config: Json
+          timeout_ms: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          cost_tier?: string
+          created_at?: string
+          dependencies?: string[] | null
+          description?: string | null
+          display_name: string
+          expected_columns?: Json | null
+          expected_tables?: string[] | null
+          function_name: string
+          health_check_enabled?: boolean
+          id?: string
+          input_schema?: Json | null
+          is_active?: boolean
+          is_critical?: boolean
+          output_schema?: Json | null
+          phase_level?: number
+          rate_limit_per_minute?: number
+          retry_config?: Json
+          timeout_ms?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          cost_tier?: string
+          created_at?: string
+          dependencies?: string[] | null
+          description?: string | null
+          display_name?: string
+          expected_columns?: Json | null
+          expected_tables?: string[] | null
+          function_name?: string
+          health_check_enabled?: boolean
+          id?: string
+          input_schema?: Json | null
+          is_active?: boolean
+          is_critical?: boolean
+          output_schema?: Json | null
+          phase_level?: number
+          rate_limit_per_minute?: number
+          retry_config?: Json
+          timeout_ms?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       education: {
         Row: {
           activities: string | null
@@ -16585,6 +17183,106 @@ export type Database = {
           },
         ]
       }
+      genesis_operations: {
+        Row: {
+          causal_chains: Json | null
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          existence_blueprint: Json | null
+          genesis_phase: string
+          id: string
+          manifestation_level: number
+          manifestation_progress: number
+          operation_name: string
+          operation_type: string
+          power_level: number
+          primordial_patterns: Json | null
+          profile_id: string | null
+          reality_parameters: Json | null
+          result: Json | null
+          stability_coefficient: number
+          started_at: string | null
+          status: string
+          synthesis_elements: Json | null
+          universal_coordinates: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          causal_chains?: Json | null
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          existence_blueprint?: Json | null
+          genesis_phase?: string
+          id?: string
+          manifestation_level?: number
+          manifestation_progress?: number
+          operation_name: string
+          operation_type: string
+          power_level?: number
+          primordial_patterns?: Json | null
+          profile_id?: string | null
+          reality_parameters?: Json | null
+          result?: Json | null
+          stability_coefficient?: number
+          started_at?: string | null
+          status?: string
+          synthesis_elements?: Json | null
+          universal_coordinates?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          causal_chains?: Json | null
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          existence_blueprint?: Json | null
+          genesis_phase?: string
+          id?: string
+          manifestation_level?: number
+          manifestation_progress?: number
+          operation_name?: string
+          operation_type?: string
+          power_level?: number
+          primordial_patterns?: Json | null
+          profile_id?: string | null
+          reality_parameters?: Json | null
+          result?: Json | null
+          stability_coefficient?: number
+          started_at?: string | null
+          status?: string
+          synthesis_elements?: Json | null
+          universal_coordinates?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "genesis_operations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "genesis_operations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "genesis_operations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       genesis_synthesis: {
         Row: {
           created_at: string
@@ -17368,6 +18066,63 @@ export type Database = {
           profile_name?: string
           tripwires?: Json | null
           updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      hypergraph_edges: {
+        Row: {
+          context_embedding: Json | null
+          created_at: string
+          edge_name: string | null
+          edge_type: string
+          id: string
+          interaction_count: number
+          is_active: boolean
+          last_interaction_at: string | null
+          metadata: Json | null
+          node_ids: string[]
+          node_types: string[]
+          relationship_weights: Json | null
+          strength_score: number
+          temporal_validity: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          context_embedding?: Json | null
+          created_at?: string
+          edge_name?: string | null
+          edge_type: string
+          id?: string
+          interaction_count?: number
+          is_active?: boolean
+          last_interaction_at?: string | null
+          metadata?: Json | null
+          node_ids: string[]
+          node_types: string[]
+          relationship_weights?: Json | null
+          strength_score?: number
+          temporal_validity?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          context_embedding?: Json | null
+          created_at?: string
+          edge_name?: string | null
+          edge_type?: string
+          id?: string
+          interaction_count?: number
+          is_active?: boolean
+          last_interaction_at?: string | null
+          metadata?: Json | null
+          node_ids?: string[]
+          node_types?: string[]
+          relationship_weights?: Json | null
+          strength_score?: number
+          temporal_validity?: Json | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
