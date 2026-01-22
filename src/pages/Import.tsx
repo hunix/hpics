@@ -22,7 +22,9 @@ import { GoogleImportWizard } from '@/components/import/google/GoogleImportWizar
 import { PSTImport } from '@/components/import/PSTImport';
 import { GmailImportWizard } from '@/components/import/gmail/GmailImportWizard';
 import { OutlookContactsImport } from '@/components/import/outlook/OutlookContactsImport';
-import { HardDrive } from 'lucide-react';
+import { BulkEmailAnalyzer } from '@/components/email/BulkEmailAnalyzer';
+import { EmailIntelligenceDashboard } from '@/components/email/EmailIntelligenceDashboard';
+import { HardDrive, BarChart3 } from 'lucide-react';
 
 interface CSVRow {
   first_name?: string;
@@ -420,7 +422,16 @@ export default function Import() {
           </TabsContent>
 
           <TabsContent value="pst" className="mt-4">
-            <PSTImport />
+            <div className="space-y-6">
+              <PSTImport />
+              
+              {/* Email Intelligence Section */}
+              <div id="bulk-email-analyzer" className="scroll-mt-4">
+                <BulkEmailAnalyzer />
+              </div>
+              
+              <EmailIntelligenceDashboard />
+            </div>
           </TabsContent>
         </Tabs>
 
