@@ -1,6 +1,7 @@
 /**
- * Compute Extended Dossier Data (v3.9.34)
+ * Compute Extended Dossier Data (v3.9.35)
  * Transforms raw DossierDataResult into ExtendedDossierData for rendering
+ * Includes email intelligence in completeness score
  */
 
 import type { DossierDataResult } from '@/components/reports/hooks/useDossierData';
@@ -13,8 +14,11 @@ export interface ExtendedDossierData extends DossierDataResult {
   totalAnomalies: number;
   behavioralDnaAnalysis?: { result: unknown };
   relationshipAnalysis?: { result: unknown };
+  emailInsightsAnalysis?: { result: unknown };
   avgTrustScore: number;
   communicationFrequency: number;
+  hasEmailIntelligence: boolean;
+  emailInsightsCount: number;
   [key: string]: unknown;
 }
 
@@ -22,7 +26,15 @@ export function computeExtendedDossierData(
   raw: DossierDataResult,
   contactName: string
 ): ExtendedDossierData {
-  // Calculate intelligence completeness
+  // Find email insights from allAnalyses
+  const emailInsights = raw.allAnalyses?.filter(
+    (a: any) => a.analysis_type === 'email_insight'
+  ) || [];
+  const hasEmailIntelligence = emailInsights.length > 0;
+  const emailInsightsCount = emailInsights.length;
+  const emailInsightsAnalysis = emailInsights[0] ? { result: emailInsights[0].result } : undefined;
+
+  // Calculate intelligence completeness (now includes email intelligence)
   const sourceChecks = [
     raw.psychData?.length > 0,
     raw.miceData?.length > 0,
@@ -33,6 +45,7 @@ export function computeExtendedDossierData(
     raw.trustData?.length > 0,
     raw.relationshipsData?.length > 0,
     raw.allAnalyses?.length > 0,
+    hasEmailIntelligence, // NEW: Email intelligence now counts toward completeness
   ];
   const intelligenceCompleteness = Math.round(
     (sourceChecks.filter(Boolean).length / sourceChecks.length) * 100
@@ -71,7 +84,10 @@ export function computeExtendedDossierData(
     totalAnomalies: raw.anomaliesData?.length || 0,
     behavioralDnaAnalysis,
     relationshipAnalysis,
+    emailInsightsAnalysis,
     avgTrustScore,
     communicationFrequency: recentComms,
+    hasEmailIntelligence,
+    emailInsightsCount,
   };
 }

@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { parseOutlookCSV, parseEMLFile, parseEMLZip, batchEmails, ParsedEmail } from '@/lib/pstParser';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AutoEmailAnalyzer } from './AutoEmailAnalyzer';
 
 // Performance constants - aggressive parallelization
 const BATCH_SIZE = 500; // 500 emails per batch
@@ -35,6 +36,7 @@ interface ImportStats {
   imported: number;
   skipped: number;
   matchedContacts: number;
+  matchedProfileIds: string[];
   unmatchedEmails: number;
 }
 
@@ -168,8 +170,8 @@ export function PSTImport() {
       const batches = batchEmails(emails, BATCH_SIZE);
       let imported = 0;
       let skipped = 0;
-      let matchedContacts = 0;
       let unmatchedEmails = 0;
+      const allMatchedProfileIds = new Set<string>();
       
       const startTime = Date.now();
       processedCountRef.current = 0;
@@ -205,8 +207,13 @@ export function PSTImport() {
           } else if (data) {
             imported += data.imported || 0;
             skipped += data.skipped || 0;
-            matchedContacts += data.matchedContacts?.length || 0;
             unmatchedEmails += data.unmatchedEmails || 0;
+            // Collect matched profile IDs
+            if (data.matchedContacts && Array.isArray(data.matchedContacts)) {
+              for (const id of data.matchedContacts) {
+                allMatchedProfileIds.add(id);
+              }
+            }
           }
           
           processedCountRef.current += batchSize;
@@ -228,7 +235,14 @@ export function PSTImport() {
         });
       }
       
-      return { imported, skipped, matchedContacts, unmatchedEmails };
+      const matchedProfileIds = Array.from(allMatchedProfileIds);
+      return { 
+        imported, 
+        skipped, 
+        matchedContacts: matchedProfileIds.length, 
+        matchedProfileIds,
+        unmatchedEmails 
+      };
     },
     onSuccess: (result) => {
       setImportStats(result);
@@ -527,24 +541,16 @@ export function PSTImport() {
               </div>
             </div>
             
-            {/* Quick action to analyze emails */}
-            {importStats.matchedContacts > 0 && (
-              <div className="pt-2 border-t">
-                <p className="text-sm text-muted-foreground mb-2">
-                  Ready to extract intelligence from matched contacts
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    // Scroll to bulk analyzer section
-                    document.getElementById('bulk-email-analyzer')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                >
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Analyze Email Intelligence
-                </Button>
-              </div>
+            {/* Auto Email Analyzer - appears after successful import with matched contacts */}
+            {importStats.matchedProfileIds.length > 0 && (
+              <AutoEmailAnalyzer 
+                matchedProfileIds={importStats.matchedProfileIds}
+                onComplete={() => {
+                  // Invalidate queries to refresh data
+                  queryClient.invalidateQueries({ queryKey: ['email-insights'] });
+                  queryClient.invalidateQueries({ queryKey: ['contacts-with-email-threads'] });
+                }}
+              />
             )}
           </div>
         )}
