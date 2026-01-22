@@ -15,7 +15,10 @@ import {
   getSyncConflicts,
   resolveSyncConflict as resolveConflictInStore,
   registerBackgroundSync,
+  updatePendingMutation,
 } from '@/lib/offlineStore';
+
+const MAX_RETRY_ATTEMPTS = 5;
 
 
 
@@ -239,9 +242,26 @@ export function useOfflineData(): UseOfflineDataReturn {
           await clearPendingMutation(mutation.id);
           results.succeeded++;
         } catch (error) {
-          console.error('Failed to sync mutation:', mutation.id, error);
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          console.error('Failed to sync mutation:', mutation.id, errorMessage);
+          
+          // Increment retry counter and track last error
+          const currentRetries = mutation.retries || 0;
+          const newRetries = currentRetries + 1;
+          
+          if (newRetries >= MAX_RETRY_ATTEMPTS) {
+            // Max retries reached - remove mutation and notify user
+            await clearPendingMutation(mutation.id);
+            console.warn(`Mutation ${mutation.id} exceeded max retries, removed from queue`);
+          } else {
+            // Update retry count and error message
+            await updatePendingMutation(mutation.id, {
+              retries: newRetries,
+              last_error: errorMessage,
+            });
+          }
+          
           results.failed++;
-          // TODO: Implement incrementMutationRetry to track retry counts
         }
       }
 

@@ -1,9 +1,11 @@
 /**
  * Centralized logging utility for hpics application
  * - Development: All levels logged to console with colors
- * - Production: Only warn and error logged
+ * - Production: Only warn and error logged, errors tracked in database
  * - Test: All logging suppressed
  */
+
+import { supabase } from '@/integrations/supabase/client';
 
 const isDev = import.meta.env.DEV;
 const isTest = import.meta.env.MODE === 'test';
@@ -15,6 +17,38 @@ interface LogContext {
   userId?: string;
   sessionId?: string;
   [key: string]: unknown;
+}
+
+/**
+ * Persist error to database for production monitoring
+ */
+async function persistErrorToDatabase(
+  message: string,
+  data: unknown,
+  context: LogContext
+): Promise<void> {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData?.session?.user?.id;
+
+    await supabase.from('error_logs').insert({
+      user_id: userId || null,
+      reference_id: `log_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      code: context.module || 'APPLICATION_ERROR',
+      message: message,
+      context: {
+        data,
+        logContext: context,
+      } as unknown as Record<string, unknown>,
+      severity: 'error',
+      category: 'application',
+      user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+      url: typeof window !== 'undefined' ? window.location.href : null,
+    } as never);
+  } catch (dbError) {
+    // Silently fail - don't create infinite error loops
+    console.error('[Logger] Failed to persist error to database:', dbError);
+  }
 }
 
 class Logger {
@@ -30,13 +64,6 @@ class Logger {
 
   private log(level: LogLevel, message: string, data?: unknown) {
     const timestamp = new Date().toISOString();
-    const logData = {
-      timestamp,
-      level,
-      message,
-      ...this.context,
-      ...(data && { data }),
-    };
 
     // In test mode, suppress all logging
     if (isTest) return;
@@ -47,7 +74,8 @@ class Logger {
         console.warn(`[${timestamp}] ${message}`, data);
       } else if (level === 'error') {
         console.error(`[${timestamp}] ${message}`, data);
-        // TODO: Send to error tracking service (Sentry, LogRocket, etc.)
+        // Persist error to database for tracking
+        persistErrorToDatabase(message, data, this.context);
       }
       return;
     }
