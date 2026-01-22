@@ -24,8 +24,8 @@ interface PatternCardProps {
     patternType: string;
     description?: string;
     confidenceScore: number;
-    sourcePhases: number[];
-    createdAt: Date;
+    sourcePhases: string[];
+    createdAt: string;
   };
 }
 
@@ -71,15 +71,19 @@ function PatternCard({ pattern }: PatternCardProps) {
 interface EmergenceEventCardProps {
   event: {
     id: string;
-    eventType: string;
-    description?: string;
-    severity: 'low' | 'medium' | 'high' | 'critical';
-    isResolved: boolean;
-    detectedAt: Date;
+    eventName: string;
+    convergenceType: string;
+    synergyMultiplier: number;
+    status: string;
+    detectedAt: string;
   };
 }
 
 function EmergenceEventCard({ event }: EmergenceEventCardProps) {
+  const synergyLevel = event.synergyMultiplier > 2 ? 'critical' : 
+                       event.synergyMultiplier > 1.5 ? 'high' : 
+                       event.synergyMultiplier > 1 ? 'medium' : 'low';
+  
   const severityColors: Record<string, string> = {
     low: 'text-blue-500 bg-blue-500/10',
     medium: 'text-amber-500 bg-amber-500/10',
@@ -87,26 +91,28 @@ function EmergenceEventCard({ event }: EmergenceEventCardProps) {
     critical: 'text-red-500 bg-red-500/10',
   };
 
+  const isResolved = event.status === 'resolved' || event.status === 'completed';
+
   return (
     <div className={cn(
       "p-3 rounded-lg border",
-      event.isResolved ? "bg-muted/20 border-muted" : "bg-card border-border"
+      isResolved ? "bg-muted/20 border-muted" : "bg-card border-border"
     )}>
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-purple-500" />
-          <span className="font-medium text-sm capitalize">{event.eventType.replace(/_/g, ' ')}</span>
+          <span className="font-medium text-sm capitalize">{event.convergenceType.replace(/_/g, ' ')}</span>
         </div>
-        <Badge className={severityColors[event.severity]}>
-          {event.severity}
+        <Badge className={severityColors[synergyLevel]}>
+          {event.synergyMultiplier.toFixed(1)}x
         </Badge>
       </div>
       <p className="text-sm text-muted-foreground mb-2">
-        {event.description || 'Emergence event detected'}
+        {event.eventName || 'Convergence event detected'}
       </p>
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>{new Date(event.detectedAt).toLocaleString()}</span>
-        {event.isResolved && (
+        {isResolved && (
           <Badge variant="outline" className="text-green-500">Resolved</Badge>
         )}
       </div>
@@ -258,10 +264,10 @@ export function MetaLearningSynthesisPanel() {
                   <PatternCard key={pattern.id} pattern={{
                     id: pattern.id,
                     patternType: pattern.patternType,
-                    description: pattern.description,
-                    confidenceScore: (pattern as any).confidence || 0.5,
-                    sourcePhases: (pattern as any).sourcePhases || [],
-                    createdAt: pattern.detectedAt,
+                    description: pattern.patternName,
+                    confidenceScore: pattern.detectionConfidence || 0.5,
+                    sourcePhases: pattern.sourceDomains || [],
+                    createdAt: pattern.firstDetectedAt,
                   }} />
                 ))}
               </div>
@@ -284,10 +290,10 @@ export function MetaLearningSynthesisPanel() {
         </TabsContent>
 
         <TabsContent value="emergence" className="space-y-4">
-          {events.length > 0 ? (
+          {convergenceEvents.length > 0 ? (
             <ScrollArea className="h-[400px]">
               <div className="space-y-3">
-                {events.map(event => (
+                {convergenceEvents.map(event => (
                   <EmergenceEventCard key={event.id} event={event} />
                 ))}
               </div>
@@ -330,7 +336,7 @@ export function MetaLearningSynthesisPanel() {
                       <Progress value={(model.accuracyScore || 0) * 100} className="h-1.5" />
                       <div className="flex items-center justify-between text-xs text-muted-foreground mt-2">
                         <span>Training iterations: {model.trainingIterations || 0}</span>
-                        <span>v{model.modelVersion || '1.0'}</span>
+                        <span>Type: {model.modelType || 'default'}</span>
                       </div>
                     </div>
                     <div className="flex gap-2 mt-3">
