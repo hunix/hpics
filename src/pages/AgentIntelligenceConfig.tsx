@@ -1,6 +1,6 @@
 /**
  * @fileoverview Agent Intelligence Configuration Page
- * Dedicated admin page for AI agent systems: Tribunals, Verification, Memory, Observability
+ * Dedicated admin page for AI agent systems: Tribunals, Verification, Memory, Observability, Procedural Memory
  */
 
 import { AppLayout } from '@/components/AppLayout';
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   ArrowLeft, Shield, Brain, Scale, Activity, 
-  Sparkles, Network
+  Sparkles, Network, BookOpen
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
@@ -21,8 +21,9 @@ import { AgentObservabilityPanel } from '@/components/settings/AgentObservabilit
 import { TribunalConfigPanel } from '@/components/settings/TribunalConfigPanel';
 import { MemoryNetworkPanel } from '@/components/settings/MemoryNetworkPanel';
 import { VerificationConfigPanel } from '@/components/settings/VerificationConfigPanel';
+import { ProceduralMemoryPanel } from '@/components/settings/ProceduralMemoryPanel';
 
-type TabValue = 'observability' | 'tribunals' | 'verification' | 'memory';
+type TabValue = 'observability' | 'tribunals' | 'verification' | 'memory' | 'procedural';
 
 const TAB_CONFIG: Record<TabValue, { icon: React.ReactNode; label: string; description: string }> = {
   observability: {
@@ -44,6 +45,11 @@ const TAB_CONFIG: Record<TabValue, { icon: React.ReactNode; label: string; descr
     icon: <Brain className="h-4 w-4" />,
     label: 'Memory Network',
     description: 'Agentic memory & knowledge graph',
+  },
+  procedural: {
+    icon: <BookOpen className="h-4 w-4" />,
+    label: 'Procedural',
+    description: 'SOP distillation & MUSE framework',
   },
 };
 
@@ -122,6 +128,10 @@ export default function AgentIntelligenceConfig() {
 
             <TabsContent value="memory" className="mt-0">
               <MemoryNetworkPanel />
+            </TabsContent>
+
+            <TabsContent value="procedural" className="mt-0">
+              <ProceduralMemoryPanel />
             </TabsContent>
           </div>
         </Tabs>
