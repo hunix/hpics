@@ -21,7 +21,8 @@ import {
   FileArchive,
   Info,
   Gauge,
-  Timer
+  Timer,
+  Sparkles
 } from 'lucide-react';
 import { parseOutlookCSV, parseEMLFile, parseEMLZip, batchEmails, ParsedEmail } from '@/lib/pstParser';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -498,7 +499,7 @@ export function PSTImport() {
 
         {/* Import Results */}
         {importStats && (
-          <div className="p-4 bg-muted rounded-lg space-y-2">
+          <div className="p-4 bg-muted rounded-lg space-y-4">
             <div className="flex items-center gap-2">
               {importStats.imported > 0 ? (
                 <CheckCircle className="h-5 w-5 text-green-500" />
@@ -525,6 +526,26 @@ export function PSTImport() {
                 <span className="font-medium">{importStats.unmatchedEmails}</span>
               </div>
             </div>
+            
+            {/* Quick action to analyze emails */}
+            {importStats.matchedContacts > 0 && (
+              <div className="pt-2 border-t">
+                <p className="text-sm text-muted-foreground mb-2">
+                  Ready to extract intelligence from matched contacts
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // Scroll to bulk analyzer section
+                    document.getElementById('bulk-email-analyzer')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                >
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Analyze Email Intelligence
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
