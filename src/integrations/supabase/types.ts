@@ -36905,6 +36905,10 @@ export type Database = {
         }[]
       }
       bootstrap_first_admin: { Args: never; Returns: boolean }
+      bulk_update_thread_counts: {
+        Args: { thread_updates: Json }
+        Returns: undefined
+      }
       check_workspace_membership: {
         Args: { uid: string; ws_id: string }
         Returns: boolean

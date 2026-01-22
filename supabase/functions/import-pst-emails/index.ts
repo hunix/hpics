@@ -95,9 +95,12 @@ Deno.serve(async (req) => {
       .eq('contact_type', 'email');
     
     const emailToProfile = new Map<string, string>();
+    const profileToEmail = new Map<string, string>(); // Reverse lookup for O(1) is_from_contact check
     if (contactMethods) {
       for (const method of contactMethods) {
-        emailToProfile.set(method.value.toLowerCase(), method.profile_id);
+        const lowerEmail = method.value.toLowerCase();
+        emailToProfile.set(lowerEmail, method.profile_id);
+        profileToEmail.set(method.profile_id, lowerEmail); // Build reverse map once
       }
     }
 
@@ -292,7 +295,7 @@ Deno.serve(async (req) => {
         received_at: email.receivedAt,
         has_attachments: email.hasAttachments,
         importance: email.importance,
-        is_from_contact: !!profileId && email.senderEmail?.toLowerCase() === [...emailToProfile.entries()].find(([_, v]) => v === profileId)?.[0],
+        is_from_contact: !!profileId && email.senderEmail?.toLowerCase() === profileToEmail.get(profileId),
       });
 
       // Track message counts per thread
@@ -310,34 +313,34 @@ Deno.serve(async (req) => {
       for (let i = 0; i < messagesToInsert.length; i += CHUNK_SIZE) {
         const chunk = messagesToInsert.slice(i, i + CHUNK_SIZE);
         
-        const { error: bulkError, data: insertedData } = await supabase
+        // Remove .select() to reduce overhead - we just need success/failure
+        const { error: bulkError } = await supabase
           .from('email_messages')
-          .insert(chunk)
-          .select('id');
+          .insert(chunk);
         
         if (bulkError) {
           console.error(`[import-pst-emails] Bulk insert failed for chunk ${i}-${i + chunk.length}:`, bulkError);
           skipped += chunk.length;
         } else {
-          imported += insertedData?.length || chunk.length;
+          imported += chunk.length;
         }
       }
     }
 
     // ==========================================
-    // PHASE 6: Bulk update thread message counts
+    // PHASE 6: Bulk update thread message counts (SINGLE RPC call)
     // ==========================================
     
-    // Update threads with new message counts (batch update)
-    for (const [threadId, count] of threadMessageCounts) {
-      // Try to increment, fall back to direct update
-      try {
-        await supabase
-          .from('email_threads')
-          .update({ message_count: count })
-          .eq('id', threadId);
-      } catch (e) {
-        console.warn(`[import-pst-emails] Failed to update thread count for ${threadId}:`, e);
+    if (threadMessageCounts.size > 0) {
+      const threadUpdates = Array.from(threadMessageCounts).map(([id, count]) => ({ id, count }));
+      console.log(`[import-pst-emails] Bulk updating ${threadUpdates.length} thread counts via RPC`);
+      
+      const { error: rpcError } = await supabase.rpc('bulk_update_thread_counts', {
+        thread_updates: JSON.stringify(threadUpdates)
+      });
+      
+      if (rpcError) {
+        console.error('[import-pst-emails] Bulk thread count update failed:', rpcError);
       }
     }
 
