@@ -37376,6 +37376,13 @@ export type Database = {
         Returns: Json
       }
       refresh_contact_storage_stats: { Args: never; Returns: undefined }
+      relink_email_threads_to_profiles: {
+        Args: { p_user_id: string }
+        Returns: {
+          profiles_matched: number
+          threads_linked: number
+        }[]
+      }
       search_contacts_v5: {
         Args: {
           p_first_letter?: string

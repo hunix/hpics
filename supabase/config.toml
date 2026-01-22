@@ -587,3 +587,6 @@ verify_jwt = false
 
 [functions.execute-data-retention]
 verify_jwt = false
+
+[functions.relink-email-threads]
+verify_jwt = false
