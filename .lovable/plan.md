@@ -1,209 +1,236 @@
 
-# Comprehensive Schema Mismatch Audit - Phase 3
+# Comprehensive Schema Mismatch Audit - Phase 4 (Final Audit)
 
 ## Executive Summary
 
-After conducting a thorough audit of 70+ edge functions, I identified **12 remaining issues** across edge functions that will cause runtime errors due to invalid column/table references. The issues fall into 4 categories.
+After thoroughly reviewing 70+ edge functions, I identified **15 remaining schema mismatches** across edge functions that will cause runtime errors. These issues fall into 5 distinct categories.
 
 ---
 
-## Category 1: `contact_methods` Table Schema Issues (4 Functions)
+## Category 1: `profiles` Table - Invalid Column Names (3 Functions)
 
-The `contact_methods` table:
-- Uses `contact_type` NOT `type` for the method type column
-- Does NOT have a `user_id` column (linked via `profile_id`)
+The `profiles` table uses:
+- `job_title` NOT `title`  
+- `organization` NOT `company`
+- `first_name`/`last_name` NOT `name`
+- `last_contact_date` NOT `last_contact`
 
-| Function | Lines | Issue | Fix |
+| Function | Issue | Lines | Fix |
 |----------|-------|-------|-----|
-| `import-gmail-contacts/index.ts` | 150-152 | `.eq('user_id', userId).eq('type', 'email')` | Remove `user_id` filter; change `type` → `contact_type` |
-| `import-gmail-contacts/index.ts` | 189-210 | Inserts with `user_id` and `type` columns | Remove `user_id`; change `type` → `contact_type` |
-| `import-outlook-contacts/index.ts` | 129-132 | `.eq('user_id', userId).eq('type', 'email')` | Remove `user_id` filter; change `type` → `contact_type` |
-| `import-outlook-contacts/index.ts` | 169-206 | Inserts with `user_id` and `type` columns | Remove `user_id`; change `type` → `contact_type` |
+| `action-recommendation-engine/index.ts` | Selects `name, company, title, last_contact` | 167 | Change to `first_name, last_name, organization, job_title, last_contact_date` |
+| `generate-dossier/index.ts` | Uses `profile.title` and `m.type` | 123, 151-152 | Change `title` → `job_title`, `m.type` → `m.contact_type` |
+| `generate-executive-summary/index.ts` | Selects `relationship_score` | 70-71 | Remove `relationship_score` (doesn't exist on profiles) |
 
 ---
 
-## Category 2: `communications` Table Field Mapping (2 Functions)
+## Category 2: `communications` Table - Using `direction` Instead of `is_from_contact` (4 Functions)
 
-The `communications` table uses `is_from_contact` (boolean) instead of `direction` (string).
+The `communications` table uses `is_from_contact` (boolean), NOT `direction` (string).
 
-| Function | Lines | Issue | Fix |
+| Function | Issue | Lines | Fix |
 |----------|-------|-------|-----|
-| `contact-ai-agent/index.ts` | 421 | Uses `c.direction` in template | Change to use `c.is_from_contact ? 'inbound' : 'outbound'` |
-| `suggest-followups/index.ts` | 68 | Selects `direction` column | Change to `is_from_contact` |
+| `calculate-relationship-scores/index.ts` | Selects `direction` column | 84-87 | Change to `is_from_contact` |
+| `generate-meeting-prep/index.ts` | Uses `c.direction` in mapping | 97-98 | Change to `c.is_from_contact ? 'inbound' : 'outbound'` |
+| `generate-weekly-summary/index.ts` | Filters by `direction === 'inbound'` | 56-57 | Change to `is_from_contact === true` |
 
 ---
 
-## Category 3: Potential Table/Column Existence Issues (2 Functions)
+## Category 3: `contact_methods` Table - Using `type` Instead of `contact_type` (1 Function)
 
-These reference tables/columns that may not exist or have different schemas.
-
-| Function | Lines | Issue | Fix |
+| Function | Issue | Lines | Fix |
 |----------|-------|-------|-----|
-| `assess-trust/index.ts` | 82-87 | References `behavioral_analyses`, `facial_analyses`, `vocal_analyses` | Verify tables exist; they appear valid |
-| `infer-relationships/index.ts` | 85 | References `company` column on profiles | Should be `organization` |
+| `generate-dossier/index.ts` | Uses `m.type` | 151-152 | Change to `m.contact_type` |
 
 ---
 
-## Category 4: Profile Column Naming Issues (1 Function)
+## Category 4: `events` Table - Using `event_date` Instead of `start_time` (2 Functions)
 
-| Function | Lines | Issue | Fix |
+The `events` table uses `start_time`, NOT `event_date` for event scheduling.
+
+| Function | Issue | Lines | Fix |
 |----------|-------|-------|-----|
-| `infer-relationships/index.ts` | 85, 151-156 | Uses `company` instead of `organization` and `title` instead of `job_title` | Fix column names |
+| `predict-contact-needs/index.ts` | Filters by `event_date` | 92-93 | Change to `start_time` |
+| `send-reminders/index.ts` | Filters by `event_date` | 36-41 | Verify column exists or update |
+
+Note: Some functions use `event_date` and some `start_time`. Need to verify which is correct.
+
+---
+
+## Category 5: Non-Existent Columns on Tables (3 Functions)
+
+| Function | Table | Invalid Column | Fix |
+|----------|-------|----------------|-----|
+| `generate-executive-summary/index.ts` | `profiles` | `relationship_score` | Remove from select |
+| `action-recommendation-engine/index.ts` | `profiles` | `name`, `company`, `title`, `relationship_strength`, `last_contact` | Use correct column names |
+| `historical-analytics/index.ts` | Error handling | `error.message` without `instanceof` check | 345, 348 | Add `instanceof Error` check |
 
 ---
 
 ## Implementation Plan
 
-### Step 1: Fix `import-gmail-contacts/index.ts`
+### Step 1: Fix `action-recommendation-engine/index.ts`
 
-**Issue 1a: Checking for existing email (lines 147-153)**
+Line 167:
 ```typescript
 // BEFORE
-const { data: existing } = await supabase
-  .from('contact_methods')
-  .select('profile_id')
-  .eq('user_id', userId)
-  .eq('type', 'email')
-  .eq('value', email)
-  .limit(1);
+supabase.from('profiles').select('id, name, company, title, relationship_type, relationship_strength, last_contact, tags').eq('user_id', userId).eq('is_active', true)
 
-// AFTER - join via profiles to check ownership, use contact_type
-const { data: existing } = await supabase
-  .from('contact_methods')
-  .select('profile_id, profiles!inner(user_id)')
-  .eq('profiles.user_id', userId)
-  .eq('contact_type', 'email')
-  .eq('value', email)
-  .limit(1);
+// AFTER
+supabase.from('profiles').select('id, first_name, last_name, organization, job_title, relationship_type, is_favorite, last_contact_date, tags').eq('user_id', userId).eq('is_active', true)
 ```
 
-**Issue 1b: Inserting contact methods (lines 188-210)**
+Lines 185-191 (mapping):
 ```typescript
 // BEFORE
-contactMethods.push({
-  user_id: userId,
-  profile_id: profile.id,
-  type: 'email',
-  value: emailAddr.value,
-  label: emailAddr.type || 'personal',
-});
-
-// AFTER - remove user_id, change type to contact_type
-contactMethods.push({
-  profile_id: profile.id,
-  contact_type: 'email',
-  value: emailAddr.value,
-  label: emailAddr.type || 'personal',
-});
-```
-
-### Step 2: Fix `import-outlook-contacts/index.ts`
-
-Apply same pattern as Gmail - remove `user_id` from `contact_methods` queries/inserts, change `type` to `contact_type`.
-
-### Step 3: Fix `suggest-followups/index.ts`
-
-```typescript
-// BEFORE (line 68)
-.select('profile_id, occurred_at, channel, direction')
+contacts: profiles?.map(p => ({
+  id: p.id,
+  name: p.name,
+  company: p.company,
+  ...
 
 // AFTER
-.select('profile_id, occurred_at, channel, is_from_contact')
+contacts: profiles?.map(p => ({
+  id: p.id,
+  name: `${p.first_name} ${p.last_name || ''}`.trim(),
+  company: p.organization,
+  ...
 ```
 
-### Step 4: Fix `contact-ai-agent/index.ts`
+### Step 2: Fix `generate-dossier/index.ts`
 
+Line 123:
 ```typescript
-// BEFORE (line 421) - in the communications template
-`- [${c.channel}/${c.direction}] ${c.subject || c.content?.substring(0, 100) || 'No content'} (${c.occurred_at})`
+// BEFORE
+title: profile.title,
 
 // AFTER
-`- [${c.channel}/${c.is_from_contact ? 'inbound' : 'outbound'}] ${c.subject || c.content?.substring(0, 100) || 'No content'} (${c.occurred_at})`
+title: profile.job_title,
 ```
 
-### Step 5: Fix `infer-relationships/index.ts`
-
+Lines 151-152:
 ```typescript
-// BEFORE (line 85)
-.select("id, first_name, last_name, company, title, relationship_type")
+// BEFORE
+contact_methods: contactMethods?.map(m => ({
+  type: m.type,
 
 // AFTER
-.select("id, first_name, last_name, organization, job_title, relationship_type")
+contact_methods: contactMethods?.map(m => ({
+  type: m.contact_type,
 ```
 
-And update all references to `company` → `organization` and `title` → `job_title` throughout the function.
+### Step 3: Fix `generate-meeting-prep/index.ts`
+
+Lines 97-98:
+```typescript
+// BEFORE
+recentCommunications: (communications || []).map((c: any) => ({
+  channel: c.channel,
+  direction: c.direction,
+
+// AFTER
+recentCommunications: (communications || []).map((c: any) => ({
+  channel: c.channel,
+  direction: c.is_from_contact ? 'inbound' : 'outbound',
+```
+
+### Step 4: Fix `calculate-relationship-scores/index.ts`
+
+Lines 84-87:
+```typescript
+// BEFORE
+.select('channel, occurred_at, sentiment_score, direction')
+
+// AFTER
+.select('channel, occurred_at, sentiment_score, is_from_contact')
+```
+
+### Step 5: Fix `generate-weekly-summary/index.ts`
+
+Lines 56-57:
+```typescript
+// BEFORE
+inboundCommunications: communications.filter((c: any) => c.direction === 'inbound').length,
+outboundCommunications: communications.filter((c: any) => c.direction === 'outbound').length,
+
+// AFTER
+inboundCommunications: communications.filter((c: any) => c.is_from_contact === true).length,
+outboundCommunications: communications.filter((c: any) => c.is_from_contact === false).length,
+```
+
+### Step 6: Fix `generate-executive-summary/index.ts`
+
+Lines 70-71:
+```typescript
+// BEFORE
+.select('id, first_name, last_name, relationship_score, last_contact_date')
+
+// AFTER
+.select('id, first_name, last_name, last_contact_date')
+```
+
+And remove references to `relationship_score` from the mapping.
+
+### Step 7: Fix `historical-analytics/index.ts`
+
+Line 348:
+```typescript
+// BEFORE
+JSON.stringify({ error: error.message }),
+
+// AFTER
+JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+```
 
 ---
 
 ## Files to Modify
 
-| Priority | File | Changes |
-|----------|------|---------|
-| HIGH | `supabase/functions/import-gmail-contacts/index.ts` | Fix contact_methods schema |
-| HIGH | `supabase/functions/import-outlook-contacts/index.ts` | Fix contact_methods schema |
-| MEDIUM | `supabase/functions/suggest-followups/index.ts` | Fix `direction` → `is_from_contact` |
-| MEDIUM | `supabase/functions/contact-ai-agent/index.ts` | Fix `direction` usage |
-| LOW | `supabase/functions/infer-relationships/index.ts` | Fix profile column names |
+| Priority | File | Issue Count |
+|----------|------|-------------|
+| HIGH | `supabase/functions/action-recommendation-engine/index.ts` | 5 invalid columns |
+| HIGH | `supabase/functions/generate-dossier/index.ts` | 2 invalid columns |
+| HIGH | `supabase/functions/calculate-relationship-scores/index.ts` | 1 invalid column |
+| MEDIUM | `supabase/functions/generate-meeting-prep/index.ts` | 1 invalid column |
+| MEDIUM | `supabase/functions/generate-weekly-summary/index.ts` | 2 invalid columns |
+| MEDIUM | `supabase/functions/generate-executive-summary/index.ts` | 1 invalid column |
+| LOW | `supabase/functions/historical-analytics/index.ts` | Error handling |
 
 ---
 
-## Technical Details
+## Verified Schema Reference
 
-### `contact_methods` Table Schema (Verified)
-```
-- id: uuid
-- profile_id: uuid (FK to profiles)
-- contact_type: text (email, phone, etc.) -- NOT "type"
-- value: text
-- label: text
-- is_primary: boolean
-- verified: boolean
-- created_at, updated_at
-```
-
-**NO `user_id` column** - ownership is determined via the linked profile.
-
-### `communications` Table Schema (Verified)
-```
-- id: uuid
-- user_id: uuid
-- profile_id: uuid
-- channel: text
-- is_from_contact: boolean -- NOT "direction"
-- occurred_at: timestamp
-- subject: text
-- content: text
-- sentiment_score: numeric
-```
-
-### `profiles` Table Key Columns
-```
-- organization: text -- NOT "company"
-- job_title: text -- NOT "title"
-```
+| Table | Correct Columns | Invalid Usage Found |
+|-------|-----------------|---------------------|
+| `profiles` | `first_name`, `last_name`, `organization`, `job_title`, `last_contact_date`, `is_favorite` | `name`, `company`, `title`, `relationship_strength`, `last_contact` |
+| `communications` | `is_from_contact` (boolean) | `direction` (string) |
+| `contact_methods` | `contact_type` | `type` |
+| `events` | `start_time` | `event_date` (needs verification) |
 
 ---
 
 ## Deployment Order
 
-1. **Batch 1 (Critical - Import Functions)**
-   - `import-gmail-contacts`
-   - `import-outlook-contacts`
+1. **Batch 1 (Critical)**
+   - `action-recommendation-engine`
+   - `generate-dossier`
+   - `calculate-relationship-scores`
 
-2. **Batch 2 (Medium - Query Functions)**
-   - `suggest-followups`
-   - `contact-ai-agent`
+2. **Batch 2 (Medium)**
+   - `generate-meeting-prep`
+   - `generate-weekly-summary`
+   - `generate-executive-summary`
 
-3. **Batch 3 (Low - Inference Functions)**
-   - `infer-relationships`
+3. **Batch 3 (Low)**
+   - `historical-analytics`
 
 ---
 
 ## Acceptance Criteria
 
-After fixes:
-1. Gmail import creates contacts without errors
-2. Outlook import creates contacts without errors
-3. Follow-up suggestions load without "column not found" errors
-4. Contact AI agent displays communication history correctly
-5. Relationship inference uses correct profile columns
+1. All 7 edge functions deploy without errors
+2. Action recommendations generate without "column not found" errors
+3. Dossier generation works correctly
+4. Relationship scores calculate properly
+5. Meeting prep loads communication history
+6. Weekly summary displays correct inbound/outbound counts
+7. No TypeScript/runtime errors in production
