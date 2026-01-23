@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
       // Fetch profile info
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name')
+        .select('first_name, last_name')
         .eq('id', targetProfileId)
         .single();
       
@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
       
       // Generate crisis readiness analysis
       const analysis = {
-        profileName: profile?.full_name || 'Unknown',
+        profileName: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown' : 'Unknown',
         readinessScore: 0.65 + Math.random() * 0.25,
         activeThreats: existingEvents?.filter(e => e.status === 'active').length || 0,
         recentCrises: existingEvents?.length || 0,
