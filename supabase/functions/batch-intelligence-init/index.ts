@@ -81,10 +81,11 @@ serve(async (req) => {
 
       switch (jobType) {
         case 'embeddings': {
+          // messages has no user_id column - must join via conversations
           const { count: msgCount } = await supabase
             .from('messages')
-            .select('id', { count: 'exact', head: true })
-            .eq('user_id', user.id);
+            .select('id, conversations!inner(user_id)', { count: 'exact', head: true })
+            .eq('conversations.user_id', user.id);
           const { count: mediaCount } = await supabase
             .from('media')
             .select('id', { count: 'exact', head: true })
@@ -293,11 +294,11 @@ async function processEmbeddings(
   let processed = 0;
   let cost = 0;
 
-  // Process messages
+  // Process messages - join via conversations for user scoping
   const { data: messages } = await supabase
     .from('messages')
-    .select('id, content')
-    .eq('user_id', userId)
+    .select('id, content, conversations!inner(user_id)')
+    .eq('conversations.user_id', userId)
     .not('content', 'is', null);
 
   if (messages) {
