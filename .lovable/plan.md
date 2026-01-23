@@ -1,160 +1,158 @@
 
 
-# Comprehensive Schema Mismatch Audit & Fix Plan
+# Comprehensive Schema Mismatch Fix Plan - Phase 2
 
-## Executive Summary
+## Summary of Findings
 
-A full codebase audit has identified **30+ edge functions** with invalid column or table references that will cause runtime errors. The primary issues fall into three categories:
-
-1. **`messages` table queried with `profile_id`** - This column doesn't exist; messages link to profiles via `conversations`
-2. **Non-existent tables referenced** - `social_profiles`, `life_events`, `recordings` don't exist in the database
-3. **Invalid column references** - `direction`, `received_at` on messages table
+After auditing the codebase, I identified **15+ remaining issues** across edge functions and frontend hooks that will cause runtime errors due to invalid column/table references.
 
 ---
 
-## Issue Categories
+## Issues by Category
 
-### Category 1: `messages.profile_id` Does Not Exist (25 Edge Functions)
+### Category A: `messages` Table Invalid Queries (3 Functions)
 
-The `messages` table has these columns:
-- `id`, `conversation_id`, `user_id`, `is_from_contact`, `content`, `sent_at`, `metadata`, `created_at`, `whatsapp_message_id`, `whatsapp_status`, `media_id`, `media_type`, `media_filename`
+| File | Line | Issue | Fix |
+|------|------|-------|-----|
+| `gottman-relationship-analyzer/index.ts` | 52-57 | `.eq('profile_id', ...)` on messages | Use `conversations!inner(profile_id)` join |
+| `analyze-communication-triangulation/index.ts` | 86-89 | Uses non-existent `source` column + `user_id` on messages | Remove `source`, use proper join pattern |
+| `useRelationshipAnalytics.tsx` | 49-53 | Queries `messages.user_id` directly | This works because messages DOES have `user_id` - **NO FIX NEEDED** |
 
-**NO `profile_id` column exists.** Messages link to profiles via:
-```
-messages.conversation_id → conversations.profile_id
-```
+### Category B: `contact_methods` Missing `user_id` (2 Functions)
 
-**Affected Functions:**
-| Function | Line | Current Query |
-|----------|------|---------------|
-| predict-contact-preferences | 78-80 | `.from('messages').eq('profile_id', profileId)` |
-| predict-churn-enhanced | 171-174 | `.from('messages').in('profile_id', profileIds)` |
-| analyze-community-class | 130 | `.from('messages').eq('profile_id', profileId)` |
-| detect-shadow-networks | 170 | `.from('messages').in('profile_id', profileIds)` |
-| analyze-romantic-intelligence | 122 | `.from('messages').eq('profile_id', profileId)` |
-| coercion-resistance-assessor | 167 | `.from('messages').eq('profile_id', profileId)` |
-| manipulation-vulnerability-assessment | 210 | `.from('messages').eq('profile_id', profileId)` |
-| sacred-values-mapper | 74 | `.from('messages').eq('profile_id', profileId)` |
-| financial-intelligence-scan | 149 | `.from('messages').eq('profile_id', profileId)` |
-| behavioral-future-modeler | 148 | `.from('messages').eq('profile_id', profileId)` |
-| betrayal-likelihood-scorer | 53 | `.from('messages').eq('profile_id', profileId)` |
-| deep-intelligence-engine | 143 | `.from('messages').eq('profile_id', profileId)` |
-| mice-recruitment-analyzer | 74 | `.from('messages').eq('profile_id', profileId)` |
-| influence-orchestrator-v2 | 131 | `.from('messages').eq('profile_id', profileId)` |
-| personality-dna-extractor | 179 | `.from('messages').eq('profile_id', profileId)` |
-| churn-prediction-engine | 36-38 | `.from('messages').eq('profile_id', profileId)` |
-| predictive-trajectory-engine | 55-57 | `.from('messages').eq('profile_id', profileId)` |
-| emotional-trajectory-analyzer | 34-37 | `.from('messages').eq('profile_id', profileId)` |
-| enhanced-deception-detector | 50-53 | `.from('messages').eq('profile_id', profileId)` |
-| train-behavior-model | 63 | `.from('messages').eq('profile_id', profileId)` |
-| action-recommendation-engine | 168 | `.from('messages').eq('profile_id', profileId)` |
-| deep-correlation-mapper | 156 | `.from('messages').eq('profile_id', profileId)` |
-| cross-modal-deception-v2 | 178 | `.from('messages').eq('profile_id', profileId)` |
-| fortune-trajectory-engine | 210 | `.from('messages').eq('profile_id', profileId)` |
+The `contact_methods` table has NO `user_id` column - only `profile_id`.
 
-**Fix Pattern:** Use PostgREST `!inner` join:
+| File | Line | Issue | Fix |
+|------|------|-------|-----|
+| `sync-google-calendar/index.ts` | 150-156 | `.eq('user_id', userId)` | Join through profiles or remove filter |
+| `sync-outlook-calendar/index.ts` | 143-149 | `.eq('user_id', userId)` | Join through profiles or remove filter |
+
+### Category C: Non-Existent Tables (1 Function)
+
+| File | Line | Table | Fix |
+|------|------|-------|-----|
+| `contact-ai-agent-v2/index.ts` | 150-154 | `social_profiles` | Remove query or use alternative data source |
+
+### Category D: Wrong Column Names (1 Hook)
+
+| File | Line | Issue | Fix |
+|------|------|-------|-----|
+| `useDossierData.ts` | 134 | Uses `communication_date` | Change to `occurred_at` |
+
+---
+
+## Implementation Steps
+
+### Step 1: Fix Edge Functions
+
+**gottman-relationship-analyzer/index.ts**
 ```typescript
-// BEFORE (broken)
-supabase.from('messages').select('*').eq('profile_id', profileId)
+// BEFORE (line 52-57)
+const { data: messages } = await supabase
+  .from('messages')
+  .select('*')
+  .eq('profile_id', request.profileId)
 
-// AFTER (correct)
-supabase.from('messages')
+// AFTER
+const { data: messages } = await supabase
+  .from('messages')
   .select('*, conversations!inner(profile_id)')
-  .eq('conversations.profile_id', profileId)
+  .eq('conversations.profile_id', request.profileId)
 ```
 
----
-
-### Category 2: Non-Existent Tables in `merge_duplicate_profiles`
-
-The recently fixed `merge_duplicate_profiles` function references tables that **don't exist**:
-- `social_profiles` - Does NOT exist
-- `life_events` - Does NOT exist  
-- `recordings` - Does NOT exist
-
-These UPDATE statements will silently fail (no error, but no-op).
-
-**Fix:** Remove these UPDATE statements from the function since the tables don't exist.
-
----
-
-### Category 3: Invalid Column `received_at` on Messages
-
-Some functions reference `messages.received_at` which doesn't exist - the correct column is `sent_at`:
-- emotional-trajectory-analyzer (line 37)
-- enhanced-deception-detector (line 53)
-- churn-prediction-engine (line 39)
-
----
-
-## Implementation Plan
-
-### Step 1: Create Helper Function for Message Queries (New Shared Utility)
-
-Create `supabase/functions/_shared/query-helpers.ts`:
+**analyze-communication-triangulation/index.ts**
 ```typescript
-export async function getMessagesForProfile(
-  supabase: SupabaseClient, 
-  profileId: string, 
-  limit = 100
-) {
-  // First get conversation IDs for this profile
-  const { data: convs } = await supabase
-    .from('conversations')
-    .select('id')
-    .eq('profile_id', profileId);
-  
-  if (!convs?.length) return [];
-  
-  const { data: messages } = await supabase
-    .from('messages')
-    .select('*')
-    .in('conversation_id', convs.map(c => c.id))
-    .order('sent_at', { ascending: false })
-    .limit(limit);
-    
-  return messages || [];
-}
+// BEFORE (line 86-89)
+const { data: messages } = await supabase
+  .from('messages')
+  .select('conversation_id, is_from_contact, sent_at, source')
+  .eq('user_id', userId);
+
+// AFTER - remove 'source' column, user_id is valid on messages
+const { data: messages } = await supabase
+  .from('messages')
+  .select('conversation_id, is_from_contact, sent_at')
+  .eq('user_id', userId);
 ```
 
-### Step 2: Fix All 25 Edge Functions
+**sync-google-calendar/index.ts** and **sync-outlook-calendar/index.ts**
+```typescript
+// BEFORE (contact_methods has no user_id)
+const { data: contact } = await supabase
+  .from('contact_methods')
+  .select('profile_id')
+  .eq('user_id', userId)
+  .eq('type', 'email')
 
-Update each affected function to use the `!inner` join pattern or the helper function.
+// AFTER - join through profiles to verify ownership
+const { data: contact } = await supabase
+  .from('contact_methods')
+  .select('profile_id, profiles!inner(user_id)')
+  .eq('profiles.user_id', userId)
+  .eq('contact_type', 'email')
+```
 
-### Step 3: SQL Migration for merge_duplicate_profiles
+**contact-ai-agent-v2/index.ts**
+```typescript
+// BEFORE - social_profiles table doesn't exist
+const { data: socialProfiles } = await context.supabase
+  .from('social_profiles')
+  .select('*')
 
-Remove references to non-existent tables (`social_profiles`, `life_events`, `recordings`).
+// AFTER - remove query, return empty array
+// social_profiles table doesn't exist - social data is on profiles table
+return { captures, socialProfiles: [] };
+```
 
-### Step 4: Update schemaValidator.ts
+### Step 2: Fix Frontend Hooks
 
-Add accurate schemas for all tables to catch future mismatches.
+**useDossierData.ts**
+```typescript
+// BEFORE
+.order('communication_date', { ascending: false })
 
----
+// AFTER
+.order('occurred_at', { ascending: false })
+```
 
-## Priority Order
+### Step 3: Deploy Fixed Edge Functions
 
-1. **High Priority** - Fix `merge_duplicate_profiles` SQL function (currently broken)
-2. **High Priority** - Fix the 10 most commonly used edge functions
-3. **Medium Priority** - Fix remaining edge functions
-4. **Low Priority** - Update schemaValidator.ts with complete schemas
+Deploy all 5 modified edge functions after code changes.
 
 ---
 
 ## Files to Modify
 
-| Category | Count | Files |
-|----------|-------|-------|
-| SQL Migration | 1 | New migration to fix `merge_duplicate_profiles` |
-| Shared Utility | 1 | `supabase/functions/_shared/query-helpers.ts` |
-| Edge Functions | 25 | All functions listed in Category 1 |
-| Schema Validator | 1 | `src/lib/schemaValidator.ts` |
+| Type | File |
+|------|------|
+| Edge Function | `supabase/functions/gottman-relationship-analyzer/index.ts` |
+| Edge Function | `supabase/functions/analyze-communication-triangulation/index.ts` |
+| Edge Function | `supabase/functions/sync-google-calendar/index.ts` |
+| Edge Function | `supabase/functions/sync-outlook-calendar/index.ts` |
+| Edge Function | `supabase/functions/contact-ai-agent-v2/index.ts` |
+| Frontend Hook | `src/components/reports/hooks/useDossierData.ts` |
 
 ---
 
-## Verification
+## Verified Schema Reference
 
-After fixes:
-1. Run `merge_duplicate_profiles` - should complete without error
-2. Test each fixed edge function via health check
-3. Verify dashboard metrics show correct counts
+Based on database queries:
+
+| Table | Has `user_id` | Has `profile_id` | Notes |
+|-------|--------------|------------------|-------|
+| `messages` | YES | NO | Links via `conversation_id` → `conversations.profile_id` |
+| `contact_methods` | NO | YES | Links to profiles directly |
+| `communications` | YES | YES | Has `occurred_at`, not `communication_date` |
+| `profiles` | YES | N/A | Has `is_active` (confirmed) |
+| `social_profiles` | N/A | N/A | TABLE DOES NOT EXIST |
+
+---
+
+## Acceptance Criteria
+
+1. All 5 edge functions deploy without errors
+2. Gottman analyzer works when invoked
+3. Calendar sync functions match attendees correctly
+4. Dossier reports load without query errors
+5. No "column does not exist" errors in console/logs
 
