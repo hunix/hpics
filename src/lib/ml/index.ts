@@ -32,3 +32,24 @@ export {
   type BehaviorProfile,
   type AnomalyDetection,
 } from './localBehaviorAnalyzer';
+
+// WebGPU Whisper Transcription (NEW - 2025)
+export {
+  localWhisperTranscriber,
+  LocalWhisperTranscriber,
+  type WhisperModel,
+  type TranscriptionResult,
+  type TranscriptionChunk,
+  type WhisperModelInfo,
+  type ProgressCallback,
+} from './localWhisperTranscriber';
+
+// Unified Local Audio Analysis (NEW - 2025)
+export {
+  localAudioAnalyzer,
+  LocalAudioAnalyzer,
+  type LocalAudioAnalysis,
+  type LocalAudioAnalysisOptions,
+  type BatchAnalysisProgress,
+  type BatchProgressCallback,
+} from './localAudioAnalyzer';

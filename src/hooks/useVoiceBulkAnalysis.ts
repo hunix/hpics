@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { localAudioAnalyzer, type BatchAnalysisProgress } from '@/lib/ml';
 
 export interface VoiceRecording {
   id: string;
@@ -23,6 +24,8 @@ export interface VoiceBulkAnalysisOptions {
   voiceBiometrics: boolean;
 }
 
+export type ProcessingMode = 'local' | 'cloud' | 'hybrid';
+
 export interface VoiceBulkSession {
   id: string;
   status: 'idle' | 'running' | 'paused' | 'completed' | 'failed';
@@ -34,6 +37,9 @@ export interface VoiceBulkSession {
   completedAt: string | null;
   error: string | null;
   totalCostCents: number;
+  processingMode: ProcessingMode;
+  modelStatus?: 'loading' | 'ready';
+  modelProgress?: number;
 }
 
 const DEFAULT_OPTIONS: VoiceBulkAnalysisOptions = {
@@ -49,6 +55,7 @@ export function useVoiceBulkAnalysis(profileId?: string) {
   const [options, setOptions] = useState<VoiceBulkAnalysisOptions>(DEFAULT_OPTIONS);
   const [recordings, setRecordings] = useState<VoiceRecording[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [processingMode, setProcessingMode] = useState<ProcessingMode>('local');
   const cancelRef = useRef(false);
 
   // Fetch voice recordings for a profile
@@ -102,10 +109,49 @@ export function useVoiceBulkAnalysis(profileId?: string) {
     }
   }, [profileId]);
 
-  // Start bulk analysis
+  // Process single recording locally (WebGPU Whisper)
+  const processLocalRecording = useCallback(async (
+    recording: VoiceRecording,
+    userId: string
+  ): Promise<{ success: boolean; processingTimeMs: number }> => {
+    const result = await localAudioAnalyzer.analyzeAudioFile(recording.audio_url, {
+      transcribe: true,
+      analyzeSentiment: true
+    });
+
+    if (!result.transcription?.text) {
+      throw new Error('No transcription generated');
+    }
+
+    // Store results in voice_insights
+    const { error: insertError } = await supabase.from('voice_insights').upsert({
+      source_type: 'voice_recording_session',
+      source_id: recording.id,
+      profile_id: recording.profile_id,
+      user_id: userId,
+      transcription_text: result.transcription.text,
+      transcription_chunks: result.transcription.chunks as unknown as Record<string, unknown>[],
+      overall_sentiment: result.sentiment?.label || 'neutral',
+      confidence_score: result.sentiment?.confidence || 0.5,
+      processing_method: 'local_whisper_turbo',
+      processing_time_ms: result.totalProcessingMs,
+      created_at: new Date().toISOString()
+    }, {
+      onConflict: 'source_id'
+    });
+
+    if (insertError) {
+      console.error('[VoiceBulkAnalysis] Failed to save insights:', insertError);
+    }
+
+    return { success: true, processingTimeMs: result.totalProcessingMs };
+  }, []);
+
+  // Start bulk analysis with mode selection
   const startBulkAnalysis = useCallback(async (
     selectedRecordings: VoiceRecording[],
-    analysisOptions: VoiceBulkAnalysisOptions = options
+    analysisOptions: VoiceBulkAnalysisOptions = options,
+    mode: ProcessingMode = processingMode
   ) => {
     if (selectedRecordings.length === 0) {
       toast.error('No recordings selected');
@@ -125,10 +171,44 @@ export function useVoiceBulkAnalysis(profileId?: string) {
       completedAt: null,
       error: null,
       totalCostCents: 0,
+      processingMode: mode,
+      modelStatus: mode === 'local' || mode === 'hybrid' ? 'loading' : undefined
     };
 
     setSession(newSession);
-    toast.info(`Starting voice analysis for ${selectedRecordings.length} recordings...`);
+
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('Not authenticated');
+      return;
+    }
+
+    const modeLabel = mode === 'local' ? '⚡ Local (WebGPU)' : mode === 'cloud' ? '☁️ Cloud' : '🔄 Hybrid';
+    toast.info(`Starting ${modeLabel} analysis for ${selectedRecordings.length} recordings...`);
+
+    // Initialize local model if needed
+    if (mode === 'local' || mode === 'hybrid') {
+      try {
+        await localAudioAnalyzer.initialize({
+          whisperModel: 'turbo',
+          onProgress: (progress) => {
+            if (progress.status === 'progress') {
+              setSession(prev => prev ? {
+                ...prev,
+                modelProgress: progress.progress
+              } : null);
+            }
+          }
+        });
+        setSession(prev => prev ? { ...prev, modelStatus: 'ready' } : null);
+      } catch (error) {
+        console.error('[VoiceBulkAnalysis] Failed to load local model:', error);
+        toast.error('Failed to load local ML model. Falling back to cloud.');
+        // Fall back to cloud
+        setSession(prev => prev ? { ...prev, processingMode: 'cloud' } : null);
+      }
+    }
 
     for (let i = 0; i < selectedRecordings.length; i++) {
       if (cancelRef.current) {
@@ -145,31 +225,79 @@ export function useVoiceBulkAnalysis(profileId?: string) {
       } : null);
 
       try {
-        console.log(`[VoiceBulkAnalysis] Processing ${i + 1}/${selectedRecordings.length}: ${recording.title}`);
+        console.log(`[VoiceBulkAnalysis] Processing ${i + 1}/${selectedRecordings.length}: ${recording.title} (${mode})`);
 
-        const { data, error } = await supabase.functions.invoke('analyze-voice-comprehensive', {
-          body: {
-            audioUrl: recording.audio_url,
-            sourceType: 'voice_recording',
-            sourceId: recording.id,
-            profileId: recording.profile_id,
-            options: {
-              transcribe: analysisOptions.transcription,
-              diarize: analysisOptions.speakerDiarization,
-              analyzeVocalPsychology: analysisOptions.vocalPsychology,
-              extractContentIntelligence: analysisOptions.contentIntelligence,
-              extractBiometrics: analysisOptions.voiceBiometrics,
+        if (mode === 'local') {
+          // Pure local processing - no cloud calls
+          await processLocalRecording(recording, user.id);
+          setSession(prev => prev ? {
+            ...prev,
+            processedItems: i + 1,
+            // Local = $0 cost
+          } : null);
+
+        } else if (mode === 'hybrid') {
+          // Local transcription first, then cloud for advanced analysis
+          const localResult = await processLocalRecording(recording, user.id);
+          
+          // Optional: send to cloud for deep psychological analysis
+          if (analysisOptions.vocalPsychology || analysisOptions.contentIntelligence) {
+            const { data, error } = await supabase.functions.invoke('analyze-voice-comprehensive', {
+              body: {
+                audioUrl: recording.audio_url,
+                sourceType: 'voice_recording',
+                sourceId: recording.id,
+                profileId: recording.profile_id,
+                options: {
+                  transcribe: false, // Already done locally
+                  diarize: analysisOptions.speakerDiarization,
+                  analyzeVocalPsychology: analysisOptions.vocalPsychology,
+                  extractContentIntelligence: analysisOptions.contentIntelligence,
+                  extractBiometrics: analysisOptions.voiceBiometrics,
+                },
+              },
+            });
+            
+            if (error) console.warn('[VoiceBulkAnalysis] Cloud enhancement failed:', error);
+            
+            setSession(prev => prev ? {
+              ...prev,
+              processedItems: i + 1,
+              totalCostCents: prev.totalCostCents + (data?.costCents || 0),
+            } : null);
+          } else {
+            setSession(prev => prev ? {
+              ...prev,
+              processedItems: i + 1,
+            } : null);
+          }
+
+        } else {
+          // Pure cloud processing (original behavior)
+          const { data, error } = await supabase.functions.invoke('analyze-voice-comprehensive', {
+            body: {
+              audioUrl: recording.audio_url,
+              sourceType: 'voice_recording',
+              sourceId: recording.id,
+              profileId: recording.profile_id,
+              options: {
+                transcribe: analysisOptions.transcription,
+                diarize: analysisOptions.speakerDiarization,
+                analyzeVocalPsychology: analysisOptions.vocalPsychology,
+                extractContentIntelligence: analysisOptions.contentIntelligence,
+                extractBiometrics: analysisOptions.voiceBiometrics,
+              },
             },
-          },
-        });
+          });
 
-        if (error) throw error;
+          if (error) throw error;
 
-        setSession(prev => prev ? {
-          ...prev,
-          processedItems: i + 1,
-          totalCostCents: prev.totalCostCents + (data?.costCents || 0),
-        } : null);
+          setSession(prev => prev ? {
+            ...prev,
+            processedItems: i + 1,
+            totalCostCents: prev.totalCostCents + (data?.costCents || 0),
+          } : null);
+        }
 
       } catch (error) {
         console.error(`[VoiceBulkAnalysis] Failed to analyze recording ${recording.id}:`, error);
@@ -192,7 +320,7 @@ export function useVoiceBulkAnalysis(profileId?: string) {
 
     // Refresh recordings to update status
     await fetchRecordings(profileId);
-  }, [options, profileId, fetchRecordings]);
+  }, [options, profileId, fetchRecordings, processingMode, processLocalRecording]);
 
   // Pause/cancel analysis
   const pauseAnalysis = useCallback(() => {
@@ -205,8 +333,16 @@ export function useVoiceBulkAnalysis(profileId?: string) {
     cancelRef.current = false;
   }, []);
 
+  // Unload local models to free memory
+  const unloadModels = useCallback(() => {
+    localAudioAnalyzer.unload();
+  }, []);
+
   // Get unanalyzed recordings count
   const unanalyzedCount = recordings.filter(r => !r.hasVoiceInsights).length;
+
+  // Get local model status
+  const localModelStatus = localAudioAnalyzer.getStatus();
 
   return {
     session,
@@ -219,5 +355,9 @@ export function useVoiceBulkAnalysis(profileId?: string) {
     pauseAnalysis,
     resetSession,
     unanalyzedCount,
+    processingMode,
+    setProcessingMode,
+    unloadModels,
+    localModelStatus,
   };
 }
