@@ -152,7 +152,7 @@ Return JSON:
 }`;
 
     const userPrompt = `Design elicitation strategies for:
-Target: ${profile?.full_name || 'Unknown'}
+Target: ${profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown' : 'Unknown'}
 Context: ${request.context || 'Casual conversation'}
 
 Target Information to Extract:

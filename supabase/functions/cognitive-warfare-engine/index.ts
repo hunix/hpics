@@ -94,7 +94,8 @@ serve(async (req) => {
       ]);
       
       if (profile.data) {
-        profileContext = `Target Profile: ${profile.data.full_name || 'Unknown'}
+        const fullName = `${profile.data.first_name || ''} ${profile.data.last_name || ''}`.trim() || 'Unknown';
+        profileContext = `Target Profile: ${fullName}
 Relationship: ${profile.data.relationship_type || 'Unknown'}
 Tags: ${(profile.data.tags || []).join(', ')}`;
       }
