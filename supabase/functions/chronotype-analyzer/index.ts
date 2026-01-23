@@ -241,14 +241,16 @@ serve(async (req) => {
     const { profile_id, interactions = [] } = await req.json();
 
     // If no interactions provided, fetch from database
+    // NOTE: messages table has no profile_id/direction columns - must join via conversations
+    // and use is_from_contact instead of direction
     let interactionData = interactions;
     if (interactionData.length === 0 && profile_id) {
-      // Fetch messages
+      // Fetch messages via conversations join
       const { data: messages } = await supabaseClient
         .from('messages')
-        .select('created_at, direction, channel')
-        .eq('user_id', user.id)
-        .eq('profile_id', profile_id)
+        .select('created_at, is_from_contact, conversations!inner(profile_id, user_id)')
+        .eq('conversations.user_id', user.id)
+        .eq('conversations.profile_id', profile_id)
         .order('created_at', { ascending: false })
         .limit(500);
       
@@ -262,10 +264,10 @@ serve(async (req) => {
         .limit(200);
       
       if (messages) {
-        interactionData = messages.map(m => ({
+        interactionData = messages.map((m: any) => ({
           timestamp: m.created_at,
           type: 'message' as const,
-          response_quality: m.direction === 'inbound' ? 0.7 : 0.5
+          response_quality: m.is_from_contact ? 0.7 : 0.5
         }));
       }
       

@@ -114,6 +114,7 @@ serve(async (req) => {
     }
 
     // Gather data for analysis
+    // NOTE: messages table has no profile_id column - must join via conversations
     const [
       profileResult,
       observationsResult,
@@ -127,7 +128,7 @@ serve(async (req) => {
       supabase.from("enrichment_results").select("*").eq("profile_id", profileId).limit(20),
       supabase.from("media_analyses").select("*").eq("profile_id", profileId).limit(50),
       supabase.from("brand_intelligence").select("*").eq("profile_id", profileId).limit(5),
-      supabase.from("messages").select("*").eq("profile_id", profileId).order("created_at", { ascending: false }).limit(100)
+      supabase.from("messages").select("*, conversations!inner(profile_id)").eq("conversations.profile_id", profileId).order("created_at", { ascending: false }).limit(100)
     ]);
 
     const contextData = {

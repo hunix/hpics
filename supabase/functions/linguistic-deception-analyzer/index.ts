@@ -21,19 +21,21 @@ serve(async (req) => {
     const { profileId, userId, textSamples, analysisType = 'comprehensive' } = await req.json();
 
     // If no text samples provided, fetch from messages
+    // NOTE: messages table has no profile_id column - must join via conversations
+    // Also: messages has 'sent_at' not 'received_at', and no 'source' column
     let textsToAnalyze = textSamples;
     if (!textsToAnalyze || textsToAnalyze.length === 0) {
       const { data: messages } = await supabase
         .from('messages')
-        .select('content, received_at, source')
-        .eq('profile_id', profileId)
-        .order('received_at', { ascending: false })
+        .select('content, sent_at, is_from_contact, conversations!inner(profile_id)')
+        .eq('conversations.profile_id', profileId)
+        .order('sent_at', { ascending: false })
         .limit(200);
       
-      textsToAnalyze = messages?.map(m => ({
+      textsToAnalyze = messages?.map((m: any) => ({
         text: m.content,
-        timestamp: m.received_at,
-        source: m.source
+        timestamp: m.sent_at,
+        source: m.is_from_contact ? 'contact' : 'user'
       })) || [];
     }
 
