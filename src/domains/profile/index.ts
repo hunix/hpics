@@ -34,6 +34,9 @@ export {
   ProfilesMerged,
 } from './events/ProfileEvents';
 
+// Errors
+export { DuplicateProfileError } from './errors/DuplicateProfileError';
+
 // Services
 export { ProfileService } from './services/ProfileService';
 export type { 

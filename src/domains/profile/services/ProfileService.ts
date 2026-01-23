@@ -7,7 +7,7 @@
 import { getEventBus, IEventBus } from '@/domains/shared/events/EventBus';
 import { Profile, ProfileProps, RelationshipType, ProfileStatus, ContactInfo } from '../entities/Profile';
 import { ContactScore } from '../value-objects/ContactScore';
-import { DuplicateProfileError } from '../errors/DuplicateProfileError';
+import { DuplicateProfileError } from '@/domains/profile/errors/DuplicateProfileError';
 import { 
   IProfileRepository, 
   ProfileQueryOptions, 
