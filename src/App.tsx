@@ -97,6 +97,7 @@ const ComprehensiveSystemHealthDashboard = lazyWithRetry(() => import("./pages/C
 const FusionCommandCenter = lazyWithRetry(() => import("./pages/FusionCommandCenter"));
 const PlatformConfiguration = lazyWithRetry(() => import("./pages/PlatformConfiguration"));
 const AgentIntelligenceConfig = lazyWithRetry(() => import("./pages/AgentIntelligenceConfig"));
+const DatabaseMaintenance = lazyWithRetry(() => import("./pages/DatabaseMaintenance"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -214,6 +215,7 @@ const App = () => (
                           <Route path="/fusion-command" element={<FusionCommandCenter />} />
                           <Route path="/platform-config" element={<PlatformConfiguration />} />
                           <Route path="/agent-intelligence" element={<AgentIntelligenceConfig />} />
+                          <Route path="/maintenance" element={<DatabaseMaintenance />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                       </Suspense>
