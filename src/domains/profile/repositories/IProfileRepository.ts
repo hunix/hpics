@@ -153,4 +153,10 @@ export interface IProfileRepository extends IUserScopedRepository<Profile, strin
    * Get available filter options for the user's contacts
    */
   getFilterOptions(userId: string): Promise<FilterOptions>;
+
+  /**
+   * Find a duplicate profile by name (for deduplication guard)
+   * Uses the database function find_duplicate_profile
+   */
+  findDuplicate(userId: string, firstName: string, lastName?: string): Promise<{ id: string; firstName: string; lastName?: string } | null>;
 }

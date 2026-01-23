@@ -5,8 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Brain, Sparkles, Atom, Globe, Infinity, Eye, Zap, Target, Waves, Network, Crown, CircleDot } from 'lucide-react';
+import { Brain, Sparkles, Atom, Globe, Infinity, Eye, Zap, Target, Waves, Network, Crown, CircleDot, Play, Loader2 } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
+import { useTranscendentAnalysis } from '@/hooks/useTranscendentAnalysis';
 
 // Phase 20 Hooks
 import { useQuantumCognition } from '@/hooks/intelligence/useQuantumCognition';
@@ -39,6 +40,7 @@ const MODULE_TABS = [
 
 export default function TranscendentConsciousnessCenter() {
   const [activeTab, setActiveTab] = useState('quantum');
+  const { runAnalysis, isRunning } = useTranscendentAnalysis();
 
   const quantumCognition = useQuantumCognition();
   const morphicResonance = useMorphicResonance();
@@ -90,9 +92,22 @@ export default function TranscendentConsciousnessCenter() {
               <p className="text-muted-foreground">AGIS Phase 20: Quantum Cognition & Collective Intelligence</p>
             </div>
           </div>
-          <Badge variant="outline" className="text-lg px-4 py-2 border-violet-500/50 bg-violet-500/10">
-            <Sparkles className="h-4 w-4 mr-2" />Transcendence: {transcendenceScore}%
-          </Badge>
+          <div className="flex items-center gap-3">
+            <Button 
+              onClick={() => runAnalysis({ analysisType: 'full' })} 
+              disabled={isRunning}
+              className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700"
+            >
+              {isRunning ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Analyzing...</>
+              ) : (
+                <><Play className="h-4 w-4 mr-2" />Run Quantum Analysis</>
+              )}
+            </Button>
+            <Badge variant="outline" className="text-lg px-4 py-2 border-violet-500/50 bg-violet-500/10">
+              <Sparkles className="h-4 w-4 mr-2" />Transcendence: {transcendenceScore}%
+            </Badge>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
