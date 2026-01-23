@@ -115,9 +115,9 @@ serve(async (req) => {
         from_contact: m.is_from_contact,
         date: m.sent_at
       })) || [],
-      communications: communications?.map((c: { channel?: string; direction?: string; subject?: string; sentiment_score?: number; occurred_at?: string }) => ({
+      communications: communications?.map((c: { channel?: string; is_from_contact?: boolean; subject?: string; sentiment_score?: number; occurred_at?: string }) => ({
         channel: c.channel,
-        direction: c.direction,
+        direction: c.is_from_contact ? 'inbound' : 'outbound',
         subject: c.subject,
         sentiment: c.sentiment_score,
         date: c.occurred_at

@@ -453,7 +453,7 @@ function calculateEnhancedFeatures(
                                 freq30 > 0 ? 1 : -1;
   
   // Outbound ratio
-  const outboundComms = comms.filter(c => c.direction === 'outbound').length;
+  const outboundComms = comms.filter(c => c.is_from_contact === false).length;
   const outboundRatio = comms.length > 0 ? outboundComms / comms.length : 0.5;
   
   // Channel diversity
