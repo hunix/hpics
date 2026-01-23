@@ -21,6 +21,14 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ ok: true, function: 'scrape-linkedin-proxycurl', timestamp: Date.now() }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -122,8 +130,9 @@ serve(async (req) => {
     }
 
     // Try reverse email lookup if no LinkedIn URL or it failed
-    if (!data && (email || profile?.email)) {
-      const emailToLookup = email || profile.email;
+    // Note: profiles table doesn't have email column - email must be provided as parameter
+    if (!data && email) {
+      const emailToLookup = email;
       const params = new URLSearchParams({
         email: emailToLookup,
         lookup_depth: 'superficial',
