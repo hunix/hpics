@@ -1,158 +1,209 @@
 
+# Comprehensive Schema Mismatch Audit - Phase 3
 
-# Comprehensive Schema Mismatch Fix Plan - Phase 2
+## Executive Summary
 
-## Summary of Findings
-
-After auditing the codebase, I identified **15+ remaining issues** across edge functions and frontend hooks that will cause runtime errors due to invalid column/table references.
-
----
-
-## Issues by Category
-
-### Category A: `messages` Table Invalid Queries (3 Functions)
-
-| File | Line | Issue | Fix |
-|------|------|-------|-----|
-| `gottman-relationship-analyzer/index.ts` | 52-57 | `.eq('profile_id', ...)` on messages | Use `conversations!inner(profile_id)` join |
-| `analyze-communication-triangulation/index.ts` | 86-89 | Uses non-existent `source` column + `user_id` on messages | Remove `source`, use proper join pattern |
-| `useRelationshipAnalytics.tsx` | 49-53 | Queries `messages.user_id` directly | This works because messages DOES have `user_id` - **NO FIX NEEDED** |
-
-### Category B: `contact_methods` Missing `user_id` (2 Functions)
-
-The `contact_methods` table has NO `user_id` column - only `profile_id`.
-
-| File | Line | Issue | Fix |
-|------|------|-------|-----|
-| `sync-google-calendar/index.ts` | 150-156 | `.eq('user_id', userId)` | Join through profiles or remove filter |
-| `sync-outlook-calendar/index.ts` | 143-149 | `.eq('user_id', userId)` | Join through profiles or remove filter |
-
-### Category C: Non-Existent Tables (1 Function)
-
-| File | Line | Table | Fix |
-|------|------|-------|-----|
-| `contact-ai-agent-v2/index.ts` | 150-154 | `social_profiles` | Remove query or use alternative data source |
-
-### Category D: Wrong Column Names (1 Hook)
-
-| File | Line | Issue | Fix |
-|------|------|-------|-----|
-| `useDossierData.ts` | 134 | Uses `communication_date` | Change to `occurred_at` |
+After conducting a thorough audit of 70+ edge functions, I identified **12 remaining issues** across edge functions that will cause runtime errors due to invalid column/table references. The issues fall into 4 categories.
 
 ---
 
-## Implementation Steps
+## Category 1: `contact_methods` Table Schema Issues (4 Functions)
 
-### Step 1: Fix Edge Functions
+The `contact_methods` table:
+- Uses `contact_type` NOT `type` for the method type column
+- Does NOT have a `user_id` column (linked via `profile_id`)
 
-**gottman-relationship-analyzer/index.ts**
+| Function | Lines | Issue | Fix |
+|----------|-------|-------|-----|
+| `import-gmail-contacts/index.ts` | 150-152 | `.eq('user_id', userId).eq('type', 'email')` | Remove `user_id` filter; change `type` → `contact_type` |
+| `import-gmail-contacts/index.ts` | 189-210 | Inserts with `user_id` and `type` columns | Remove `user_id`; change `type` → `contact_type` |
+| `import-outlook-contacts/index.ts` | 129-132 | `.eq('user_id', userId).eq('type', 'email')` | Remove `user_id` filter; change `type` → `contact_type` |
+| `import-outlook-contacts/index.ts` | 169-206 | Inserts with `user_id` and `type` columns | Remove `user_id`; change `type` → `contact_type` |
+
+---
+
+## Category 2: `communications` Table Field Mapping (2 Functions)
+
+The `communications` table uses `is_from_contact` (boolean) instead of `direction` (string).
+
+| Function | Lines | Issue | Fix |
+|----------|-------|-------|-----|
+| `contact-ai-agent/index.ts` | 421 | Uses `c.direction` in template | Change to use `c.is_from_contact ? 'inbound' : 'outbound'` |
+| `suggest-followups/index.ts` | 68 | Selects `direction` column | Change to `is_from_contact` |
+
+---
+
+## Category 3: Potential Table/Column Existence Issues (2 Functions)
+
+These reference tables/columns that may not exist or have different schemas.
+
+| Function | Lines | Issue | Fix |
+|----------|-------|-------|-----|
+| `assess-trust/index.ts` | 82-87 | References `behavioral_analyses`, `facial_analyses`, `vocal_analyses` | Verify tables exist; they appear valid |
+| `infer-relationships/index.ts` | 85 | References `company` column on profiles | Should be `organization` |
+
+---
+
+## Category 4: Profile Column Naming Issues (1 Function)
+
+| Function | Lines | Issue | Fix |
+|----------|-------|-------|-----|
+| `infer-relationships/index.ts` | 85, 151-156 | Uses `company` instead of `organization` and `title` instead of `job_title` | Fix column names |
+
+---
+
+## Implementation Plan
+
+### Step 1: Fix `import-gmail-contacts/index.ts`
+
+**Issue 1a: Checking for existing email (lines 147-153)**
 ```typescript
-// BEFORE (line 52-57)
-const { data: messages } = await supabase
-  .from('messages')
-  .select('*')
-  .eq('profile_id', request.profileId)
-
-// AFTER
-const { data: messages } = await supabase
-  .from('messages')
-  .select('*, conversations!inner(profile_id)')
-  .eq('conversations.profile_id', request.profileId)
-```
-
-**analyze-communication-triangulation/index.ts**
-```typescript
-// BEFORE (line 86-89)
-const { data: messages } = await supabase
-  .from('messages')
-  .select('conversation_id, is_from_contact, sent_at, source')
-  .eq('user_id', userId);
-
-// AFTER - remove 'source' column, user_id is valid on messages
-const { data: messages } = await supabase
-  .from('messages')
-  .select('conversation_id, is_from_contact, sent_at')
-  .eq('user_id', userId);
-```
-
-**sync-google-calendar/index.ts** and **sync-outlook-calendar/index.ts**
-```typescript
-// BEFORE (contact_methods has no user_id)
-const { data: contact } = await supabase
+// BEFORE
+const { data: existing } = await supabase
   .from('contact_methods')
   .select('profile_id')
   .eq('user_id', userId)
   .eq('type', 'email')
+  .eq('value', email)
+  .limit(1);
 
-// AFTER - join through profiles to verify ownership
-const { data: contact } = await supabase
+// AFTER - join via profiles to check ownership, use contact_type
+const { data: existing } = await supabase
   .from('contact_methods')
   .select('profile_id, profiles!inner(user_id)')
   .eq('profiles.user_id', userId)
   .eq('contact_type', 'email')
+  .eq('value', email)
+  .limit(1);
 ```
 
-**contact-ai-agent-v2/index.ts**
-```typescript
-// BEFORE - social_profiles table doesn't exist
-const { data: socialProfiles } = await context.supabase
-  .from('social_profiles')
-  .select('*')
-
-// AFTER - remove query, return empty array
-// social_profiles table doesn't exist - social data is on profiles table
-return { captures, socialProfiles: [] };
-```
-
-### Step 2: Fix Frontend Hooks
-
-**useDossierData.ts**
+**Issue 1b: Inserting contact methods (lines 188-210)**
 ```typescript
 // BEFORE
-.order('communication_date', { ascending: false })
+contactMethods.push({
+  user_id: userId,
+  profile_id: profile.id,
+  type: 'email',
+  value: emailAddr.value,
+  label: emailAddr.type || 'personal',
+});
 
-// AFTER
-.order('occurred_at', { ascending: false })
+// AFTER - remove user_id, change type to contact_type
+contactMethods.push({
+  profile_id: profile.id,
+  contact_type: 'email',
+  value: emailAddr.value,
+  label: emailAddr.type || 'personal',
+});
 ```
 
-### Step 3: Deploy Fixed Edge Functions
+### Step 2: Fix `import-outlook-contacts/index.ts`
 
-Deploy all 5 modified edge functions after code changes.
+Apply same pattern as Gmail - remove `user_id` from `contact_methods` queries/inserts, change `type` to `contact_type`.
+
+### Step 3: Fix `suggest-followups/index.ts`
+
+```typescript
+// BEFORE (line 68)
+.select('profile_id, occurred_at, channel, direction')
+
+// AFTER
+.select('profile_id, occurred_at, channel, is_from_contact')
+```
+
+### Step 4: Fix `contact-ai-agent/index.ts`
+
+```typescript
+// BEFORE (line 421) - in the communications template
+`- [${c.channel}/${c.direction}] ${c.subject || c.content?.substring(0, 100) || 'No content'} (${c.occurred_at})`
+
+// AFTER
+`- [${c.channel}/${c.is_from_contact ? 'inbound' : 'outbound'}] ${c.subject || c.content?.substring(0, 100) || 'No content'} (${c.occurred_at})`
+```
+
+### Step 5: Fix `infer-relationships/index.ts`
+
+```typescript
+// BEFORE (line 85)
+.select("id, first_name, last_name, company, title, relationship_type")
+
+// AFTER
+.select("id, first_name, last_name, organization, job_title, relationship_type")
+```
+
+And update all references to `company` → `organization` and `title` → `job_title` throughout the function.
 
 ---
 
 ## Files to Modify
 
-| Type | File |
-|------|------|
-| Edge Function | `supabase/functions/gottman-relationship-analyzer/index.ts` |
-| Edge Function | `supabase/functions/analyze-communication-triangulation/index.ts` |
-| Edge Function | `supabase/functions/sync-google-calendar/index.ts` |
-| Edge Function | `supabase/functions/sync-outlook-calendar/index.ts` |
-| Edge Function | `supabase/functions/contact-ai-agent-v2/index.ts` |
-| Frontend Hook | `src/components/reports/hooks/useDossierData.ts` |
+| Priority | File | Changes |
+|----------|------|---------|
+| HIGH | `supabase/functions/import-gmail-contacts/index.ts` | Fix contact_methods schema |
+| HIGH | `supabase/functions/import-outlook-contacts/index.ts` | Fix contact_methods schema |
+| MEDIUM | `supabase/functions/suggest-followups/index.ts` | Fix `direction` → `is_from_contact` |
+| MEDIUM | `supabase/functions/contact-ai-agent/index.ts` | Fix `direction` usage |
+| LOW | `supabase/functions/infer-relationships/index.ts` | Fix profile column names |
 
 ---
 
-## Verified Schema Reference
+## Technical Details
 
-Based on database queries:
+### `contact_methods` Table Schema (Verified)
+```
+- id: uuid
+- profile_id: uuid (FK to profiles)
+- contact_type: text (email, phone, etc.) -- NOT "type"
+- value: text
+- label: text
+- is_primary: boolean
+- verified: boolean
+- created_at, updated_at
+```
 
-| Table | Has `user_id` | Has `profile_id` | Notes |
-|-------|--------------|------------------|-------|
-| `messages` | YES | NO | Links via `conversation_id` → `conversations.profile_id` |
-| `contact_methods` | NO | YES | Links to profiles directly |
-| `communications` | YES | YES | Has `occurred_at`, not `communication_date` |
-| `profiles` | YES | N/A | Has `is_active` (confirmed) |
-| `social_profiles` | N/A | N/A | TABLE DOES NOT EXIST |
+**NO `user_id` column** - ownership is determined via the linked profile.
+
+### `communications` Table Schema (Verified)
+```
+- id: uuid
+- user_id: uuid
+- profile_id: uuid
+- channel: text
+- is_from_contact: boolean -- NOT "direction"
+- occurred_at: timestamp
+- subject: text
+- content: text
+- sentiment_score: numeric
+```
+
+### `profiles` Table Key Columns
+```
+- organization: text -- NOT "company"
+- job_title: text -- NOT "title"
+```
+
+---
+
+## Deployment Order
+
+1. **Batch 1 (Critical - Import Functions)**
+   - `import-gmail-contacts`
+   - `import-outlook-contacts`
+
+2. **Batch 2 (Medium - Query Functions)**
+   - `suggest-followups`
+   - `contact-ai-agent`
+
+3. **Batch 3 (Low - Inference Functions)**
+   - `infer-relationships`
 
 ---
 
 ## Acceptance Criteria
 
-1. All 5 edge functions deploy without errors
-2. Gottman analyzer works when invoked
-3. Calendar sync functions match attendees correctly
-4. Dossier reports load without query errors
-5. No "column does not exist" errors in console/logs
-
+After fixes:
+1. Gmail import creates contacts without errors
+2. Outlook import creates contacts without errors
+3. Follow-up suggestions load without "column not found" errors
+4. Contact AI agent displays communication history correctly
+5. Relationship inference uses correct profile columns
