@@ -72,8 +72,8 @@ function detectCommunicationGaps(
       let expectedConnectionScore = 0;
       const reasons: string[] = [];
 
-      // Same company
-      if (profileA.company && profileA.company === profileB.company) {
+      // Same organization
+      if (profileA.organization && profileA.organization === profileB.organization) {
         expectedConnectionScore += 40;
         reasons.push('same_organization');
       }
@@ -110,8 +110,8 @@ function detectCommunicationGaps(
           expectedConnection: {
             from: profileA.id,
             to: profileB.id,
-            fromName: profileA.name || 'Unknown',
-            toName: profileB.name || 'Unknown'
+            fromName: profileA.first_name ? `${profileA.first_name} ${profileA.last_name || ''}`.trim() : 'Unknown',
+            toName: profileB.first_name ? `${profileB.first_name} ${profileB.last_name || ''}`.trim() : 'Unknown'
           },
           gapType: reasons.join(', '),
           confidence: Math.min(100, expectedConnectionScore),
@@ -176,7 +176,7 @@ function detectCutouts(
         if (isBridge) break;
       }
 
-      if (isBridge && (!profile.title || !profile.company)) {
+      if (isBridge && (!profile.job_title || !profile.organization)) {
         entities.push({
           id: profile.id,
           type: 'intermediary',
@@ -252,10 +252,10 @@ function detectHomophilyViolations(
     const violationReasons: string[] = [];
 
     // Calculate expected similarity based on attributes
-    // Same industry/sector
-    if (profileA.company && profileB.company) {
+    // Same industry/sector (use organization)
+    if (profileA.organization && profileB.organization) {
       expectedSimilarity += 30;
-      if (profileA.company === profileB.company) {
+      if (profileA.organization === profileB.organization) {
         actualSimilarity += 30;
       }
     }
@@ -303,9 +303,11 @@ function detectHomophilyViolations(
     }
 
     if (violationReasons.length > 0) {
+      const nodeAName = profileA.first_name ? `${profileA.first_name} ${profileA.last_name || ''}`.trim() : profileA.id;
+      const nodeBName = profileB.first_name ? `${profileB.first_name} ${profileB.last_name || ''}`.trim() : profileB.id;
       violations.push({
-        nodeA: profileA.name || profileA.id,
-        nodeB: profileB.name || profileB.id,
+        nodeA: nodeAName,
+        nodeB: nodeBName,
         violationType: violationReasons.join(', '),
         expectedSimilarity,
         actualSimilarity,
@@ -398,7 +400,7 @@ serve(async (req) => {
         const inserts = shadowEntities.map(e => ({
           user_id: user.id,
           entity_type: e.type,
-          entity_label: profiles?.find(p => p.id === e.id)?.name || 'Unknown',
+          entity_label: (() => { const p = profiles?.find(pr => pr.id === e.id); return p?.first_name ? `${p.first_name} ${p.last_name || ''}`.trim() : 'Unknown'; })(),
           visibility_score: e.visibility,
           connection_anomalies: e.connections,
           inference_confidence: e.confidence / 100,

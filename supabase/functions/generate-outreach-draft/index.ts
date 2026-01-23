@@ -12,6 +12,14 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ ok: true, function: 'generate-outreach-draft', timestamp: Date.now() }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -28,10 +36,10 @@ serve(async (req) => {
 
     const { profileId, context } = await req.json();
 
-    // Get profile details
+    // Get profile details - use correct column names (organization, job_title)
     const { data: profile } = await supabase
       .from('profiles')
-      .select('first_name, last_name, company, title, email, phone')
+      .select('first_name, last_name, organization, job_title')
       .eq('id', profileId)
       .single();
 
@@ -73,8 +81,8 @@ Guidelines:
 Context:
 - Days since last contact: ${context.daysSinceContact}
 - Risk level: ${context.riskLevel}
-- Their company: ${profile?.company || 'Unknown'}
-- Their title: ${profile?.title || 'Unknown'}
+- Their company: ${profile?.organization || 'Unknown'}
+- Their title: ${profile?.job_title || 'Unknown'}
 - Their interests: ${interestsList || 'Unknown'}
 - Recent topics discussed: ${lastTopics || 'None recorded'}
 
