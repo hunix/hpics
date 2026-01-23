@@ -168,9 +168,10 @@ serve(async (req) => {
         .eq('user_id', user.id)
         .gte('start_date', now.toISOString())
         .limit(100),
+      // NOTE: messages table has no profile_id/direction columns - must join via conversations
       supabase.from('messages')
-        .select('profile_id, direction, sentiment_score, content, created_at')
-        .in('profile_id', profileIds)
+        .select('content, is_from_contact, created_at, conversations!inner(profile_id)')
+        .in('conversations.profile_id', profileIds)
         .gte('created_at', ninetyDaysAgo.toISOString())
         .limit(2000),
       supabase.from('media')

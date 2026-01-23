@@ -52,9 +52,11 @@ serve(async (req) => {
         .eq('profile_id', profileId)
         .order('created_at', { ascending: false })
         .limit(100),
+      // NOTE: messages table has no profile_id column - must join via conversations
+      // Also: messages has 'sent_at' not 'sentiment_score' - use metadata if needed
       supabase.from('messages')
-        .select('sentiment_score, created_at')
-        .eq('profile_id', profileId)
+        .select('created_at, conversations!inner(profile_id)')
+        .eq('conversations.profile_id', profileId)
         .order('created_at', { ascending: false })
         .limit(200),
       supabase.from('behavioral_predictions')

@@ -158,6 +158,7 @@ serve(async (req) => {
     }
 
     // Gather network data
+    // NOTE: messages table has no profile_id column - must join via conversations
     const [
       profilesResult,
       messagesResult,
@@ -167,7 +168,7 @@ serve(async (req) => {
       locationHistoryResult
     ] = await Promise.all([
       supabase.from("profiles").select("*").in("id", profileIds),
-      supabase.from("messages").select("*").in("profile_id", profileIds).order("created_at", { ascending: false }).limit(1000),
+      supabase.from("messages").select("*, conversations!inner(profile_id)").in("conversations.profile_id", profileIds).order("created_at", { ascending: false }).limit(1000),
       supabase.from("entity_links").select("*").or(`source_profile_id.in.(${profileIds.join(',')}),target_profile_id.in.(${profileIds.join(',')})`).limit(500),
       supabase.from("cross_contact_patterns").select("*").eq("user_id", userId).eq("is_active", true).limit(100),
       supabase.from("contact_interaction_notes").select("*").in("profile_id", profileIds).order("created_at", { ascending: false }).limit(500),

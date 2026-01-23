@@ -48,9 +48,10 @@ serve(async (req) => {
     const { profileId }: BetrayalRequest = await req.json();
 
     // Gather relationship data
+    // NOTE: messages table has no profile_id column - must join via conversations
     const [profile, messages, relationships, analyses] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', profileId).single(),
-      supabase.from('messages').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(200),
+      supabase.from('messages').select('*, conversations!inner(profile_id)').eq('conversations.profile_id', profileId).order('created_at', { ascending: false }).limit(200),
       supabase.from('relationship_scores').select('*').eq('profile_id', profileId).order('calculated_at', { ascending: false }).limit(10),
       supabase.from('ai_analyses').select('*').eq('profile_id', profileId).limit(20)
     ]);

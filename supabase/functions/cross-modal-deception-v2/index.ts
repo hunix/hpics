@@ -165,6 +165,7 @@ serve(async (req) => {
     const limit = analysisDepth === 'forensic' ? 500 : analysisDepth === 'standard' ? 200 : 50;
 
     // Gather all multimodal data
+    // NOTE: messages table has no profile_id column - must join via conversations
     const [
       { data: profile },
       { data: messages },
@@ -175,7 +176,7 @@ serve(async (req) => {
       { data: previousDeception }
     ] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', profileId).single(),
-      supabase.from('messages').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(limit),
+      supabase.from('messages').select('*, conversations!inner(profile_id)').eq('conversations.profile_id', profileId).order('created_at', { ascending: false }).limit(limit),
       supabase.from('voice_insights').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(50),
       supabase.from('facial_analyses').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(30),
       supabase.from('body_language_analyses').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(30),

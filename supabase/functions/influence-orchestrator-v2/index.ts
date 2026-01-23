@@ -118,6 +118,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Gather all intelligence on target
+    // NOTE: messages table has no profile_id column - must join via conversations
     const [
       { data: profile },
       { data: personality },
@@ -128,7 +129,7 @@ serve(async (req) => {
     ] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', profileId).single(),
       supabase.from('personality_profiles').select('*').eq('profile_id', profileId).single(),
-      supabase.from('messages').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(100),
+      supabase.from('messages').select('*, conversations!inner(profile_id)').eq('conversations.profile_id', profileId).order('created_at', { ascending: false }).limit(100),
       supabase.from('influence_campaigns').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(10),
       supabase.from('behavioral_analyses').select('*').eq('profile_id', profileId).limit(10),
       supabase.from('deception_analyses').select('*').eq('profile_id', profileId).limit(5)

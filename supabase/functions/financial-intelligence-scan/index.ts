@@ -135,6 +135,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Gather financial intelligence data
+    // NOTE: messages table has no profile_id or direction column - must join via conversations
     const [
       { data: profile },
       { data: enrichment },
@@ -146,7 +147,7 @@ serve(async (req) => {
     ] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', profileId).single(),
       supabase.from('enrichment_results').select('*').eq('profile_id', profileId).single(),
-      supabase.from('messages').select('content, created_at, direction').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(200),
+      supabase.from('messages').select('content, created_at, is_from_contact, conversations!inner(profile_id)').eq('conversations.profile_id', profileId).order('created_at', { ascending: false }).limit(200),
       supabase.from('contact_observations').select('*').eq('profile_id', profileId).limit(50),
       supabase.from('media_analyses').select('*').eq('profile_id', profileId).limit(20),
       supabase.from('brand_intelligence').select('*').eq('profile_id', profileId).limit(10),

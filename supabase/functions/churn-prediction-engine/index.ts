@@ -33,10 +33,11 @@ serve(async (req) => {
         .eq('profile_id', profileId)
         .order('created_at', { ascending: false })
         .limit(200),
+      // NOTE: messages table has no profile_id column - must join via conversations
       supabase.from('messages')
-        .select('*')
-        .eq('profile_id', profileId)
-        .order('received_at', { ascending: false })
+        .select('*, conversations!inner(profile_id)')
+        .eq('conversations.profile_id', profileId)
+        .order('sent_at', { ascending: false })
         .limit(500),
       supabase.from('relationship_scores')
         .select('*')
