@@ -13,6 +13,18 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ 
+      ok: true, 
+      function: 'detect-interests', 
+      timestamp: Date.now() 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const { profileId, modelTier = 'speed' } = await req.json();
     
@@ -47,7 +59,6 @@ PROFILE:
 Name: ${profile.first_name} ${profile.last_name || ''}
 ${profile.job_title ? `Job: ${profile.job_title}` : ''}
 ${profile.organization ? `Organization: ${profile.organization}` : ''}
-${profile.bio ? `Bio: ${profile.bio}` : ''}
 ${profile.notes ? `Notes: ${profile.notes}` : ''}
 
 EDUCATION:

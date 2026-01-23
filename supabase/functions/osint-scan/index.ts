@@ -54,7 +54,7 @@ serve(async (req) => {
     // Get profile details for search
     const { data: profile } = await supabase
       .from("profiles")
-      .select("first_name, last_name, company, organization, job_title, email")
+      .select("first_name, last_name, organization, job_title")
       .eq("id", profileId)
       .single();
 
@@ -70,7 +70,7 @@ serve(async (req) => {
     
     const findings: any[] = [];
     const fullName = `${profile.first_name} ${profile.last_name || ''}`.trim();
-    const company = profile.company || profile.organization;
+    const company = profile.organization;
 
     // Build search queries
     const searchQueries = [

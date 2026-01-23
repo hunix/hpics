@@ -126,10 +126,11 @@ serve(async (req) => {
       .select('id, profile_id')
       .eq('user_id', userId);
 
+    const conversationIds = conversations?.map(c => c.id) || [];
     const { data: messages } = await supabase
       .from('messages')
       .select('conversation_id, sent_at, is_from_contact')
-      .eq('user_id', userId)
+      .in('conversation_id', conversationIds)
       .gte('sent_at', ninetyDaysAgo.toISOString());
 
     // Fetch events
@@ -344,9 +345,10 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Trajectory prediction error:', error);
-    return new Response(JSON.stringify({ error: error?.message || 'Unknown error' }), {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
