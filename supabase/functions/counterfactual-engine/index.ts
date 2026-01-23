@@ -325,7 +325,7 @@ serve(async (req) => {
 
     let result: any = {
       profileId,
-      profileName: profile.name,
+      profileName: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown',
       interventionCount: interventions.length,
       interventions: interventions.map(i => ({
         variable: i.variable,

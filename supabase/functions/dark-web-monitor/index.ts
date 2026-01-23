@@ -158,14 +158,17 @@ function generateSearchTerms(profileData: any): string[] {
   const terms: string[] = [];
   
   if (profileData) {
-    if (profileData.full_name) terms.push(profileData.full_name);
-    if (profileData.email) terms.push(profileData.email);
-    if (profileData.phone) terms.push(profileData.phone);
-    if (profileData.company) terms.push(profileData.company);
+    // Use correct column names: first_name, last_name, organization (not full_name, email, phone, company)
+    const fullName = profileData.first_name && profileData.last_name 
+      ? `${profileData.first_name} ${profileData.last_name}`.trim()
+      : profileData.first_name || profileData.last_name || null;
+    if (fullName) terms.push(fullName);
+    // NOTE: email/phone are in contact_methods table, not profiles
+    if (profileData.organization) terms.push(profileData.organization);
     
-    // Generate variations
-    if (profileData.full_name) {
-      const parts = profileData.full_name.split(' ');
+    // Generate variations from constructed full name
+    if (fullName) {
+      const parts = fullName.split(' ');
       if (parts.length >= 2) {
         terms.push(`${parts[0]} ${parts[parts.length - 1]}`);
         terms.push(`${parts[0].toLowerCase()}${parts[parts.length - 1].toLowerCase()}`);

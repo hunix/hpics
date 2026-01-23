@@ -241,7 +241,7 @@ serve(async (req) => {
       interactionsResult
     ] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", profileId).single(),
-      supabase.from("messages").select("*").eq("profile_id", profileId).order("created_at", { ascending: false }).limit(500),
+      supabase.from("messages").select("*, conversations!inner(profile_id)").eq("conversations.profile_id", profileId).order("created_at", { ascending: false }).limit(500),
       supabase.from("contact_observations").select("*").eq("profile_id", profileId).limit(200),
       supabase.from("behavioral_analyses").select("*").eq("profile_id", profileId).limit(20),
       supabase.from("voice_insights").select("*").eq("profile_id", profileId).limit(50),
