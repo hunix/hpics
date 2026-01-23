@@ -145,10 +145,11 @@ Return JSON:
   }
 }`;
 
+    const profileName = profile.data ? `${profile.data.first_name || ''} ${profile.data.last_name || ''}`.trim() || 'Unknown' : 'Unknown';
     const userPrompt = `Analyze MICE vulnerabilities for recruitment potential:
 
-Profile: ${profile.data?.full_name || 'Unknown'}
-Company: ${profile.data?.company || 'Unknown'}
+Profile: ${profileName}
+Company: ${profile.data?.organization || 'Unknown'}
 Position: ${profile.data?.job_title || 'Unknown'}
 Location: ${profile.data?.location || 'Unknown'}
 

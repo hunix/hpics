@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
       // Fetch profile info
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, email')
+        .select('first_name, last_name')
         .eq('id', targetProfileId)
         .single();
       
@@ -64,8 +64,9 @@ Deno.serve(async (req) => {
         .limit(20);
       
       // Generate vulnerability assessment
+      const profileName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown' : 'Unknown';
       const analysis = {
-        profileName: profile?.full_name || 'Unknown',
+        profileName,
         vulnerabilityScore: 0.3 + Math.random() * 0.4,
         pastIncidents: incidents?.length || 0,
         highRiskIncidents: incidents?.filter(i => i.threat_level === 'high' || i.threat_level === 'critical').length || 0,
