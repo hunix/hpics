@@ -95,14 +95,14 @@ serve(async (req) => {
     if (profile_id) {
       const { data } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, company, job_title')
+        .select('id, first_name, last_name, organization, job_title')
         .eq('id', profile_id)
         .eq('user_id', user.id);
       profilesToAnalyze = data || [];
     } else if (full_scan) {
       const { data } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, company, job_title')
+        .select('id, first_name, last_name, organization, job_title')
         .eq('user_id', user.id);
       profilesToAnalyze = data || [];
     }
@@ -172,13 +172,13 @@ serve(async (req) => {
         });
       }
 
-      // Index company
-      if (profile.company) {
+      // Index organization
+      if (profile.organization) {
         newCrossRefs.push({
           profile_id: profile.id,
           reference_type: 'company',
-          reference_value: profile.company,
-          normalized_value: profile.company.toLowerCase().trim(),
+          reference_value: profile.organization,
+          normalized_value: profile.organization.toLowerCase().trim(),
           source: 'profile',
           confidence: 1.0,
           user_id: user.id

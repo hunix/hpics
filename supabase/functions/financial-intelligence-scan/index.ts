@@ -125,6 +125,14 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ ok: true, function: 'financial-intelligence-scan', timestamp: Date.now() }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const { profileId, userId } = await req.json() as FinancialRequest;
 
@@ -156,9 +164,9 @@ serve(async (req) => {
 
     const contextData = {
       profile: {
-        name: profile?.name,
-        company: profile?.company,
-        title: profile?.title,
+        name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown' : 'Unknown',
+        company: profile?.organization,
+        title: profile?.job_title,
         location: profile?.location,
         tags: profile?.tags
       },

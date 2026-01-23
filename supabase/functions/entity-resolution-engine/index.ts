@@ -115,18 +115,25 @@ function emailSimilarity(e1: string | null, e2: string | null): number {
   return domainMatch + localSimilarity;
 }
 
+// Helper to get profile name from first_name/last_name
+function getProfileName(profile: any): string {
+  return profile.first_name ? `${profile.first_name} ${profile.last_name || ''}`.trim() : '';
+}
+
 // Calculate overall entity similarity
 function calculateEntitySimilarity(profileA: any, profileB: any): { similarity: number; reasons: string[] } {
   let totalScore = 0;
   let maxScore = 0;
   const reasons: string[] = [];
 
-  // Name comparison (weight: 40)
-  if (profileA.name && profileB.name) {
+  // Name comparison (weight: 40) - use first_name/last_name
+  const nameA = getProfileName(profileA);
+  const nameB = getProfileName(profileB);
+  if (nameA && nameB) {
     maxScore += 40;
-    const nameLev = levenshteinSimilarity(profileA.name.toLowerCase(), profileB.name.toLowerCase());
-    const namePhonetic = phoneticSimilarity(profileA.name, profileB.name);
-    const nameToken = tokenSimilarity(profileA.name, profileB.name);
+    const nameLev = levenshteinSimilarity(nameA.toLowerCase(), nameB.toLowerCase());
+    const namePhonetic = phoneticSimilarity(nameA, nameB);
+    const nameToken = tokenSimilarity(nameA, nameB);
     const nameScore = Math.max(nameLev, namePhonetic, nameToken) * 40;
     totalScore += nameScore;
     
@@ -134,24 +141,28 @@ function calculateEntitySimilarity(profileA: any, profileB: any): { similarity: 
     else if (nameScore > 20) reasons.push(`name_partial:${Math.round(nameScore)}%`);
   }
 
-  // Email comparison (weight: 30)
-  if (profileA.email && profileB.email) {
+  // Email comparison (weight: 30) - get from contact_methods or profile
+  const emailA = profileA.email;
+  const emailB = profileB.email;
+  if (emailA && emailB) {
     maxScore += 30;
-    if (profileA.email.toLowerCase() === profileB.email.toLowerCase()) {
+    if (emailA.toLowerCase() === emailB.toLowerCase()) {
       totalScore += 30;
       reasons.push('email_exact_match');
     } else {
-      const emailScore = emailSimilarity(profileA.email, profileB.email) * 30;
+      const emailScore = emailSimilarity(emailA, emailB) * 30;
       totalScore += emailScore;
       if (emailScore > 15) reasons.push(`email_similar:${Math.round(emailScore)}%`);
     }
   }
 
   // Phone comparison (weight: 25)
-  if (profileA.phone && profileB.phone) {
+  const phoneA = profileA.phone;
+  const phoneB = profileB.phone;
+  if (phoneA && phoneB) {
     maxScore += 25;
-    const phone1 = profileA.phone.replace(/\D/g, '');
-    const phone2 = profileB.phone.replace(/\D/g, '');
+    const phone1 = phoneA.replace(/\D/g, '');
+    const phone2 = phoneB.replace(/\D/g, '');
     if (phone1 === phone2) {
       totalScore += 25;
       reasons.push('phone_exact_match');
@@ -161,16 +172,16 @@ function calculateEntitySimilarity(profileA: any, profileB: any): { similarity: 
     }
   }
 
-  // Company comparison (weight: 15)
-  if (profileA.company && profileB.company) {
+  // Organization comparison (weight: 15) - use organization, not company
+  if (profileA.organization && profileB.organization) {
     maxScore += 15;
-    const companySim = levenshteinSimilarity(
-      profileA.company.toLowerCase(),
-      profileB.company.toLowerCase()
+    const orgSim = levenshteinSimilarity(
+      profileA.organization.toLowerCase(),
+      profileB.organization.toLowerCase()
     );
-    const companyScore = companySim * 15;
-    totalScore += companyScore;
-    if (companyScore > 10) reasons.push(`company_match:${Math.round(companySim * 100)}%`);
+    const orgScore = orgSim * 15;
+    totalScore += orgScore;
+    if (orgScore > 10) reasons.push(`organization_match:${Math.round(orgSim * 100)}%`);
   }
 
   // Location comparison (weight: 10)
@@ -191,14 +202,13 @@ function detectAliases(profile: any): AliasDetection | null {
   const aliases: string[] = [];
   let aliasType: AliasDetection['aliasType'] = 'nickname';
   
-  const name = profile.name || '';
-  const nameParts = name.split(/\s+/);
+  // Use first_name/last_name instead of name
+  const fullName = getProfileName(profile);
+  const firstName = profile.first_name || '';
+  const lastName = profile.last_name || '';
   
   // Generate nickname variants
-  if (nameParts.length >= 2) {
-    const firstName = nameParts[0];
-    const lastName = nameParts[nameParts.length - 1];
-    
+  if (firstName && lastName) {
     // Common nickname patterns
     aliases.push(`${firstName.charAt(0)}. ${lastName}`);
     aliases.push(`${firstName} ${lastName.charAt(0)}.`);
@@ -246,7 +256,7 @@ function detectAliases(profile: any): AliasDetection | null {
   
   return {
     profileId: profile.id,
-    profileName: name,
+    profileName: fullName,
     possibleAliases: [...new Set(aliases)].slice(0, 10),
     aliasType,
     confidence: aliases.length > 5 ? 0.6 : aliases.length > 2 ? 0.7 : 0.8
@@ -333,8 +343,8 @@ serve(async (req) => {
             }
             
             matches.push({
-              profileA: { id: profiles[i].id, name: profiles[i].name || 'Unknown' },
-              profileB: { id: profiles[j].id, name: profiles[j].name || 'Unknown' },
+              profileA: { id: profiles[i].id, name: getProfileName(profiles[i]) || 'Unknown' },
+              profileB: { id: profiles[j].id, name: getProfileName(profiles[j]) || 'Unknown' },
               similarity: Math.round(similarity),
               matchReasons: reasons,
               confidence,
@@ -376,7 +386,7 @@ serve(async (req) => {
             if (!emailDomains.has(domain)) {
               emailDomains.set(domain, []);
             }
-            emailDomains.get(domain)!.push(profile.name || profile.id);
+            emailDomains.get(domain)!.push(getProfileName(profile) || profile.id);
           }
         }
       }
@@ -391,23 +401,23 @@ serve(async (req) => {
         }
       }
       
-      // Group by company
-      const companies = new Map<string, string[]>();
+      // Group by organization
+      const organizations = new Map<string, string[]>();
       for (const profile of profiles) {
-        if (profile.company) {
-          const company = profile.company.toLowerCase();
-          if (!companies.has(company)) {
-            companies.set(company, []);
+        if (profile.organization) {
+          const org = profile.organization.toLowerCase();
+          if (!organizations.has(org)) {
+            organizations.set(org, []);
           }
-          companies.get(company)!.push(profile.name || profile.id);
+          organizations.get(org)!.push(getProfileName(profile) || profile.id);
         }
       }
       
-      for (const [company, names] of companies) {
+      for (const [org, names] of organizations) {
         if (names.length > 1) {
           crossRefs.push({
-            attribute: 'company',
-            value: company,
+            attribute: 'organization',
+            value: org,
             profiles: names
           });
         }

@@ -48,33 +48,34 @@ async function buildKnowledgeGraph(
   }
   const { data: profiles } = await profileQuery.limit(100);
 
-  // Create person nodes
+  // Create person nodes - use first_name/last_name, organization, job_title
   for (const profile of profiles || []) {
     const nodeId = `person_${profile.id}`;
+    const fullName = profile.first_name ? `${profile.first_name} ${profile.last_name || ''}`.trim() : 'Unknown';
     nodes.push({
       id: nodeId,
       type: 'person',
-      label: profile.name || 'Unknown',
+      label: fullName,
       properties: {
         profileId: profile.id,
-        email: profile.email,
-        company: profile.company,
-        title: profile.title,
+        name: fullName,
+        organization: profile.organization,
+        jobTitle: profile.job_title,
         trustLevel: profile.trust_level,
         relationshipStrength: profile.relationship_strength
       }
     });
     nodeMap.set(profile.id, nodeId);
 
-    // Create organization nodes
-    if (profile.company) {
-      const orgNodeId = `org_${profile.company.toLowerCase().replace(/\s+/g, '_')}`;
+    // Create organization nodes - use organization instead of company
+    if (profile.organization) {
+      const orgNodeId = `org_${profile.organization.toLowerCase().replace(/\s+/g, '_')}`;
       if (!nodes.find(n => n.id === orgNodeId)) {
         nodes.push({
           id: orgNodeId,
           type: 'organization',
-          label: profile.company,
-          properties: { name: profile.company }
+          label: profile.organization,
+          properties: { name: profile.organization }
         });
       }
       edges.push({

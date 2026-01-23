@@ -12,6 +12,14 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ ok: true, function: 'generate-gift-suggestions', timestamp: Date.now() }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -28,10 +36,10 @@ serve(async (req) => {
 
     const { profileId, occasionType, interests, budget } = await req.json();
 
-    // Get more profile context
+    // Get more profile context - use correct column names (organization, job_title)
     const { data: profile } = await supabase
       .from('profiles')
-      .select('first_name, last_name, company, title, gender')
+      .select('first_name, last_name, organization, job_title, gender')
       .eq('id', profileId)
       .single();
 
@@ -66,7 +74,7 @@ Respond ONLY with the JSON array, no markdown or explanations.`;
 
 Budget: Around $${budget}
 Their interests: ${interests.length > 0 ? interests.join(', ') : 'Unknown'}
-Their profession: ${profile?.title || 'Unknown'} at ${profile?.company || 'Unknown'}
+Their profession: ${profile?.job_title || 'Unknown'} at ${profile?.organization || 'Unknown'}
 Gender: ${profile?.gender || 'Unknown'}
 Personality traits: ${personalityTraits}
 
