@@ -1,18 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { 
   Mic, 
   Play, 
   Pause, 
   Check, 
-  X, 
   Loader2, 
   Brain, 
   Users, 
@@ -23,11 +22,25 @@ import {
   RefreshCw,
   Cpu,
   Cloud,
-  Zap
+  Zap,
+  Smartphone,
+  AudioLines
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useVoiceBulkAnalysis, VoiceRecording, VoiceBulkAnalysisOptions, ProcessingMode } from '@/hooks/useVoiceBulkAnalysis';
 import { formatDistanceToNow } from 'date-fns';
+
+// Helper to get source badge info
+function getSourceBadge(recording: VoiceRecording): { label: string; icon: React.ReactNode; className: string } {
+  if (recording.source === 'voice_recording_sessions') {
+    return { label: 'Recording', icon: <Mic className="h-3 w-3" />, className: 'bg-green-500/20 text-green-600 border-green-500/30' };
+  }
+  // Media source - detect type by recording_type or mime hint
+  if (recording.recording_type === 'voice_note') {
+    return { label: 'WhatsApp', icon: <Smartphone className="h-3 w-3" />, className: 'bg-emerald-500/20 text-emerald-600 border-emerald-500/30' };
+  }
+  return { label: 'Audio', icon: <AudioLines className="h-3 w-3" />, className: 'bg-blue-500/20 text-blue-600 border-blue-500/30' };
+}
 
 interface VoiceBulkAnalysisPanelProps {
   profileId?: string;
@@ -61,6 +74,20 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
   } = useVoiceBulkAnalysis(profileId);
 
   const [selectedRecordings, setSelectedRecordings] = useState<Set<string>>(new Set());
+  
+  // Virtual list container ref
+  const parentRef = useRef<HTMLDivElement>(null);
+  
+  // Memoize recordings for stable virtualizer
+  const sortedRecordings = useMemo(() => recordings, [recordings]);
+  
+  // Virtual list for performance with 800+ items
+  const virtualizer = useVirtualizer({
+    count: sortedRecordings.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 72, // Approximate row height
+    overscan: 10,
+  });
 
   useEffect(() => {
     fetchRecordings();
@@ -300,67 +327,94 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
               <p>No voice recordings found</p>
             </div>
           ) : (
-            <ScrollArea className="h-[300px] border rounded-lg">
-              <div className="p-2 space-y-1">
-                {recordings.map(recording => {
+            <div 
+              ref={parentRef}
+              className="h-[400px] border rounded-lg overflow-auto"
+            >
+              <div
+                style={{
+                  height: `${virtualizer.getTotalSize()}px`,
+                  width: '100%',
+                  position: 'relative',
+                }}
+              >
+                {virtualizer.getVirtualItems().map(virtualRow => {
+                  const recording = sortedRecordings[virtualRow.index];
                   const isSelected = selectedRecordings.has(recording.id);
                   const isCurrentlyProcessing = session?.currentItemId === recording.id;
+                  const sourceBadge = getSourceBadge(recording);
                   
                   return (
                     <div
                       key={recording.id}
-                      onClick={() => !isRunning && toggleRecording(recording.id)}
-                      className={cn(
-                        "flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors",
-                        isSelected && "bg-primary/10 border border-primary",
-                        isCurrentlyProcessing && "bg-yellow-500/10 border border-yellow-500",
-                        !isSelected && !isCurrentlyProcessing && "hover:bg-muted/50",
-                        isRunning && "cursor-default"
-                      )}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: `${virtualRow.size}px`,
+                        transform: `translateY(${virtualRow.start}px)`,
+                      }}
+                      className="px-2 py-1"
                     >
-                      <Checkbox 
-                        checked={isSelected} 
-                        disabled={isRunning}
-                        className="shrink-0"
-                      />
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium truncate">
-                            {recording.title || 'Untitled Recording'}
-                          </span>
-                          {recording.hasVoiceInsights && (
-                            <Badge variant="secondary" className="shrink-0">
-                              <Check className="h-3 w-3 mr-1" />
-                              Analyzed
+                      <div
+                        onClick={() => !isRunning && toggleRecording(recording.id)}
+                        className={cn(
+                          "flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors h-full",
+                          isSelected && "bg-primary/10 border border-primary",
+                          isCurrentlyProcessing && "bg-yellow-500/10 border border-yellow-500",
+                          !isSelected && !isCurrentlyProcessing && "hover:bg-muted/50 border border-transparent",
+                          isRunning && "cursor-default"
+                        )}
+                      >
+                        <Checkbox 
+                          checked={isSelected} 
+                          disabled={isRunning}
+                          className="shrink-0"
+                        />
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-medium truncate max-w-[200px]">
+                              {recording.title || 'Untitled Recording'}
+                            </span>
+                            
+                            {/* Source badge */}
+                            <Badge variant="outline" className={cn("shrink-0 text-[10px] gap-1", sourceBadge.className)}>
+                              {sourceBadge.icon}
+                              {sourceBadge.label}
                             </Badge>
-                          )}
-                          {isCurrentlyProcessing && (
-                            <Badge className="shrink-0 bg-yellow-500">
-                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                              Processing
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {recording.duration_seconds 
-                              ? `${Math.floor(recording.duration_seconds / 60)}:${String(recording.duration_seconds % 60).padStart(2, '0')}`
-                              : 'Unknown duration'
-                            }
-                          </span>
-                          <span>{formatDistanceToNow(new Date(recording.created_at), { addSuffix: true })}</span>
-                          <Badge variant="outline" className="text-[10px]">
-                            {recording.recording_type}
-                          </Badge>
+                            
+                            {recording.hasVoiceInsights && (
+                              <Badge variant="secondary" className="shrink-0">
+                                <Check className="h-3 w-3 mr-1" />
+                                Analyzed
+                              </Badge>
+                            )}
+                            {isCurrentlyProcessing && (
+                              <Badge className="shrink-0 bg-yellow-500">
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                Processing
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {recording.duration_seconds 
+                                ? `${Math.floor(recording.duration_seconds / 60)}:${String(Math.round(recording.duration_seconds) % 60).padStart(2, '0')}`
+                                : '—'
+                              }
+                            </span>
+                            <span>{formatDistanceToNow(new Date(recording.created_at), { addSuffix: true })}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
                   );
                 })}
               </div>
-            </ScrollArea>
+            </div>
           )}
         </div>
 
