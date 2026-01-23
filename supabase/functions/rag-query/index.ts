@@ -253,7 +253,7 @@ serve(async (req) => {
     // 2. Search communications
     let commQuery = supabase
       .from('communications')
-      .select('id, subject, content, occurred_at, channel, direction')
+      .select('id, subject, content, occurred_at, channel, is_from_contact')
       .eq('user_id', user.id)
       .or(`subject.ilike.%${query}%,content.ilike.%${query}%`)
       .order('occurred_at', { ascending: false })
@@ -273,7 +273,7 @@ serve(async (req) => {
           relevance_score: 0.7,
           metadata: {
             channel: comm.channel,
-            direction: comm.direction,
+            direction: comm.is_from_contact ? 'inbound' : 'outbound',
             occurred_at: comm.occurred_at,
             search_type: 'keyword',
           },

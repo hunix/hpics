@@ -310,8 +310,8 @@ AVAILABLE INTELLIGENCE SOURCES:
 ${psychProfile.data ? JSON.stringify(psychProfile.data, null, 2).substring(0, 1500) : 'Not available'}
 
 2. Communications (${communications.data?.length || 0} records):
-${communications.data?.slice(0, 30).map((c: { occurred_at?: string; direction?: string; content?: string; sentiment_score?: number }) => 
-  `[${c.occurred_at}] ${c.direction}: ${c.content?.substring(0, 100)}... Sentiment: ${c.sentiment_score}`
+${communications.data?.slice(0, 30).map((c: { occurred_at?: string; is_from_contact?: boolean; content?: string; sentiment_score?: number }) => 
+  `[${c.occurred_at}] ${c.is_from_contact ? 'inbound' : 'outbound'}: ${c.content?.substring(0, 100)}... Sentiment: ${c.sentiment_score}`
 ).join('\n') || 'None'}
 
 3. Media Analysis (${media.data?.length || 0} items):

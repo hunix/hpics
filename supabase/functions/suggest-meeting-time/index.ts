@@ -142,8 +142,8 @@ function analyzePatterns(comms: any[], pastMeetings: any[]): CommunicationPatter
   }
 
   // Calculate response times (simplified)
-  const inbound = comms.filter(c => c.direction === 'inbound').map(c => new Date(c.occurred_at).getTime());
-  const outbound = comms.filter(c => c.direction === 'outbound').map(c => new Date(c.occurred_at).getTime());
+  const inbound = comms.filter(c => c.is_from_contact === true).map(c => new Date(c.occurred_at).getTime());
+  const outbound = comms.filter(c => c.is_from_contact === false).map(c => new Date(c.occurred_at).getTime());
   
   for (const inTime of inbound) {
     const nextOut = outbound.find(o => o > inTime);

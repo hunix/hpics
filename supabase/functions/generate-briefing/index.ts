@@ -14,6 +14,18 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ 
+      ok: true, 
+      function: 'generate-briefing', 
+      timestamp: Date.now() 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const { profileId } = await req.json();
     
@@ -68,7 +80,7 @@ ${interests.length > 0 ? interests.map(i => `- ${i.name} (${i.interest_type})`).
 
 RECENT COMMUNICATIONS (last 10):
 ${communications.length > 0 ? communications.map(c => 
-  `- ${new Date(c.occurred_at).toLocaleDateString()}: ${c.channel} (${c.direction}) - ${c.subject || 'No subject'}`
+  `- ${new Date(c.occurred_at).toLocaleDateString()}: ${c.channel} (${c.is_from_contact ? 'inbound' : 'outbound'}) - ${c.subject || 'No subject'}`
 ).join('\n') : 'No recent communications'}
 
 SHARED EXPERIENCES:

@@ -196,7 +196,7 @@ serve(async (req) => {
           content: m.content,
           timestamp: m.created_at,
           sentiment: m.ai_analysis?.sentiment,
-          direction: m.direction
+          direction: m.is_from_contact ? 'inbound' : 'outbound'
         })),
         transcriptions: recordings?.filter(r => r.transcription).map(r => r.transcription)
       },

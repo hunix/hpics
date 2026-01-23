@@ -96,6 +96,18 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ 
+      ok: true, 
+      function: 'generate-churn-intervention', 
+      timestamp: Date.now() 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -192,7 +204,7 @@ serve(async (req) => {
 
     // Summarize communication history
     const commSummary = (communications || []).slice(0, 10).map(c => 
-      `${c.direction === 'outgoing' ? 'Sent' : 'Received'} ${c.channel} on ${new Date(c.occurred_at).toLocaleDateString()}: ${c.subject || 'No subject'}`
+      `${c.is_from_contact ? 'Received' : 'Sent'} ${c.channel} on ${new Date(c.occurred_at).toLocaleDateString()}: ${c.subject || 'No subject'}`
     ).join('\n');
 
     // Build prompt

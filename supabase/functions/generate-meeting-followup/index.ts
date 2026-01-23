@@ -145,7 +145,7 @@ async function generateFollowUpWithAI(context: any, supabase: any, userId: strin
   const eventTitle = event?.title || 'the meeting';
   
   const commHistory = recentComms?.slice(0, 5).map((c: any) => 
-    `${c.channel}: ${c.subject || 'No subject'} (${c.direction})`
+    `${c.channel}: ${c.subject || 'No subject'} (${c.is_from_contact ? 'inbound' : 'outbound'})`
   ).join('\n') || 'No recent communications';
 
   const prompt = `Generate a comprehensive meeting follow-up for this meeting.

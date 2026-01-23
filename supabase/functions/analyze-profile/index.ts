@@ -13,6 +13,18 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ 
+      ok: true, 
+      function: 'analyze-profile', 
+      timestamp: Date.now() 
+    }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const { profileId, analysisType, modelTier = 'balanced' } = await req.json();
     
@@ -107,7 +119,7 @@ serve(async (req) => {
       })),
       communications: communications.map((c: any) => ({
         channel: c.channel,
-        direction: c.direction,
+        direction: c.is_from_contact ? 'inbound' : 'outbound',
         subject: c.subject,
         content: c.content,
         date: c.occurred_at,
