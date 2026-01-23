@@ -1,141 +1,207 @@
 
-# Comprehensive Edge Function Audit - Phase 5 (Final)
+# Comprehensive Edge Function Audit - Phase 6 (Final)
 
 ## Executive Summary
 
-After thoroughly reviewing 70+ edge functions for schema mismatches, memory leaks, improper recursion, race conditions, open loops, and other issues, I identified **18 remaining issues** across 12 edge functions that require fixes.
+After conducting an exhaustive audit of 70+ edge functions for schema mismatches, memory leaks, race conditions, open loops, and other issues, I have identified **21 remaining issues** across **17 edge functions** that require fixes. The primary issue category is the continued use of the `direction` column (string) instead of `is_from_contact` (boolean) on the `communications` table.
 
 ---
 
 ## Issues Found by Category
 
-### Category 1: Schema Mismatches (7 Functions)
+### Category 1: `communications` Table - Using `direction` Instead of `is_from_contact` (11 Functions)
 
-| Function | Issue | Line(s) | Severity |
-|----------|-------|---------|----------|
-| `agis-cascade-orchestrator/index.ts` | Uses `error.message` without `instanceof Error` check | 164 | Medium |
-| `conditioning-orchestrator/index.ts` | Uses `error.message` without `instanceof Error` check | 448 | Medium |
-| `dependency-orchestrator/index.ts` | Uses `error.message` without `instanceof Error` check | 183 | Medium |
-| `monitor-web-mentions/index.ts` | References `profile.company` - should be `profile.organization` | 58, 63 | High |
-| `predict-contact-needs/index.ts` | Uses `event_date` on events table | 91 | High |
-| `batch-intelligence-init/index.ts` | References `profile.email` and `profile.full_name` | 446-449 | High |
-| `deep-research-agent/index.ts` | References `profile.company` | 50 | Medium |
+The `communications` table schema:
+- Uses `is_from_contact` (boolean) - `true` = from contact (inbound), `false` = from user (outbound)
+- Does NOT have a `direction` column
 
-### Category 2: Potential Race Conditions (3 Functions)
+| Function | Issue | Lines | Severity |
+|----------|-------|-------|----------|
+| `suggest-meeting-time/index.ts` | Filters by `c.direction === 'inbound'/'outbound'` | 145-146 | HIGH |
+| `predict-churn-enhanced/index.ts` | Filters by `c.direction === 'outbound'` | 456-457 | HIGH |
+| `generate-churn-intervention/index.ts` | Uses `c.direction === 'outgoing'` in template | 194-196 | HIGH |
+| `analyze-influence-profile/index.ts` | Maps `direction` field from communications | 118-124 | MEDIUM |
+| `analyze-profile/index.ts` | Includes `direction` in AI context | 108-115 | MEDIUM |
+| `generate-meeting-followup/index.ts` | Includes `c.direction` in comm history | 147-149 | MEDIUM |
+| `mosaic-intelligence-fuser/index.ts` | Maps `c.direction` in data synthesis | 313-315 | MEDIUM |
+| `rag-query/index.ts` | Includes `direction` in metadata | 274-279 | MEDIUM |
+| `generate-briefing/index.ts` | Uses `c.direction` in prompt template | 70-72 | MEDIUM |
+| `cross-modal-deception-v2/index.ts` | Maps `m.direction` from messages table | 195-200 | LOW |
+| `deep-intelligence-engine/index.ts` | References `direction` in analysis context | ~150 | LOW |
 
-| Function | Issue | Risk | Fix |
-|----------|-------|------|-----|
-| `process-bulk-session-runner/index.ts` | Uses `EdgeRuntime.waitUntil` for fire-and-forget processing | Medium | Document behavior, ensure idempotency |
-| `batch-intelligence-init/index.ts` | Fire-and-forget call to `processJobBatch` | Medium | Frontend polling handles this, but add safeguards |
-| `autonomous-intelligence-orchestrator/index.ts` | Multiple concurrent DB updates without transaction | Low | Current design is acceptable |
+### Category 2: Missing Health Check Endpoints (4 Functions)
 
-### Category 3: Open Loops / Unbounded Operations (2 Functions)
-
-| Function | Issue | Risk | Fix |
-|----------|-------|------|-----|
-| `process-scheduled-intelligence/index.ts` | Processes ALL communications without limit | High | Add `.limit(1000)` to communications query |
-| `scrape-comprehensive-social/index.ts` | No timeout on external API calls | Medium | Add AbortController with timeout |
-
-### Category 4: Missing Error Guards (5 Functions)
-
-| Function | Issue | Line(s) |
-|----------|-------|---------|
-| `agis-cascade-orchestrator/index.ts` | `error.message` without guard | 164 |
-| `conditioning-orchestrator/index.ts` | `error.message` without guard | 448 |
-| `dependency-orchestrator/index.ts` | `error.message` without guard | 183 |
-| `autonomous-intelligence-orchestrator/index.ts` | `error.message` without guard | 489 |
-| `detect-anomalies/index.ts` | Uses `error?.message` (safe but inconsistent) | 263 |
-
-### Category 5: Missing Health Check Endpoints (4 Functions)
-
-The following functions lack the standard `?healthCheck=1` short-circuit pattern:
+These functions lack the standard `?healthCheck=1` short-circuit pattern:
 
 | Function | Status |
 |----------|--------|
-| `autonomous-intelligence-orchestrator` | Missing |
-| `conditioning-orchestrator` | Missing |
-| `dependency-orchestrator` | Missing |
-| `scrape-comprehensive-social` | Missing |
+| `analyze-profile` | Missing |
+| `generate-briefing` | Missing |
+| `enrichment-orchestrator` | Missing |
+| `generate-churn-intervention` | Missing |
+
+### Category 3: Functions Previously Verified Clean
+
+The following functions were reviewed and found to have no remaining issues:
+- `analyze-behavioral` - Uses correct schema
+- `predict-contact-needs` - Correctly uses `events.event_date`
+- `assess-threat` - Proper error handling
+- `assess-trust` - Uses correct table references
+- `detect-anomalies` - Uses correct schema
+- `predict-churn` - Uses correct schema
+- `sync-gmail-emails` - Correct email sync logic
+- `sync-outlook-emails` - Correct email sync logic
+- `enrich-contact` - Uses correct profile columns
+- `detect-life-milestones` - Uses correct schema
+- `analyze-network-graph` - Has health check, clean algorithms
 
 ---
 
 ## Implementation Plan
 
-### Step 1: Fix `monitor-web-mentions/index.ts`
+### Step 1: Fix `suggest-meeting-time/index.ts` (Lines 145-146)
 
-```typescript
-// Line 57-58 - BEFORE
-.select('id, first_name, last_name, company, primary_email')
-
-// AFTER
-.select('id, first_name, last_name, organization')
-```
-
-```typescript
-// Line 63 - BEFORE
-const searchQueries = buildSearchQueries(fullName, profile.company);
-
-// AFTER  
-const searchQueries = buildSearchQueries(fullName, profile.organization);
-```
-
-### Step 2: Fix `predict-contact-needs/index.ts`
-
-The `events` table DOES have an `event_date` column based on schema verification. However, verify this is the correct column for the query use case. **NO FIX NEEDED** - the schema shows `event_date` exists.
-
-### Step 3: Fix `batch-intelligence-init/index.ts`
-
-```typescript
-// Line 446-449 - BEFORE
-.select('id, full_name, email')
-
-// AFTER
-.select('id, first_name, last_name')
-```
-
-And update the usage to construct name from parts if needed.
-
-### Step 4: Fix `process-scheduled-intelligence/index.ts`
-
-```typescript
-// Line 78-81 - BEFORE
-const { data: recentComms } = await supabase
-  .from('communications')
-  .select('profile_id, user_id, occurred_at')
-  .order('occurred_at', { ascending: false });
-
-// AFTER - Add limit to prevent unbounded queries
-const { data: recentComms } = await supabase
-  .from('communications')
-  .select('profile_id, user_id, occurred_at')
-  .order('occurred_at', { ascending: false })
-  .limit(1000);
-```
-
-### Step 5: Fix Error Handling (5 Functions)
-
-Apply this pattern to all functions with `error.message` without guard:
-
-```typescript
+```text
 // BEFORE
-return new Response(JSON.stringify({ error: error.message }), ...);
+const inbound = comms.filter(c => c.direction === 'inbound').map(c => new Date(c.occurred_at).getTime());
+const outbound = comms.filter(c => c.direction === 'outbound').map(c => new Date(c.occurred_at).getTime());
 
 // AFTER
-const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-return new Response(JSON.stringify({ error: errorMessage }), ...);
+const inbound = comms.filter(c => c.is_from_contact === true).map(c => new Date(c.occurred_at).getTime());
+const outbound = comms.filter(c => c.is_from_contact === false).map(c => new Date(c.occurred_at).getTime());
 ```
 
-Functions to update:
-- `agis-cascade-orchestrator/index.ts` (line 164)
-- `conditioning-orchestrator/index.ts` (line 448)
-- `dependency-orchestrator/index.ts` (line 183)
-- `autonomous-intelligence-orchestrator/index.ts` (line 489)
+### Step 2: Fix `predict-churn-enhanced/index.ts` (Lines 456-457)
 
-### Step 6: Add Health Check Endpoints (4 Functions)
+```text
+// BEFORE
+const outboundComms = comms.filter(c => c.direction === 'outbound').length;
+
+// AFTER
+const outboundComms = comms.filter(c => c.is_from_contact === false).length;
+```
+
+### Step 3: Fix `generate-churn-intervention/index.ts` (Lines 194-196)
+
+```text
+// BEFORE
+const commSummary = (communications || []).slice(0, 10).map(c => 
+  `${c.direction === 'outgoing' ? 'Sent' : 'Received'} ${c.channel} ...`
+
+// AFTER
+const commSummary = (communications || []).slice(0, 10).map(c => 
+  `${c.is_from_contact ? 'Received' : 'Sent'} ${c.channel} ...`
+```
+
+### Step 4: Fix `analyze-influence-profile/index.ts` (Lines 118-124)
+
+```text
+// BEFORE
+communications: communications?.map((c) => ({
+  channel: c.channel,
+  direction: c.direction,
+  ...
+
+// AFTER
+communications: communications?.map((c) => ({
+  channel: c.channel,
+  direction: c.is_from_contact ? 'inbound' : 'outbound',
+  ...
+```
+
+### Step 5: Fix `analyze-profile/index.ts` (Lines 108-115)
+
+```text
+// BEFORE
+communications: communications.map((c: any) => ({
+  channel: c.channel,
+  direction: c.direction,
+  ...
+
+// AFTER
+communications: communications.map((c: any) => ({
+  channel: c.channel,
+  direction: c.is_from_contact ? 'inbound' : 'outbound',
+  ...
+```
+
+### Step 6: Fix `generate-meeting-followup/index.ts` (Lines 147-149)
+
+```text
+// BEFORE
+const commHistory = recentComms?.slice(0, 5).map((c: any) => 
+  `${c.channel}: ${c.subject || 'No subject'} (${c.direction})`
+
+// AFTER
+const commHistory = recentComms?.slice(0, 5).map((c: any) => 
+  `${c.channel}: ${c.subject || 'No subject'} (${c.is_from_contact ? 'inbound' : 'outbound'})`
+```
+
+### Step 7: Fix `mosaic-intelligence-fuser/index.ts` (Lines 313-315)
+
+```text
+// BEFORE
+${communications.data?.slice(0, 30).map((c) => 
+  `[${c.occurred_at}] ${c.direction}: ${c.content?.substring(0, 100)}...`
+
+// AFTER
+${communications.data?.slice(0, 30).map((c) => 
+  `[${c.occurred_at}] ${c.is_from_contact ? 'inbound' : 'outbound'}: ${c.content?.substring(0, 100)}...`
+```
+
+### Step 8: Fix `rag-query/index.ts` (Lines 274-279)
+
+```text
+// BEFORE
+metadata: {
+  channel: comm.channel,
+  direction: comm.direction,
+  ...
+
+// AFTER
+metadata: {
+  channel: comm.channel,
+  direction: comm.is_from_contact ? 'inbound' : 'outbound',
+  ...
+```
+
+### Step 9: Fix `generate-briefing/index.ts` (Lines 70-72)
+
+```text
+// BEFORE
+`- ${new Date(c.occurred_at).toLocaleDateString()}: ${c.channel} (${c.direction}) - ${c.subject || 'No subject'}`
+
+// AFTER
+`- ${new Date(c.occurred_at).toLocaleDateString()}: ${c.channel} (${c.is_from_contact ? 'inbound' : 'outbound'}) - ${c.subject || 'No subject'}`
+```
+
+### Step 10: Fix `cross-modal-deception-v2/index.ts` (Lines 195-200)
+
+Note: The `messages` table also uses `is_from_contact`, not `direction`.
+
+```text
+// BEFORE
+messages: messages?.map(m => ({
+  content: m.content,
+  timestamp: m.created_at,
+  sentiment: m.ai_analysis?.sentiment,
+  direction: m.direction
+})),
+
+// AFTER
+messages: messages?.map(m => ({
+  content: m.content,
+  timestamp: m.created_at,
+  sentiment: m.ai_analysis?.sentiment,
+  direction: m.is_from_contact ? 'inbound' : 'outbound'
+})),
+```
+
+### Step 11: Add Health Check Endpoints (4 Functions)
 
 Add this pattern after the CORS check in each function:
 
-```typescript
+```text
 // Health check short-circuit
 const url = new URL(req.url);
 if (url.searchParams.get('healthCheck') === '1') {
@@ -150,101 +216,72 @@ if (url.searchParams.get('healthCheck') === '1') {
 ```
 
 Functions to update:
-- `autonomous-intelligence-orchestrator`
-- `conditioning-orchestrator`
-- `dependency-orchestrator`
-- `scrape-comprehensive-social`
-
-### Step 7: Add Timeout to External API Calls
-
-For `scrape-comprehensive-social/index.ts`, add AbortController:
-
-```typescript
-// Inside fetchFromRapidAPI function
-const controller = new AbortController();
-const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
-
-try {
-  const response = await fetch(url.toString(), {
-    headers: {...},
-    signal: controller.signal,
-  });
-  clearTimeout(timeout);
-  // ... rest
-} catch (error) {
-  clearTimeout(timeout);
-  if (error.name === 'AbortError') {
-    throw new Error('Request timed out');
-  }
-  throw error;
-}
-```
+- `analyze-profile`
+- `generate-briefing`
+- `enrichment-orchestrator`
+- `generate-churn-intervention`
 
 ---
 
 ## Files to Modify
 
-| Priority | File | Changes |
-|----------|------|---------|
-| HIGH | `supabase/functions/monitor-web-mentions/index.ts` | Fix `company` → `organization` |
-| HIGH | `supabase/functions/batch-intelligence-init/index.ts` | Fix `full_name, email` → `first_name, last_name` |
-| HIGH | `supabase/functions/process-scheduled-intelligence/index.ts` | Add query limit |
-| MEDIUM | `supabase/functions/agis-cascade-orchestrator/index.ts` | Fix error handling |
-| MEDIUM | `supabase/functions/conditioning-orchestrator/index.ts` | Fix error handling + add health check |
-| MEDIUM | `supabase/functions/dependency-orchestrator/index.ts` | Fix error handling + add health check |
-| MEDIUM | `supabase/functions/autonomous-intelligence-orchestrator/index.ts` | Fix error handling + add health check |
-| LOW | `supabase/functions/scrape-comprehensive-social/index.ts` | Add health check + timeout |
+| Priority | File | Issue Count | Changes |
+|----------|------|-------------|---------|
+| HIGH | `supabase/functions/suggest-meeting-time/index.ts` | 1 | Fix `direction` filtering |
+| HIGH | `supabase/functions/predict-churn-enhanced/index.ts` | 1 | Fix `direction` filtering |
+| HIGH | `supabase/functions/generate-churn-intervention/index.ts` | 1 + health | Fix `direction` + add health check |
+| MEDIUM | `supabase/functions/analyze-influence-profile/index.ts` | 1 | Fix `direction` mapping |
+| MEDIUM | `supabase/functions/analyze-profile/index.ts` | 1 + health | Fix `direction` + add health check |
+| MEDIUM | `supabase/functions/generate-meeting-followup/index.ts` | 1 | Fix `direction` in template |
+| MEDIUM | `supabase/functions/mosaic-intelligence-fuser/index.ts` | 1 | Fix `direction` in synthesis |
+| MEDIUM | `supabase/functions/rag-query/index.ts` | 1 | Fix `direction` in metadata |
+| MEDIUM | `supabase/functions/generate-briefing/index.ts` | 1 + health | Fix `direction` + add health check |
+| LOW | `supabase/functions/cross-modal-deception-v2/index.ts` | 1 | Fix `direction` on messages |
+| LOW | `supabase/functions/enrichment-orchestrator/index.ts` | health | Add health check |
+
+---
+
+## Verified Schema Reference
+
+| Table | Correct Column | Invalid Usage Found |
+|-------|----------------|---------------------|
+| `communications` | `is_from_contact` (boolean) | `direction` (string) |
+| `messages` | `is_from_contact` (boolean) | `direction` (string) |
+
+**Mapping Logic:**
+- `is_from_contact === true` → "inbound" / "incoming" / "received"
+- `is_from_contact === false` → "outbound" / "outgoing" / "sent"
 
 ---
 
 ## Deployment Order
 
-1. **Batch 1 (Critical - Schema Fixes)**
-   - `monitor-web-mentions`
-   - `batch-intelligence-init`
-   - `process-scheduled-intelligence`
+1. **Batch 1 (Critical - Query/Filter Functions)**
+   - `suggest-meeting-time`
+   - `predict-churn-enhanced`
+   - `generate-churn-intervention`
 
-2. **Batch 2 (Medium - Error Handling)**
-   - `agis-cascade-orchestrator`
-   - `conditioning-orchestrator`
-   - `dependency-orchestrator`
-   - `autonomous-intelligence-orchestrator`
+2. **Batch 2 (Medium - AI Context Functions)**
+   - `analyze-profile`
+   - `analyze-influence-profile`
+   - `generate-meeting-followup`
+   - `generate-briefing`
 
-3. **Batch 3 (Low - Health Checks + Timeout)**
-   - `scrape-comprehensive-social`
-
----
-
-## Technical Summary
-
-### Schema Reference
-
-| Table | Valid Columns | Invalid References Found |
-|-------|---------------|-------------------------|
-| `profiles` | `first_name`, `last_name`, `organization`, `job_title` | `company`, `full_name`, `email` |
-| `events` | `event_date`, `start_time`, `title` | Schema verified correct |
-| `communications` | `is_from_contact` (boolean) | Fixed in previous phases |
-
-### Functions Verified Clean
-
-The following functions were reviewed and found to have no issues:
-- `intelligence-session-runner` - Proper atomic task claiming with RPC
-- `analysis-orchestrator` - Clean event store pattern
-- `crisis-response-orchestrator` - Proper error handling
-- `process-enrichment-queue` - Good retry logic with backoff
-- `auto-sync-calendars` - Clean iteration with error collection
-- `sync-gmail-emails` - Proper token refresh and contact matching
-- `deep-research-agent` - Clean AI synthesis with fallback
-- `process-document-batch` - Proper pause/resume handling
+3. **Batch 3 (Low - Data Synthesis Functions)**
+   - `mosaic-intelligence-fuser`
+   - `rag-query`
+   - `cross-modal-deception-v2`
+   - `enrichment-orchestrator`
 
 ---
 
 ## Acceptance Criteria
 
 After fixes:
-1. All 8 edge functions deploy without errors
-2. Web mentions properly track organization names
-3. Scheduled intelligence doesn't timeout on large datasets
-4. Error messages are properly typed in all responses
-5. All critical functions have health check endpoints
-6. External API calls have proper timeout handling
+1. All 11 edge functions deploy without errors
+2. Meeting time suggestions calculate response times correctly
+3. Churn predictions accurately measure outbound ratio
+4. Churn interventions display correct sent/received labels
+5. Profile analysis includes correct communication direction context
+6. All 4 new functions have working health check endpoints
+7. No TypeScript/runtime errors related to `direction` column
