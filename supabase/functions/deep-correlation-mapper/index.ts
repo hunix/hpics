@@ -153,7 +153,8 @@ serve(async (req) => {
       { data: relationships }
     ] = await Promise.all([
       supabase.from('profiles').select('id, name, company, title, tags, relationship_type').eq('user_id', userId).eq('is_active', true).limit(200),
-      supabase.from('messages').select('profile_id, content, created_at, direction, ai_analysis').eq('user_id', userId).order('created_at', { ascending: false }).limit(1000),
+      // NOTE: messages table has no profile_id/direction columns - query via conversations
+      supabase.from('messages').select('content, is_from_contact, created_at, conversations!inner(profile_id, user_id)').eq('conversations.user_id', userId).order('created_at', { ascending: false }).limit(1000),
       supabase.from('contact_interactions').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(500),
       supabase.from('contact_observations').select('profile_id, category, observation, created_at').eq('user_id', userId).limit(300),
       supabase.from('meeting_recordings').select('profile_id, summary, entities_mentioned, created_at').eq('user_id', userId).limit(100),
@@ -172,14 +173,15 @@ serve(async (req) => {
         tags: p.tags,
         relationshipType: p.relationship_type
       })),
-      communicationPatterns: messages?.reduce((acc, m) => {
-        const key = m.profile_id;
-        if (!acc[key]) acc[key] = { messages: [], timestamps: [], topics: [] };
+      // NOTE: messages join via conversations - profile_id from nested object
+      communicationPatterns: messages?.reduce((acc: any, m: any) => {
+        const key = m.conversations?.profile_id;
+        if (!key) return acc;
+        if (!acc[key]) acc[key] = { messages: [], timestamps: [] };
         acc[key].messages.push(m.content?.slice(0, 200));
         acc[key].timestamps.push(m.created_at);
-        if (m.ai_analysis?.topics) acc[key].topics.push(...m.ai_analysis.topics);
         return acc;
-      }, {} as Record<string, { messages: string[]; timestamps: string[]; topics: string[] }>),
+      }, {} as Record<string, { messages: string[]; timestamps: string[] }>),
       interactionTimelines: interactions?.reduce((acc, i) => {
         const key = i.profile_id;
         if (!acc[key]) acc[key] = [];

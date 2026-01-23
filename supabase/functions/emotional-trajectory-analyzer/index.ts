@@ -31,11 +31,13 @@ serve(async (req) => {
       { data: interactions },
       { data: observations }
     ] = await Promise.all([
+      // NOTE: messages table has no profile_id column - must join via conversations
+      // Also: messages has 'sent_at' not 'received_at'
       supabase.from('messages')
-        .select('content, received_at, sentiment_score')
-        .eq('profile_id', profileId)
-        .gte('received_at', cutoffDate.toISOString())
-        .order('received_at', { ascending: true })
+        .select('content, sent_at, conversations!inner(profile_id)')
+        .eq('conversations.profile_id', profileId)
+        .gte('sent_at', cutoffDate.toISOString())
+        .order('sent_at', { ascending: true })
         .limit(1000),
       supabase.from('voice_insights')
         .select('*')

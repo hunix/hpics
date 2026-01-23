@@ -165,7 +165,8 @@ serve(async (req) => {
       { data: relationshipHealth }
     ] = await Promise.all([
       supabase.from('profiles').select('id, name, company, title, relationship_type, relationship_strength, last_contact, tags').eq('user_id', userId).eq('is_active', true).limit(maxContactsToAnalyze),
-      supabase.from('messages').select('profile_id, content, direction, created_at, ai_analysis').eq('user_id', userId).order('created_at', { ascending: false }).limit(maxRecentMessages),
+      // NOTE: messages table has no profile_id/direction columns - query via conversations
+      supabase.from('messages').select('content, is_from_contact, created_at, conversations!inner(profile_id, user_id)').eq('conversations.user_id', userId).order('created_at', { ascending: false }).limit(maxRecentMessages),
       supabase.from('personality_profiles').select('profile_id, exploitation_profile, communication_style').eq('user_id', userId),
       supabase.from('influence_campaigns').select('*').eq('user_id', userId).eq('status', 'active'),
       supabase.from('deception_analyses').select('profile_id, overall_deception_score, risk_level, analyzed_at').eq('user_id', userId).gte('analyzed_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
@@ -199,10 +200,10 @@ serve(async (req) => {
         stage: c.status,
         nextTouch: c.planned_touches?.[0]
       })),
-      recentCommunication: recentMessages?.slice(0, 50).map(m => ({
-        contact: m.profile_id,
-        direction: m.direction,
-        sentiment: m.ai_analysis?.sentiment,
+      // NOTE: messages join via conversations - profile_id from nested object
+      recentCommunication: recentMessages?.slice(0, 50).map((m: any) => ({
+        contact: m.conversations?.profile_id,
+        isFromContact: m.is_from_contact,
         time: m.created_at
       })),
       strategicOpportunities: powerAnalysis?.[0]?.strategic_opportunities,

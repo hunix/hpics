@@ -47,11 +47,13 @@ serve(async (req) => {
       { data: baseline },
       { data: previousDeceptions }
     ] = await Promise.all([
+      // NOTE: messages table has no profile_id column - must join via conversations
+      // Also: messages has 'sent_at' not 'received_at'
       supabase.from('messages')
-        .select('*')
-        .eq('profile_id', profileId)
-        .gte('received_at', cutoffDate.toISOString())
-        .order('received_at', { ascending: false })
+        .select('*, conversations!inner(profile_id)')
+        .eq('conversations.profile_id', profileId)
+        .gte('sent_at', cutoffDate.toISOString())
+        .order('sent_at', { ascending: false })
         .limit(500),
       supabase.from('voice_insights')
         .select('*')

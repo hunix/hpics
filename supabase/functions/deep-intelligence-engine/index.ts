@@ -130,6 +130,7 @@ serve(async (req) => {
     }
 
     // Gather all available intelligence on the subject
+    // NOTE: messages table has no profile_id column - must join via conversations
     const [
       { data: profile },
       { data: observations },
@@ -140,7 +141,7 @@ serve(async (req) => {
     ] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', profileId).single(),
       supabase.from('contact_observations').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(50),
-      supabase.from('messages').select('content, direction, sentiment_score, created_at').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(100),
+      supabase.from('messages').select('content, is_from_contact, created_at, conversations!inner(profile_id)').eq('conversations.profile_id', profileId).order('created_at', { ascending: false }).limit(100),
       supabase.from('behavioral_analyses').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(10),
       supabase.from('psychological_profiles').select('*').eq('profile_id', profileId).maybeSingle(),
       supabase.from('media_analyses').select('analysis_result, analysis_type').eq('profile_id', profileId).limit(20),
@@ -156,9 +157,9 @@ serve(async (req) => {
         date: o.created_at,
         confidence: o.confidence_level,
       })),
-      communicationPatterns: (messages || []).slice(0, 50).map(m => ({
-        direction: m.direction,
-        sentiment: m.sentiment_score,
+      // NOTE: messages table has 'is_from_contact' not 'direction', and no 'sentiment_score'
+      communicationPatterns: (messages || []).slice(0, 50).map((m: any) => ({
+        isFromContact: m.is_from_contact,
         preview: m.content?.substring(0, 100),
       })),
       behavioralHistory: (behavioralData || []).map(b => ({

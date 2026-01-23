@@ -69,9 +69,10 @@ serve(async (req) => {
     const profileId = body.profileId || body.profile_id;
 
     // Gather intelligence on target
+    // NOTE: messages table has no profile_id column - must join via conversations
     const [profile, messages, observations, analyses] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', profileId).single(),
-      supabase.from('messages').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(100),
+      supabase.from('messages').select('*, conversations!inner(profile_id)').eq('conversations.profile_id', profileId).order('created_at', { ascending: false }).limit(100),
       supabase.from('contact_observations').select('*').eq('profile_id', profileId).limit(50),
       supabase.from('ai_analyses').select('*').eq('profile_id', profileId).limit(20)
     ]);

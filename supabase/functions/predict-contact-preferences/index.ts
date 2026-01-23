@@ -72,12 +72,13 @@ serve(async (req) => {
     const profileName = `${profile.first_name} ${profile.last_name || ''}`.trim();
 
     // Gather all available data about the contact
+    // NOTE: messages table has no profile_id or direction column - must join via conversations
     const [messagesResult, observationsResult, mediaResult, eventsResult, analysesResult] = await Promise.all([
       // Recent messages
       supabase
         .from('messages')
-        .select('content, direction, created_at')
-        .eq('profile_id', profileId)
+        .select('content, is_from_contact, created_at, conversations!inner(profile_id)')
+        .eq('conversations.profile_id', profileId)
         .order('created_at', { ascending: false })
         .limit(100),
       
@@ -124,9 +125,10 @@ serve(async (req) => {
         interests: profile.interests,
         hobbies: profile.hobbies,
       },
-      messages: (messagesResult.data || []).map(m => ({
+      // NOTE: messages table has 'is_from_contact' not 'direction'
+      messages: (messagesResult.data || []).map((m: any) => ({
         content: m.content?.substring(0, 500),
-        direction: m.direction,
+        isFromContact: m.is_from_contact,
       })),
       observations: (observationsResult.data || []).map((o: any) => ({
         content: o.observation,

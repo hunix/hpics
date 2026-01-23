@@ -155,6 +155,7 @@ serve(async (req) => {
     }
 
     // Gather psychological data
+    // NOTE: messages table has no profile_id column - must join via conversations
     const [
       profileResult,
       messagesResult,
@@ -164,7 +165,7 @@ serve(async (req) => {
       previousAnalysesResult
     ] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", profileId).single(),
-      supabase.from("messages").select("*").eq("profile_id", profileId).order("created_at", { ascending: false }).limit(200),
+      supabase.from("messages").select("*, conversations!inner(profile_id)").eq("conversations.profile_id", profileId).order("created_at", { ascending: false }).limit(200),
       supabase.from("contact_observations").select("*").eq("profile_id", profileId).limit(100),
       supabase.from("behavioral_analyses").select("*").eq("profile_id", profileId).limit(10),
       supabase.from("psychological_profiles").select("*").eq("profile_id", profileId).maybeSingle(),
