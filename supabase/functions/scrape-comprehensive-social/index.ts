@@ -80,6 +80,18 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ 
+      ok: true, 
+      function: 'scrape-comprehensive-social', 
+      timestamp: Date.now() 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -157,24 +169,39 @@ serve(async (req) => {
     let itemsScraped = 0;
     let estimatedCost = 0;
 
-    // Helper function to make RapidAPI requests
+    // Helper function to make RapidAPI requests with timeout
     const fetchFromRapidAPI = async (endpoint: string, params: Record<string, string>) => {
-      const url = new URL(`https://${config.host}${endpoint}`);
-      Object.entries(params).forEach(([key, value]) => url.searchParams.append(key, value));
+      const apiUrl = new URL(`https://${config.host}${endpoint}`);
+      Object.entries(params).forEach(([key, value]) => apiUrl.searchParams.append(key, value));
 
-      const response = await fetch(url.toString(), {
-        headers: {
-          'x-rapidapi-host': config.host,
-          'x-rapidapi-key': rapidApiKey,
-        },
-      });
+      // Add 30 second timeout with AbortController
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
 
-      if (!response.ok) {
-        throw new Error(`RapidAPI error: ${response.status} ${await response.text()}`);
+      try {
+        const response = await fetch(apiUrl.toString(), {
+          headers: {
+            'x-rapidapi-host': config.host,
+            'x-rapidapi-key': rapidApiKey,
+          },
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+          throw new Error(`RapidAPI error: ${response.status} ${await response.text()}`);
+        }
+
+        estimatedCost += 1; // ~$0.01 per request
+        return response.json();
+      } catch (error) {
+        clearTimeout(timeout);
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw new Error('RapidAPI request timed out after 30 seconds');
+        }
+        throw error;
       }
-
-      estimatedCost += 1; // ~$0.01 per request
-      return response.json();
     };
 
     // Scrape based on type
