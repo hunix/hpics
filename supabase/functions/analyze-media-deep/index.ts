@@ -273,16 +273,18 @@ serve(async (req) => {
       skip_completed_modes = false,  // Enable incremental mode to skip already-analyzed modes
     } = await req.json();
 
-    console.log(`Starting ${media_type} analysis for ${analysis_modes.length} modes`);
-
-    // Validate inputs
-    if (!media_type || !analysis_modes || analysis_modes.length === 0) {
-      throw new Error('Missing required fields: media_type and analysis_modes');
+    // Validate inputs FIRST - before any property access
+    if (!media_type) {
+      throw new Error('Missing required field: media_type');
     }
-
+    if (!analysis_modes || !Array.isArray(analysis_modes) || analysis_modes.length === 0) {
+      throw new Error('Missing required field: analysis_modes (must be non-empty array)');
+    }
     if (!media_url) {
-      throw new Error('Missing media_url');
+      throw new Error('Missing required field: media_url');
     }
+
+    console.log(`Starting ${media_type} analysis for ${analysis_modes.length} modes`);
 
     // Incremental mode: filter out already-completed modes
     let effectiveModes = analysis_modes;

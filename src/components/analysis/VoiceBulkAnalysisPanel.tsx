@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { 
   Mic, 
   Play, 
@@ -19,10 +20,13 @@ import {
   Fingerprint,
   FileAudio,
   Clock,
-  RefreshCw
+  RefreshCw,
+  Cpu,
+  Cloud,
+  Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useVoiceBulkAnalysis, VoiceRecording, VoiceBulkAnalysisOptions } from '@/hooks/useVoiceBulkAnalysis';
+import { useVoiceBulkAnalysis, VoiceRecording, VoiceBulkAnalysisOptions, ProcessingMode } from '@/hooks/useVoiceBulkAnalysis';
 import { formatDistanceToNow } from 'date-fns';
 
 interface VoiceBulkAnalysisPanelProps {
@@ -51,6 +55,9 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
     pauseAnalysis,
     resetSession,
     unanalyzedCount,
+    processingMode,
+    setProcessingMode,
+    localModelStatus,
   } = useVoiceBulkAnalysis(profileId);
 
   const [selectedRecordings, setSelectedRecordings] = useState<Set<string>>(new Set());
@@ -157,6 +164,75 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
                 )}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Processing Mode Selection */}
+        {!isRunning && (
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Processing Mode</Label>
+            <RadioGroup 
+              value={processingMode} 
+              onValueChange={(v) => setProcessingMode(v as ProcessingMode)}
+              className="grid grid-cols-1 md:grid-cols-3 gap-3"
+            >
+              <div className={cn(
+                "flex items-center space-x-3 p-3 border rounded-lg cursor-pointer transition-colors",
+                processingMode === 'local' ? "bg-green-500/10 border-green-500" : "hover:bg-muted/50"
+              )}>
+                <RadioGroupItem value="local" id="local" />
+                <Label htmlFor="local" className="flex items-center gap-2 cursor-pointer flex-1">
+                  <Cpu className="h-4 w-4 text-green-500" />
+                  <div>
+                    <div className="font-medium">Local (Fast)</div>
+                    <div className="text-xs text-muted-foreground">
+                      WebGPU Whisper Turbo
+                    </div>
+                  </div>
+                </Label>
+              </div>
+              
+              <div className={cn(
+                "flex items-center space-x-3 p-3 border rounded-lg cursor-pointer transition-colors",
+                processingMode === 'cloud' ? "bg-blue-500/10 border-blue-500" : "hover:bg-muted/50"
+              )}>
+                <RadioGroupItem value="cloud" id="cloud" />
+                <Label htmlFor="cloud" className="flex items-center gap-2 cursor-pointer flex-1">
+                  <Cloud className="h-4 w-4 text-blue-500" />
+                  <div>
+                    <div className="font-medium">Cloud (Full)</div>
+                    <div className="text-xs text-muted-foreground">
+                      ElevenLabs + Gemini AI
+                    </div>
+                  </div>
+                </Label>
+              </div>
+              
+              <div className={cn(
+                "flex items-center space-x-3 p-3 border rounded-lg cursor-pointer transition-colors",
+                processingMode === 'hybrid' ? "bg-yellow-500/10 border-yellow-500" : "hover:bg-muted/50"
+              )}>
+                <RadioGroupItem value="hybrid" id="hybrid" />
+                <Label htmlFor="hybrid" className="flex items-center gap-2 cursor-pointer flex-1">
+                  <Zap className="h-4 w-4 text-yellow-500" />
+                  <div>
+                    <div className="font-medium">Hybrid</div>
+                    <div className="text-xs text-muted-foreground">
+                      Local transcription + Cloud AI
+                    </div>
+                  </div>
+                </Label>
+              </div>
+            </RadioGroup>
+            
+            {processingMode === 'local' && (
+              <div className="text-xs text-muted-foreground bg-green-500/10 p-2 rounded border border-green-500/20">
+                <strong>First run:</strong> Downloads ~800MB Whisper model (cached after). Requires Chrome/Edge 113+ with WebGPU.
+                {localModelStatus?.isReady && (
+                  <span className="ml-2 text-green-600">✓ Model loaded</span>
+                )}
+              </div>
+            )}
           </div>
         )}
 
