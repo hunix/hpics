@@ -121,7 +121,6 @@ export async function getPlatformConfig(
         .eq('profile_id', options.contactId)
         .eq('config_key', configKey)
         .eq('user_id', options.userId)
-        .eq('is_active', true)
         .maybeSingle();
       
       if (contactOverride?.config_value !== undefined) {
@@ -138,7 +137,6 @@ export async function getPlatformConfig(
         .select('config_value')
         .eq('user_id', options.userId)
         .eq('config_key', configKey)
-        .eq('is_active', true)
         .maybeSingle();
       
       if (userOverride?.config_value !== undefined) {
@@ -204,7 +202,6 @@ export async function getPlatformConfigs(
         .from('user_config_overrides')
         .select('config_key, config_value')
         .eq('user_id', options.userId)
-        .eq('is_active', true)
         .in('config_key', configKeys);
       
       if (userOverrides) {
@@ -221,7 +218,6 @@ export async function getPlatformConfigs(
         .select('config_key, config_value')
         .eq('profile_id', options.contactId)
         .eq('user_id', options.userId)
-        .eq('is_active', true)
         .in('config_key', configKeys);
       
       if (contactOverrides) {
