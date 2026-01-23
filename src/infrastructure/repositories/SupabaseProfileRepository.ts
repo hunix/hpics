@@ -205,6 +205,18 @@ export class SupabaseProfileRepository implements IProfileRepository {
     };
   }
 
+  async findDuplicate(userId: string, firstName: string, lastName?: string): Promise<{ id: string; firstName: string; lastName?: string } | null> {
+    const { data, error } = await this.supabase.rpc('find_duplicate_profile', {
+      p_user_id: userId,
+      p_first_name: firstName,
+      p_last_name: lastName || null,
+    });
+    if (error) throw error;
+    const result = (data as unknown as Array<{ id: string; first_name: string; last_name?: string }>)?.[0];
+    if (!result) return null;
+    return { id: result.id, firstName: result.first_name, lastName: result.last_name };
+  }
+
   private mapToProfile(row: Record<string, unknown>): Profile {
     return Profile.reconstitute({
       id: row.id as string,

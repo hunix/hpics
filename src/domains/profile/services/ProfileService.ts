@@ -7,6 +7,7 @@
 import { getEventBus, IEventBus } from '@/domains/shared/events/EventBus';
 import { Profile, ProfileProps, RelationshipType, ProfileStatus, ContactInfo } from '../entities/Profile';
 import { ContactScore } from '../value-objects/ContactScore';
+import { DuplicateProfileError } from '../errors/DuplicateProfileError';
 import { 
   IProfileRepository, 
   ProfileQueryOptions, 
@@ -94,7 +95,18 @@ export class ProfileService {
     this.repository = repository;
   }
 
-  async createProfile(userId: string, request: CreateProfileRequest): Promise<Profile> {
+  async createProfile(userId: string, request: CreateProfileRequest, skipDuplicateCheck = false): Promise<Profile> {
+    // Deduplication guard: check for existing profile with same name
+    if (!skipDuplicateCheck) {
+      const existing = await this.repository.findDuplicate(userId, request.firstName, request.lastName);
+      if (existing) {
+        throw new DuplicateProfileError(
+          `Profile "${request.firstName}${request.lastName ? ' ' + request.lastName : ''}" already exists`,
+          existing.id
+        );
+      }
+    }
+
     const profile = Profile.create({
       userId,
       firstName: request.firstName,
@@ -120,6 +132,13 @@ export class ProfileService {
     ));
 
     return saved;
+  }
+
+  /**
+   * Check if a duplicate profile exists (without throwing)
+   */
+  async checkForDuplicate(userId: string, firstName: string, lastName?: string): Promise<{ id: string; firstName: string; lastName?: string } | null> {
+    return this.repository.findDuplicate(userId, firstName, lastName);
   }
 
   async getProfile(profileId: string, userId: string): Promise<Profile | null> {

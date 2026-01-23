@@ -13,8 +13,9 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { 
   Eye, Brain, Layers, Lightbulb, Radar, Globe,
-  Sparkles, Network, Plus
+  Sparkles, Network, Plus, Play, Loader2
 } from 'lucide-react';
+import { useTranscendentAnalysis } from '@/hooks/useTranscendentAnalysis';
 
 // Phase 21 Hooks
 import { useUniversalAwareness } from '@/hooks/intelligence/useUniversalAwareness';
@@ -27,6 +28,7 @@ import { useRealityComprehension } from '@/hooks/intelligence/useRealityComprehe
 export default function UniversalOmniscienceCenter() {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('awareness');
+  const { runAnalysis, isRunning } = useTranscendentAnalysis();
 
   // Load all Phase 21 data
   const { awareness, isLoading: awarenessLoading, expandAwareness } = useUniversalAwareness();
@@ -78,6 +80,15 @@ export default function UniversalOmniscienceCenter() {
               </div>
             </div>
             <div className="flex items-center gap-4">
+              <Button 
+                onClick={() => runAnalysis({ analysisType: 'omniscience' })} 
+                disabled={isRunning}
+                size="sm"
+                className="bg-gradient-to-r from-violet-600 to-purple-600"
+              >
+                {isRunning ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Play className="h-4 w-4 mr-1" />}
+                Run Analysis
+              </Button>
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">Omniscience Index</p>
                 <p className="text-lg font-bold text-violet-500">{avgOmniscience.toFixed(1)}%</p>
