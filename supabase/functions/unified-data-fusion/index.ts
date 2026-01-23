@@ -133,11 +133,12 @@ async function comprehensiveFusion(supabase: any, userId: string, profileId: str
   completenessScores.profile = calculateProfileCompleteness(profile);
 
   // 2. Contact Methods
+  // contact_methods has no user_id column, must join via profiles for ownership
   const { data: contactMethods } = await supabase
     .from("contact_methods")
-    .select("*")
+    .select("*, profiles!inner(user_id)")
     .eq("profile_id", profileId)
-    .eq("user_id", userId);
+    .eq("profiles.user_id", userId);
   dataCollections.contactMethods = contactMethods || [];
   completenessScores.contactMethods = (contactMethods?.length || 0) > 0 ? 1 : 0;
 

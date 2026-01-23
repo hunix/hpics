@@ -304,10 +304,11 @@ ${context.communicationPatterns}`
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Behavioral prediction error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(JSON.stringify({ 
-      error: error?.message || 'Unknown error',
+      error: errorMessage,
       success: false 
     }), {
       status: 500,

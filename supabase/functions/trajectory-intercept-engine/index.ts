@@ -136,7 +136,7 @@ Analyze trajectory and identify intercept opportunities in JSON format:
         model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: INTERCEPT_PROMPT },
-          { role: 'user', content: `Analyze ${trajectoryType} trajectory for ${profile?.name || profileId}` }
+          { role: 'user', content: `Analyze ${trajectoryType} trajectory for ${profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profileId : profileId}` }
         ],
         temperature: 0.3,
       }),
@@ -184,9 +184,10 @@ Analyze trajectory and identify intercept opportunities in JSON format:
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Trajectory intercept error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
