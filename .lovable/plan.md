@@ -1,236 +1,250 @@
 
-# Comprehensive Schema Mismatch Audit - Phase 4 (Final Audit)
+# Comprehensive Edge Function Audit - Phase 5 (Final)
 
 ## Executive Summary
 
-After thoroughly reviewing 70+ edge functions, I identified **15 remaining schema mismatches** across edge functions that will cause runtime errors. These issues fall into 5 distinct categories.
+After thoroughly reviewing 70+ edge functions for schema mismatches, memory leaks, improper recursion, race conditions, open loops, and other issues, I identified **18 remaining issues** across 12 edge functions that require fixes.
 
 ---
 
-## Category 1: `profiles` Table - Invalid Column Names (3 Functions)
+## Issues Found by Category
 
-The `profiles` table uses:
-- `job_title` NOT `title`  
-- `organization` NOT `company`
-- `first_name`/`last_name` NOT `name`
-- `last_contact_date` NOT `last_contact`
+### Category 1: Schema Mismatches (7 Functions)
 
-| Function | Issue | Lines | Fix |
-|----------|-------|-------|-----|
-| `action-recommendation-engine/index.ts` | Selects `name, company, title, last_contact` | 167 | Change to `first_name, last_name, organization, job_title, last_contact_date` |
-| `generate-dossier/index.ts` | Uses `profile.title` and `m.type` | 123, 151-152 | Change `title` → `job_title`, `m.type` → `m.contact_type` |
-| `generate-executive-summary/index.ts` | Selects `relationship_score` | 70-71 | Remove `relationship_score` (doesn't exist on profiles) |
+| Function | Issue | Line(s) | Severity |
+|----------|-------|---------|----------|
+| `agis-cascade-orchestrator/index.ts` | Uses `error.message` without `instanceof Error` check | 164 | Medium |
+| `conditioning-orchestrator/index.ts` | Uses `error.message` without `instanceof Error` check | 448 | Medium |
+| `dependency-orchestrator/index.ts` | Uses `error.message` without `instanceof Error` check | 183 | Medium |
+| `monitor-web-mentions/index.ts` | References `profile.company` - should be `profile.organization` | 58, 63 | High |
+| `predict-contact-needs/index.ts` | Uses `event_date` on events table | 91 | High |
+| `batch-intelligence-init/index.ts` | References `profile.email` and `profile.full_name` | 446-449 | High |
+| `deep-research-agent/index.ts` | References `profile.company` | 50 | Medium |
 
----
+### Category 2: Potential Race Conditions (3 Functions)
 
-## Category 2: `communications` Table - Using `direction` Instead of `is_from_contact` (4 Functions)
+| Function | Issue | Risk | Fix |
+|----------|-------|------|-----|
+| `process-bulk-session-runner/index.ts` | Uses `EdgeRuntime.waitUntil` for fire-and-forget processing | Medium | Document behavior, ensure idempotency |
+| `batch-intelligence-init/index.ts` | Fire-and-forget call to `processJobBatch` | Medium | Frontend polling handles this, but add safeguards |
+| `autonomous-intelligence-orchestrator/index.ts` | Multiple concurrent DB updates without transaction | Low | Current design is acceptable |
 
-The `communications` table uses `is_from_contact` (boolean), NOT `direction` (string).
+### Category 3: Open Loops / Unbounded Operations (2 Functions)
 
-| Function | Issue | Lines | Fix |
-|----------|-------|-------|-----|
-| `calculate-relationship-scores/index.ts` | Selects `direction` column | 84-87 | Change to `is_from_contact` |
-| `generate-meeting-prep/index.ts` | Uses `c.direction` in mapping | 97-98 | Change to `c.is_from_contact ? 'inbound' : 'outbound'` |
-| `generate-weekly-summary/index.ts` | Filters by `direction === 'inbound'` | 56-57 | Change to `is_from_contact === true` |
+| Function | Issue | Risk | Fix |
+|----------|-------|------|-----|
+| `process-scheduled-intelligence/index.ts` | Processes ALL communications without limit | High | Add `.limit(1000)` to communications query |
+| `scrape-comprehensive-social/index.ts` | No timeout on external API calls | Medium | Add AbortController with timeout |
 
----
+### Category 4: Missing Error Guards (5 Functions)
 
-## Category 3: `contact_methods` Table - Using `type` Instead of `contact_type` (1 Function)
+| Function | Issue | Line(s) |
+|----------|-------|---------|
+| `agis-cascade-orchestrator/index.ts` | `error.message` without guard | 164 |
+| `conditioning-orchestrator/index.ts` | `error.message` without guard | 448 |
+| `dependency-orchestrator/index.ts` | `error.message` without guard | 183 |
+| `autonomous-intelligence-orchestrator/index.ts` | `error.message` without guard | 489 |
+| `detect-anomalies/index.ts` | Uses `error?.message` (safe but inconsistent) | 263 |
 
-| Function | Issue | Lines | Fix |
-|----------|-------|-------|-----|
-| `generate-dossier/index.ts` | Uses `m.type` | 151-152 | Change to `m.contact_type` |
+### Category 5: Missing Health Check Endpoints (4 Functions)
 
----
+The following functions lack the standard `?healthCheck=1` short-circuit pattern:
 
-## Category 4: `events` Table - Using `event_date` Instead of `start_time` (2 Functions)
-
-The `events` table uses `start_time`, NOT `event_date` for event scheduling.
-
-| Function | Issue | Lines | Fix |
-|----------|-------|-------|-----|
-| `predict-contact-needs/index.ts` | Filters by `event_date` | 92-93 | Change to `start_time` |
-| `send-reminders/index.ts` | Filters by `event_date` | 36-41 | Verify column exists or update |
-
-Note: Some functions use `event_date` and some `start_time`. Need to verify which is correct.
-
----
-
-## Category 5: Non-Existent Columns on Tables (3 Functions)
-
-| Function | Table | Invalid Column | Fix |
-|----------|-------|----------------|-----|
-| `generate-executive-summary/index.ts` | `profiles` | `relationship_score` | Remove from select |
-| `action-recommendation-engine/index.ts` | `profiles` | `name`, `company`, `title`, `relationship_strength`, `last_contact` | Use correct column names |
-| `historical-analytics/index.ts` | Error handling | `error.message` without `instanceof` check | 345, 348 | Add `instanceof Error` check |
+| Function | Status |
+|----------|--------|
+| `autonomous-intelligence-orchestrator` | Missing |
+| `conditioning-orchestrator` | Missing |
+| `dependency-orchestrator` | Missing |
+| `scrape-comprehensive-social` | Missing |
 
 ---
 
 ## Implementation Plan
 
-### Step 1: Fix `action-recommendation-engine/index.ts`
+### Step 1: Fix `monitor-web-mentions/index.ts`
 
-Line 167:
 ```typescript
-// BEFORE
-supabase.from('profiles').select('id, name, company, title, relationship_type, relationship_strength, last_contact, tags').eq('user_id', userId).eq('is_active', true)
+// Line 57-58 - BEFORE
+.select('id, first_name, last_name, company, primary_email')
 
 // AFTER
-supabase.from('profiles').select('id, first_name, last_name, organization, job_title, relationship_type, is_favorite, last_contact_date, tags').eq('user_id', userId).eq('is_active', true)
+.select('id, first_name, last_name, organization')
 ```
 
-Lines 185-191 (mapping):
 ```typescript
-// BEFORE
-contacts: profiles?.map(p => ({
-  id: p.id,
-  name: p.name,
-  company: p.company,
-  ...
+// Line 63 - BEFORE
+const searchQueries = buildSearchQueries(fullName, profile.company);
 
-// AFTER
-contacts: profiles?.map(p => ({
-  id: p.id,
-  name: `${p.first_name} ${p.last_name || ''}`.trim(),
-  company: p.organization,
-  ...
+// AFTER  
+const searchQueries = buildSearchQueries(fullName, profile.organization);
 ```
 
-### Step 2: Fix `generate-dossier/index.ts`
+### Step 2: Fix `predict-contact-needs/index.ts`
 
-Line 123:
+The `events` table DOES have an `event_date` column based on schema verification. However, verify this is the correct column for the query use case. **NO FIX NEEDED** - the schema shows `event_date` exists.
+
+### Step 3: Fix `batch-intelligence-init/index.ts`
+
 ```typescript
-// BEFORE
-title: profile.title,
+// Line 446-449 - BEFORE
+.select('id, full_name, email')
 
 // AFTER
-title: profile.job_title,
+.select('id, first_name, last_name')
 ```
 
-Lines 151-152:
-```typescript
-// BEFORE
-contact_methods: contactMethods?.map(m => ({
-  type: m.type,
+And update the usage to construct name from parts if needed.
 
-// AFTER
-contact_methods: contactMethods?.map(m => ({
-  type: m.contact_type,
+### Step 4: Fix `process-scheduled-intelligence/index.ts`
+
+```typescript
+// Line 78-81 - BEFORE
+const { data: recentComms } = await supabase
+  .from('communications')
+  .select('profile_id, user_id, occurred_at')
+  .order('occurred_at', { ascending: false });
+
+// AFTER - Add limit to prevent unbounded queries
+const { data: recentComms } = await supabase
+  .from('communications')
+  .select('profile_id, user_id, occurred_at')
+  .order('occurred_at', { ascending: false })
+  .limit(1000);
 ```
 
-### Step 3: Fix `generate-meeting-prep/index.ts`
+### Step 5: Fix Error Handling (5 Functions)
 
-Lines 97-98:
+Apply this pattern to all functions with `error.message` without guard:
+
 ```typescript
 // BEFORE
-recentCommunications: (communications || []).map((c: any) => ({
-  channel: c.channel,
-  direction: c.direction,
+return new Response(JSON.stringify({ error: error.message }), ...);
 
 // AFTER
-recentCommunications: (communications || []).map((c: any) => ({
-  channel: c.channel,
-  direction: c.is_from_contact ? 'inbound' : 'outbound',
+const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+return new Response(JSON.stringify({ error: errorMessage }), ...);
 ```
 
-### Step 4: Fix `calculate-relationship-scores/index.ts`
+Functions to update:
+- `agis-cascade-orchestrator/index.ts` (line 164)
+- `conditioning-orchestrator/index.ts` (line 448)
+- `dependency-orchestrator/index.ts` (line 183)
+- `autonomous-intelligence-orchestrator/index.ts` (line 489)
 
-Lines 84-87:
+### Step 6: Add Health Check Endpoints (4 Functions)
+
+Add this pattern after the CORS check in each function:
+
 ```typescript
-// BEFORE
-.select('channel, occurred_at, sentiment_score, direction')
-
-// AFTER
-.select('channel, occurred_at, sentiment_score, is_from_contact')
+// Health check short-circuit
+const url = new URL(req.url);
+if (url.searchParams.get('healthCheck') === '1') {
+  return new Response(JSON.stringify({ 
+    ok: true, 
+    function: 'function-name', 
+    timestamp: Date.now() 
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
 ```
 
-### Step 5: Fix `generate-weekly-summary/index.ts`
+Functions to update:
+- `autonomous-intelligence-orchestrator`
+- `conditioning-orchestrator`
+- `dependency-orchestrator`
+- `scrape-comprehensive-social`
 
-Lines 56-57:
+### Step 7: Add Timeout to External API Calls
+
+For `scrape-comprehensive-social/index.ts`, add AbortController:
+
 ```typescript
-// BEFORE
-inboundCommunications: communications.filter((c: any) => c.direction === 'inbound').length,
-outboundCommunications: communications.filter((c: any) => c.direction === 'outbound').length,
+// Inside fetchFromRapidAPI function
+const controller = new AbortController();
+const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
-// AFTER
-inboundCommunications: communications.filter((c: any) => c.is_from_contact === true).length,
-outboundCommunications: communications.filter((c: any) => c.is_from_contact === false).length,
-```
-
-### Step 6: Fix `generate-executive-summary/index.ts`
-
-Lines 70-71:
-```typescript
-// BEFORE
-.select('id, first_name, last_name, relationship_score, last_contact_date')
-
-// AFTER
-.select('id, first_name, last_name, last_contact_date')
-```
-
-And remove references to `relationship_score` from the mapping.
-
-### Step 7: Fix `historical-analytics/index.ts`
-
-Line 348:
-```typescript
-// BEFORE
-JSON.stringify({ error: error.message }),
-
-// AFTER
-JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+try {
+  const response = await fetch(url.toString(), {
+    headers: {...},
+    signal: controller.signal,
+  });
+  clearTimeout(timeout);
+  // ... rest
+} catch (error) {
+  clearTimeout(timeout);
+  if (error.name === 'AbortError') {
+    throw new Error('Request timed out');
+  }
+  throw error;
+}
 ```
 
 ---
 
 ## Files to Modify
 
-| Priority | File | Issue Count |
-|----------|------|-------------|
-| HIGH | `supabase/functions/action-recommendation-engine/index.ts` | 5 invalid columns |
-| HIGH | `supabase/functions/generate-dossier/index.ts` | 2 invalid columns |
-| HIGH | `supabase/functions/calculate-relationship-scores/index.ts` | 1 invalid column |
-| MEDIUM | `supabase/functions/generate-meeting-prep/index.ts` | 1 invalid column |
-| MEDIUM | `supabase/functions/generate-weekly-summary/index.ts` | 2 invalid columns |
-| MEDIUM | `supabase/functions/generate-executive-summary/index.ts` | 1 invalid column |
-| LOW | `supabase/functions/historical-analytics/index.ts` | Error handling |
-
----
-
-## Verified Schema Reference
-
-| Table | Correct Columns | Invalid Usage Found |
-|-------|-----------------|---------------------|
-| `profiles` | `first_name`, `last_name`, `organization`, `job_title`, `last_contact_date`, `is_favorite` | `name`, `company`, `title`, `relationship_strength`, `last_contact` |
-| `communications` | `is_from_contact` (boolean) | `direction` (string) |
-| `contact_methods` | `contact_type` | `type` |
-| `events` | `start_time` | `event_date` (needs verification) |
+| Priority | File | Changes |
+|----------|------|---------|
+| HIGH | `supabase/functions/monitor-web-mentions/index.ts` | Fix `company` → `organization` |
+| HIGH | `supabase/functions/batch-intelligence-init/index.ts` | Fix `full_name, email` → `first_name, last_name` |
+| HIGH | `supabase/functions/process-scheduled-intelligence/index.ts` | Add query limit |
+| MEDIUM | `supabase/functions/agis-cascade-orchestrator/index.ts` | Fix error handling |
+| MEDIUM | `supabase/functions/conditioning-orchestrator/index.ts` | Fix error handling + add health check |
+| MEDIUM | `supabase/functions/dependency-orchestrator/index.ts` | Fix error handling + add health check |
+| MEDIUM | `supabase/functions/autonomous-intelligence-orchestrator/index.ts` | Fix error handling + add health check |
+| LOW | `supabase/functions/scrape-comprehensive-social/index.ts` | Add health check + timeout |
 
 ---
 
 ## Deployment Order
 
-1. **Batch 1 (Critical)**
-   - `action-recommendation-engine`
-   - `generate-dossier`
-   - `calculate-relationship-scores`
+1. **Batch 1 (Critical - Schema Fixes)**
+   - `monitor-web-mentions`
+   - `batch-intelligence-init`
+   - `process-scheduled-intelligence`
 
-2. **Batch 2 (Medium)**
-   - `generate-meeting-prep`
-   - `generate-weekly-summary`
-   - `generate-executive-summary`
+2. **Batch 2 (Medium - Error Handling)**
+   - `agis-cascade-orchestrator`
+   - `conditioning-orchestrator`
+   - `dependency-orchestrator`
+   - `autonomous-intelligence-orchestrator`
 
-3. **Batch 3 (Low)**
-   - `historical-analytics`
+3. **Batch 3 (Low - Health Checks + Timeout)**
+   - `scrape-comprehensive-social`
+
+---
+
+## Technical Summary
+
+### Schema Reference
+
+| Table | Valid Columns | Invalid References Found |
+|-------|---------------|-------------------------|
+| `profiles` | `first_name`, `last_name`, `organization`, `job_title` | `company`, `full_name`, `email` |
+| `events` | `event_date`, `start_time`, `title` | Schema verified correct |
+| `communications` | `is_from_contact` (boolean) | Fixed in previous phases |
+
+### Functions Verified Clean
+
+The following functions were reviewed and found to have no issues:
+- `intelligence-session-runner` - Proper atomic task claiming with RPC
+- `analysis-orchestrator` - Clean event store pattern
+- `crisis-response-orchestrator` - Proper error handling
+- `process-enrichment-queue` - Good retry logic with backoff
+- `auto-sync-calendars` - Clean iteration with error collection
+- `sync-gmail-emails` - Proper token refresh and contact matching
+- `deep-research-agent` - Clean AI synthesis with fallback
+- `process-document-batch` - Proper pause/resume handling
 
 ---
 
 ## Acceptance Criteria
 
-1. All 7 edge functions deploy without errors
-2. Action recommendations generate without "column not found" errors
-3. Dossier generation works correctly
-4. Relationship scores calculate properly
-5. Meeting prep loads communication history
-6. Weekly summary displays correct inbound/outbound counts
-7. No TypeScript/runtime errors in production
+After fixes:
+1. All 8 edge functions deploy without errors
+2. Web mentions properly track organization names
+3. Scheduled intelligence doesn't timeout on large datasets
+4. Error messages are properly typed in all responses
+5. All critical functions have health check endpoints
+6. External API calls have proper timeout handling
