@@ -445,7 +445,7 @@ async function processOsintScans(
 
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id, full_name, email')
+    .select('id, first_name, last_name')
     .eq('user_id', userId);
 
   if (profiles) {

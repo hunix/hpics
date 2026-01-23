@@ -54,7 +54,7 @@ serve(async (req) => {
     // Get profile details
     const { data: profile } = await supabase
       .from('profiles')
-      .select('id, first_name, last_name, company, primary_email')
+      .select('id, first_name, last_name, organization')
       .eq('id', profileId)
       .single();
 
@@ -71,7 +71,7 @@ serve(async (req) => {
       .single();
 
     if (!job) {
-      const searchQueries = buildSearchQueries(fullName, profile.company);
+      const searchQueries = buildSearchQueries(fullName, profile.organization);
       const { data: newJob } = await supabase
         .from('web_monitoring_jobs')
         .insert({
@@ -233,7 +233,7 @@ function analyzeSentiment(text: string): 'positive' | 'neutral' | 'negative' {
 async function checkAllMonitoringJobs(supabase: any, userId: string, apiKey: string): Promise<any[]> {
   const { data: jobs } = await supabase
     .from('web_monitoring_jobs')
-    .select('*, profiles(first_name, last_name, company)')
+    .select('*, profiles(first_name, last_name, organization)')
     .eq('user_id', userId)
     .eq('is_active', true);
 

@@ -78,7 +78,8 @@ serve(async (req) => {
     const { data: recentComms } = await supabase
       .from('communications')
       .select('profile_id, user_id, occurred_at')
-      .order('occurred_at', { ascending: false });
+      .order('occurred_at', { ascending: false })
+      .limit(1000);
 
     const profileLastContact = new Map<string, { date: Date; userId: string }>();
     recentComms?.forEach(c => {
