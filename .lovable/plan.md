@@ -1,86 +1,160 @@
 
-## What’s happening (root cause)
 
-Your “Merge all duplicates” button calls the backend RPC `batch_merge_duplicates`.
+# Comprehensive Schema Mismatch Audit & Fix Plan
 
-That function loops through duplicate profile groups and calls `merge_duplicate_profiles(primary, duplicate, p_user_id)`.
+## Executive Summary
 
-The failing error returned from the backend is:
+A full codebase audit has identified **30+ edge functions** with invalid column or table references that will cause runtime errors. The primary issues fall into three categories:
 
-- `column "user_id" does not exist` (code 42703)
+1. **`messages` table queried with `profile_id`** - This column doesn't exist; messages link to profiles via `conversations`
+2. **Non-existent tables referenced** - `social_profiles`, `life_events`, `recordings` don't exist in the database
+3. **Invalid column references** - `direction`, `received_at` on messages table
 
-This error is **not** coming from the `profiles` table; it’s coming from inside `merge_duplicate_profiles` where it runs UPDATEs like:
+---
 
-- `UPDATE contact_methods ... WHERE ... AND user_id = p_user_id;`
+## Issue Categories
 
-But several of the tables referenced in `merge_duplicate_profiles` **do not have a `user_id` column** in your actual backend schema:
+### Category 1: `messages.profile_id` Does Not Exist (25 Edge Functions)
 
-- `contact_methods` → no `user_id`
-- `social_profiles` → no `user_id`
-- `life_events` → no `user_id`
-- `recordings` → no `user_id`
+The `messages` table has these columns:
+- `id`, `conversation_id`, `user_id`, `is_from_contact`, `content`, `sent_at`, `metadata`, `created_at`, `whatsapp_message_id`, `whatsapp_status`, `media_id`, `media_type`, `media_filename`
 
-So the function crashes during the merge, and `batch_merge_duplicates` fails too.
+**NO `profile_id` column exists.** Messages link to profiles via:
+```
+messages.conversation_id → conversations.profile_id
+```
 
-## What we will change
+**Affected Functions:**
+| Function | Line | Current Query |
+|----------|------|---------------|
+| predict-contact-preferences | 78-80 | `.from('messages').eq('profile_id', profileId)` |
+| predict-churn-enhanced | 171-174 | `.from('messages').in('profile_id', profileIds)` |
+| analyze-community-class | 130 | `.from('messages').eq('profile_id', profileId)` |
+| detect-shadow-networks | 170 | `.from('messages').in('profile_id', profileIds)` |
+| analyze-romantic-intelligence | 122 | `.from('messages').eq('profile_id', profileId)` |
+| coercion-resistance-assessor | 167 | `.from('messages').eq('profile_id', profileId)` |
+| manipulation-vulnerability-assessment | 210 | `.from('messages').eq('profile_id', profileId)` |
+| sacred-values-mapper | 74 | `.from('messages').eq('profile_id', profileId)` |
+| financial-intelligence-scan | 149 | `.from('messages').eq('profile_id', profileId)` |
+| behavioral-future-modeler | 148 | `.from('messages').eq('profile_id', profileId)` |
+| betrayal-likelihood-scorer | 53 | `.from('messages').eq('profile_id', profileId)` |
+| deep-intelligence-engine | 143 | `.from('messages').eq('profile_id', profileId)` |
+| mice-recruitment-analyzer | 74 | `.from('messages').eq('profile_id', profileId)` |
+| influence-orchestrator-v2 | 131 | `.from('messages').eq('profile_id', profileId)` |
+| personality-dna-extractor | 179 | `.from('messages').eq('profile_id', profileId)` |
+| churn-prediction-engine | 36-38 | `.from('messages').eq('profile_id', profileId)` |
+| predictive-trajectory-engine | 55-57 | `.from('messages').eq('profile_id', profileId)` |
+| emotional-trajectory-analyzer | 34-37 | `.from('messages').eq('profile_id', profileId)` |
+| enhanced-deception-detector | 50-53 | `.from('messages').eq('profile_id', profileId)` |
+| train-behavior-model | 63 | `.from('messages').eq('profile_id', profileId)` |
+| action-recommendation-engine | 168 | `.from('messages').eq('profile_id', profileId)` |
+| deep-correlation-mapper | 156 | `.from('messages').eq('profile_id', profileId)` |
+| cross-modal-deception-v2 | 178 | `.from('messages').eq('profile_id', profileId)` |
+| fortune-trajectory-engine | 210 | `.from('messages').eq('profile_id', profileId)` |
 
-### 1) Create a new SQL migration to fix `merge_duplicate_profiles`
-We will `CREATE OR REPLACE FUNCTION public.merge_duplicate_profiles(...)` and remove the invalid `AND user_id = p_user_id` filters for the tables that lack `user_id`.
+**Fix Pattern:** Use PostgREST `!inner` join:
+```typescript
+// BEFORE (broken)
+supabase.from('messages').select('*').eq('profile_id', profileId)
 
-Concretely, these lines will be changed:
+// AFTER (correct)
+supabase.from('messages')
+  .select('*, conversations!inner(profile_id)')
+  .eq('conversations.profile_id', profileId)
+```
 
-- `UPDATE contact_methods ... WHERE profile_id = p_duplicate_id AND user_id = p_user_id;`
-  - becomes `UPDATE contact_methods ... WHERE profile_id = p_duplicate_id;`
+---
 
-- `UPDATE social_profiles ... AND user_id = p_user_id;`
-  - becomes `... WHERE profile_id = p_duplicate_id;`
+### Category 2: Non-Existent Tables in `merge_duplicate_profiles`
 
-- `UPDATE life_events ... AND user_id = p_user_id;`
-  - becomes `... WHERE profile_id = p_duplicate_id;`
+The recently fixed `merge_duplicate_profiles` function references tables that **don't exist**:
+- `social_profiles` - Does NOT exist
+- `life_events` - Does NOT exist  
+- `recordings` - Does NOT exist
 
-- `UPDATE recordings ... AND user_id = p_user_id;`
-  - becomes `... WHERE profile_id = p_duplicate_id;`
+These UPDATE statements will silently fail (no error, but no-op).
 
-We will keep `user_id = p_user_id` filters on tables that *do* have `user_id` (e.g., `media`, `documents`, `conversations`, `contact_relationships`, etc.).
+**Fix:** Remove these UPDATE statements from the function since the tables don't exist.
 
-### 2) Preserve security/ownership guarantees
-Even after removing `user_id` filters on those 4 tables, the function remains safe because it already does:
+---
 
-- Ownership validation upfront:
-  - `IF NOT EXISTS (SELECT 1 FROM profiles WHERE id = p_primary_id AND user_id = p_user_id) THEN ...`
-  - `IF NOT EXISTS (SELECT 1 FROM profiles WHERE id = p_duplicate_id AND user_id = p_user_id) THEN ...`
+### Category 3: Invalid Column `received_at` on Messages
 
-So an attacker can’t merge someone else’s profiles because the function will refuse to proceed unless both profile IDs belong to the caller.
+Some functions reference `messages.received_at` which doesn't exist - the correct column is `sent_at`:
+- emotional-trajectory-analyzer (line 37)
+- enhanced-deception-detector (line 53)
+- churn-prediction-engine (line 39)
 
-And the UPDATEs are constrained to `profile_id = p_duplicate_id` (a specific UUID), so we’re not risking cross-user mass updates.
+---
 
-### 3) Verify with an immediate backend call + UI confirmation
-After the migration applies, we’ll verify in two ways:
+## Implementation Plan
 
-- Call `batch_merge_duplicates` once (same as the UI does) and confirm it returns `{ merged_count, groups_processed }` instead of error.
-- Refresh `/maintenance` and run “Merge all duplicates” again:
-  - Expect: no “invalid column / user_id” error
-  - Expect: duplicate groups count decreases after successful merge
+### Step 1: Create Helper Function for Message Queries (New Shared Utility)
 
-### 4) (Optional but recommended) Add a “schema-safe merge” comment + quick future-proofing
-Inside the SQL function, we’ll add a short comment block explaining:
-- Which tables lack `user_id`
-- Why we intentionally filter only by `profile_id` for those tables
+Create `supabase/functions/_shared/query-helpers.ts`:
+```typescript
+export async function getMessagesForProfile(
+  supabase: SupabaseClient, 
+  profileId: string, 
+  limit = 100
+) {
+  // First get conversation IDs for this profile
+  const { data: convs } = await supabase
+    .from('conversations')
+    .select('id')
+    .eq('profile_id', profileId);
+  
+  if (!convs?.length) return [];
+  
+  const { data: messages } = await supabase
+    .from('messages')
+    .select('*')
+    .in('conversation_id', convs.map(c => c.id))
+    .order('sent_at', { ascending: false })
+    .limit(limit);
+    
+  return messages || [];
+}
+```
 
-This prevents future regressions when the function gets extended again.
+### Step 2: Fix All 25 Edge Functions
 
-## Files/areas affected
+Update each affected function to use the `!inner` join pattern or the helper function.
 
-- New migration: `supabase/migrations/<new>_fix_merge_duplicate_profiles_user_id.sql`
-  - updates only `merge_duplicate_profiles` (no table changes required)
+### Step 3: SQL Migration for merge_duplicate_profiles
 
-## Acceptance criteria
+Remove references to non-existent tables (`social_profiles`, `life_events`, `recordings`).
 
-- Clicking “Merge all duplicates” in `/maintenance` completes successfully (no 400 RPC error)
-- `batch_merge_duplicates` returns successfully for the logged-in user
-- Duplicate groups count decreases after merge
-- No new “column does not exist” errors are triggered during merge
+### Step 4: Update schemaValidator.ts
 
-## Notes / additional follow-up (separate from this fix, but important)
-I noticed earlier history indicates `src/integrations/supabase/types.ts` was edited in the past (that file must never be manually edited). After we unblock merging, I can also:
-- revert that file back to the auto-generated state (or remove unintended edits) using the platform’s correct workflow.
+Add accurate schemas for all tables to catch future mismatches.
+
+---
+
+## Priority Order
+
+1. **High Priority** - Fix `merge_duplicate_profiles` SQL function (currently broken)
+2. **High Priority** - Fix the 10 most commonly used edge functions
+3. **Medium Priority** - Fix remaining edge functions
+4. **Low Priority** - Update schemaValidator.ts with complete schemas
+
+---
+
+## Files to Modify
+
+| Category | Count | Files |
+|----------|-------|-------|
+| SQL Migration | 1 | New migration to fix `merge_duplicate_profiles` |
+| Shared Utility | 1 | `supabase/functions/_shared/query-helpers.ts` |
+| Edge Functions | 25 | All functions listed in Category 1 |
+| Schema Validator | 1 | `src/lib/schemaValidator.ts` |
+
+---
+
+## Verification
+
+After fixes:
+1. Run `merge_duplicate_profiles` - should complete without error
+2. Test each fixed edge function via health check
+3. Verify dashboard metrics show correct counts
+
