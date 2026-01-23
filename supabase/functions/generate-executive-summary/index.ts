@@ -68,7 +68,7 @@ serve(async (req) => {
     // Gather statistics
     const { data: contacts } = await supabase
       .from('profiles')
-      .select('id, first_name, last_name, relationship_score, last_contact_date')
+      .select('id, first_name, last_name, last_contact_date')
       .eq('user_id', user.id);
 
     const { data: communications } = await supabase
@@ -109,9 +109,6 @@ serve(async (req) => {
         newContacts: newContacts?.length || 0,
         totalCommunications: communications?.length || 0,
         eventsAttended: events?.length || 0,
-        averageRelationshipScore: contacts?.length 
-          ? Math.round(contacts.reduce((sum, c) => sum + (c.relationship_score || 50), 0) / contacts.length)
-          : 50,
       },
       communicationBreakdown: {
         email: communications?.filter(c => c.channel === 'email').length || 0,

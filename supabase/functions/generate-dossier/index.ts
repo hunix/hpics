@@ -120,7 +120,7 @@ serve(async (req) => {
     sections.executive_summary = {
       full_name: `${profile.first_name} ${profile.last_name}`,
       organization: profile.organization,
-      title: profile.title,
+      title: profile.job_title,
       relationship_type: profile.relationship_type,
       is_favorite: profile.is_favorite,
       trust_score: trustAssessment?.overall_trust_score,
@@ -149,7 +149,7 @@ serve(async (req) => {
         dietary_preferences: personalInfo.dietary_preferences,
       } : null,
       contact_methods: contactMethods?.map(m => ({
-        type: m.type,
+        type: m.contact_type,
         value: m.value,
         is_primary: m.is_primary,
         verified: m.verified,

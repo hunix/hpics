@@ -53,8 +53,8 @@ async function generateSummaryForUser(supabase: any, userId: string) {
   // Calculate statistics
   const stats = {
     totalCommunications: communications.length,
-    inboundCommunications: communications.filter((c: any) => c.direction === 'inbound').length,
-    outboundCommunications: communications.filter((c: any) => c.direction === 'outbound').length,
+    inboundCommunications: communications.filter((c: any) => c.is_from_contact === true).length,
+    outboundCommunications: communications.filter((c: any) => c.is_from_contact === false).length,
     uniqueContactsReached: new Set(communications.map((c: any) => c.profile_id)).size,
     eventsThisWeek: events.length,
     analysesGenerated: analyses.length,
