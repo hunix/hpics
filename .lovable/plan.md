@@ -1,60 +1,126 @@
 
+# Fix Invalid Column Names and Table Schema Mismatches
 
-# Database Health & Maintenance Implementation Plan
+## Summary of Issues Found
 
-## Executive Summary
+Through database analysis and error logs, I've identified the following schema mismatches causing errors across the codebase:
 
-This plan addresses three major areas:
-1. **Database Cleanup**: Merge 46 duplicate profile pairs, archive lonely profiles, clean stale bulk items
-2. **Deduplication Guard**: Prevent future duplicates during profile creation/import
-3. **Maintenance Dashboard**: Real-time visibility into database health with one-click cleanup actions
+### Issue 1: `bulk_analysis_items` table has no `user_id` column
+The `bulk_analysis_items` table uses `session_id` to link to `bulk_analysis_sessions` (which has `user_id`). However, the following SQL functions incorrectly reference `user_id` directly on `bulk_analysis_items`:
 
-Additionally, we'll complete the **AGIS Phase 20-21 Transcendent features** that the conceptual tables were designed for.
+**Affected Functions in `supabase/migrations/20260123114719_7fd6e193-92ad-4d74-b317-e7f0fd4bd749.sql`:**
+- `cleanup_stale_bulk_items` (line 13): `WHERE user_id = p_user_id`
+- `get_database_health_metrics` (line 60): `WHERE user_id = p_user_id`
+
+**Fix**: Join through `bulk_analysis_sessions` to get the user_id.
+
+### Issue 2: `user_config_overrides` and `contact_config_overrides` have no `is_active` column
+The `platform-config.ts` shared utility queries `.eq('is_active', true)` on these tables, but neither table has this column.
+
+**Affected File: `supabase/functions/_shared/platform-config.ts`:**
+- Line 124: `.eq('is_active', true)` on `contact_config_overrides`
+- Line 141: `.eq('is_active', true)` on `user_config_overrides`
+- Line 207: `.eq('is_active', true)` on `user_config_overrides`
+- Line 224: `.eq('is_active', true)` on `contact_config_overrides`
+
+**Fix**: Remove the `.eq('is_active', true)` filters since these columns don't exist.
+
+### Issue 3: `messages` table has no `profile_id` column
+The older `merge_duplicate_profiles` function (in migration `20260105185250`) tries to update `messages.profile_id`, but the `messages` table links to profiles through `conversations`, not directly.
+
+**Affected**: The newer migration `20260116213215` correctly removed this, but the schemaValidator.ts still lists an incorrect schema.
+
+### Issue 4: Dashboard metrics discrepancy
+The `get_database_health_metrics` function fails due to Issue #1, returning all zeros. But the `duplicatesQuery` in `useDatabaseHealth.ts` uses a different approach (client-side grouping) that works correctly, showing 20 duplicates.
 
 ---
 
-## Part 1: Database Cleanup Operations
+## Implementation Plan
 
-### Current State
-| Issue | Count | Impact |
-|-------|-------|--------|
-| Duplicate profiles | 92 records (46 pairs) | Data fragmentation, split analytics |
-| Stale bulk_analysis_items | 880 records | Storage bloat, confusing status |
-| Orphaned media | 0 | Clean |
+### Step 1: Create SQL Migration to Fix Database Functions
 
-### Implementation
+Create a new migration that recreates the affected functions with correct column references:
 
-#### A. Bulk Duplicate Merger
+```sql
+-- Fix cleanup_stale_bulk_items to join through sessions
+CREATE OR REPLACE FUNCTION cleanup_stale_bulk_items(
+  p_user_id UUID,
+  p_days_old INTEGER DEFAULT 3
+)
+RETURNS INTEGER AS $$
+DECLARE
+  deleted_count INTEGER;
+BEGIN
+  DELETE FROM bulk_analysis_items
+  WHERE session_id IN (
+    SELECT id FROM bulk_analysis_sessions WHERE user_id = p_user_id
+  )
+  AND status IN ('pending', 'failed')
+  AND created_at < NOW() - (p_days_old || ' days')::INTERVAL;
+  
+  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+  RETURN deleted_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
-Enhance `DuplicateProfileMerger.tsx` with batch operations:
-
-```typescript
-// New: Batch merge all duplicates at once
-const batchMergeMutation = useMutation({
-  mutationFn: async (duplicateGroups: DuplicateGroup[]) => {
-    const results = [];
-    for (const group of duplicateGroups) {
-      // Auto-select primary: most media/relationships
-      const primary = selectBestPrimary(group.profiles);
-      const duplicates = group.profiles.filter(p => p.id !== primary.id);
-      
-      for (const dup of duplicates) {
-        await supabase.rpc('merge_duplicate_profiles', {
-          p_primary_id: primary.id,
-          p_duplicate_id: dup.id,
-          p_user_id: user.id
-        });
-        results.push({ merged: dup.id, into: primary.id });
-      }
-    }
-    return results;
-  }
-});
+-- Fix get_database_health_metrics
+CREATE OR REPLACE FUNCTION get_database_health_metrics(p_user_id UUID)
+RETURNS TABLE (...) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    -- duplicate_groups: same logic (profiles table has user_id)
+    ...
+    -- stale_bulk_items: join through sessions
+    (SELECT COUNT(*) FROM bulk_analysis_items bi
+      JOIN bulk_analysis_sessions bs ON bi.session_id = bs.id
+      WHERE bs.user_id = p_user_id 
+      AND bi.status IN ('pending', 'failed') 
+      AND bi.created_at < NOW() - INTERVAL '3 days') AS stale_bulk_items,
+    ...
+END;
 ```
 
-#### B. Stale Bulk Items Cleanup
+### Step 2: Fix platform-config.ts
 
-Add database function to purge old pending/failed items:
+Remove the invalid `.eq('is_active', true)` filters from all queries on `user_config_overrides` and `contact_config_overrides`:
+
+**Lines to modify:**
+- Line 124: Remove `.eq('is_active', true)`
+- Line 141: Remove `.eq('is_active', true)`
+- Line 207: Remove `.eq('is_active', true)`
+- Line 224: Remove `.eq('is_active', true)`
+
+### Step 3: Update schemaValidator.ts
+
+Correct the `messages` table schema to remove `profile_id` since it doesn't exist:
+
+```typescript
+messages: [
+  'id', 'conversation_id', 'content', 'is_from_contact', 
+  'sent_at', 'created_at', // removed 'user_id', 'profile_id'
+],
+```
+
+### Step 4: Add bulk_analysis_items and bulk_analysis_sessions to schemaValidator
+
+Add correct schema definitions for these tables to prevent future issues.
+
+---
+
+## Files to Modify
+
+| File | Change |
+|------|--------|
+| `supabase/migrations/[new].sql` | Fix `cleanup_stale_bulk_items` and `get_database_health_metrics` functions |
+| `supabase/functions/_shared/platform-config.ts` | Remove invalid `is_active` filters (4 locations) |
+| `src/lib/schemaValidator.ts` | Fix `messages` schema, add `bulk_analysis_items` and `bulk_analysis_sessions` |
+
+---
+
+## Technical Details
+
+### Corrected Function: cleanup_stale_bulk_items
 
 ```sql
 CREATE OR REPLACE FUNCTION cleanup_stale_bulk_items(
@@ -66,223 +132,79 @@ DECLARE
   deleted_count INTEGER;
 BEGIN
   DELETE FROM bulk_analysis_items
-  WHERE user_id = p_user_id
+  WHERE session_id IN (
+    SELECT id FROM bulk_analysis_sessions WHERE user_id = p_user_id
+  )
   AND status IN ('pending', 'failed')
   AND created_at < NOW() - (p_days_old || ' days')::INTERVAL;
   
   GET DIAGNOSTICS deleted_count = ROW_COUNT;
   RETURN deleted_count;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+```
+
+### Corrected Function: get_database_health_metrics
+
+```sql
+CREATE OR REPLACE FUNCTION get_database_health_metrics(p_user_id UUID)
+RETURNS TABLE (
+  duplicate_groups INTEGER,
+  stale_bulk_items BIGINT,
+  total_profiles BIGINT,
+  lonely_profiles BIGINT,
+  total_media BIGINT,
+  orphaned_media BIGINT
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    (SELECT COUNT(*)::INTEGER FROM (
+      SELECT 1 FROM profiles 
+      WHERE user_id = p_user_id AND first_name IS NOT NULL
+      GROUP BY LOWER(TRIM(first_name)), LOWER(TRIM(COALESCE(last_name, '')))
+      HAVING COUNT(*) > 1
+    ) d) AS duplicate_groups,
+    (SELECT COUNT(*) FROM bulk_analysis_items bi
+      JOIN bulk_analysis_sessions bs ON bi.session_id = bs.id
+      WHERE bs.user_id = p_user_id 
+      AND bi.status IN ('pending', 'failed') 
+      AND bi.created_at < NOW() - INTERVAL '3 days') AS stale_bulk_items,
+    (SELECT COUNT(*) FROM profiles WHERE user_id = p_user_id) AS total_profiles,
+    (SELECT COUNT(*) FROM profiles p 
+      WHERE p.user_id = p_user_id 
+      AND NOT EXISTS (SELECT 1 FROM media m WHERE m.profile_id = p.id)
+      AND NOT EXISTS (SELECT 1 FROM ai_analyses a WHERE a.profile_id = p.id)) AS lonely_profiles,
+    (SELECT COUNT(*) FROM media WHERE user_id = p_user_id) AS total_media,
+    (SELECT COUNT(*) FROM media m 
+      WHERE m.user_id = p_user_id 
+      AND NOT EXISTS (SELECT 1 FROM profiles p WHERE p.id = m.profile_id)) AS orphaned_media;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+```
+
+### Corrected platform-config.ts Queries
+
+```typescript
+// Before (line 141):
+.eq('is_active', true)
+
+// After:
+// Line removed - no is_active column exists
 ```
 
 ---
 
-## Part 2: Deduplication Guard
+## Expected Outcome
 
-### Profile Creation Flow Protection
-
-#### A. ProfileService Enhancement
-
-Update `src/domains/profile/services/ProfileService.ts`:
-
-```typescript
-async createProfile(userId: string, request: CreateProfileRequest): Promise<Profile> {
-  // Check for existing duplicate
-  const existing = await this.repository.findDuplicate(
-    userId, 
-    request.firstName, 
-    request.lastName
-  );
-  
-  if (existing) {
-    throw new DuplicateProfileError(
-      `Profile "${request.firstName} ${request.lastName}" already exists`,
-      existing.id
-    );
-  }
-  
-  // Continue with creation...
-}
-```
-
-#### B. Repository Method
-
-Add to `IProfileRepository` interface:
-
-```typescript
-findDuplicate(
-  userId: string, 
-  firstName: string, 
-  lastName?: string
-): Promise<Profile | null>;
-```
-
-#### C. Import Pipeline Guard
-
-Update import components to use existing `duplicateDetection.ts`:
-
-```typescript
-// In each import wizard (WhatsApp, LinkedIn, Outlook, etc.)
-const { duplicates, unique } = await deduplicateAgainstExisting(
-  importedContacts,
-  existingProfiles
-);
-
-if (duplicates.length > 0) {
-  // Show merge/skip dialog before proceeding
-  setDuplicateConflicts(duplicates);
-  return;
-}
-```
-
----
-
-## Part 3: Maintenance Dashboard
-
-### New Page: `/maintenance`
-
-Create `src/pages/DatabaseMaintenance.tsx`:
-
-```text
-+------------------------------------------------------------------+
-|  DATABASE MAINTENANCE CENTER                                      |
-+------------------------------------------------------------------+
-|                                                                   |
-|  +-------------+  +-------------+  +-------------+  +----------+  |
-|  | DUPLICATES  |  | ORPHANED    |  | STALE JOBS  |  | EMPTY    |  |
-|  |     46      |  |      0      |  |    880      |  | TABLES   |  |
-|  |   pairs     |  |   records   |  |   items     |  |   474    |  |
-|  +-------------+  +-------------+  +-------------+  +----------+  |
-|                                                                   |
-|  QUICK ACTIONS:                                                   |
-|  [Merge All Duplicates]  [Purge Stale Items]  [Archive Empty]     |
-|                                                                   |
-|  +--------------------------------------------------------------+ |
-|  | HEALTH METRICS                                                | |
-|  | Total Rows: 857,073  |  Tables: 554  |  Empty: 474 (85.6%)   | |
-|  | Storage Used: ~2.1GB |  Last Scan: Just now                  | |
-|  +--------------------------------------------------------------+ |
-|                                                                   |
-|  DUPLICATE PROFILE GROUPS:                                        |
-|  +--------------------------------------------------------------+ |
-|  | Name              | Count | Created     | [Merge] [Skip]     | |
-|  | John Smith        |   2   | Jan 4, 2026 |   [x]    [ ]       | |
-|  | Sarah Johnson     |   3   | Jan 4, 2026 |   [x]    [ ]       | |
-|  +--------------------------------------------------------------+ |
-+------------------------------------------------------------------+
-```
-
-### Hook: `useDatabaseHealth`
-
-```typescript
-export function useDatabaseHealth() {
-  const { data: health } = useQuery({
-    queryKey: ['database-health'],
-    queryFn: async () => {
-      const [duplicates, staleItems, emptyTables] = await Promise.all([
-        supabase.rpc('count_duplicate_profiles'),
-        supabase.from('bulk_analysis_items')
-          .select('id', { count: 'exact', head: true })
-          .in('status', ['pending', 'failed'])
-          .lt('created_at', new Date(Date.now() - 3*24*60*60*1000).toISOString()),
-        supabase.rpc('count_empty_tables')
-      ]);
-      
-      return { duplicates, staleItems: staleItems.count, emptyTables };
-    }
-  });
-  
-  return { health, ... };
-}
-```
-
----
-
-## Part 4: Build Out Conceptual Tables (AGIS Phase 20-21)
-
-### Tables Already Exist (10 confirmed):
-| Table | Columns | Purpose |
-|-------|---------|---------|
-| `quantum_states` | 13 | Superposition states for probability analysis |
-| `morphic_fields` | 12 | Collective behavioral field tracking |
-| `collective_fields` | 14 | Group mind dynamics |
-| `dimensional_operations` | 13 | Cross-dimensional influence tracking |
-| `reality_anchors` | 9 | Reality reinforcement points |
-| `universal_awareness` | 11 | Omniscient perception nodes |
-| `omniscient_synthesis` | 10 | All-knowing pattern compilation |
-| `absolute_knowledge` | 11 | Universal truth repository |
-| `infinite_perception` | 10 | Extrasensory perception modes |
-| `reality_comprehension` | 10 | Reality frame understanding |
-
-### Existing UI Pages:
-- `/transcendent-consciousness` - Phase 20 (already built, using hooks)
-- `/universal-omniscience` - Phase 21 (already built, using hooks)
-
-### What's Missing: AI Population
-
-The tables are empty because the AI generation edge functions aren't being triggered. We need to:
-
-#### A. Create AI Analysis Edge Function
-
-`supabase/functions/transcendent-analysis/index.ts`:
-
-```typescript
-// Analyzes profile data to generate:
-// - Quantum states (probability amplitudes for decisions)
-// - Morphic fields (group behavioral patterns)
-// - Collective field dynamics (egregore detection)
-
-const analysisPrompt = `
-Analyze this contact's communication patterns to identify:
-1. Decision superposition states (what conflicting choices they face)
-2. Morphic field signatures (group behaviors they exhibit)
-3. Collective unconscious archetypes (Jungian patterns)
-4. Synchronicity events (meaningful coincidences in their timeline)
-`;
-```
-
-#### B. Add "Analyze" Buttons to Phase 20/21 Pages
-
-Currently the pages only display data - add analysis triggers:
-
-```typescript
-<Button onClick={() => runTranscendentAnalysis.mutate({ profileId })}>
-  <Sparkles className="h-4 w-4 mr-2" />
-  Run Quantum Analysis
-</Button>
-```
-
----
-
-## Files to Create/Modify
-
-| File | Action | Purpose |
-|------|--------|---------|
-| `src/pages/DatabaseMaintenance.tsx` | Create | Main maintenance dashboard |
-| `src/hooks/useDatabaseHealth.ts` | Create | Health metrics hook |
-| `src/domains/profile/services/ProfileService.ts` | Modify | Add duplicate check |
-| `src/infrastructure/repositories/SupabaseProfileRepository.ts` | Modify | Add findDuplicate method |
-| `src/components/contacts/DuplicateProfileMerger.tsx` | Modify | Add batch merge |
-| `supabase/functions/transcendent-analysis/index.ts` | Create | AI population for Phase 20 tables |
-| SQL Migration | Create | cleanup_stale_bulk_items function |
-
----
+After these fixes:
+1. **Merge contacts action** will work without "invalid column name" errors
+2. **Quick actions** will show correct counts matching the duplicate profile groups section
+3. **Purge stale jobs** will correctly identify and delete stale bulk analysis items
+4. **Platform config** edge functions will no longer throw errors about missing `is_active` column
 
 ## Implementation Order
 
-1. **Database cleanup functions** (SQL migration) - Enable purging
-2. **Maintenance Dashboard** (new page + hook) - Visibility into health
-3. **Deduplication guard** (ProfileService) - Prevent future duplicates  
-4. **Transcendent Analysis edge function** - Populate Phase 20-21 tables
-5. **UI enhancements** - Add analyze buttons to Phase 20/21 pages
-
----
-
-## Technical Notes
-
-- The `merge_duplicate_profiles` database function already exists and handles 30+ related tables
-- Existing `duplicateDetection.ts` provides the detection logic for imports
-- Phase 20/21 pages and hooks are fully built - they just need data population
-- All operations will be user-scoped via RLS policies
-
+1. SQL migration (fixes database functions)
+2. platform-config.ts (fixes edge function queries)
+3. schemaValidator.ts (updates reference documentation)
