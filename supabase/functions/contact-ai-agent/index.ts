@@ -418,7 +418,7 @@ ${context.behavioralAnalyses.slice(0, 5).map((a: any) => `- ${a.analysis_type}: 
 
   if (context.communications?.length) {
     prompt += `### Recent Communications (${context.communications.length} records)
-${context.communications.slice(0, 15).map((c: any) => `- [${c.channel}/${c.direction}] ${c.subject || c.content?.substring(0, 100) || 'No content'} (${c.occurred_at})`).join('\n')}
+${context.communications.slice(0, 15).map((c: any) => `- [${c.channel}/${c.is_from_contact ? 'inbound' : 'outbound'}] ${c.subject || c.content?.substring(0, 100) || 'No content'} (${c.occurred_at})`).join('\n')}
 
 `;
   }
