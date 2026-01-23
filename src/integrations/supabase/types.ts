@@ -36904,6 +36904,13 @@ export type Database = {
           freed_bytes: number
         }[]
       }
+      batch_merge_duplicates: {
+        Args: { p_user_id: string }
+        Returns: {
+          groups_processed: number
+          merged_count: number
+        }[]
+      }
       bootstrap_first_admin: { Args: never; Returns: boolean }
       bulk_update_thread_counts: {
         Args: { thread_updates: Json }
@@ -36942,6 +36949,10 @@ export type Database = {
         }
       }
       clean_expired_cache: { Args: never; Returns: number }
+      cleanup_stale_bulk_items: {
+        Args: { p_days_old?: number; p_user_id: string }
+        Returns: number
+      }
       compute_event_hash: {
         Args: {
           p_analysis_type: string
@@ -36953,6 +36964,7 @@ export type Database = {
         }
         Returns: string
       }
+      count_duplicate_profiles: { Args: { p_user_id: string }; Returns: number }
       create_storage_snapshot: {
         Args: { p_user_id: string }
         Returns: undefined
@@ -36981,6 +36993,10 @@ export type Database = {
           profile_id: string
           source: string
         }[]
+      }
+      find_duplicate_profile: {
+        Args: { p_first_name: string; p_last_name?: string; p_user_id: string }
+        Returns: string
       }
       get_account_storage_summary: {
         Args: { p_user_id: string }
@@ -37093,6 +37109,17 @@ export type Database = {
           last_name: string
           organization: string
           selection_priority: number
+        }[]
+      }
+      get_database_health_metrics: {
+        Args: { p_user_id: string }
+        Returns: {
+          duplicate_groups: number
+          lonely_profiles: number
+          orphaned_media: number
+          stale_bulk_items: number
+          total_media: number
+          total_profiles: number
         }[]
       }
       get_document_folders: {

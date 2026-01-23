@@ -590,3 +590,6 @@ verify_jwt = false
 
 [functions.relink-email-threads]
 verify_jwt = false
+
+[functions.transcendent-analysis]
+verify_jwt = false
