@@ -65,7 +65,7 @@ serve(async (req) => {
     // Fetch recent communications
     const { data: communications, error: commsError } = await supabase
       .from('communications')
-      .select('profile_id, occurred_at, channel, direction')
+      .select('profile_id, occurred_at, channel, is_from_contact')
       .eq('user_id', userId)
       .order('occurred_at', { ascending: false });
 

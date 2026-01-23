@@ -126,9 +126,9 @@ serve(async (req) => {
         if (email) {
           const { data: existing } = await supabase
             .from('contact_methods')
-            .select('profile_id')
-            .eq('user_id', userId)
-            .eq('type', 'email')
+            .select('profile_id, profiles!inner(user_id)')
+            .eq('profiles.user_id', userId)
+            .eq('contact_type', 'email')
             .eq('value', email)
             .limit(1);
 
@@ -168,9 +168,8 @@ serve(async (req) => {
         
         for (const emailAddr of contact.emailAddresses || []) {
           contactMethods.push({
-            user_id: userId,
             profile_id: profile.id,
-            type: 'email',
+            contact_type: 'email',
             value: emailAddr.address,
             label: 'work',
           });
@@ -178,9 +177,8 @@ serve(async (req) => {
 
         if (contact.mobilePhone) {
           contactMethods.push({
-            user_id: userId,
             profile_id: profile.id,
-            type: 'phone',
+            contact_type: 'phone',
             value: contact.mobilePhone,
             label: 'mobile',
           });
@@ -188,9 +186,8 @@ serve(async (req) => {
 
         for (const phone of contact.businessPhones || []) {
           contactMethods.push({
-            user_id: userId,
             profile_id: profile.id,
-            type: 'phone',
+            contact_type: 'phone',
             value: phone,
             label: 'work',
           });
@@ -198,9 +195,8 @@ serve(async (req) => {
 
         for (const phone of contact.homePhones || []) {
           contactMethods.push({
-            user_id: userId,
             profile_id: profile.id,
-            type: 'phone',
+            contact_type: 'phone',
             value: phone,
             label: 'home',
           });

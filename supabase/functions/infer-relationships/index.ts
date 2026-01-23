@@ -80,7 +80,7 @@ serve(async (req) => {
     // Get all profiles for context
     const { data: allProfiles } = await supabase
       .from("profiles")
-      .select("id, first_name, last_name, company, title, relationship_type")
+      .select("id, first_name, last_name, organization, job_title, relationship_type")
       .eq("user_id", user.id)
       .eq("is_active", true);
 
@@ -148,11 +148,11 @@ serve(async (req) => {
 
       // 2. Find shared organization connections
       const sourceProfile = profileMap.get(sourceId);
-      if (sourceProfile?.company) {
+      if (sourceProfile?.organization) {
         const sharedOrgProfiles = (allProfiles || []).filter(p => 
           p.id !== sourceId && 
-          p.company && 
-          p.company.toLowerCase() === sourceProfile.company.toLowerCase()
+          p.organization && 
+          p.organization.toLowerCase() === sourceProfile.organization.toLowerCase()
         );
 
         for (const sharedProfile of sharedOrgProfiles) {
@@ -175,9 +175,9 @@ serve(async (req) => {
               relationship_strength: 0.7,
               confidence_score: 0.85,
               evidence: { 
-                shared_company: sourceProfile.company,
-                source_title: sourceProfile.title,
-                target_title: sharedProfile.title
+                shared_company: sourceProfile.organization,
+                source_title: sourceProfile.job_title,
+                target_title: sharedProfile.job_title
               },
               opportunity_score: 0.8,
               opportunity_type: "collaboration"
@@ -187,7 +187,7 @@ serve(async (req) => {
               results.shared_organizations.push({
                 source: sourceProfile,
                 target: sharedProfile,
-                company: sourceProfile.company
+                organization: sourceProfile.organization
               });
               results.total_inferences++;
             }
@@ -293,13 +293,13 @@ function calculateOpportunityScore(conn: any, profileMap: Map<string, any>): num
     score += 0.15;
   }
   
-  // Higher score if they have a company
-  if (target.company) score += 0.1;
+  // Higher score if they have an organization
+  if (target.organization) score += 0.1;
   
   // Higher score for C-level or senior titles
-  if (target.title) {
+  if (target.job_title) {
     const seniorTitles = ['ceo', 'cto', 'cfo', 'vp', 'director', 'head', 'chief'];
-    if (seniorTitles.some(t => target.title.toLowerCase().includes(t))) {
+    if (seniorTitles.some(t => target.job_title.toLowerCase().includes(t))) {
       score += 0.15;
     }
   }
@@ -311,7 +311,7 @@ function determineOpportunityType(conn: any, profileMap: Map<string, any>): stri
   const target = profileMap.get(conn.targetId);
   if (!target) return 'introduction';
 
-  if (target.relationship_type === 'business' || target.company) {
+  if (target.relationship_type === 'business' || target.organization) {
     return 'strategic_alliance';
   }
   
@@ -331,7 +331,7 @@ async function identifyOpportunities(
 
   const connectionsDesc = connections.map(c => {
     const target = profileMap.get(c.targetId);
-    return `- ${c.pathNames.join(' → ')} (${c.distance} degrees, ${target?.company || 'no company'}, ${target?.title || 'no title'})`;
+    return `- ${c.pathNames.join(' → ')} (${c.distance} degrees, ${target?.organization || 'no company'}, ${target?.job_title || 'no title'})`;
   }).join('\n');
 
   const prompt = `Analyze these discovered network connections and identify the top 3 highest-value networking opportunities:
