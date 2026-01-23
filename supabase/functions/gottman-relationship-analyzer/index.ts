@@ -22,6 +22,18 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ 
+      ok: true, 
+      function: 'gottman-relationship-analyzer', 
+      timestamp: Date.now() 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -48,12 +60,12 @@ serve(async (req) => {
 
     const request: GottmanRequest = await req.json();
 
-    // Get message history
+    // Get message history - join via conversations (messages has no profile_id column)
     const { data: messages } = await supabase
       .from('messages')
-      .select('*')
-      .eq('profile_id', request.profileId)
-      .order('created_at', { ascending: false })
+      .select('*, conversations!inner(profile_id)')
+      .eq('conversations.profile_id', request.profileId)
+      .order('sent_at', { ascending: false })
       .limit(300);
 
     const { data: profile } = await supabase
@@ -168,13 +180,14 @@ Return JSON:
   }
 }`;
 
+    const profileName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown' : 'Unknown';
     const userPrompt = `Analyze relationship for Gottman's Four Horsemen:
 
-Relationship with: ${profile?.full_name || 'Unknown'}
+Relationship with: ${profileName}
 Relationship Type: ${profile?.relationship_type || 'Unknown'}
 
 Recent Communications (${messages?.length || 0} messages):
-${messages?.slice(0, 50).map(m => `[${m.direction}] ${m.content}`).join('\n\n') || 'No messages available'}`;
+${messages?.slice(0, 50).map((m: { is_from_contact?: boolean; content?: string }) => `[${m.is_from_contact ? 'inbound' : 'outbound'}] ${m.content}`).join('\n\n') || 'No messages available'}`;
 
     const aiResponse = await callAI({
       model: selectModel('quality'),
