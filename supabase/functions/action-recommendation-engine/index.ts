@@ -164,7 +164,7 @@ serve(async (req) => {
       { data: upcomingEvents },
       { data: relationshipHealth }
     ] = await Promise.all([
-      supabase.from('profiles').select('id, name, company, title, relationship_type, relationship_strength, last_contact, tags').eq('user_id', userId).eq('is_active', true).limit(maxContactsToAnalyze),
+      supabase.from('profiles').select('id, first_name, last_name, organization, job_title, relationship_type, is_favorite, last_contact_date, tags').eq('user_id', userId).eq('is_active', true).limit(maxContactsToAnalyze),
       // NOTE: messages table has no profile_id/direction columns - query via conversations
       supabase.from('messages').select('content, is_from_contact, created_at, conversations!inner(profile_id, user_id)').eq('conversations.user_id', userId).order('created_at', { ascending: false }).limit(maxRecentMessages),
       supabase.from('personality_profiles').select('profile_id, exploitation_profile, communication_style').eq('user_id', userId),
@@ -184,11 +184,12 @@ serve(async (req) => {
       currentTime: new Date().toISOString(),
       contacts: profiles?.map(p => ({
         id: p.id,
-        name: p.name,
-        company: p.company,
+        name: `${p.first_name} ${p.last_name || ''}`.trim(),
+        company: p.organization,
+        title: p.job_title,
         relationship: p.relationship_type,
-        strength: p.relationship_strength,
-        lastContact: p.last_contact,
+        isFavorite: p.is_favorite,
+        lastContact: p.last_contact_date,
         personality: personalityProfiles?.find(pp => pp.profile_id === p.id)?.exploitation_profile,
         financialTier: financialIntel?.find(fi => fi.profile_id === p.id)?.wealth_tier,
         deceptionRisk: deceptionAlerts?.find(d => d.profile_id === p.id)?.risk_level,
