@@ -143,8 +143,8 @@ Return JSON:
 
     const userPrompt = `Map sacred values and tribal identity:
 
-Contact: ${profile.data?.full_name || 'Unknown'}
-Background: ${profile.data?.bio || 'Unknown'}
+Contact: ${profile.data ? `${profile.data.first_name || ''} ${profile.data.last_name || ''}`.trim() || 'Unknown' : 'Unknown'}
+Background: ${profile.data?.notes || 'Unknown'}
 
 Communications (${messages.data?.length || 0}):
 ${messages.data?.slice(0, 40).map(m => m.content?.substring(0, 200)).join('\n') || 'No messages'}
