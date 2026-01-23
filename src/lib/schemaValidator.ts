@@ -69,8 +69,16 @@ const KNOWN_SCHEMAS: Record<string, string[]> = {
   ],
   // Additional commonly used tables
   messages: [
-    'id', 'user_id', 'profile_id', 'content', 'direction', 'channel', 
+    'id', 'conversation_id', 'content', 'is_from_contact', 
     'sent_at', 'created_at',
+  ],
+  bulk_analysis_sessions: [
+    'id', 'user_id', 'session_name', 'analysis_type', 'status', 
+    'total_items', 'completed_items', 'failed_items', 'created_at', 'updated_at',
+  ],
+  bulk_analysis_items: [
+    'id', 'session_id', 'profile_id', 'status', 'result', 'error_message',
+    'processing_started_at', 'processing_completed_at', 'created_at', 'updated_at',
   ],
   contact_interaction_notes: [
     'id', 'user_id', 'profile_id', 'interaction_type', 'interaction_date',
