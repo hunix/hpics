@@ -14,6 +14,7 @@ export interface VoiceRecording {
   profile_id: string | null;
   created_at: string;
   hasVoiceInsights?: boolean;
+  source: 'voice_recording_sessions' | 'media';
 }
 
 export interface VoiceBulkAnalysisOptions {
@@ -64,40 +65,81 @@ export function useVoiceBulkAnalysis(profileId?: string) {
     try {
       const pid = targetProfileId || profileId;
       
-      let query = supabase
+      // Source 1: Voice Recording Sessions (in-app recordings)
+      let sessionQuery = supabase
         .from('voice_recording_sessions')
         .select('id, title, file_url, duration_seconds, recording_type, transcription_status, status, profile_id, created_at')
         .order('created_at', { ascending: false });
       
       if (pid) {
-        query = query.eq('profile_id', pid);
+        sessionQuery = sessionQuery.eq('profile_id', pid);
       }
-
-      const { data: recordingsData, error } = await query;
-      if (error) throw error;
-
-      // Check which recordings already have voice insights
-      const recordingIds = (recordingsData || []).map(r => r.id);
-      const { data: existingInsights } = await supabase
-        .from('voice_insights')
-        .select('source_id')
-        .in('source_id', recordingIds.length > 0 ? recordingIds : ['__none__']);
-
-      const insightSourceIds = new Set(existingInsights?.map(i => i.source_id) || []);
-
-      const recordingsWithStatus: VoiceRecording[] = (recordingsData || []).map(r => ({
+      
+      // Source 2: Media table (imported audio files like WhatsApp voice notes)
+      let mediaQuery = supabase
+        .from('media')
+        .select('id, caption, file_url, file_size, mime_type, profile_id, created_at')
+        .like('mime_type', 'audio/%')
+        .order('created_at', { ascending: false });
+      
+      if (pid) {
+        mediaQuery = mediaQuery.eq('profile_id', pid);
+      }
+      
+      // Execute both queries in parallel
+      const [sessionsResult, mediaResult] = await Promise.all([
+        sessionQuery,
+        mediaQuery
+      ]);
+      
+      if (sessionsResult.error) throw sessionsResult.error;
+      if (mediaResult.error) throw mediaResult.error;
+      
+      // Normalize session recordings
+      const sessionRecordings: VoiceRecording[] = (sessionsResult.data || []).map(r => ({
         id: r.id,
         title: r.title || 'Untitled',
         audio_url: r.file_url || '',
         duration_seconds: r.duration_seconds,
-        recording_type: r.recording_type || 'unknown',
+        recording_type: r.recording_type || 'session',
         transcription_status: r.transcription_status || 'pending',
         status: r.status || 'pending',
         profile_id: r.profile_id,
         created_at: r.created_at,
+        source: 'voice_recording_sessions' as const,
+      }));
+      
+      // Normalize media audio files
+      const mediaRecordings: VoiceRecording[] = (mediaResult.data || []).map(r => ({
+        id: r.id,
+        title: r.caption || r.file_url?.split('/').pop() || 'Audio File',
+        audio_url: r.file_url || '',
+        duration_seconds: null,
+        recording_type: r.mime_type?.includes('opus') ? 'voice_note' : 'audio',
+        transcription_status: 'pending',
+        status: 'ready',
+        profile_id: r.profile_id,
+        created_at: r.created_at,
+        source: 'media' as const,
+      }));
+      
+      // Merge all recordings
+      const allRecordings = [...sessionRecordings, ...mediaRecordings];
+      
+      // Check which already have voice insights
+      const recordingIds = allRecordings.map(r => r.id);
+      const { data: existingInsights } = await supabase
+        .from('voice_insights')
+        .select('source_id')
+        .in('source_id', recordingIds.length > 0 ? recordingIds : ['__none__']);
+      
+      const insightSourceIds = new Set(existingInsights?.map(i => i.source_id) || []);
+      
+      const recordingsWithStatus: VoiceRecording[] = allRecordings.map(r => ({
+        ...r,
         hasVoiceInsights: insightSourceIds.has(r.id),
       }));
-
+      
       setRecordings(recordingsWithStatus);
       return recordingsWithStatus;
     } catch (error) {
