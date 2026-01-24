@@ -89,10 +89,10 @@ serve(async (req) => {
 
     switch (mode) {
       case 'verify': {
-        // Email verification
-        const targetEmail = email || profile?.email;
+        // Email verification - email must be passed in request, not from profile
+        const targetEmail = email;
         if (!targetEmail) {
-          return new Response(JSON.stringify({ error: 'Email is required for verification' }), {
+          return new Response(JSON.stringify({ error: 'Email is required for verification - pass email in request body' }), {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
@@ -202,12 +202,10 @@ serve(async (req) => {
       result.isDisposable = data.data.disposable;
       result.isWebmail = data.data.webmail;
 
-      // Update profile with verification status
+      // Update last_enriched_at (email_verified column doesn't exist in profiles)
       await supabase
         .from('profiles')
         .update({
-          email_verified: data.data.result === 'deliverable',
-          email_verification_score: data.data.score,
           last_enriched_at: new Date().toISOString(),
         })
         .eq('id', profileId);
@@ -221,15 +219,24 @@ serve(async (req) => {
       result.company = data.data.company;
       result.domain = data.data.domain;
 
-      // Update profile with found email
+      // Store found email in contact_methods (not profiles.email which doesn't exist)
       if (data.data.email && data.data.score >= 80) {
+        // Upsert into contact_methods
+        await supabase
+          .from('contact_methods')
+          .upsert({
+            profile_id: profileId,
+            user_id: user.id,
+            contact_type: 'email',
+            value: data.data.email,
+            label: 'work',
+            is_primary: true,
+            metadata: { hunter_confidence: data.data.score, source: 'hunter' },
+          }, { onConflict: 'profile_id,contact_type,value' });
+        
         await supabase
           .from('profiles')
-          .update({
-            email: data.data.email,
-            email_confidence: data.data.score,
-            last_enriched_at: new Date().toISOString(),
-          })
+          .update({ last_enriched_at: new Date().toISOString() })
           .eq('id', profileId);
       }
 

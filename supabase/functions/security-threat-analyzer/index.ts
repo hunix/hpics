@@ -190,7 +190,7 @@ Provide comprehensive security analysis in this JSON format:
     try {
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
-    } catch (e: any) {
+    } catch (e) {
       analysis = { raw: content, parseError: true };
     }
 
@@ -211,9 +211,10 @@ Provide comprehensive security analysis in this JSON format:
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Security threat analyzer error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

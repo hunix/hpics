@@ -177,10 +177,10 @@ serve(async (req) => {
         let enrichmentResult: any = null;
 
         switch (source.type) {
-          case 'peopledatalabs':
-            if (profile.email || profile.linkedin_url) {
+        case 'peopledatalabs':
+            if (profile.linkedin_url) {
               const response = await supabase.functions.invoke('enrich-pdl', {
-                body: { profileId, email: profile.email, linkedinUrl: profile.linkedin_url },
+                body: { profileId, linkedinUrl: profile.linkedin_url },
               });
               if (!response.error) {
                 enrichmentResult = response.data;
@@ -217,11 +217,10 @@ serve(async (req) => {
             break;
 
           case 'hunter':
-            if (profile.email || (profile.first_name && profile.organization)) {
+            if (profile.first_name && profile.organization) {
               const response = await supabase.functions.invoke('enrich-hunter', {
                 body: { 
                   profileId, 
-                  email: profile.email,
                   firstName: profile.first_name,
                   lastName: profile.last_name,
                   domain: profile.organization,
@@ -282,13 +281,12 @@ serve(async (req) => {
             break;
 
           case 'social_scrape':
-            if (profile.linkedin_url || profile.email) {
+            if (profile.linkedin_url) {
               const response = await supabase.functions.invoke('scrape-social-profile', {
                 body: {
                   profileId,
-                  platform: profile.linkedin_url ? 'linkedin' : 'auto',
+                  platform: 'linkedin',
                   url: profile.linkedin_url,
-                  email: profile.email,
                 },
               });
               if (!response.error) {
@@ -451,8 +449,7 @@ async function selectOptimalSources(
   const selected: string[] = [];
   let estimatedCost = 0;
 
-  // Determine source priority based on available data
-  const hasEmail = !!profile.email;
+  // Determine source priority based on available data (email is in contact_methods, not profiles)
   const hasLinkedIn = !!profile.linkedin_url;
   const hasCompany = !!profile.organization;
   const hasSocialHandles = !!(profile.twitter_url || profile.instagram_url || profile.tiktok_url);
@@ -477,8 +474,10 @@ async function selectOptimalSources(
     let isRelevant = true;
     switch (sourceType) {
       case 'peopledatalabs':
+        isRelevant = hasLinkedIn;
+        break;
       case 'hunter':
-        isRelevant = hasEmail || hasLinkedIn;
+        isRelevant = hasLinkedIn || hasCompany;
         break;
       case 'proxycurl':
         isRelevant = hasLinkedIn;
@@ -512,16 +511,16 @@ async function mergeEnrichmentResults(
   const provenance: Record<string, { source: string; confidence: number; fetchedAt: string }> = {};
 
   // Fields to potentially merge with their source priority
+  // Note: email is stored in contact_methods table, not profiles - city/country instead of location
   const fieldPriority: Record<string, string[]> = {
     job_title: ['peopledatalabs', 'proxycurl', 'social_scrape', 'company_research', 'perplexity', 'web_search'],
     organization: ['peopledatalabs', 'proxycurl', 'social_scrape', 'company_research', 'hunter', 'web_search'],
-    bio: ['proxycurl', 'social_scrape', 'perplexity', 'web_search'],
+    notes: ['proxycurl', 'social_scrape', 'perplexity', 'web_search'],
     linkedin_url: ['proxycurl', 'peopledatalabs', 'social_scrape', 'osint'],
-    email: ['hunter', 'peopledatalabs', 'social_scrape'],
-    phone: ['peopledatalabs', 'hunter'],
     interests: ['social_scrape', 'perplexity', 'diffbot', 'web_search'],
     skills: ['proxycurl', 'peopledatalabs', 'social_scrape', 'web_search'],
-    location: ['peopledatalabs', 'proxycurl', 'social_scrape'],
+    city: ['peopledatalabs', 'proxycurl', 'social_scrape'],
+    country: ['peopledatalabs', 'proxycurl', 'social_scrape'],
     website: ['hunter', 'diffbot', 'firecrawl'],
   };
 
