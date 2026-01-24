@@ -12,6 +12,18 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ 
+      ok: true, 
+      function: 'suggest-network-growth', 
+      timestamp: Date.now() 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -36,9 +48,10 @@ serve(async (req) => {
     }
 
     // Get user's network data
+    // Note: industry column doesn't exist on profiles table
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, first_name, last_name, organization, job_title, relationship_type, industry, is_favorite')
+      .select('id, first_name, last_name, organization, job_title, relationship_type, is_favorite')
       .eq('user_id', user.id)
       .eq('is_active', true);
 
@@ -53,13 +66,14 @@ serve(async (req) => {
     }
 
     // Analyze network composition
-    const industryCount: Record<string, number> = {};
+    // Note: industry column doesn't exist - use organization instead
+    const organizationCount: Record<string, number> = {};
     const roleCount: Record<string, number> = {};
     const relationshipCount: Record<string, number> = {};
     
     profiles.forEach(p => {
-      const industry = p.industry || p.organization || 'Unknown';
-      industryCount[industry] = (industryCount[industry] || 0) + 1;
+      const org = p.organization || 'Unknown';
+      organizationCount[org] = (organizationCount[org] || 0) + 1;
       
       const role = p.job_title?.split(' ')[0] || 'Unknown';
       roleCount[role] = (roleCount[role] || 0) + 1;
@@ -69,7 +83,7 @@ serve(async (req) => {
     });
 
     // Calculate diversity metrics
-    const uniqueIndustries = Object.keys(industryCount).length;
+    const uniqueOrganizations = Object.keys(organizationCount).length;
     const uniqueRoles = Object.keys(roleCount).length;
     const totalContacts = profiles.length;
 
@@ -88,10 +102,10 @@ serve(async (req) => {
       total_contacts: totalContacts,
       active_contacts: activeContacts.size,
       inactive_contacts: inactiveContacts.length,
-      industry_distribution: industryCount,
+      organization_distribution: organizationCount,
       role_distribution: roleCount,
       relationship_types: relationshipCount,
-      diversity_score: Math.min(100, (uniqueIndustries * 10 + uniqueRoles * 5)),
+      diversity_score: Math.min(100, (uniqueOrganizations * 10 + uniqueRoles * 5)),
     };
 
     // Generate AI-powered suggestions

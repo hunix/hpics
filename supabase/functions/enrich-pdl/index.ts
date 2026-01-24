@@ -87,8 +87,9 @@ serve(async (req) => {
     params.append('pretty', 'true');
 
     // Try different identifiers in priority order
-    if (email || profile?.email) {
-      params.append('email', email || profile.email);
+    // Note: profiles table doesn't have email column - only use provided email parameter
+    if (email) {
+      params.append('email', email);
     } else if (linkedinUrl || profile?.linkedin_url) {
       const url = linkedinUrl || profile.linkedin_url;
       params.append('profile', url);
@@ -156,11 +157,14 @@ serve(async (req) => {
 
     if (pdlData.job_title) enrichedData.job_title = pdlData.job_title;
     if (pdlData.job_company_name) enrichedData.organization = pdlData.job_company_name;
-    if (pdlData.job_company_industry) enrichedData.industry = pdlData.job_company_industry;
-    if (pdlData.summary) enrichedData.bio = pdlData.summary;
+    // Note: industry and bio columns don't exist on profiles table
+    // Store summary in notes field instead
+    if (pdlData.summary) enrichedData.notes = pdlData.summary;
     if (pdlData.linkedin_url) enrichedData.linkedin_url = pdlData.linkedin_url;
     if (pdlData.twitter_url) enrichedData.twitter_handle = pdlData.twitter_url;
-    if (pdlData.location_name) enrichedData.location = pdlData.location_name;
+    // Note: location column doesn't exist - use city/country if available
+    if (pdlData.location_locality) enrichedData.city = pdlData.location_locality;
+    if (pdlData.location_country) enrichedData.country = pdlData.location_country;
     if (pdlData.skills) enrichedData.skills = pdlData.skills;
     if (pdlData.interests) enrichedData.interests = pdlData.interests;
     
