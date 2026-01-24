@@ -38,7 +38,7 @@ serve(async (req) => {
 
     // Fetch contact info and transcriptions in parallel
     const [profileResult, recordingsResult] = await Promise.all([
-      supabase.from('profiles').select('first_name, last_name, bio, job_title, organization').eq('id', profileId).single(),
+      supabase.from('profiles').select('first_name, last_name, notes, job_title, organization').eq('id', profileId).single(),
       supabase.from('meeting_recordings').select('transcription, transcription_with_speakers').eq('profile_id', profileId).eq('status', 'completed').order('created_at', { ascending: false }).limit(5),
     ]);
 
@@ -71,7 +71,7 @@ Respond with valid JSON only.`;
 
 Person: ${profile?.first_name} ${profile?.last_name || ''}
 Role: ${profile?.job_title || 'Unknown'} at ${profile?.organization || 'Unknown'}
-Bio: ${profile?.bio || 'Not available'}
+Notes: ${profile?.notes || 'Not available'}
 
 Analysis Type: ${analysisType || 'screening'}
 

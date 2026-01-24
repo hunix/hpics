@@ -152,7 +152,7 @@ serve(async (req) => {
       { data: behavioralData },
       { data: relationships }
     ] = await Promise.all([
-      supabase.from('profiles').select('id, name, company, title, tags, relationship_type').eq('user_id', userId).eq('is_active', true).limit(200),
+      supabase.from('profiles').select('id, first_name, last_name, organization, job_title, tags, relationship_type').eq('user_id', userId).eq('is_active', true).limit(200),
       // NOTE: messages table has no profile_id/direction columns - query via conversations
       supabase.from('messages').select('content, is_from_contact, created_at, conversations!inner(profile_id, user_id)').eq('conversations.user_id', userId).order('created_at', { ascending: false }).limit(1000),
       supabase.from('contact_interactions').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(500),
@@ -167,9 +167,9 @@ serve(async (req) => {
     const correlationData = {
       contacts: profiles?.map(p => ({
         id: p.id,
-        name: p.name,
-        company: p.company,
-        title: p.title,
+        name: `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Unknown',
+        organization: p.organization,
+        title: p.job_title,
         tags: p.tags,
         relationshipType: p.relationship_type
       })),

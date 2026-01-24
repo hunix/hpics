@@ -186,9 +186,10 @@ function buildRiskAlerts(relationshipScore: any, predictions: any[], threat: any
 function generateTalkingPoints(profile: any, communications: any[], observations: any[]): string[] {
   const points: string[] = [];
 
-  // Personal interests
-  if (profile.interests && Array.isArray(profile.interests) && profile.interests.length > 0) {
-    points.push(`Ask about their interest in ${profile.interests[0]}`);
+  // Note: interests should be fetched from contact_interests table separately
+  // For now, generate points based on available profile data
+  if (profile.notes) {
+    points.push(`Review notes for talking points: ${profile.notes.substring(0, 50)}...`);
   }
 
   // Recent life events

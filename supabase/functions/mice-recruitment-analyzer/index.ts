@@ -149,9 +149,9 @@ Return JSON:
     const userPrompt = `Analyze MICE vulnerabilities for recruitment potential:
 
 Profile: ${profileName}
-Company: ${profile.data?.organization || 'Unknown'}
+Organization: ${profile.data?.organization || 'Unknown'}
 Position: ${profile.data?.job_title || 'Unknown'}
-Location: ${profile.data?.location || 'Unknown'}
+Location: ${profile.data?.city ? `${profile.data.city}${profile.data.country ? ', ' + profile.data.country : ''}` : 'Unknown'}
 
 Recent Communications (${messages.data?.length || 0} messages):
 ${messages.data?.slice(0, 20).map((m: { content?: string }) => `- ${m.content?.substring(0, 200)}`).join('\n') || 'No messages'}

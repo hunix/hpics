@@ -165,9 +165,10 @@ serve(async (req) => {
     const contextData = {
       profile: {
         name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown' : 'Unknown',
-        company: profile?.organization,
+        organization: profile?.organization,
         title: profile?.job_title,
-        location: profile?.location,
+        city: profile?.city,
+        country: profile?.country,
         tags: profile?.tags
       },
       enrichedData: enrichment,
