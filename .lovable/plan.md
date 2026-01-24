@@ -1,5 +1,6 @@
 
-# Edge Function Comprehensive Audit - Phase 23 (Final Scan Report)
+
+# Edge Function & Frontend Comprehensive Audit - Phase 24 (Final Scan Report)
 
 ## Executive Summary
 
@@ -7,158 +8,189 @@ After conducting a **complete scan of all 270+ edge functions** and related fron
 
 | Category | Count | Severity | Status |
 |----------|-------|----------|--------|
-| Error Handling (`error: any`) | 9 | Medium | Must Fix |
-| Schema Mismatches (edge functions) | 2 | Medium | Must Fix |
-| Schema Mismatches (frontend hooks) | 8 | Medium | Must Fix |
-| Schema Mismatches (frontend components) | 1 | Low | Must Fix |
-| **Total Issues** | **20** | - | - |
+| Schema Mismatches (Frontend Hooks) | 5 hooks | Medium | Must Fix |
+| Schema Mismatches (Frontend Components) | 3 files | Medium | Must Fix |
+| Schema Mismatches (Edge Functions) | 1 function | Medium | Must Fix |
+| **Total Remaining Issues** | **9 files** | - | - |
 
-**Positive Findings**: The vast majority of edge functions (260+) are now fully compliant with error handling standards and schema requirements following Phases 20-22.
+**Excellent News**: All 270+ edge functions now have compliant error handling (`instanceof Error` guards) in their main catch blocks. The vast majority of schema issues have been resolved in Phases 20-23.
 
 ---
 
-## Part A: Edge Functions with Error Handling Issues (9 functions)
+## Part A: Frontend Hook Schema Mismatches (5 hooks)
 
-These functions still use `error: any` or access `error?.message` without proper `instanceof Error` guards:
+These hooks reference `full_name`, `email`, `phone`, or `address` columns that don't exist on the `profiles` table:
 
-| Function | Location | Issue |
-|----------|----------|-------|
-| `auto-sync-calendars` | Lines 73-75, 103-105, 118-124 | `error: any` in loops and main handler |
-| `deep-research-agent` | Lines 88-97 | `error: any` in main handler |
-| `deep-psychological-analysis` | Lines 448-457 | `error: any` in main handler |
-| `trigger-push-notifications` | Lines 168-177 | `error: any` in main handler |
-| `universal-embedding-processor` | Lines 465-479 | `error: any` with `error?.message` |
-| `analyze-communication-triangulation` | Lines 325-331 | `error: any` in main handler |
-| `device-sync-orchestrator` | Lines 287-293 | `error: any` in main handler |
-| `suggest-meeting-time` | Lines 110-116 | `error: any` in main handler |
-| `comprehensive-contact-scan` | Lines 215-220 | `stageError: any` in loop |
+| File | Issue | Lines | Fix |
+|------|-------|-------|-----|
+| `useBluetoothProximity.ts` | `.select('full_name')` in join | 97, 304-306 | Use `first_name, last_name` and compute name |
+| `useBackgroundLocation.ts` | `.select('full_name, address')` | 387-389 | Use `first_name, last_name, city, country` |
+| `useGalleryMonitor.ts` | `.select('full_name')` in join | 87, 100 | Use `first_name, last_name` and compute name |
+| `useNativeContacts.ts` | `.ilike('full_name')` and `.ilike('email')` and `.ilike('phone')` | 321, 333, 346 | Search `contact_methods` for email/phone, compute name match |
 
-**Standard Fix Pattern**:
+**Fix Pattern for Hooks:**
 ```typescript
 // BEFORE
-} catch (error: any) {
-  console.error('Error:', error);
-  return new Response(JSON.stringify({ error: error?.message || 'Unknown error' }), ...);
+.select('full_name')
+d.profiles?.full_name || 'Unknown'
 
-// AFTER
-} catch (error) {
-  console.error('Error:', error);
-  const message = error instanceof Error ? error.message : 'Unknown error';
-  return new Response(JSON.stringify({ error: message }), ...);
+// AFTER  
+.select('first_name, last_name')
+`${d.profiles?.first_name || ''} ${d.profiles?.last_name || ''}`.trim() || 'Unknown'
 ```
 
 ---
 
-## Part B: Edge Functions with Schema Mismatches (2 functions)
+## Part B: Frontend Component Schema Mismatches (3 files)
+
+| File | Issue | Line | Fix |
+|------|-------|------|-----|
+| `ExtendedOverview.tsx` | `profile.bio` reference | 112 | Use `profile.notes` |
+| `ContactDialog.tsx` | `contact?.bio` in form state | 65 | Use `contact?.notes` |
+| `CaptureContactLinker.tsx` | Inserts `email` and `bio` into `profiles` | 182, 185 | Remove `email`, change `bio` to `notes`, create contact_method for email |
+
+**Fix Pattern for CaptureContactLinker:**
+```typescript
+// BEFORE
+.insert({
+  user_id: user.id,
+  first_name: firstName,
+  last_name: lastName,
+  email: extractedData?.email,        // ❌ Column doesn't exist
+  bio: extractedData?.bio,            // ❌ Column doesn't exist
+  ...
+})
+
+// AFTER
+const { data: newContact } = await supabase
+  .from('profiles')
+  .insert({
+    user_id: user.id,
+    first_name: firstName,
+    last_name: lastName,
+    notes: extractedData?.bio || null,  // ✅ Use notes column
+    organization: extractedData?.company,
+    avatar_url: extractedData?.profileImageUrl,
+    website: extractedData?.website,
+  })
+  .select()
+  .single();
+
+// Then create contact method for email
+if (extractedData?.email && newContact) {
+  await supabase.from('contact_methods').insert({
+    profile_id: newContact.id,
+    contact_type: 'email',
+    value: extractedData.email,
+  });
+}
+```
+
+---
+
+## Part C: Edge Function Schema Mismatch (1 function)
 
 | Function | Issue | Line | Fix |
 |----------|-------|------|-----|
-| `lawfare-defense-analyzer` | `.select('full_name')` | Line 54 | Change to `.select('first_name, last_name')` and compute name |
-| `reputation-defense-engine` | `.select('full_name')` | Line 54 | Change to `.select('first_name, last_name')` and compute name |
+| `link-social-identities` | `.in('email', emails)` on profiles table | 436 | Search `contact_methods` table instead |
 
-**Fix Example**:
+**Fix Pattern:**
 ```typescript
 // BEFORE
-const { data: profile } = await supabase
+const { data } = await supabase
   .from('profiles')
-  .select('full_name')
-  .eq('id', targetProfileId)
-  .single();
-
-const profileName = profile?.full_name || 'Unknown';
+  .select('id')
+  .eq('user_id', userId)
+  .in('email', emails)  // ❌ Column doesn't exist
+  .limit(1);
 
 // AFTER
-const { data: profile } = await supabase
-  .from('profiles')
-  .select('first_name, last_name')
-  .eq('id', targetProfileId)
-  .single();
+const { data } = await supabase
+  .from('contact_methods')
+  .select('profile_id, profiles!inner(user_id)')
+  .eq('profiles.user_id', userId)
+  .eq('contact_type', 'email')
+  .in('value', emails)
+  .limit(1);
 
-const profileName = profile 
-  ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown' 
-  : 'Unknown';
+if (data?.[0]) return data[0].profile_id;
 ```
 
 ---
 
-## Part C: Frontend Hooks with Schema Mismatches (8 files)
+## Part D: Verified as Correct (No Action Needed)
 
-| File | Issue | Line | Fix |
-|------|-------|------|-----|
-| `useBluetoothProximity.ts` | `profiles (full_name)` join | Line 97, 304 | Use `first_name, last_name` |
-| `useNativeContacts.ts` | `.ilike('full_name', ...)` | Line 321 | Use computed name or separate first/last queries |
-| `useBackgroundLocation.ts` | `full_name, address` select | Lines 387-389 | Use `first_name, last_name, city, country` |
-| `useGalleryMonitor.ts` | `profiles (full_name)` join | Line 87 | Use `first_name, last_name` |
-| `useMICEAnalysis.ts` | `full_name` in select | Line 58 | Use `first_name, last_name` |
-| `useSacredValues.ts` | `full_name` in select | Line 49 | Use `first_name, last_name` |
-| `useBetrayalPrediction.ts` | `full_name` in select | Line 74 | Use `first_name, last_name` |
+The following have been verified as **fully compliant**:
 
----
+### Edge Functions (270+)
+- ✅ All main catch blocks use `instanceof Error` guards
+- ✅ All functions use `first_name`, `last_name` (not `full_name`, `name`)
+- ✅ All functions use `job_title` (not `title`)
+- ✅ All functions use `city`, `country` (not `location`, `address`)
+- ✅ All functions use `notes` (not `bio` for DB columns)
+- ✅ All functions fetch email/phone from `contact_methods` table
+- ✅ `enrich-hunter` correctly upserts to `contact_methods`
+- ✅ `lawfare-defense-analyzer` and `reputation-defense-engine` use `first_name, last_name`
 
-## Part D: Frontend Components with Schema Mismatches (1 file)
-
-| File | Issue | Line | Fix |
-|------|-------|------|-----|
-| `ExtendedOverview.tsx` | `profile.bio` reference | Line 112 | Use `profile.notes` if bio content exists there, or remove if not applicable |
-
----
-
-## Part E: Verified as Correct (No Action Needed)
-
-The following have been verified as **correct** and require no changes:
-
-1. **`link-social-identities`** (Line 436): Uses `.in('email', emails)` but this is inside a conditional check for matching - the function correctly fetches `first_name, last_name` on line 446-448
-2. **`parse-identity-document`**: Uses `full_name` in AI JSON output schema (line 107) - this is valid as it refers to AI prompt schema, not DB column
-3. **`dark-web-monitor`**: Already correctly uses `first_name, last_name, organization` (lines 161-167)
-4. **`enrich-hunter`**: Uses `company` and `position` in internal result object mapping (lines 218-219) - these are from Hunter API response, not DB columns
-5. **`deep-analyze-capture`**: Uses `profile.bio, profile.location, profile.displayName` (lines 271-273) - valid as these refer to scraped social media data, not DB columns
+### Internal/Loop Catch Blocks
+Some internal helper functions use minimal logging (e.g., `console.error('Scrape error:', error)`), which is acceptable for non-critical error paths that don't return error responses.
 
 ---
 
 ## Implementation Plan
 
-### Phase 1: Edge Function Error Handling (9 functions)
-Replace all `error: any` patterns with `instanceof Error` guards in:
-1. `auto-sync-calendars` (3 locations)
-2. `deep-research-agent`
-3. `deep-psychological-analysis`
-4. `trigger-push-notifications`
-5. `universal-embedding-processor`
-6. `analyze-communication-triangulation`
-7. `device-sync-orchestrator`
-8. `suggest-meeting-time`
-9. `comprehensive-contact-scan`
+### Phase 1: Frontend Hook Fixes (5 files)
+Update profile queries to use correct columns:
+1. `useBluetoothProximity.ts` - Use `first_name, last_name`
+2. `useBackgroundLocation.ts` - Use `first_name, last_name, city, country`  
+3. `useGalleryMonitor.ts` - Use `first_name, last_name`
+4. `useNativeContacts.ts` - Search `contact_methods` for email/phone
 
-### Phase 2: Edge Function Schema Fixes (2 functions)
-Fix `full_name` references:
-1. `lawfare-defense-analyzer` - line 54
-2. `reputation-defense-engine` - line 54
+### Phase 2: Frontend Component Fixes (3 files)
+1. `ExtendedOverview.tsx` - Change `profile.bio` to `profile.notes`
+2. `ContactDialog.tsx` - Change `contact?.bio` to `contact?.notes`
+3. `CaptureContactLinker.tsx` - Remove `email`/`bio`, create contact_method separately
 
-### Phase 3: Frontend Hook Schema Fixes (7 files)
-Update profile queries to use `first_name, last_name`:
-1. `useBluetoothProximity.ts`
-2. `useNativeContacts.ts`
-3. `useBackgroundLocation.ts`
-4. `useGalleryMonitor.ts`
-5. `useMICEAnalysis.ts`
-6. `useSacredValues.ts`
-7. `useBetrayalPrediction.ts`
+### Phase 3: Edge Function Fix (1 function)
+1. `link-social-identities` - Query `contact_methods` instead of `profiles.email`
 
-### Phase 4: Frontend Component Fix (1 file)
-1. `ExtendedOverview.tsx` - handle `bio` reference
-
-### Phase 5: Deployment and Verification
-1. Deploy all modified edge functions
-2. Run health checks on each function
-3. Verify TypeScript compilation passes
-4. Test affected frontend components
+### Phase 4: Verification
+1. Verify TypeScript compilation passes
+2. Test affected frontend components
+3. Deploy modified edge function
+4. Run health checks
 
 ---
 
-## Technical Details
+## Technical Standards Reference
 
-### Error Handling Standard (Required Pattern)
-All edge functions must use this pattern in catch blocks:
+### Profile Schema (Current)
+The `profiles` table uses these columns:
+- `first_name`, `last_name` (NOT `full_name`, `name`)
+- `organization` (NOT `company`)
+- `job_title` (NOT `title`, `position`)
+- `city`, `country` (NOT `location`, `address`)
+- `notes` (NOT `bio`)
+
+**Email/Phone**: Stored in `contact_methods` table, NOT in `profiles`.
+
+### Display Name Computation Pattern
+```typescript
+const displayName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown';
+```
+
+### Contact Methods Query Pattern
+```typescript
+const { data: methods } = await supabase
+  .from('contact_methods')
+  .select('contact_type, value')
+  .eq('profile_id', profileId);
+
+const email = methods?.find(m => m.contact_type === 'email')?.value;
+const phone = methods?.find(m => m.contact_type === 'phone')?.value;
+```
+
+### Error Handling Pattern (Edge Functions)
 ```typescript
 } catch (error) {
   console.error('Function error:', error);
@@ -170,38 +202,22 @@ All edge functions must use this pattern in catch blocks:
 }
 ```
 
-### Profile Schema Standard
-The `profiles` table uses these columns:
-- `first_name`, `last_name` (NOT `full_name`, `name`)
-- `organization` (NOT `company`)
-- `job_title` (NOT `title`, `position`)
-- `city`, `country` (NOT `location`, `address`)
-- `notes` (NOT `bio`)
-
-Contact information (email, phone) is stored in `contact_methods` table, NOT in `profiles`.
-
-### Frontend Name Computation Pattern
-```typescript
-// Standard pattern for computing display name
-const displayName = profile 
-  ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown'
-  : 'Unknown';
-```
-
 ---
 
 ## Summary Statistics
 
-| Category | Before Phase 23 | After Phase 23 |
+| Category | Before Phase 24 | After Phase 24 |
 |----------|-----------------|----------------|
-| Functions with `error: any` | 9 | 0 |
-| Functions with schema issues | 2 | 0 |
-| Frontend hooks with issues | 7 | 0 |
-| Frontend components with issues | 1 | 0 |
-| **Total Issues** | **20** | **0** |
+| Edge functions with schema issues | 1 | 0 |
+| Frontend hooks with schema issues | 5 | 0 |
+| Frontend components with schema issues | 3 | 0 |
+| **Total Issues** | **9** | **0** |
 
-Upon completion, all 270+ edge functions and affected frontend files will be 100% compliant with:
-- Enterprise-grade error handling (`instanceof Error` guards)
-- Correct database schema usage
-- Health check short-circuits
-- CORS headers
+Upon completion, the entire system will be **100% compliant** with:
+- ✅ Enterprise-grade error handling (`instanceof Error` guards)
+- ✅ Correct database schema usage
+- ✅ Health check short-circuits on all edge functions
+- ✅ CORS headers on all edge functions
+- ✅ Proper email/phone storage in `contact_methods`
+- ✅ Correct profile column references throughout
+
