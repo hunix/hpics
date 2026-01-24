@@ -13,6 +13,18 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ 
+      ok: true, 
+      function: 'suggest-introductions', 
+      timestamp: Date.now() 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -91,7 +103,6 @@ serve(async (req) => {
       organization: profile.organization,
       jobTitle: profile.job_title,
       relationshipType: profile.relationship_type,
-      bio: profile.bio,
       tags: profile.tags || [],
       interests: (interests || []).filter(i => i.profile_id === profile.id).map(i => i.name),
       skills: (skills || []).filter(s => s.profile_id === profile.id).map(s => s.skill_name),

@@ -22,6 +22,18 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ 
+      ok: true, 
+      function: 'predict-contact-preferences', 
+      timestamp: Date.now() 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -119,11 +131,11 @@ serve(async (req) => {
         name: profileName,
         occupation: profile.job_title,
         organization: profile.organization,
-        location: profile.location,
+        city: profile.city,
+        country: profile.country,
         birthday: profile.birthday,
         notes: profile.notes,
-        interests: profile.interests,
-        hobbies: profile.hobbies,
+        // Note: interests and hobbies come from contact_interests table, not profiles
       },
       // NOTE: messages table has 'is_from_contact' not 'direction'
       messages: (messagesResult.data || []).map((m: any) => ({
