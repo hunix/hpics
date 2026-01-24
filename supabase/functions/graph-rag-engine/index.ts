@@ -47,6 +47,12 @@ async function buildKnowledgeGraph(
     profileQuery = profileQuery.eq('id', profileId);
   }
   const { data: profiles } = await profileQuery.limit(100);
+  
+  // Fetch contact_interests for all profiles
+  const profileIds = (profiles || []).map((p: any) => p.id);
+  const { data: allContactInterests } = profileIds.length > 0 
+    ? await supabase.from('contact_interests').select('profile_id, name, interest_type').in('profile_id', profileIds)
+    : { data: [] };
 
   // Create person nodes - use first_name/last_name, organization, job_title
   for (const profile of profiles || []) {
@@ -86,8 +92,9 @@ async function buildKnowledgeGraph(
       });
     }
 
-    // Create topic nodes from interests
-    const interests = profile.interests || [];
+    // Create topic nodes from interests (fetched from contact_interests table)
+    const profileInterests = (allContactInterests || []).filter((ci: any) => ci.profile_id === profile.id);
+    const interests: string[] = profileInterests.map((ci: any) => ci.name || ci.interest_type) || [];
     for (const interest of interests) {
       const topicNodeId = `topic_${interest.toLowerCase().replace(/\s+/g, '_')}`;
       if (!nodes.find(n => n.id === topicNodeId)) {

@@ -99,7 +99,7 @@ serve(async (req) => {
         relationship_type: profile?.relationship_type,
         organization: profile?.organization,
         job_title: profile?.job_title,
-        bio: profile?.bio,
+        notes: profile?.notes,
       },
       personalInfo: personalInfo ? {
         mbti: personalInfo.mbti_type,

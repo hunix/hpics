@@ -407,9 +407,17 @@ serve(async (req) => {
         // Build network graph from user's contacts
         const { data: profiles } = await supabaseClient
           .from('profiles')
-          .select('id, first_name, last_name, company, relationship_score')
+          .select('id, first_name, last_name, organization')
           .eq('user_id', user.id)
           .eq('is_active', true);
+        
+        // Fetch relationship scores separately
+        const { data: relationshipScores } = await supabaseClient
+          .from('relationship_scores')
+          .select('profile_id, overall_score')
+          .eq('user_id', user.id);
+        
+        const scoreMap = new Map(relationshipScores?.map(rs => [rs.profile_id, rs.overall_score]) || []);
         
         const { data: relationships } = await supabaseClient
           .from('profile_relationships')
@@ -423,15 +431,15 @@ serve(async (req) => {
               ...profiles.map(p => ({
                 id: p.id,
                 name: `${p.first_name} ${p.last_name}`.trim() || 'Unknown',
-                group: p.company || 'default',
-                influence: (p.relationship_score || 50) / 100
+                group: p.organization || 'default',
+                influence: (scoreMap.get(p.id) || 50) / 100
               }))
             ],
             edges: [
               ...profiles.map(p => ({
                 source: 'user',
                 target: p.id,
-                strength: (p.relationship_score || 50) / 100
+                strength: (scoreMap.get(p.id) || 50) / 100
               })),
               ...(relationships || []).map(r => ({
                 source: r.source_profile_id,
