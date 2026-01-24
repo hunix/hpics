@@ -156,7 +156,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
-  } catch (error: unknown) {
+  } catch (error) {
     console.error('Transcribe voice note error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     

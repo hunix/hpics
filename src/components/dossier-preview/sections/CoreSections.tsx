@@ -114,9 +114,7 @@ function ContactOverview({ data }: { data: ExtendedDossierData }) {
       <KeyValueRow label="Full Name" value={data.contactName} />
       <KeyValueRow label="Organization" value={profile.organization || 'Unknown'} />
       <KeyValueRow label="Job Title" value={profile.job_title || 'Unknown'} />
-      <KeyValueRow label="Email" value={profile.email || 'Not provided'} />
-      <KeyValueRow label="Phone" value={profile.phone || 'Not provided'} />
-      <KeyValueRow label="Location" value={profile.location || 'Unknown'} />
+      <KeyValueRow label="Location" value={[profile.city, profile.country].filter(Boolean).join(', ') || 'Unknown'} />
       {profile.notes && (
         <DataBox variant="muted">
           <p className="text-sm">{profile.notes}</p>

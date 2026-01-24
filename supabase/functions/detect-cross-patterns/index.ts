@@ -298,23 +298,24 @@ Return as JSON: { "assessment": "...", "insights": ["..."], "risks": ["..."] }`
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Cross-pattern detection error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     
-    if (error?.message?.includes('RATE_LIMIT')) {
+    if (errorMessage.includes('RATE_LIMIT')) {
       return new Response(JSON.stringify({ error: 'Rate limits exceeded.' }), {
         status: 429,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    if (error?.message?.includes('BUDGET_EXCEEDED')) {
+    if (errorMessage.includes('BUDGET_EXCEEDED')) {
       return new Response(JSON.stringify({ error: 'AI budget exceeded.' }), {
         status: 402,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
     
-    return new Response(JSON.stringify({ error: error?.message || 'Unknown error' }), {
+    return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

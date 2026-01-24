@@ -38,8 +38,9 @@ interface BriefingData {
     };
   };
   profile: {
-    name: string;
-    title: string | null;
+    first_name: string;
+    last_name: string;
+    job_title: string | null;
     organization: string | null;
     avatarUrl: string | null;
   };
@@ -175,13 +176,13 @@ export function MeetingBriefing({ profileId, contactName }: MeetingBriefingProps
           <CardHeader className="pb-3">
             <div className="flex items-center gap-4">
               <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center text-xl font-bold">
-                {briefing.profile.name.split(' ').map(n => n[0]).join('')}
+                {`${briefing.profile.first_name || ''} ${briefing.profile.last_name || ''}`.trim().split(' ').map(n => n[0]).join('')}
               </div>
               <div>
-                <CardTitle className="text-xl">{briefing.profile.name}</CardTitle>
+                <CardTitle className="text-xl">{`${briefing.profile.first_name || ''} ${briefing.profile.last_name || ''}`.trim()}</CardTitle>
                 <CardDescription>
-                  {briefing.profile.title && <span>{briefing.profile.title}</span>}
-                  {briefing.profile.title && briefing.profile.organization && <span> at </span>}
+                  {briefing.profile.job_title && <span>{briefing.profile.job_title}</span>}
+                  {briefing.profile.job_title && briefing.profile.organization && <span> at </span>}
                   {briefing.profile.organization && <span>{briefing.profile.organization}</span>}
                 </CardDescription>
               </div>
