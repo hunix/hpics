@@ -90,7 +90,6 @@ serve(async (req) => {
         relationship: profile.relationship_type,
         organization: profile.organization,
         jobTitle: profile.job_title,
-        bio: profile.bio,
         notes: profile.notes,
         tags: profile.tags,
         linkedInUrl: profile.linkedin_url,

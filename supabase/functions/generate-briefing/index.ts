@@ -72,7 +72,6 @@ ${profile.nickname ? `Nickname: ${profile.nickname}` : ''}
 ${profile.job_title ? `Title: ${profile.job_title}` : ''}
 ${profile.organization ? `Organization: ${profile.organization}` : ''}
 Relationship: ${profile.relationship_type || 'Unknown'}
-${profile.bio ? `Bio: ${profile.bio}` : ''}
 ${profile.notes ? `Notes: ${profile.notes}` : ''}
 
 KNOWN INTERESTS:
