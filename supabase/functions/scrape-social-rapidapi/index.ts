@@ -243,8 +243,9 @@ serve(async (req) => {
     if (results.twitter) {
       profileUpdate.twitter_handle = results.twitter.username;
       profileUpdate.twitter_followers = results.twitter.followers;
-      if (results.twitter.location && !profile?.location) {
-        profileUpdate.location = results.twitter.location;
+      // Note: location column doesn't exist on profiles table - use city instead
+      if (results.twitter.location && !profile?.city) {
+        profileUpdate.city = results.twitter.location;
       }
     }
 
