@@ -460,9 +460,10 @@ Be specific, evidence-based, and strategically actionable. Output as JSON:
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Dossier generation error:', error);
-    return new Response(JSON.stringify({ error: error?.message || 'Unknown error' }), {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
