@@ -175,7 +175,7 @@ serve(async (req) => {
     // 4. Professional Background
     sections.professional = {
       current_organization: profile.organization,
-      current_title: profile.title,
+      current_title: profile.job_title,
       education: education?.map(e => ({
         institution: e.institution_name,
         degree: e.degree_type,

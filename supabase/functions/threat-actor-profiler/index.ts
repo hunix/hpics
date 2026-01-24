@@ -166,7 +166,7 @@ Create comprehensive threat actor profile in JSON format:
         model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: THREAT_PROFILER_PROMPT },
-          { role: 'user', content: `Profile threat actor: ${profile?.name || profileId}` }
+          { role: 'user', content: `Profile threat actor: ${profile ? `${profile.first_name} ${profile.last_name}` : profileId}` }
         ],
         temperature: 0.3,
       }),

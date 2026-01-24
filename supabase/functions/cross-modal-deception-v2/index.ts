@@ -187,7 +187,7 @@ serve(async (req) => {
     // Compile multimodal data
     const contextData = {
       profile: {
-        name: profile?.name,
+        name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : null,
         relationship: profile?.relationship_type,
         knownFor: profile?.tags
       },

@@ -145,7 +145,7 @@ serve(async (req) => {
 
     const contextData = {
       target: {
-        name: profile?.name,
+        name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : null,
         relationship: profile?.relationship_type,
         relationshipStrength: profile?.relationship_strength
       },
