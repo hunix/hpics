@@ -974,10 +974,11 @@ async function snapshotSentiment(supabase: any, userId: string) {
 async function correlateWithContacts(supabase: any, userId: string, profileId?: string) {
   const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
   
-  // Get contacts with company info
+  // Get contacts with organization info
+  // Note: profiles uses first_name/last_name, organization, city/country (not full_name, company, industry, location)
   const contactsQuery = supabase
     .from('profiles')
-    .select('id, full_name, company, job_title, industry, location')
+    .select('id, first_name, last_name, organization, job_title, city, country')
     .eq('user_id', userId);
   
   if (profileId) {

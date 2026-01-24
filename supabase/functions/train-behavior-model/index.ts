@@ -237,7 +237,7 @@ async function generatePredictions(
 
 Contact Profile:
 - Name: ${profile.first_name} ${profile.last_name || ''}
-- Company: ${profile.company || 'Unknown'}
+- Organization: ${profile.organization || 'Unknown'}
 - Relationship Type: ${profile.relationship_type || 'Unknown'}
 
 Behavioral Features:

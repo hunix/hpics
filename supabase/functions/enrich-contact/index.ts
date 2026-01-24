@@ -13,6 +13,18 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ 
+      ok: true, 
+      function: 'enrich-contact', 
+      timestamp: Date.now() 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -323,9 +335,10 @@ serve(async (req) => {
     }
 
     // Update profile with extracted info
+    // Note: profiles table uses 'notes' not 'bio'
     const profileUpdates: any = {};
-    if (data.bio && !profile.bio) {
-      profileUpdates.bio = data.bio;
+    if (data.bio && !profile.notes) {
+      profileUpdates.notes = data.bio;
       savedCount.profileFields++;
     }
     if (data.job_title && !profile.job_title) {

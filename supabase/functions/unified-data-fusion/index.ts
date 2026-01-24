@@ -657,8 +657,10 @@ async function temporalAnalysis(supabase: any, userId: string, profileId: string
 
 // Helper functions
 function calculateProfileCompleteness(profile: any): number {
-  const fields = ["first_name", "last_name", "company", "job_title", "industry", "location", "bio"];
-  const filled = fields.filter(f => profile[f] && profile[f].trim().length > 0).length;
+  // Note: profiles uses organization (not company), notes (not bio), city/country (not location)
+  // industry column doesn't exist on profiles table
+  const fields = ["first_name", "last_name", "organization", "job_title", "city", "country", "notes"];
+  const filled = fields.filter(f => profile[f] && String(profile[f]).trim().length > 0).length;
   return filled / fields.length;
 }
 

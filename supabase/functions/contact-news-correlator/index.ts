@@ -11,6 +11,18 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ 
+      ok: true, 
+      function: 'contact-news-correlator', 
+      timestamp: Date.now() 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -72,10 +84,10 @@ serve(async (req) => {
 });
 
 async function correlateAllContacts(supabase: any, userId: string, days: number) {
-  // Get all contacts with company/industry info
+  // Get all contacts with organization info
   const { data: profiles, error: profilesError } = await supabase
     .from("profiles")
-    .select("id, first_name, last_name, company, job_title, industry, location, tags")
+    .select("id, first_name, last_name, organization, job_title, city, country, tags")
     .eq("user_id", userId)
     .limit(500);
 
@@ -199,8 +211,7 @@ async function correlateContact(supabase: any, userId: string, profileId: string
     profile: {
       id: profile.id,
       name: `${profile.first_name} ${profile.last_name}`,
-      company: profile.company,
-      industry: profile.industry,
+      organization: profile.organization,
     },
     correlations: correlations.slice(0, 20),
     aiAnalysis,
@@ -224,7 +235,7 @@ async function generateAlerts(supabase: any, userId: string) {
   // Get all contacts
   const { data: profiles, error: profilesError } = await supabase
     .from("profiles")
-    .select("id, first_name, last_name, company, industry, job_title")
+    .select("id, first_name, last_name, organization, job_title")
     .eq("user_id", userId);
 
   if (profilesError) throw profilesError;
@@ -406,9 +417,8 @@ Return a JSON array of predictions with this structure:
 
 CONTACT:
 Name: ${profile.first_name} ${profile.last_name}
-Company: ${profile.company || "Unknown"}
+Organization: ${profile.organization || "Unknown"}
 Title: ${profile.job_title || "Unknown"}
-Industry: ${profile.industry || "Unknown"}
 
 RELEVANT NEWS CORRELATIONS:
 ${JSON.stringify(newsContext, null, 2)}
@@ -450,19 +460,19 @@ Predict:
 }
 
 async function updateIndustryTracking(supabase: any, userId: string) {
-  // Get unique industries from contacts
+  // Get unique organizations from contacts (industry field doesn't exist)
   const { data: profiles, error: profilesError } = await supabase
     .from("profiles")
-    .select("industry, company")
+    .select("organization")
     .eq("user_id", userId)
-    .not("industry", "is", null);
+    .not("organization", "is", null);
 
   if (profilesError) throw profilesError;
 
   const industryCounts: Record<string, number> = {};
   for (const p of profiles || []) {
-    if (p.industry) {
-      industryCounts[p.industry] = (industryCounts[p.industry] || 0) + 1;
+    if (p.organization) {
+      industryCounts[p.organization] = (industryCounts[p.organization] || 0) + 1;
     }
   }
 
@@ -527,7 +537,7 @@ async function updateIndustryTracking(supabase: any, userId: string) {
 async function getAlerts(supabase: any, userId: string, profileId?: string) {
   let query = supabase
     .from("contact_news_alerts")
-    .select("*, profiles(first_name, last_name, company), news_intelligence_items(title, source)")
+    .select("*, profiles(first_name, last_name, organization), news_intelligence_items(title, source)")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(50);
@@ -565,7 +575,7 @@ async function markAlertRead(supabase: any, userId: string, alertId: string) {
 async function getPredictions(supabase: any, userId: string, profileId?: string) {
   let query = supabase
     .from("contact_behavior_predictions")
-    .select("*, profiles(first_name, last_name, company)")
+    .select("*, profiles(first_name, last_name, organization)")
     .eq("user_id", userId)
     .order("confidence_score", { ascending: false })
     .limit(50);
@@ -588,12 +598,12 @@ async function getPredictions(supabase: any, userId: string, profileId?: string)
 // Helper functions
 function extractProfileKeywords(profile: any): string[] {
   const keywords: string[] = [];
-  if (profile.company) keywords.push(profile.company.toLowerCase());
-  if (profile.industry) keywords.push(profile.industry.toLowerCase());
+  if (profile.organization) keywords.push(profile.organization.toLowerCase());
   if (profile.job_title) {
     keywords.push(...profile.job_title.toLowerCase().split(/\s+/));
   }
-  if (profile.location) keywords.push(profile.location.toLowerCase());
+  if (profile.city) keywords.push(profile.city.toLowerCase());
+  if (profile.country) keywords.push(profile.country.toLowerCase());
   if (profile.tags) keywords.push(...(profile.tags || []));
   return keywords.filter(k => k && k.length > 2);
 }
@@ -624,12 +634,12 @@ function calculateMatchScore(profileKeywords: string[], news: any): number {
 
 function determineCorrelationType(news: any, profile: any): string {
   if (news.entities?.companies?.some((c: string) => 
-    c.toLowerCase().includes(profile.company?.toLowerCase() || ""))) {
-    return "direct_company_mention";
+    c.toLowerCase().includes(profile.organization?.toLowerCase() || ""))) {
+    return "direct_organization_mention";
   }
   if (news.sectors?.some((s: string) => 
-    s.toLowerCase().includes(profile.industry?.toLowerCase() || ""))) {
-    return "industry_related";
+    s.toLowerCase().includes(profile.organization?.toLowerCase() || ""))) {
+    return "organization_related";
   }
   return "keyword_match";
 }
@@ -709,22 +719,22 @@ function generateAlertTitle(alertType: string, profile: any, news: any): string 
   const name = `${profile.first_name} ${profile.last_name}`;
   switch (alertType) {
     case "layoff_warning":
-      return `⚠️ Layoff Alert: ${profile.company || "Company"} mentioned in workforce news`;
+      return `⚠️ Layoff Alert: ${profile.organization || "Organization"} mentioned in workforce news`;
     case "funding_announcement":
-      return `💰 Opportunity: ${profile.company || "Company"} funding/investment news`;
+      return `💰 Opportunity: ${profile.organization || "Organization"} funding/investment news`;
     case "competitor_move":
-      return `🎯 Competitive Intel: Movement in ${name}'s industry`;
+      return `🎯 Competitive Intel: Movement in ${name}'s sector`;
     case "risk":
       return `🚨 Risk Alert: Negative news affecting ${name}`;
     case "opportunity":
       return `✨ Opportunity: Positive developments for ${name}`;
     default:
-      return `📰 News Alert: ${profile.company || name} in the news`;
+      return `📰 News Alert: ${profile.organization || name} in the news`;
   }
 }
 
 function generateAlertDescription(alertType: string, profile: any, news: any): string {
-  return `${news.title}\n\nThis may affect ${profile.first_name} ${profile.last_name} at ${profile.company || "their organization"}.`;
+  return `${news.title}\n\nThis may affect ${profile.first_name} ${profile.last_name} at ${profile.organization || "their organization"}.`;
 }
 
 function generateRecommendedActions(alertType: string, profile: any, news: any): any[] {
@@ -760,8 +770,8 @@ function generateRecommendedActions(alertType: string, profile: any, news: any):
 
 function generateConversationStarters(news: any, profile: any): string[] {
   return [
-    `I saw the news about ${news.title?.split(":")[0] || "recent developments"} - how is that affecting things at ${profile.company || "your company"}?`,
-    `With everything happening in your industry, I wanted to check in and see how you're doing.`,
+    `I saw the news about ${news.title?.split(":")[0] || "recent developments"} - how is that affecting things at ${profile.organization || "your organization"}?`,
+    `With everything happening in your sector, I wanted to check in and see how you're doing.`,
     `I noticed some interesting news that might be relevant to your work - would love to chat about it.`,
   ];
 }
@@ -786,7 +796,7 @@ async function analyzeWithAI(profile: any, correlations: any[]): Promise<any> {
           },
           {
             role: "user",
-            content: `Contact: ${profile.first_name} ${profile.last_name} at ${profile.company || "Unknown"} (${profile.job_title || "Unknown"})
+            content: `Contact: ${profile.first_name} ${profile.last_name} at ${profile.organization || "Unknown"} (${profile.job_title || "Unknown"})
 
 Correlated News:
 ${correlations.map(c => `- ${c.news?.title} (Score: ${c.score.toFixed(2)}, Impact: ${c.impact?.magnitude})`).join("\n")}

@@ -13,6 +13,18 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check short-circuit
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ 
+      ok: true, 
+      function: 'suggest-gifts', 
+      timestamp: Date.now() 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const { profileId, occasion, priceRange, modelTier = 'balanced' } = await req.json();
     
@@ -48,7 +60,7 @@ Name: ${profile.first_name} ${profile.last_name || ''}
 ${profile.job_title ? `Profession: ${profile.job_title}` : ''}
 ${profile.organization ? `Organization: ${profile.organization}` : ''}
 Relationship Type: ${profile.relationship_type || 'Unknown'}
-${profile.bio ? `Bio: ${profile.bio}` : ''}
+${profile.notes ? `Notes: ${profile.notes}` : ''}
 
 KNOWN INTERESTS:
 ${interests.length > 0 ? interests.map(i => `- ${i.name} (${i.interest_type})${i.notes ? `: ${i.notes}` : ''}`).join('\n') : 'No specific interests recorded'}
