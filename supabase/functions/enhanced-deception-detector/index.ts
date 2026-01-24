@@ -49,28 +49,29 @@ serve(async (req) => {
     ] = await Promise.all([
       // NOTE: messages table has no profile_id column - must join via conversations
       // Also: messages has 'sent_at' not 'received_at'
+      // Reduced limits for faster processing (prevent timeout)
       supabase.from('messages')
         .select('*, conversations!inner(profile_id)')
         .eq('conversations.profile_id', profileId)
         .gte('sent_at', cutoffDate.toISOString())
         .order('sent_at', { ascending: false })
-        .limit(500),
+        .limit(200),
       supabase.from('voice_insights')
         .select('*')
         .eq('profile_id', profileId)
         .gte('created_at', cutoffDate.toISOString())
-        .limit(100),
+        .limit(50),
       supabase.from('media_analyses')
         .select('*')
         .eq('profile_id', profileId)
         .eq('analysis_type', 'facial')
         .gte('created_at', cutoffDate.toISOString())
-        .limit(100),
+        .limit(50),
       supabase.from('body_language_analyses')
         .select('*')
         .eq('profile_id', profileId)
         .gte('created_at', cutoffDate.toISOString())
-        .limit(50),
+        .limit(30),
       supabase.from('behavioral_analyses')
         .select('*')
         .eq('profile_id', profileId)
@@ -227,7 +228,7 @@ Provide forensic deception analysis in this JSON format:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-pro',
+        model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: ENHANCED_DECEPTION_PROMPT },
           { role: 'user', content: JSON.stringify(contextData) }
