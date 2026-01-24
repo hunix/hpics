@@ -261,10 +261,12 @@ function detectHomophilyViolations(
       }
     }
 
-    // Similar locations
-    if (profileA.location && profileB.location) {
+    // Similar locations - use city/country
+    const locA = [profileA.city, profileA.country].filter(Boolean).join(', ');
+    const locB = [profileB.city, profileB.country].filter(Boolean).join(', ');
+    if (locA && locB) {
       expectedSimilarity += 20;
-      if (profileA.location === profileB.location) {
+      if (locA === locB) {
         actualSimilarity += 20;
       }
     }

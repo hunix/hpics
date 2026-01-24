@@ -184,10 +184,12 @@ function calculateEntitySimilarity(profileA: any, profileB: any): { similarity: 
     if (orgScore > 10) reasons.push(`organization_match:${Math.round(orgSim * 100)}%`);
   }
 
-  // Location comparison (weight: 10)
-  if (profileA.location && profileB.location) {
+  // Location comparison (weight: 10) - use city/country
+  const locA = [profileA.city, profileA.country].filter(Boolean).join(', ');
+  const locB = [profileB.city, profileB.country].filter(Boolean).join(', ');
+  if (locA && locB) {
     maxScore += 10;
-    const locSim = tokenSimilarity(profileA.location, profileB.location);
+    const locSim = tokenSimilarity(locA, locB);
     const locScore = locSim * 10;
     totalScore += locScore;
     if (locScore > 5) reasons.push(`location_match:${Math.round(locSim * 100)}%`);
