@@ -84,7 +84,7 @@ export function useGalleryMonitor(
         .select(`
           profile_id,
           facial_features,
-          profiles!contact_biometrics_profile_id_fkey (full_name)
+          profiles!contact_biometrics_profile_id_fkey (first_name, last_name)
         `)
         .eq('user_id', user.id)
         .not('facial_features', 'is', null);
@@ -97,7 +97,7 @@ export function useGalleryMonitor(
             descriptor: faceDetectionService.deserializeDescriptor(
               JSON.stringify(d.facial_features.descriptor)
             ),
-            name: d.profiles?.full_name || 'Unknown'
+            name: d.profiles ? `${d.profiles.first_name || ''} ${d.profiles.last_name || ''}`.trim() || 'Unknown' : 'Unknown'
           }));
       }
     };

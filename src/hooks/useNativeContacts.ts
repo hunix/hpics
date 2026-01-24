@@ -313,41 +313,55 @@ export function useNativeContacts(): UseNativeContactsReturn {
   ): Promise<string | null> => {
     if (!user) return null;
 
-    // Search by exact name match first
-    const { data: byName } = await supabase
+    // Parse contact name for matching
+    const contactNameParts = contact.name.split(' ').filter(Boolean);
+    const contactFirstName = contactNameParts[0]?.toLowerCase() || '';
+    const contactLastName = contactNameParts.slice(1).join(' ').toLowerCase() || '';
+
+    // Search by name match (using first_name and last_name)
+    const { data: profiles } = await supabase
       .from('profiles')
-      .select('id')
+      .select('id, first_name, last_name')
       .eq('user_id', user.id)
-      .ilike('full_name', contact.name)
-      .limit(1)
-      .single();
+      .limit(100);
 
-    if (byName) return byName.id;
-
-    // Search by email
-    for (const email of contact.emails) {
-      const { data: byEmail } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .ilike('email', email)
-        .limit(1)
-        .single();
-
-      if (byEmail) return byEmail.id;
+    if (profiles) {
+      const nameMatch = profiles.find((p: any) => {
+        const pFirst = (p.first_name || '').toLowerCase();
+        const pLast = (p.last_name || '').toLowerCase();
+        return (pFirst === contactFirstName && pLast === contactLastName) ||
+               (contactFirstName && pFirst === contactFirstName && !contactLastName);
+      });
+      if (nameMatch) return nameMatch.id;
     }
 
-    // Search by phone
-    for (const phone of contact.phones) {
-      const { data: byPhone } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .ilike('phone', `%${phone.replace(/\D/g, '').slice(-10)}%`)
+    // Search by email in contact_methods table
+    for (const email of contact.emails) {
+      const { data: byEmail } = await supabase
+        .from('contact_methods')
+        .select('profile_id, profiles!inner(user_id)')
+        .eq('profiles.user_id', user.id)
+        .eq('contact_type', 'email')
+        .ilike('value', email)
         .limit(1)
         .single();
 
-      if (byPhone) return byPhone.id;
+      if (byEmail) return byEmail.profile_id;
+    }
+
+    // Search by phone in contact_methods table
+    for (const phone of contact.phones) {
+      const normalizedPhone = phone.replace(/\D/g, '').slice(-10);
+      const { data: byPhone } = await supabase
+        .from('contact_methods')
+        .select('profile_id, profiles!inner(user_id)')
+        .eq('profiles.user_id', user.id)
+        .eq('contact_type', 'phone')
+        .ilike('value', `%${normalizedPhone}%`)
+        .limit(1)
+        .single();
+
+      if (byPhone) return byPhone.profile_id;
     }
 
     return null;

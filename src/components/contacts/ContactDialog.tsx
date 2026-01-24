@@ -62,7 +62,6 @@ export function ContactDialog({ open, onOpenChange, contact }: ContactDialogProp
     relationship_type: contact?.relationship_type ?? 'other',
     relationship_subtype: (contact as any)?.relationship_subtype ?? '',
     hierarchy_level: (contact as any)?.hierarchy_level ?? '',
-    bio: contact?.bio ?? '',
     notes: contact?.notes ?? '',
     tags: contact?.tags?.join(', ') ?? '',
   });
@@ -88,7 +87,6 @@ export function ContactDialog({ open, onOpenChange, contact }: ContactDialogProp
         organization: data.organization || null,
         job_title: data.job_title || null,
         relationship_type: data.relationship_type as 'family' | 'friend' | 'colleague' | 'client' | 'mentor' | 'mentee' | 'acquaintance' | 'other',
-        bio: data.bio || null,
         notes: data.notes || null,
         tags: data.tags ? data.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
         relationship_subtype: data.relationship_subtype || null,
@@ -138,7 +136,6 @@ export function ContactDialog({ open, onOpenChange, contact }: ContactDialogProp
       relationship_type: 'other',
       relationship_subtype: '',
       hierarchy_level: '',
-      bio: '',
       notes: '',
       tags: '',
     });
@@ -288,12 +285,12 @@ export function ContactDialog({ open, onOpenChange, contact }: ContactDialogProp
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="bio">Bio</Label>
+            <Label htmlFor="notes">Notes / Bio</Label>
             <Textarea
-              id="bio"
-              value={formData.bio}
-              onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-              placeholder="Brief description about this person..."
+              id="notes"
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              placeholder="Brief description or notes about this person..."
               rows={2}
             />
           </div>

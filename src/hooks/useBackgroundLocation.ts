@@ -384,9 +384,9 @@ export function useBackgroundLocation(
     // Get contacts with known locations
     const { data: contacts } = await supabase
       .from('profiles')
-      .select('id, full_name, address')
+      .select('id, first_name, last_name, city, country')
       .eq('user_id', user.id)
-      .not('address', 'is', null);
+      .not('city', 'is', null);
 
     if (!contacts) return;
 
