@@ -200,12 +200,13 @@ serve(async (req) => {
           console.log('Demo mode: Would send to endpoint:', sub.endpoint.substring(0, 50));
           successCount++;
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error('Failed to send to subscription:', sub.id, error);
         failCount++;
 
         // Optionally deactivate failed subscriptions
-        if (error?.message?.includes('expired') || error?.message?.includes('unsubscribed')) {
+        const errorMessage = error instanceof Error ? error.message : '';
+        if (errorMessage.includes('expired') || errorMessage.includes('unsubscribed')) {
           await supabase
             .from('push_subscriptions')
             .update({ is_active: false })
@@ -240,10 +241,11 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Push notification error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: error?.message || 'Unknown error' }),
+      JSON.stringify({ error: message }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

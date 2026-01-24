@@ -110,11 +110,12 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error extracting branding:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(JSON.stringify({
       success: false,
-      error: error?.message || 'Unknown error'
+      error: message
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -162,9 +163,10 @@ async function scrapeWithFirecrawl(url: string, apiKey: string, formats: string[
     }
 
     return await response.json();
-  } catch (error: any) {
+  } catch (error) {
     console.error('Firecrawl scrape error:', error);
-    return { error: error?.message || 'Unknown error' };
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { error: message };
   }
 }
 
