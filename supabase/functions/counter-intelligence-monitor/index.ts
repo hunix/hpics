@@ -200,7 +200,7 @@ Provide a comprehensive counter-intelligence assessment in this JSON format:
     try {
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
-    } catch (e: any) {
+    } catch (e) {
       console.error('JSON parse error:', e);
       analysis = { raw: content, parseError: true };
     }
