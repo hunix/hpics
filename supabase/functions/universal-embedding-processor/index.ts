@@ -462,17 +462,18 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Universal embedding processor error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     
-    if (error?.message?.includes('Rate limit')) {
+    if (message.includes('Rate limit')) {
       return new Response(JSON.stringify({ error: 'Rate limits exceeded. Please try again later.' }), {
         status: 429,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
     
-    return new Response(JSON.stringify({ error: error?.message || 'Unknown error' }), {
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

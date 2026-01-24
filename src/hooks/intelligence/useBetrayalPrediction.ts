@@ -69,9 +69,10 @@ export function useBetrayalPrediction(profileId?: string) {
         .from('betrayal_predictions')
         .select(`
           *,
-          profiles:profile_id (
+        profiles:profile_id (
             id,
-            full_name,
+            first_name,
+            last_name,
             avatar_url
           )
         `)

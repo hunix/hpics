@@ -212,11 +212,12 @@ serve(async (req) => {
             error: errorText.substring(0, 200),
           };
         }
-      } catch (stageError: any) {
-        console.error(`Stage ${stage.id} error:`, stageError.message);
+      } catch (stageError) {
+        const stageMessage = stageError instanceof Error ? stageError.message : 'Unknown error';
+        console.error(`Stage ${stage.id} error:`, stageMessage);
         resultsSummary[stage.id] = {
           success: false,
-          error: stageError.message,
+          error: stageMessage,
         };
       }
 

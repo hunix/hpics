@@ -53,9 +53,10 @@ export function useMICEAnalysis(profileId?: string) {
         .from('mice_assessments')
         .select(`
           *,
-          profiles:profile_id (
+        profiles:profile_id (
             id,
-            full_name,
+            first_name,
+            last_name,
             avatar_url
           )
         `)
