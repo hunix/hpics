@@ -20,7 +20,10 @@ serve(async (req) => {
   }
 
   try {
-    const { userId, analysisScope = 'network' } = await req.json();
+    const body = await req.json();
+    const userId = body.userId || body.user_id;
+    const profileId = body.profileId || body.profile_id;
+    const analysisScope = body.analysisScope || 'network';
     
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -121,7 +124,7 @@ Analyze for morphic resonance patterns. Return JSON:
       analysis = { raw: content };
     }
 
-    // Store detected fields
+    // Store detected fields to morphic_fields table
     if (analysis.morphicFields) {
       for (const field of analysis.morphicFields) {
         await supabase.from('morphic_fields').insert({
@@ -135,6 +138,17 @@ Analyze for morphic resonance patterns. Return JSON:
           stability_index: field.stabilityIndex,
         });
       }
+    }
+
+    // Also store to ai_analyses for unified intelligence package access
+    if (profileId) {
+      await supabase.from('ai_analyses').upsert({
+        user_id: userId,
+        profile_id: profileId,
+        analysis_type: 'morphic_resonance',
+        result: analysis,
+        generated_at: new Date().toISOString(),
+      }, { onConflict: 'profile_id,analysis_type' });
     }
 
     return new Response(JSON.stringify({
