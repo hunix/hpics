@@ -148,6 +148,7 @@ serve(async (req) => {
       { data: analyses },
       { data: observations },
       { data: relationshipScore },
+      { data: interests },
     ] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', profileId).eq('user_id', user.id).single(),
       churnPredictionId 
@@ -173,6 +174,10 @@ serve(async (req) => {
         .select('*')
         .eq('profile_id', profileId)
         .single(),
+      supabase.from('contact_interests')
+        .select('name')
+        .eq('profile_id', profileId)
+        .limit(20),
     ]);
 
     if (!profile) {
@@ -216,7 +221,7 @@ serve(async (req) => {
       .replace('{daysSinceContact}', String(daysSinceContact))
       .replace('{communicationHistory}', commSummary || 'No recent communications')
       .replace('{personalityInsights}', personalityInsights)
-      .replace('{interests}', profile.interests?.join(', ') || 'Unknown')
+      .replace('{interests}', interests?.map((i: { name: string }) => i.name).join(', ') || 'Unknown')
       .replace('{whatWorked}', observations
         ?.filter(o => o.sentiment === 'positive')
         .map(o => o.content)
