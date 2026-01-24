@@ -153,7 +153,7 @@ async function generateFollowUpWithAI(context: any, supabase: any, userId: strin
 Meeting: ${eventTitle}
 Date: ${event?.start_time || 'Recently'}
 Attendee: ${profileName}
-Company: ${profile?.company || 'Unknown'}
+Organization: ${profile?.organization || 'Unknown'}
 
 Meeting Notes:
 ${meetingNotes || 'No detailed notes provided'}

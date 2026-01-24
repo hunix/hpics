@@ -702,7 +702,7 @@ async function generateFusionSummary(dataCollections: any, completeness: number)
             content: `Data completeness: ${(completeness * 100).toFixed(0)}%
             
 Profile: ${dataCollections.profile?.first_name} ${dataCollections.profile?.last_name}
-Company: ${dataCollections.profile?.company || "Unknown"}
+Organization: ${dataCollections.profile?.organization || "Unknown"}
 Communications: ${dataCollections.communications?.length || 0}
 Messages: ${dataCollections.messages?.length || 0}
 Documents: ${dataCollections.documents?.length || 0}
