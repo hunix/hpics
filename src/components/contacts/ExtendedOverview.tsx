@@ -14,7 +14,6 @@ interface ExtendedOverviewProps {
   profile: {
     first_name: string;
     last_name?: string | null;
-    bio?: string | null;
     organization?: string | null;
     job_title?: string | null;
     tags?: string[] | null;
