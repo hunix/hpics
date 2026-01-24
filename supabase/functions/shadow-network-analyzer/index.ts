@@ -95,9 +95,9 @@ function detectCommunicationGaps(
       }
 
       // Similar roles
-      if (profileA.title && profileB.title) {
-        const aWords = profileA.title.toLowerCase().split(/\s+/);
-        const bWords = profileB.title.toLowerCase().split(/\s+/);
+      if (profileA.job_title && profileB.job_title) {
+        const aWords = profileA.job_title.toLowerCase().split(/\s+/);
+        const bWords = profileB.job_title.toLowerCase().split(/\s+/);
         const sharedWords = aWords.filter((w: string) => bWords.includes(w));
         if (sharedWords.length > 0) {
           expectedConnectionScore += 15;
@@ -217,8 +217,9 @@ function detectCutouts(
       }
     }
 
-    // Pattern 3: Ghost presence - referenced but no direct data
-    if (!profile.email && !profile.phone && connections >= 3) {
+    // Pattern 3: Ghost presence - minimal profile data but high connectivity
+    // Note: email/phone are in contact_methods table, not profiles - check for sparse profile data instead
+    if (!profile.job_title && !profile.organization && !profile.notes && connections >= 3) {
       entities.push({
         id: profile.id,
         type: 'ghost',
@@ -277,16 +278,9 @@ function detectHomophilyViolations(
       if (ageDiff <= 10) actualSimilarity += 15;
     }
 
-    // Shared interests
-    const aInterests = new Set(profileA.interests || []);
-    const bInterests = new Set(profileB.interests || []);
-    const sharedInterests = [...aInterests].filter(i => bInterests.has(i));
-    const totalInterests = new Set([...aInterests, ...bInterests]).size;
-    
-    if (totalInterests > 0) {
-      expectedSimilarity += 25;
-      actualSimilarity += (sharedInterests.length / totalInterests) * 25;
-    }
+    // Shared interests - interests are in contact_interests table, not profiles
+    // Skipping interest-based similarity for now as it requires a separate fetch
+    // If needed, contact_interests can be loaded and mapped by profile_id
 
     // Strong connection with low similarity = violation
     const relStrength = rel.strength || 50;
