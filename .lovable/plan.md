@@ -1,119 +1,81 @@
 
-# Edge Function Audit - Phase 19 (Final Comprehensive Scan)
+
+# Edge Function Comprehensive Audit - Phase 20
 
 ## Executive Summary
 
-Found **12 remaining issues** across **8 edge functions** after scanning all 270+ functions in the codebase.
+Found **3 critical schema issues** and **60+ error handling issues** across the edge functions.
 
 ---
 
-## Issues Found
+## Critical Schema Issues (Must Fix)
 
-### Category 1: Database Insert/Update Schema Violations (CRITICAL)
-
-| Function | Issue | Line | Fix |
-|----------|-------|------|-----|
-| `import-gmail-contacts` | Inserts `title` column (should be `job_title`) | 169 | Change `title:` to `job_title:` |
-| `import-gmail-contacts` | Inserts `bio` column (should be `notes`) | 171 | Change `bio:` to `notes:` |
-| `import-outlook-contacts` | Inserts `title` column (should be `job_title`) | 151 | Change `title:` to `job_title:` |
-| `import-outlook-contacts` | Inserts `bio` column (should be `notes`) | 152 | Change `bio:` to `notes:` |
-| `generate-dossier` | Uses `profile.title` (should be `job_title`) | 178 | Change to `profile.job_title` |
-| `scrape-social-rapidapi` | Updates `location` column (doesn't exist) | 246-247 | Split into `city` extraction |
-
-### Category 2: AI Context Data Schema Mismatches (MEDIUM)
-
-| Function | Issue | Line | Fix |
-|----------|-------|------|-----|
-| `influence-orchestrator-v2` | Uses `profile?.name` | 148 | Use `${profile?.first_name} ${profile?.last_name}` |
-| `cross-modal-deception-v2` | Uses `profile?.name` | 190 | Use `${profile?.first_name} ${profile?.last_name}` |
-| `threat-actor-profiler` | Uses `profile?.name` | 169 | Use `${profile?.first_name} ${profile?.last_name}` |
-| `detect-cross-patterns` | Uses `e.title` from work_experiences | 119 | This is valid (work_experiences table has `title`) - NO FIX NEEDED |
-
-### Category 3: Missing Health Checks (LOW)
-
-| Function | Status |
-|----------|--------|
-| `import-gmail-contacts` | Missing |
-| `import-outlook-contacts` | Missing |
-| `influence-orchestrator-v2` | Missing |
-| `cross-modal-deception-v2` | Missing |
+| Function | Issue | Fix Required |
+|----------|-------|--------------|
+| `entity-resolution-engine` (L188-193) | Uses `profileA.location` / `profileB.location` | Replace with `profileA.city` / `profileB.city` or combined city/country logic |
+| `shadow-network-analyzer` (L265-269) | Uses `profileA.location` / `profileB.location` | Replace with `profileA.city` / `profileB.city` |
+| `match-biometrics` (L120, L130) | Uses `profile?.name` | Replace with `` `${profile?.first_name} ${profile?.last_name}`.trim() `` |
 
 ---
 
-## Implementation Plan
+## Medium Priority Issues
 
-### Fix 1: `import-gmail-contacts/index.ts` (Lines 169, 171)
-```typescript
-// Line 169: title: org?.title || null,  →  job_title: org?.title || null,
-// Line 171: bio: bio || null,  →  notes: bio || null,
-```
-Add health check after line 24.
+| Function | Issue | Note |
+|----------|-------|------|
+| `enrichment-orchestrator` (L181, 224, 291) | Uses `profile.email` | This is passed TO other functions - may need to fetch from contact_methods first |
+| `entity-resolution-engine` (L247, 383) | Uses `profile.email` | Used for email domain grouping - needs contact_methods join |
+| `enrich-hunter` (L93) | Uses `profile?.email` | Fallback if email not passed - needs contact_methods |
 
-### Fix 2: `import-outlook-contacts/index.ts` (Lines 151, 152)
-```typescript
-// Line 151: title: contact.jobTitle || null,  →  job_title: contact.jobTitle || null,
-// Line 152: bio: contact.personalNotes || null,  →  notes: contact.personalNotes || null,
-```
-Add health check after line 29.
+---
 
-### Fix 3: `generate-dossier/index.ts` (Line 178)
-```typescript
-// Line 178: current_title: profile.title,  →  current_title: profile.job_title,
-```
+## Error Handling Issues (60+ Functions)
 
-### Fix 4: `influence-orchestrator-v2/index.ts` (Line 148)
-```typescript
-// Line 148: name: profile?.name,  →  name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : null,
-```
-Add health check after line 109.
+Many functions still use `error.message` or `error?.message` without proper `instanceof Error` guards. Key examples:
 
-### Fix 5: `cross-modal-deception-v2/index.ts` (Line 190)
-```typescript
-// Line 190: name: profile?.name,  →  name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : null,
-```
-Add health check after line 149.
+- `network-cascade-modeler`, `influence-propagation-engine`, `predictive-opportunity-scanner`
+- `security-threat-analyzer`, `linguistic-deception-analyzer`, `churn-prediction-engine`
+- `omniscient-orchestrator`, `threat-actor-profiler`, `cross-modal-deception-engine`
+- `cult-tactics-engine`, `cross-domain-correlator`, `subliminal-messaging-engine`
+- And 50+ more functions
 
-### Fix 6: `threat-actor-profiler/index.ts` (Line 169)
+**Pattern to apply:**
 ```typescript
-// Line 169: ${profile?.name || profileId}  →  ${profile ? `${profile.first_name} ${profile.last_name}` : profileId}
-```
+// BEFORE
+} catch (error: any) {
+  return new Response(JSON.stringify({ error: error.message }), ...);
 
-### Fix 7: `scrape-social-rapidapi/index.ts` (Lines 246-247)
-```typescript
-// Remove or adjust location update - split into city extraction if needed
-// The location field doesn't exist on profiles table
+// AFTER  
+} catch (error) {
+  const message = error instanceof Error ? error.message : 'Unknown error';
+  return new Response(JSON.stringify({ error: message }), ...);
 ```
 
 ---
 
-## Files to Modify (8 Total)
+## Implementation Priority
 
-| File | Changes |
-|------|---------|
-| `supabase/functions/import-gmail-contacts/index.ts` | Fix `title`→`job_title`, `bio`→`notes`, add health check |
-| `supabase/functions/import-outlook-contacts/index.ts` | Fix `title`→`job_title`, `bio`→`notes`, add health check |
-| `supabase/functions/generate-dossier/index.ts` | Fix `profile.title`→`profile.job_title` |
-| `supabase/functions/influence-orchestrator-v2/index.ts` | Fix `profile?.name`, add health check |
-| `supabase/functions/cross-modal-deception-v2/index.ts` | Fix `profile?.name`, add health check |
-| `supabase/functions/threat-actor-profiler/index.ts` | Fix `profile?.name` |
-| `supabase/functions/scrape-social-rapidapi/index.ts` | Remove invalid `location` update |
-| `supabase/functions/family-systems-analyzer/index.ts` | Add `instanceof Error` guard (line 430) |
+### Phase 20A: Critical Schema (3 functions)
+1. `entity-resolution-engine` - Fix `location` → `city/country`
+2. `shadow-network-analyzer` - Fix `location` → `city/country`  
+3. `match-biometrics` - Fix `name` → `first_name/last_name`
 
----
+### Phase 20B: Email Schema (3 functions)
+4. `enrichment-orchestrator` - Fetch email from contact_methods
+5. `entity-resolution-engine` - Fetch email from contact_methods
+6. `enrich-hunter` - Adjust fallback logic
 
-## Audit Summary
-
-| Phase | Issues Fixed | Status |
-|-------|--------------|--------|
-| Phases 1-16 | 170+ | ✅ Complete |
-| Phase 17 | 11 | ✅ Complete |
-| Phase 18 | 6 | ✅ Complete |
-| **Phase 19** | **12** | Ready to implement |
-| **TOTAL** | **199+** | After this: 100% compliant |
+### Phase 20C: Error Handling (60+ functions)
+- Batch apply `instanceof Error` guards to all catch blocks
 
 ---
 
-## Note on `detect-cross-patterns`
+## Summary
 
-The `work_experiences` table **does** have a `title` column (job title at that company), so line 119 using `e.title` is **valid** and requires no fix.
+| Category | Count | Severity |
+|----------|-------|----------|
+| Location schema mismatch | 2 | Critical |
+| Name schema mismatch | 1 | Critical |
+| Email schema mismatch | 3-6 | Medium |
+| Error handling without guards | 60+ | Low |
+| **Total Issues** | **70+** | - |
 
