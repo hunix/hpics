@@ -426,17 +426,19 @@ Return JSON:
 async function findMatchingProfile(supabase: any, userId: string, match: IdentityMatch): Promise<string | null> {
   // Look for existing profile that might match
   const displayNames = match.identities.map(i => i.displayName).filter(Boolean);
-  const emails = match.identities.map(i => i.email).filter(Boolean);
+  const emails = match.identities.map(i => i.email).filter(Boolean) as string[];
 
+  // Search for email matches in contact_methods table
   if (emails.length > 0) {
     const { data } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('user_id', userId)
-      .in('email', emails)
+      .from('contact_methods')
+      .select('profile_id, profiles!inner(user_id)')
+      .eq('profiles.user_id', userId)
+      .eq('contact_type', 'email')
+      .in('value', emails)
       .limit(1);
     
-    if (data?.[0]) return data[0].id;
+    if (data?.[0]) return data[0].profile_id;
   }
 
   if (displayNames.length > 0) {
@@ -451,12 +453,12 @@ async function findMatchingProfile(supabase: any, userId: string, match: Identit
       for (const displayName of displayNames) {
         if (!displayName) continue;
         const nameParts = displayName.split(' ').filter(Boolean);
-        const match = profiles.find((p: any) => {
+        const nameMatch = profiles.find((p: any) => {
           const fullName = `${p.first_name || ''} ${p.last_name || ''}`.trim().toLowerCase();
           return fullName === displayName.toLowerCase() ||
                  (nameParts.length > 0 && p.first_name?.toLowerCase() === nameParts[0].toLowerCase());
         });
-        if (match) return match.id;
+        if (nameMatch) return nameMatch.id;
       }
     }
   }

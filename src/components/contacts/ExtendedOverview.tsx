@@ -109,7 +109,7 @@ export function ExtendedOverview({ profileId, profile }: ExtendedOverviewProps) 
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {profile.bio && <p className="text-muted-foreground">{profile.bio}</p>}
+          {profile.notes && <p className="text-muted-foreground">{profile.notes}</p>}
           
           {/* Quick Stats Row */}
           {personalInfo && (

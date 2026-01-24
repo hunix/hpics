@@ -179,16 +179,24 @@ export function CaptureContactLinker({
           user_id: user.id,
           first_name: firstName,
           last_name: lastName,
-          email: extractedData?.email,
           organization: extractedData?.company,
           avatar_url: extractedData?.profileImageUrl,
-          bio: extractedData?.bio,
+          notes: extractedData?.bio || null,
           website: extractedData?.website,
         })
         .select()
         .single();
 
       if (error) throw error;
+
+      // Create contact method for email if available
+      if (extractedData?.email && newContact) {
+        await supabase.from('contact_methods').insert({
+          profile_id: newContact.id,
+          contact_type: 'email',
+          value: extractedData.email,
+        });
+      }
       
       await onLink(newContact.id);
       setOpen(false);

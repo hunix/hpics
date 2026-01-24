@@ -94,7 +94,7 @@ export function useBluetoothProximity(
           device_id,
           device_name,
           profile_id,
-          profiles!bluetooth_devices_profile_id_fkey (full_name)
+          profiles!bluetooth_devices_profile_id_fkey (first_name, last_name)
         `)
         .eq('user_id', user.id);
 
@@ -102,7 +102,7 @@ export function useBluetoothProximity(
         setRegisteredDevices(data.map((d: any) => ({
           deviceId: d.device_id,
           profileId: d.profile_id,
-          profileName: d.profiles?.full_name || 'Unknown',
+          profileName: d.profiles ? `${d.profiles.first_name || ''} ${d.profiles.last_name || ''}`.trim() || 'Unknown' : 'Unknown',
           deviceName: d.device_name
         })));
       }
@@ -301,7 +301,7 @@ export function useBluetoothProximity(
     // Get profile name
     const { data: profile } = await supabase
       .from('profiles')
-      .select('full_name')
+      .select('first_name, last_name')
       .eq('id', profileId)
       .single();
 
@@ -317,7 +317,7 @@ export function useBluetoothProximity(
     if (!error) {
       setRegisteredDevices(prev => {
         const existing = prev.findIndex(d => d.deviceId === deviceId);
-        const profileName = profile ? `${(profile as any).first_name || ''} ${(profile as any).last_name || ''}`.trim() || 'Unknown' : 'Unknown';
+        const profileName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown' : 'Unknown';
         const newDevice = {
           deviceId,
           profileId,
