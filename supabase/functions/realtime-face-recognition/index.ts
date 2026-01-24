@@ -140,11 +140,12 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Face recognition error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(JSON.stringify({
       success: false,
-      error: error?.message || 'Unknown error',
+      error: message,
       processingTimeMs: Date.now() - startTime
     }), {
       status: 500,

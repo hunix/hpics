@@ -141,9 +141,10 @@ function calculateEntitySimilarity(profileA: any, profileB: any): { similarity: 
     else if (nameScore > 20) reasons.push(`name_partial:${Math.round(nameScore)}%`);
   }
 
-  // Email comparison (weight: 30) - get from contact_methods or profile
-  const emailA = profileA.email;
-  const emailB = profileB.email;
+  // Email comparison (weight: 30) - email must be passed via enriched profile data, not from profiles table
+  // Note: profiles table does not have an email column - emails are in contact_methods
+  const emailA = profileA._email; // populated externally if needed
+  const emailB = profileB._email; // populated externally if needed
   if (emailA && emailB) {
     maxScore += 30;
     if (emailA.toLowerCase() === emailB.toLowerCase()) {
@@ -245,14 +246,8 @@ function detectAliases(profile: any): AliasDetection | null {
     }
   }
   
-  // Email-based aliases
-  if (profile.email) {
-    const [local] = profile.email.split('@');
-    if (local && !aliases.includes(local)) {
-      aliases.push(local.replace(/[._]/g, ' '));
-      aliasType = 'online';
-    }
-  }
+  // Email-based aliases - email is not in profiles table, skip this section
+  // If email aliases are needed, fetch from contact_methods table first
   
   if (aliases.length === 0) return null;
   
@@ -379,29 +374,8 @@ serve(async (req) => {
       // Find profiles that might be connected through shared attributes
       const crossRefs: Array<{ attribute: string; value: string; profiles: string[] }> = [];
       
-      // Group by email domain
-      const emailDomains = new Map<string, string[]>();
-      for (const profile of profiles) {
-        if (profile.email) {
-          const domain = profile.email.split('@')[1]?.toLowerCase();
-          if (domain) {
-            if (!emailDomains.has(domain)) {
-              emailDomains.set(domain, []);
-            }
-            emailDomains.get(domain)!.push(getProfileName(profile) || profile.id);
-          }
-        }
-      }
-      
-      for (const [domain, names] of emailDomains) {
-        if (names.length > 1) {
-          crossRefs.push({
-            attribute: 'email_domain',
-            value: domain,
-            profiles: names
-          });
-        }
-      }
+      // Note: Email grouping removed - email is in contact_methods table, not profiles
+      // To add email domain grouping, query contact_methods separately
       
       // Group by organization
       const organizations = new Map<string, string[]>();

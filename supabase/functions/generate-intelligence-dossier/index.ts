@@ -171,7 +171,7 @@ serve(async (req) => {
       content: {
         full_name: `${profile.first_name} ${profile.last_name}`,
         organization: profile.organization,
-        title: profile.job_title || profile.title,
+        title: profile.job_title,
         relationship_type: profile.relationship_type,
         relationship_tier: profile.relationship_tier,
         trust_score: trustResult.data?.[0]?.overall_trust_score,
