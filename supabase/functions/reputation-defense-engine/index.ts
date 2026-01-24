@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
       // Fetch profile info
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name')
+        .select('first_name, last_name')
         .eq('id', targetProfileId)
         .single();
       
@@ -67,8 +67,9 @@ Deno.serve(async (req) => {
       const activeIncidents = incidents?.filter(i => i.status === 'detected' || i.status === 'responding') || [];
       const resolvedIncidents = incidents?.filter(i => i.status === 'resolved') || [];
       
+      const profileName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown' : 'Unknown';
       const analysis = {
-        profileName: profile?.full_name || 'Unknown',
+        profileName,
         reputationHealthScore: 0.6 + Math.random() * 0.3,
         totalIncidents: incidents?.length || 0,
         activeIncidents: activeIncidents.length,

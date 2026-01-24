@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
       // Fetch profile info
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name')
+        .select('first_name, last_name')
         .eq('id', targetProfileId)
         .single();
       
@@ -66,8 +66,9 @@ Deno.serve(async (req) => {
       // Generate legal vulnerability analysis
       const activeThreats = assessments?.filter(a => a.status === 'active') || [];
       
+      const profileName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown' : 'Unknown';
       const analysis = {
-        profileName: profile?.full_name || 'Unknown',
+        profileName,
         legalExposureScore: 0.25 + Math.random() * 0.35,
         activeThreats: activeThreats.length,
         totalAssessments: assessments?.length || 0,
