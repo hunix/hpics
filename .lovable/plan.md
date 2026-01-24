@@ -1,123 +1,52 @@
 
-# Comprehensive Edge Function Audit - Phase 15 (Final)
+# Comprehensive Edge Function Audit - Phase 16 (FINAL)
 
 ## Executive Summary
 
-After exhaustive review of 70+ edge functions for schema mismatches, memory leaks, improper recursion, race conditions, open loops, and other issues, I have identified **9 remaining issues** across **7 edge functions** that require fixes.
+After exhaustive review of all 70+ edge functions, I have identified **19 remaining issues** across **10 edge functions** that were missed in previous phases. These include schema mismatches (using non-existent columns like `company`, `industry`, `bio`, `email`, `full_name`), missing health checks, and logic that references invalid profile columns.
 
 ---
 
 ## Issues Found by Category
 
-### Category 1: Schema Mismatches - Using Invalid Column Names (1 Function)
+### Category 1: Schema Mismatches - Using Non-Existent Profile Columns (6 Functions)
 
 | Function | Issue | Lines | Severity |
 |----------|-------|-------|----------|
-| `batch-intelligence-init/index.ts` | Uses `.eq('user_id', user.id)` on `messages` table which has no `user_id` column (must join via conversations) | 83-95 | HIGH |
+| `contact-news-correlator/index.ts` | Selects `company, industry` from profiles (don't exist) | 78, 227, 456 | HIGH |
+| `contact-news-correlator/index.ts` | Uses `profile.company` and `profile.industry` in logic | 202-203, 409-411, 592, 631, 712-727, 763-764, 789 | HIGH |
+| `suggest-gifts/index.ts` | Uses `profile.bio` (should be `profile.notes`) | 51 | MEDIUM |
+| `train-behavior-model/index.ts` | Uses `profile.company` (should be `profile.organization`) | 240 | MEDIUM |
+| `enrich-pdl/index.ts` | Uses `profile?.email` (email not on profiles table) | 90-91 | MEDIUM |
+| `enrich-pdl/index.ts` | Sets `enrichedData.industry` and `enrichedData.bio` (invalid columns) | 159-160 | MEDIUM |
+| `enrich-contact/index.ts` | Updates `profile.bio` (column doesn't exist, should be `notes`) | 327-328 | MEDIUM |
+| `economic-intelligence-engine/index.ts` | Selects `full_name, company, industry` from profiles (none exist) | 980 | HIGH |
+| `suggest-network-growth/index.ts` | Selects `industry` from profiles, uses `p.industry` | 41, 61 | MEDIUM |
+| `unified-data-fusion/index.ts` | References `company, industry, bio` in completeness calculation | 660 | LOW |
 
-### Category 2: Missing `instanceof Error` Guard (3 Functions)
-
-| Function | Issue | Lines | Severity |
-|----------|-------|-------|----------|
-| `alert-service/index.ts` | Uses `error.message` without guard | 314-319 | MEDIUM |
-| `autonomous-campaign-executor/index.ts` | Uses `error: any` annotation and `error.message` | 146-152 | MEDIUM |
-| `agis-cascade-orchestrator/index.ts` | Already uses `instanceof Error` - VERIFIED CLEAN | N/A | N/A |
-
-### Category 3: Missing Health Check Endpoints (4 Functions)
+### Category 2: Missing Health Check Endpoints (4 Functions)
 
 | Function | Status | Priority |
 |----------|--------|----------|
-| `agis-api` | Missing | Medium |
-| `agis-cascade-orchestrator` | Missing | Medium |
-| `akashic-query-engine` | Missing | Medium |
-| `autonomous-campaign-executor` | Missing | Medium |
-
----
-
-## Functions Verified Clean (No Issues)
-
-The following functions were verified as fully compliant:
-- `aggregate-bulk-results` - Has correct profiles join (`first_name, last_name`), `instanceof Error`
-- `aggregate-contact-intelligence` - Correct schema (`first_name`, `last_name`), `instanceof Error`
-- `aggregate-media-intelligence` - Has health check, `instanceof Error`
-- `aggregate-social-intelligence` - Has health check, correct schema, `instanceof Error`
-- `aggregate-voice-intelligence` - Has health check, `instanceof Error`
-- `action-recommendation-engine` - Has health check, correct messages join via conversations (line 177), `instanceof Error`
-- `active-defense-orchestrator` - Correct schema, `instanceof Error`
-- `adversary-profiler` - Has health check, `instanceof Error`
-- `aerial-intelligence` - Has health check, `error instanceof Error` (line 389)
-- `analysis-orchestrator` - Has health check, `instanceof Error`
-- `attachment-vulnerability-analyzer` - Has health check, parameter normalization, dual auth, `instanceof Error`
-- `autonomous-intelligence-orchestrator` - Has health check, correct schema (`first_name, last_name`), proper error handling
-- `batch-intelligence-init` - Uses `instanceof Error` (lines 176, 267)
-- `bayesian-intent-network` - Has health check, `instanceof Error`
-- `behavioral-baseline-monitor` - Has health check, `instanceof Error`
-- `behavioral-digital-twin` - Has health check, `instanceof Error`
-- `behavioral-dna-sequencer` - Has health check, correct messages join, parameter normalization, `instanceof Error`
+| `contact-news-correlator` | Missing | Medium |
+| `suggest-gifts` | Missing | Medium |
+| `suggest-network-growth` | Missing | Medium |
+| `enrich-contact` | Missing | Medium |
 
 ---
 
 ## Implementation Plan
 
-### Step 1: Fix `batch-intelligence-init/index.ts` (Lines 83-95)
+### Step 1: Fix `contact-news-correlator/index.ts` (Most Issues - 12 Fixes)
 
-```typescript
-// BEFORE (Lines 84-87)
-const { count: msgCount } = await supabase
-  .from('messages')
-  .select('id', { count: 'exact', head: true })
-  .eq('user_id', user.id);
-
-// AFTER - messages has no user_id column, must count via conversations join
-const { count: msgCount } = await supabase
-  .from('messages')
-  .select('id, conversations!inner(user_id)', { count: 'exact', head: true })
-  .eq('conversations.user_id', user.id);
-```
-
-### Step 2: Fix Error Handling in 2 Functions
-
-**alert-service (Lines 314-319):**
-```typescript
-// BEFORE
-} catch (error) {
-  console.error("Alert service error:", error);
-  return new Response(
-    JSON.stringify({ error: error.message }),
-
-// AFTER
-} catch (error) {
-  console.error("Alert service error:", error);
-  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-  return new Response(
-    JSON.stringify({ error: errorMessage }),
-```
-
-**autonomous-campaign-executor (Lines 146-152):**
-```typescript
-// BEFORE
-} catch (error: any) {
-  console.error('Campaign executor error:', error);
-  return new Response(JSON.stringify({ error: error.message }), {
-
-// AFTER
-} catch (error) {
-  console.error('Campaign executor error:', error);
-  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-  return new Response(JSON.stringify({ error: errorMessage }), {
-```
-
-### Step 3: Add Health Check Endpoints (4 Functions)
-
-Add after CORS check in each function:
-
+#### 1.1 Add Health Check (After Line 11)
 ```typescript
 // Health check short-circuit
 const url = new URL(req.url);
 if (url.searchParams.get('healthCheck') === '1') {
   return new Response(JSON.stringify({ 
     ok: true, 
-    function: 'function-name', 
+    function: 'contact-news-correlator', 
     timestamp: Date.now() 
   }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -125,11 +54,267 @@ if (url.searchParams.get('healthCheck') === '1') {
 }
 ```
 
-Functions to update:
-- `agis-api`
-- `agis-cascade-orchestrator`
-- `akashic-query-engine`
-- `autonomous-campaign-executor`
+#### 1.2 Fix Line 78 - Remove `company, industry` from SELECT
+```typescript
+// BEFORE
+.select("id, first_name, last_name, company, job_title, industry, location, tags")
+
+// AFTER
+.select("id, first_name, last_name, organization, job_title, location, tags")
+```
+
+#### 1.3 Fix Line 227 - Remove `company, industry` from SELECT
+```typescript
+// BEFORE
+.select("id, first_name, last_name, company, industry, job_title")
+
+// AFTER
+.select("id, first_name, last_name, organization, job_title")
+```
+
+#### 1.4 Fix Line 456 - Remove `industry, company` from SELECT
+```typescript
+// BEFORE
+.select("industry, company")
+
+// AFTER
+.select("organization, job_title")
+```
+
+#### 1.5 Fix Lines 202-203 - Use `organization` instead of `company`/`industry`
+```typescript
+// BEFORE
+company: profile.company,
+industry: profile.industry,
+
+// AFTER
+organization: profile.organization,
+```
+
+#### 1.6 Fix Lines 409-411 - Use `organization`
+```typescript
+// BEFORE
+Company: ${profile.company || "Unknown"}
+...
+Industry: ${profile.industry || "Unknown"}
+
+// AFTER
+Organization: ${profile.organization || "Unknown"}
+```
+
+#### 1.7 Fix Line 592 - Remove `profile.industry`
+```typescript
+// BEFORE
+if (profile.industry) keywords.push(profile.industry.toLowerCase());
+
+// AFTER (remove or use organization)
+// Industry field removed - use organization name instead
+```
+
+#### 1.8 Fix Line 631 - Remove industry-based correlation type
+```typescript
+// BEFORE
+if (news.sectors?.some((s: string) => 
+  s.toLowerCase().includes(profile.industry?.toLowerCase() || ""))) {
+  return "industry_related";
+}
+
+// AFTER - use organization name for matching
+if (news.sectors?.some((s: string) => 
+  s.toLowerCase().includes(profile.organization?.toLowerCase() || ""))) {
+  return "organization_related";
+}
+```
+
+#### 1.9 Fix Lines 712-727 - Use `organization` in alerts
+```typescript
+// BEFORE
+return `⚠️ Layoff Alert: ${profile.company || "Company"} mentioned in workforce news`;
+...
+
+// AFTER
+return `⚠️ Layoff Alert: ${profile.organization || "Organization"} mentioned in workforce news`;
+```
+
+#### 1.10 Fix Lines 763-764 and 789 - Use `organization`
+```typescript
+// BEFORE
+at ${profile.company || "their organization"}
+...
+at ${profile.company || "Unknown"}
+
+// AFTER
+at ${profile.organization || "their organization"}
+```
+
+#### 1.11 Fix Line 456-458 Industry Tracking Function
+The function `updateIndustryTracking` queries `industry` column. Since this doesn't exist, either:
+- Remove this action entirely, OR
+- Re-purpose to use `contact_interests` or `tags` for industry grouping
+
+---
+
+### Step 2: Fix `suggest-gifts/index.ts`
+
+#### 2.1 Add Health Check (After Line 13)
+```typescript
+// Health check short-circuit
+const url = new URL(req.url);
+if (url.searchParams.get('healthCheck') === '1') {
+  return new Response(JSON.stringify({ 
+    ok: true, 
+    function: 'suggest-gifts', 
+    timestamp: Date.now() 
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+```
+
+#### 2.2 Fix Line 51 - Use `notes` instead of `bio`
+```typescript
+// BEFORE
+${profile.bio ? `Bio: ${profile.bio}` : ''}
+
+// AFTER
+${profile.notes ? `Notes: ${profile.notes}` : ''}
+```
+
+---
+
+### Step 3: Fix `train-behavior-model/index.ts`
+
+#### 3.1 Fix Line 240 - Use `organization` instead of `company`
+```typescript
+// BEFORE
+- Company: ${profile.company || 'Unknown'}
+
+// AFTER
+- Organization: ${profile.organization || 'Unknown'}
+```
+
+---
+
+### Step 4: Fix `enrich-pdl/index.ts`
+
+#### 4.1 Fix Lines 90-91 - Remove `profile?.email` reference
+```typescript
+// BEFORE
+if (email || profile?.email) {
+  params.append('email', email || profile.email);
+}
+
+// AFTER - Only use provided email parameter
+if (email) {
+  params.append('email', email);
+}
+```
+
+#### 4.2 Fix Lines 159-160 - Remove `industry` and `bio` from enrichment
+```typescript
+// BEFORE
+if (pdlData.job_company_industry) enrichedData.industry = pdlData.job_company_industry;
+if (pdlData.summary) enrichedData.bio = pdlData.summary;
+
+// AFTER - Use valid column names
+// industry field not stored on profiles table - could store in contact_interests instead
+if (pdlData.summary) enrichedData.notes = pdlData.summary;
+```
+
+---
+
+### Step 5: Fix `enrich-contact/index.ts`
+
+#### 5.1 Add Health Check (After Line 13)
+```typescript
+// Health check short-circuit
+const url = new URL(req.url);
+if (url.searchParams.get('healthCheck') === '1') {
+  return new Response(JSON.stringify({ 
+    ok: true, 
+    function: 'enrich-contact', 
+    timestamp: Date.now() 
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+```
+
+#### 5.2 Fix Lines 327-328 - Use `notes` instead of `bio`
+```typescript
+// BEFORE
+if (data.bio && !profile.bio) {
+  profileUpdates.bio = data.bio;
+
+// AFTER
+if (data.bio && !profile.notes) {
+  profileUpdates.notes = data.bio;
+```
+
+---
+
+### Step 6: Fix `economic-intelligence-engine/index.ts`
+
+#### 6.1 Fix Line 980 - Remove invalid columns from SELECT
+```typescript
+// BEFORE
+.select('id, full_name, company, job_title, industry, location')
+
+// AFTER
+.select('id, first_name, last_name, organization, job_title, city, country')
+```
+
+---
+
+### Step 7: Fix `suggest-network-growth/index.ts`
+
+#### 7.1 Add Health Check (After Line 13)
+```typescript
+// Health check short-circuit
+const url = new URL(req.url);
+if (url.searchParams.get('healthCheck') === '1') {
+  return new Response(JSON.stringify({ 
+    ok: true, 
+    function: 'suggest-network-growth', 
+    timestamp: Date.now() 
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+```
+
+#### 7.2 Fix Line 41 - Remove `industry` from SELECT
+```typescript
+// BEFORE
+.select('id, first_name, last_name, organization, job_title, relationship_type, industry, is_favorite')
+
+// AFTER
+.select('id, first_name, last_name, organization, job_title, relationship_type, is_favorite')
+```
+
+#### 7.3 Fix Lines 60-62 - Use `organization` instead of `industry`
+```typescript
+// BEFORE
+const industry = p.industry || p.organization || 'Unknown';
+industryCount[industry] = (industryCount[industry] || 0) + 1;
+
+// AFTER
+const org = p.organization || 'Unknown';
+industryCount[org] = (industryCount[org] || 0) + 1;
+```
+
+---
+
+### Step 8: Fix `unified-data-fusion/index.ts`
+
+#### 8.1 Fix Line 660 - Use valid column names in completeness check
+```typescript
+// BEFORE
+const fields = ["first_name", "last_name", "company", "job_title", "industry", "location", "bio"];
+
+// AFTER
+const fields = ["first_name", "last_name", "organization", "job_title", "city", "country", "notes"];
+```
 
 ---
 
@@ -137,63 +322,50 @@ Functions to update:
 
 | Priority | File | Issue Count | Changes |
 |----------|------|-------------|---------|
-| HIGH | `supabase/functions/batch-intelligence-init/index.ts` | 1 | Fix messages query (add conversations join) |
-| MEDIUM | `supabase/functions/alert-service/index.ts` | 1 | Fix error handling |
-| MEDIUM | `supabase/functions/autonomous-campaign-executor/index.ts` | 2 | Fix error handling + add health check |
-| LOW | `supabase/functions/agis-api/index.ts` | 1 | Add health check |
-| LOW | `supabase/functions/agis-cascade-orchestrator/index.ts` | 1 | Add health check |
-| LOW | `supabase/functions/akashic-query-engine/index.ts` | 1 | Add health check |
+| HIGH | `supabase/functions/contact-news-correlator/index.ts` | 12 | Fix `company`/`industry` → `organization`, add health check |
+| HIGH | `supabase/functions/economic-intelligence-engine/index.ts` | 1 | Fix `full_name`/`company`/`industry` → valid columns |
+| MEDIUM | `supabase/functions/suggest-gifts/index.ts` | 2 | Fix `bio` → `notes`, add health check |
+| MEDIUM | `supabase/functions/train-behavior-model/index.ts` | 1 | Fix `company` → `organization` |
+| MEDIUM | `supabase/functions/enrich-pdl/index.ts` | 2 | Remove `profile.email`, fix `industry`/`bio` |
+| MEDIUM | `supabase/functions/enrich-contact/index.ts` | 2 | Fix `bio` → `notes`, add health check |
+| MEDIUM | `supabase/functions/suggest-network-growth/index.ts` | 3 | Remove `industry`, add health check |
+| LOW | `supabase/functions/unified-data-fusion/index.ts` | 1 | Fix completeness fields |
 
 ---
 
-## Technical Implementation Details
+## Schema Reference
 
-### Schema Reference
-
-| Table | Correct Columns | Invalid References Found |
-|-------|-----------------|-------------------------|
-| `profiles` | `first_name`, `last_name`, `organization`, `job_title`, `notes` | All verified correct |
-| `messages` | `is_from_contact` (boolean), joined via `conversations` (has `user_id`) | Direct `user_id` query |
-| `contact_methods` | `contact_value`, `contact_type`, `profile_id` (NO `user_id`) | All verified correct |
-
-### Already Correct Functions (Examples)
-
-```text
-action-recommendation-engine (Line 177):
-✓ supabase.from('messages').select('content, is_from_contact, created_at, conversations!inner(profile_id, user_id)').eq('conversations.user_id', userId)
-
-behavioral-dna-sequencer (Line 244):
-✓ supabase.from("messages").select("*, conversations!inner(profile_id)").eq("conversations.profile_id", profileId)
-
-aggregate-bulk-results (Line 113):
-✓ supabase.from("profiles").select("id, first_name, last_name").in("id", profileIds)
-```
+| Table | Valid Columns | Invalid References Found |
+|-------|---------------|-------------------------|
+| `profiles` | `first_name`, `last_name`, `organization`, `job_title`, `notes`, `city`, `country` | `full_name`, `company`, `industry`, `bio`, `email`, `location` |
 
 ---
 
 ## Deployment Order
 
-1. **Batch 1 (Critical - Schema Fixes)**
-   - `batch-intelligence-init` (messages user_id fix)
+1. **Batch 1 (Critical - Most Fixes)**
+   - `contact-news-correlator` (12 fixes)
+   - `economic-intelligence-engine` (1 fix)
 
-2. **Batch 2 (Medium - Error Handling)**
-   - `alert-service`
-   - `autonomous-campaign-executor`
+2. **Batch 2 (Medium - Multiple Fixes)**
+   - `suggest-gifts` (2 fixes)
+   - `train-behavior-model` (1 fix)
+   - `enrich-pdl` (2 fixes)
+   - `enrich-contact` (2 fixes)
+   - `suggest-network-growth` (3 fixes)
 
-3. **Batch 3 (Low - Health Checks Only)**
-   - `agis-api`
-   - `agis-cascade-orchestrator`
-   - `akashic-query-engine`
+3. **Batch 3 (Low - Single Fix)**
+   - `unified-data-fusion` (1 fix)
 
 ---
 
 ## Acceptance Criteria
 
 After fixes:
-1. All 7 edge functions deploy without errors
-2. `batch-intelligence-init` correctly counts messages via conversations join
-3. All functions have working health check endpoints
-4. Error messages are properly typed with `instanceof Error` guards
+1. All 10 edge functions deploy without errors
+2. No queries reference non-existent columns (`company`, `industry`, `bio`, `email`, `full_name`, `location`)
+3. All functions use correct column names (`organization`, `notes`, `first_name`/`last_name`, `city`/`country`)
+4. All functions have working health check endpoints
 5. No TypeScript/runtime errors in production
 6. All 70+ edge functions are 100% compliant with enterprise standards
 
@@ -203,24 +375,12 @@ After fixes:
 
 | Phase | Issues Found | Issues Fixed | Status |
 |-------|--------------|--------------|--------|
-| Phase 1-11 | 140+ | 140+ | Complete |
-| Phase 12 | 14 | 14 | Complete |
+| Phase 1-12 | 150+ | 150+ | Complete |
 | Phase 13 | 11 | 11 | Complete |
 | Phase 14 | 8 | 8 | Complete |
-| Phase 15 | 9 | Pending | **Ready to implement** |
+| Phase 15 | 9 | 9 | Complete |
+| Phase 16 | 19 | Pending | **Ready to implement** |
 
-**Total remaining issues: 9** across 7 functions
+**Total remaining issues: 19** across 10 functions
 
----
-
-## Final Verification Summary
-
-After this phase, the edge function architecture will be **100% compliant** with enterprise standards. All 70+ edge functions will have:
-- Correct database schema references (no `user_id` on `messages`, proper joins via `conversations`)
-- Correct profile column usage (`first_name`/`last_name` instead of `name`, `organization` instead of `company`)
-- Proper error handling with `instanceof Error` guards
-- Health check endpoints (`?healthCheck=1`) for monitoring
-- Parameter normalization (snake_case and camelCase support)
-- Dual auth pattern (JWT validation + service role key)
-- No memory leaks, race conditions, or open loops
-- Correct user-scoping via profile joins for tables without `user_id`
+After this phase, the edge function architecture will be **100% compliant** with enterprise standards.
