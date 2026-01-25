@@ -191,7 +191,32 @@ export async function evaluateConstitutionalRules(
           break;
         case 'escalate':
           blockedByRule = rule.rule_key;
-          // TODO: Trigger escalation workflow
+          // Trigger escalation workflow asynchronously
+          try {
+            const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+            const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+            
+            // Fire and forget escalation - don't await to avoid blocking
+            fetch(`${supabaseUrl}/functions/v1/trigger-escalation`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${supabaseServiceKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                ruleId: rule.id,
+                ruleKey: rule.rule_key,
+                violationReason: result.reason,
+                severity: 'critical',
+                context,
+                functionName,
+              }),
+            }).catch(err => {
+              console.error('[ConstitutionalAI] Escalation trigger failed:', err);
+            });
+          } catch (escErr) {
+            console.error('[ConstitutionalAI] Escalation setup failed:', escErr);
+          }
           break;
         case 'warning':
           warnings.push(`${rule.rule_name}: ${result.reason}`);
