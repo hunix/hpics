@@ -1,140 +1,160 @@
 
-# Phase 26: Deception Detection Fix & Intelligence Package Validation
+# Unified PDF Export System Overhaul
 
-## Executive Summary
+## Problem Analysis
 
-**Root Cause Identified**: The `enhanced-deception-detector` edge function timed out after 60 seconds because it:
-1. Uses the slowest AI model (`google/gemini-2.5-pro`) instead of the faster `gemini-2.5-flash`
-2. Fetches up to 770 database records before sending to AI
-3. Has a complex 211-line prompt requesting forensic-level analysis
+The current dossier PDF export suffers from three major issues:
 
-**Good News**: Despite the timeout error, the analysis data was actually saved successfully. The database shows `enhanced_deception_detection` with a valid result (`deception_score: 68`, `confidence: 0.9`).
+### Issue 1: Inconsistent Visual Styling
+- **Header Colors**: Each section uses different colors - some use `PDF_DESIGN.colors.xxx` (the standard), while others use hardcoded RGB arrays like `[150, 100, 50]`, `[102, 51, 102]`, `[50, 100, 150]`, etc.
+- **Section Structure**: Some sections have background boxes, others don't. Font sizes and spacing vary randomly.
+- **Example**: `renderMICE` uses `PDF_DESIGN.colors.warfare`, but `renderPsychologicalProfile` uses `[102, 51, 102]`, and `renderRelationshipEcosystem` uses `[150, 100, 50]`.
+
+### Issue 2: Empty/White Pages
+- The `checkSectionHasData()` function reports data exists (enabling the section)
+- The renderer starts a new page, then does an internal `if (!rawData) return;` check
+- This creates a blank page with no content
+- Root cause: Mismatch between `checkSectionHasData()` (permissive) and renderer checks (strict)
+
+### Issue 3: Data Extraction Failures
+- The `extractResult()` function looks for a `.result` field in analysis records
+- Some analyses store data at the root level, others in `.result`
+- When extraction fails, sections render empty even though data exists
 
 ---
 
-## Part A: Deception Detection Fix
+## Solution Design
 
-### Issue Analysis
-The edge function takes too long because:
-- **Model**: Uses `gemini-2.5-pro` (slowest, most expensive) 
-- **Data Volume**: Fetches 500 messages + 100 voice + 100 facial + 50 body language + 20 behavioral records
-- **Prompt Complexity**: 211 lines of detailed forensic analysis requirements
+### Part 1: Standardized Category Color System
 
-### Proposed Fix
+Replace all hardcoded colors with category-based colors from `PDF_DESIGN.colors`:
 
-**1. Switch to faster model with fallback:**
-```typescript
-// BEFORE (Line 230)
-model: 'google/gemini-2.5-pro',
-
-// AFTER
-model: 'google/gemini-2.5-flash',
+```text
+Category Colors:
+┌──────────────┬─────────────────┬────────────────────┐
+│ Category     │ Color Token     │ RGB Value          │
+├──────────────┼─────────────────┼────────────────────┤
+│ Core         │ PDF_DESIGN.colors.core       │ [50, 50, 50]       │
+│ Intelligence │ PDF_DESIGN.colors.intelligence │ [0, 51, 102]      │
+│ Warfare      │ PDF_DESIGN.colors.warfare    │ [128, 0, 0]        │
+│ Analysis     │ PDF_DESIGN.colors.analysis   │ [0, 80, 120]       │
+│ Fusion       │ PDF_DESIGN.colors.fusion     │ [75, 0, 130]       │
+└──────────────┴─────────────────┴────────────────────┘
 ```
 
-**2. Reduce data limits to prevent timeout:**
-```typescript
-// BEFORE
-.limit(500)  // messages
-.limit(100)  // voice insights
-.limit(100)  // facial analyses
-.limit(50)   // body language
+### Part 2: Unified Section Renderer Template
 
-// AFTER
-.limit(200)  // messages - reduced for speed
-.limit(50)   // voice insights
-.limit(50)   // facial analyses
-.limit(30)   // body language
+Every section renderer will follow this standardized structure:
+
+```typescript
+export const renderSectionName: SectionRenderer = (ctx, data) => {
+  // 1. Data extraction (unified pattern)
+  const rawData = getAnalysisForSection(data, 'sectionKey')
+    || data.specificDataField;
+  
+  // 2. Extract result (handles both nested and flat structures)
+  const result = extractResultSafe(rawData);
+  
+  // 3. Check if we have meaningful content
+  if (!hasRenderableContent(result)) return;
+  
+  // 4. Render header with CATEGORY COLOR (not random RGB)
+  const category = getSectionCategory('sectionId');
+  ctx.renderSectionHeader('Section Title', getCategoryColor(category));
+  
+  // 5. Content box with standardized styling
+  renderContentBox(ctx, () => {
+    // Render metrics, bullets, etc.
+  });
+  
+  // 6. Standard spacing
+  ctx.yPos += PDF_DESIGN.section.spacing;
+};
 ```
 
-**3. Add timeout handling with partial save:**
-Add logic to detect if a response is taking too long and return partial results.
+### Part 3: Enhanced Data Extraction
+
+Update `extractResult()` to be more robust:
+
+```typescript
+export function extractResultSafe(record: unknown): Record<string, unknown> {
+  if (!record || typeof record !== 'object') return {};
+  const obj = record as Record<string, unknown>;
+  
+  // Priority 1: Direct result field
+  if (obj.result && typeof obj.result === 'object') {
+    return obj.result as Record<string, unknown>;
+  }
+  
+  // Priority 2: Data field (some analyses use this)
+  if (obj.data && typeof obj.data === 'object') {
+    return obj.data as Record<string, unknown>;
+  }
+  
+  // Priority 3: Return the record itself (flat structure)
+  return obj;
+}
+```
+
+### Part 4: Eliminate Blank Pages
+
+Add a pre-render content check to prevent blank pages:
+
+```typescript
+// In PDFDossierGenerator.tsx render loop
+for (const section of enabledSections) {
+  const renderer = allSectionRenderers[section.id];
+  if (!renderer) continue;
+  
+  // v4.0: Validate data BEFORE adding page
+  const hasActualContent = validateSectionContent(section.id, allData);
+  if (!hasActualContent) {
+    renderAudit.push({ sectionId: section.id, status: 'skipped_no_content' });
+    continue;
+  }
+  
+  // Now safe to add page
+  doc.addPage();
+  renderer(context, allData);
+}
+```
 
 ---
 
-## Part B: Intelligence Package Validation
+## Implementation Plan
 
-### Analysis of 39 Successful Tasks
+### Step 1: Create Unified PDF Design Utilities
+**File**: `src/components/reports/utils/pdfDesignSystem.ts`
 
-The session completed **39 tasks successfully** with **35 unique analysis types** stored. Here's the complete mapping:
+- Export `getCategoryColor(category: string)` function
+- Export `getSectionCategory(sectionId: string)` lookup
+- Export standardized content box renderer
+- Export improved `extractResultSafe()` function
 
-| Task Name | Edge Function | Stored Analysis Type | Status |
-|-----------|---------------|---------------------|--------|
-| MICE Assessment | mice-recruitment-analyzer | `mice_recruitment` | ✅ |
-| Behavioral DNA | behavioral-dna-sequencer | `behavioral_dna` | ✅ |
-| Attachment Vulnerability | attachment-vulnerability-analyzer | `attachment_vulnerability` | ✅ |
-| Manipulation Susceptibility | manipulation-vulnerability-assessment | `manipulation_susceptibility` | ✅ |
-| Phobia Exploitation | phobia-exploitation-engine | (not stored separately) | ⚠️ |
-| Cognitive Warfare | cognitive-warfare-engine | `cognitive_warfare` | ✅ |
-| Trauma Exploitation | trauma-exploitation-engine | `trauma_exploitation` | ✅ |
-| Deception Detection | enhanced-deception-detector | `enhanced_deception_detection` | ✅ (data saved) |
-| Influence Profile | analyze-influence-profile | `influence_profile` | ✅ |
-| Coercion Resistance | coercion-resistance-assessor | `coercion_resistance` | ✅ |
-| Existential Leverage | existential-leverage-calculator | `existential_leverage` | ✅ |
-| Memetic Propagation | memetic-propagation-engine | `memetic_propagation` | ✅ |
-| Reality Consensus | reality-consensus-engine | `reality_consensus` | ✅ |
-| Mass Formation | mass-formation-analyzer | `mass_formation` | ✅ |
-| Narrative Control | narrative-control-engine | `narrative_control` | ✅ |
-| Predictive Behavior | predict-behavioral-scenarios | `behavioral_prediction` | ✅ |
-| Precognitive Patterns | precognitive-pattern-engine | `precognitive_patterns` | ✅ |
-| Network Graph | analyze-network-graph | `network_graph` | ✅ |
-| Power Network | power-network-analyzer | `power_network` | ✅ |
-| Relationship Trajectory | predict-relationship-trajectory | `relationship_trajectory` | ✅ |
-| Network Exploitation | network-exploitation-mapper | `network_exploitation` | ✅ |
-| Temporal Fusion | temporal-fusion-transformer | `temporal_fusion` | ✅ |
-| Quantum Cognition | quantum-cognition-engine | `quantum_cognition` | ✅ |
-| Morphic Resonance | morphic-resonance-detector | `morphic_resonance` | ⚠️ Not stored |
-| Omega Point Tracking | omega-point-tracker | `omega_point` | ✅ |
-| Mosaic Intelligence | mosaic-intelligence-fuser | `mosaic_intelligence_fusion` | ✅ |
-| Unified Data Fusion | unified-data-fusion | `unified_fusion` | ⚠️ Not stored |
-| Intelligence Dossier | generate-intelligence-dossier | `intelligence_dossier` | ⚠️ Not stored |
-| Aggregate Intelligence | aggregate-media-intelligence | `aggregate_intelligence` | ✅ |
-| OPSEC Vulnerability | opsec-vulnerability-analyzer | `opsec_assessment` | ✅ |
-| Social Engineering | social-engineering-detector | `social_engineering` | ✅ |
-| Crisis Response | crisis-response-orchestrator | `crisis_response` | ✅ |
-| Lawfare Defense | lawfare-defense-analyzer | `lawfare_defense` | ✅ |
-| Reputation Defense | reputation-defense-engine | `reputation_defense` | ✅ |
-| Behavioral Baseline | behavioral-baseline-monitor | `behavioral_baseline` | ✅ |
-| Family Protection | family-protection-analyzer | `family_protection` | ✅ |
-| Economic Warfare | economic-warfare-detector | `economic_warfare` | ✅ |
-| TSCM Sweep | tscm-sweep-analyzer | `tscm_sweep` | ✅ |
-| Digital Footprint | digital-footprint-scanner | `digital_footprint` | ✅ |
+### Step 2: Refactor CoreSectionRenderers.ts
+- Replace all hardcoded RGB colors with `getCategoryColor()`
+- Standardize box backgrounds and spacing
+- Use unified content extraction
 
-### Export Sufficiency Analysis
+### Step 3: Refactor IntelligenceSectionRenderers.ts
+- Same standardization: category colors, unified structure
+- Fix ~16 renderers using random RGB values
 
-The 35 stored analysis types cover **95%+ of the PDF export sections** via the `ANALYSIS_TYPE_ALIASES` mapping:
+### Step 4: Refactor WarfareSectionRenderers.ts
+- Largest file (~965 lines), ~28 renderers need color standardization
+- Replace `[139, 69, 19]`, `[220, 20, 60]`, `[100, 0, 80]`, etc.
 
-| PDF Section | Required Analysis Type | Available |
-|-------------|----------------------|-----------|
-| Behavioral DNA | `behavioral_dna` | ✅ |
-| MICE Assessment | `mice_recruitment` | ✅ |
-| Psychological Profile | `manipulation_susceptibility` | ✅ |
-| Deception Analysis | `enhanced_deception_detection` | ✅ |
-| Cognitive Warfare | `cognitive_warfare` | ✅ |
-| Influence Profile | `influence_profile` | ✅ |
-| Network Position | `power_network`, `network_exploitation` | ✅ |
-| Fusion Engines | `mosaic_intelligence_fusion`, `temporal_fusion` | ✅ |
-| Defense Ops | All 10 defense types | ✅ |
+### Step 5: Refactor FusionSectionRenderers.ts & AnalysisSectionRenderers.ts
+- ~12 fusion + ~9 analysis renderers
+- Same pattern: category colors, unified boxes
 
-**Conclusion**: The intelligence package is **sufficient for export**. The few missing types (`morphic_resonance`, `unified_fusion`, `intelligence_dossier`) are covered by fallback aliases.
+### Step 6: Fix Blank Page Issue in PDFDossierGenerator.tsx
+- Add `validateSectionContent()` pre-check
+- Only call `doc.addPage()` if content will be rendered
 
----
-
-## Part C: Implementation Plan
-
-### Step 1: Fix enhanced-deception-detector (High Priority)
-1. Change model from `gemini-2.5-pro` to `gemini-2.5-flash`
-2. Reduce data limits (messages: 500→200, voice: 100→50, facial: 100→50)
-3. Optimize prompt to be more concise
-4. Deploy and verify
-
-### Step 2: Verify phobia-exploitation-engine storage
-Check if `phobia-exploitation-engine` is storing results correctly
-
-### Step 3: Verify omniscient-orchestrator and unified-data-fusion
-Check if these functions are storing with correct analysis_type keys
-
-### Step 4: Update task status handling
-Consider marking task as "completed" if data is saved, even if response times out
+### Step 7: Update checkSectionHasData() Logic
+- Make it stricter to match actual renderer requirements
+- Reduce false positives that lead to blank sections
 
 ---
 
@@ -142,26 +162,54 @@ Consider marking task as "completed" if data is saved, even if response times ou
 
 ### Files to Modify
 
-1. **`supabase/functions/enhanced-deception-detector/index.ts`**
-   - Line 230: Change model to `gemini-2.5-flash`
-   - Lines 52-57: Reduce message limit from 500 to 200
-   - Lines 58-62: Reduce voice limit from 100 to 50
-   - Lines 63-68: Reduce facial limit from 100 to 50
-   - Lines 69-73: Reduce body language limit from 50 to 30
+| File | Changes |
+|------|---------|
+| `src/components/reports/utils/pdfDesignSystem.ts` | **NEW** - Centralized design utilities |
+| `src/components/reports/sections/renderers/CoreSectionRenderers.ts` | Standardize 9 renderers |
+| `src/components/reports/sections/renderers/IntelligenceSectionRenderers.ts` | Standardize 16 renderers |
+| `src/components/reports/sections/renderers/WarfareSectionRenderers.ts` | Standardize 28 renderers |
+| `src/components/reports/sections/renderers/FusionSectionRenderers.ts` | Standardize 12 renderers |
+| `src/components/reports/sections/renderers/AnalysisSectionRenderers.ts` | Standardize 9 renderers |
+| `src/components/reports/PDFDossierGenerator.tsx` | Add blank page prevention |
+| `src/components/reports/utils/sectionDataCheck.ts` | Improve data detection accuracy |
+| `src/components/reports/hooks/usePDFGeneration.ts` | Add helper for content boxes |
 
 ### Expected Outcome
-After fixes:
-- Deception Detection completes within 30-40 seconds (vs 60+ timeout)
-- All 40 tasks complete successfully
-- PDF export includes all intelligence sections
+
+After implementation:
+- **Consistent Headers**: All sections use category-appropriate colors
+- **Zero Blank Pages**: Pre-validation prevents empty page creation
+- **Uniform Styling**: All sections follow the same visual structure
+- **Better Data Mapping**: Improved extraction handles various data formats
+- **Professional Output**: Clean, cohesive intelligence dossier
+
+### Color Standardization Examples
+
+Before:
+```typescript
+// Random colors across files
+ctx.renderSectionHeader('MICE Vulnerability', PDF_DESIGN.colors.warfare);
+ctx.renderSectionHeader('Psychological Profile', [102, 51, 102]);
+ctx.renderSectionHeader('Relationship Ecosystem', [150, 100, 50]);
+ctx.renderSectionHeader('Temporal Fusion', [50, 100, 150]);
+```
+
+After:
+```typescript
+// All using category system
+ctx.renderSectionHeader('MICE Vulnerability', getCategoryColor('warfare'));
+ctx.renderSectionHeader('Psychological Profile', getCategoryColor('intelligence'));
+ctx.renderSectionHeader('Relationship Ecosystem', getCategoryColor('core'));
+ctx.renderSectionHeader('Temporal Fusion', getCategoryColor('fusion'));
+```
 
 ---
 
 ## Summary
 
-| Issue | Status | Fix |
-|-------|--------|-----|
-| Deception Detection timeout | Identified | Switch to faster model + reduce data |
-| 39/40 tasks succeeded | Verified | Data is sufficient for export |
-| Missing analysis types | Minor | Covered by alias fallbacks |
-| Export readiness | Ready | 95%+ sections have data |
+This overhaul will:
+1. Create a centralized design system for consistent PDF styling
+2. Eliminate the ~40+ different hardcoded RGB color values
+3. Prevent blank pages by adding content validation before page creation
+4. Improve data extraction to handle various storage formats
+5. Deliver a professional, unified intelligence dossier export
