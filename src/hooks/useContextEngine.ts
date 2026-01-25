@@ -210,13 +210,51 @@ export function useContextEngine(): UseContextEngineReturn {
     const suggestedActions: string[] = [];
     switch (context) {
       case 'commute':
-        suggestedActions.push('Call a contact', 'Listen to voicemails', 'Review daily agenda');
+        suggestedActions.push(
+          'Call a contact',
+          'Listen to voicemails',
+          'Review daily agenda',
+          'Catch up on voice notes',
+          'Plan outreach for the day',
+          'Review at-risk relationships'
+        );
         break;
       case 'work':
-        suggestedActions.push('Check pending follow-ups', 'Schedule meetings', 'Start recording');
+        suggestedActions.push(
+          'Check pending follow-ups',
+          'Schedule meetings',
+          'Start recording',
+          'Log meeting notes',
+          'Send quick updates',
+          'Review action items',
+          'Prepare briefing materials'
+        );
         break;
       case 'social':
-        suggestedActions.push('Capture moment', 'Tag contacts', 'Log interaction');
+        suggestedActions.push(
+          'Capture moment',
+          'Tag contacts',
+          'Log interaction',
+          'Take group photo',
+          'Schedule follow-up',
+          'Add to event memory'
+        );
+        break;
+      case 'rest':
+        suggestedActions.push(
+          'Review weekly summary',
+          'Set goals for tomorrow',
+          'Organize contact notes',
+          'Review relationship health',
+          'Plan important calls'
+        );
+        break;
+      case 'unknown':
+        suggestedActions.push(
+          'Quick capture',
+          'Search contacts',
+          'View dashboard'
+        );
         break;
     }
 

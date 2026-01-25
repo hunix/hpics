@@ -12,6 +12,18 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({
+      ok: true,
+      function: 'cross-modal-synthesis',
+      timestamp: Date.now()
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
