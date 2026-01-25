@@ -30,10 +30,12 @@ export type ProcessingMode = 'local' | 'cloud' | 'hybrid';
 export interface VoiceBulkSession {
   id: string;
   status: 'idle' | 'running' | 'paused' | 'completed' | 'failed';
+  phase: 'initializing' | 'model_loading' | 'processing' | 'completed' | 'failed';
   totalItems: number;
   processedItems: number;
   failedItems: number;
   currentItemId: string | null;
+  currentFileName?: string;
   startedAt: string | null;
   completedAt: string | null;
   error: string | null;
@@ -205,16 +207,19 @@ export function useVoiceBulkAnalysis(profileId?: string) {
     const newSession: VoiceBulkSession = {
       id: crypto.randomUUID(),
       status: 'running',
+      phase: mode === 'local' || mode === 'hybrid' ? 'model_loading' : 'processing',
       totalItems: selectedRecordings.length,
       processedItems: 0,
       failedItems: 0,
       currentItemId: null,
+      currentFileName: undefined,
       startedAt: new Date().toISOString(),
       completedAt: null,
       error: null,
       totalCostCents: 0,
       processingMode: mode,
-      modelStatus: mode === 'local' || mode === 'hybrid' ? 'loading' : undefined
+      modelStatus: mode === 'local' || mode === 'hybrid' ? 'loading' : 'ready',
+      modelProgress: 0
     };
 
     setSession(newSession);
@@ -243,7 +248,7 @@ export function useVoiceBulkAnalysis(profileId?: string) {
             }
           }
         });
-        setSession(prev => prev ? { ...prev, modelStatus: 'ready' } : null);
+        setSession(prev => prev ? { ...prev, modelStatus: 'ready', phase: 'processing' } : null);
       } catch (error) {
         console.error('[VoiceBulkAnalysis] Failed to load local model:', error);
         toast.error('Failed to load local ML model. Falling back to cloud.');
@@ -263,6 +268,7 @@ export function useVoiceBulkAnalysis(profileId?: string) {
       setSession(prev => prev ? { 
         ...prev, 
         currentItemId: recording.id,
+        currentFileName: recording.title || 'Audio file',
         processedItems: i 
       } : null);
 
@@ -354,8 +360,10 @@ export function useVoiceBulkAnalysis(profileId?: string) {
     setSession(prev => prev ? {
       ...prev,
       status: 'completed',
+      phase: 'completed',
       completedAt: new Date().toISOString(),
       currentItemId: null,
+      currentFileName: undefined,
     } : null);
 
     toast.success('Voice analysis complete!');

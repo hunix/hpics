@@ -160,17 +160,61 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
         {/* Progress Section */}
         {session && session.status !== 'idle' && (
           <div className="space-y-3 p-4 rounded-lg bg-muted/50 border">
-            <div className="flex items-center justify-between">
-              <span className="font-medium">
-                {session.status === 'running' ? 'Analyzing...' : 
-                 session.status === 'completed' ? 'Completed' : 
-                 session.status === 'paused' ? 'Paused' : 'Failed'}
-              </span>
-              <span className="text-sm text-muted-foreground">
-                {session.processedItems} / {session.totalItems}
-              </span>
-            </div>
-            <Progress value={progress} className="h-2" />
+            {/* Model Loading Phase */}
+            {session.phase === 'model_loading' && session.modelStatus === 'loading' && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-yellow-500" />
+                  <span className="font-medium text-yellow-600 dark:text-yellow-400">
+                    Loading Whisper Model... {Math.round(session.modelProgress || 0)}%
+                  </span>
+                </div>
+                <Progress value={session.modelProgress || 0} className="h-1.5" />
+                <p className="text-xs text-muted-foreground">
+                  First run downloads ~800MB model (cached after)
+                </p>
+              </div>
+            )}
+            
+            {/* Processing Phase */}
+            {session.phase === 'processing' && session.status === 'running' && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                    <span className="font-medium">
+                      Processing: <span className="text-blue-600 dark:text-blue-400">{session.currentFileName || 'Audio file'}</span>
+                    </span>
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    {session.processedItems} / {session.totalItems}
+                  </span>
+                </div>
+                <Progress value={progress} className="h-2" />
+              </div>
+            )}
+            
+            {/* Completed Phase */}
+            {session.status === 'completed' && (
+              <div className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-green-500" />
+                <span className="font-medium text-green-600 dark:text-green-400">
+                  Completed - {session.processedItems} files processed
+                </span>
+              </div>
+            )}
+            
+            {/* Paused State */}
+            {session.status === 'paused' && (
+              <div className="flex items-center gap-2">
+                <Pause className="h-4 w-4 text-yellow-500" />
+                <span className="font-medium text-yellow-600 dark:text-yellow-400">
+                  Paused at {session.processedItems} / {session.totalItems}
+                </span>
+              </div>
+            )}
+            
+            {/* Failed items indicator and controls */}
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">
                 {session.failedItems > 0 && (
@@ -178,7 +222,7 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
                 )}
               </span>
               <div className="flex gap-2">
-                {isRunning && (
+                {isRunning && session.phase === 'processing' && (
                   <Button size="sm" variant="outline" onClick={pauseAnalysis}>
                     <Pause className="h-4 w-4 mr-1" />
                     Pause
