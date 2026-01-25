@@ -1,107 +1,94 @@
 
-# Fix: Infinite Reload Loop Causing Blank White Pages
+# Fix: suggest-followups Edge Function Schema Error
 
 ## Problem Identified
 
-The application is stuck in an **infinite reload loop** and never renders any content. This is caused by a logic flaw in the version management system.
-
-### Root Cause
-
-In `src/lib/appVersion.ts`, the current version `'3.9.50'` is included in the `FORCE_CLEAR_VERSIONS` array:
-
-```typescript
-export const FORCE_CLEAR_VERSIONS = ['3.9.50', '3.9.38', '3.9.35', ...];
+The `suggest-followups` edge function is throwing a 500 error with:
+```
+column communications.is_from_contact does not exist
 ```
 
-In `src/main.tsx`, the version check logic triggers a cache clear and page reload whenever the stored version is in `FORCE_CLEAR_VERSIONS`:
-
-```typescript
-const shouldForceClear = storedVersion && FORCE_CLEAR_VERSIONS.includes(storedVersion);
-
-if (storedVersion && (storedVersion !== APP_VERSION || shouldForceClear)) {
-  // Clear caches...
-  setStoredVersion(APP_VERSION);
-  window.location.reload();  // ← Infinite loop here
-  return false;
-}
-```
-
-**The Loop:**
-1. Page loads → stored version is `3.9.50`
-2. Current version is `3.9.50` → no mismatch
-3. BUT `3.9.50` is in `FORCE_CLEAR_VERSIONS` → `shouldForceClear = true`
-4. Clears caches, stores `3.9.50`, reloads
-5. Back to step 1 → repeat forever
+**Root Cause:** The function queries a non-existent column `is_from_contact`. The actual schema uses `direction` with enum values `'inbound'` / `'outbound'`.
 
 ---
 
-## Solution
+## Current (Broken) Code
 
-### Option A: Remove Current Version from Force Clear Array (Recommended)
-
-Remove `'3.9.50'` from the `FORCE_CLEAR_VERSIONS` array. The current version should **never** be in this list since it's meant to force users upgrading **from** old versions to clear their cache.
-
-**File:** `src/lib/appVersion.ts` (Line 70)
+**File:** `supabase/functions/suggest-followups/index.ts` (Lines 79-83)
 
 ```typescript
-// BEFORE (causes infinite loop)
-export const FORCE_CLEAR_VERSIONS = ['3.9.50', '3.9.38', '3.9.35', ...];
-
-// AFTER (fixed)
-export const FORCE_CLEAR_VERSIONS = ['3.9.38', '3.9.35', '3.9.34', ...];
+const { data: communications, error: commsError } = await supabase
+  .from('communications')
+  .select('profile_id, occurred_at, channel, is_from_contact')  // ❌ Wrong column
+  .eq('user_id', userId)
+  .order('occurred_at', { ascending: false });
 ```
 
-### Option B: Fix the Logic (Defensive)
+---
 
-Additionally, improve the logic in `src/main.tsx` to prevent this from ever happening again:
+## Actual Schema
+
+| Column | Type | Values |
+|--------|------|--------|
+| `direction` | enum | `'inbound'` (from contact) / `'outbound'` (to contact) |
+
+The equivalent logic:
+- `is_from_contact: true` → `direction = 'inbound'`
+- `is_from_contact: false` → `direction = 'outbound'`
+
+---
+
+## Fix Implementation
+
+### Change 1: Update select query (Line 81)
 
 ```typescript
 // BEFORE
-const shouldForceClear = storedVersion && FORCE_CLEAR_VERSIONS.includes(storedVersion);
+.select('profile_id, occurred_at, channel, is_from_contact')
 
-// AFTER - Never force clear if already on current version
-const shouldForceClear = storedVersion && 
-                         storedVersion !== APP_VERSION && 
-                         FORCE_CLEAR_VERSIONS.includes(storedVersion);
+// AFTER
+.select('profile_id, occurred_at, channel, direction')
 ```
+
+### Change 2: Add limit for performance (after Line 83)
+
+Add `.limit(1000)` to prevent potential performance issues with large datasets.
+
+### Change 3: No logic changes needed
+
+The `is_from_contact` field was being selected but never actually used in the rest of the function. The code only uses:
+- `profile_id` - for filtering communications by profile
+- `occurred_at` - for determining last contact date
+- `channel` - for showing recent channels
+
+So we just need to fix the column name. No other logic changes required.
 
 ---
 
-## Implementation Steps
+## Files to Modify
 
-1. **Edit `src/lib/appVersion.ts`**
-   - Remove `'3.9.50'` from the `FORCE_CLEAR_VERSIONS` array
-   - Bump version to `'3.9.51'` to ensure fresh load
-
-2. **Edit `src/main.tsx`** (defensive fix)
-   - Add `storedVersion !== APP_VERSION` check to prevent future occurrences
-   - This ensures we only force clear when upgrading from an old problematic version, not when already on the current version
+| File | Changes |
+|------|---------|
+| `supabase/functions/suggest-followups/index.ts` | Replace `is_from_contact` with `direction`, add `.limit(1000)` |
 
 ---
 
 ## Technical Details
 
-### Files to Modify
+The fix is minimal - a single column name change. The function currently:
+1. Fetches active profiles for the user
+2. Fetches communications for those profiles
+3. Calculates days since last contact
+4. Sends data to AI for follow-up suggestions
+5. Returns the suggestions
 
-| File | Change |
-|------|--------|
-| `src/lib/appVersion.ts` | Remove `'3.9.50'` from `FORCE_CLEAR_VERSIONS`, bump to `3.9.51` |
-| `src/main.tsx` | Add defensive check to prevent current version from triggering force clear |
-
-### Why This Happened
-
-The intent of `FORCE_CLEAR_VERSIONS` is to force cache clearing when users upgrade **from** certain problematic versions. However, the current version was accidentally added to this list, causing users already on that version to be stuck in an infinite loop.
-
-### Prevention
-
-The defensive fix in `main.tsx` ensures this bug cannot happen again, even if someone accidentally adds the current version to the force-clear list.
+The `direction` column is not actually used in the logic (only selected), so the fix is straightforward.
 
 ---
 
 ## Expected Result
 
-After applying these fixes:
-- The infinite reload loop will stop
-- All pages will render correctly
-- The auth page and all other routes will be accessible
-- Version will be `3.9.51` with proper cache management
+After this fix:
+- The edge function will execute without 500 errors
+- Dashboard will load follow-up suggestions correctly
+- The error toast will no longer appear on the dashboard page
