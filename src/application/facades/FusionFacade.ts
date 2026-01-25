@@ -62,6 +62,17 @@ export class FusionFacade {
       'pattern-of-life',
       'entity-resolution',
       'sentiment-cascade',
+      // v5.0 engines
+      'biometric-behavioral',
+      'geospatial-communication',
+      'financial-document',
+      'calendar-pattern',
+      // v6.0 Advanced Intelligence engines
+      'relationship-half-life',
+      'automated-red-team',
+      'multi-party-deception',
+      'zero-day-anomaly',
+      'hypergame-theory',
     ];
 
     return this.service.executeBatchFusion({
@@ -120,6 +131,17 @@ export class FusionFacade {
       'pattern-of-life',
       'entity-resolution',
       'sentiment-cascade',
+      // v5.0 engines
+      'biometric-behavioral',
+      'geospatial-communication',
+      'financial-document',
+      'calendar-pattern',
+      // v6.0 Advanced Intelligence engines
+      'relationship-half-life',
+      'automated-red-team',
+      'multi-party-deception',
+      'zero-day-anomaly',
+      'hypergame-theory',
     ];
 
     const existingResults = await this.service.getFusionResults(profileId);
@@ -167,7 +189,7 @@ export class FusionFacade {
     message: string;
   }> {
     const results = await this.service.getFusionResults(profileId);
-    const totalEngines = 9;
+    const totalEngines = 18; // Updated for v6.0 (9 original + 4 v5.0 + 5 v6.0)
     const freshResults = results.filter(r => !r.isStale(24));
 
     if (results.length === 0) {

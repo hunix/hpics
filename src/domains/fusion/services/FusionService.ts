@@ -33,6 +33,12 @@ export const FUSION_ANALYSIS_TYPES: Record<FusionEngineType, string> = {
   'geospatial-communication': 'geospatial_communication_fusion',
   'financial-document': 'financial_document_synthesis',
   'calendar-pattern': 'calendar_pattern_analysis',
+  // New v6.0 Advanced Intelligence engines
+  'relationship-half-life': 'relationship_half_life',
+  'automated-red-team': 'automated_red_team',
+  'multi-party-deception': 'multi_party_deception',
+  'zero-day-anomaly': 'zero_day_anomaly',
+  'hypergame-theory': 'hypergame_theory',
 };
 
 export interface FusionRequest {
@@ -378,6 +384,12 @@ export class FusionService {
       'geospatial-communication': 'geospatial-communication-fusion',
       'financial-document': 'financial-document-synthesis',
       'calendar-pattern': 'calendar-pattern-analyzer',
+      // New v6.0 Advanced Intelligence engines
+      'relationship-half-life': 'relationship-half-life-calculator',
+      'automated-red-team': 'automated-red-team-engine',
+      'multi-party-deception': 'multi-party-deception-detector',
+      'zero-day-anomaly': 'zero-day-anomaly-detector',
+      'hypergame-theory': 'hypergame-theory-engine',
     };
     return mapping[engineType];
   }
