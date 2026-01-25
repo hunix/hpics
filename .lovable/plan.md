@@ -1,105 +1,263 @@
 
-# Local Whisper Model Size Selector
+# Audio Language Detection, Smart Skipping & Tagging System
 
-## Overview
+## Executive Summary
 
-Add a UI option to select between different Whisper model sizes for local transcription, allowing users to choose between download size/speed trade-offs. The models are already defined in `localWhisperTranscriber.ts` but the UI is hardcoded to use 'turbo' (~800MB).
+Add intelligent language detection and tagging for voice/audio files with automatic skipping when the selected Whisper model doesn't support the detected language. Users will see language badges (Arabic, English, etc.) on each audio file and receive clear reports when files are skipped due to language incompatibility.
 
 ---
 
-## Available Models (Already Defined)
+## Current System Status
 
-| Model Key | Display Name | Size | Speed | Notes |
-|-----------|--------------|------|-------|-------|
-| `tiny` | Whisper Tiny | ~75MB | ~100x real-time | English-only, fastest download |
-| `small` | Whisper Small | ~250MB | ~50x real-time | Multilingual, good balance |
-| `distil` | Distil-Whisper | ~750MB | ~6x faster | High quality, optimized |
-| `turbo` | Whisper Turbo | ~800MB | 216x real-time | Maximum quality (current default) |
+### Models Properly Configured
+All 4 Whisper models are correctly defined and wired:
+
+| Model | ONNX ID | Language Support | Status |
+|-------|---------|------------------|--------|
+| `tiny` | `whisper-tiny.en` | English-only | Correctly flagged |
+| `small` | `whisper-small` | Multilingual (incl. Arabic) | Working |
+| `distil` | `distil-large-v3` | Multilingual (incl. Arabic) | Working |
+| `turbo` | `whisper-large-v3-turbo` | Multilingual (incl. Arabic) | Working |
+
+### What's Missing
+1. **Language Detection Storage**: Transcription returns `language` but it's not saved to DB
+2. **Language Tags on Files**: `VoiceRecording` interface lacks language field
+3. **Smart Skipping Logic**: No check for model compatibility before processing
+4. **Skip Reporting**: No mechanism to inform users about skipped files
+5. **Media Table Column**: No `detected_language` column for filtering
 
 ---
 
 ## Implementation Plan
 
-### Phase 1: State Management
+### Phase 1: Database Schema Update
 
-**File:** `src/components/analysis/VoiceBulkAnalysisPanel.tsx`
+**Add `detected_language` column to `media` table:**
+```sql
+ALTER TABLE public.media ADD COLUMN detected_language TEXT;
+CREATE INDEX idx_media_detected_language ON public.media(detected_language);
+```
 
-1. Add new state for model selection:
+The `voice_insights` table already has `language_detected` column - we'll use it.
+
+### Phase 2: Model Language Support Registry
+
+**File:** `src/lib/ml/localWhisperTranscriber.ts`
+
+Extend `MODEL_MAP` with language support metadata:
+
 ```typescript
-const [selectedModel, setSelectedModel] = useState<WhisperModel>('small'); // Default to balanced
+const MODEL_MAP: Record<WhisperModel, { 
+  id: string; 
+  name: string; 
+  size: string; 
+  speed: string;
+  supportedLanguages: 'english-only' | 'multilingual';
+  languageCodes?: string[]; // For english-only, specify ['en']
+}> = {
+  turbo: { ..., supportedLanguages: 'multilingual' },
+  distil: { ..., supportedLanguages: 'multilingual' },
+  small: { ..., supportedLanguages: 'multilingual' },
+  tiny: { ..., supportedLanguages: 'english-only', languageCodes: ['en'] }
+};
 ```
 
-2. Import `WhisperModel` type from localWhisperTranscriber
-
-### Phase 2: UI Component - Model Selector
-
-**File:** `src/components/analysis/VoiceBulkAnalysisPanel.tsx`
-
-Add a model selector dropdown/radio group that appears when `processingMode === 'local'` or `processingMode === 'hybrid'`:
-
-```text
-┌─────────────────────────────────────────────────────┐
-│ Local Model Size                                    │
-│ ┌─────────────────────────────────────────────────┐ │
-│ │ ○ Tiny (75MB)    - English only, fastest load   │ │
-│ │ ● Small (250MB)  - Multilingual, balanced ✓     │ │
-│ │ ○ Distil (750MB) - High quality, optimized      │ │
-│ │ ○ Turbo (800MB)  - Maximum quality              │ │
-│ └─────────────────────────────────────────────────┘ │
-│ First run downloads model to browser cache          │
-└─────────────────────────────────────────────────────┘
-```
-
-Features:
-- Radio group with 4 options
-- Shows size and key characteristics
-- Indicates "English-only" for tiny model
-- Updates the "First run" download size message dynamically
-
-### Phase 3: Hook Integration
-
-**File:** `src/hooks/useVoiceBulkAnalysis.ts`
-
-1. Add `whisperModel` parameter to the hook's start function:
+Add helper function:
 ```typescript
-startBulkAnalysis: (
-  items: VoiceRecording[],
-  options: VoiceBulkAnalysisOptions,
-  mode: ProcessingMode,
-  whisperModel: WhisperModel = 'small'
-) => Promise<void>
+isLanguageSupported(model: WhisperModel, langCode: string): boolean
 ```
 
-2. Pass selected model to `localAudioAnalyzer.initialize()`:
-```typescript
-await localAudioAnalyzer.initialize({
-  whisperModel: whisperModel, // Previously hardcoded to 'turbo'
-  onProgress: (progress) => { ... }
-});
-```
-
-### Phase 4: Local Audio Analyzer Update
+### Phase 3: Pre-Processing Language Detection (Sample-Based)
 
 **File:** `src/lib/ml/localAudioAnalyzer.ts`
 
-Ensure the `initialize` method accepts and passes through the `whisperModel` parameter to `localWhisperTranscriber`.
+Add a fast language detection method that:
+1. Transcribes first 10-15 seconds of audio
+2. Returns detected language code
+3. Caches result to avoid re-detection
 
-### Phase 5: Dynamic UI Updates
+```typescript
+async detectLanguage(audioSource: string | Blob): Promise<{
+  languageCode: string;
+  languageName: string;
+  confidence: number;
+}>
+```
+
+### Phase 4: Enhanced VoiceRecording Interface
+
+**File:** `src/hooks/useVoiceBulkAnalysis.ts`
+
+```typescript
+export interface VoiceRecording {
+  // ... existing fields
+  detectedLanguage?: string;         // ISO language code (ar, en, es, etc.)
+  detectedLanguageName?: string;     // Display name (Arabic, English, etc.)
+  languageSource?: 'detected' | 'manual' | 'unknown';
+}
+
+// New skip tracking interfaces
+export interface SkippedRecording {
+  recording: VoiceRecording;
+  reason: 'unsupported_language' | 'detection_failed';
+  detectedLanguage?: string;
+  modelUsed: WhisperModel;
+}
+
+export interface VoiceBulkSession {
+  // ... existing fields
+  skippedItems: number;
+  skippedRecordings?: SkippedRecording[];
+}
+```
+
+### Phase 5: Smart Processing with Skip Logic
+
+**File:** `src/hooks/useVoiceBulkAnalysis.ts`
+
+Update `startBulkAnalysis` to:
+
+1. **Pre-scan Phase** (for `tiny` model only):
+   - Loop through selected recordings
+   - Quick-detect language using 10-second sample
+   - Build lists: `toProcess[]` and `toSkip[]`
+   - Report skip count immediately
+
+2. **Processing Phase**:
+   - Process only compatible files
+   - Store `language_detected` in `voice_insights` table
+   - Update `media.detected_language` for audio files
+
+3. **Skip Tracking**:
+```typescript
+const skippedRecordings: SkippedRecording[] = [];
+
+// Pre-check for english-only model
+if (whisperModel === 'tiny') {
+  const langResult = await localAudioAnalyzer.detectLanguage(recording.audio_url);
+  if (langResult.languageCode !== 'en') {
+    skippedRecordings.push({
+      recording,
+      reason: 'unsupported_language',
+      detectedLanguage: langResult.languageName,
+      modelUsed: whisperModel
+    });
+    continue; // Skip this file
+  }
+}
+```
+
+### Phase 6: Language Badge Display in UI
 
 **File:** `src/components/analysis/VoiceBulkAnalysisPanel.tsx`
 
-1. Update the "First run downloads" message to show selected model size:
+Add language badges to recording rows:
+
 ```typescript
-{processingMode === 'local' && !localModelStatus?.isReady && (
-  <div className="text-xs text-muted-foreground mt-1">
-    <strong>First run:</strong> Downloads ~{MODEL_SIZES[selectedModel]} model (cached after)
-  </div>
-)}
+// Language code to display name mapping
+const LANGUAGE_DISPLAY: Record<string, { name: string; flag?: string; className: string }> = {
+  ar: { name: 'Arabic', flag: '🇸🇦', className: 'bg-emerald-500/20 text-emerald-600' },
+  en: { name: 'English', flag: '🇺🇸', className: 'bg-blue-500/20 text-blue-600' },
+  es: { name: 'Spanish', flag: '🇪🇸', className: 'bg-orange-500/20 text-orange-600' },
+  fr: { name: 'French', flag: '🇫🇷', className: 'bg-indigo-500/20 text-indigo-600' },
+  // ... more languages
+  unknown: { name: 'Unknown', className: 'bg-gray-500/20 text-gray-600' }
+};
 ```
 
-2. Show model-specific warnings:
-   - For `tiny`: Show "English-only" badge
-   - For `turbo`/`distil`: Show "Large download" indicator
+Display in recording row:
+```text
+┌─────────────────────────────────────────────────────────────┐
+│ ☑ Voice Note 2025-01-15  [WhatsApp] [Arabic 🇸🇦] [✓ Analyzed] │
+│   ⏱ 2:34  •  3 days ago                                     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Phase 7: Skip Report UI
+
+**File:** `src/components/analysis/VoiceBulkAnalysisPanel.tsx`
+
+Add skip report section to the progress/completion UI:
+
+```text
+┌────────────────────────────────────────────────────────────────┐
+│ ⚠ 12 files skipped - Language not supported                   │
+│                                                                 │
+│ The selected model (Whisper Tiny) only supports English.       │
+│ These files were detected as non-English:                      │
+│                                                                 │
+│   • voice_note_2024.opus  [Arabic]                             │
+│   • meeting_recording.mp3 [Arabic]                             │
+│   • call_jan_15.m4a       [French]                             │
+│   +9 more...                                                   │
+│                                                                 │
+│ [Switch to Multilingual Model] [Analyze Anyway]                │
+└────────────────────────────────────────────────────────────────┘
+```
+
+### Phase 8: Language Filter Toggle
+
+**File:** `src/components/analysis/VoiceBulkAnalysisPanel.tsx`
+
+Add filter controls above the recording list:
+
+```typescript
+const [languageFilter, setLanguageFilter] = useState<string | 'all'>('all');
+
+// Filter options derived from recordings with detected languages
+const availableLanguages = useMemo(() => {
+  const langs = new Set(recordings.map(r => r.detectedLanguage).filter(Boolean));
+  return Array.from(langs);
+}, [recordings]);
+```
+
+UI:
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│ Filter by Language: [All ▾] [Arabic (24)] [English (156)] [?]  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Phase 9: Persist Language to Database
+
+**File:** `src/hooks/useVoiceBulkAnalysis.ts`
+
+Update `processLocalRecording`:
+
+```typescript
+// After transcription
+const detectedLang = result.transcription?.language || 'unknown';
+
+// Store in voice_insights
+await supabase.from('voice_insights').upsert({
+  // ... existing fields
+  language_detected: detectedLang,  // NEW
+});
+
+// Update media table for filtering
+if (recording.source === 'media') {
+  await supabase.from('media')
+    .update({ detected_language: detectedLang })
+    .eq('id', recording.id);
+}
+```
+
+### Phase 10: Fetch Language Tags on Load
+
+**File:** `src/hooks/useVoiceBulkAnalysis.ts`
+
+Update `fetchRecordings` to join language data:
+
+```typescript
+// For media files - select detected_language
+let mediaQuery = supabase
+  .from('media')
+  .select('id, caption, file_url, ..., detected_language')
+  .like('mime_type', 'audio/%');
+
+// For voice sessions - join voice_insights for language
+// Or add language field to voice_recording_sessions table
+```
 
 ---
 
@@ -107,38 +265,32 @@ Ensure the `initialize` method accepts and passes through the `whisperModel` par
 
 | File | Changes |
 |------|---------|
-| `src/components/analysis/VoiceBulkAnalysisPanel.tsx` | Add model selector UI, state, dynamic messages |
-| `src/hooks/useVoiceBulkAnalysis.ts` | Accept `whisperModel` parameter, pass to initializer |
-| `src/lib/ml/localAudioAnalyzer.ts` | Pass through whisperModel to localWhisperTranscriber |
+| `src/lib/ml/localWhisperTranscriber.ts` | Add language support metadata to MODEL_MAP, add helper function |
+| `src/lib/ml/localAudioAnalyzer.ts` | Add `detectLanguage()` method for quick language sampling |
+| `src/hooks/useVoiceBulkAnalysis.ts` | Add skip logic, language storage, enhanced interfaces |
+| `src/components/analysis/VoiceBulkAnalysisPanel.tsx` | Add language badges, skip report UI, language filter |
+
+**Database Migration:**
+- Add `detected_language` column to `media` table
 
 ---
 
-## UI Placement
+## User Experience Flow
 
-The model selector will appear:
-- **Below** the "Processing Mode" radio group (Local/Cloud/Hybrid)
-- **Only when** Local or Hybrid mode is selected
-- **Collapsed by default** with an expand chevron for advanced users (optional)
-
----
-
-## Default Model Recommendation
-
-**Recommended default: `small` (~250MB)**
-
-Rationale:
-- 3x smaller download than turbo (250MB vs 800MB)
-- Still supports multilingual transcription
-- 50x real-time is plenty fast for batch processing
-- Good quality for intelligence analysis
-
-Users who need maximum accuracy can opt for `turbo`, while those with limited bandwidth or storage can use `tiny` (75MB, English-only).
+1. **Before Analysis**: Files without language tags show "?" or no badge
+2. **Model Selection**: If user selects Tiny model, show warning about English-only
+3. **Analysis Start**: Pre-scan detects languages for Tiny model selection
+4. **Skip Notification**: Toast showing "12 Arabic files will be skipped (Tiny model is English-only)"
+5. **During Analysis**: Language badges appear as files are processed
+6. **Completion**: Summary shows processed + skipped counts with reasons
+7. **Post-Analysis**: Language filter allows users to view files by language
 
 ---
 
 ## Technical Notes
 
-- Models are cached in browser IndexedDB after first download
-- User's model preference could be persisted to localStorage
-- WebGPU/WASM fallback logic remains unchanged regardless of model selection
-- All 4 models already exist in `localWhisperTranscriber.ts` MODEL_MAP
+- Language detection uses Whisper's built-in language identification (first 30 seconds)
+- For `tiny` model, pre-scan uses the same model for consistency
+- Arabic ISO code: `ar`, English: `en`, French: `fr`, Spanish: `es`
+- Whisper returns ISO 639-1 codes which we map to display names
+- Multilingual models (small/distil/turbo) can process 99+ languages including Arabic
