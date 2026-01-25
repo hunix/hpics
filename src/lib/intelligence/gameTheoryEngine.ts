@@ -424,3 +424,125 @@ export function analyzeRepeatedGame(
     folk_theorem_applies: folkApplies,
   };
 }
+
+// ============== HYPERGAME THEORY EXTENSIONS (v6.0) ==============
+
+export interface HypergameLevel {
+  level: number;
+  perceiver: string;
+  perceivedGame: StrategicInteraction;
+  beliefs: Map<string, number>;
+}
+
+export interface PerceptionGap {
+  dimension: 'game_type' | 'strategy_space' | 'payoffs' | 'player_rationality';
+  ourView: unknown;
+  theirLikelyView: unknown;
+  divergence: number;
+  exploitability: number;
+}
+
+export interface HypergameAnalysis {
+  levels: HypergameLevel[];
+  perceptionGaps: PerceptionGap[];
+  exploitableAsymmetries: string[];
+  informationAdvantages: string[];
+  informationVulnerabilities: string[];
+  optimalDeceptionStrategies: string[];
+}
+
+/**
+ * Analyze hypergame where players have different perceptions of the game
+ */
+export function analyzeHypergame(
+  ourView: StrategicInteraction,
+  theirLikelyView: StrategicInteraction,
+  cognitiveProfile: Record<string, number>
+): HypergameAnalysis {
+  const levels: HypergameLevel[] = [];
+  const perceptionGaps: PerceptionGap[] = [];
+  const exploitableAsymmetries: string[] = [];
+  
+  levels.push({
+    level: 0,
+    perceiver: 'us',
+    perceivedGame: ourView,
+    beliefs: new Map(),
+  });
+  
+  levels.push({
+    level: 1,
+    perceiver: 'them',
+    perceivedGame: theirLikelyView,
+    beliefs: new Map(),
+  });
+  
+  if (ourView.game_type !== theirLikelyView.game_type) {
+    perceptionGaps.push({
+      dimension: 'game_type',
+      ourView: ourView.game_type,
+      theirLikelyView: theirLikelyView.game_type,
+      divergence: 1.0,
+      exploitability: 0.8,
+    });
+    exploitableAsymmetries.push(`They think this is ${theirLikelyView.game_type} but it's actually ${ourView.game_type}`);
+  }
+  
+  const ourStrategies = ourView.strategies_per_player[0]?.length || 0;
+  const theirViewStrategies = theirLikelyView.strategies_per_player[0]?.length || 0;
+  if (ourStrategies !== theirViewStrategies) {
+    perceptionGaps.push({
+      dimension: 'strategy_space',
+      ourView: ourStrategies,
+      theirLikelyView: theirViewStrategies,
+      divergence: Math.abs(ourStrategies - theirViewStrategies) / Math.max(ourStrategies, theirViewStrategies),
+      exploitability: 0.6,
+    });
+    exploitableAsymmetries.push('Hidden strategies available that opponent is unaware of');
+  }
+  
+  const biasExploits: string[] = [];
+  if (cognitiveProfile.overconfidence > 0.6) {
+    biasExploits.push('Exploit overconfidence with unexpected defection');
+  }
+  if (cognitiveProfile.loss_aversion > 0.7) {
+    biasExploits.push('Frame options to emphasize potential losses');
+  }
+  if (cognitiveProfile.anchoring > 0.5) {
+    biasExploits.push('Set initial anchor points to bias negotiations');
+  }
+  
+  return {
+    levels,
+    perceptionGaps,
+    exploitableAsymmetries,
+    informationAdvantages: exploitableAsymmetries,
+    informationVulnerabilities: [],
+    optimalDeceptionStrategies: biasExploits,
+  };
+}
+
+/**
+ * Calculate perception gap exploitability score
+ */
+export function calculateGapExploitability(gaps: PerceptionGap[]): number {
+  if (gaps.length === 0) return 0;
+  
+  const weights: Record<string, number> = {
+    game_type: 0.4,
+    strategy_space: 0.3,
+    payoffs: 0.2,
+    player_rationality: 0.1,
+  };
+  
+  let totalScore = 0;
+  let totalWeight = 0;
+  
+  for (const gap of gaps) {
+    const weight = weights[gap.dimension] || 0.1;
+    totalScore += gap.exploitability * weight;
+    totalWeight += weight;
+  }
+  
+  return totalWeight > 0 ? totalScore / totalWeight : 0;
+}

@@ -62,6 +62,19 @@ const INTELLIGENCE_TASKS = [
   { name: 'Economic Warfare', edgeFunction: 'economic-warfare-detector', analysisType: 'economic_warfare', category: 'defense', priority: 7, complexity: 'standard' },
   { name: 'TSCM Sweep', edgeFunction: 'tscm-sweep-analyzer', analysisType: 'tscm_sweep', category: 'defense', priority: 7, complexity: 'light' },
   { name: 'Digital Footprint', edgeFunction: 'digital-footprint-scanner', analysisType: 'digital_footprint', category: 'defense', priority: 7, complexity: 'light' },
+  
+  // Advanced Fusion Intelligence (Priority 8) - 4 v5.0 tasks
+  { name: 'Biometric-Behavioral Fusion', edgeFunction: 'biometric-behavioral-fusion', analysisType: 'biometric_behavioral_fusion', category: 'fusion', priority: 8, complexity: 'complex' },
+  { name: 'Geospatial-Communication Fusion', edgeFunction: 'geospatial-communication-fusion', analysisType: 'geospatial_communication_fusion', category: 'fusion', priority: 8, complexity: 'complex' },
+  { name: 'Financial-Document Synthesis', edgeFunction: 'financial-document-synthesis', analysisType: 'financial_document_synthesis', category: 'fusion', priority: 8, complexity: 'standard' },
+  { name: 'Calendar Pattern Analyzer', edgeFunction: 'calendar-pattern-analyzer', analysisType: 'calendar_pattern', category: 'fusion', priority: 8, complexity: 'standard' },
+  
+  // Advanced Intelligence Systems (Priority 9) - 5 v6.0 tasks
+  { name: 'Relationship Half-Life', edgeFunction: 'relationship-half-life-calculator', analysisType: 'relationship_half_life', category: 'intelligence', priority: 9, complexity: 'complex' },
+  { name: 'Automated Red Team', edgeFunction: 'automated-red-team-engine', analysisType: 'automated_red_team', category: 'warfare', priority: 9, complexity: 'extreme' },
+  { name: 'Multi-Party Deception', edgeFunction: 'multi-party-deception-detector', analysisType: 'multi_party_deception', category: 'warfare', priority: 9, complexity: 'extreme' },
+  { name: 'Zero-Day Anomaly', edgeFunction: 'zero-day-anomaly-detector', analysisType: 'zero_day_anomaly', category: 'intelligence', priority: 9, complexity: 'complex' },
+  { name: 'Hypergame Theory', edgeFunction: 'hypergame-theory-engine', analysisType: 'hypergame_theory', category: 'intelligence', priority: 9, complexity: 'extreme' },
 ];
 
 // Per-complexity timeout values (in ms) - matches platform_config values

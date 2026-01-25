@@ -369,3 +369,132 @@ export function predictCrisisWindow(
     ],
   };
 }
+
+// ============== TRUST HALF-LIFE EXTENSIONS (v6.0) ==============
+
+export interface HalfLifeProjection {
+  currentTrust: number;
+  halfLifeDays: number;
+  decayRate: number;
+  decayCurve: Array<{ date: string; trust: number }>;
+  criticalDate: string | null;
+  reinforcementActions: string[];
+  urgency: 'immediate' | 'soon' | 'scheduled' | 'none';
+}
+
+export const RELATIONSHIP_HALF_LIVES: Record<string, number> = {
+  professional: 14,
+  personal: 30,
+  intimate: 60,
+  strategic_asset: 7,
+  casual: 21,
+  family: 90,
+  competitor: 5,
+};
+
+/**
+ * Calculate trust half-life based on relationship type and interaction history
+ */
+export function calculateTrustHalfLife(
+  relationshipType: keyof typeof RELATIONSHIP_HALF_LIVES,
+  interactionHistory: Array<{ date: string; type: 'positive' | 'negative' | 'neutral' }>,
+  currentTrust: number
+): HalfLifeProjection {
+  const baseHalfLife = RELATIONSHIP_HALF_LIVES[relationshipType] || 21;
+  
+  const positiveCount = interactionHistory.filter(i => i.type === 'positive').length;
+  const negativeCount = interactionHistory.filter(i => i.type === 'negative').length;
+  const total = interactionHistory.length || 1;
+  
+  const qualityRatio = (positiveCount - negativeCount) / total;
+  const adjustedHalfLife = baseHalfLife * (1 + qualityRatio * 0.5);
+  
+  const decayRate = Math.LN2 / adjustedHalfLife;
+  const decayCurve = projectTrustDecay(currentTrust, adjustedHalfLife, 90);
+  
+  const criticalPoint = decayCurve.find(p => p.trust < 0.3);
+  const criticalDate = criticalPoint?.date || null;
+  
+  const daysUntilCritical = criticalDate 
+    ? Math.ceil((new Date(criticalDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null;
+  
+  let urgency: HalfLifeProjection['urgency'] = 'none';
+  const reinforcementActions: string[] = [];
+  
+  if (daysUntilCritical !== null) {
+    if (daysUntilCritical <= 7) {
+      urgency = 'immediate';
+      reinforcementActions.push('Schedule urgent in-person meeting');
+      reinforcementActions.push('Provide unexpected value/gift');
+      reinforcementActions.push('Address any outstanding grievances');
+    } else if (daysUntilCritical <= 21) {
+      urgency = 'soon';
+      reinforcementActions.push('Increase communication frequency');
+      reinforcementActions.push('Plan shared activity or project');
+    } else if (daysUntilCritical <= 45) {
+      urgency = 'scheduled';
+      reinforcementActions.push('Schedule regular check-ins');
+      reinforcementActions.push('Maintain positive interaction ratio');
+    }
+  }
+  
+  return {
+    currentTrust,
+    halfLifeDays: Math.round(adjustedHalfLife),
+    decayRate,
+    decayCurve,
+    criticalDate,
+    reinforcementActions,
+    urgency,
+  };
+}
+
+/**
+ * Project trust decay over time using exponential decay model
+ */
+export function projectTrustDecay(
+  initialTrust: number,
+  halfLifeDays: number,
+  projectionDays: number
+): Array<{ date: string; trust: number }> {
+  const curve: Array<{ date: string; trust: number }> = [];
+  const now = new Date();
+  
+  for (let day = 0; day <= projectionDays; day += 1) {
+    const futureDate = new Date(now);
+    futureDate.setDate(futureDate.getDate() + day);
+    
+    const trust = initialTrust * Math.pow(0.5, day / halfLifeDays);
+    
+    curve.push({
+      date: futureDate.toISOString().split('T')[0],
+      trust: Math.max(0, Math.round(trust * 1000) / 1000),
+    });
+  }
+  
+  return curve;
+}
+
+/**
+ * Calculate reinforcement effectiveness
+ */
+export function calculateReinforcementImpact(
+  currentTrust: number,
+  reinforcementType: 'positive_interaction' | 'shared_experience' | 'mutual_investment' | 'crisis_support',
+  _relationshipType: keyof typeof RELATIONSHIP_HALF_LIVES
+): { newTrust: number; halfLifeExtension: number } {
+  const impactFactors: Record<string, { trustBoost: number; halfLifeExtension: number }> = {
+    positive_interaction: { trustBoost: 0.05, halfLifeExtension: 2 },
+    shared_experience: { trustBoost: 0.10, halfLifeExtension: 5 },
+    mutual_investment: { trustBoost: 0.15, halfLifeExtension: 10 },
+    crisis_support: { trustBoost: 0.25, halfLifeExtension: 20 },
+  };
+  
+  const impact = impactFactors[reinforcementType] || { trustBoost: 0.02, halfLifeExtension: 1 };
+  
+  return {
+    newTrust: Math.min(1.0, currentTrust + impact.trustBoost),
+    halfLifeExtension: impact.halfLifeExtension,
+  };
+}

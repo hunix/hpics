@@ -13,6 +13,9 @@ export type { DossierDataResult } from '../../hooks/useDossierData';
 /**
  * Extended dossier data with computed fields added by PDFDossierGenerator
  * Uses index signature to allow dynamic data field access
+ * 
+ * Note: v5.0/v6.0 data fields (biometricFusionData, relationshipHalfLifeData, etc.)
+ * are already defined in DossierDataResult and inherited here.
  */
 export interface ExtendedDossierData extends DossierDataResult {
   // Computed fields added before rendering
