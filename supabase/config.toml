@@ -593,3 +593,15 @@ verify_jwt = false
 
 [functions.transcendent-analysis]
 verify_jwt = false
+
+[functions.biometric-behavioral-fusion]
+verify_jwt = false
+
+[functions.geospatial-communication-fusion]
+verify_jwt = false
+
+[functions.financial-document-synthesis]
+verify_jwt = false
+
+[functions.calendar-pattern-analyzer]
+verify_jwt = false

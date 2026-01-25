@@ -15,7 +15,12 @@ export type FusionEngineType =
   | 'counterfactual'
   | 'pattern-of-life'
   | 'entity-resolution'
-  | 'sentiment-cascade';
+  | 'sentiment-cascade'
+  // New fusion engines v5.0
+  | 'biometric-behavioral'
+  | 'geospatial-communication'
+  | 'financial-document'
+  | 'calendar-pattern';
 
 export interface FusionMetrics {
   processingTimeMs: number;
