@@ -89,7 +89,7 @@ const ANALYSIS_TYPE_ALIASES: Record<string, string[]> = {
   
   // v5.0 Data Fusion Sections
   biometricFusion: ['biometric_behavioral_fusion', 'behavioral_dna'],
-  calendarIntelligence: ['calendar_pattern', 'vulnerability_window'],
+  calendarIntelligence: ['calendar_pattern', 'calendar_pattern_analysis', 'vulnerability_window'],
   geospatialCommunication: ['geospatial_communication_fusion', 'network_exploitation'],
   financialDocumentSynthesis: ['financial_document_synthesis', 'economic_warfare'],
   
