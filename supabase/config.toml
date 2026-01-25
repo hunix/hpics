@@ -605,3 +605,18 @@ verify_jwt = false
 
 [functions.calendar-pattern-analyzer]
 verify_jwt = false
+
+[functions.relationship-half-life-calculator]
+verify_jwt = false
+
+[functions.automated-red-team-engine]
+verify_jwt = false
+
+[functions.multi-party-deception-detector]
+verify_jwt = false
+
+[functions.zero-day-anomaly-detector]
+verify_jwt = false
+
+[functions.hypergame-theory-engine]
+verify_jwt = false

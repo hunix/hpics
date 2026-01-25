@@ -20,7 +20,13 @@ export type FusionEngineType =
   | 'biometric-behavioral'
   | 'geospatial-communication'
   | 'financial-document'
-  | 'calendar-pattern';
+  | 'calendar-pattern'
+  // New v6.0 Advanced Intelligence engines
+  | 'relationship-half-life'
+  | 'automated-red-team'
+  | 'multi-party-deception'
+  | 'zero-day-anomaly'
+  | 'hypergame-theory';
 
 export interface FusionMetrics {
   processingTimeMs: number;
