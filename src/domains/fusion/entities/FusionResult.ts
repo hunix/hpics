@@ -26,7 +26,20 @@ export type FusionEngineType =
   | 'automated-red-team'
   | 'multi-party-deception'
   | 'zero-day-anomaly'
-  | 'hypergame-theory';
+  | 'hypergame-theory'
+  // v7.0 Extreme Intelligence Engines
+  | 'subvocalization-detection'
+  | 'audio-burst-mental-state'
+  | 'iio-attribution'
+  | 'reflexive-control'
+  | 'cognitive-effect'
+  | 'kallisti-theory-of-mind'
+  | 'magics-collective-behavior'
+  | 'stylometric-authorship'
+  | 'dark2clear-deanonymization'
+  | 'gated-biological-fusion'
+  | 'tas-com-community'
+  | 'migration5-biometric';
 
 export interface FusionMetrics {
   processingTimeMs: number;
