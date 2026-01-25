@@ -34,6 +34,7 @@ import { allSectionRenderers } from './sections/renderers';
 import { checkSectionHasData } from './utils/sectionDataCheck';
 import { IntelligenceSessionRecovery } from './IntelligenceSessionRecovery';
 import { IntelligenceSessionProgress } from './IntelligenceSessionProgress';
+import { EnhancedIntelligenceProgress } from './components/EnhancedIntelligenceProgress';
 import { EdgeFunctionHealthPanel } from './EdgeFunctionHealthPanel';
 import { useSectionDataAvailability } from './hooks/useSectionDataAvailability';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -526,12 +527,13 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
               />
             )}
             
-            {/* Active Generation Progress - shown during generation */}
+            {/* Active Generation Progress - Enhanced animated visualization */}
             {isGeneratingIntel && session && (
-              <IntelligenceSessionProgress
+              <EnhancedIntelligenceProgress
                 session={session}
                 tasks={tasks}
                 onPause={pauseGeneration}
+                onResume={resumeGeneration}
                 onCancel={cancelGeneration}
                 onRetryTask={handleRetryTask}
                 categoryProgress={categoryProgress}
