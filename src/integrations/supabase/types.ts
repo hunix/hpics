@@ -708,6 +708,79 @@ export type Database = {
           },
         ]
       }
+      adversary_mental_models: {
+        Row: {
+          basis_vectors: Json | null
+          belief_state: Json | null
+          created_at: string | null
+          deception_susceptibility: number | null
+          id: string
+          last_calibrated_at: string | null
+          model_version: string | null
+          non_stationary_indicators: Json | null
+          prediction_accuracy_history: Json | null
+          profile_id: string | null
+          situational_awareness_estimate: Json | null
+          strategy_distribution: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          basis_vectors?: Json | null
+          belief_state?: Json | null
+          created_at?: string | null
+          deception_susceptibility?: number | null
+          id?: string
+          last_calibrated_at?: string | null
+          model_version?: string | null
+          non_stationary_indicators?: Json | null
+          prediction_accuracy_history?: Json | null
+          profile_id?: string | null
+          situational_awareness_estimate?: Json | null
+          strategy_distribution?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          basis_vectors?: Json | null
+          belief_state?: Json | null
+          created_at?: string | null
+          deception_susceptibility?: number | null
+          id?: string
+          last_calibrated_at?: string | null
+          model_version?: string | null
+          non_stationary_indicators?: Json | null
+          prediction_accuracy_history?: Json | null
+          profile_id?: string | null
+          situational_awareness_estimate?: Json | null
+          strategy_distribution?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "adversary_mental_models_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "adversary_mental_models_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "adversary_mental_models_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       aerial_captures: {
         Row: {
           aerial_mission_id: string
@@ -2925,6 +2998,89 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audio_burst_analyses: {
+        Row: {
+          analysis_version: string | null
+          auc_integral: number | null
+          audio_file_url: string | null
+          confidence: number | null
+          created_at: string | null
+          hilbert_transform_data: Json | null
+          id: string
+          irregular_score: number | null
+          mental_state_prediction: string | null
+          profile_id: string | null
+          prosodic_features: Json | null
+          rhythmic_score: number | null
+          spectral_features: Json | null
+          user_id: string
+          voice_insight_id: string | null
+        }
+        Insert: {
+          analysis_version?: string | null
+          auc_integral?: number | null
+          audio_file_url?: string | null
+          confidence?: number | null
+          created_at?: string | null
+          hilbert_transform_data?: Json | null
+          id?: string
+          irregular_score?: number | null
+          mental_state_prediction?: string | null
+          profile_id?: string | null
+          prosodic_features?: Json | null
+          rhythmic_score?: number | null
+          spectral_features?: Json | null
+          user_id: string
+          voice_insight_id?: string | null
+        }
+        Update: {
+          analysis_version?: string | null
+          auc_integral?: number | null
+          audio_file_url?: string | null
+          confidence?: number | null
+          created_at?: string | null
+          hilbert_transform_data?: Json | null
+          id?: string
+          irregular_score?: number | null
+          mental_state_prediction?: string | null
+          profile_id?: string | null
+          prosodic_features?: Json | null
+          rhythmic_score?: number | null
+          spectral_features?: Json | null
+          user_id?: string
+          voice_insight_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audio_burst_analyses_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "audio_burst_analyses_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "audio_burst_analyses_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audio_burst_analyses_voice_insight_id_fkey"
+            columns: ["voice_insight_id"]
+            isOneToOne: false
+            referencedRelation: "voice_insights"
             referencedColumns: ["id"]
           },
         ]
@@ -5937,6 +6093,85 @@ export type Database = {
           },
         ]
       }
+      cognitive_effect_operations: {
+        Row: {
+          ambiguity_window_end: string | null
+          ambiguity_window_start: string | null
+          biological_level: number | null
+          created_at: string | null
+          doctrine_applied: string | null
+          effect_type: string
+          effectiveness_metrics: Json | null
+          execution_log: Json | null
+          id: string
+          narrative_synchronization_targets: string[] | null
+          profile_id: string | null
+          psychological_level: number | null
+          social_level: number | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ambiguity_window_end?: string | null
+          ambiguity_window_start?: string | null
+          biological_level?: number | null
+          created_at?: string | null
+          doctrine_applied?: string | null
+          effect_type: string
+          effectiveness_metrics?: Json | null
+          execution_log?: Json | null
+          id?: string
+          narrative_synchronization_targets?: string[] | null
+          profile_id?: string | null
+          psychological_level?: number | null
+          social_level?: number | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ambiguity_window_end?: string | null
+          ambiguity_window_start?: string | null
+          biological_level?: number | null
+          created_at?: string | null
+          doctrine_applied?: string | null
+          effect_type?: string
+          effectiveness_metrics?: Json | null
+          execution_log?: Json | null
+          id?: string
+          narrative_synchronization_targets?: string[] | null
+          profile_id?: string | null
+          psychological_level?: number | null
+          social_level?: number | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cognitive_effect_operations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "cognitive_effect_operations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "cognitive_effect_operations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cognitive_superpositions: {
         Row: {
           coherence_duration_ms: number | null
@@ -6141,6 +6376,63 @@ export type Database = {
           next_predicted_window?: string | null
           pattern_recognition_score?: number | null
           total_meaning_score?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      collective_behavior_predictions: {
+        Row: {
+          causal_factors: Json | null
+          confidence_interval: Json | null
+          created_at: string | null
+          group_profile_ids: string[] | null
+          id: string
+          intervention_points: Json | null
+          outcome_accuracy: number | null
+          outcome_realized: boolean | null
+          predicted_outcome: Json | null
+          prediction_type: string
+          recursion_depth: number | null
+          reflexivity_index: number | null
+          temporal_window_end: string | null
+          temporal_window_start: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          causal_factors?: Json | null
+          confidence_interval?: Json | null
+          created_at?: string | null
+          group_profile_ids?: string[] | null
+          id?: string
+          intervention_points?: Json | null
+          outcome_accuracy?: number | null
+          outcome_realized?: boolean | null
+          predicted_outcome?: Json | null
+          prediction_type: string
+          recursion_depth?: number | null
+          reflexivity_index?: number | null
+          temporal_window_end?: string | null
+          temporal_window_start?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          causal_factors?: Json | null
+          confidence_interval?: Json | null
+          created_at?: string | null
+          group_profile_ids?: string[] | null
+          id?: string
+          intervention_points?: Json | null
+          outcome_accuracy?: number | null
+          outcome_realized?: boolean | null
+          predicted_outcome?: Json | null
+          prediction_type?: string
+          recursion_depth?: number | null
+          reflexivity_index?: number | null
+          temporal_window_end?: string | null
+          temporal_window_start?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -18392,6 +18684,76 @@ export type Database = {
           },
         ]
       }
+      iio_attributions: {
+        Row: {
+          attribution_chain: Json | null
+          behavioral_evidence: Json | null
+          campaign_indicators: Json | null
+          confidence_level: string | null
+          contextual_evidence: Json | null
+          created_at: string | null
+          doppelganger_detection: Json | null
+          id: string
+          overall_confidence: number | null
+          profile_id: string | null
+          technical_evidence: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          attribution_chain?: Json | null
+          behavioral_evidence?: Json | null
+          campaign_indicators?: Json | null
+          confidence_level?: string | null
+          contextual_evidence?: Json | null
+          created_at?: string | null
+          doppelganger_detection?: Json | null
+          id?: string
+          overall_confidence?: number | null
+          profile_id?: string | null
+          technical_evidence?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          attribution_chain?: Json | null
+          behavioral_evidence?: Json | null
+          campaign_indicators?: Json | null
+          confidence_level?: string | null
+          contextual_evidence?: Json | null
+          created_at?: string | null
+          doppelganger_detection?: Json | null
+          id?: string
+          overall_confidence?: number | null
+          profile_id?: string | null
+          technical_evidence?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "iio_attributions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "iio_attributions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "iio_attributions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       immortal_influence: {
         Row: {
           created_at: string
@@ -29085,6 +29447,73 @@ export type Database = {
         }
         Relationships: []
       }
+      reflexive_control_indicators: {
+        Row: {
+          confidence_score: number | null
+          counter_strategy: string | null
+          created_at: string | null
+          detected_at: string | null
+          detection_context: Json | null
+          id: string
+          indicators_found: Json | null
+          profile_id: string | null
+          rc_technique: string
+          source_communications: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          counter_strategy?: string | null
+          created_at?: string | null
+          detected_at?: string | null
+          detection_context?: Json | null
+          id?: string
+          indicators_found?: Json | null
+          profile_id?: string | null
+          rc_technique: string
+          source_communications?: string[] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          counter_strategy?: string | null
+          created_at?: string | null
+          detected_at?: string | null
+          detection_context?: Json | null
+          id?: string
+          indicators_found?: Json | null
+          profile_id?: string | null
+          rc_technique?: string
+          source_communications?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reflexive_control_indicators_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "reflexive_control_indicators_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "reflexive_control_indicators_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       relationship_goals: {
         Row: {
           created_at: string
@@ -32180,6 +32609,97 @@ export type Database = {
           },
           {
             foreignKeyName: "stress_indicators_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stylometric_fingerprints: {
+        Row: {
+          ai_detection_confidence: number | null
+          ai_model_predicted: string | null
+          authorship_match_id: string | null
+          authorship_match_score: number | null
+          avg_sentence_length: number | null
+          burrows_delta: number | null
+          burstiness_score: number | null
+          created_at: string | null
+          feature_vector: Json | null
+          hapax_rate: number | null
+          id: string
+          is_ai_generated: boolean | null
+          lexical_density: number | null
+          mattr_score: number | null
+          profile_id: string | null
+          punctuation_patterns: Json | null
+          sample_source: string | null
+          sample_text: string | null
+          user_id: string
+          vocabulary_richness: number | null
+        }
+        Insert: {
+          ai_detection_confidence?: number | null
+          ai_model_predicted?: string | null
+          authorship_match_id?: string | null
+          authorship_match_score?: number | null
+          avg_sentence_length?: number | null
+          burrows_delta?: number | null
+          burstiness_score?: number | null
+          created_at?: string | null
+          feature_vector?: Json | null
+          hapax_rate?: number | null
+          id?: string
+          is_ai_generated?: boolean | null
+          lexical_density?: number | null
+          mattr_score?: number | null
+          profile_id?: string | null
+          punctuation_patterns?: Json | null
+          sample_source?: string | null
+          sample_text?: string | null
+          user_id: string
+          vocabulary_richness?: number | null
+        }
+        Update: {
+          ai_detection_confidence?: number | null
+          ai_model_predicted?: string | null
+          authorship_match_id?: string | null
+          authorship_match_score?: number | null
+          avg_sentence_length?: number | null
+          burrows_delta?: number | null
+          burstiness_score?: number | null
+          created_at?: string | null
+          feature_vector?: Json | null
+          hapax_rate?: number | null
+          id?: string
+          is_ai_generated?: boolean | null
+          lexical_density?: number | null
+          mattr_score?: number | null
+          profile_id?: string | null
+          punctuation_patterns?: Json | null
+          sample_source?: string | null
+          sample_text?: string | null
+          user_id?: string
+          vocabulary_richness?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stylometric_fingerprints_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "stylometric_fingerprints_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "stylometric_fingerprints_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"

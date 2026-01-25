@@ -57,6 +57,19 @@ export const FUSION_ANALYSIS_TYPES: Record<FusionEngineType, string> = {
   'multi-party-deception': 'multi_party_deception',
   'zero-day-anomaly': 'zero_day_anomaly',
   'hypergame-theory': 'hypergame_theory',
+  // v7.0 Extreme Intelligence Engines
+  'subvocalization-detection': 'subvocalization_detection',
+  'audio-burst-mental-state': 'audio_burst_mental_state',
+  'iio-attribution': 'iio_attribution',
+  'reflexive-control': 'reflexive_control',
+  'cognitive-effect': 'cognitive_effect',
+  'kallisti-theory-of-mind': 'kallisti_theory_of_mind',
+  'magics-collective-behavior': 'magics_collective_behavior',
+  'stylometric-authorship': 'stylometric_authorship',
+  'dark2clear-deanonymization': 'dark2clear_deanonymization',
+  'gated-biological-fusion': 'gated_biological_fusion',
+  'tas-com-community': 'tas_com_community',
+  'migration5-biometric': 'migration5_biometric',
 };
 
 /**
