@@ -27,6 +27,13 @@ export interface VoiceBulkAnalysisOptions {
 
 export type ProcessingMode = 'local' | 'cloud' | 'hybrid';
 
+export interface FailedRecording {
+  recording: VoiceRecording;
+  error: string;
+  errorType: 'timeout' | 'empty' | 'network' | 'ml' | 'unknown';
+  canRetry: boolean;
+}
+
 export interface VoiceBulkSession {
   id: string;
   status: 'idle' | 'running' | 'paused' | 'completed' | 'failed';
@@ -43,7 +50,47 @@ export interface VoiceBulkSession {
   processingMode: ProcessingMode;
   modelStatus?: 'loading' | 'ready';
   modelProgress?: number;
+  failedRecordings?: FailedRecording[];
 }
+
+// Error classification for better user feedback
+const classifyError = (error: Error): { type: 'timeout' | 'empty' | 'network' | 'ml' | 'unknown'; canRetry: boolean; message: string } => {
+  const msg = error.message.toLowerCase();
+  
+  if (msg.includes('timeout')) {
+    return { type: 'timeout', canRetry: true, message: 'File took too long to process' };
+  }
+  if (msg.includes('no transcription') || msg.includes('no speech')) {
+    return { type: 'empty', canRetry: false, message: 'No speech detected in audio' };
+  }
+  if (msg.includes('network') || msg.includes('fetch') || msg.includes('not accessible')) {
+    return { type: 'network', canRetry: true, message: 'Failed to download audio file' };
+  }
+  if (msg.includes('webgpu') || msg.includes('wasm') || msg.includes('ml engine')) {
+    return { type: 'ml', canRetry: false, message: 'ML engine error' };
+  }
+  
+  return { type: 'unknown', canRetry: true, message: error.message };
+};
+
+// Timeout wrapper to prevent hung files from blocking batch
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number, fileName: string): Promise<T> => {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`Timeout after ${timeoutMs}ms processing "${fileName}"`));
+    }, timeoutMs);
+    
+    promise
+      .then(result => {
+        clearTimeout(timer);
+        resolve(result);
+      })
+      .catch(error => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
+};
 
 const DEFAULT_OPTIONS: VoiceBulkAnalysisOptions = {
   transcription: true,
@@ -52,6 +99,10 @@ const DEFAULT_OPTIONS: VoiceBulkAnalysisOptions = {
   contentIntelligence: true,
   voiceBiometrics: false,
 };
+
+// Per-file timeout in milliseconds (60 seconds for local, 120 for cloud)
+const LOCAL_TIMEOUT_MS = 60000;
+const CLOUD_TIMEOUT_MS = 120000;
 
 export function useVoiceBulkAnalysis(profileId?: string) {
   const [session, setSession] = useState<VoiceBulkSession | null>(null);
@@ -296,9 +347,12 @@ export function useVoiceBulkAnalysis(profileId?: string) {
       }
     }
 
+    const failedRecordingsTracker: FailedRecording[] = [];
+
+    // Main processing loop
     for (let i = 0; i < selectedRecordings.length; i++) {
       if (cancelRef.current) {
-        setSession(prev => prev ? { ...prev, status: 'paused' } : null);
+        setSession(prev => prev ? { ...prev, status: 'paused', failedRecordings: failedRecordingsTracker } : null);
         toast.info('Analysis paused');
         return;
       }
@@ -315,17 +369,24 @@ export function useVoiceBulkAnalysis(profileId?: string) {
         console.log(`[VoiceBulkAnalysis] Processing ${i + 1}/${selectedRecordings.length}: ${recording.title} (${mode})`);
 
         if (mode === 'local') {
-          // Pure local processing - no cloud calls
-          await processLocalRecording(recording, user.id);
+          // Pure local processing with timeout
+          await withTimeout(
+            processLocalRecording(recording, user.id),
+            LOCAL_TIMEOUT_MS,
+            recording.title || 'Audio file'
+          );
           setSession(prev => prev ? {
             ...prev,
             processedItems: i + 1,
-            // Local = $0 cost
           } : null);
 
         } else if (mode === 'hybrid') {
-          // Local transcription first, then cloud for advanced analysis
-          const localResult = await processLocalRecording(recording, user.id);
+          // Local transcription first with timeout, then cloud for advanced analysis
+          await withTimeout(
+            processLocalRecording(recording, user.id),
+            LOCAL_TIMEOUT_MS,
+            recording.title || 'Audio file'
+          );
           
           // Build modes list for sync
           const completedModes = ['voice_transcription'];
@@ -372,8 +433,8 @@ export function useVoiceBulkAnalysis(profileId?: string) {
           }
 
         } else {
-          // Pure cloud processing (original behavior)
-          const { data, error } = await supabase.functions.invoke('analyze-voice-comprehensive', {
+          // Pure cloud processing with timeout
+          const cloudPromise = supabase.functions.invoke('analyze-voice-comprehensive', {
             body: {
               audioUrl: recording.audio_url,
               sourceType: 'voice_recording',
@@ -388,6 +449,8 @@ export function useVoiceBulkAnalysis(profileId?: string) {
               },
             },
           });
+
+          const { data, error } = await withTimeout(cloudPromise, CLOUD_TIMEOUT_MS, recording.title || 'Audio file');
 
           if (error) throw error;
 
@@ -405,12 +468,61 @@ export function useVoiceBulkAnalysis(profileId?: string) {
         }
 
       } catch (error) {
-        console.error(`[VoiceBulkAnalysis] Failed to analyze recording ${recording.id}:`, error);
+        const err = error instanceof Error ? error : new Error('Unknown error');
+        const classified = classifyError(err);
+        
+        console.error(`[VoiceBulkAnalysis] Failed to analyze recording ${recording.id}:`, err.message, `(${classified.type})`);
+        
+        failedRecordingsTracker.push({
+          recording,
+          error: classified.message,
+          errorType: classified.type,
+          canRetry: classified.canRetry,
+        });
+        
         setSession(prev => prev ? {
           ...prev,
           failedItems: prev.failedItems + 1,
           processedItems: i + 1,
+          failedRecordings: [...failedRecordingsTracker],
         } : null);
+      }
+    }
+
+    // Automatic retry for recoverable failures (once)
+    const retryableFailures = failedRecordingsTracker.filter(f => f.canRetry);
+    if (retryableFailures.length > 0 && retryableFailures.length < failedRecordingsTracker.length * 0.5) {
+      console.log(`[VoiceBulkAnalysis] Auto-retrying ${retryableFailures.length} recoverable failures...`);
+      
+      for (const { recording } of retryableFailures) {
+        try {
+          setSession(prev => prev ? { 
+            ...prev, 
+            currentItemId: recording.id,
+            currentFileName: `[Retry] ${recording.title || 'Audio file'}`,
+          } : null);
+          
+          if (mode === 'local' || mode === 'hybrid') {
+            await withTimeout(
+              processLocalRecording(recording, user.id),
+              LOCAL_TIMEOUT_MS * 1.5, // Extra time for retry
+              recording.title || 'Audio file'
+            );
+          }
+          
+          // Remove from failed list on success
+          const idx = failedRecordingsTracker.findIndex(f => f.recording.id === recording.id);
+          if (idx >= 0) {
+            failedRecordingsTracker.splice(idx, 1);
+            setSession(prev => prev ? {
+              ...prev,
+              failedItems: prev.failedItems - 1,
+              failedRecordings: [...failedRecordingsTracker],
+            } : null);
+          }
+        } catch (retryError) {
+          console.warn(`[VoiceBulkAnalysis] Retry failed for ${recording.id}`);
+        }
       }
     }
 
@@ -421,13 +533,19 @@ export function useVoiceBulkAnalysis(profileId?: string) {
       completedAt: new Date().toISOString(),
       currentItemId: null,
       currentFileName: undefined,
+      failedRecordings: failedRecordingsTracker,
     } : null);
 
-    toast.success('Voice analysis complete!');
+    const successCount = selectedRecordings.length - failedRecordingsTracker.length;
+    if (failedRecordingsTracker.length === 0) {
+      toast.success(`Voice analysis complete! ${successCount} files processed.`);
+    } else {
+      toast.warning(`Analysis complete: ${successCount} succeeded, ${failedRecordingsTracker.length} failed.`);
+    }
 
     // Refresh recordings to update status
     await fetchRecordings(profileId);
-  }, [options, profileId, fetchRecordings, processingMode, processLocalRecording]);
+  }, [options, profileId, fetchRecordings, processingMode, processLocalRecording, syncMediaAnalysisStatus]);
 
   // Pause/cancel analysis
   const pauseAnalysis = useCallback(() => {
@@ -445,6 +563,23 @@ export function useVoiceBulkAnalysis(profileId?: string) {
     localAudioAnalyzer.unload();
   }, []);
 
+  // Retry failed files from current session
+  const retryFailedFiles = useCallback(async () => {
+    if (!session?.failedRecordings || session.failedRecordings.length === 0) {
+      toast.info('No failed files to retry');
+      return;
+    }
+
+    const retryable = session.failedRecordings.filter(f => f.canRetry);
+    if (retryable.length === 0) {
+      toast.info('No recoverable failures to retry');
+      return;
+    }
+
+    const recordingsToRetry = retryable.map(f => f.recording);
+    await startBulkAnalysis(recordingsToRetry, options, processingMode);
+  }, [session, options, processingMode, startBulkAnalysis]);
+
   // Get unanalyzed recordings count
   const unanalyzedCount = recordings.filter(r => !r.hasVoiceInsights).length;
 
@@ -461,6 +596,7 @@ export function useVoiceBulkAnalysis(profileId?: string) {
     startBulkAnalysis,
     pauseAnalysis,
     resetSession,
+    retryFailedFiles,
     unanalyzedCount,
     processingMode,
     setProcessingMode,

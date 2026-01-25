@@ -34,6 +34,12 @@ export interface LocalAudioAnalysis {
     sentimentMs: number;
     diarizationMs: number;
   };
+  stats: {
+    audioFormat?: string;
+    realtimeSpeedup?: number;
+    device: 'webgpu' | 'wasm';
+    validated: boolean;
+  };
 }
 
 export interface BatchAnalysisProgress {
@@ -74,6 +80,28 @@ class LocalAudioAnalyzer {
   }
 
   /**
+   * Pre-validate audio URL accessibility
+   */
+  private async validateAudioUrl(url: string): Promise<{ valid: boolean; contentType?: string; error?: string }> {
+    try {
+      const response = await fetch(url, { method: 'HEAD' });
+      if (!response.ok) {
+        return { valid: false, error: `Audio file not accessible: ${response.status}` };
+      }
+      const contentType = response.headers.get('content-type') || undefined;
+      if (contentType && !contentType.includes('audio') && !contentType.includes('octet-stream')) {
+        console.warn(`[LocalAudioAnalyzer] Unexpected content type: ${contentType}`);
+      }
+      return { valid: true, contentType };
+    } catch (error) {
+      return { 
+        valid: false, 
+        error: `Failed to access audio file: ${error instanceof Error ? error.message : 'Unknown'}` 
+      };
+    }
+  }
+
+  /**
    * Analyze a single audio file with all available local ML
    */
   async analyzeAudioFile(
@@ -82,6 +110,18 @@ class LocalAudioAnalyzer {
   ): Promise<LocalAudioAnalysis> {
     const startTime = performance.now();
     const breakdown = { transcriptionMs: 0, sentimentMs: 0, diarizationMs: 0 };
+    let audioFormat: string | undefined;
+    let validated = false;
+
+    // Pre-validation for URLs
+    if (typeof audioSource === 'string' && audioSource.startsWith('http')) {
+      const validation = await this.validateAudioUrl(audioSource);
+      if (!validation.valid) {
+        throw new Error(validation.error || 'Audio file not accessible');
+      }
+      audioFormat = validation.contentType;
+      validated = true;
+    }
 
     // Initialize if needed
     if (!localWhisperTranscriber.isReady()) {
@@ -105,6 +145,7 @@ class LocalAudioAnalyzer {
         breakdown.transcriptionMs = performance.now() - transcriptionStart;
       } catch (error) {
         console.error('[LocalAudioAnalyzer] Transcription failed:', error);
+        throw error; // Re-throw to allow caller to handle
       }
     }
 
@@ -116,6 +157,7 @@ class LocalAudioAnalyzer {
         breakdown.sentimentMs = performance.now() - sentimentStart;
       } catch (error) {
         console.error('[LocalAudioAnalyzer] Sentiment analysis failed:', error);
+        // Non-fatal - continue without sentiment
       }
     }
 
@@ -123,8 +165,6 @@ class LocalAudioAnalyzer {
     if (options.diarizeSpeakers && audioSource instanceof ArrayBuffer) {
       const diarizationStart = performance.now();
       try {
-        // Extract audio features for speaker identification
-        // This is a placeholder - full diarization requires audio processing
         console.log('[LocalAudioAnalyzer] Speaker diarization requested but requires audio sample extraction');
         breakdown.diarizationMs = performance.now() - diarizationStart;
       } catch (error) {
@@ -133,6 +173,7 @@ class LocalAudioAnalyzer {
     }
 
     const totalProcessingMs = performance.now() - startTime;
+    const modelInfo = localWhisperTranscriber.getModelInfo();
 
     return {
       transcription,
@@ -140,7 +181,13 @@ class LocalAudioAnalyzer {
       speakers,
       totalProcessingMs,
       method: 'local',
-      breakdown
+      breakdown,
+      stats: {
+        audioFormat,
+        realtimeSpeedup: transcription?.realtimeSpeedup,
+        device: modelInfo.device,
+        validated,
+      }
     };
   }
 
