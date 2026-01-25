@@ -187,14 +187,62 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       const totalVoiceSessions = rawData.voiceData?.length || 0;
       const totalAnomalies = rawData.anomaliesData?.length || 0;
       const hasBehavioralDna = rawData.allAnalyses?.some((a: Record<string, unknown>) => a.analysis_type === 'behavioral_dna');
-      const intelligenceCompleteness = Math.min(100, (
-        (totalMediaAnalyzed > 0 ? 15 : 0) + 
-        (totalVoiceSessions > 0 ? 15 : 0) + 
-        (rawData.psychData?.length ? 20 : 0) + 
-        (rawData.miceData?.length ? 15 : 0) + 
-        (rawData.influenceData ? 15 : 0) + 
-        (hasBehavioralDna ? 20 : 0)
-      ));
+      
+      // Email intelligence
+      const emailInsights = rawData.allAnalyses?.filter((a: Record<string, unknown>) => a.analysis_type === 'email_insight') || [];
+      const hasEmailIntelligence = emailInsights.length > 0;
+      const emailInsightsCount = emailInsights.length;
+      const emailInsightsAnalysis = emailInsights[0] ? { result: (emailInsights[0] as Record<string, unknown>).result } : undefined;
+      
+      // v5.0 Fusion Intelligence checks
+      const hasBiometricFusion = (rawData.biometricBehavioralFusion?.length ?? 0) > 0;
+      const hasCalendarIntelligence = (rawData.calendarPatternAnalysis?.length ?? 0) > 0;
+      const hasGeospatialFusion = (rawData.geospatialCommunicationFusion?.length ?? 0) > 0;
+      const hasFinancialSynthesis = (rawData.financialDocumentSynthesis?.length ?? 0) > 0;
+
+      // v6.0 Advanced Intelligence checks
+      const hasRelationshipHalfLife = (rawData.relationshipHalfLifeData?.length ?? 0) > 0;
+      const hasRedTeamAssessment = (rawData.automatedRedTeamData?.length ?? 0) > 0;
+      const hasMultiPartyDeception = (rawData.multiPartyDeceptionData?.length ?? 0) > 0;
+      const hasZeroDayAnomalies = (rawData.zeroDayAnomalyData?.length ?? 0) > 0;
+      const hasHypergameAnalysis = (rawData.hypergameTheoryData?.length ?? 0) > 0;
+      
+      // Expanded completeness score (19 sources for v6.0)
+      const intelligenceCompleteness = Math.min(100, Math.round((
+        [
+          totalMediaAnalyzed > 0,
+          totalVoiceSessions > 0,
+          rawData.psychData?.length > 0,
+          rawData.miceData?.length > 0,
+          rawData.influenceData !== null,
+          hasBehavioralDna,
+          rawData.trustData?.length > 0,
+          rawData.observationsData?.length > 0,
+          rawData.relationshipsData?.length > 0,
+          hasEmailIntelligence,
+          hasBiometricFusion,
+          hasCalendarIntelligence,
+          hasGeospatialFusion,
+          hasFinancialSynthesis,
+          hasRelationshipHalfLife,
+          hasRedTeamAssessment,
+          hasMultiPartyDeception,
+          hasZeroDayAnomalies,
+          hasHypergameAnalysis,
+        ].filter(Boolean).length / 19
+      ) * 100));
+
+      // Calculate averages
+      const avgTrustScore = rawData.trustData?.length
+        ? (rawData.trustData as any[]).reduce((acc: number, t: any) => acc + (t.overall_trust_score || 0), 0) / rawData.trustData.length
+        : 0;
+
+      // Communication frequency (last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const communicationFrequency = rawData.commData?.filter((c: any) => 
+        new Date(c.communication_date) > thirtyDaysAgo
+      ).length || 0;
 
       // Build ExtendedDossierData with computed fields
       const behavioralDnaAnalysis = rawData.allAnalyses?.find((a: Record<string, unknown>) => a.analysis_type === 'behavioral_dna');
@@ -209,6 +257,22 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
         intelligenceCompleteness,
         behavioralDnaAnalysis: behavioralDnaAnalysis ? { result: behavioralDnaAnalysis.result } : undefined,
         relationshipAnalysis: relationshipAnalysis ? { result: relationshipAnalysis.result } : undefined,
+        emailInsightsAnalysis,
+        avgTrustScore,
+        communicationFrequency,
+        hasEmailIntelligence,
+        emailInsightsCount,
+        // v5.0 Fusion Intelligence
+        hasBiometricFusion,
+        hasCalendarIntelligence,
+        hasGeospatialFusion,
+        hasFinancialSynthesis,
+        // v6.0 Advanced Intelligence
+        hasRelationshipHalfLife,
+        hasRedTeamAssessment,
+        hasMultiPartyDeception,
+        hasZeroDayAnomalies,
+        hasHypergameAnalysis,
       };
 
       // Render cover page
