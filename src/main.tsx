@@ -38,8 +38,10 @@ const initVersionCheck = async () => {
   
   console.log(`[AppVersion] Current: ${APP_VERSION}, Stored: ${storedVersion}, Native: ${isNative}`);
   
-  // Force clear if coming from a problematic version
-  const shouldForceClear = storedVersion && FORCE_CLEAR_VERSIONS.includes(storedVersion);
+  // Force clear if coming from a problematic version (NEVER if already on current version)
+  const shouldForceClear = storedVersion && 
+                           storedVersion !== APP_VERSION && 
+                           FORCE_CLEAR_VERSIONS.includes(storedVersion);
   
   // If version mismatch or force clear needed
   if (storedVersion && (storedVersion !== APP_VERSION || shouldForceClear)) {
