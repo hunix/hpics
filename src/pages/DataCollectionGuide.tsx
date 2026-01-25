@@ -45,6 +45,7 @@ export default function DataCollectionGuide() {
         .from('profiles')
         .select('id, first_name, last_name, avatar_url, organization')
         .eq('user_id', user.id)
+        .eq('is_active', true)
         .order('first_name');
       
       return data || [];
