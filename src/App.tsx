@@ -98,6 +98,7 @@ const FusionCommandCenter = lazyWithRetry(() => import("./pages/FusionCommandCen
 const PlatformConfiguration = lazyWithRetry(() => import("./pages/PlatformConfiguration"));
 const AgentIntelligenceConfig = lazyWithRetry(() => import("./pages/AgentIntelligenceConfig"));
 const DatabaseMaintenance = lazyWithRetry(() => import("./pages/DatabaseMaintenance"));
+const DataCollectionGuide = lazyWithRetry(() => import("./pages/DataCollectionGuide"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -173,6 +174,7 @@ const App = () => (
                           <Route path="/intelligence" element={<IntelligenceCenter />} />
                           <Route path="/intelligence/command-center" element={<IntelligenceCommandCenter />} />
                           <Route path="/ai-chat" element={<AIChat />} />
+                          <Route path="/data-guide" element={<DataCollectionGuide />} />
                           <Route path="/share-receive" element={<ShareReceive />} />
                           <Route path="/command-center" element={<CommandCenter />} />
                           <Route path="/capabilities" element={<CapabilitiesExplorer />} />
