@@ -87,6 +87,19 @@ const ANALYSIS_TYPE_ALIASES: Record<string, string[]> = {
   crossDomainSynthesis: ['mosaic_intelligence_fusion', 'aggregate_intelligence'],
   predictiveConvergence: ['behavioral_prediction', 'precognitive_patterns'],
   
+  // v5.0 Data Fusion Sections
+  biometricFusion: ['biometric_behavioral_fusion', 'behavioral_dna'],
+  calendarIntelligence: ['calendar_pattern', 'vulnerability_window'],
+  geospatialCommunication: ['geospatial_communication_fusion', 'network_exploitation'],
+  financialDocumentSynthesis: ['financial_document_synthesis', 'economic_warfare'],
+  
+  // v6.0 Advanced Intelligence Sections
+  relationshipHalfLife: ['relationship_half_life', 'relationship_trajectory'],
+  redTeamAssessment: ['automated_red_team', 'opsec_assessment'],
+  multiPartyDeception: ['multi_party_deception', 'enhanced_deception_detection'],
+  zeroDayAnomalies: ['zero_day_anomaly', 'behavioral_baseline'],
+  hypergameAnalysis: ['hypergame_theory', 'behavioral_prediction'],
+  
   // Analysis sections
   influenceResistance: ['coercion_resistance'],
   behavioralEconomics: ['economic_warfare'],
@@ -191,6 +204,19 @@ export function checkSectionHasData(
     sentimentCascade: () => !!(data.sentimentCascadeData?.length),
     crossDomainSynthesis: () => false, // Check via hasAnalysis
     predictiveConvergence: () => false, // Check via hasAnalysis
+    
+    // v5.0 Data Fusion sections - uses DossierDataResult field names
+    biometricFusion: () => !!(Array.isArray(data.biometricBehavioralFusion) && data.biometricBehavioralFusion.length),
+    calendarIntelligence: () => !!(Array.isArray(data.calendarPatternAnalysis) && data.calendarPatternAnalysis.length),
+    geospatialCommunication: () => !!(Array.isArray(data.geospatialCommunicationFusion) && data.geospatialCommunicationFusion.length),
+    financialDocumentSynthesis: () => !!(Array.isArray(data.financialDocumentSynthesis) && data.financialDocumentSynthesis.length),
+    
+    // v6.0 Advanced Intelligence sections - uses DossierDataResult field names
+    relationshipHalfLife: () => !!(Array.isArray(data.relationshipHalfLifeData) && data.relationshipHalfLifeData.length),
+    redTeamAssessment: () => !!(Array.isArray(data.automatedRedTeamData) && data.automatedRedTeamData.length),
+    multiPartyDeception: () => !!(Array.isArray(data.multiPartyDeceptionData) && data.multiPartyDeceptionData.length),
+    zeroDayAnomalies: () => !!(Array.isArray(data.zeroDayAnomalyData) && data.zeroDayAnomalyData.length),
+    hypergameAnalysis: () => !!(Array.isArray(data.hypergameTheoryData) && data.hypergameTheoryData.length),
     
     // Analysis sections
     analysis: () => !!(data.allAnalyses?.length),

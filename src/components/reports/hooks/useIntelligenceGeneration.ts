@@ -1,7 +1,8 @@
 /**
- * Intelligence Generation Hook v5.2.0
+ * Intelligence Generation Hook v5.3.0
  * Handles pre-generation of intelligence data before PDF export
  * 
+ * v5.3.0: Added 9 new v5.0/v6.0 fusion engines (49 total tasks)
  * v5.2.0: Synced 40 tasks with backend intelligence-session-runner
  * v3.7.7: Circuit breaker integration, health monitoring, background retry queue
  * v3.7.6: Enhanced reliability with retry logic, parallel batch execution, timeout handling
@@ -169,6 +170,19 @@ const ALL_INTELLIGENCE_TASKS: IntelligenceTask[] = [
   { name: 'Economic Warfare', edgeFunction: 'economic-warfare-detector', analysisType: 'economic_warfare', required: false, category: 'warfare', priority: 7 },
   { name: 'TSCM Sweep', edgeFunction: 'tscm-sweep-analyzer', analysisType: 'tscm_sweep', required: false, category: 'warfare', priority: 7 },
   { name: 'Digital Footprint', edgeFunction: 'digital-footprint-scanner', analysisType: 'digital_footprint', required: false, category: 'warfare', priority: 7 },
+  
+  // Advanced Fusion Intelligence (Priority 8) - 4 v5.0 tasks
+  { name: 'Biometric-Behavioral Fusion', edgeFunction: 'biometric-behavioral-fusion', analysisType: 'biometric_behavioral_fusion', required: false, category: 'fusion', priority: 8 },
+  { name: 'Geospatial-Communication Fusion', edgeFunction: 'geospatial-communication-fusion', analysisType: 'geospatial_communication_fusion', required: false, category: 'fusion', priority: 8 },
+  { name: 'Financial-Document Synthesis', edgeFunction: 'financial-document-synthesis', analysisType: 'financial_document_synthesis', required: false, category: 'fusion', priority: 8 },
+  { name: 'Calendar Pattern Analyzer', edgeFunction: 'calendar-pattern-analyzer', analysisType: 'calendar_pattern', required: false, category: 'fusion', priority: 8 },
+  
+  // Advanced Intelligence Systems (Priority 9) - 5 v6.0 tasks
+  { name: 'Relationship Half-Life', edgeFunction: 'relationship-half-life-calculator', analysisType: 'relationship_half_life', required: false, category: 'fusion', priority: 9 },
+  { name: 'Automated Red Team', edgeFunction: 'automated-red-team-engine', analysisType: 'automated_red_team', required: false, category: 'warfare', priority: 9 },
+  { name: 'Multi-Party Deception', edgeFunction: 'multi-party-deception-detector', analysisType: 'multi_party_deception', required: false, category: 'warfare', priority: 9 },
+  { name: 'Zero-Day Anomaly', edgeFunction: 'zero-day-anomaly-detector', analysisType: 'zero_day_anomaly', required: false, category: 'fusion', priority: 9 },
+  { name: 'Hypergame Theory', edgeFunction: 'hypergame-theory-engine', analysisType: 'hypergame_theory', required: false, category: 'fusion', priority: 9 },
 ];
 
 /**
