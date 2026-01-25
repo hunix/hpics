@@ -7,6 +7,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,7 +21,8 @@ import {
   ChevronRight,
   Filter,
   ArrowUpRight,
-  Sparkles
+  Sparkles,
+  AlertCircle
 } from 'lucide-react';
 import { useDataCollectionStatus } from '@/hooks/useDataCollectionStatus';
 import { DataCategoryCard } from '@/components/data-guide/DataCategoryCard';
@@ -30,26 +32,26 @@ import { cn } from '@/lib/utils';
 
 export default function DataCollectionGuide() {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
 
-  // Fetch user's profiles for selection
-  const { data: profiles, isLoading: profilesLoading } = useQuery({
-    queryKey: ['profiles-for-guide'],
+  // Fetch user's profiles for selection - uses auth context to avoid race condition
+  const { data: profiles, isLoading: profilesLoading, error: profilesError } = useQuery({
+    queryKey: ['profiles-for-guide', user?.id],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
-      
       const { data } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, avatar_url, organization')
-        .eq('user_id', user.id)
+        .eq('user_id', user!.id)
         .eq('is_active', true)
-        .order('first_name');
+        .order('first_name')
+        .limit(200);
       
       return data || [];
     },
+    enabled: !authLoading && !!user?.id,
   });
 
   // Fetch data collection status for selected profile
@@ -93,8 +95,16 @@ export default function DataCollectionGuide() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {profilesLoading ? (
+          {authLoading || profilesLoading ? (
             <div className="animate-pulse h-10 bg-muted rounded-lg" />
+          ) : profilesError ? (
+            <div className="text-center py-8">
+              <AlertCircle className="w-8 h-8 mx-auto text-destructive mb-2" />
+              <p className="text-muted-foreground mb-3">Failed to load profiles. Please try again.</p>
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                Retry
+              </Button>
+            </div>
           ) : profiles && profiles.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
               {profiles.slice(0, 12).map((profile) => (
@@ -132,7 +142,7 @@ export default function DataCollectionGuide() {
             </div>
           ) : (
             <div className="text-center py-8">
-              <p className="text-muted-foreground mb-3">No profiles found. Create a contact to get started.</p>
+              <p className="text-muted-foreground mb-3">No active profiles found. Create a contact to get started.</p>
               <Button onClick={() => navigate('/contacts')}>
                 Create Contact
                 <ArrowUpRight className="w-4 h-4 ml-2" />
