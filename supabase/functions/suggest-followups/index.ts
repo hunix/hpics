@@ -78,9 +78,10 @@ serve(async (req) => {
     // Fetch recent communications
     const { data: communications, error: commsError } = await supabase
       .from('communications')
-      .select('profile_id, occurred_at, channel, is_from_contact')
+      .select('profile_id, occurred_at, channel, direction')
       .eq('user_id', userId)
-      .order('occurred_at', { ascending: false });
+      .order('occurred_at', { ascending: false })
+      .limit(1000);
 
     if (commsError) throw commsError;
 
