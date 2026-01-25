@@ -1,296 +1,107 @@
 
-# Audio Language Detection, Smart Skipping & Tagging System
+# Fix: Infinite Reload Loop Causing Blank White Pages
 
-## Executive Summary
+## Problem Identified
 
-Add intelligent language detection and tagging for voice/audio files with automatic skipping when the selected Whisper model doesn't support the detected language. Users will see language badges (Arabic, English, etc.) on each audio file and receive clear reports when files are skipped due to language incompatibility.
+The application is stuck in an **infinite reload loop** and never renders any content. This is caused by a logic flaw in the version management system.
+
+### Root Cause
+
+In `src/lib/appVersion.ts`, the current version `'3.9.50'` is included in the `FORCE_CLEAR_VERSIONS` array:
+
+```typescript
+export const FORCE_CLEAR_VERSIONS = ['3.9.50', '3.9.38', '3.9.35', ...];
+```
+
+In `src/main.tsx`, the version check logic triggers a cache clear and page reload whenever the stored version is in `FORCE_CLEAR_VERSIONS`:
+
+```typescript
+const shouldForceClear = storedVersion && FORCE_CLEAR_VERSIONS.includes(storedVersion);
+
+if (storedVersion && (storedVersion !== APP_VERSION || shouldForceClear)) {
+  // Clear caches...
+  setStoredVersion(APP_VERSION);
+  window.location.reload();  // ← Infinite loop here
+  return false;
+}
+```
+
+**The Loop:**
+1. Page loads → stored version is `3.9.50`
+2. Current version is `3.9.50` → no mismatch
+3. BUT `3.9.50` is in `FORCE_CLEAR_VERSIONS` → `shouldForceClear = true`
+4. Clears caches, stores `3.9.50`, reloads
+5. Back to step 1 → repeat forever
 
 ---
 
-## Current System Status
+## Solution
 
-### Models Properly Configured
-All 4 Whisper models are correctly defined and wired:
+### Option A: Remove Current Version from Force Clear Array (Recommended)
 
-| Model | ONNX ID | Language Support | Status |
-|-------|---------|------------------|--------|
-| `tiny` | `whisper-tiny.en` | English-only | Correctly flagged |
-| `small` | `whisper-small` | Multilingual (incl. Arabic) | Working |
-| `distil` | `distil-large-v3` | Multilingual (incl. Arabic) | Working |
-| `turbo` | `whisper-large-v3-turbo` | Multilingual (incl. Arabic) | Working |
+Remove `'3.9.50'` from the `FORCE_CLEAR_VERSIONS` array. The current version should **never** be in this list since it's meant to force users upgrading **from** old versions to clear their cache.
 
-### What's Missing
-1. **Language Detection Storage**: Transcription returns `language` but it's not saved to DB
-2. **Language Tags on Files**: `VoiceRecording` interface lacks language field
-3. **Smart Skipping Logic**: No check for model compatibility before processing
-4. **Skip Reporting**: No mechanism to inform users about skipped files
-5. **Media Table Column**: No `detected_language` column for filtering
-
----
-
-## Implementation Plan
-
-### Phase 1: Database Schema Update
-
-**Add `detected_language` column to `media` table:**
-```sql
-ALTER TABLE public.media ADD COLUMN detected_language TEXT;
-CREATE INDEX idx_media_detected_language ON public.media(detected_language);
-```
-
-The `voice_insights` table already has `language_detected` column - we'll use it.
-
-### Phase 2: Model Language Support Registry
-
-**File:** `src/lib/ml/localWhisperTranscriber.ts`
-
-Extend `MODEL_MAP` with language support metadata:
+**File:** `src/lib/appVersion.ts` (Line 70)
 
 ```typescript
-const MODEL_MAP: Record<WhisperModel, { 
-  id: string; 
-  name: string; 
-  size: string; 
-  speed: string;
-  supportedLanguages: 'english-only' | 'multilingual';
-  languageCodes?: string[]; // For english-only, specify ['en']
-}> = {
-  turbo: { ..., supportedLanguages: 'multilingual' },
-  distil: { ..., supportedLanguages: 'multilingual' },
-  small: { ..., supportedLanguages: 'multilingual' },
-  tiny: { ..., supportedLanguages: 'english-only', languageCodes: ['en'] }
-};
+// BEFORE (causes infinite loop)
+export const FORCE_CLEAR_VERSIONS = ['3.9.50', '3.9.38', '3.9.35', ...];
+
+// AFTER (fixed)
+export const FORCE_CLEAR_VERSIONS = ['3.9.38', '3.9.35', '3.9.34', ...];
 ```
 
-Add helper function:
-```typescript
-isLanguageSupported(model: WhisperModel, langCode: string): boolean
-```
+### Option B: Fix the Logic (Defensive)
 
-### Phase 3: Pre-Processing Language Detection (Sample-Based)
-
-**File:** `src/lib/ml/localAudioAnalyzer.ts`
-
-Add a fast language detection method that:
-1. Transcribes first 10-15 seconds of audio
-2. Returns detected language code
-3. Caches result to avoid re-detection
+Additionally, improve the logic in `src/main.tsx` to prevent this from ever happening again:
 
 ```typescript
-async detectLanguage(audioSource: string | Blob): Promise<{
-  languageCode: string;
-  languageName: string;
-  confidence: number;
-}>
-```
+// BEFORE
+const shouldForceClear = storedVersion && FORCE_CLEAR_VERSIONS.includes(storedVersion);
 
-### Phase 4: Enhanced VoiceRecording Interface
-
-**File:** `src/hooks/useVoiceBulkAnalysis.ts`
-
-```typescript
-export interface VoiceRecording {
-  // ... existing fields
-  detectedLanguage?: string;         // ISO language code (ar, en, es, etc.)
-  detectedLanguageName?: string;     // Display name (Arabic, English, etc.)
-  languageSource?: 'detected' | 'manual' | 'unknown';
-}
-
-// New skip tracking interfaces
-export interface SkippedRecording {
-  recording: VoiceRecording;
-  reason: 'unsupported_language' | 'detection_failed';
-  detectedLanguage?: string;
-  modelUsed: WhisperModel;
-}
-
-export interface VoiceBulkSession {
-  // ... existing fields
-  skippedItems: number;
-  skippedRecordings?: SkippedRecording[];
-}
-```
-
-### Phase 5: Smart Processing with Skip Logic
-
-**File:** `src/hooks/useVoiceBulkAnalysis.ts`
-
-Update `startBulkAnalysis` to:
-
-1. **Pre-scan Phase** (for `tiny` model only):
-   - Loop through selected recordings
-   - Quick-detect language using 10-second sample
-   - Build lists: `toProcess[]` and `toSkip[]`
-   - Report skip count immediately
-
-2. **Processing Phase**:
-   - Process only compatible files
-   - Store `language_detected` in `voice_insights` table
-   - Update `media.detected_language` for audio files
-
-3. **Skip Tracking**:
-```typescript
-const skippedRecordings: SkippedRecording[] = [];
-
-// Pre-check for english-only model
-if (whisperModel === 'tiny') {
-  const langResult = await localAudioAnalyzer.detectLanguage(recording.audio_url);
-  if (langResult.languageCode !== 'en') {
-    skippedRecordings.push({
-      recording,
-      reason: 'unsupported_language',
-      detectedLanguage: langResult.languageName,
-      modelUsed: whisperModel
-    });
-    continue; // Skip this file
-  }
-}
-```
-
-### Phase 6: Language Badge Display in UI
-
-**File:** `src/components/analysis/VoiceBulkAnalysisPanel.tsx`
-
-Add language badges to recording rows:
-
-```typescript
-// Language code to display name mapping
-const LANGUAGE_DISPLAY: Record<string, { name: string; flag?: string; className: string }> = {
-  ar: { name: 'Arabic', flag: '🇸🇦', className: 'bg-emerald-500/20 text-emerald-600' },
-  en: { name: 'English', flag: '🇺🇸', className: 'bg-blue-500/20 text-blue-600' },
-  es: { name: 'Spanish', flag: '🇪🇸', className: 'bg-orange-500/20 text-orange-600' },
-  fr: { name: 'French', flag: '🇫🇷', className: 'bg-indigo-500/20 text-indigo-600' },
-  // ... more languages
-  unknown: { name: 'Unknown', className: 'bg-gray-500/20 text-gray-600' }
-};
-```
-
-Display in recording row:
-```text
-┌─────────────────────────────────────────────────────────────┐
-│ ☑ Voice Note 2025-01-15  [WhatsApp] [Arabic 🇸🇦] [✓ Analyzed] │
-│   ⏱ 2:34  •  3 days ago                                     │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Phase 7: Skip Report UI
-
-**File:** `src/components/analysis/VoiceBulkAnalysisPanel.tsx`
-
-Add skip report section to the progress/completion UI:
-
-```text
-┌────────────────────────────────────────────────────────────────┐
-│ ⚠ 12 files skipped - Language not supported                   │
-│                                                                 │
-│ The selected model (Whisper Tiny) only supports English.       │
-│ These files were detected as non-English:                      │
-│                                                                 │
-│   • voice_note_2024.opus  [Arabic]                             │
-│   • meeting_recording.mp3 [Arabic]                             │
-│   • call_jan_15.m4a       [French]                             │
-│   +9 more...                                                   │
-│                                                                 │
-│ [Switch to Multilingual Model] [Analyze Anyway]                │
-└────────────────────────────────────────────────────────────────┘
-```
-
-### Phase 8: Language Filter Toggle
-
-**File:** `src/components/analysis/VoiceBulkAnalysisPanel.tsx`
-
-Add filter controls above the recording list:
-
-```typescript
-const [languageFilter, setLanguageFilter] = useState<string | 'all'>('all');
-
-// Filter options derived from recordings with detected languages
-const availableLanguages = useMemo(() => {
-  const langs = new Set(recordings.map(r => r.detectedLanguage).filter(Boolean));
-  return Array.from(langs);
-}, [recordings]);
-```
-
-UI:
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│ Filter by Language: [All ▾] [Arabic (24)] [English (156)] [?]  │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Phase 9: Persist Language to Database
-
-**File:** `src/hooks/useVoiceBulkAnalysis.ts`
-
-Update `processLocalRecording`:
-
-```typescript
-// After transcription
-const detectedLang = result.transcription?.language || 'unknown';
-
-// Store in voice_insights
-await supabase.from('voice_insights').upsert({
-  // ... existing fields
-  language_detected: detectedLang,  // NEW
-});
-
-// Update media table for filtering
-if (recording.source === 'media') {
-  await supabase.from('media')
-    .update({ detected_language: detectedLang })
-    .eq('id', recording.id);
-}
-```
-
-### Phase 10: Fetch Language Tags on Load
-
-**File:** `src/hooks/useVoiceBulkAnalysis.ts`
-
-Update `fetchRecordings` to join language data:
-
-```typescript
-// For media files - select detected_language
-let mediaQuery = supabase
-  .from('media')
-  .select('id, caption, file_url, ..., detected_language')
-  .like('mime_type', 'audio/%');
-
-// For voice sessions - join voice_insights for language
-// Or add language field to voice_recording_sessions table
+// AFTER - Never force clear if already on current version
+const shouldForceClear = storedVersion && 
+                         storedVersion !== APP_VERSION && 
+                         FORCE_CLEAR_VERSIONS.includes(storedVersion);
 ```
 
 ---
 
-## Files to Modify
+## Implementation Steps
 
-| File | Changes |
-|------|---------|
-| `src/lib/ml/localWhisperTranscriber.ts` | Add language support metadata to MODEL_MAP, add helper function |
-| `src/lib/ml/localAudioAnalyzer.ts` | Add `detectLanguage()` method for quick language sampling |
-| `src/hooks/useVoiceBulkAnalysis.ts` | Add skip logic, language storage, enhanced interfaces |
-| `src/components/analysis/VoiceBulkAnalysisPanel.tsx` | Add language badges, skip report UI, language filter |
+1. **Edit `src/lib/appVersion.ts`**
+   - Remove `'3.9.50'` from the `FORCE_CLEAR_VERSIONS` array
+   - Bump version to `'3.9.51'` to ensure fresh load
 
-**Database Migration:**
-- Add `detected_language` column to `media` table
+2. **Edit `src/main.tsx`** (defensive fix)
+   - Add `storedVersion !== APP_VERSION` check to prevent future occurrences
+   - This ensures we only force clear when upgrading from an old problematic version, not when already on the current version
 
 ---
 
-## User Experience Flow
+## Technical Details
 
-1. **Before Analysis**: Files without language tags show "?" or no badge
-2. **Model Selection**: If user selects Tiny model, show warning about English-only
-3. **Analysis Start**: Pre-scan detects languages for Tiny model selection
-4. **Skip Notification**: Toast showing "12 Arabic files will be skipped (Tiny model is English-only)"
-5. **During Analysis**: Language badges appear as files are processed
-6. **Completion**: Summary shows processed + skipped counts with reasons
-7. **Post-Analysis**: Language filter allows users to view files by language
+### Files to Modify
+
+| File | Change |
+|------|--------|
+| `src/lib/appVersion.ts` | Remove `'3.9.50'` from `FORCE_CLEAR_VERSIONS`, bump to `3.9.51` |
+| `src/main.tsx` | Add defensive check to prevent current version from triggering force clear |
+
+### Why This Happened
+
+The intent of `FORCE_CLEAR_VERSIONS` is to force cache clearing when users upgrade **from** certain problematic versions. However, the current version was accidentally added to this list, causing users already on that version to be stuck in an infinite loop.
+
+### Prevention
+
+The defensive fix in `main.tsx` ensures this bug cannot happen again, even if someone accidentally adds the current version to the force-clear list.
 
 ---
 
-## Technical Notes
+## Expected Result
 
-- Language detection uses Whisper's built-in language identification (first 30 seconds)
-- For `tiny` model, pre-scan uses the same model for consistency
-- Arabic ISO code: `ar`, English: `en`, French: `fr`, Spanish: `es`
-- Whisper returns ISO 639-1 codes which we map to display names
-- Multilingual models (small/distil/turbo) can process 99+ languages including Arabic
+After applying these fixes:
+- The infinite reload loop will stop
+- All pages will render correctly
+- The auth page and all other routes will be accessible
+- Version will be `3.9.51` with proper cache management
