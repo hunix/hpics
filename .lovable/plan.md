@@ -1,54 +1,40 @@
 
+## What’s happening (root cause)
+The `/data-guide` page currently loads profiles using:
 
-# Fix: Data Collection Guide Profile Selector Not Loading Contacts
+- `supabase.auth.getUser()` inside the React Query `queryFn`
+- a **static queryKey**: `['profiles-for-guide']`
 
-## Problem Identified
+If the page renders before the auth session finishes hydrating, `getUser()` can return `null` briefly. In that case the query returns `[]`, React Query caches it under the static key, and it **won’t automatically re-run** once the session becomes available—so the UI stays stuck on “No profiles found”.
 
-The `DataCollectionGuide.tsx` page shows "No profiles found. Create a contact to get started" even though you have **10 active contacts** in the database.
+This matches your symptom: you have contacts, but the guide page still shows the empty state.
 
-**Root Cause**: The query on lines 44-48 is missing the `is_active = true` filter:
+## Fix approach (safe + consistent with the rest of the app)
+Update `src/pages/DataCollectionGuide.tsx` to follow the same pattern as `Contacts.tsx`:
 
-```typescript
-// Current (broken)
-const { data } = await supabase
-  .from('profiles')
-  .select('id, first_name, last_name, avatar_url, organization')
-  .eq('user_id', user.id)
-  .order('first_name');
-```
+1. **Use the existing `useAuth()` context** to get `user` and `loading`
+2. Make the query:
+   - `enabled: !loading && !!user?.id`
+   - `queryKey` include the user id (so it naturally refreshes when auth state changes), e.g. `['profiles-for-guide', user?.id]`
+   - `queryFn` use `user.id` directly (avoid calling `supabase.auth.getUser()` inside the query)
+3. Add basic error handling:
+   - capture `error` from the query
+   - show a small inline “Failed to load profiles” state (instead of silently showing “create contact”)
+4. Keep the active-only constraint:
+   - `.eq('is_active', true)` stays
 
-Without filtering by `is_active`, the query attempts to load all 3,642 profiles (including archived/inactive ones), which may cause issues or return unexpected results.
+## Optional robustness improvements (recommended)
+- Add `.limit(200)` for the selector (just for safety / performance), since this is only a picker UI.
+- If you want the selector to show “All / Active / Address Book” like Contacts, we can add that later—but first we’ll get “Active contacts appear” working reliably.
 
----
+## Verification steps (what we’ll test after implementing)
+1. Hard refresh on `/data-guide`
+2. Confirm it no longer shows “Create Contact” (assuming you’re signed in)
+3. Confirm the selector populates with active contacts
+4. Select a profile and confirm `useDataCollectionStatus(profileId)` loads and the tabs populate
 
-## Solution
-
-Add the `is_active` filter to the profiles query to only show active contacts:
-
-```typescript
-// Fixed
-const { data } = await supabase
-  .from('profiles')
-  .select('id, first_name, last_name, avatar_url, organization')
-  .eq('user_id', user.id)
-  .eq('is_active', true)  // ← ADD THIS
-  .order('first_name');
-```
-
----
-
-## File to Modify
-
-| File | Change |
-|------|--------|
-| `src/pages/DataCollectionGuide.tsx` | Add `.eq('is_active', true)` to profiles query (line 47) |
-
----
-
-## Expected Result
-
-After the fix:
-- The profile selector will show your **10 active contacts**
-- You can select any profile to see their data collection status
-- The intelligence coverage score, data categories, and analysis matrix will populate correctly
-
+## Files to change
+- `src/pages/DataCollectionGuide.tsx`
+  - switch from `supabase.auth.getUser()` to `useAuth()`
+  - update React Query `queryKey` and `enabled`
+  - add error UI state for profile loading failures
