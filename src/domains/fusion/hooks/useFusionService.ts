@@ -129,6 +129,30 @@ export function useFusionEnginesStatus(profileId?: string) {
     'pattern-of-life',
     'entity-resolution',
     'sentiment-cascade',
+    // v5.0 engines
+    'biometric-behavioral',
+    'geospatial-communication',
+    'financial-document',
+    'calendar-pattern',
+    // v6.0 Advanced Intelligence engines
+    'relationship-half-life',
+    'automated-red-team',
+    'multi-party-deception',
+    'zero-day-anomaly',
+    'hypergame-theory',
+    // v7.0 Extreme Intelligence Engines
+    'subvocalization-detection',
+    'audio-burst-mental-state',
+    'iio-attribution',
+    'reflexive-control',
+    'cognitive-effect',
+    'kallisti-theory-of-mind',
+    'magics-collective-behavior',
+    'stylometric-authorship',
+    'dark2clear-deanonymization',
+    'gated-biological-fusion',
+    'tas-com-community',
+    'migration5-biometric',
   ];
 
   return useQuery({

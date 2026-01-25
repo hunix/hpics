@@ -39,6 +39,19 @@ export const FUSION_ANALYSIS_TYPES: Record<FusionEngineType, string> = {
   'multi-party-deception': 'multi_party_deception',
   'zero-day-anomaly': 'zero_day_anomaly',
   'hypergame-theory': 'hypergame_theory',
+  // v7.0 Extreme Intelligence Engines
+  'subvocalization-detection': 'subvocalization_detection',
+  'audio-burst-mental-state': 'audio_burst_mental_state',
+  'iio-attribution': 'iio_attribution',
+  'reflexive-control': 'reflexive_control',
+  'cognitive-effect': 'cognitive_effect',
+  'kallisti-theory-of-mind': 'kallisti_theory_of_mind',
+  'magics-collective-behavior': 'magics_collective_behavior',
+  'stylometric-authorship': 'stylometric_authorship',
+  'dark2clear-deanonymization': 'dark2clear_deanonymization',
+  'gated-biological-fusion': 'gated_biological_fusion',
+  'tas-com-community': 'tas_com_community',
+  'migration5-biometric': 'migration5_biometric',
 };
 
 export interface FusionRequest {
@@ -390,6 +403,19 @@ export class FusionService {
       'multi-party-deception': 'multi-party-deception-detector',
       'zero-day-anomaly': 'zero-day-anomaly-detector',
       'hypergame-theory': 'hypergame-theory-engine',
+      // v7.0 Extreme Intelligence Engines
+      'subvocalization-detection': 'subvocalization-detector',
+      'audio-burst-mental-state': 'audio-burst-analyzer',
+      'iio-attribution': 'iio-attribution-engine',
+      'reflexive-control': 'reflexive-control-detector',
+      'cognitive-effect': 'cognitive-effect-orchestrator',
+      'kallisti-theory-of-mind': 'kallisti-theory-of-mind',
+      'magics-collective-behavior': 'collective-behavior-predictor',
+      'stylometric-authorship': 'stylometric-analyzer',
+      'dark2clear-deanonymization': 'dark2clear-deanonymization',
+      'gated-biological-fusion': 'gated-biological-fusion',
+      'tas-com-community': 'tas-com-community-detector',
+      'migration5-biometric': 'migration5-biometric-tracker',
     };
     return mapping[engineType];
   }
