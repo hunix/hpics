@@ -88,6 +88,11 @@ export interface DossierDataResult {
   economicThreats: any[];
   tscmSweeps: any[];
   behavioralBaselines: any[];
+  // New Fusion Engine fields (v5.0)
+  biometricBehavioralFusion: any[];
+  geospatialCommunicationFusion: any[];
+  financialDocumentSynthesis: any[];
+  calendarPatternAnalysis: any[];
 }
 
 export function useDossierData() {
@@ -304,6 +309,19 @@ export function useDossierData() {
       supabase.from('behavioral_baselines' as any).select('*').eq('profile_id', profileId).order('baseline_date', { ascending: false }).limit(1),
     ]);
 
+    // Batch 10: New Fusion Engine Results (v5.0)
+    const [
+      biometricBehavioralFusion,
+      geospatialCommunicationFusion,
+      financialDocumentSynthesis,
+      calendarPatternAnalysis,
+    ] = await Promise.all([
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'biometric_behavioral_fusion').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'geospatial_communication_fusion').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'financial_document_synthesis').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'calendar_pattern_analysis').order('generated_at', { ascending: false }).limit(1),
+    ]);
+
     const [
       opsecAssessments,
       digitalFootprints,
@@ -400,6 +418,11 @@ export function useDossierData() {
       economicThreats: economicThreats.data || [],
       tscmSweeps: tscmSweeps.data || [],
       behavioralBaselines: behavioralBaselines.data || [],
+      // New Fusion Engine fields (v5.0)
+      biometricBehavioralFusion: biometricBehavioralFusion.data || [],
+      geospatialCommunicationFusion: geospatialCommunicationFusion.data || [],
+      financialDocumentSynthesis: financialDocumentSynthesis.data || [],
+      calendarPatternAnalysis: calendarPatternAnalysis.data || [],
     };
   }, []);
 

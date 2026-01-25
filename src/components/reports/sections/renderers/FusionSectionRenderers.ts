@@ -367,6 +367,206 @@ export const renderPredictiveConvergence: SectionRenderer = (ctx, data) => {
   ctx.yPos += 8;
 };
 
+// ============== NEW v5.0 FUSION RENDERERS ==============
+
+// Biometric-Behavioral Fusion renderer (Triple-Point Verification)
+export const renderBiometricFusion: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  
+  const rawData = data.biometricBehavioralFusion?.length
+    ? data.biometricBehavioralFusion[0]
+    : getAnalysisForSection(data, 'biometricFusion');
+  
+  if (!rawData) return;
+  
+  ctx.renderSectionHeader('Biometric-Behavioral Fusion', getSectionColor('biometricFusion'));
+  const fusion = extractResultSafe(rawData);
+  
+  ctx.checkPageBreak(60);
+  doc.setFillColor(255, 245, 245);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 55, 3, 3, 'F');
+  
+  // Triple-Point Verification scores - cast to any to access dynamic properties
+  const tpv = (fusion?.triplePointVerification || fusion?.triple_point_verification || {}) as Record<string, unknown>;
+  if (Object.keys(tpv).length > 0) {
+    ctx.renderSubsection('Triple-Point Deception Verification');
+    const physioStress = tpv.physiologicalStress ?? tpv.physiological_stress;
+    if (physioStress !== undefined) {
+      ctx.renderScoreBar('Physiological Stress', (physioStress as number) * 100, 100, PDF_DESIGN.colors.danger);
+    }
+    const vocalStress = tpv.vocalStress ?? tpv.vocal_stress;
+    if (vocalStress !== undefined) {
+      ctx.renderScoreBar('Vocal Stress', (vocalStress as number) * 100, 100, PDF_DESIGN.colors.warning);
+    }
+    const facialStress = tpv.facialStress ?? tpv.facial_stress;
+    if (facialStress !== undefined) {
+      ctx.renderScoreBar('Facial Stress', (facialStress as number) * 100, 100, PDF_DESIGN.colors.intelligence);
+    }
+    const combinedScore = tpv.combinedDeceptionScore ?? tpv.combined_deception_score;
+    if (combinedScore !== undefined) {
+      ctx.renderScoreBar('Combined Deception', (combinedScore as number) * 100, 100, PDF_DESIGN.colors.danger);
+    }
+    const convergence = tpv.convergenceLevel ?? tpv.convergence_level;
+    ctx.renderKeyValue('Convergence', String(convergence || 'Unknown'));
+  }
+  
+  // Deception alerts
+  const alerts = fusion?.deceptionAlerts || fusion?.deception_alerts || [];
+  if (Array.isArray(alerts) && alerts.length > 0) {
+    ctx.yPos += 5;
+    ctx.renderSubsection('Deception Alerts');
+    (alerts as Array<Record<string, unknown>>).slice(0, 3).forEach(a => {
+      ctx.renderBullet(`${a.alert || a.description || 'Alert'}: ${a.severity || 'Medium'}`, 5);
+    });
+  }
+  
+  ctx.yPos += 8;
+};
+
+// Calendar Pattern Intelligence renderer
+export const renderCalendarIntelligence: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  
+  const rawData = data.calendarPatternAnalysis?.length
+    ? data.calendarPatternAnalysis[0]
+    : getAnalysisForSection(data, 'calendarIntelligence');
+  
+  if (!rawData) return;
+  
+  ctx.renderSectionHeader('Calendar Pattern Intelligence', getSectionColor('calendarIntelligence'));
+  const calendar = extractResultSafe(rawData);
+  
+  ctx.checkPageBreak(55);
+  doc.setFillColor(245, 250, 255);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 50, 3, 3, 'F');
+  
+  // Meeting patterns - cast to Record for type safety
+  const patterns = (calendar?.meetingPatterns || calendar?.meeting_patterns || {}) as Record<string, unknown>;
+  if (Object.keys(patterns).length > 0) {
+    ctx.renderSubsection('Meeting Load Analysis');
+    const avgMeetings = patterns.averageMeetingsPerWeek ?? patterns.average_meetings_per_week;
+    ctx.renderKeyValue('Avg Weekly Meetings', String(avgMeetings ?? 'N/A'));
+    const loadIndicator = patterns.meetingLoadIndicator ?? patterns.meeting_load_indicator;
+    ctx.renderKeyValue('Load Indicator', String(loadIndicator ?? 'Unknown'));
+    
+    const peakDays = (patterns.peakMeetingDays ?? patterns.peak_meeting_days ?? []) as string[];
+    if (Array.isArray(peakDays) && peakDays.length > 0) {
+      ctx.renderKeyValue('Peak Days', peakDays.slice(0, 3).join(', '));
+    }
+  }
+  
+  // Availability windows
+  const availability = calendar?.availabilityWindows || calendar?.availability_windows || [];
+  if (Array.isArray(availability) && availability.length > 0) {
+    ctx.yPos += 3;
+    ctx.renderSubsection('Optimal Availability Windows');
+    (availability as Array<Record<string, unknown>>).slice(0, 4).forEach(w => {
+      ctx.renderBullet(`${w.day || w.window || 'Window'}: ${w.hours || w.time || ''}`, 5);
+    });
+  }
+  
+  // Power dynamics
+  const powerIndicators = calendar?.powerDynamicsIndicators || calendar?.power_dynamics_indicators || [];
+  if (Array.isArray(powerIndicators) && powerIndicators.length > 0) {
+    ctx.yPos += 3;
+    ctx.renderSubsection('Power Dynamics from Calendar');
+    (powerIndicators as string[]).slice(0, 3).forEach(p => ctx.renderBullet(p, 5));
+  }
+  
+  ctx.yPos += 8;
+};
+
+// Geospatial-Communication Fusion renderer
+export const renderGeospatialCommunication: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  
+  const rawData = data.geospatialCommunicationFusion?.length
+    ? data.geospatialCommunicationFusion[0]
+    : getAnalysisForSection(data, 'geospatialCommunication');
+  
+  if (!rawData) return;
+  
+  ctx.renderSectionHeader('Geospatial-Communication Fusion', getSectionColor('geospatialCommunication'));
+  const geo = extractResultSafe(rawData);
+  
+  ctx.checkPageBreak(50);
+  doc.setFillColor(245, 255, 250);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
+  
+  // Communication hotspots
+  const hotspots = geo?.communicationHotspots || geo?.communication_hotspots || [];
+  if (Array.isArray(hotspots) && hotspots.length > 0) {
+    ctx.renderSubsection('Communication Hotspots');
+    (hotspots as Array<Record<string, unknown>>).slice(0, 4).forEach(h => {
+      const loc = h.location as Record<string, unknown> || {};
+      const name = loc.name || `${loc.lat}, ${loc.lng}` || 'Unknown';
+      ctx.renderBullet(`${name}: ${h.communicationFrequency || h.communication_frequency || 0} comms`, 5);
+    });
+  }
+  
+  // Spatial patterns
+  const patterns = geo?.spatialCommunicationPatterns || geo?.spatial_communication_patterns || [];
+  if (Array.isArray(patterns) && patterns.length > 0) {
+    ctx.yPos += 3;
+    ctx.renderSubsection('Spatial Communication Patterns');
+    (patterns as string[]).slice(0, 3).forEach(p => ctx.renderBullet(p, 5));
+  }
+  
+  ctx.yPos += 8;
+};
+
+// Financial Document Synthesis renderer
+export const renderFinancialDocumentSynthesis: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  
+  const rawData = data.financialDocumentSynthesis?.length
+    ? data.financialDocumentSynthesis[0]
+    : getAnalysisForSection(data, 'financialDocumentSynthesis');
+  
+  if (!rawData) return;
+  
+  ctx.renderSectionHeader('Financial Document Synthesis', getSectionColor('financialDocumentSynthesis'));
+  const fin = extractResultSafe(rawData);
+  
+  ctx.checkPageBreak(50);
+  doc.setFillColor(255, 250, 240);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
+  
+  // Document-based evidence - cast to Record for type safety
+  const evidence = (fin?.documentBasedEvidence || fin?.document_based_evidence || {}) as Record<string, unknown>;
+  if (Object.keys(evidence).length > 0) {
+    ctx.renderSubsection('Document-Based Financial Evidence');
+    
+    const amounts = (evidence.totalAmountsExtracted ?? evidence.total_amounts_extracted ?? []) as string[];
+    if (Array.isArray(amounts) && amounts.length > 0) {
+      ctx.renderKeyValue('Extracted Amounts', amounts.slice(0, 5).join(', '));
+    }
+    
+    const income = (evidence.incomeIndicators ?? evidence.income_indicators ?? []) as string[];
+    if (Array.isArray(income) && income.length > 0) {
+      ctx.renderSubsection('Income Indicators');
+      income.slice(0, 3).forEach(i => ctx.renderBullet(i, 5));
+    }
+  }
+  
+  // Wealth tier adjustment - cast to Record for type safety
+  const adjustment = (fin?.wealthTierAdjustment || fin?.wealth_tier_adjustment || {}) as Record<string, unknown>;
+  if (Object.keys(adjustment).length > 0) {
+    ctx.yPos += 3;
+    ctx.renderSubsection('Wealth Tier Assessment');
+    const currentTier = adjustment.currentTier ?? adjustment.current_tier;
+    ctx.renderKeyValue('Current Tier', String(currentTier ?? 'Unknown'));
+    const suggestedTier = adjustment.suggestedTier ?? adjustment.suggested_tier;
+    ctx.renderKeyValue('Suggested Tier', String(suggestedTier ?? 'Unknown'));
+    const confidence = adjustment.confidence as number | undefined;
+    if (confidence !== undefined) {
+      ctx.renderScoreBar('Confidence', confidence * 100, 100, PDF_DESIGN.colors.success);
+    }
+  }
+  
+  ctx.yPos += 8;
+};
+
 export const fusionSectionRenderers = {
   temporalFusion: renderTemporalFusion,
   digitalTwin: renderDigitalTwin,
@@ -380,4 +580,9 @@ export const fusionSectionRenderers = {
   sentimentCascade: renderSentimentCascade,
   crossDomainSynthesis: renderCrossDomainSynthesis,
   predictiveConvergence: renderPredictiveConvergence,
+  // New v5.0 fusion renderers
+  biometricFusion: renderBiometricFusion,
+  calendarIntelligence: renderCalendarIntelligence,
+  geospatialCommunication: renderGeospatialCommunication,
+  financialDocumentSynthesis: renderFinancialDocumentSynthesis,
 };

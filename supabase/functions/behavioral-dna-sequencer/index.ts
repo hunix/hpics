@@ -230,7 +230,7 @@ serve(async (req) => {
       );
     }
 
-    // Gather extensive behavioral data
+    // Gather extensive behavioral data + NEW: biometric signals for v5.0
     const [
       profileResult,
       messagesResult,
@@ -238,7 +238,8 @@ serve(async (req) => {
       behavioralResult,
       voiceInsightsResult,
       mediaAnalysesResult,
-      interactionsResult
+      interactionsResult,
+      biometricsResult // v5.0: HRV, stress, heart rate data
     ] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", profileId).single(),
       supabase.from("messages").select("*, conversations!inner(profile_id)").eq("conversations.profile_id", profileId).order("created_at", { ascending: false }).limit(500),
@@ -246,8 +247,21 @@ serve(async (req) => {
       supabase.from("behavioral_analyses").select("*").eq("profile_id", profileId).limit(20),
       supabase.from("voice_insights").select("*").eq("profile_id", profileId).limit(50),
       supabase.from("media_analyses").select("*").eq("profile_id", profileId).limit(100),
-      supabase.from("contact_interaction_notes").select("id, profile_id, interaction_type, interaction_date, note_text, mood_observed, topics_discussed, relationship_temperature").eq("profile_id", profileId).order("created_at", { ascending: false }).limit(200)
+      supabase.from("contact_interaction_notes").select("id, profile_id, interaction_type, interaction_date, note_text, mood_observed, topics_discussed, relationship_temperature").eq("profile_id", profileId).order("created_at", { ascending: false }).limit(200),
+      // v5.0: Fetch biometric data (HRV, stress levels, heart rate)
+      supabase.from("interaction_biometrics").select("*").eq("profile_id", profileId).order("recorded_at", { ascending: false }).limit(100)
     ]);
+
+    // v5.0: Extract biometric behavioral signals
+    const biometrics = biometricsResult.data || [];
+    const biometricSignals = biometrics.length > 0 ? {
+      avgHeartRate: biometrics.reduce((acc: number, b: any) => acc + (b.heart_rate_bpm || 0), 0) / biometrics.length,
+      avgHRV: biometrics.reduce((acc: number, b: any) => acc + (b.hrv_ms || 0), 0) / biometrics.length,
+      avgStress: biometrics.reduce((acc: number, b: any) => acc + (b.stress_level || 0), 0) / biometrics.length,
+      stressTrend: biometrics.slice(0, 10).map((b: any) => ({ stress: b.stress_level, at: b.recorded_at })),
+      peakStressMoments: biometrics.filter((b: any) => b.stress_level > 70).length,
+      totalRecordings: biometrics.length
+    } : null;
 
     const contextData = {
       profile: profileResult.data,
@@ -257,10 +271,13 @@ serve(async (req) => {
       voiceInsights: voiceInsightsResult.data || [],
       mediaAnalyses: mediaAnalysesResult.data || [],
       interactions: interactionsResult.data || [],
+      // v5.0: Include biometric behavioral signals
+      biometricBehavioralSignals: biometricSignals,
       dataStats: {
         messageCount: (messagesResult.data || []).length,
         observationCount: (observationsResult.data || []).length,
-        interactionCount: (interactionsResult.data || []).length
+        interactionCount: (interactionsResult.data || []).length,
+        biometricCount: biometrics.length
       }
     };
 
