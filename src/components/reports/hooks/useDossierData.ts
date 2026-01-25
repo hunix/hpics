@@ -93,6 +93,12 @@ export interface DossierDataResult {
   geospatialCommunicationFusion: any[];
   financialDocumentSynthesis: any[];
   calendarPatternAnalysis: any[];
+  // New v6.0 Advanced Intelligence fields
+  relationshipHalfLifeData: any[];
+  automatedRedTeamData: any[];
+  multiPartyDeceptionData: any[];
+  zeroDayAnomalyData: any[];
+  hypergameTheoryData: any[];
 }
 
 export function useDossierData() {
@@ -322,6 +328,21 @@ export function useDossierData() {
       supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'calendar_pattern_analysis').order('generated_at', { ascending: false }).limit(1),
     ]);
 
+    // Batch 11: Advanced Intelligence Engine Results (v6.0)
+    const [
+      relationshipHalfLifeData,
+      automatedRedTeamData,
+      multiPartyDeceptionData,
+      zeroDayAnomalyData,
+      hypergameTheoryData,
+    ] = await Promise.all([
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'relationship_half_life').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'automated_red_team').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'multi_party_deception').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'zero_day_anomaly').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'hypergame_theory').order('generated_at', { ascending: false }).limit(1),
+    ]);
+
     const [
       opsecAssessments,
       digitalFootprints,
@@ -423,6 +444,12 @@ export function useDossierData() {
       geospatialCommunicationFusion: geospatialCommunicationFusion.data || [],
       financialDocumentSynthesis: financialDocumentSynthesis.data || [],
       calendarPatternAnalysis: calendarPatternAnalysis.data || [],
+      // New v6.0 Advanced Intelligence fields
+      relationshipHalfLifeData: relationshipHalfLifeData.data || [],
+      automatedRedTeamData: automatedRedTeamData.data || [],
+      multiPartyDeceptionData: multiPartyDeceptionData.data || [],
+      zeroDayAnomalyData: zeroDayAnomalyData.data || [],
+      hypergameTheoryData: hypergameTheoryData.data || [],
     };
   }, []);
 

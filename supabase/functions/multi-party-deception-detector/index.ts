@@ -139,7 +139,7 @@ serve(async (req: Request) => {
         collusionNetworks.push({
           networkId: `sync-${idx}`,
           participants: group.participants,
-          participantNames: group.participants.map(p => profileNameMap.get(p) || 'Unknown'),
+          participantNames: group.participants.map((p: string) => profileNameMap.get(p) || 'Unknown'),
           collusionType: 'synchronized_messaging',
           evidenceStrength: group.temporalAlignment,
           firstDetected: new Date().toISOString(),
@@ -163,7 +163,7 @@ serve(async (req: Request) => {
         collusionNetworks.push({
           networkId: `story-${idx}`,
           participants: alignment.participants,
-          participantNames: alignment.participants.map(p => profileNameMap.get(p) || 'Unknown'),
+          participantNames: alignment.participants.map((p: string) => profileNameMap.get(p) || 'Unknown'),
           collusionType: 'story_alignment',
           evidenceStrength: alignment.similarity,
           firstDetected: new Date().toISOString(),
@@ -187,7 +187,7 @@ serve(async (req: Request) => {
       collusionNetworks.push({
         networkId: `anomaly-${idx}`,
         participants: coord.participants,
-        participantNames: coord.participants.map(p => profileNameMap.get(p) || 'Unknown'),
+        participantNames: coord.participants.map((p: string) => profileNameMap.get(p) || 'Unknown'),
         collusionType: 'behavioral_synchronization',
         evidenceStrength: coord.synchronizationScore,
         firstDetected: coord.firstDetected,
@@ -207,7 +207,7 @@ serve(async (req: Request) => {
         collusionNetworks.push({
           networkId: `hidden-${idx}`,
           participants: conn.participants,
-          participantNames: conn.participants.map(p => profileNameMap.get(p) || 'Unknown'),
+          participantNames: conn.participants.map((p: string) => profileNameMap.get(p) || 'Unknown'),
           collusionType: 'information_compartmentalization',
           evidenceStrength: conn.connectionStrength,
           firstDetected: new Date().toISOString(),

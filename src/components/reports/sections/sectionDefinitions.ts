@@ -96,6 +96,13 @@ export const DEFAULT_SECTIONS: DossierSection[] = [
   { id: 'calendarIntelligence', label: 'Calendar Pattern Intelligence', icon: Calendar, enabled: true, category: 'intelligence' },
   { id: 'geospatialCommunication', label: 'Geospatial-Communication Fusion', icon: MapPin, enabled: true, category: 'analysis' },
   { id: 'financialDocumentSynthesis', label: 'Financial Document Synthesis', icon: FileText, enabled: true, category: 'intelligence' },
+  
+  // ============== ADVANCED INTELLIGENCE SECTIONS (v6.0) ==============
+  { id: 'relationshipHalfLife', label: 'Relationship Half-Life Analysis', icon: Clock, enabled: true, category: 'analysis' },
+  { id: 'redTeamAssessment', label: 'Automated Red Team Assessment', icon: Shield, enabled: true, category: 'warfare' },
+  { id: 'multiPartyDeception', label: 'Multi-Party Deception Network', icon: Users, enabled: true, category: 'warfare' },
+  { id: 'zeroDayAnomalies', label: 'Zero-Day Anomaly Detection', icon: AlertTriangle, enabled: true, category: 'analysis' },
+  { id: 'hypergameAnalysis', label: 'Hypergame Strategic Analysis', icon: Brain, enabled: true, category: 'intelligence' },
 ];
 
 export const TEMPLATE_SECTION_IDS: Record<DossierTemplate, string[]> = {
@@ -105,7 +112,7 @@ export const TEMPLATE_SECTION_IDS: Record<DossierTemplate, string[]> = {
   surveillance: ['overview', 'sourceDashboard', 'patternOfLife', 'mediaIntel', 'voiceIntel', 'timeline', 'network', 'threatActor', 'crossModal', 'deceptionAnalysis', 'patternOfLifeFusion', 'entityResolution'],
   warfare: ['executive', 'mice', 'cialdini', 'sacredValues', 'realityTesting', 'identityDestab', 'trauma', 'semanticWarfare', 'memeticPropagation', 'choiceArchitecture', 'influenceOps', 'betrayal', 'threatActor', 'hypnoticPatterns', 'elicitation', 'cognitiveLoad', 'cognitiveWarfare', 'deceptionOps', 'vulnerabilityWindows', 'activeDefense', 'trustTrajectory', 'mosaicFusion', 'darkTetrad', 'shadowNetwork', 'sentimentCascade', 'opsecAssessment', 'socialEngineering', 'crisisResponse', 'lawfareDefense', 'reputationDefense', 'familyProtection', 'economicWarfare', 'tscmSweep', 'digitalFootprint', 'behavioralBaseline'],
   psychological: ['executive', 'behavioralDna', 'psychological', 'quantumCognition', 'relationship', 'playbook', 'deceptionAnalysis', 'behavioralEconomics', 'trust', 'influenceResistance', 'futureModeling', 'precognitive', 'darkTetrad', 'digitalTwin', 'counterfactual'],
-  fusion: ['executive', 'temporalFusion', 'digitalTwin', 'graphRag', 'shadowNetwork', 'dempsterShafer', 'counterfactual', 'patternOfLifeFusion', 'entityResolution', 'sentimentCascade', 'mosaicFusion', 'quantumCognition', 'crossModal', 'biometricFusion', 'calendarIntelligence', 'geospatialCommunication', 'financialDocumentSynthesis'],
+  fusion: ['executive', 'temporalFusion', 'digitalTwin', 'graphRag', 'shadowNetwork', 'dempsterShafer', 'counterfactual', 'patternOfLifeFusion', 'entityResolution', 'sentimentCascade', 'mosaicFusion', 'quantumCognition', 'crossModal', 'biometricFusion', 'calendarIntelligence', 'geospatialCommunication', 'financialDocumentSynthesis', 'relationshipHalfLife', 'redTeamAssessment', 'multiPartyDeception', 'zeroDayAnomalies', 'hypergameAnalysis'],
 };
 
 export function applySectionTemplate(
