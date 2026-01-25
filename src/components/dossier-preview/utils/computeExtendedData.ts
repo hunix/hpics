@@ -1,7 +1,7 @@
 /**
- * Compute Extended Dossier Data (v3.9.35)
+ * Compute Extended Dossier Data (v3.9.50)
  * Transforms raw DossierDataResult into ExtendedDossierData for rendering
- * Includes email intelligence in completeness score
+ * Includes email intelligence, v5.0 fusion, and v6.0 advanced intelligence in completeness score
  */
 
 import type { DossierDataResult } from '@/components/reports/hooks/useDossierData';
@@ -19,6 +19,17 @@ export interface ExtendedDossierData extends DossierDataResult {
   communicationFrequency: number;
   hasEmailIntelligence: boolean;
   emailInsightsCount: number;
+  // v5.0 Fusion Intelligence
+  hasBiometricFusion: boolean;
+  hasCalendarIntelligence: boolean;
+  hasGeospatialFusion: boolean;
+  hasFinancialSynthesis: boolean;
+  // v6.0 Advanced Intelligence
+  hasRelationshipHalfLife: boolean;
+  hasRedTeamAssessment: boolean;
+  hasMultiPartyDeception: boolean;
+  hasZeroDayAnomalies: boolean;
+  hasHypergameAnalysis: boolean;
   [key: string]: unknown;
 }
 
@@ -34,8 +45,22 @@ export function computeExtendedDossierData(
   const emailInsightsCount = emailInsights.length;
   const emailInsightsAnalysis = emailInsights[0] ? { result: emailInsights[0].result } : undefined;
 
-  // Calculate intelligence completeness (now includes email intelligence)
+  // v5.0 Fusion Intelligence checks
+  const hasBiometricFusion = (raw.biometricBehavioralFusion?.length ?? 0) > 0;
+  const hasCalendarIntelligence = (raw.calendarPatternAnalysis?.length ?? 0) > 0;
+  const hasGeospatialFusion = (raw.geospatialCommunicationFusion?.length ?? 0) > 0;
+  const hasFinancialSynthesis = (raw.financialDocumentSynthesis?.length ?? 0) > 0;
+
+  // v6.0 Advanced Intelligence checks
+  const hasRelationshipHalfLife = (raw.relationshipHalfLifeData?.length ?? 0) > 0;
+  const hasRedTeamAssessment = (raw.automatedRedTeamData?.length ?? 0) > 0;
+  const hasMultiPartyDeception = (raw.multiPartyDeceptionData?.length ?? 0) > 0;
+  const hasZeroDayAnomalies = (raw.zeroDayAnomalyData?.length ?? 0) > 0;
+  const hasHypergameAnalysis = (raw.hypergameTheoryData?.length ?? 0) > 0;
+
+  // Calculate intelligence completeness (expanded to 19 sources for v6.0)
   const sourceChecks = [
+    // Core sources (10)
     raw.psychData?.length > 0,
     raw.miceData?.length > 0,
     raw.influenceData !== null,
@@ -45,7 +70,18 @@ export function computeExtendedDossierData(
     raw.trustData?.length > 0,
     raw.relationshipsData?.length > 0,
     raw.allAnalyses?.length > 0,
-    hasEmailIntelligence, // NEW: Email intelligence now counts toward completeness
+    hasEmailIntelligence,
+    // v5.0 Fusion (4)
+    hasBiometricFusion,
+    hasCalendarIntelligence,
+    hasGeospatialFusion,
+    hasFinancialSynthesis,
+    // v6.0 Advanced (5)
+    hasRelationshipHalfLife,
+    hasRedTeamAssessment,
+    hasMultiPartyDeception,
+    hasZeroDayAnomalies,
+    hasHypergameAnalysis,
   ];
   const intelligenceCompleteness = Math.round(
     (sourceChecks.filter(Boolean).length / sourceChecks.length) * 100
@@ -89,5 +125,16 @@ export function computeExtendedDossierData(
     communicationFrequency: recentComms,
     hasEmailIntelligence,
     emailInsightsCount,
+    // v5.0 Fusion Intelligence
+    hasBiometricFusion,
+    hasCalendarIntelligence,
+    hasGeospatialFusion,
+    hasFinancialSynthesis,
+    // v6.0 Advanced Intelligence
+    hasRelationshipHalfLife,
+    hasRedTeamAssessment,
+    hasMultiPartyDeception,
+    hasZeroDayAnomalies,
+    hasHypergameAnalysis,
   };
 }
