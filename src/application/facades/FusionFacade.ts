@@ -73,6 +73,19 @@ export class FusionFacade {
       'multi-party-deception',
       'zero-day-anomaly',
       'hypergame-theory',
+      // v7.0 Extreme Intelligence Engines
+      'subvocalization-detection',
+      'audio-burst-mental-state',
+      'iio-attribution',
+      'reflexive-control',
+      'cognitive-effect',
+      'kallisti-theory-of-mind',
+      'magics-collective-behavior',
+      'stylometric-authorship',
+      'dark2clear-deanonymization',
+      'gated-biological-fusion',
+      'tas-com-community',
+      'migration5-biometric',
     ];
 
     return this.service.executeBatchFusion({
@@ -142,6 +155,19 @@ export class FusionFacade {
       'multi-party-deception',
       'zero-day-anomaly',
       'hypergame-theory',
+      // v7.0 Extreme Intelligence Engines
+      'subvocalization-detection',
+      'audio-burst-mental-state',
+      'iio-attribution',
+      'reflexive-control',
+      'cognitive-effect',
+      'kallisti-theory-of-mind',
+      'magics-collective-behavior',
+      'stylometric-authorship',
+      'dark2clear-deanonymization',
+      'gated-biological-fusion',
+      'tas-com-community',
+      'migration5-biometric',
     ];
 
     const existingResults = await this.service.getFusionResults(profileId);
@@ -189,7 +215,7 @@ export class FusionFacade {
     message: string;
   }> {
     const results = await this.service.getFusionResults(profileId);
-    const totalEngines = 18; // Updated for v6.0 (9 original + 4 v5.0 + 5 v6.0)
+    const totalEngines = 30; // Updated for v7.0 (9 original + 4 v5.0 + 5 v6.0 + 12 v7.0)
     const freshResults = results.filter(r => !r.isStale(24));
 
     if (results.length === 0) {
