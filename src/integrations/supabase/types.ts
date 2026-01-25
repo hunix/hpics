@@ -22156,6 +22156,7 @@ export type Database = {
           caption: string | null
           completed_analysis_modes: string[] | null
           created_at: string
+          detected_language: string | null
           file_size: number | null
           file_url: string
           id: string
@@ -22175,6 +22176,7 @@ export type Database = {
           caption?: string | null
           completed_analysis_modes?: string[] | null
           created_at?: string
+          detected_language?: string | null
           file_size?: number | null
           file_url: string
           id?: string
@@ -22194,6 +22196,7 @@ export type Database = {
           caption?: string | null
           completed_analysis_modes?: string[] | null
           created_at?: string
+          detected_language?: string | null
           file_size?: number | null
           file_url?: string
           id?: string
