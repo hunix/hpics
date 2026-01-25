@@ -196,11 +196,16 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
             
             {/* Completed Phase */}
             {session.status === 'completed' && (
-              <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-green-500" />
-                <span className="font-medium text-green-600 dark:text-green-400">
-                  Completed - {session.processedItems} files processed
-                </span>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="font-medium text-green-600 dark:text-green-400">
+                    Completed - {session.processedItems} files processed
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground ml-6">
+                  ✓ Analysis status synced to Media Hub
+                </p>
               </div>
             )}
             

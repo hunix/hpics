@@ -153,6 +153,42 @@ export function useVoiceBulkAnalysis(profileId?: string) {
     }
   }, [profileId]);
 
+  // Sync analysis status to media table for cross-system tracking
+  const syncMediaAnalysisStatus = useCallback(async (
+    recording: VoiceRecording,
+    analysisModes: string[]
+  ): Promise<void> => {
+    // Only sync if source is 'media' table (not voice_recording_sessions)
+    if (recording.source !== 'media') return;
+
+    try {
+      // Fetch existing completed modes
+      const { data: existing } = await supabase
+        .from('media')
+        .select('completed_analysis_modes')
+        .eq('id', recording.id)
+        .single();
+
+      const existingModes = (existing?.completed_analysis_modes as string[]) || [];
+      const allModes = [...new Set([...existingModes, ...analysisModes])];
+
+      // Update media record
+      await supabase
+        .from('media')
+        .update({
+          completed_analysis_modes: allModes,
+          last_analysis_at: new Date().toISOString(),
+          ai_generation_status: 'completed',
+        })
+        .eq('id', recording.id);
+
+      console.log(`[VoiceBulkAnalysis] Synced media ${recording.id} with modes: ${allModes.join(', ')}`);
+    } catch (error) {
+      console.warn('[VoiceBulkAnalysis] Failed to sync media status:', error);
+      // Non-fatal - continue processing
+    }
+  }, []);
+
   // Process single recording locally (WebGPU Whisper)
   const processLocalRecording = useCallback(async (
     recording: VoiceRecording,
@@ -186,10 +222,13 @@ export function useVoiceBulkAnalysis(profileId?: string) {
 
     if (insertError) {
       console.error('[VoiceBulkAnalysis] Failed to save insights:', insertError);
+    } else {
+      // Sync status to media table for cross-system tracking
+      await syncMediaAnalysisStatus(recording, ['voice_transcription']);
     }
 
     return { success: true, processingTimeMs: result.totalProcessingMs };
-  }, []);
+  }, [syncMediaAnalysisStatus]);
 
   // Start bulk analysis with mode selection
   const startBulkAnalysis = useCallback(async (
@@ -288,6 +327,9 @@ export function useVoiceBulkAnalysis(profileId?: string) {
           // Local transcription first, then cloud for advanced analysis
           const localResult = await processLocalRecording(recording, user.id);
           
+          // Build modes list for sync
+          const completedModes = ['voice_transcription'];
+          
           // Optional: send to cloud for deep psychological analysis
           if (analysisOptions.vocalPsychology || analysisOptions.contentIntelligence) {
             const { data, error } = await supabase.functions.invoke('analyze-voice-comprehensive', {
@@ -306,7 +348,16 @@ export function useVoiceBulkAnalysis(profileId?: string) {
               },
             });
             
-            if (error) console.warn('[VoiceBulkAnalysis] Cloud enhancement failed:', error);
+            if (error) {
+              console.warn('[VoiceBulkAnalysis] Cloud enhancement failed:', error);
+            } else {
+              // Add cloud analysis modes
+              if (analysisOptions.vocalPsychology) completedModes.push('voice_psychology');
+              if (analysisOptions.contentIntelligence) completedModes.push('voice_content_intelligence');
+            }
+            
+            // Sync all completed modes to media table
+            await syncMediaAnalysisStatus(recording, completedModes);
             
             setSession(prev => prev ? {
               ...prev,
@@ -339,6 +390,12 @@ export function useVoiceBulkAnalysis(profileId?: string) {
           });
 
           if (error) throw error;
+
+          // Sync to media table (edge function also syncs, but ensure client-side backup)
+          const cloudModes = ['voice_transcription'];
+          if (analysisOptions.vocalPsychology) cloudModes.push('voice_psychology');
+          if (analysisOptions.contentIntelligence) cloudModes.push('voice_content_intelligence');
+          await syncMediaAnalysisStatus(recording, cloudModes);
 
           setSession(prev => prev ? {
             ...prev,

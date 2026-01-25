@@ -193,6 +193,39 @@ serve(async (req) => {
       throw new Error(`Failed to save voice insight: ${insertError.message}`);
     }
 
+    // Step 4.5: Sync to media table if source is media (cross-system tracking)
+    if (sourceType === 'media' && sourceId) {
+      try {
+        const { data: existing } = await supabase
+          .from('media')
+          .select('completed_analysis_modes')
+          .eq('id', sourceId)
+          .single();
+
+        const existingModes = (existing?.completed_analysis_modes as string[]) || [];
+        const newModes = ['voice_transcription'];
+        if (options.vocalPsychology) newModes.push('voice_psychology');
+        if (options.contentIntelligence) newModes.push('voice_content_intelligence');
+        if (options.voiceBiometrics) newModes.push('voice_biometrics');
+        
+        const allModes = [...new Set([...existingModes, ...newModes])];
+
+        await supabase
+          .from('media')
+          .update({
+            completed_analysis_modes: allModes,
+            last_analysis_at: new Date().toISOString(),
+            ai_generation_status: 'completed',
+          })
+          .eq('id', sourceId);
+
+        console.log(`[VoiceComprehensive] Synced media ${sourceId} with modes: ${allModes.join(', ')}`);
+      } catch (syncError) {
+        console.warn('[VoiceComprehensive] Media sync failed:', syncError);
+        // Non-fatal - insight was already saved
+      }
+    }
+
     // Step 5: Create keyword detections
     if (analysis.detected_keywords && analysis.detected_keywords.length > 0) {
       const detections = analysis.detected_keywords.map((kw: any) => ({
