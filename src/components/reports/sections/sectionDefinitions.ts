@@ -91,6 +91,11 @@ export const DEFAULT_SECTIONS: DossierSection[] = [
   { id: 'patternOfLifeFusion', label: 'Pattern-of-Life Engine', icon: Workflow, enabled: true, category: 'analysis' },
   { id: 'entityResolution', label: 'Entity Resolution Engine', icon: Boxes, enabled: true, category: 'intelligence' },
   { id: 'sentimentCascade', label: 'Sentiment Cascade Predictor', icon: Waves, enabled: true, category: 'warfare' },
+  // New v5.0 Data Fusion Sections
+  { id: 'biometricFusion', label: 'Biometric-Behavioral Fusion', icon: Activity, enabled: true, category: 'analysis' },
+  { id: 'calendarIntelligence', label: 'Calendar Pattern Intelligence', icon: Calendar, enabled: true, category: 'intelligence' },
+  { id: 'geospatialCommunication', label: 'Geospatial-Communication Fusion', icon: MapPin, enabled: true, category: 'analysis' },
+  { id: 'financialDocumentSynthesis', label: 'Financial Document Synthesis', icon: FileText, enabled: true, category: 'intelligence' },
 ];
 
 export const TEMPLATE_SECTION_IDS: Record<DossierTemplate, string[]> = {
@@ -100,7 +105,7 @@ export const TEMPLATE_SECTION_IDS: Record<DossierTemplate, string[]> = {
   surveillance: ['overview', 'sourceDashboard', 'patternOfLife', 'mediaIntel', 'voiceIntel', 'timeline', 'network', 'threatActor', 'crossModal', 'deceptionAnalysis', 'patternOfLifeFusion', 'entityResolution'],
   warfare: ['executive', 'mice', 'cialdini', 'sacredValues', 'realityTesting', 'identityDestab', 'trauma', 'semanticWarfare', 'memeticPropagation', 'choiceArchitecture', 'influenceOps', 'betrayal', 'threatActor', 'hypnoticPatterns', 'elicitation', 'cognitiveLoad', 'cognitiveWarfare', 'deceptionOps', 'vulnerabilityWindows', 'activeDefense', 'trustTrajectory', 'mosaicFusion', 'darkTetrad', 'shadowNetwork', 'sentimentCascade', 'opsecAssessment', 'socialEngineering', 'crisisResponse', 'lawfareDefense', 'reputationDefense', 'familyProtection', 'economicWarfare', 'tscmSweep', 'digitalFootprint', 'behavioralBaseline'],
   psychological: ['executive', 'behavioralDna', 'psychological', 'quantumCognition', 'relationship', 'playbook', 'deceptionAnalysis', 'behavioralEconomics', 'trust', 'influenceResistance', 'futureModeling', 'precognitive', 'darkTetrad', 'digitalTwin', 'counterfactual'],
-  fusion: ['executive', 'temporalFusion', 'digitalTwin', 'graphRag', 'shadowNetwork', 'dempsterShafer', 'counterfactual', 'patternOfLifeFusion', 'entityResolution', 'sentimentCascade', 'mosaicFusion', 'quantumCognition', 'crossModal'],
+  fusion: ['executive', 'temporalFusion', 'digitalTwin', 'graphRag', 'shadowNetwork', 'dempsterShafer', 'counterfactual', 'patternOfLifeFusion', 'entityResolution', 'sentimentCascade', 'mosaicFusion', 'quantumCognition', 'crossModal', 'biometricFusion', 'calendarIntelligence', 'geospatialCommunication', 'financialDocumentSynthesis'],
 };
 
 export function applySectionTemplate(

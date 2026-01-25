@@ -373,6 +373,11 @@ export class FusionService {
       'pattern-of-life': 'pattern-of-life-engine',
       'entity-resolution': 'entity-resolution-engine',
       'sentiment-cascade': 'sentiment-cascade-predictor',
+      // New v5.0 fusion engines
+      'biometric-behavioral': 'biometric-behavioral-fusion',
+      'geospatial-communication': 'geospatial-communication-fusion',
+      'financial-document': 'financial-document-synthesis',
+      'calendar-pattern': 'calendar-pattern-analyzer',
     };
     return mapping[engineType];
   }

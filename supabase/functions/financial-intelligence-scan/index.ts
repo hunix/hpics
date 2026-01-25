@@ -142,7 +142,7 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Gather financial intelligence data
+    // Gather financial intelligence data + NEW: OCR document insights (v5.0)
     // NOTE: messages table has no profile_id or direction column - must join via conversations
     const [
       { data: profile },
@@ -151,7 +151,8 @@ serve(async (req) => {
       { data: observations },
       { data: mediaAnalyses },
       { data: brandIntel },
-      { data: meetings }
+      { data: meetings },
+      { data: documentInsights } // v5.0: OCR-extracted financial amounts
     ] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', profileId).single(),
       supabase.from('enrichment_results').select('*').eq('profile_id', profileId).single(),
@@ -159,8 +160,18 @@ serve(async (req) => {
       supabase.from('contact_observations').select('*').eq('profile_id', profileId).limit(50),
       supabase.from('media_analyses').select('*').eq('profile_id', profileId).limit(20),
       supabase.from('brand_intelligence').select('*').eq('profile_id', profileId).limit(10),
-      supabase.from('meeting_recordings').select('summary, ai_insights, transcription').eq('profile_id', profileId).limit(20)
+      supabase.from('meeting_recordings').select('summary, ai_insights, transcription').eq('profile_id', profileId).limit(20),
+      // v5.0: Fetch document insights for OCR-extracted financial data
+      supabase.from('document_insights').select('*').eq('profile_id', profileId).limit(50)
     ]);
+
+    // v5.0: Extract financial evidence from documents
+    const documentFinancialEvidence = (documentInsights || []).map((doc: any) => ({
+      documentType: doc.document_type,
+      amountsFound: doc.amounts_found || [],
+      financialData: doc.financial_data || {},
+      extractedAt: doc.created_at
+    })).filter((d: any) => d.amountsFound.length > 0 || Object.keys(d.financialData).length > 0);
 
     const contextData = {
       profile: {
@@ -184,7 +195,9 @@ serve(async (req) => {
       })),
       visualAnalyses: mediaAnalyses?.map(m => m.analysis_result),
       brandMentions: brandIntel,
-      meetingSummaries: meetings?.map(m => m.summary)
+      meetingSummaries: meetings?.map(m => m.summary),
+      // v5.0: Document-based financial evidence from OCR
+      documentBasedFinancialEvidence: documentFinancialEvidence
     };
 
     // Perform financial analysis
