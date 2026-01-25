@@ -1,8 +1,8 @@
 import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { localAudioAnalyzer, type BatchAnalysisProgress } from '@/lib/ml';
-import { type WhisperModel } from '@/lib/ml/localWhisperTranscriber';
+import { localAudioAnalyzer, type BatchAnalysisProgress, type LanguageDetectionResult } from '@/lib/ml';
+import { type WhisperModel, isLanguageSupported, getLanguageDisplay } from '@/lib/ml/localWhisperTranscriber';
 
 export interface VoiceRecording {
   id: string;
@@ -16,6 +16,11 @@ export interface VoiceRecording {
   created_at: string;
   hasVoiceInsights?: boolean;
   source: 'voice_recording_sessions' | 'media';
+  // Language detection fields
+  detectedLanguage?: string;
+  detectedLanguageName?: string;
+  languageFlag?: string;
+  languageSource?: 'detected' | 'manual' | 'stored';
 }
 
 export interface VoiceBulkAnalysisOptions {
@@ -35,13 +40,22 @@ export interface FailedRecording {
   canRetry: boolean;
 }
 
+export interface SkippedRecording {
+  recording: VoiceRecording;
+  reason: 'unsupported_language' | 'detection_failed';
+  detectedLanguage?: string;
+  detectedLanguageName?: string;
+  modelUsed: WhisperModel;
+}
+
 export interface VoiceBulkSession {
   id: string;
   status: 'idle' | 'running' | 'paused' | 'completed' | 'failed';
-  phase: 'initializing' | 'model_loading' | 'processing' | 'completed' | 'failed';
+  phase: 'initializing' | 'model_loading' | 'language_scanning' | 'processing' | 'completed' | 'failed';
   totalItems: number;
   processedItems: number;
   failedItems: number;
+  skippedItems: number;
   currentItemId: string | null;
   currentFileName?: string;
   startedAt: string | null;
@@ -52,6 +66,7 @@ export interface VoiceBulkSession {
   modelStatus?: 'loading' | 'ready';
   modelProgress?: number;
   failedRecordings?: FailedRecording[];
+  skippedRecordings?: SkippedRecording[];
 }
 
 // Error classification for better user feedback
@@ -132,7 +147,7 @@ export function useVoiceBulkAnalysis(profileId?: string) {
       // Source 2: Media table (imported audio files like WhatsApp voice notes)
       let mediaQuery = supabase
         .from('media')
-        .select('id, caption, file_url, file_size, mime_type, profile_id, created_at')
+        .select('id, caption, file_url, file_size, mime_type, profile_id, created_at, detected_language')
         .like('mime_type', 'audio/%')
         .order('created_at', { ascending: false });
       
@@ -163,19 +178,26 @@ export function useVoiceBulkAnalysis(profileId?: string) {
         source: 'voice_recording_sessions' as const,
       }));
       
-      // Normalize media audio files
-      const mediaRecordings: VoiceRecording[] = (mediaResult.data || []).map(r => ({
-        id: r.id,
-        title: r.caption || r.file_url?.split('/').pop() || 'Audio File',
-        audio_url: r.file_url || '',
-        duration_seconds: null,
-        recording_type: r.mime_type?.includes('opus') ? 'voice_note' : 'audio',
-        transcription_status: 'pending',
-        status: 'ready',
-        profile_id: r.profile_id,
-        created_at: r.created_at,
-        source: 'media' as const,
-      }));
+      // Normalize media audio files with language data
+      const mediaRecordings: VoiceRecording[] = (mediaResult.data || []).map(r => {
+        const langDisplay = r.detected_language ? getLanguageDisplay(r.detected_language) : null;
+        return {
+          id: r.id,
+          title: r.caption || r.file_url?.split('/').pop() || 'Audio File',
+          audio_url: r.file_url || '',
+          duration_seconds: null,
+          recording_type: r.mime_type?.includes('opus') ? 'voice_note' : 'audio',
+          transcription_status: 'pending',
+          status: 'ready',
+          profile_id: r.profile_id,
+          created_at: r.created_at,
+          source: 'media' as const,
+          detectedLanguage: r.detected_language || undefined,
+          detectedLanguageName: langDisplay?.name,
+          languageFlag: langDisplay?.flag,
+          languageSource: r.detected_language ? 'stored' as const : undefined,
+        };
+      });
       
       // Merge all recordings
       const allRecordings = [...sessionRecordings, ...mediaRecordings];
@@ -208,7 +230,8 @@ export function useVoiceBulkAnalysis(profileId?: string) {
   // Sync analysis status to media table for cross-system tracking
   const syncMediaAnalysisStatus = useCallback(async (
     recording: VoiceRecording,
-    analysisModes: string[]
+    analysisModes: string[],
+    detectedLanguage?: string
   ): Promise<void> => {
     // Only sync if source is 'media' table (not voice_recording_sessions)
     if (recording.source !== 'media') return;
@@ -224,17 +247,25 @@ export function useVoiceBulkAnalysis(profileId?: string) {
       const existingModes = (existing?.completed_analysis_modes as string[]) || [];
       const allModes = [...new Set([...existingModes, ...analysisModes])];
 
+      // Build update object
+      const updateData: Record<string, unknown> = {
+        completed_analysis_modes: allModes,
+        last_analysis_at: new Date().toISOString(),
+        ai_generation_status: 'completed',
+      };
+
+      // Add language if detected
+      if (detectedLanguage) {
+        updateData.detected_language = detectedLanguage;
+      }
+
       // Update media record
       await supabase
         .from('media')
-        .update({
-          completed_analysis_modes: allModes,
-          last_analysis_at: new Date().toISOString(),
-          ai_generation_status: 'completed',
-        })
+        .update(updateData)
         .eq('id', recording.id);
 
-      console.log(`[VoiceBulkAnalysis] Synced media ${recording.id} with modes: ${allModes.join(', ')}`);
+      console.log(`[VoiceBulkAnalysis] Synced media ${recording.id} with modes: ${allModes.join(', ')}${detectedLanguage ? `, lang: ${detectedLanguage}` : ''}`);
     } catch (error) {
       console.warn('[VoiceBulkAnalysis] Failed to sync media status:', error);
       // Non-fatal - continue processing
@@ -245,7 +276,7 @@ export function useVoiceBulkAnalysis(profileId?: string) {
   const processLocalRecording = useCallback(async (
     recording: VoiceRecording,
     userId: string
-  ): Promise<{ success: boolean; processingTimeMs: number }> => {
+  ): Promise<{ success: boolean; processingTimeMs: number; detectedLanguage?: string }> => {
     const result = await localAudioAnalyzer.analyzeAudioFile(recording.audio_url, {
       transcribe: true,
       analyzeSentiment: true
@@ -255,7 +286,9 @@ export function useVoiceBulkAnalysis(profileId?: string) {
       throw new Error('No transcription generated');
     }
 
-    // Store results in voice_insights
+    const detectedLang = result.detectedLanguage?.languageCode || result.transcription?.language || 'unknown';
+
+    // Store results in voice_insights with language
     const { error: insertError } = await supabase.from('voice_insights').upsert({
       source_type: 'voice_recording_session',
       source_id: recording.id,
@@ -267,6 +300,7 @@ export function useVoiceBulkAnalysis(profileId?: string) {
       confidence_score: result.sentiment?.confidence || 0.5,
       processing_method: 'local_whisper_turbo',
       processing_time_ms: result.totalProcessingMs,
+      language_detected: detectedLang,
       created_at: new Date().toISOString()
     }, {
       onConflict: 'source_id'
@@ -275,11 +309,11 @@ export function useVoiceBulkAnalysis(profileId?: string) {
     if (insertError) {
       console.error('[VoiceBulkAnalysis] Failed to save insights:', insertError);
     } else {
-      // Sync status to media table for cross-system tracking
-      await syncMediaAnalysisStatus(recording, ['voice_transcription']);
+      // Sync status to media table for cross-system tracking + language
+      await syncMediaAnalysisStatus(recording, ['voice_transcription'], detectedLang);
     }
 
-    return { success: true, processingTimeMs: result.totalProcessingMs };
+    return { success: true, processingTimeMs: result.totalProcessingMs, detectedLanguage: detectedLang };
   }, [syncMediaAnalysisStatus]);
 
   // Start bulk analysis with mode selection
@@ -303,6 +337,7 @@ export function useVoiceBulkAnalysis(profileId?: string) {
       totalItems: selectedRecordings.length,
       processedItems: 0,
       failedItems: 0,
+      skippedItems: 0,
       currentItemId: null,
       currentFileName: undefined,
       startedAt: new Date().toISOString(),
@@ -311,7 +346,8 @@ export function useVoiceBulkAnalysis(profileId?: string) {
       totalCostCents: 0,
       processingMode: mode,
       modelStatus: mode === 'local' || mode === 'hybrid' ? 'loading' : 'ready',
-      modelProgress: 0
+      modelProgress: 0,
+      skippedRecordings: []
     };
 
     setSession(newSession);
@@ -351,16 +387,91 @@ export function useVoiceBulkAnalysis(profileId?: string) {
     }
 
     const failedRecordingsTracker: FailedRecording[] = [];
+    const skippedRecordingsTracker: SkippedRecording[] = [];
 
-    // Main processing loop
-    for (let i = 0; i < selectedRecordings.length; i++) {
+    // Pre-scan for language compatibility if using english-only model
+    let recordingsToProcess = [...selectedRecordings];
+    if (whisperModel === 'tiny' && (mode === 'local' || mode === 'hybrid')) {
+      console.log('[VoiceBulkAnalysis] Pre-scanning for language compatibility (tiny model is English-only)...');
+      setSession(prev => prev ? { ...prev, phase: 'language_scanning', currentFileName: 'Detecting languages...' } : null);
+      
+      const compatibleRecordings: VoiceRecording[] = [];
+      
+      for (const recording of selectedRecordings) {
+        try {
+          // Use stored language if available, otherwise detect
+          let langCode = recording.detectedLanguage;
+          let langName = recording.detectedLanguageName;
+          
+          if (!langCode) {
+            const langResult = await localAudioAnalyzer.detectLanguage(recording.audio_url, whisperModel);
+            langCode = langResult.languageCode;
+            langName = langResult.languageName;
+          }
+          
+          if (langCode && langCode !== 'en' && langCode !== 'unknown') {
+            // Non-English file - skip it
+            skippedRecordingsTracker.push({
+              recording,
+              reason: 'unsupported_language',
+              detectedLanguage: langCode,
+              detectedLanguageName: langName || langCode,
+              modelUsed: whisperModel
+            });
+            console.log(`[VoiceBulkAnalysis] Skipping "${recording.title}" - detected as ${langName || langCode} (not supported by Tiny model)`);
+          } else {
+            compatibleRecordings.push(recording);
+          }
+        } catch (error) {
+          // Detection failed - still try to process
+          compatibleRecordings.push(recording);
+        }
+      }
+      
+      recordingsToProcess = compatibleRecordings;
+      
+      if (skippedRecordingsTracker.length > 0) {
+        const skippedLangs = new Set(skippedRecordingsTracker.map(s => s.detectedLanguageName || s.detectedLanguage));
+        toast.warning(
+          `${skippedRecordingsTracker.length} files skipped - ${Array.from(skippedLangs).join(', ')} not supported by Tiny model`,
+          { duration: 5000 }
+        );
+        
+        setSession(prev => prev ? {
+          ...prev,
+          skippedItems: skippedRecordingsTracker.length,
+          skippedRecordings: [...skippedRecordingsTracker],
+          totalItems: compatibleRecordings.length
+        } : null);
+      }
+      
+      if (recordingsToProcess.length === 0) {
+        setSession(prev => prev ? {
+          ...prev,
+          status: 'completed',
+          phase: 'completed',
+          completedAt: new Date().toISOString()
+        } : null);
+        toast.info('No compatible files to process. Try a multilingual model (Small, Distil, or Turbo).');
+        return;
+      }
+    }
+
+    setSession(prev => prev ? { ...prev, phase: 'processing' } : null);
+    // Main processing loop (using filtered recordingsToProcess)
+    for (let i = 0; i < recordingsToProcess.length; i++) {
       if (cancelRef.current) {
-        setSession(prev => prev ? { ...prev, status: 'paused', failedRecordings: failedRecordingsTracker } : null);
+        setSession(prev => prev ? { 
+          ...prev, 
+          status: 'paused', 
+          failedRecordings: failedRecordingsTracker,
+          skippedRecordings: skippedRecordingsTracker 
+        } : null);
         toast.info('Analysis paused');
         return;
       }
 
-      const recording = selectedRecordings[i];
+      const recording = recordingsToProcess[i];
       setSession(prev => prev ? { 
         ...prev, 
         currentItemId: recording.id,
@@ -369,7 +480,7 @@ export function useVoiceBulkAnalysis(profileId?: string) {
       } : null);
 
       try {
-        console.log(`[VoiceBulkAnalysis] Processing ${i + 1}/${selectedRecordings.length}: ${recording.title} (${mode})`);
+        console.log(`[VoiceBulkAnalysis] Processing ${i + 1}/${recordingsToProcess.length}: ${recording.title} (${mode})`);
 
         if (mode === 'local') {
           // Pure local processing with timeout
@@ -537,13 +648,18 @@ export function useVoiceBulkAnalysis(profileId?: string) {
       currentItemId: null,
       currentFileName: undefined,
       failedRecordings: failedRecordingsTracker,
+      skippedRecordings: skippedRecordingsTracker,
     } : null);
 
-    const successCount = selectedRecordings.length - failedRecordingsTracker.length;
-    if (failedRecordingsTracker.length === 0) {
+    const successCount = recordingsToProcess.length - failedRecordingsTracker.length;
+    const totalSkipped = skippedRecordingsTracker.length;
+    
+    if (failedRecordingsTracker.length === 0 && totalSkipped === 0) {
       toast.success(`Voice analysis complete! ${successCount} files processed.`);
+    } else if (totalSkipped > 0 && failedRecordingsTracker.length === 0) {
+      toast.success(`Analysis complete: ${successCount} processed, ${totalSkipped} skipped (incompatible language).`);
     } else {
-      toast.warning(`Analysis complete: ${successCount} succeeded, ${failedRecordingsTracker.length} failed.`);
+      toast.warning(`Analysis complete: ${successCount} succeeded, ${failedRecordingsTracker.length} failed, ${totalSkipped} skipped.`);
     }
 
     // Refresh recordings to update status

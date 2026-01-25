@@ -42,6 +42,11 @@ export {
   type TranscriptionChunk,
   type WhisperModelInfo,
   type ProgressCallback,
+  type WhisperModelConfig,
+  isLanguageSupported,
+  getModelConfig,
+  getLanguageDisplay,
+  LANGUAGE_DISPLAY_MAP,
 } from './localWhisperTranscriber';
 
 // Unified Local Audio Analysis (NEW - 2025)
@@ -52,4 +57,5 @@ export {
   type LocalAudioAnalysisOptions,
   type BatchAnalysisProgress,
   type BatchProgressCallback,
+  type LanguageDetectionResult,
 } from './localAudioAnalyzer';

@@ -10,7 +10,14 @@
  * - Local Speaker ID: Voice fingerprinting (when audio samples available)
  */
 
-import { localWhisperTranscriber, type TranscriptionResult, type WhisperModel, type ProgressCallback } from './localWhisperTranscriber';
+import { 
+  localWhisperTranscriber, 
+  type TranscriptionResult, 
+  type WhisperModel, 
+  type ProgressCallback,
+  isLanguageSupported,
+  getLanguageDisplay 
+} from './localWhisperTranscriber';
 import { localSentimentAnalyzer, type SentimentResult } from './localSentimentAnalyzer';
 import { localSpeakerIdentifier, type SpeakerSegment, type DiarizationResult } from './localSpeakerIdentifier';
 
@@ -23,10 +30,19 @@ export interface LocalAudioAnalysisOptions {
   onProgress?: ProgressCallback;
 }
 
+export interface LanguageDetectionResult {
+  languageCode: string;
+  languageName: string;
+  flag?: string;
+  confidence: number;
+  isSupported: boolean;
+}
+
 export interface LocalAudioAnalysis {
   transcription: TranscriptionResult | null;
   sentiment: SentimentResult | null;
   speakers: DiarizationResult | null;
+  detectedLanguage?: LanguageDetectionResult;
   totalProcessingMs: number;
   method: 'local';
   breakdown: {
@@ -55,6 +71,7 @@ export type BatchProgressCallback = (progress: BatchAnalysisProgress) => void;
 
 class LocalAudioAnalyzer {
   private isInitialized = false;
+  private currentModel: WhisperModel = 'small';
 
   /**
    * Initialize the analyzer with specified model
@@ -63,20 +80,81 @@ class LocalAudioAnalyzer {
     whisperModel?: WhisperModel;
     onProgress?: ProgressCallback;
   }): Promise<void> {
-    if (this.isInitialized && localWhisperTranscriber.isReady()) {
+    const targetModel = options?.whisperModel || 'small';
+    
+    // Re-initialize if model changed
+    if (this.isInitialized && localWhisperTranscriber.isReady() && this.currentModel === targetModel) {
       return;
     }
 
-    console.log('[LocalAudioAnalyzer] Initializing...');
+    console.log(`[LocalAudioAnalyzer] Initializing with model: ${targetModel}...`);
+    this.currentModel = targetModel;
     
     await localWhisperTranscriber.initialize({
-      model: options?.whisperModel || 'turbo',
+      model: targetModel,
       device: 'auto',
       onProgress: options?.onProgress
     });
 
     this.isInitialized = true;
     console.log('[LocalAudioAnalyzer] Ready');
+  }
+
+  /**
+   * Get the current model being used
+   */
+  getCurrentModel(): WhisperModel {
+    return this.currentModel;
+  }
+
+  /**
+   * Quick language detection by transcribing a short sample
+   * Uses the first ~15 seconds of audio for fast detection
+   */
+  async detectLanguage(
+    audioSource: string | Blob | ArrayBuffer,
+    model?: WhisperModel
+  ): Promise<LanguageDetectionResult> {
+    const targetModel = model || this.currentModel;
+    
+    // Initialize if needed
+    if (!localWhisperTranscriber.isReady()) {
+      await this.initialize({ whisperModel: targetModel });
+    }
+
+    try {
+      // Transcribe with short chunk for quick language detection
+      const result = await localWhisperTranscriber.transcribe(audioSource, {
+        chunkLengthS: 15, // Only first 15 seconds for speed
+        strideLengthS: 0
+      });
+
+      const langCode = result.language || 'unknown';
+      const langDisplay = getLanguageDisplay(langCode);
+      
+      return {
+        languageCode: langCode,
+        languageName: langDisplay.name,
+        flag: langDisplay.flag,
+        confidence: 0.9, // Whisper is generally reliable
+        isSupported: isLanguageSupported(targetModel, langCode)
+      };
+    } catch (error) {
+      console.error('[LocalAudioAnalyzer] Language detection failed:', error);
+      return {
+        languageCode: 'unknown',
+        languageName: 'Unknown',
+        confidence: 0,
+        isSupported: true // Default to true for unknown
+      };
+    }
+  }
+
+  /**
+   * Check if a language is supported by the current/specified model
+   */
+  isLanguageSupportedByModel(langCode: string, model?: WhisperModel): boolean {
+    return isLanguageSupported(model || this.currentModel, langCode);
   }
 
   /**
@@ -175,10 +253,24 @@ class LocalAudioAnalyzer {
     const totalProcessingMs = performance.now() - startTime;
     const modelInfo = localWhisperTranscriber.getModelInfo();
 
+    // Build language detection result from transcription
+    let detectedLanguage: LanguageDetectionResult | undefined;
+    if (transcription?.language) {
+      const langDisplay = getLanguageDisplay(transcription.language);
+      detectedLanguage = {
+        languageCode: transcription.language,
+        languageName: langDisplay.name,
+        flag: langDisplay.flag,
+        confidence: 0.9,
+        isSupported: isLanguageSupported(this.currentModel, transcription.language)
+      };
+    }
+
     return {
       transcription,
       sentiment,
       speakers,
+      detectedLanguage,
       totalProcessingMs,
       method: 'local',
       breakdown,

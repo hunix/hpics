@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { 
   Mic, 
@@ -28,12 +29,15 @@ import {
   AudioLines,
   AlertCircle,
   CheckCircle2,
-  HardDrive
+  HardDrive,
+  Globe,
+  Filter,
+  AlertTriangle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useVoiceBulkAnalysis, VoiceRecording, VoiceBulkAnalysisOptions, ProcessingMode } from '@/hooks/useVoiceBulkAnalysis';
 import { formatDistanceToNow } from 'date-fns';
-import { type WhisperModel } from '@/lib/ml/localWhisperTranscriber';
+import { type WhisperModel, LANGUAGE_DISPLAY_MAP } from '@/lib/ml/localWhisperTranscriber';
 
 // Model configuration for UI display
 const WHISPER_MODEL_OPTIONS: Array<{
@@ -49,6 +53,26 @@ const WHISPER_MODEL_OPTIONS: Array<{
   { key: 'distil', name: 'Distil-Whisper', size: '750MB', speed: '~6x faster', description: 'High quality, optimized' },
   { key: 'turbo', name: 'Whisper Turbo', size: '800MB', speed: '216x', description: 'Maximum quality' },
 ];
+
+// Language badge styling by language code
+const LANGUAGE_BADGE_STYLES: Record<string, string> = {
+  ar: 'bg-emerald-500/20 text-emerald-600 border-emerald-500/30',
+  en: 'bg-blue-500/20 text-blue-600 border-blue-500/30',
+  es: 'bg-orange-500/20 text-orange-600 border-orange-500/30',
+  fr: 'bg-indigo-500/20 text-indigo-600 border-indigo-500/30',
+  de: 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30',
+  zh: 'bg-red-500/20 text-red-600 border-red-500/30',
+  ja: 'bg-pink-500/20 text-pink-600 border-pink-500/30',
+  ko: 'bg-purple-500/20 text-purple-600 border-purple-500/30',
+  ru: 'bg-cyan-500/20 text-cyan-600 border-cyan-500/30',
+  hi: 'bg-amber-500/20 text-amber-600 border-amber-500/30',
+  unknown: 'bg-gray-500/20 text-gray-600 border-gray-500/30',
+};
+
+// Get language badge styling
+function getLanguageBadgeStyle(langCode: string): string {
+  return LANGUAGE_BADGE_STYLES[langCode] || LANGUAGE_BADGE_STYLES.unknown;
+}
 
 // Helper to get source badge info
 function getSourceBadge(recording: VoiceRecording): { label: string; icon: React.ReactNode; className: string } {
@@ -98,6 +122,7 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
   const [hideAnalyzed, setHideAnalyzed] = useState(false);
   const [webgpuAvailable, setWebgpuAvailable] = useState<boolean | null>(null);
   const [selectedWhisperModel, setSelectedWhisperModel] = useState<WhisperModel>('small');
+  const [languageFilter, setLanguageFilter] = useState<string>('all');
   
   // Virtual list container ref
   const parentRef = useRef<HTMLDivElement>(null);
@@ -119,11 +144,23 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
     checkWebGPU();
   }, []);
   
-  // Filter recordings based on hideAnalyzed toggle
-  const displayRecordings = useMemo(() => 
-    hideAnalyzed ? recordings.filter(r => !r.hasVoiceInsights) : recordings,
-    [recordings, hideAnalyzed]
-  );
+  // Get unique languages from recordings
+  const availableLanguages = useMemo(() => {
+    const langs = new Set(recordings.map(r => r.detectedLanguage).filter(Boolean));
+    return Array.from(langs) as string[];
+  }, [recordings]);
+
+  // Filter recordings based on hideAnalyzed toggle and language filter
+  const displayRecordings = useMemo(() => {
+    let filtered = recordings;
+    if (hideAnalyzed) {
+      filtered = filtered.filter(r => !r.hasVoiceInsights);
+    }
+    if (languageFilter !== 'all') {
+      filtered = filtered.filter(r => r.detectedLanguage === languageFilter);
+    }
+    return filtered;
+  }, [recordings, hideAnalyzed, languageFilter]);
   
   // Virtual list for performance with 800+ items
   const virtualizer = useVirtualizer({
@@ -250,6 +287,43 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
                 <p className="text-xs text-muted-foreground ml-6">
                   ✓ Analysis status synced to Media Hub
                 </p>
+                
+                {/* Skipped files report */}
+                {session.skippedItems > 0 && session.skippedRecordings && (
+                  <div className="mt-3 p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+                    <div className="flex items-center gap-2 text-yellow-700 dark:text-yellow-400 mb-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span className="font-medium">{session.skippedItems} files skipped - Language not supported</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      The Whisper Tiny model only supports English. These files were detected as non-English:
+                    </p>
+                    <div className="text-xs space-y-1 max-h-24 overflow-auto">
+                      {session.skippedRecordings.slice(0, 5).map(s => (
+                        <div key={s.recording.id} className="flex items-center gap-2">
+                          <span className="truncate max-w-[150px]">{s.recording.title}</span>
+                          <Badge variant="outline" className={cn("text-[10px]", getLanguageBadgeStyle(s.detectedLanguage || 'unknown'))}>
+                            {s.detectedLanguageName || s.detectedLanguage}
+                          </Badge>
+                        </div>
+                      ))}
+                      {session.skippedRecordings.length > 5 && (
+                        <div className="text-muted-foreground">
+                          +{session.skippedRecordings.length - 5} more...
+                        </div>
+                      )}
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => setSelectedWhisperModel('small')}
+                      className="mt-2 border-yellow-500/30"
+                    >
+                      <Globe className="h-3 w-3 mr-1" />
+                      Switch to Multilingual Model
+                    </Button>
+                  </div>
+                )}
                 
                 {/* Failed files with retry option */}
                 {session.failedItems > 0 && session.failedRecordings && (
@@ -487,9 +561,9 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
         {/* Recordings List */}
         <div className="space-y-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <Label className="text-sm font-medium">
-                Voice Recordings ({displayRecordings.length}{hideAnalyzed ? ` of ${recordings.length}` : ''})
+                Voice Recordings ({displayRecordings.length}{hideAnalyzed || languageFilter !== 'all' ? ` of ${recordings.length}` : ''})
               </Label>
               <div className="flex items-center gap-2">
                 <Switch 
@@ -502,6 +576,29 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
                   Hide analyzed
                 </Label>
               </div>
+              {/* Language filter */}
+              {availableLanguages.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Select value={languageFilter} onValueChange={setLanguageFilter} disabled={isRunning}>
+                    <SelectTrigger className="h-7 w-[130px] text-xs">
+                      <SelectValue placeholder="All Languages" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Languages</SelectItem>
+                      {availableLanguages.map(lang => {
+                        const display = LANGUAGE_DISPLAY_MAP[lang] || { name: lang };
+                        const count = recordings.filter(r => r.detectedLanguage === lang).length;
+                        return (
+                          <SelectItem key={lang} value={lang}>
+                            {display.flag} {display.name} ({count})
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
             <div className="flex gap-2">
               <Button 
@@ -590,6 +687,14 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
                               {sourceBadge.icon}
                               {sourceBadge.label}
                             </Badge>
+                            
+                            {/* Language badge */}
+                            {recording.detectedLanguage && (
+                              <Badge variant="outline" className={cn("shrink-0 text-[10px] gap-1", getLanguageBadgeStyle(recording.detectedLanguage))}>
+                                <Globe className="h-2.5 w-2.5" />
+                                {recording.languageFlag} {recording.detectedLanguageName || recording.detectedLanguage}
+                              </Badge>
+                            )}
                             
                             {recording.hasVoiceInsights && (
                               <Badge variant="secondary" className="shrink-0">

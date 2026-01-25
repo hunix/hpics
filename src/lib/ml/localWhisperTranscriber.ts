@@ -48,32 +48,99 @@ export type ProgressCallback = (progress: {
   total?: number;
 }) => void;
 
-const MODEL_MAP: Record<WhisperModel, { id: string; name: string; size: string; speed: string }> = {
+export interface WhisperModelConfig {
+  id: string;
+  name: string;
+  size: string;
+  speed: string;
+  supportedLanguages: 'english-only' | 'multilingual';
+  languageCodes?: string[]; // Explicit codes for english-only models
+}
+
+const MODEL_MAP: Record<WhisperModel, WhisperModelConfig> = {
   turbo: {
     id: "onnx-community/whisper-large-v3-turbo",
     name: "Whisper Large V3 Turbo",
     size: "~800MB",
-    speed: "216x real-time"
+    speed: "216x real-time",
+    supportedLanguages: 'multilingual'
   },
   distil: {
     id: "distil-whisper/distil-large-v3",
     name: "Distil-Whisper Large V3",
     size: "~750MB", 
-    speed: "~6x faster than base"
+    speed: "~6x faster than base",
+    supportedLanguages: 'multilingual'
   },
   small: {
     id: "onnx-community/whisper-small",
     name: "Whisper Small",
     size: "~250MB",
-    speed: "~50x real-time"
+    speed: "~50x real-time",
+    supportedLanguages: 'multilingual'
   },
   tiny: {
     id: "onnx-community/whisper-tiny.en",
     name: "Whisper Tiny (English)",
     size: "~75MB",
-    speed: "~100x real-time"
+    speed: "~100x real-time",
+    supportedLanguages: 'english-only',
+    languageCodes: ['en']
   }
 };
+
+// Language display names mapping (ISO 639-1 codes)
+export const LANGUAGE_DISPLAY_MAP: Record<string, { name: string; flag?: string }> = {
+  ar: { name: 'Arabic', flag: '🇸🇦' },
+  en: { name: 'English', flag: '🇺🇸' },
+  es: { name: 'Spanish', flag: '🇪🇸' },
+  fr: { name: 'French', flag: '🇫🇷' },
+  de: { name: 'German', flag: '🇩🇪' },
+  it: { name: 'Italian', flag: '🇮🇹' },
+  pt: { name: 'Portuguese', flag: '🇧🇷' },
+  ru: { name: 'Russian', flag: '🇷🇺' },
+  zh: { name: 'Chinese', flag: '🇨🇳' },
+  ja: { name: 'Japanese', flag: '🇯🇵' },
+  ko: { name: 'Korean', flag: '🇰🇷' },
+  hi: { name: 'Hindi', flag: '🇮🇳' },
+  tr: { name: 'Turkish', flag: '🇹🇷' },
+  nl: { name: 'Dutch', flag: '🇳🇱' },
+  pl: { name: 'Polish', flag: '🇵🇱' },
+  uk: { name: 'Ukrainian', flag: '🇺🇦' },
+  he: { name: 'Hebrew', flag: '🇮🇱' },
+  fa: { name: 'Persian', flag: '🇮🇷' },
+  ur: { name: 'Urdu', flag: '🇵🇰' },
+  id: { name: 'Indonesian', flag: '🇮🇩' },
+  th: { name: 'Thai', flag: '🇹🇭' },
+  vi: { name: 'Vietnamese', flag: '🇻🇳' },
+  unknown: { name: 'Unknown' }
+};
+
+/**
+ * Check if a language is supported by a given model
+ */
+export function isLanguageSupported(model: WhisperModel, langCode: string): boolean {
+  const config = MODEL_MAP[model];
+  if (config.supportedLanguages === 'multilingual') {
+    return true;
+  }
+  // English-only model
+  return config.languageCodes?.includes(langCode) ?? false;
+}
+
+/**
+ * Get model configuration
+ */
+export function getModelConfig(model: WhisperModel): WhisperModelConfig {
+  return MODEL_MAP[model];
+}
+
+/**
+ * Get language display info
+ */
+export function getLanguageDisplay(langCode: string): { name: string; flag?: string } {
+  return LANGUAGE_DISPLAY_MAP[langCode] || LANGUAGE_DISPLAY_MAP.unknown;
+}
 
 class LocalWhisperTranscriber {
   private transcriber: any = null;
