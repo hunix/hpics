@@ -1,19 +1,20 @@
 /**
- * Analysis Section Renderers (v3.9.33)
+ * Analysis Section Renderers (v4.0)
  * Renders: Behavioral Analysis, Influence Resistance, Behavioral Economics,
  *          Network Position, Prediction Accuracy, Counter-Intel, Proportional Response
- * v3.9.33: PRIORITIZE getAnalysisForSection() fallback (allAnalyses always populated)
+ * v4.0: Unified design system with category colors
  */
 
 import type { SectionRenderer } from './types';
 import { PDF_DESIGN } from '../../hooks/usePDFGeneration';
 import { getAnalysisForSection, extractResult } from '../../utils/sectionDataCheck';
+import { getSectionColor, getCategoryBackgroundColor, extractResultSafe, hasRenderableContent } from '../../utils/pdfDesignSystem';
 
 export const renderBehavioralAnalysis: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
   if (!data.allAnalyses?.length) return;
   
-  ctx.renderSectionHeader('Behavioral Analysis Summary', [50, 100, 100]);
+  ctx.renderSectionHeader('Behavioral Analysis Summary', getSectionColor('analysis'));
   
   const analyses = (data.allAnalyses as Array<Record<string, unknown>>).filter(
     a => a.analysis_type !== 'behavioral_dna' && a.analysis_type !== 'relationship_dynamics'
@@ -55,7 +56,7 @@ export const renderInfluenceResistance: SectionRenderer = (ctx, data) => {
   doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 40, 3, 3, 'F');
   
   if (resistance.overall_resistance !== undefined) {
-    ctx.renderScoreBar('Overall Resistance', (resistance.overall_resistance as number) * 100, 100, [0, 100, 180]);
+    ctx.renderScoreBar('Overall Resistance', (resistance.overall_resistance as number) * 100, 100, getSectionColor('influenceResistance'));
   }
   
   if (resistance.cognitive_barriers) {
@@ -110,7 +111,7 @@ export const renderNetworkPosition: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Network Position Analysis', [100, 50, 150]);
+  ctx.renderSectionHeader('Network Position Analysis', getSectionColor('networkPosition'));
   const position = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(40);
@@ -185,15 +186,15 @@ export const renderCounterIntel: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Counter-Intelligence Assessment', [128, 0, 64]);
+  ctx.renderSectionHeader('Counter-Intelligence Assessment', getSectionColor('counterIntel'));
   const counterIntel = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(40);
-  doc.setFillColor(255, 245, 250);
+  doc.setFillColor(...getCategoryBackgroundColor('analysis'));
   doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 35, 3, 3, 'F');
   
   if (counterIntel.detection_risk !== undefined) {
-    ctx.renderScoreBar('Detection Risk', (counterIntel.detection_risk as number) * 100, 100, [180, 0, 80]);
+    ctx.renderScoreBar('Detection Risk', (counterIntel.detection_risk as number) * 100, 100, getSectionColor('counterIntel'));
   }
   
   if (counterIntel.operational_security_score !== undefined) {
@@ -213,7 +214,7 @@ export const renderProportionalResponse: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
   if (!Array.isArray(data.proportionalResponseData) || !data.proportionalResponseData.length) return;
   
-  ctx.renderSectionHeader('Proportional Response Log', [150, 75, 0]);
+  ctx.renderSectionHeader('Proportional Response Log', getSectionColor('proportionalResponse'));
   const responses = data.proportionalResponseData as Array<Record<string, unknown>>;
   
   responses.slice(0, 5).forEach((response) => {
@@ -272,7 +273,7 @@ export const renderActionPlans: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
   if (!Array.isArray(data.actionPlansData) || !data.actionPlansData.length) return;
   
-  ctx.renderSectionHeader('Strategic Action Plans', [0, 80, 160]);
+  ctx.renderSectionHeader('Strategic Action Plans', getSectionColor('actionPlans'));
   const plans = data.actionPlansData as Array<Record<string, unknown>>;
   
   plans.slice(0, 5).forEach((plan) => {

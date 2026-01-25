@@ -1,11 +1,12 @@
 /**
- * Warfare Section Renderers (v3.9.33)
- * v3.9.33: PRIORITIZE getAnalysisForSection() fallback (allAnalyses always populated)
+ * Warfare Section Renderers (v4.0)
+ * v4.0: Unified design system with category colors
  */
 
 import type { SectionRenderer } from './types';
 import { PDF_DESIGN } from '../../hooks/usePDFGeneration';
 import { getAnalysisForSection, extractResult } from '../../utils/sectionDataCheck';
+import { getSectionColor, getCategoryBackgroundColor, extractResultSafe, hasRenderableContent } from '../../utils/pdfDesignSystem';
 
 export const renderCognitiveWarfare: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
@@ -42,7 +43,7 @@ export const renderDeceptionOps: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Deception Operations', [139, 69, 19]);
+  ctx.renderSectionHeader('Deception Operations', getSectionColor('deceptionOps'));
   
   const operations = Array.isArray(rawData) ? rawData : [rawData];
   
@@ -115,7 +116,7 @@ export const renderVulnerabilityWindows: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Vulnerability Windows', [220, 20, 60]);
+  ctx.renderSectionHeader('Vulnerability Windows', getSectionColor('vulnerabilityWindows'));
   
   const windows = Array.isArray(rawData) ? rawData : [rawData];
   const activeWindows = (windows as Array<Record<string, unknown>>).filter(w => 
@@ -191,7 +192,7 @@ export const renderIdentityDestab: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Identity Destabilization Profile', [100, 0, 80]);
+  ctx.renderSectionHeader('Identity Destabilization Profile', getSectionColor('identityDestab'));
   const identity = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(45);
@@ -255,15 +256,15 @@ export const renderMemeticPropagation: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Memetic Propagation Analysis', [150, 50, 100]);
+  ctx.renderSectionHeader('Memetic Propagation Analysis', getSectionColor('memeticPropagation'));
   const memetic = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(45);
-  doc.setFillColor(255, 245, 250);
+  doc.setFillColor(...getCategoryBackgroundColor('warfare'));
   doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 40, 3, 3, 'F');
   
   if (memetic.virality_score !== undefined) {
-    ctx.renderScoreBar('Virality Potential', (memetic.virality_score as number) * 100, 100, [150, 50, 100]);
+    ctx.renderScoreBar('Virality Potential', (memetic.virality_score as number) * 100, 100, getSectionColor('memeticPropagation'));
   }
   
   if (memetic.resonant_memes) {
@@ -286,7 +287,7 @@ export const renderFutureModeling: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Behavioral Future Modeling', [50, 80, 150]);
+  ctx.renderSectionHeader('Behavioral Future Modeling', getSectionColor('futureModeling'));
   const future = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(50);
@@ -316,7 +317,7 @@ export const renderPrecognitive: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Precognitive Pattern Analysis', [100, 50, 150]);
+  ctx.renderSectionHeader('Precognitive Pattern Analysis', getSectionColor('precognitive'));
   const precog = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(40);
@@ -344,7 +345,7 @@ export const renderChoiceArchitecture: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Choice Architecture Exploitation', [0, 128, 100]);
+  ctx.renderSectionHeader('Choice Architecture Exploitation', getSectionColor('choiceArchitecture'));
   const choice = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(50);
@@ -377,7 +378,7 @@ export const renderInfluenceOps: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Influence Operation Planning', [64, 0, 128]);
+  ctx.renderSectionHeader('Influence Operation Planning', getSectionColor('influenceOps'));
   
   const ops = Array.isArray(rawData) ? rawData : [rawData];
   
@@ -439,7 +440,7 @@ export const renderTrustTrajectory: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
   if (!data.trustData?.length) return;
   
-  ctx.renderSectionHeader('180-Day Trust Trajectory', [0, 128, 128]);
+  ctx.renderSectionHeader('180-Day Trust Trajectory', getSectionColor('trustTrajectory'));
   const trust = extractResult((data.trustData as Array<Record<string, unknown>>)[0]);
   
   ctx.checkPageBreak(50);
@@ -481,15 +482,15 @@ export const renderCoerciveControl: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Coercive Control Assessment', [180, 0, 60]);
+  ctx.renderSectionHeader('Coercive Control Assessment', getSectionColor('coerciveControl'));
   const coercive = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(45);
-  doc.setFillColor(255, 245, 250);
+  doc.setFillColor(...getCategoryBackgroundColor('warfare'));
   doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 40, 3, 3, 'F');
   
   if (coercive.control_score !== undefined) {
-    ctx.renderScoreBar('Control Susceptibility', (coercive.control_score as number) * 100, 100, [180, 0, 60]);
+    ctx.renderScoreBar('Control Susceptibility', (coercive.control_score as number) * 100, 100, getSectionColor('coerciveControl'));
   }
   
   if (coercive.control_vectors) {
@@ -551,7 +552,7 @@ export const renderOpsecAssessment: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('OPSEC Vulnerability Assessment', [220, 20, 60]);
+  ctx.renderSectionHeader('OPSEC Vulnerability Assessment', getSectionColor('opsecAssessment'));
   const assessment = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(60);
@@ -673,7 +674,7 @@ export const renderLawfareDefense: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Lawfare Defense Analysis', [100, 50, 150]);
+  ctx.renderSectionHeader('Lawfare Defense Analysis', getSectionColor('lawfareDefense'));
   
   const threats = Array.isArray(rawData) ? rawData : [rawData];
   
@@ -710,7 +711,7 @@ export const renderReputationDefense: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Reputation Defense Status', [150, 100, 0]);
+  ctx.renderSectionHeader('Reputation Defense Status', getSectionColor('reputationDefense'));
   
   const incidents = Array.isArray(rawData) ? rawData : [rawData];
   
@@ -783,7 +784,7 @@ export const renderEconomicWarfare: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Economic Warfare Assessment', [150, 50, 50]);
+  ctx.renderSectionHeader('Economic Warfare Assessment', getSectionColor('economicWarfare'));
   
   const threats = Array.isArray(rawData) ? rawData : [rawData];
   
@@ -819,7 +820,7 @@ export const renderTscmSweep: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('TSCM Sweep Results', [50, 100, 150]);
+  ctx.renderSectionHeader('TSCM Sweep Results', getSectionColor('tscmSweep'));
   
   const sweeps = Array.isArray(rawData) ? rawData : [rawData];
   
@@ -862,7 +863,7 @@ export const renderDigitalFootprint: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Digital Footprint Analysis', [100, 0, 150]);
+  ctx.renderSectionHeader('Digital Footprint Analysis', getSectionColor('digitalFootprint'));
   
   const items = Array.isArray(rawData) ? rawData : [rawData];
   
@@ -900,7 +901,7 @@ export const renderBehavioralBaseline: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Behavioral Baseline', [0, 128, 100]);
+  ctx.renderSectionHeader('Behavioral Baseline', getSectionColor('behavioralBaseline'));
   const baseline = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(50);

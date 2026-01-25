@@ -270,13 +270,13 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       for (const section of enabledSections) {
         const renderer = allSectionRenderers[section.id];
         if (renderer) {
-          // v3.9.24: Check if section has data BEFORE adding a page
+          // v4.0: Enhanced data validation to prevent blank pages
           const hasData = checkSectionHasData(section.id, allData);
           
-           if (!hasData) {
-            console.log(`[PDF] Skipping section ${section.id}: No data available`);
+          if (!hasData) {
+            console.log(`[PDF v4.0] Skipping section ${section.id}: No renderable data`);
             skippedSections++;
-             renderAudit.push({ sectionId: section.id, label: section.label, status: 'skipped_no_data' });
+            renderAudit.push({ sectionId: section.id, label: section.label, status: 'skipped_no_data' });
             continue;
           }
           
