@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { localAudioAnalyzer, type BatchAnalysisProgress } from '@/lib/ml';
+import { type WhisperModel } from '@/lib/ml/localWhisperTranscriber';
 
 export interface VoiceRecording {
   id: string;
@@ -285,7 +286,8 @@ export function useVoiceBulkAnalysis(profileId?: string) {
   const startBulkAnalysis = useCallback(async (
     selectedRecordings: VoiceRecording[],
     analysisOptions: VoiceBulkAnalysisOptions = options,
-    mode: ProcessingMode = processingMode
+    mode: ProcessingMode = processingMode,
+    whisperModel: WhisperModel = 'small'
   ) => {
     if (selectedRecordings.length === 0) {
       toast.error('No recordings selected');
@@ -327,8 +329,9 @@ export function useVoiceBulkAnalysis(profileId?: string) {
     // Initialize local model if needed
     if (mode === 'local' || mode === 'hybrid') {
       try {
+        console.log(`[VoiceBulkAnalysis] Loading Whisper model: ${whisperModel}`);
         await localAudioAnalyzer.initialize({
-          whisperModel: 'turbo',
+          whisperModel: whisperModel,
           onProgress: (progress) => {
             if (progress.status === 'progress') {
               setSession(prev => prev ? {

@@ -27,11 +27,28 @@ import {
   Smartphone,
   AudioLines,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  HardDrive
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useVoiceBulkAnalysis, VoiceRecording, VoiceBulkAnalysisOptions, ProcessingMode } from '@/hooks/useVoiceBulkAnalysis';
 import { formatDistanceToNow } from 'date-fns';
+import { type WhisperModel } from '@/lib/ml/localWhisperTranscriber';
+
+// Model configuration for UI display
+const WHISPER_MODEL_OPTIONS: Array<{
+  key: WhisperModel;
+  name: string;
+  size: string;
+  speed: string;
+  description: string;
+  englishOnly?: boolean;
+}> = [
+  { key: 'tiny', name: 'Whisper Tiny', size: '75MB', speed: '~100x', description: 'Fastest download', englishOnly: true },
+  { key: 'small', name: 'Whisper Small', size: '250MB', speed: '~50x', description: 'Balanced (recommended)' },
+  { key: 'distil', name: 'Distil-Whisper', size: '750MB', speed: '~6x faster', description: 'High quality, optimized' },
+  { key: 'turbo', name: 'Whisper Turbo', size: '800MB', speed: '216x', description: 'Maximum quality' },
+];
 
 // Helper to get source badge info
 function getSourceBadge(recording: VoiceRecording): { label: string; icon: React.ReactNode; className: string } {
@@ -80,6 +97,7 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
   const [selectedRecordings, setSelectedRecordings] = useState<Set<string>>(new Set());
   const [hideAnalyzed, setHideAnalyzed] = useState(false);
   const [webgpuAvailable, setWebgpuAvailable] = useState<boolean | null>(null);
+  const [selectedWhisperModel, setSelectedWhisperModel] = useState<WhisperModel>('small');
   
   // Virtual list container ref
   const parentRef = useRef<HTMLDivElement>(null);
@@ -152,7 +170,7 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
 
   const handleStart = () => {
     const selected = recordings.filter(r => selectedRecordings.has(r.id));
-    startBulkAnalysis(selected, options);
+    startBulkAnalysis(selected, options, processingMode, selectedWhisperModel);
   };
 
   const progress = session ? (session.processedItems / session.totalItems) * 100 : 0;
@@ -197,7 +215,7 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
                 </div>
                 <Progress value={session.modelProgress || 0} className="h-1.5" />
                 <p className="text-xs text-muted-foreground">
-                  First run downloads ~800MB model (cached after)
+                  First run downloads ~{WHISPER_MODEL_OPTIONS.find(m => m.key === selectedWhisperModel)?.size || '250MB'} model (cached after)
                 </p>
               </div>
             )}
@@ -363,8 +381,51 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
               </div>
             </RadioGroup>
             
+            {/* Local Model Size Selector */}
+            {(processingMode === 'local' || processingMode === 'hybrid') && (
+              <div className="space-y-2 mt-3 p-3 rounded-lg bg-muted/30 border">
+                <div className="flex items-center gap-2 mb-2">
+                  <HardDrive className="h-4 w-4 text-muted-foreground" />
+                  <Label className="text-sm font-medium">Local Model Size</Label>
+                </div>
+                <RadioGroup 
+                  value={selectedWhisperModel} 
+                  onValueChange={(v) => setSelectedWhisperModel(v as WhisperModel)}
+                  className="grid grid-cols-2 gap-2"
+                >
+                  {WHISPER_MODEL_OPTIONS.map((model) => (
+                    <div 
+                      key={model.key}
+                      className={cn(
+                        "flex items-center space-x-2 p-2 border rounded-md cursor-pointer transition-colors",
+                        selectedWhisperModel === model.key 
+                          ? "bg-primary/10 border-primary" 
+                          : "hover:bg-muted/50"
+                      )}
+                    >
+                      <RadioGroupItem value={model.key} id={`model-${model.key}`} />
+                      <Label htmlFor={`model-${model.key}`} className="cursor-pointer flex-1 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{model.name}</span>
+                          <span className="text-muted-foreground">{model.size}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-muted-foreground">{model.description}</span>
+                          {model.englishOnly && (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 bg-yellow-500/10 text-yellow-600 border-yellow-500/30">
+                              EN only
+                            </Badge>
+                          )}
+                        </div>
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </div>
+            )}
+            
             {/* WebGPU Status Indicator */}
-            {processingMode === 'local' && webgpuAvailable === true && (
+            {(processingMode === 'local' || processingMode === 'hybrid') && webgpuAvailable === true && (
               <div className="text-xs bg-green-500/10 p-2 rounded border border-green-500/20 flex items-center gap-2">
                 <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
                 <span className="text-green-700 dark:text-green-400">
@@ -373,7 +434,7 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
                 </span>
               </div>
             )}
-            {processingMode === 'local' && webgpuAvailable === false && (
+            {(processingMode === 'local' || processingMode === 'hybrid') && webgpuAvailable === false && (
               <div className="text-xs bg-yellow-500/10 p-2 rounded border border-yellow-500/20 flex items-center gap-2">
                 <AlertCircle className="h-3.5 w-3.5 text-yellow-600" />
                 <span className="text-yellow-700 dark:text-yellow-400">
@@ -381,15 +442,15 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
                 </span>
               </div>
             )}
-            {processingMode === 'local' && webgpuAvailable === null && (
+            {(processingMode === 'local' || processingMode === 'hybrid') && webgpuAvailable === null && (
               <div className="text-xs bg-muted p-2 rounded border flex items-center gap-2">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 <span>Checking WebGPU availability...</span>
               </div>
             )}
-            {processingMode === 'local' && !localModelStatus?.isReady && webgpuAvailable !== null && (
+            {(processingMode === 'local' || processingMode === 'hybrid') && !localModelStatus?.isReady && webgpuAvailable !== null && (
               <div className="text-xs text-muted-foreground mt-1">
-                <strong>First run:</strong> Downloads ~800MB Whisper model (cached after)
+                <strong>First run:</strong> Downloads ~{WHISPER_MODEL_OPTIONS.find(m => m.key === selectedWhisperModel)?.size || '250MB'} model (cached after)
               </div>
             )}
           </div>
