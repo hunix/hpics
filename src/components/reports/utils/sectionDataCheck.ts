@@ -1,7 +1,7 @@
 /**
- * Section Data Check Utility (v3.9.33)
+ * Section Data Check Utility (v4.0)
  * Pre-render check to determine if a section has data worth rendering
- * v3.9.33: Fixed ANALYSIS_TYPE_ALIASES to match ACTUAL database values
+ * v4.0: Enhanced extractResult with better nested data handling
  */
 
 import type { ExtendedDossierData } from '../sections/renderers/types';
@@ -250,18 +250,24 @@ export function getAnalysisForSection(
 }
 
 /**
- * Extract result from an analysis record (v3.9.35)
+ * Extract result from an analysis record (v4.0)
  * Handles nested .result JSONB field from ai_analyses table
+ * Enhanced with .data fallback and flat structure support
  */
 export function extractResult(analysisRecord: Record<string, unknown> | null): Record<string, unknown> {
   if (!analysisRecord) return {};
   
-  // If the record has a 'result' field, use it
-  if (analysisRecord.result && typeof analysisRecord.result === 'object') {
+  // Priority 1: If the record has a 'result' field, use it
+  if (analysisRecord.result && typeof analysisRecord.result === 'object' && !Array.isArray(analysisRecord.result)) {
     return analysisRecord.result as Record<string, unknown>;
   }
   
-  // Otherwise return the record itself (for table-based data)
+  // Priority 2: If the record has a 'data' field, use it
+  if (analysisRecord.data && typeof analysisRecord.data === 'object' && !Array.isArray(analysisRecord.data)) {
+    return analysisRecord.data as Record<string, unknown>;
+  }
+  
+  // Priority 3: Otherwise return the record itself (for table-based data)
   return analysisRecord;
 }
 

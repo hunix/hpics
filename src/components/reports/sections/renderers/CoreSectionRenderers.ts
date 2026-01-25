@@ -1,13 +1,14 @@
 /**
- * Core Section Renderers (v3.9.33)
+ * Core Section Renderers (v4.0)
  * Renders: Executive Brief, Source Dashboard, Contact Overview, Timeline
- * v3.9.33: PRIORITIZE getAnalysisForSection() fallback (allAnalyses always populated)
+ * v4.0: Unified design system with category colors
  */
 
 import type { SectionRenderer } from './types';
 import { CIALDINI_PRINCIPLES } from '../types';
 import { safeFormatDate, PDF_DESIGN } from '../../hooks/usePDFGeneration';
 import { getAnalysisForSection, extractResult } from '../../utils/sectionDataCheck';
+import { getSectionColor, getCategoryBackgroundColor, extractResultSafe, hasRenderableContent } from '../../utils/pdfDesignSystem';
 
 export const renderExecutiveBrief: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
@@ -268,7 +269,7 @@ export const renderRelationshipEcosystem: SectionRenderer = (ctx, data) => {
   
   if (!hasRelData) return;
   
-  ctx.renderSectionHeader('Relationship Ecosystem', [150, 100, 50]);
+  ctx.renderSectionHeader('Relationship Ecosystem', getSectionColor('relationshipEcosystem'));
   
   // Relationship analysis from AI
   if (relAnalysis) {
@@ -278,7 +279,7 @@ export const renderRelationshipEcosystem: SectionRenderer = (ctx, data) => {
     doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 35, 3, 3, 'F');
     
     if (rel.score !== undefined) {
-      ctx.renderScoreBar('Relationship Health', rel.score as number, 100, [150, 100, 50]);
+      ctx.renderScoreBar('Relationship Health', rel.score as number, 100, getSectionColor('relationshipEcosystem'));
     }
     if (rel.grade) {
       doc.setFontSize(PDF_DESIGN.fonts.subheader);
@@ -355,7 +356,7 @@ export const renderVoiceIntel: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
   if (!data.voiceData?.length) return;
   
-  ctx.renderSectionHeader('Voice Pattern Intelligence', [100, 50, 100]);
+  ctx.renderSectionHeader('Voice Pattern Intelligence', getSectionColor('voiceIntel'));
   const voice = data.voiceData as Array<Record<string, unknown>>;
   
   ctx.checkPageBreak(50);

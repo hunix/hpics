@@ -1,13 +1,14 @@
 /**
- * Intelligence Section Renderers (v3.9.33)
+ * Intelligence Section Renderers (v4.0)
  * Renders: MICE, Cialdini, Psychological Profile, Trust, Behavioral DNA
- * v3.9.33: PRIORITIZE getAnalysisForSection() fallback (allAnalyses always populated)
+ * v4.0: Unified design system with category colors
  */
 
 import type { SectionRenderer } from './types';
 import { CIALDINI_PRINCIPLES } from '../types';
 import { PDF_DESIGN } from '../../hooks/usePDFGeneration';
 import { getAnalysisForSection, extractResult } from '../../utils/sectionDataCheck';
+import { getSectionColor, getCategoryBackgroundColor, extractResultSafe, hasRenderableContent } from '../../utils/pdfDesignSystem';
 
 export const renderMICE: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
@@ -110,7 +111,7 @@ export const renderPsychologicalProfile: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Psychological Profile', [102, 51, 102]);
+  ctx.renderSectionHeader('Psychological Profile', getSectionColor('psychological'));
   const psych = extractResult(rawData as Record<string, unknown>);
   const style = psych.attachment_style as Record<string, unknown> | undefined;
   
@@ -142,7 +143,7 @@ export const renderTrust: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
   if (!data.trustData?.length) return;
   
-  ctx.renderSectionHeader('Trust Assessment', [0, 100, 100]);
+  ctx.renderSectionHeader('Trust Assessment', getSectionColor('trust'));
   const trust = data.trustData[0] as Record<string, unknown>;
   
   if (trust.overall_trust_score !== undefined) {
@@ -166,7 +167,7 @@ export const renderBehavioralDNA: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Contact DNA Fingerprint', [102, 0, 102]);
+  ctx.renderSectionHeader('Contact DNA Fingerprint', getSectionColor('behavioralDna'));
   const dna = extractResult(rawData as Record<string, unknown>);
   
   if (dna.decision_architecture) {
@@ -222,7 +223,7 @@ export const renderRelationship: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Relationship Dynamics', [150, 80, 50]);
+  ctx.renderSectionHeader('Relationship Dynamics', getSectionColor('relationship'));
   const rel = extractResult(rawData as Record<string, unknown>);
   
   if (rel.dynamics) {
@@ -250,7 +251,7 @@ export const renderPlaybook: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Engagement Playbook', [0, 100, 80]);
+  ctx.renderSectionHeader('Engagement Playbook', getSectionColor('playbook'));
   const playbook = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(60);
@@ -282,7 +283,7 @@ export const renderHypnoticPatterns: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Language Pattern Library', [100, 0, 100]);
+  ctx.renderSectionHeader('Language Pattern Library', getSectionColor('hypnoticPatterns'));
   const patterns = extractResult(rawData as Record<string, unknown>);
   
   if (patterns.effective_patterns) {
@@ -379,7 +380,7 @@ export const renderDarkTetrad: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Dark Tetrad Analysis', [50, 0, 50]);
+  ctx.renderSectionHeader('Dark Tetrad Analysis', getSectionColor('darkTetrad'));
   const darkData = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(60);
@@ -440,7 +441,7 @@ export const renderFinancialPsychology: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Financial Psychology Profile', [0, 128, 64]);
+  ctx.renderSectionHeader('Financial Psychology Profile', getSectionColor('financialPsychology'));
   const finPsych = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(50);
@@ -473,7 +474,7 @@ export const renderSacredValues: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Sacred Values Profile', [128, 64, 0]);
+  ctx.renderSectionHeader('Sacred Values Profile', getSectionColor('sacredValues'));
   const sacred = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(50);

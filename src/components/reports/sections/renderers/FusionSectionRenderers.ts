@@ -1,11 +1,12 @@
 /**
- * Fusion Section Renderers (v3.9.33)
- * v3.9.33: PRIORITIZE getAnalysisForSection() fallback (allAnalyses always populated)
+ * Fusion Section Renderers (v4.0)
+ * v4.0: Unified design system with category colors
  */
 
 import type { SectionRenderer } from './types';
 import { PDF_DESIGN } from '../../hooks/usePDFGeneration';
 import { getAnalysisForSection, extractResult } from '../../utils/sectionDataCheck';
+import { getSectionColor, getCategoryBackgroundColor, extractResultSafe, hasRenderableContent } from '../../utils/pdfDesignSystem';
 
 export const renderTemporalFusion: SectionRenderer = (ctx, data) => {
   // v3.9.33: PRIORITIZE allAnalyses fallback first
@@ -14,7 +15,7 @@ export const renderTemporalFusion: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Temporal Fusion Transformer', [50, 100, 150]);
+  ctx.renderSectionHeader('Temporal Fusion Transformer', getSectionColor('temporalFusion'));
   const tft = extractResult(rawData as Record<string, unknown>);
   
   if (tft?.behavioral_forecasts) {
@@ -41,11 +42,11 @@ export const renderDigitalTwin: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Behavioral Digital Twin', [100, 50, 150]);
+  ctx.renderSectionHeader('Behavioral Digital Twin', getSectionColor('digitalTwin'));
   const twin = extractResult(rawData as Record<string, unknown>);
   
   if (twin?.fidelity_score !== undefined) {
-    ctx.renderScoreBar('Twin Fidelity', (twin.fidelity_score as number) * 100, 100, [100, 50, 150]);
+    ctx.renderScoreBar('Twin Fidelity', (twin.fidelity_score as number) * 100, 100, getSectionColor('digitalTwin'));
   }
   
   if (twin?.simulation_accuracy !== undefined) {
@@ -63,11 +64,11 @@ export const renderGraphRAG: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Graph RAG Intelligence', [0, 150, 100]);
+  ctx.renderSectionHeader('Graph RAG Intelligence', getSectionColor('graphRag'));
   const graph = extractResult(rawData as Record<string, unknown>);
   
   if (graph?.retrieval_quality !== undefined) {
-    ctx.renderScoreBar('Retrieval Quality', (graph.retrieval_quality as number) * 100, 100, [0, 150, 100]);
+    ctx.renderScoreBar('Retrieval Quality', (graph.retrieval_quality as number) * 100, 100, getSectionColor('graphRag'));
   }
   
   if (graph?.key_entities) {
@@ -89,7 +90,7 @@ export const renderShadowNetwork: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Shadow Network Analysis', [50, 50, 80]);
+  ctx.renderSectionHeader('Shadow Network Analysis', getSectionColor('shadowNetwork'));
   const shadow = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(25);
@@ -119,7 +120,7 @@ export const renderDempsterShafer: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Dempster-Shafer Evidence Fusion', [150, 100, 0]);
+  ctx.renderSectionHeader('Dempster-Shafer Evidence Fusion', getSectionColor('dempsterShafer'));
   const ds = extractResult(rawData as Record<string, unknown>);
   
   if (ds?.uncertainty_score !== undefined) {
@@ -147,7 +148,7 @@ export const renderCounterfactual: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Counterfactual Analysis', [120, 80, 160]);
+  ctx.renderSectionHeader('Counterfactual Analysis', getSectionColor('counterfactual'));
   const cf = extractResult(rawData as Record<string, unknown>);
   
   if (cf?.scenarios) {
@@ -200,7 +201,7 @@ export const renderPatternOfLifeFusion: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Pattern-of-Life Engine', [80, 100, 130]);
+  ctx.renderSectionHeader('Pattern-of-Life Engine', getSectionColor('patternOfLifeFusion'));
   const pol = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(50);
@@ -236,7 +237,7 @@ export const renderEntityResolution: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Entity Resolution & Alias Detection', [100, 80, 60]);
+  ctx.renderSectionHeader('Entity Resolution & Alias Detection', getSectionColor('entityResolution'));
   const entity = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(50);
@@ -274,15 +275,15 @@ export const renderSentimentCascade: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Sentiment Cascade Prediction (SIR Model)', [150, 80, 80]);
+  ctx.renderSectionHeader('Sentiment Cascade Prediction (SIR Model)', getSectionColor('sentimentCascade'));
   const sentiment = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(50);
-  doc.setFillColor(255, 248, 248);
+  doc.setFillColor(...getCategoryBackgroundColor('fusion'));
   doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
   
   if (sentiment?.infection_rate !== undefined) {
-    ctx.renderScoreBar('Sentiment Infection Rate', (sentiment.infection_rate as number) * 100, 100, [150, 80, 80]);
+    ctx.renderScoreBar('Sentiment Infection Rate', (sentiment.infection_rate as number) * 100, 100, getSectionColor('sentimentCascade'));
   }
   
   if (sentiment?.cascade_predictions) {
@@ -309,7 +310,7 @@ export const renderCrossDomainSynthesis: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Cross-Domain Intelligence Synthesis', [75, 100, 150]);
+  ctx.renderSectionHeader('Cross-Domain Intelligence Synthesis', getSectionColor('crossDomainSynthesis'));
   const cross = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(50);
@@ -346,15 +347,15 @@ export const renderPredictiveConvergence: SectionRenderer = (ctx, data) => {
   
   if (!rawData) return;
   
-  ctx.renderSectionHeader('Predictive Convergence Analysis', [100, 50, 150]);
+  ctx.renderSectionHeader('Predictive Convergence Analysis', getSectionColor('predictiveConvergence'));
   const convergence = extractResult(rawData as Record<string, unknown>);
   
   ctx.checkPageBreak(40);
-  doc.setFillColor(250, 245, 255);
+  doc.setFillColor(...getCategoryBackgroundColor('fusion'));
   doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 35, 3, 3, 'F');
   
   if (convergence.synergy_multiplier !== undefined) {
-    ctx.renderScoreBar('Synergy Multiplier', (convergence.synergy_multiplier as number) * 25, 100, [100, 50, 150]);
+    ctx.renderScoreBar('Synergy Multiplier', (convergence.synergy_multiplier as number) * 25, 100, getSectionColor('predictiveConvergence'));
   }
   
   if (convergence.converging_phases) {
