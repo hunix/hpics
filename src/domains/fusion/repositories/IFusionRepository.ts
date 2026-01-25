@@ -46,6 +46,11 @@ export const FUSION_ANALYSIS_TYPES: Record<FusionEngineType, string> = {
   'pattern-of-life': 'pattern_of_life',
   'entity-resolution': 'entity_resolution',
   'sentiment-cascade': 'sentiment_cascade',
+  // New fusion engines v5.0
+  'biometric-behavioral': 'biometric_behavioral_fusion',
+  'geospatial-communication': 'geospatial_communication_fusion',
+  'financial-document': 'financial_document_synthesis',
+  'calendar-pattern': 'calendar_pattern_analysis',
 };
 
 /**
