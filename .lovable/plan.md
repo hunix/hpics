@@ -1,228 +1,340 @@
 
+# Voice Analysis Local Pipeline - Robustness Enhancement Plan
 
-# Cross-System Voice Analysis Flagging & Status Sync
+## Overview
+Enhance the local voice analysis pipeline to ensure efficient, error-free, smart, and fast processing of all, selective, or single voice files using the WebGPU Whisper Turbo model.
 
-## Problem Summary
+## Current State Summary
 
-When voice analysis completes (via `useVoiceBulkAnalysis`), results are saved to `voice_insights` table but the source `media` table is **not updated**. This causes:
+The system already supports:
+- All files: "Select Unanalyzed" button selects all pending files
+- Selective files: Checkbox selection with virtualized list (handles 800+ items)
+- Single file: Select one file, click "Analyze 1 Recording"
+- Local mode: WebGPU Whisper Turbo with ~216x real-time speed
+- Progress tracking: Model loading + file-by-file progress
+- Cross-system sync: Updates `media.completed_analysis_modes` after completion
 
-1. **Media Analysis Hub shows audio files as "pending"** - It checks `m.ai_metadata IS NULL` (line 183)
-2. **No cross-system tracking** - Voice analysis status isn't reflected in `media.completed_analysis_modes`
-3. **Risk of re-analysis** - Users might accidentally re-analyze already-processed files from Media Hub
+## Gaps to Address
 
----
-
-## Solution Architecture
-
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│                      VOICE ANALYSIS COMPLETION                       │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  useVoiceBulkAnalysis.ts                                            │
-│  ┌─────────────────────────────────────────────────────────────┐   │
-│  │  1. Process audio file with Whisper                          │   │
-│  │  2. Save to voice_insights table                             │   │
-│  │  3. ✅ NEW: Sync status to media table if source='media'     │   │
-│  │     - Update completed_analysis_modes += 'voice_transcription'│   │
-│  │     - Update ai_generation_status = 'completed' (if first)   │   │
-│  │     - Update last_analysis_at = now()                        │   │
-│  └─────────────────────────────────────────────────────────────┘   │
-│                                                                      │
-│  analyze-voice-comprehensive (Edge Function)                        │
-│  ┌─────────────────────────────────────────────────────────────┐   │
-│  │  Same pattern: After voice_insights insert, sync to media    │   │
-│  └─────────────────────────────────────────────────────────────┘   │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
-```
+1. **No per-file timeout** - A corrupted/hung file can block the entire batch
+2. **No automatic retry** - Failed files are simply counted, not retried
+3. **No pre-flight WebGPU check** - Users discover issues after starting
+4. **No "Skip Already Analyzed" toggle** - Must manually deselect analyzed files
+5. **Limited error recovery messaging** - Generic failure messages
 
 ---
 
-## Database Schema (Already Exists)
-
-The `media` table already has these columns (no migration needed):
-
-| Column | Type | Purpose |
-|--------|------|---------|
-| `ai_metadata` | JSONB | Stores AI analysis results |
-| `ai_generation_status` | TEXT | `pending` / `running` / `completed` / `failed` |
-| `completed_analysis_modes` | TEXT[] | Array of completed modes |
-| `last_analysis_at` | TIMESTAMPTZ | Last analysis timestamp |
-
-**Existing analysis modes in production:**
-- `mosaic_metadata`, `face_intelligence`, `scene_intelligence`, `lifestyle_profiling`, `document_extraction`, `relationship_mapping`, `security_scan`
-
-**New mode to add:**
-- `voice_transcription` - For Whisper/ElevenLabs transcription
-- `voice_psychology` - For psychological voice analysis (optional, cloud-only)
-
----
-
-## Technical Changes
+## Technical Implementation
 
 ### File 1: `src/hooks/useVoiceBulkAnalysis.ts`
 
-**Add helper function to sync media table after voice analysis:**
+#### Change 1.1: Add Per-File Timeout Wrapper
+
+Add a timeout utility to prevent hung files from blocking the batch:
 
 ```typescript
-// After processLocalRecording or cloud analysis succeeds
-const syncMediaAnalysisStatus = async (
-  recording: VoiceRecording,
-  analysisModes: string[]
-): Promise<void> => {
-  // Only sync if source is 'media' table (not voice_recording_sessions)
-  if (recording.source !== 'media') return;
-
-  try {
-    // Fetch existing completed modes
-    const { data: existing } = await supabase
-      .from('media')
-      .select('completed_analysis_modes')
-      .eq('id', recording.id)
-      .single();
-
-    const existingModes = existing?.completed_analysis_modes || [];
-    const allModes = [...new Set([...existingModes, ...analysisModes])];
-
-    // Update media record
-    await supabase
-      .from('media')
-      .update({
-        completed_analysis_modes: allModes,
-        last_analysis_at: new Date().toISOString(),
-        ai_generation_status: 'completed',
+// Add near top of file
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number, fileName: string): Promise<T> => {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`Timeout after ${timeoutMs}ms processing "${fileName}"`));
+    }, timeoutMs);
+    
+    promise
+      .then(result => {
+        clearTimeout(timer);
+        resolve(result);
       })
-      .eq('id', recording.id);
-
-    console.log(`[VoiceBulkAnalysis] Synced media ${recording.id} with modes: ${allModes.join(', ')}`);
-  } catch (error) {
-    console.warn('[VoiceBulkAnalysis] Failed to sync media status:', error);
-    // Non-fatal - continue processing
-  }
+      .catch(error => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
 };
 ```
 
-**Update `processLocalRecording` to call sync after success:**
+#### Change 1.2: Apply Timeout to Local Processing
+
+Wrap `processLocalRecording` calls with timeout (60s default for local, configurable):
 
 ```typescript
-// After voice_insights upsert succeeds
-if (!insertError && recording.source === 'media') {
-  await syncMediaAnalysisStatus(recording, ['voice_transcription']);
+// In startBulkAnalysis, around line 319
+if (mode === 'local') {
+  await withTimeout(
+    processLocalRecording(recording, user.id),
+    60000, // 60 second timeout per file
+    recording.title
+  );
+  // ... rest of success handling
 }
 ```
 
-**Update cloud/hybrid processing to also sync:**
+#### Change 1.3: Add Retry Logic for Failed Files
+
+Track failed files and offer single retry:
 
 ```typescript
-// After successful cloud analysis
-if (recording.source === 'media') {
-  const modes = ['voice_transcription'];
-  if (analysisOptions.vocalPsychology) modes.push('voice_psychology');
-  if (analysisOptions.contentIntelligence) modes.push('voice_content_intelligence');
-  await syncMediaAnalysisStatus(recording, modes);
+// Add to VoiceBulkSession interface
+retryQueue: VoiceRecording[];
+
+// After main loop completes with failures
+if (failedRecordings.length > 0 && retryCount < 1) {
+  console.log(`[VoiceBulkAnalysis] Retrying ${failedRecordings.length} failed files...`);
+  // Process failed files once more
 }
 ```
 
-### File 2: `supabase/functions/analyze-voice-comprehensive/index.ts`
+#### Change 1.4: Add Error Classification
 
-**Add media sync after Step 4 (voice_insights insert):**
+Classify errors for better user feedback:
 
 ```typescript
-// Step 4.5: Sync to media table if source is media
-if (sourceType === 'media' && sourceId) {
-  try {
-    const { data: existing } = await supabase
-      .from('media')
-      .select('completed_analysis_modes')
-      .eq('id', sourceId)
-      .single();
-
-    const existingModes = existing?.completed_analysis_modes || [];
-    const newModes = ['voice_transcription'];
-    if (options.vocalPsychology) newModes.push('voice_psychology');
-    if (options.contentIntelligence) newModes.push('voice_content_intelligence');
-    
-    const allModes = [...new Set([...existingModes, ...newModes])];
-
-    await supabase
-      .from('media')
-      .update({
-        completed_analysis_modes: allModes,
-        last_analysis_at: new Date().toISOString(),
-        ai_generation_status: 'completed',
-      })
-      .eq('id', sourceId);
-
-    console.log(`[VoiceComprehensive] Synced media ${sourceId} with modes: ${allModes.join(', ')}`);
-  } catch (syncError) {
-    console.warn('[VoiceComprehensive] Media sync failed:', syncError);
-    // Non-fatal - insight was already saved
+const classifyError = (error: Error): { type: string; canRetry: boolean; message: string } => {
+  const msg = error.message.toLowerCase();
+  
+  if (msg.includes('timeout')) {
+    return { type: 'timeout', canRetry: true, message: 'File took too long to process' };
   }
-}
+  if (msg.includes('no transcription')) {
+    return { type: 'empty', canRetry: false, message: 'No speech detected in audio' };
+  }
+  if (msg.includes('network') || msg.includes('fetch')) {
+    return { type: 'network', canRetry: true, message: 'Failed to download audio file' };
+  }
+  if (msg.includes('webgpu') || msg.includes('wasm')) {
+    return { type: 'ml', canRetry: false, message: 'ML engine error' };
+  }
+  
+  return { type: 'unknown', canRetry: true, message: error.message };
+};
 ```
 
-### File 3: `src/components/analysis/VoiceBulkAnalysisPanel.tsx`
+---
 
-**Enhance the "hasVoiceInsights" badge to also check media.completed_analysis_modes:**
+### File 2: `src/components/analysis/VoiceBulkAnalysisPanel.tsx`
 
-The current implementation already checks `voice_insights.source_id`, which is correct. No changes needed here, but we should add a visual indicator showing the sync status.
+#### Change 2.1: Add WebGPU Pre-Check Indicator
 
-**Add a note about cross-system sync:**
+Show WebGPU availability before user starts:
 
 ```tsx
-{session?.status === 'completed' && (
-  <p className="text-xs text-muted-foreground mt-1">
-    ✓ Analysis status synced to Media Hub
-  </p>
+// Add state
+const [webgpuAvailable, setWebgpuAvailable] = useState<boolean | null>(null);
+
+// Add effect to check on mount
+useEffect(() => {
+  const checkWebGPU = async () => {
+    const available = !!(navigator.gpu) && 
+      !!(await navigator.gpu.requestAdapter?.().catch(() => null));
+    setWebgpuAvailable(available);
+  };
+  checkWebGPU();
+}, []);
+
+// Show in UI near processing mode selector
+{webgpuAvailable === false && processingMode === 'local' && (
+  <div className="text-xs text-yellow-600 bg-yellow-500/10 p-2 rounded border border-yellow-500/20">
+    WebGPU not detected. Local analysis will use WASM (slower but still functional).
+  </div>
+)}
+{webgpuAvailable === true && processingMode === 'local' && (
+  <div className="text-xs text-green-600 bg-green-500/10 p-2 rounded border border-green-500/20">
+    ✓ WebGPU available - Maximum speed enabled
+  </div>
+)}
+```
+
+#### Change 2.2: Add "Hide Already Analyzed" Toggle
+
+Allow users to filter the list to only show unanalyzed files:
+
+```tsx
+// Add state
+const [hideAnalyzed, setHideAnalyzed] = useState(false);
+
+// Filter recordings for display
+const displayRecordings = useMemo(() => 
+  hideAnalyzed ? recordings.filter(r => !r.hasVoiceInsights) : recordings,
+  [recordings, hideAnalyzed]
+);
+
+// Add toggle UI near list header
+<div className="flex items-center gap-2">
+  <Switch 
+    checked={hideAnalyzed} 
+    onCheckedChange={setHideAnalyzed}
+    id="hide-analyzed"
+  />
+  <Label htmlFor="hide-analyzed" className="text-sm">
+    Hide already analyzed
+  </Label>
+</div>
+```
+
+#### Change 2.3: Enhanced Progress Details
+
+Show more granular progress including current file name and estimated time:
+
+```tsx
+// In processing phase UI section
+{session.phase === 'processing' && session.status === 'running' && (
+  <div className="space-y-2">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+        <span className="font-medium text-sm">
+          Processing: <span className="text-blue-600">{session.currentFileName}</span>
+        </span>
+      </div>
+      <span className="text-sm font-mono">
+        {session.processedItems + 1} / {session.totalItems}
+      </span>
+    </div>
+    <Progress value={progress} className="h-2" />
+    <div className="flex justify-between text-xs text-muted-foreground">
+      <span>{Math.round(progress)}% complete</span>
+      {session.failedItems > 0 && (
+        <span className="text-red-500">{session.failedItems} failed</span>
+      )}
+    </div>
+  </div>
+)}
+```
+
+#### Change 2.4: Show Failed Files with Retry Option
+
+After completion, show failed files with individual retry buttons:
+
+```tsx
+// Add after completion message
+{session.status === 'completed' && session.failedItems > 0 && (
+  <div className="mt-3 p-3 bg-red-500/10 rounded border border-red-500/20">
+    <div className="flex items-center gap-2 text-red-600 mb-2">
+      <AlertCircle className="h-4 w-4" />
+      <span className="font-medium">{session.failedItems} files failed</span>
+    </div>
+    <Button 
+      size="sm" 
+      variant="outline" 
+      onClick={() => retryFailedFiles()}
+      className="border-red-500/30"
+    >
+      <RefreshCw className="h-3 w-3 mr-1" />
+      Retry Failed Files
+    </Button>
+  </div>
 )}
 ```
 
 ---
 
-## Analysis Mode Naming Convention
+### File 3: `src/lib/ml/localAudioAnalyzer.ts`
 
-To maintain consistency with existing modes:
+#### Change 3.1: Add Audio Validation Before Processing
 
-| Mode | Description | When Added |
-|------|-------------|------------|
-| `voice_transcription` | Whisper/Scribe transcription | Local or cloud transcription |
-| `voice_psychology` | Psychological voice analysis | Cloud with vocalPsychology=true |
-| `voice_content_intelligence` | Content extraction from audio | Cloud with contentIntelligence=true |
-| `voice_biometrics` | Voice signature analysis | Cloud with voiceBiometrics=true |
+Pre-validate audio files to catch issues early:
+
+```typescript
+async analyzeAudioFile(
+  audioSource: string | Blob | ArrayBuffer,
+  options: LocalAudioAnalysisOptions = {}
+): Promise<LocalAudioAnalysis> {
+  // Pre-validation for URLs
+  if (typeof audioSource === 'string' && audioSource.startsWith('http')) {
+    try {
+      const response = await fetch(audioSource, { method: 'HEAD' });
+      if (!response.ok) {
+        throw new Error(`Audio file not accessible: ${response.status}`);
+      }
+      const contentType = response.headers.get('content-type');
+      if (contentType && !contentType.includes('audio')) {
+        console.warn(`[LocalAudioAnalyzer] Unexpected content type: ${contentType}`);
+      }
+    } catch (error) {
+      throw new Error(`Failed to access audio file: ${error instanceof Error ? error.message : 'Unknown'}`);
+    }
+  }
+  
+  // ... rest of existing implementation
+}
+```
+
+#### Change 3.2: Add Processing Statistics
+
+Track and return processing statistics for optimization:
+
+```typescript
+// Add to LocalAudioAnalysis interface
+stats: {
+  audioSizeBytes?: number;
+  audioFormat?: string;
+  realtimeSpeedup?: number;
+  device: 'webgpu' | 'wasm';
+};
+```
 
 ---
 
 ## Files to Modify
 
-| File | Changes |
-|------|---------|
-| `src/hooks/useVoiceBulkAnalysis.ts` | Add `syncMediaAnalysisStatus` helper, call after successful processing |
-| `supabase/functions/analyze-voice-comprehensive/index.ts` | Add Step 4.5 to sync media table after voice_insights insert |
-| `src/components/analysis/VoiceBulkAnalysisPanel.tsx` | Add sync confirmation message |
+| File | Changes | Priority |
+|------|---------|----------|
+| `src/hooks/useVoiceBulkAnalysis.ts` | Timeout wrapper, retry logic, error classification | High |
+| `src/components/analysis/VoiceBulkAnalysisPanel.tsx` | WebGPU pre-check, hide-analyzed toggle, enhanced progress, retry UI | High |
+| `src/lib/ml/localAudioAnalyzer.ts` | Audio validation, processing stats | Medium |
 
 ---
 
 ## Expected Behavior After Implementation
 
-1. **Local Analysis**: When you process 6 WhatsApp audio files locally:
-   - Each file's `voice_insights` record is created
-   - Each file's `media.completed_analysis_modes` gets `['voice_transcription']`
-   - Each file's `media.ai_generation_status` becomes `'completed'`
-   - Media Hub no longer shows these as "pending"
+### Single File Analysis
+1. User selects 1 file from the list
+2. Clicks "Analyze 1 Recording"
+3. WebGPU status indicator confirms optimal speed
+4. Progress shows file name being processed
+5. Completion syncs to Media Hub
+6. If failed: Error classification + retry option
 
-2. **Cloud Analysis**: Same behavior, plus additional modes like `voice_psychology`
+### Selective File Analysis
+1. User checkboxes specific files (e.g., 50 of 881)
+2. Or uses "Hide Already Analyzed" toggle + selects visible
+3. Clicks "Analyze 50 Recordings"
+4. Files processed with 60s timeout each
+5. Failed files tracked with reasons
+6. After batch: Retry option for recoverable failures
 
-3. **Re-analysis Prevention**: The `hasVoiceInsights` check (via `voice_insights.source_id`) already prevents duplicates in Voice Hub. Now Media Hub will also respect the `completed_analysis_modes` array.
+### All Files Analysis (Bulk)
+1. User clicks "Select Unanalyzed (881)"
+2. Selects "Local (Fast)" mode
+3. WebGPU check confirms availability
+4. Model loads with progress bar (~800MB first time)
+5. Processing shows current file name + X/881 counter
+6. Timeout prevents any single file from blocking
+7. Failed files auto-retried once
+8. Completion syncs all to Media Hub
 
 ---
 
-## Restart Guidance
+## Performance Expectations
 
-Since your previous analysis didn't save any data (0 records in `voice_insights`), you should:
+| Metric | Value |
+|--------|-------|
+| Model load (first time) | 30-60s (downloads ~800MB) |
+| Model load (cached) | 2-5s |
+| Per-file processing (WebGPU) | ~0.5-2s for 30s audio |
+| Per-file processing (WASM) | ~5-10s for 30s audio |
+| 881 files total (WebGPU) | ~15-30 minutes |
+| Timeout per file | 60 seconds |
 
-1. **Wait for this implementation to be deployed**
-2. **Publish the updated code**
-3. **Run the analysis again on the published site**
-4. **Watch the console for `[VoiceBulkAnalysis]` sync logs**
+---
 
+## Testing Recommendations
+
+After implementation:
+1. Test with single file selection
+2. Test with 5 file selection (subset)
+3. Test with all unanalyzed files
+4. Test on browser without WebGPU (should fallback to WASM)
+5. Test with a corrupted/empty audio file (should timeout gracefully)
+6. Verify retry functionality for failed files
+7. Confirm Media Hub reflects analyzed status
