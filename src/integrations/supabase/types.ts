@@ -3292,6 +3292,9 @@ export type Database = {
           expected_value: Json | null
           id: string
           is_resolved: boolean | null
+          is_zero_day: boolean | null
+          matched_known_patterns: Json | null
+          novelty_score: number | null
           profile_id: string
           resolution_notes: string | null
           severity: string
@@ -3308,6 +3311,9 @@ export type Database = {
           expected_value?: Json | null
           id?: string
           is_resolved?: boolean | null
+          is_zero_day?: boolean | null
+          matched_known_patterns?: Json | null
+          novelty_score?: number | null
           profile_id: string
           resolution_notes?: string | null
           severity: string
@@ -3324,6 +3330,9 @@ export type Database = {
           expected_value?: Json | null
           id?: string
           is_resolved?: boolean | null
+          is_zero_day?: boolean | null
+          matched_known_patterns?: Json | null
+          novelty_score?: number | null
           profile_id?: string
           resolution_notes?: string | null
           severity?: string
@@ -34334,14 +34343,18 @@ export type Database = {
       trust_trajectories: {
         Row: {
           created_at: string
+          decay_rate: number | null
           defection_probability: number | null
           gottman_horsemen_scores: Json | null
+          half_life_days: number | null
           id: string
           loyalty_binding_events: Json | null
           loyalty_binding_strength: number | null
           negative_interactions: number | null
           positive_interactions: number | null
           profile_id: string | null
+          projected_critical_date: string | null
+          reinforcement_urgency: string | null
           relationship_stress_score: number | null
           trajectory_date: string
           trust_decay_events: Json | null
@@ -34351,14 +34364,18 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          decay_rate?: number | null
           defection_probability?: number | null
           gottman_horsemen_scores?: Json | null
+          half_life_days?: number | null
           id?: string
           loyalty_binding_events?: Json | null
           loyalty_binding_strength?: number | null
           negative_interactions?: number | null
           positive_interactions?: number | null
           profile_id?: string | null
+          projected_critical_date?: string | null
+          reinforcement_urgency?: string | null
           relationship_stress_score?: number | null
           trajectory_date: string
           trust_decay_events?: Json | null
@@ -34368,14 +34385,18 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          decay_rate?: number | null
           defection_probability?: number | null
           gottman_horsemen_scores?: Json | null
+          half_life_days?: number | null
           id?: string
           loyalty_binding_events?: Json | null
           loyalty_binding_strength?: number | null
           negative_interactions?: number | null
           positive_interactions?: number | null
           profile_id?: string | null
+          projected_critical_date?: string | null
+          reinforcement_urgency?: string | null
           relationship_stress_score?: number | null
           trajectory_date?: string
           trust_decay_events?: Json | null

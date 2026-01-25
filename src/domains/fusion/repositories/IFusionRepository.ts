@@ -51,6 +51,12 @@ export const FUSION_ANALYSIS_TYPES: Record<FusionEngineType, string> = {
   'geospatial-communication': 'geospatial_communication_fusion',
   'financial-document': 'financial_document_synthesis',
   'calendar-pattern': 'calendar_pattern_analysis',
+  // New v6.0 Advanced Intelligence engines
+  'relationship-half-life': 'relationship_half_life',
+  'automated-red-team': 'automated_red_team',
+  'multi-party-deception': 'multi_party_deception',
+  'zero-day-anomaly': 'zero_day_anomaly',
+  'hypergame-theory': 'hypergame_theory',
 };
 
 /**
