@@ -149,6 +149,16 @@ export const navigationItems: NavItem[] = [
     keywords: ['rag', 'agent', 'hub', 'intelligence', 'ai', 'search', 'semantic'],
   },
   {
+    id: 'data-collection-guide',
+    title: 'Data Collection Guide',
+    url: '/data-guide',
+    icon: Compass,
+    description: 'Maximize intelligence coverage',
+    badge: 'new',
+    category: 'intelligence',
+    keywords: ['data', 'collection', 'guide', 'coverage', 'completeness', 'sources'],
+  },
+  {
     id: 'dossier-intelligence',
     title: 'Dossier Intelligence',
     url: '/dossier-intelligence',
