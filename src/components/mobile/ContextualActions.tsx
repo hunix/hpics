@@ -1,11 +1,12 @@
 /**
  * Contextual Actions - Smart quick actions based on context
+ * Integrates with AI suggest-followups edge function for intelligent recommendations
  */
 
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { MessageSquare, Phone, AlertTriangle, Heart, Coffee, FileText, Sparkles, Gift } from 'lucide-react';
+import { MessageSquare, Phone, Heart, Coffee, Sparkles, Gift, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -53,6 +54,25 @@ export function ContextualActions({ profileId, profileName, onAction, className 
         .limit(5);
       return data || [];
     },
+  });
+
+  // Fetch AI-powered follow-up suggestion for this profile
+  const { data: aiSuggestion, refetch: refetchSuggestion, isFetching: isFetchingAI } = useQuery({
+    queryKey: ['ai-followup-suggestion', profileId],
+    queryFn: async () => {
+      const { data } = await supabase.functions.invoke('suggest-followups');
+      const suggestions = (data?.suggestions || []) as Array<{
+        contactId: string;
+        contactName: string;
+        priority: 'high' | 'medium' | 'low';
+        reason: string;
+        suggestedAction: string;
+        daysSinceContact: number;
+      }>;
+      return suggestions.find(s => s.contactId === profileId) || null;
+    },
+    staleTime: 1000 * 60 * 15, // 15 minutes
+    enabled: !!profileId,
   });
 
   const actions = useMemo(() => {
@@ -134,26 +154,51 @@ export function ContextualActions({ profileId, profileName, onAction, className 
       }
     }
 
-    // AI Insight
-    result.push({
-      id: 'ai-insight',
-      icon: Sparkles,
-      label: 'AI Insight',
-      description: `Get tips for ${firstName}`,
-      priority: 'low',
-      color: 'text-purple-500',
-      action: () => onAction?.('ai-insight'),
-    });
+    // AI-powered follow-up suggestion (from edge function)
+    if (aiSuggestion) {
+      result.push({
+        id: 'ai-followup',
+        icon: Sparkles,
+        label: aiSuggestion.suggestedAction.slice(0, 20) + (aiSuggestion.suggestedAction.length > 20 ? '...' : ''),
+        description: aiSuggestion.reason,
+        priority: aiSuggestion.priority,
+        color: aiSuggestion.priority === 'high' ? 'text-red-500' : aiSuggestion.priority === 'medium' ? 'text-amber-500' : 'text-purple-500',
+        action: () => onAction?.('ai-followup', { suggestion: aiSuggestion }),
+        badge: `${aiSuggestion.daysSinceContact}d`,
+      });
+    } else {
+      // Fallback AI Insight action
+      result.push({
+        id: 'ai-insight',
+        icon: Sparkles,
+        label: 'AI Insight',
+        description: `Get tips for ${firstName}`,
+        priority: 'low',
+        color: 'text-purple-500',
+        action: () => onAction?.('ai-insight'),
+      });
+    }
 
     const priorityOrder = { high: 0, medium: 1, low: 2 };
     return result.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
-  }, [contact, communications, profileName, onAction]);
+  }, [contact, communications, profileName, onAction, aiSuggestion]);
 
   if (actions.length === 0) return null;
 
   return (
     <div className={cn("space-y-2", className)}>
-      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">Suggested Actions</h4>
+      <div className="flex items-center justify-between px-1">
+        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Suggested Actions</h4>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="h-5 w-5" 
+          onClick={() => refetchSuggestion()}
+          disabled={isFetchingAI}
+        >
+          <RefreshCw className={cn("h-3 w-3 text-muted-foreground", isFetchingAI && "animate-spin")} />
+        </Button>
+      </div>
       <div className="flex flex-wrap gap-2">
         {actions.slice(0, 4).map(action => (
           <Button key={action.id} variant="outline" size="sm" className={cn("h-auto py-2 px-3 flex items-center gap-2", action.priority === 'high' && "border-red-500/30 bg-red-500/5")} onClick={action.action}>

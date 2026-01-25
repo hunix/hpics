@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callAI, parseAIJson, FUNCTION_TO_ANALYSIS_TYPE } from "../_shared/ai-client.ts";
+import { callAI, parseAIJson } from "../_shared/ai-client.ts";
 import { getAIConfig } from "../_shared/platform-config.ts";
 
 const corsHeaders = {
@@ -9,8 +9,21 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Health check (GET with ?healthCheck=1)
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({
+      ok: true,
+      function: 'suggest-followups',
+      timestamp: Date.now()
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
   try {
@@ -138,7 +151,8 @@ Suggest up to 5 contacts I should follow up with.`
 
   } catch (error) {
     console.error('Error in suggest-followups:', error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(JSON.stringify({ error: errorMessage, suggestions: [] }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
