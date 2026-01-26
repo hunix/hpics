@@ -164,6 +164,72 @@ class LocalWhisperTranscriber {
   }
 
   /**
+   * Preprocess audio from ArrayBuffer to Float32Array at 16kHz
+   * Required for Opus/WebM formats that Whisper can't decode natively
+   */
+  private async preprocessArrayBuffer(arrayBuffer: ArrayBuffer): Promise<Float32Array> {
+    // Yield to UI to prevent blocking
+    await new Promise(resolve => setTimeout(resolve, 0));
+    
+    // Create AudioContext for decoding (handles Opus, MP3, WAV, AAC, FLAC, etc.)
+    const audioContext = new AudioContext();
+    
+    try {
+      // Decode the audio data
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+      
+      // Yield to UI again
+      await new Promise(resolve => setTimeout(resolve, 0));
+      
+      const targetSampleRate = 16000; // Whisper requires 16kHz
+      let processedBuffer = audioBuffer;
+      
+      // Resample if needed
+      if (audioBuffer.sampleRate !== targetSampleRate) {
+        const duration = audioBuffer.duration;
+        const offlineCtx = new OfflineAudioContext(
+          1, // mono
+          Math.ceil(duration * targetSampleRate),
+          targetSampleRate
+        );
+        
+        const source = offlineCtx.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(offlineCtx.destination);
+        source.start(0);
+        
+        processedBuffer = await offlineCtx.startRendering();
+      }
+      
+      // Extract mono Float32Array (channel 0)
+      const monoData = processedBuffer.getChannelData(0);
+      
+      // Return a copy to avoid issues with buffer detachment
+      return new Float32Array(monoData);
+    } finally {
+      await audioContext.close();
+    }
+  }
+
+  /**
+   * Preprocess audio URL to Float32Array at 16kHz
+   * Fetches, decodes, and resamples audio for Whisper compatibility
+   */
+  private async preprocessAudioUrl(url: string): Promise<Float32Array> {
+    console.log('[LocalWhisper] Fetching audio from URL...');
+    
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch audio: ${response.status} ${response.statusText}`);
+    }
+    
+    const arrayBuffer = await response.arrayBuffer();
+    console.log(`[LocalWhisper] Downloaded ${(arrayBuffer.byteLength / 1024).toFixed(1)} KB`);
+    
+    return this.preprocessArrayBuffer(arrayBuffer);
+  }
+
+  /**
    * Initialize the Whisper model with WebGPU acceleration
    */
   async initialize(options?: {
@@ -249,13 +315,35 @@ class LocalWhisperTranscriber {
     const startTime = performance.now();
 
     try {
-      // Handle different input types
-      let audioInput = audioSource;
+      // Preprocess audio based on input type
+      let audioInput: Float32Array;
       
-      if (typeof audioSource === 'string' && audioSource.startsWith('http')) {
-        // For URLs, fetch the audio first if needed
-        console.log('[LocalWhisper] Processing audio from URL...');
+      if (typeof audioSource === 'string') {
+        if (audioSource.startsWith('http')) {
+          // URL input - fetch and preprocess
+          console.log('[LocalWhisper] Processing audio from URL...');
+          audioInput = await this.preprocessAudioUrl(audioSource);
+          console.log(`[LocalWhisper] Audio preprocessed: ${audioInput.length} samples at 16kHz`);
+        } else {
+          throw new Error('Unsupported string audio source - must be a URL starting with http');
+        }
+      } else if (audioSource instanceof Blob) {
+        // Blob input - convert to ArrayBuffer and preprocess
+        console.log('[LocalWhisper] Processing audio from Blob...');
+        const arrayBuffer = await audioSource.arrayBuffer();
+        audioInput = await this.preprocessArrayBuffer(arrayBuffer);
+        console.log(`[LocalWhisper] Audio preprocessed: ${audioInput.length} samples at 16kHz`);
+      } else if (audioSource instanceof ArrayBuffer) {
+        // ArrayBuffer input - preprocess directly
+        console.log('[LocalWhisper] Processing audio from ArrayBuffer...');
+        audioInput = await this.preprocessArrayBuffer(audioSource);
+        console.log(`[LocalWhisper] Audio preprocessed: ${audioInput.length} samples at 16kHz`);
+      } else {
+        throw new Error('Unsupported audio source type');
       }
+      
+      // Calculate audio duration from sample count (16kHz)
+      const audioDurationMs = (audioInput.length / 16000) * 1000;
 
       const result = await this.transcriber(audioInput, {
         return_timestamps: true,
@@ -273,15 +361,8 @@ class LocalWhisperTranscriber {
         timestamp: chunk.timestamp || [0, 0]
       }));
 
-      // Calculate realtime speedup if we have duration info
-      let realtimeSpeedup: number | undefined;
-      if (chunks.length > 0) {
-        const lastChunk = chunks[chunks.length - 1];
-        const audioDurationMs = (lastChunk.timestamp[1] || 0) * 1000;
-        if (audioDurationMs > 0) {
-          realtimeSpeedup = audioDurationMs / processingTimeMs;
-        }
-      }
+      // Calculate realtime speedup
+      const realtimeSpeedup = audioDurationMs > 0 ? audioDurationMs / processingTimeMs : undefined;
 
       console.log(`[LocalWhisper] Transcribed in ${processingTimeMs.toFixed(0)}ms (${realtimeSpeedup?.toFixed(1)}x realtime)`);
 
@@ -290,6 +371,7 @@ class LocalWhisperTranscriber {
         chunks,
         language: result.language,
         processingTimeMs,
+        audioDurationMs,
         realtimeSpeedup
       };
     } catch (error) {
