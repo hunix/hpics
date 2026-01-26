@@ -1,8 +1,9 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { localAudioAnalyzer, type BatchAnalysisProgress, type LanguageDetectionResult } from '@/lib/ml';
 import { type WhisperModel, isLanguageSupported, getLanguageDisplay } from '@/lib/ml/localWhisperTranscriber';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface VoiceRecording {
   id: string;
@@ -48,8 +49,26 @@ export interface SkippedRecording {
   modelUsed: WhisperModel;
 }
 
+// Database session for persistence/recovery
+export interface VoiceAnalysisDbSession {
+  id: string;
+  user_id: string;
+  profile_id: string | null;
+  status: 'idle' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
+  processing_mode: string;
+  whisper_model: string;
+  total_items: number;
+  completed_items: number;
+  failed_items: number;
+  skipped_items: number;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+}
+
 export interface VoiceBulkSession {
   id: string;
+  dbSessionId?: string; // Link to database session for persistence
   status: 'idle' | 'running' | 'paused' | 'completed' | 'failed';
   phase: 'initializing' | 'model_loading' | 'language_scanning' | 'processing' | 'completed' | 'failed';
   totalItems: number;
@@ -70,6 +89,8 @@ export interface VoiceBulkSession {
   // Download progress tracking
   modelDownloadStartTime?: number;
   modelDownloadSpeedMBps?: number;
+  // Backend processing indicator
+  isBackendProcessing?: boolean;
 }
 
 // Error classification for better user feedback
@@ -124,12 +145,248 @@ const LOCAL_TIMEOUT_MS = 60000;
 const CLOUD_TIMEOUT_MS = 120000;
 
 export function useVoiceBulkAnalysis(profileId?: string) {
+  const { user } = useAuth();
   const [session, setSession] = useState<VoiceBulkSession | null>(null);
   const [options, setOptions] = useState<VoiceBulkAnalysisOptions>(DEFAULT_OPTIONS);
   const [recordings, setRecordings] = useState<VoiceRecording[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [processingMode, setProcessingMode] = useState<ProcessingMode>('local');
+  const [interruptedSession, setInterruptedSession] = useState<VoiceAnalysisDbSession | null>(null);
   const cancelRef = useRef(false);
+
+  // Check for interrupted sessions on mount
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const checkInterruptedSession = async () => {
+      try {
+        const { data: interrupted } = await supabase
+          .from('voice_analysis_sessions')
+          .select('*')
+          .eq('user_id', user.id)
+          .in('status', ['running', 'paused'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (interrupted) {
+          setInterruptedSession(interrupted as unknown as VoiceAnalysisDbSession);
+        }
+      } catch (error) {
+        console.warn('[VoiceBulkAnalysis] Error checking for interrupted sessions:', error);
+      }
+    };
+
+    checkInterruptedSession();
+  }, [user?.id]);
+
+  // Subscribe to realtime updates for backend processing
+  useEffect(() => {
+    if (!session?.dbSessionId) return;
+
+    const channel = supabase
+      .channel(`voice-session-${session.dbSessionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'voice_analysis_sessions',
+          filter: `id=eq.${session.dbSessionId}`
+        },
+        (payload) => {
+          const dbSession = payload.new as VoiceAnalysisDbSession;
+          setSession(prev => prev ? {
+            ...prev,
+            processedItems: dbSession.completed_items,
+            failedItems: dbSession.failed_items,
+            skippedItems: dbSession.skipped_items,
+            status: dbSession.status as VoiceBulkSession['status'],
+            completedAt: dbSession.completed_at,
+          } : null);
+
+          if (dbSession.status === 'completed') {
+            toast.success('Voice analysis completed in background!');
+            fetchRecordings(profileId);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [session?.dbSessionId, profileId]);
+
+  // Create database session for persistence
+  const createDbSession = useCallback(async (
+    selectedRecordings: VoiceRecording[],
+    mode: ProcessingMode,
+    whisperModel: WhisperModel
+  ): Promise<string | null> => {
+    if (!user?.id) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from('voice_analysis_sessions')
+        .insert({
+          user_id: user.id,
+          profile_id: profileId || null,
+          status: 'running',
+          processing_mode: mode,
+          whisper_model: whisperModel,
+          total_items: selectedRecordings.length,
+          completed_items: 0,
+          failed_items: 0,
+          skipped_items: 0,
+          started_at: new Date().toISOString(),
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+
+      // Create items for each recording
+      const items = selectedRecordings.map((rec, idx) => ({
+        session_id: data.id,
+        media_id: rec.source === 'media' ? rec.id : null,
+        recording_id: rec.source === 'voice_recording_sessions' ? rec.id : null,
+        source: rec.source,
+        file_url: rec.audio_url,
+        file_name: rec.title,
+        status: 'pending',
+        queue_position: idx,
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('voice_analysis_items')
+        .insert(items);
+
+      if (itemsError) {
+        console.warn('[VoiceBulkAnalysis] Failed to create items:', itemsError);
+      }
+
+      return data.id;
+    } catch (error) {
+      console.error('[VoiceBulkAnalysis] Failed to create DB session:', error);
+      return null;
+    }
+  }, [user?.id, profileId]);
+
+  // Update item status in database
+  const updateDbItemStatus = useCallback(async (
+    dbSessionId: string,
+    recordingId: string,
+    status: 'completed' | 'failed' | 'skipped',
+    result?: { transcription?: string; language?: string; error?: string }
+  ) => {
+    try {
+      const updateData: Record<string, unknown> = {
+        status,
+        completed_at: new Date().toISOString(),
+      };
+
+      if (result?.transcription) updateData.transcription_text = result.transcription;
+      if (result?.language) updateData.detected_language = result.language;
+      if (result?.error) updateData.error_message = result.error;
+
+      await supabase
+        .from('voice_analysis_items')
+        .update(updateData)
+        .eq('session_id', dbSessionId)
+        .or(`media_id.eq.${recordingId},recording_id.eq.${recordingId}`);
+
+      // Increment session progress
+      await supabase.rpc('increment_voice_session_progress', {
+        p_session_id: dbSessionId,
+        p_is_completed: status === 'completed',
+        p_is_failed: status === 'failed',
+        p_is_skipped: status === 'skipped',
+      });
+    } catch (error) {
+      console.warn('[VoiceBulkAnalysis] Failed to update item status:', error);
+    }
+  }, []);
+
+  // Continue processing in backend
+  const continueInBackground = useCallback(async () => {
+    if (!session?.dbSessionId) {
+      toast.error('No active session to continue');
+      return;
+    }
+
+    try {
+      // Mark session as backend processing
+      setSession(prev => prev ? { ...prev, isBackendProcessing: true } : null);
+
+      const { error } = await supabase.functions.invoke('process-voice-analysis-runner', {
+        body: { sessionId: session.dbSessionId, action: 'continue' }
+      });
+
+      if (error) throw error;
+
+      toast.success('Analysis continuing in background. You can close this tab.');
+    } catch (error) {
+      console.error('[VoiceBulkAnalysis] Failed to continue in background:', error);
+      toast.error('Failed to start background processing');
+      setSession(prev => prev ? { ...prev, isBackendProcessing: false } : null);
+    }
+  }, [session?.dbSessionId]);
+
+  // Resume interrupted session
+  const resumeInterruptedSession = useCallback(async () => {
+    if (!interruptedSession) return;
+
+    try {
+      const { error } = await supabase.functions.invoke('process-voice-analysis-runner', {
+        body: { sessionId: interruptedSession.id, action: 'continue' }
+      });
+
+      if (error) throw error;
+
+      // Set up local session to track progress
+      setSession({
+        id: crypto.randomUUID(),
+        dbSessionId: interruptedSession.id,
+        status: 'running',
+        phase: 'processing',
+        totalItems: interruptedSession.total_items,
+        processedItems: interruptedSession.completed_items,
+        failedItems: interruptedSession.failed_items,
+        skippedItems: interruptedSession.skipped_items,
+        currentItemId: null,
+        startedAt: interruptedSession.started_at,
+        completedAt: null,
+        error: null,
+        totalCostCents: 0,
+        processingMode: interruptedSession.processing_mode as ProcessingMode,
+        isBackendProcessing: true,
+      });
+
+      setInterruptedSession(null);
+      toast.success('Resuming interrupted session in background...');
+    } catch (error) {
+      console.error('[VoiceBulkAnalysis] Failed to resume session:', error);
+      toast.error('Failed to resume session');
+    }
+  }, [interruptedSession]);
+
+  // Discard interrupted session
+  const discardInterruptedSession = useCallback(async () => {
+    if (!interruptedSession) return;
+
+    try {
+      await supabase
+        .from('voice_analysis_sessions')
+        .update({ status: 'cancelled', completed_at: new Date().toISOString() })
+        .eq('id', interruptedSession.id);
+
+      setInterruptedSession(null);
+      toast.info('Interrupted session discarded');
+    } catch (error) {
+      console.error('[VoiceBulkAnalysis] Failed to discard session:', error);
+    }
+  }, [interruptedSession]);
 
   // Fetch voice recordings for a profile
   const fetchRecordings = useCallback(async (targetProfileId?: string) => {
@@ -333,8 +590,12 @@ export function useVoiceBulkAnalysis(profileId?: string) {
 
     cancelRef.current = false;
 
+    // Create database session for persistence
+    const dbSessionId = await createDbSession(selectedRecordings, mode, whisperModel);
+    
     const newSession: VoiceBulkSession = {
       id: crypto.randomUUID(),
+      dbSessionId: dbSessionId || undefined,
       status: 'running',
       phase: mode === 'local' || mode === 'hybrid' ? 'model_loading' : 'processing',
       totalItems: selectedRecordings.length,
@@ -350,7 +611,8 @@ export function useVoiceBulkAnalysis(profileId?: string) {
       processingMode: mode,
       modelStatus: mode === 'local' || mode === 'hybrid' ? 'loading' : 'ready',
       modelProgress: 0,
-      skippedRecordings: []
+      skippedRecordings: [],
+      isBackendProcessing: false,
     };
 
     setSession(newSession);
@@ -748,5 +1010,10 @@ export function useVoiceBulkAnalysis(profileId?: string) {
     setProcessingMode,
     unloadModels,
     localModelStatus,
+    // New persistence/recovery features
+    interruptedSession,
+    resumeInterruptedSession,
+    discardInterruptedSession,
+    continueInBackground,
   };
 }

@@ -32,7 +32,10 @@ import {
   HardDrive,
   Globe,
   Filter,
-  AlertTriangle
+  AlertTriangle,
+  CloudUpload,
+  Trash2,
+  RotateCcw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useVoiceBulkAnalysis, VoiceRecording, VoiceBulkAnalysisOptions, ProcessingMode } from '@/hooks/useVoiceBulkAnalysis';
@@ -116,6 +119,11 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
     processingMode,
     setProcessingMode,
     localModelStatus,
+    // New persistence/recovery features
+    interruptedSession,
+    resumeInterruptedSession,
+    discardInterruptedSession,
+    continueInBackground,
   } = useVoiceBulkAnalysis(profileId);
 
   const [selectedRecordings, setSelectedRecordings] = useState<Set<string>>(new Set());
@@ -238,6 +246,68 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Interrupted Session Recovery Banner */}
+        {interruptedSession && !session && (
+          <div className="p-4 rounded-lg border border-amber-500/50 bg-amber-500/5">
+            <div className="flex items-start gap-4">
+              <div className="p-2 rounded-full bg-amber-500/10">
+                <AlertCircle className="h-5 w-5 text-amber-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h4 className="font-medium text-sm">Interrupted Session Found</h4>
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      {interruptedSession.completed_items} of {interruptedSession.total_items} files completed
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={discardInterruptedSession}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Discard
+                    </Button>
+                    <Button size="sm" onClick={resumeInterruptedSession}>
+                      <RotateCcw className="h-4 w-4 mr-1" />
+                      Resume
+                    </Button>
+                  </div>
+                </div>
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      <span>
+                        Started {interruptedSession.started_at 
+                          ? formatDistanceToNow(new Date(interruptedSession.started_at), { addSuffix: true })
+                          : "recently"}
+                      </span>
+                    </div>
+                    <span>
+                      {interruptedSession.failed_items > 0 && `${interruptedSession.failed_items} failed`}
+                    </span>
+                  </div>
+                  <Progress 
+                    value={(interruptedSession.completed_items / interruptedSession.total_items) * 100} 
+                    className="h-2" 
+                  />
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <span className="px-2 py-0.5 rounded-full bg-muted text-xs">
+                    {interruptedSession.processing_mode} mode
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-muted text-xs">
+                    {interruptedSession.whisper_model} model
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Progress Section */}
         {session && session.status !== 'idle' && (
           <div className="space-y-3 p-4 rounded-lg bg-muted/50 border">
@@ -283,7 +353,7 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
             )}
             
             {/* Processing Phase */}
-            {session.phase === 'processing' && session.status === 'running' && (
+            {session.phase === 'processing' && session.status === 'running' && !session.isBackendProcessing && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -297,6 +367,27 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
                   </span>
                 </div>
                 <Progress value={progress} className="h-2" />
+              </div>
+            )}
+
+            {/* Backend Processing Indicator */}
+            {session.isBackendProcessing && session.status === 'running' && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CloudUpload className="h-4 w-4 animate-pulse text-green-500" />
+                    <span className="font-medium text-green-600 dark:text-green-400">
+                      Processing in background...
+                    </span>
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    {session.processedItems} / {session.totalItems}
+                  </span>
+                </div>
+                <Progress value={progress} className="h-2" />
+                <p className="text-xs text-muted-foreground">
+                  You can close this tab - analysis will continue on the server
+                </p>
               </div>
             )}
             
@@ -406,11 +497,22 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
                 )}
               </span>
               <div className="flex gap-2">
-                {isRunning && session.phase === 'processing' && (
-                  <Button size="sm" variant="outline" onClick={pauseAnalysis}>
-                    <Pause className="h-4 w-4 mr-1" />
-                    Pause
-                  </Button>
+                {isRunning && session.phase === 'processing' && !session.isBackendProcessing && (
+                  <>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={continueInBackground}
+                      title="Continue processing on server - safe to close browser"
+                    >
+                      <CloudUpload className="h-4 w-4 mr-1" />
+                      Continue in Background
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={pauseAnalysis}>
+                      <Pause className="h-4 w-4 mr-1" />
+                      Pause
+                    </Button>
+                  </>
                 )}
                 {session.status === 'completed' && (
                   <Button size="sm" variant="outline" onClick={resetSession}>
