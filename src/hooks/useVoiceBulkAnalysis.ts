@@ -143,6 +143,12 @@ const DEFAULT_OPTIONS: VoiceBulkAnalysisOptions = {
 // Per-file timeout in milliseconds (60 seconds for local, 120 for cloud)
 const LOCAL_TIMEOUT_MS = 60000;
 const CLOUD_TIMEOUT_MS = 120000;
+// Model initialization timeout (30 seconds)
+const MODEL_INIT_TIMEOUT_MS = 30000;
+// Stall detection threshold (2 minutes without progress)
+const STALL_DETECTION_MS = 120000;
+// Heartbeat interval for UI updates (5 seconds)
+const HEARTBEAT_INTERVAL_MS = 5000;
 
 export function useVoiceBulkAnalysis(profileId?: string) {
   const { user } = useAuth();
@@ -153,6 +159,9 @@ export function useVoiceBulkAnalysis(profileId?: string) {
   const [processingMode, setProcessingMode] = useState<ProcessingMode>('local');
   const [interruptedSession, setInterruptedSession] = useState<VoiceAnalysisDbSession | null>(null);
   const cancelRef = useRef(false);
+  const lastProgressRef = useRef<{ items: number; time: number }>({ items: 0, time: Date.now() });
+  const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const fileStartTimeRef = useRef<number>(0);
 
   // Check for interrupted sessions on mount
   useEffect(() => {
@@ -269,6 +278,7 @@ export function useVoiceBulkAnalysis(profileId?: string) {
       return data.id;
     } catch (error) {
       console.error('[VoiceBulkAnalysis] Failed to create DB session:', error);
+      toast.warning('Session persistence unavailable - processing will continue locally');
       return null;
     }
   }, [user?.id, profileId]);
@@ -387,6 +397,42 @@ export function useVoiceBulkAnalysis(profileId?: string) {
       console.error('[VoiceBulkAnalysis] Failed to discard session:', error);
     }
   }, [interruptedSession]);
+
+  // Stall detection - auto-recover if no progress for 2 minutes
+  useEffect(() => {
+    if (!session?.dbSessionId || session.status !== 'running' || session.isBackendProcessing) {
+      return;
+    }
+
+    // Reset progress tracker when session starts
+    lastProgressRef.current = { items: session.processedItems, time: Date.now() };
+
+    const stallCheckInterval = setInterval(() => {
+      const currentProcessed = session.processedItems;
+      const timeSinceProgress = Date.now() - lastProgressRef.current.time;
+
+      if (currentProcessed === lastProgressRef.current.items && timeSinceProgress > STALL_DETECTION_MS) {
+        // Stalled for 2+ minutes - auto-trigger backend
+        console.warn('[VoiceBulkAnalysis] Stall detected - transferring to backend...');
+        toast.warning('Processing stalled - transferring to cloud backend...', { duration: 5000 });
+        continueInBackground();
+      } else if (currentProcessed > lastProgressRef.current.items) {
+        // Progress was made - update tracker
+        lastProgressRef.current = { items: currentProcessed, time: Date.now() };
+      }
+    }, 30000); // Check every 30 seconds
+
+    return () => clearInterval(stallCheckInterval);
+  }, [session?.dbSessionId, session?.status, session?.isBackendProcessing, session?.processedItems, continueInBackground]);
+
+  // Cleanup heartbeat on unmount
+  useEffect(() => {
+    return () => {
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+      }
+    };
+  }, []);
 
   // Fetch voice recordings for a profile
   const fetchRecordings = useCallback(async (targetProfileId?: string) => {
@@ -627,7 +673,8 @@ export function useVoiceBulkAnalysis(profileId?: string) {
     const modeLabel = mode === 'local' ? '⚡ Local (WebGPU)' : mode === 'cloud' ? '☁️ Cloud' : '🔄 Hybrid';
     toast.info(`Starting ${modeLabel} analysis for ${selectedRecordings.length} recordings...`);
 
-    // Initialize local model if needed
+    // Initialize local model if needed (with timeout for recovery)
+    let actualMode = mode; // Track if we fall back
     if (mode === 'local' || mode === 'hybrid') {
       try {
         console.log(`[VoiceBulkAnalysis] Loading Whisper model: ${whisperModel}`);
@@ -643,7 +690,8 @@ export function useVoiceBulkAnalysis(profileId?: string) {
         };
         const totalSize = modelSizes[whisperModel] || 250;
         
-        await localAudioAnalyzer.initialize({
+        // Wrap initialization with timeout for fast failure
+        const initPromise = localAudioAnalyzer.initialize({
           whisperModel: whisperModel,
           onProgress: (progress) => {
             if (progress.status === 'progress') {
@@ -666,12 +714,23 @@ export function useVoiceBulkAnalysis(profileId?: string) {
             }
           }
         });
+
+        // Add timeout for model initialization
+        await withTimeout(initPromise, MODEL_INIT_TIMEOUT_MS, 'Model initialization');
         setSession(prev => prev ? { ...prev, modelStatus: 'ready', phase: 'processing' } : null);
       } catch (error) {
-        console.error('[VoiceBulkAnalysis] Failed to load local model:', error);
-        toast.error('Failed to load local ML model. Falling back to cloud.');
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        const isTimeout = errorMsg.includes('Timeout');
+        
+        console.error('[VoiceBulkAnalysis] Failed to load local model:', errorMsg);
+        toast.warning(
+          isTimeout 
+            ? 'Model loading timed out. Switching to cloud processing.' 
+            : 'Failed to load local ML model. Falling back to cloud.'
+        );
         // Fall back to cloud
-        setSession(prev => prev ? { ...prev, processingMode: 'cloud' } : null);
+        actualMode = 'cloud';
+        setSession(prev => prev ? { ...prev, processingMode: 'cloud', phase: 'processing' } : null);
       }
     }
 
@@ -750,6 +809,7 @@ export function useVoiceBulkAnalysis(profileId?: string) {
     // Main processing loop (using filtered recordingsToProcess)
     for (let i = 0; i < recordingsToProcess.length; i++) {
       if (cancelRef.current) {
+        if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
         setSession(prev => prev ? { 
           ...prev, 
           status: 'paused', 
@@ -761,6 +821,8 @@ export function useVoiceBulkAnalysis(profileId?: string) {
       }
 
       const recording = recordingsToProcess[i];
+      fileStartTimeRef.current = Date.now();
+      
       setSession(prev => prev ? { 
         ...prev, 
         currentItemId: recording.id,
@@ -768,10 +830,20 @@ export function useVoiceBulkAnalysis(profileId?: string) {
         processedItems: i 
       } : null);
 
-      try {
-        console.log(`[VoiceBulkAnalysis] Processing ${i + 1}/${recordingsToProcess.length}: ${recording.title} (${mode})`);
+      // Start heartbeat for UI feedback
+      if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+      heartbeatIntervalRef.current = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - fileStartTimeRef.current) / 1000);
+        setSession(prev => prev ? {
+          ...prev,
+          currentFileName: `${recording.title || 'Audio file'} (${elapsed}s elapsed...)`
+        } : null);
+      }, HEARTBEAT_INTERVAL_MS);
 
-        if (mode === 'local') {
+      try {
+        console.log(`[VoiceBulkAnalysis] Processing ${i + 1}/${recordingsToProcess.length}: ${recording.title} (${actualMode})`);
+
+        if (actualMode === 'local') {
           // Pure local processing with timeout
           await withTimeout(
             processLocalRecording(recording, user.id),
@@ -782,8 +854,13 @@ export function useVoiceBulkAnalysis(profileId?: string) {
             ...prev,
             processedItems: i + 1,
           } : null);
+          
+          // Update DB status if session exists
+          if (dbSessionId) {
+            await updateDbItemStatus(dbSessionId, recording.id, 'completed');
+          }
 
-        } else if (mode === 'hybrid') {
+        } else if (actualMode === 'hybrid') {
           // Local transcription first with timeout, then cloud for advanced analysis
           await withTimeout(
             processLocalRecording(recording, user.id),
@@ -834,6 +911,11 @@ export function useVoiceBulkAnalysis(profileId?: string) {
               processedItems: i + 1,
             } : null);
           }
+          
+          // Update DB status if session exists
+          if (dbSessionId) {
+            await updateDbItemStatus(dbSessionId, recording.id, 'completed');
+          }
 
         } else {
           // Pure cloud processing with timeout
@@ -868,9 +950,26 @@ export function useVoiceBulkAnalysis(profileId?: string) {
             processedItems: i + 1,
             totalCostCents: prev.totalCostCents + (data?.costCents || 0),
           } : null);
+          
+          // Update DB status if session exists
+          if (dbSessionId) {
+            await updateDbItemStatus(dbSessionId, recording.id, 'completed');
+          }
+        }
+
+        // Clear heartbeat on success
+        if (heartbeatIntervalRef.current) {
+          clearInterval(heartbeatIntervalRef.current);
+          heartbeatIntervalRef.current = null;
         }
 
       } catch (error) {
+        // Clear heartbeat on error
+        if (heartbeatIntervalRef.current) {
+          clearInterval(heartbeatIntervalRef.current);
+          heartbeatIntervalRef.current = null;
+        }
+        
         const err = error instanceof Error ? error : new Error('Unknown error');
         const classified = classifyError(err);
         
@@ -889,6 +988,11 @@ export function useVoiceBulkAnalysis(profileId?: string) {
           processedItems: i + 1,
           failedRecordings: [...failedRecordingsTracker],
         } : null);
+        
+        // Update DB status if session exists
+        if (dbSessionId) {
+          await updateDbItemStatus(dbSessionId, recording.id, 'failed', { error: classified.message });
+        }
       }
     }
 
@@ -905,7 +1009,7 @@ export function useVoiceBulkAnalysis(profileId?: string) {
             currentFileName: `[Retry] ${recording.title || 'Audio file'}`,
           } : null);
           
-          if (mode === 'local' || mode === 'hybrid') {
+          if (actualMode === 'local' || actualMode === 'hybrid') {
             await withTimeout(
               processLocalRecording(recording, user.id),
               LOCAL_TIMEOUT_MS * 1.5, // Extra time for retry

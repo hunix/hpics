@@ -158,6 +158,20 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
     return Array.from(langs) as string[];
   }, [recordings]);
 
+  // Detect stalled processing (file taking > 30 seconds)
+  const stallInfo = useMemo(() => {
+    if (!session || session.status !== 'running' || session.isBackendProcessing) {
+      return { isStalled: false, elapsedSeconds: 0 };
+    }
+    // Check if currentFileName contains elapsed time
+    const match = session.currentFileName?.match(/\((\d+)s elapsed\.\.\.\)$/);
+    if (match) {
+      const elapsed = parseInt(match[1], 10);
+      return { isStalled: elapsed > 30, elapsedSeconds: elapsed };
+    }
+    return { isStalled: false, elapsedSeconds: 0 };
+  }, [session?.currentFileName, session?.status, session?.isBackendProcessing]);
+
   // Filter recordings based on hideAnalyzed toggle and language filter
   const displayRecordings = useMemo(() => {
     let filtered = recordings;
@@ -367,6 +381,25 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
                   </span>
                 </div>
                 <Progress value={progress} className="h-2" />
+                
+                {/* Stall Warning - shown when file takes > 30 seconds */}
+                {stallInfo.isStalled && (
+                  <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                    <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-sm">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span>Taking longer than expected ({stallInfo.elapsedSeconds}s)...</span>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={continueInBackground}
+                      className="border-amber-500/30 hover:bg-amber-500/10"
+                    >
+                      <CloudUpload className="h-3 w-3 mr-1" />
+                      Switch to Cloud
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
 
