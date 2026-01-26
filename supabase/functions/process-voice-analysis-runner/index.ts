@@ -32,6 +32,7 @@ interface VoiceAnalysisItem {
   recording_id: string | null;
   source: string;
   file_url: string;
+  storage_path: string | null; // For generating signed URLs
   file_name: string;
   status: string;
   queue_position: number;
@@ -224,6 +225,25 @@ async function processItemsInBackground(
 
       const startTime = Date.now();
 
+      // Generate signed URL if storage_path is available (for private bucket access)
+      let audioUrl = item.file_url;
+      if (item.storage_path) {
+        try {
+          const { data: signedData, error: signedError } = await supabase.storage
+            .from('media')
+            .createSignedUrl(item.storage_path, 3600); // 1 hour expiry
+          
+          if (!signedError && signedData?.signedUrl) {
+            audioUrl = signedData.signedUrl;
+            console.log(`[VoiceRunner] Generated signed URL for ${item.file_name}`);
+          } else {
+            console.warn(`[VoiceRunner] Failed to generate signed URL for ${item.file_name}:`, signedError);
+          }
+        } catch (err) {
+          console.warn(`[VoiceRunner] Error generating signed URL:`, err);
+        }
+      }
+
       // Call the voice transcription function based on source
       let transcriptionResult;
       
@@ -231,7 +251,7 @@ async function processItemsInBackground(
         // Use process-voice-recording for in-app recordings
         const { data, error } = await supabase.functions.invoke('process-voice-recording', {
           body: { 
-            audioUrl: item.file_url, 
+            audioUrl: audioUrl, 
             recordingId: item.recording_id 
           }
         });
@@ -242,7 +262,7 @@ async function processItemsInBackground(
         // Use transcribe-voice-note for media files (WhatsApp, etc.)
         const { data, error } = await supabase.functions.invoke('transcribe-voice-note', {
           body: { 
-            audioUrl: item.file_url,
+            audioUrl: audioUrl,
             mediaId: item.media_id,
             profileId: session.profile_id
           }

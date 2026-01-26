@@ -9,6 +9,7 @@ export interface VoiceRecording {
   id: string;
   title: string;
   audio_url: string;
+  storage_path?: string; // For generating signed URLs to access private bucket files
   duration_seconds: number | null;
   recording_type: string;
   transcription_status: string;
@@ -262,6 +263,7 @@ export function useVoiceBulkAnalysis(profileId?: string) {
         recording_id: rec.source === 'voice_recording_sessions' ? rec.id : null,
         source: rec.source,
         file_url: rec.audio_url,
+        storage_path: rec.storage_path || null, // For signed URL generation in backend
         file_name: rec.title,
         status: 'pending',
         queue_position: idx,
@@ -453,7 +455,7 @@ export function useVoiceBulkAnalysis(profileId?: string) {
       // Source 2: Media table (imported audio files like WhatsApp voice notes)
       let mediaQuery = supabase
         .from('media')
-        .select('id, caption, file_url, file_size, mime_type, profile_id, created_at, detected_language')
+        .select('id, caption, file_url, storage_path, file_size, mime_type, profile_id, created_at, detected_language')
         .like('mime_type', 'audio/%')
         .order('created_at', { ascending: false });
       
@@ -491,6 +493,7 @@ export function useVoiceBulkAnalysis(profileId?: string) {
           id: r.id,
           title: r.caption || r.file_url?.split('/').pop() || 'Audio File',
           audio_url: r.file_url || '',
+          storage_path: r.storage_path || undefined, // For signed URL generation
           duration_seconds: null,
           recording_type: r.mime_type?.includes('opus') ? 'voice_note' : 'audio',
           transcription_status: 'pending',
@@ -578,12 +581,38 @@ export function useVoiceBulkAnalysis(profileId?: string) {
     }
   }, []);
 
+  // Get accessible URL - prefer signed URL for private bucket access
+  const getAccessibleUrl = useCallback(async (recording: VoiceRecording): Promise<string> => {
+    // If we have storage_path, generate a fresh signed URL for private bucket access
+    if (recording.storage_path) {
+      try {
+        const { data, error } = await supabase.storage
+          .from('media')
+          .createSignedUrl(recording.storage_path, 3600); // 1 hour expiry
+        
+        if (!error && data?.signedUrl) {
+          console.log(`[VoiceBulkAnalysis] Generated signed URL for ${recording.title}`);
+          return data.signedUrl;
+        }
+        console.warn('[VoiceBulkAnalysis] Signed URL failed, falling back to public URL:', error);
+      } catch (err) {
+        console.warn('[VoiceBulkAnalysis] Error generating signed URL:', err);
+      }
+    }
+    
+    // Fallback to original URL (for public buckets or missing storage_path)
+    return recording.audio_url;
+  }, []);
+
   // Process single recording locally (WebGPU Whisper)
   const processLocalRecording = useCallback(async (
     recording: VoiceRecording,
     userId: string
   ): Promise<{ success: boolean; processingTimeMs: number; detectedLanguage?: string }> => {
-    const result = await localAudioAnalyzer.analyzeAudioFile(recording.audio_url, {
+    // Get accessible URL (signed for private bucket)
+    const accessibleUrl = await getAccessibleUrl(recording);
+    
+    const result = await localAudioAnalyzer.analyzeAudioFile(accessibleUrl, {
       transcribe: true,
       analyzeSentiment: true
     });
@@ -594,9 +623,12 @@ export function useVoiceBulkAnalysis(profileId?: string) {
 
     const detectedLang = result.detectedLanguage?.languageCode || result.transcription?.language || 'unknown';
 
+    // Map source to valid constraint value
+    const sourceType = recording.source === 'voice_recording_sessions' ? 'voice_recording_session' : 'media';
+
     // Store results in voice_insights with language
     const { error: insertError } = await supabase.from('voice_insights').upsert({
-      source_type: 'voice_recording_session',
+      source_type: sourceType,
       source_id: recording.id,
       profile_id: recording.profile_id,
       user_id: userId,
@@ -620,7 +652,7 @@ export function useVoiceBulkAnalysis(profileId?: string) {
     }
 
     return { success: true, processingTimeMs: result.totalProcessingMs, detectedLanguage: detectedLang };
-  }, [syncMediaAnalysisStatus]);
+  }, [syncMediaAnalysisStatus, getAccessibleUrl]);
 
   // Start bulk analysis with mode selection
   const startBulkAnalysis = useCallback(async (
