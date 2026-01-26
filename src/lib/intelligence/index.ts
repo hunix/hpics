@@ -159,11 +159,38 @@ export {
 export {
   analyzeStrategicInteraction,
   analyzeRepeatedGame,
+  analyzeHypergame,
+  calculateGapExploitability,
+  analyzeCognitiveEffects,
+  detectReflexiveControl,
+  buildTheoryOfMind,
+  updateMentalModel,
+  calculateTrustHalfLife,
+  projectTrustDecay,
   type Player,
   type StrategyProfile,
   type GameOutcome,
   type StrategicInteraction,
   type MixedStrategy,
+  // v7.0: NATO House Model
+  type CognitiveEffectLevel,
+  type CognitiveEffectAnalysis,
+  type CognitiveEffectCascade,
+  // v7.0: Reflexive Control
+  type ReflexiveControlTechnique,
+  type ReflexiveControlIndicator,
+  type ReflexiveControlAnalysis,
+  type CounterReflexiveStrategy,
+  // v7.0: Kallisti Theory of Mind
+  type BasisVector,
+  type AdversaryMentalModel,
+  type TheoryOfMindAnalysis,
+  type BeliefDivergence,
+  type StrategicOpportunity,
+  // Hypergame (v6.0 + v7.0)
+  type HypergameLevel,
+  type PerceptionGap,
+  type HypergameAnalysis,
 } from './gameTheoryEngine';
 
 // ============================================
