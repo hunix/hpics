@@ -9,7 +9,7 @@
  */
 
 import { pipeline, env } from "@huggingface/transformers";
-import { OggOpusDecoder } from "ogg-opus-decoder";
+import { OggOpusDecoderWebWorker } from "ogg-opus-decoder";
 
 // Configure for browser usage
 env.allowLocalModels = false;
@@ -253,7 +253,8 @@ class LocalWhisperTranscriber {
   private currentModel: WhisperModel = 'turbo';
   private currentDevice: 'webgpu' | 'wasm' = 'webgpu';
   private progressCallback: ProgressCallback | null = null;
-  private opusDecoder: OggOpusDecoder | null = null;
+  private opusDecoder: OggOpusDecoderWebWorker | null = null;
+  private opusDecoderReady: boolean = false;
 
   /**
    * Check if WebGPU is available in the browser
@@ -269,15 +270,26 @@ class LocalWhisperTranscriber {
   }
 
   /**
-   * Decode OGG/Opus using WASM decoder (fallback for Chrome's broken decodeAudioData)
+   * Decode OGG/Opus using WASM decoder in Web Worker (off-main-thread)
+   * Prevents UI freezes during decoding
    */
   private async decodeOpusWithWasm(arrayBuffer: ArrayBuffer): Promise<Float32Array> {
-    console.log('[LocalWhisper] Using WASM Opus decoder...');
+    console.log('[LocalWhisper] Using WASM Opus decoder (Web Worker)...');
     
-    // Lazy-initialize decoder
-    if (!this.opusDecoder) {
-      this.opusDecoder = new OggOpusDecoder();
-      await this.opusDecoder.ready;
+    // Lazy-initialize decoder with explicit error handling
+    if (!this.opusDecoder || !this.opusDecoderReady) {
+      try {
+        console.log('[LocalWhisper] Initializing OggOpusDecoderWebWorker...');
+        this.opusDecoder = new OggOpusDecoderWebWorker();
+        await this.opusDecoder.ready;
+        this.opusDecoderReady = true;
+        console.log('[LocalWhisper] WASM Opus decoder initialized successfully');
+      } catch (initError) {
+        console.error('[LocalWhisper] WASM Opus decoder failed to initialize:', initError);
+        this.opusDecoder = null;
+        this.opusDecoderReady = false;
+        throw new Error('Opus decoder unavailable - WASM failed to load. Try Cloud mode for .opus files.');
+      }
     }
     
     // Decode - returns { channelData: Float32Array[], samplesDecoded: number, sampleRate: number }
