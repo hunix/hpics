@@ -1,14 +1,17 @@
 // New Version Available Banner
 import { useState } from 'react';
-import { RefreshCw, X, Sparkles } from "lucide-react";
+import { RefreshCw, X, Sparkles, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { forceAppUpdate } from '@/lib/appVersion';
 
 interface NewVersionAvailableProps {
   onRefresh?: () => void;
   onDismiss?: () => void;
   variant?: 'banner' | 'toast' | 'inline';
   className?: string;
+  currentVersion?: string;
+  newVersion?: string;
 }
 
 export function NewVersionAvailable({
@@ -16,14 +19,23 @@ export function NewVersionAvailable({
   onDismiss,
   variant = 'banner',
   className,
+  currentVersion,
+  newVersion,
 }: NewVersionAvailableProps) {
   const [isVisible, setIsVisible] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
   
-  const handleRefresh = () => {
-    if (onRefresh) {
-      onRefresh();
-    } else {
-      window.location.reload();
+  const handleRefresh = async () => {
+    setIsUpdating(true);
+    try {
+      if (onRefresh) {
+        await onRefresh();
+      } else {
+        await forceAppUpdate();
+      }
+    } catch (error) {
+      console.error('[NewVersionAvailable] Update failed:', error);
+      setIsUpdating(false);
     }
   };
   
@@ -33,6 +45,10 @@ export function NewVersionAvailable({
   };
   
   if (!isVisible) return null;
+
+  const versionText = newVersion 
+    ? `Version ${newVersion} is available`
+    : 'A new version is available';
   
   if (variant === 'toast') {
     return (
@@ -44,23 +60,43 @@ export function NewVersionAvailable({
       )}>
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0 p-2 rounded-full bg-primary/10">
-            <Sparkles className="h-4 w-4 text-primary" />
+            <Download className="h-4 w-4 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="text-sm font-medium">New Version Available</h4>
+            <h4 className="text-sm font-medium">{versionText}</h4>
             <p className="text-xs text-muted-foreground mt-1">
-              A new version is ready. Refresh to get the latest features.
+              Refresh to get the latest features and improvements.
+              {currentVersion && (
+                <span className="block mt-1 opacity-70">
+                  Current: v{currentVersion}
+                </span>
+              )}
             </p>
             <div className="flex items-center gap-2 mt-3">
-              <Button size="sm" onClick={handleRefresh} className="h-7 text-xs">
-                <RefreshCw className="h-3 w-3 mr-1" />
-                Refresh Now
+              <Button 
+                size="sm" 
+                onClick={handleRefresh} 
+                className="h-7 text-xs"
+                disabled={isUpdating}
+              >
+                {isUpdating ? (
+                  <>
+                    <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Update Now
+                  </>
+                )}
               </Button>
               <Button 
                 size="sm" 
                 variant="ghost" 
                 onClick={handleDismiss}
                 className="h-7 text-xs"
+                disabled={isUpdating}
               >
                 Later
               </Button>
@@ -69,6 +105,7 @@ export function NewVersionAvailable({
           <button
             onClick={handleDismiss}
             className="text-muted-foreground hover:text-foreground"
+            disabled={isUpdating}
           >
             <X className="h-4 w-4" />
           </button>
@@ -86,45 +123,74 @@ export function NewVersionAvailable({
       )}>
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
-          <span className="text-sm">New version available</span>
+          <span className="text-sm">{versionText}</span>
         </div>
-        <Button size="sm" variant="outline" onClick={handleRefresh} className="h-7">
-          <RefreshCw className="h-3 w-3 mr-1" />
-          Refresh
+        <Button 
+          size="sm" 
+          variant="outline" 
+          onClick={handleRefresh} 
+          className="h-7"
+          disabled={isUpdating}
+        >
+          {isUpdating ? (
+            <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+          ) : (
+            <RefreshCw className="h-3 w-3 mr-1" />
+          )}
+          {isUpdating ? 'Updating...' : 'Update'}
         </Button>
       </div>
     );
   }
   
-  // Default banner variant
+  // Default banner variant - prominent top banner
   return (
     <div className={cn(
-      "fixed top-0 left-0 right-0 z-50",
-      "bg-gradient-to-r from-primary/90 to-primary",
-      "text-primary-foreground py-2 px-4",
-      "animate-in slide-in-from-top",
+      "fixed top-0 left-0 right-0 z-[60]",
+      "bg-gradient-to-r from-primary to-primary/90",
+      "text-primary-foreground py-2.5 px-4",
+      "animate-in slide-in-from-top duration-300",
+      "shadow-lg",
       className
     )}>
-      <div className="container mx-auto flex items-center justify-center gap-4">
+      <div className="container mx-auto flex items-center justify-center gap-4 flex-wrap">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4" />
+          <div className="p-1 rounded-full bg-primary-foreground/20">
+            <Download className="h-4 w-4" />
+          </div>
           <span className="text-sm font-medium">
-            A new version of the application is available
+            {versionText}
           </span>
+          {currentVersion && (
+            <span className="text-xs opacity-75 hidden sm:inline">
+              (current: v{currentVersion})
+            </span>
+          )}
         </div>
         <Button
           size="sm"
           variant="secondary"
           onClick={handleRefresh}
-          className="h-7 text-xs"
+          className="h-7 text-xs font-medium"
+          disabled={isUpdating}
         >
-          <RefreshCw className="h-3 w-3 mr-1" />
-          Refresh Now
+          {isUpdating ? (
+            <>
+              <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+              Updating...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Update Now
+            </>
+          )}
         </Button>
         <button
           onClick={handleDismiss}
-          className="absolute right-4 hover:opacity-80"
+          className="absolute right-4 hover:opacity-80 transition-opacity"
           aria-label="Dismiss"
+          disabled={isUpdating}
         >
           <X className="h-4 w-4" />
         </button>
@@ -167,6 +233,6 @@ export function useVersionCheck(options: {
         });
       }
     },
-    refresh: () => window.location.reload(),
+    refresh: () => forceAppUpdate(),
   };
 }
