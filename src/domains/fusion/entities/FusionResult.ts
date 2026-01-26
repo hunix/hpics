@@ -39,7 +39,46 @@ export type FusionEngineType =
   | 'dark2clear-deanonymization'
   | 'gated-biological-fusion'
   | 'tas-com-community'
-  | 'migration5-biometric';
+  | 'migration5-biometric'
+  // v8.0 Phase 1 - Counter-Intelligence
+  | 'draco-deception-orchestrator'
+  | 'sentient-intent-analyzer'
+  | 'insider-threat-matrix'
+  | 'bayesian-intention-predictor'
+  | 'red-team-adversary-simulator'
+  | 'semafor-forgery-detector'
+  | 'epistemic-vulnerability-scanner'
+  | 'cognitive-iw-detector'
+  // v8.0 Phase 2 - Psychological Warfare
+  | 'psychoagent-cascade-predictor'
+  | 'affective-manipulation-detector'
+  | 'hyperpersonalization-engine'
+  | 'computational-persuasion-engine'
+  | 'synthetic-memory-generator'
+  | 'premem-belief-modifier'
+  | 'linguistic-stress-detector'
+  | 'memory-anchor-generator'
+  | 'emotional-contagion-modeler'
+  | 'sacred-value-predictor'
+  // v8.0 Phase 3 - Biometric & Network
+  | 'pupillometry-analyzer'
+  | 'thermal-stress-detector'
+  | 'attention-multimodal-fuser'
+  | 'keystroke-dynamics-analyzer'
+  | 'sheaf-neural-influence-mapper'
+  | 'ctdg-link-predictor'
+  | 'cascade-virality-predictor'
+  | 'network-resilience-analyzer'
+  | 'gaze-pattern-analyzer'
+  | 'micro-expression-timeline'
+  | 'voice-stress-correlator'
+  | 'social-graph-predictor'
+  | 'behavioral-fingerprint-engine'
+  // v8.0 Phase 4 - Doctrine & Prediction
+  | 'influence-campaign-optimizer'
+  | 'counter-narrative-generator'
+  | 'predictive-doctrine-engine'
+  | 'cognitive-defense-simulator';
 
 export interface FusionMetrics {
   processingTimeMs: number;
