@@ -1,303 +1,228 @@
 
 
-# Browser-Resilient Voice Analysis System
+# Fix Voice Analysis Stuck at 0/5 Progress
 
 ## Problem Diagnosis
 
-The browser refresh during voice analysis is caused by multiple factors in the current client-side architecture:
+Based on investigation of the screenshot, logs, database, and code:
 
-| Cause | Location | Trigger |
-|-------|----------|---------|
-| PWA Auto-Update | `src/main.tsx:100-119` | Service worker detects new deployment |
-| Version Mismatch | `src/main.tsx:32-55` | `FORCE_CLEAR_VERSIONS` contains previous version |
-| Chunk Errors | `src/lib/appVersion.ts:180-202` | 2+ chunk loading failures in 60 seconds |
+| Finding | Evidence |
+|---------|----------|
+| Session shows "Analyzing... 0 / 5" with Pause button | Screenshot shows processing phase but no progress |
+| No database session exists | Query to `voice_analysis_sessions` returns empty `[]` |
+| No edge function logs | `process-voice-analysis-runner` shows no logs |
+| createDbSession may be failing silently | Function catches errors but continues processing |
+| Local Whisper processing is blocking | `processLocalRecording` runs synchronously without UI updates |
 
-The fundamental issue is that **local WebGPU Whisper processing runs entirely in the browser**, so any page refresh terminates the process and loses progress.
+The root cause is a combination of issues:
 
-## Solution: Hybrid Backend-Resilient Voice Analysis
+1. **Database session creation is failing** - The `createDbSession` function fails silently, so the session isn't persisted for recovery
+2. **Local Whisper transcriber hangs indefinitely** - The `localWhisperTranscriber.transcribe()` can hang on certain audio files or if WebGPU/WASM initialization stalls
+3. **No timeout on model initialization** - The model loading phase has no timeout, so if it stalls, the UI stays stuck
+4. **Published version may be stale** - The screenshot shows "Analyzing..." which differs from current code showing "Processing:"
 
-Implement a dual-mode architecture that allows voice analysis to either:
-1. **Run locally** (fast, uses WebGPU) with progress checkpointing
-2. **Continue in backend** (resilient, uses cloud transcription) when browser closes
+## Solution Architecture
 
-### Architecture Overview
+Implement three defensive layers:
 
 ```text
-┌─────────────────────────────────────────────────────────────────────┐
-│                     Voice Analysis Session                          │
-├─────────────────────────────────────────────────────────────────────┤
-│  1. User selects files and starts analysis                          │
-│  2. Session created in voice_analysis_sessions table                │
-│  3. Items created in voice_analysis_items table                     │
-│  4. Local processing begins (WebGPU Whisper)                        │
-│  5. Progress checkpointed to DB after each file                     │
-│  6. "Continue in Background" button available                       │
-│  7. On refresh/close: Backend runner picks up pending items         │
-└─────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────┐
+│                    Browser-Resilient Processing                   │
+├───────────────────────────────────────────────────────────────────┤
+│  Layer 1: Initialization Timeout (30s)                            │
+│    - Fail fast if model can't load                                │
+│    - Auto-fallback to cloud mode                                  │
+├───────────────────────────────────────────────────────────────────┤
+│  Layer 2: Per-File Timeout with Progress Updates                  │
+│    - Update UI every 5 seconds with "Still processing..."         │
+│    - Mark file as failed after timeout                            │
+│    - Continue to next file                                        │
+├───────────────────────────────────────────────────────────────────┤
+│  Layer 3: Stall Detection & Auto-Recovery                         │
+│    - Detect no progress for 2 minutes                             │
+│    - Auto-trigger backend runner to take over                     │
+│    - Show "Transferring to background..." status                  │
+└───────────────────────────────────────────────────────────────────┘
 ```
 
 ## Implementation Plan
 
-### Phase 1: Database Schema for Session Persistence
+### Phase 1: Add Model Initialization Timeout
 
-Create tables to track voice analysis sessions and items with the same pattern as `bulk_analysis_sessions`:
+Add a timeout wrapper around the Whisper model initialization to prevent infinite hangs:
 
-**New Tables:**
-- `voice_analysis_sessions` - Tracks overall session state, model choice, processing mode
-- `voice_analysis_items` - Tracks each audio file with status, progress, results
+**File: `src/hooks/useVoiceBulkAnalysis.ts`**
 
-**Key Fields:**
-- `status`: idle | running | paused | completed | failed
-- `processing_mode`: local | cloud | hybrid
-- `whisper_model`: tiny | small | distil | turbo
-- `checkpoint_progress`: JSON with last successfully processed item
+Add a 30-second timeout on model initialization with automatic fallback to cloud mode if it fails.
 
-### Phase 2: Backend Voice Analysis Runner
+### Phase 2: Add Stall Detection
 
-Create a new edge function `process-voice-analysis-runner` that:
+Add a `useEffect` that monitors session progress and auto-triggers the backend runner if no progress is detected for 2 minutes:
 
-1. Receives `sessionId` and `action` (start/continue/pause)
-2. Fetches pending items from `voice_analysis_items`
-3. Uses `EdgeRuntime.waitUntil()` for background processing
-4. Calls existing `process-voice-recording` or `transcribe-audio` for each item
-5. Updates item and session status atomically
+**File: `src/hooks/useVoiceBulkAnalysis.ts`**
 
 ```typescript
-// supabase/functions/process-voice-analysis-runner/index.ts
-EdgeRuntime.waitUntil(processItemsInBackground(session, pendingItems));
+// Stall detection - auto-recover if no progress for 2 minutes
+useEffect(() => {
+  if (!session?.dbSessionId || session.status !== 'running' || session.isBackendProcessing) return;
+  
+  const lastProgressRef = { items: session.processedItems, time: Date.now() };
+  
+  const interval = setInterval(() => {
+    const currentProcessed = session.processedItems;
+    const timeSinceProgress = Date.now() - lastProgressRef.time;
+    
+    if (currentProcessed === lastProgressRef.items && timeSinceProgress > 120000) {
+      // Stalled for 2+ minutes - auto-trigger backend
+      console.warn('[VoiceBulkAnalysis] Stall detected - transferring to backend...');
+      continueInBackground();
+    } else if (currentProcessed > lastProgressRef.items) {
+      lastProgressRef.items = currentProcessed;
+      lastProgressRef.time = Date.now();
+    }
+  }, 30000);
+  
+  return () => clearInterval(interval);
+}, [session?.dbSessionId, session?.status, session?.isBackendProcessing, session?.processedItems]);
 ```
 
-### Phase 3: Enhanced Hook with Persistence
+### Phase 3: Fix Silent Database Session Creation Failure
 
-Update `useVoiceBulkAnalysis.ts` to:
+Make `createDbSession` failure more visible and ensure processing can continue even without DB session:
 
-1. **Create session in DB** before starting processing
-2. **Checkpoint progress** after each file completes (update `voice_analysis_items`)
-3. **Detect orphaned sessions** on mount and offer recovery
-4. **Subscribe to Realtime** for progress updates from backend
-5. **Provide "Continue in Background"** action that triggers backend runner
+**File: `src/hooks/useVoiceBulkAnalysis.ts`**
 
-### Phase 4: UI Enhancements
+- Add toast warning when DB session creation fails
+- Still allow local processing to proceed (graceful degradation)
+- Log the specific error for debugging
 
-Update `VoiceBulkAnalysisPanel.tsx`:
+### Phase 4: Add Heartbeat Progress Updates
 
-1. **Session Recovery Dialog**: On mount, check for interrupted sessions
-2. **Continue in Background Button**: Visible during active processing
-3. **Backend Progress Indicator**: Show progress even when backend is processing
-4. **Realtime Status**: Subscribe to session updates
+Update the processing loop to send periodic UI updates even while a file is being processed:
 
-## File Changes
+**File: `src/hooks/useVoiceBulkAnalysis.ts`**
 
-| File | Change |
-|------|--------|
-| `supabase/migrations/YYYYMMDD_voice_analysis_sessions.sql` | New tables + RLS |
-| `supabase/functions/process-voice-analysis-runner/index.ts` | New backend runner |
-| `src/hooks/useVoiceBulkAnalysis.ts` | Add persistence, recovery, realtime |
-| `src/components/analysis/VoiceBulkAnalysisPanel.tsx` | Add recovery UI, background button |
+Add a progress heartbeat that updates `currentFileName` with elapsed time to show the UI isn't frozen.
+
+### Phase 5: UI Stall Indicator
+
+Add a visual indicator in the UI when processing appears stalled:
+
+**File: `src/components/analysis/VoiceBulkAnalysisPanel.tsx`**
+
+Show "Taking longer than expected..." after 30 seconds on the same file, with a "Switch to Cloud" button.
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/hooks/useVoiceBulkAnalysis.ts` | Add initialization timeout, stall detection, heartbeat, better error handling |
+| `src/components/analysis/VoiceBulkAnalysisPanel.tsx` | Add stall indicator UI, "Taking longer..." warning |
+| `src/lib/ml/localWhisperTranscriber.ts` | Add AbortController support for cancellation |
 
 ## Technical Details
 
-### Database Schema
-
-```sql
--- Voice Analysis Sessions (parent)
-CREATE TABLE voice_analysis_sessions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) NOT NULL,
-  profile_id UUID REFERENCES profiles(id),
-  status TEXT DEFAULT 'idle' CHECK (status IN ('idle', 'running', 'paused', 'completed', 'failed', 'cancelled')),
-  processing_mode TEXT DEFAULT 'local' CHECK (processing_mode IN ('local', 'cloud', 'hybrid')),
-  whisper_model TEXT DEFAULT 'small',
-  total_items INTEGER DEFAULT 0,
-  completed_items INTEGER DEFAULT 0,
-  failed_items INTEGER DEFAULT 0,
-  skipped_items INTEGER DEFAULT 0,
-  current_item_id UUID,
-  started_at TIMESTAMPTZ,
-  completed_at TIMESTAMPTZ,
-  error_message TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
--- Voice Analysis Items (children)
-CREATE TABLE voice_analysis_items (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  session_id UUID REFERENCES voice_analysis_sessions(id) ON DELETE CASCADE,
-  media_id UUID,
-  recording_id UUID,
-  source TEXT CHECK (source IN ('media', 'voice_recording_sessions')),
-  file_url TEXT,
-  file_name TEXT,
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'running', 'completed', 'failed', 'skipped')),
-  queue_position INTEGER,
-  transcription_text TEXT,
-  detected_language TEXT,
-  processing_time_ms INTEGER,
-  error_message TEXT,
-  retry_count INTEGER DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  completed_at TIMESTAMPTZ
-);
-
--- RLS Policies
-ALTER TABLE voice_analysis_sessions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE voice_analysis_items ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can manage own sessions" ON voice_analysis_sessions
-  FOR ALL USING (user_id = auth.uid());
-
-CREATE POLICY "Users can manage own items" ON voice_analysis_items
-  FOR ALL USING (
-    session_id IN (SELECT id FROM voice_analysis_sessions WHERE user_id = auth.uid())
-  );
-
--- Enable Realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE voice_analysis_sessions;
-ALTER PUBLICATION supabase_realtime ADD TABLE voice_analysis_items;
-
--- RPC for atomic progress increment
-CREATE OR REPLACE FUNCTION increment_voice_session_progress(
-  p_session_id UUID,
-  p_is_completed BOOLEAN,
-  p_is_failed BOOLEAN,
-  p_is_skipped BOOLEAN DEFAULT FALSE
-) RETURNS VOID AS $$
-BEGIN
-  UPDATE voice_analysis_sessions SET
-    completed_items = CASE WHEN p_is_completed THEN completed_items + 1 ELSE completed_items END,
-    failed_items = CASE WHEN p_is_failed THEN failed_items + 1 ELSE failed_items END,
-    skipped_items = CASE WHEN p_is_skipped THEN skipped_items + 1 ELSE skipped_items END,
-    updated_at = now()
-  WHERE id = p_session_id;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-### Backend Runner Logic
+### Initialization Timeout
 
 ```typescript
-// supabase/functions/process-voice-analysis-runner/index.ts
-async function processItemsInBackground(session: any, items: any[]) {
-  for (const item of items) {
-    // Check for pause/cancel
-    const { data: currentSession } = await supabase
-      .from('voice_analysis_sessions')
-      .select('status')
-      .eq('id', session.id)
-      .single();
-    
-    if (currentSession?.status === 'paused' || currentSession?.status === 'cancelled') {
-      break;
-    }
+const MODEL_INIT_TIMEOUT_MS = 30000; // 30 seconds
 
-    // Update item to running
-    await supabase.from('voice_analysis_items')
-      .update({ status: 'running' })
-      .eq('id', item.id);
-
-    try {
-      // Call process-voice-recording for transcription
-      const { data, error } = await supabase.functions.invoke('process-voice-recording', {
-        body: { audioUrl: item.file_url, recordingId: item.recording_id }
-      });
-
-      if (error) throw error;
-
-      // Update item to completed
-      await supabase.from('voice_analysis_items')
-        .update({
-          status: 'completed',
-          transcription_text: data.transcription,
-          detected_language: data.analysis?.language || 'en',
-          completed_at: new Date().toISOString()
-        })
-        .eq('id', item.id);
-
-      await supabase.rpc('increment_voice_session_progress', {
-        p_session_id: session.id,
-        p_is_completed: true,
-        p_is_failed: false
-      });
-
-    } catch (error) {
-      await supabase.from('voice_analysis_items')
-        .update({
-          status: 'failed',
-          error_message: error.message,
-          retry_count: item.retry_count + 1
-        })
-        .eq('id', item.id);
-
-      await supabase.rpc('increment_voice_session_progress', {
-        p_session_id: session.id,
-        p_is_completed: false,
-        p_is_failed: true
-      });
+// Wrap initialization with timeout
+const initWithTimeout = async () => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), MODEL_INIT_TIMEOUT_MS);
+  
+  try {
+    await localAudioAnalyzer.initialize({
+      whisperModel: whisperModel,
+      signal: controller.signal, // Pass abort signal
+      onProgress: (progress) => { /* ... */ }
+    });
+    clearTimeout(timeoutId);
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      console.warn('[VoiceBulkAnalysis] Model init timeout - falling back to cloud');
+      toast.warning('Local model loading timed out. Using cloud processing.');
+      mode = 'cloud'; // Fallback
+    } else {
+      throw error;
     }
   }
+};
+```
 
-  // Mark session completed if no pending items remain
-  const { data: remaining } = await supabase
-    .from('voice_analysis_items')
-    .select('id')
-    .eq('session_id', session.id)
-    .eq('status', 'pending')
-    .limit(1);
+### Heartbeat Progress Updates
 
-  if (!remaining?.length) {
-    await supabase.from('voice_analysis_sessions')
-      .update({ status: 'completed', completed_at: new Date().toISOString() })
-      .eq('id', session.id);
+```typescript
+// Inside the processing loop
+let heartbeatInterval: NodeJS.Timeout | undefined;
+
+for (let i = 0; i < recordingsToProcess.length; i++) {
+  const recording = recordingsToProcess[i];
+  const startTime = Date.now();
+  
+  // Start heartbeat
+  heartbeatInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    setSession(prev => prev ? {
+      ...prev,
+      currentFileName: `${recording.title} (${elapsed}s elapsed...)`
+    } : null);
+  }, 5000);
+  
+  try {
+    await withTimeout(
+      processLocalRecording(recording, user.id),
+      LOCAL_TIMEOUT_MS,
+      recording.title || 'Audio file'
+    );
+  } finally {
+    clearInterval(heartbeatInterval);
   }
 }
 ```
 
-### Hook Recovery Logic
+### UI Stall Warning
 
 ```typescript
-// In useVoiceBulkAnalysis.ts - detect orphaned sessions
-const checkForInterruptedSession = useCallback(async () => {
-  const { data: interrupted } = await supabase
-    .from('voice_analysis_sessions')
-    .select('*')
-    .eq('user_id', userId)
-    .in('status', ['running', 'paused'])
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single();
+// In VoiceBulkAnalysisPanel.tsx
+const isStalled = useMemo(() => {
+  if (!session || session.status !== 'running') return false;
+  // Check if currentFileName contains elapsed time > 30s
+  const match = session.currentFileName?.match(/\((\d+)s elapsed\.\.\.\)$/);
+  return match ? parseInt(match[1]) > 30 : false;
+}, [session?.currentFileName, session?.status]);
 
-  if (interrupted) {
-    setInterruptedSession(interrupted);
-    return interrupted;
-  }
-  return null;
-}, [userId]);
-
-// Resume from interrupted session
-const resumeInterruptedSession = useCallback(async () => {
-  // Trigger backend runner to continue
-  await supabase.functions.invoke('process-voice-analysis-runner', {
-    body: { sessionId: interruptedSession.id, action: 'continue' }
-  });
-}, [interruptedSession]);
+// Render warning
+{isStalled && (
+  <div className="flex items-center gap-2 text-amber-500 text-sm mt-2">
+    <AlertTriangle className="h-4 w-4" />
+    <span>Taking longer than expected...</span>
+    <Button size="sm" variant="outline" onClick={continueInBackground}>
+      Switch to Cloud
+    </Button>
+  </div>
+)}
 ```
 
-## Benefits
+## Expected Outcomes
 
-1. **Zero Data Loss**: Progress is checkpointed after each file
-2. **Browser-Independent**: Backend runner continues if browser closes
-3. **Seamless Recovery**: Users can resume interrupted sessions
-4. **Realtime Updates**: UI reflects progress even from backend processing
-5. **Fallback Path**: Cloud transcription available when WebGPU unavailable
+1. **No more infinite hangs** - Timeouts ensure processing always progresses or fails gracefully
+2. **Visual feedback during long operations** - Users see elapsed time and know the app isn't frozen
+3. **Automatic recovery** - Stall detection triggers backend fallback automatically
+4. **Graceful degradation** - Even if DB session fails, local processing continues
+5. **User control** - "Switch to Cloud" button available when local processing struggles
 
-## Estimated Implementation Time
+## Testing Steps
 
-- Phase 1 (Schema): 30 minutes
-- Phase 2 (Backend Runner): 1 hour
-- Phase 3 (Hook Updates): 2 hours
-- Phase 4 (UI Updates): 1 hour
-- Testing: 1 hour
-
-**Total: ~5-6 hours**
+1. Navigate to `/analysis` → Voice tab
+2. Select 5 audio files and start Local processing
+3. Observe:
+   - Model download should show progress or timeout after 30s
+   - Each file should show elapsed time updates every 5s
+   - If any file exceeds 60s, it should timeout and move to next
+   - If stuck for 2+ minutes, auto-transfers to backend
+4. Close browser during processing
+5. Reopen and verify interrupted session is detected and can resume
 
