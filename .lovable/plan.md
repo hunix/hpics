@@ -1,111 +1,210 @@
 
-# Fix Voice Analysis Source Type Constraint Violation
+# Fix Voice Analysis Audio File Download Failures
 
 ## Problem Identified
 
-All 5 voice analysis files fail with the error:
-> **"new row for relation 'voice_insights' violates check constraint 'voice_insights_source_type_check'"**
+All 5 voice files fail with: **"Failed to download audio file"**
 
 ### Root Cause
 
-The `voice_insights` table has a CHECK constraint that only allows these `source_type` values:
-- `voice_note`
-- `meeting_recording`
-- `media`
-- `whatsapp_audio`
+| Issue | Evidence |
+|-------|----------|
+| `media` bucket is **private** | `storage.buckets` shows `public: false` |
+| Files stored with **public URLs** | `file_url` uses `/storage/v1/object/public/media/...` pattern |
+| Browser cannot access private files | `fetch(url, { method: 'HEAD' })` returns 403 Forbidden |
+| `storage_path` exists but unused | Media records have valid `storage_path` column |
 
-But the code sends incompatible values:
+The `localAudioAnalyzer.validateAudioUrl()` method tries to HEAD-fetch the public URL, which fails for a private bucket. The error is then classified as "Failed to download audio file".
 
-| File | Line | Value Sent | Constraint Valid |
-|------|------|------------|------------------|
-| `useVoiceBulkAnalysis.ts` | 599 | `voice_recording_session` | ❌ No |
-| `analyze-voice-comprehensive` | 147 | `voice_recording` | ❌ No |
-| `VoiceBulkAnalysisPanel` (cloud mode) | 927 | `voice_recording` | ❌ No |
+## Solution: Generate Signed URLs for Local Processing
 
-## Solution
+Before processing audio files locally, generate fresh signed URLs using the `storage_path` instead of relying on the public `file_url`.
 
-Two-part fix:
+### Architecture Change
 
-### Part 1: Expand Database Constraint
+```text
+Before:
+┌─────────────────────────────────────────────────────────┐
+│  VoiceRecording.audio_url (public URL)                  │
+│            ↓                                            │
+│  localAudioAnalyzer.validateAudioUrl()                  │
+│            ↓                                            │
+│  fetch(publicUrl, { method: 'HEAD' }) → 403 FAIL        │
+└─────────────────────────────────────────────────────────┘
 
-Add `voice_recording_session` and `voice_recording` to the allowed values:
+After:
+┌─────────────────────────────────────────────────────────┐
+│  VoiceRecording.audio_url + storage_path                │
+│            ↓                                            │
+│  getSignedUrl(storage_path) if storage_path exists      │
+│            ↓                                            │
+│  localAudioAnalyzer.analyzeAudioFile(signedUrl)         │
+│            ↓                                            │
+│  fetch(signedUrl) → 200 OK                              │
+└─────────────────────────────────────────────────────────┘
+```
+
+## Implementation Plan
+
+### Phase 1: Extend VoiceRecording Type
+
+Add `storage_path` to the `VoiceRecording` interface so it's available during processing.
+
+**File: `src/hooks/useVoiceBulkAnalysis.ts`**
+
+```typescript
+export interface VoiceRecording {
+  id: string;
+  audio_url: string;
+  storage_path?: string; // NEW: For generating signed URLs
+  title: string;
+  // ...
+}
+```
+
+### Phase 2: Fetch storage_path in Recording Queries
+
+Update `fetchRecordings` to include `storage_path` from the `media` table.
+
+**File: `src/hooks/useVoiceBulkAnalysis.ts`**
+
+```typescript
+// In fetchRecordings - add storage_path to select
+const { data: mediaRecordings } = await supabase
+  .from('media')
+  .select('id, file_url, storage_path, mime_type, ...')
+  .eq('profile_id', contactId)
+  .ilike('mime_type', 'audio/%');
+
+// Map with storage_path
+const mediaVoice: VoiceRecording[] = (mediaRecordings || []).map(m => ({
+  id: m.id,
+  audio_url: m.file_url,
+  storage_path: m.storage_path || undefined,
+  // ...
+}));
+```
+
+### Phase 3: Generate Signed URL Before Processing
+
+Add a helper function to get an accessible URL, preferring signed URLs for files with `storage_path`.
+
+**File: `src/hooks/useVoiceBulkAnalysis.ts`**
+
+```typescript
+// Get accessible URL - prefer signed URL for private bucket access
+const getAccessibleUrl = async (recording: VoiceRecording): Promise<string> => {
+  // If we have storage_path, generate a fresh signed URL
+  if (recording.storage_path) {
+    const { data, error } = await supabase.storage
+      .from('media')
+      .createSignedUrl(recording.storage_path, 3600); // 1 hour expiry
+    
+    if (!error && data?.signedUrl) {
+      return data.signedUrl;
+    }
+    console.warn('[VoiceBulkAnalysis] Signed URL failed, falling back to public URL');
+  }
+  
+  // Fallback to original URL
+  return recording.audio_url;
+};
+```
+
+### Phase 4: Use Accessible URL in processLocalRecording
+
+Update the local processing to use signed URLs.
+
+**File: `src/hooks/useVoiceBulkAnalysis.ts`**
+
+```typescript
+// In processLocalRecording
+const processLocalRecording = useCallback(async (
+  recording: VoiceRecording,
+  userId: string
+): Promise<...> => {
+  // Get accessible URL (signed for private bucket)
+  const accessibleUrl = await getAccessibleUrl(recording);
+  
+  const result = await localAudioAnalyzer.analyzeAudioFile(accessibleUrl, {
+    transcribe: true,
+    analyzeSentiment: true
+  });
+  // ...
+}, []);
+```
+
+### Phase 5: Update voice_analysis_items with storage_path
+
+Store `storage_path` in the items table so the backend runner can also generate signed URLs.
+
+**File: `src/hooks/useVoiceBulkAnalysis.ts`**
+
+```typescript
+// In createDbSession - include storage_path
+const items = selectedRecordings.map((rec, idx) => ({
+  session_id: data.id,
+  media_id: rec.source === 'media' ? rec.id : null,
+  recording_id: rec.source === 'voice_recording_sessions' ? rec.id : null,
+  source: rec.source,
+  file_url: rec.audio_url,
+  storage_path: rec.storage_path || null, // NEW
+  file_name: rec.title,
+  status: 'pending',
+  queue_position: idx,
+}));
+```
+
+### Phase 6: Update Backend Runner to Use Signed URLs
+
+Ensure `process-voice-analysis-runner` generates signed URLs before calling transcription.
+
+**File: `supabase/functions/process-voice-analysis-runner/index.ts`**
+
+```typescript
+// Get accessible URL for item
+let audioUrl = item.file_url;
+if (item.storage_path) {
+  const { data: signedData } = await supabase.storage
+    .from('media')
+    .createSignedUrl(item.storage_path, 3600);
+  if (signedData?.signedUrl) {
+    audioUrl = signedData.signedUrl;
+  }
+}
+```
+
+### Phase 7: Add storage_path Column to voice_analysis_items
+
+Add the column via migration to support the new field.
+
+**SQL Migration:**
 
 ```sql
-ALTER TABLE voice_insights 
-DROP CONSTRAINT voice_insights_source_type_check;
-
-ALTER TABLE voice_insights 
-ADD CONSTRAINT voice_insights_source_type_check 
-CHECK (source_type = ANY (ARRAY[
-  'voice_note', 
-  'meeting_recording', 
-  'media', 
-  'whatsapp_audio',
-  'voice_recording_session',  -- NEW: For in-app recordings
-  'voice_recording'           -- NEW: Generic voice recording
-]));
+ALTER TABLE voice_analysis_items 
+ADD COLUMN IF NOT EXISTS storage_path TEXT;
 ```
-
-### Part 2: Normalize Source Types in Code
-
-Alternatively (or additionally), update the code to use consistent, valid source types:
-
-**In `useVoiceBulkAnalysis.ts`** - Map recording sources to valid types:
-
-```typescript
-// Line 599 - local processing
-const sourceTypeMap: Record<string, string> = {
-  'voice_recording_sessions': 'voice_note',  // In-app recordings → voice_note
-  'media': 'media'                           // Media files → media (already valid)
-};
-const mappedSourceType = sourceTypeMap[recording.source] || 'media';
-
-const { error: insertError } = await supabase.from('voice_insights').upsert({
-  source_type: mappedSourceType,  // Use mapped value
-  // ... rest of fields
-});
-```
-
-**In `analyze-voice-comprehensive`** - Normalize incoming source type:
-
-```typescript
-// Line 147 - normalize source type
-const validSourceTypes = ['voice_note', 'meeting_recording', 'media', 'whatsapp_audio'];
-const normalizedSourceType = validSourceTypes.includes(sourceType) 
-  ? sourceType 
-  : (sourceType.includes('recording') ? 'voice_note' : 'media');
-
-const insightData = {
-  source_type: normalizedSourceType,
-  // ... rest of fields
-};
-```
-
-## Recommended Approach
-
-**Expand the constraint** to support all legitimate source types. This is cleaner and self-documenting.
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `supabase/migrations/...` | Alter constraint to add new values |
-| `src/hooks/useVoiceBulkAnalysis.ts` | (Optional) Map source types for consistency |
-| `supabase/functions/analyze-voice-comprehensive/index.ts` | (Optional) Normalize source type |
+| `src/hooks/useVoiceBulkAnalysis.ts` | Add `storage_path` to interface, fetch in queries, generate signed URLs |
+| `supabase/functions/process-voice-analysis-runner/index.ts` | Use signed URLs for backend processing |
+| `supabase/migrations/...` | Add `storage_path` column to `voice_analysis_items` |
 
 ## Technical Notes
 
-- The constraint modification is a safe operation - it expands allowed values, doesn't restrict existing data
-- Both the local processing path (`processLocalRecording`) and cloud path (`analyze-voice-comprehensive`) need to use valid source types
-- The `process-voice-analysis-runner` edge function inherits the same issue when it calls `analyze-voice-comprehensive`
+- Signed URLs expire after 1 hour (3600 seconds), which is sufficient for processing
+- The fallback to public URL handles edge cases where `storage_path` is missing
+- This pattern mirrors `usePersistentBulkSession.tsx:481-485` which already implements signed URL generation
 
 ## Testing Steps
 
 After implementation:
 
 1. Navigate to `/analysis` → Voice tab
-2. Select a contact with audio files
-3. Choose **Local (Fast)** processing mode
-4. Click **Start Analysis**
-5. Verify files now complete successfully instead of showing "5 failed"
-6. Check `voice_insights` table for new records
+2. Select a contact with WhatsApp audio files (stored in private bucket)
+3. Start **Local (Fast)** processing
+4. Verify files now process successfully instead of showing "Failed to download audio file"
+5. Check `voice_insights` table for new transcription records
