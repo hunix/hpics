@@ -37375,6 +37375,80 @@ export type Database = {
           },
         ]
       }
+      voice_analysis_items: {
+        Row: {
+          can_retry: boolean | null
+          completed_at: string | null
+          created_at: string | null
+          detected_language: string | null
+          error_message: string | null
+          error_type: string | null
+          file_name: string | null
+          file_url: string | null
+          id: string
+          max_retries: number | null
+          media_id: string | null
+          processing_time_ms: number | null
+          queue_position: number | null
+          recording_id: string | null
+          retry_count: number | null
+          session_id: string
+          source: string | null
+          status: string | null
+          transcription_text: string | null
+        }
+        Insert: {
+          can_retry?: boolean | null
+          completed_at?: string | null
+          created_at?: string | null
+          detected_language?: string | null
+          error_message?: string | null
+          error_type?: string | null
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          max_retries?: number | null
+          media_id?: string | null
+          processing_time_ms?: number | null
+          queue_position?: number | null
+          recording_id?: string | null
+          retry_count?: number | null
+          session_id: string
+          source?: string | null
+          status?: string | null
+          transcription_text?: string | null
+        }
+        Update: {
+          can_retry?: boolean | null
+          completed_at?: string | null
+          created_at?: string | null
+          detected_language?: string | null
+          error_message?: string | null
+          error_type?: string | null
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          max_retries?: number | null
+          media_id?: string | null
+          processing_time_ms?: number | null
+          queue_position?: number | null
+          recording_id?: string | null
+          retry_count?: number | null
+          session_id?: string
+          source?: string | null
+          status?: string | null
+          transcription_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_analysis_items_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "voice_analysis_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       voice_analysis_jobs: {
         Row: {
           actual_cost_cents: number | null
@@ -37474,6 +37548,91 @@ export type Database = {
           },
           {
             foreignKeyName: "voice_analysis_jobs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voice_analysis_sessions: {
+        Row: {
+          completed_at: string | null
+          completed_items: number | null
+          created_at: string | null
+          current_item_id: string | null
+          error_message: string | null
+          failed_items: number | null
+          id: string
+          name: string | null
+          processing_mode: string | null
+          profile_id: string | null
+          skipped_items: number | null
+          started_at: string | null
+          status: string | null
+          total_cost_cents: number | null
+          total_items: number | null
+          updated_at: string | null
+          user_id: string
+          whisper_model: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_items?: number | null
+          created_at?: string | null
+          current_item_id?: string | null
+          error_message?: string | null
+          failed_items?: number | null
+          id?: string
+          name?: string | null
+          processing_mode?: string | null
+          profile_id?: string | null
+          skipped_items?: number | null
+          started_at?: string | null
+          status?: string | null
+          total_cost_cents?: number | null
+          total_items?: number | null
+          updated_at?: string | null
+          user_id: string
+          whisper_model?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          completed_items?: number | null
+          created_at?: string | null
+          current_item_id?: string | null
+          error_message?: string | null
+          failed_items?: number | null
+          id?: string
+          name?: string | null
+          processing_mode?: string | null
+          profile_id?: string | null
+          skipped_items?: number | null
+          started_at?: string | null
+          status?: string | null
+          total_cost_cents?: number | null
+          total_items?: number | null
+          updated_at?: string | null
+          user_id?: string
+          whisper_model?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_analysis_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "voice_analysis_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "voice_analysis_sessions_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -38922,6 +39081,16 @@ export type Database = {
           p_cost_cents?: number
           p_is_completed?: boolean
           p_is_failed?: boolean
+          p_session_id: string
+        }
+        Returns: undefined
+      }
+      increment_voice_session_progress: {
+        Args: {
+          p_cost_cents?: number
+          p_is_completed: boolean
+          p_is_failed: boolean
+          p_is_skipped?: boolean
           p_session_id: string
         }
         Returns: undefined
