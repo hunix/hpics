@@ -78,33 +78,57 @@ serve(async (req) => {
     if (options.transcription || options.speakerDiarization) {
       const elevenLabsKey = Deno.env.get("ELEVENLABS_API_KEY");
       if (!elevenLabsKey) {
-        throw new Error("ElevenLabs API key not configured");
+        console.warn('[VoiceComprehensive] ElevenLabs API key not configured, skipping transcription');
+      } else {
+        try {
+          console.log(`[VoiceComprehensive] Fetching audio from: ${audioUrl.substring(0, 100)}...`);
+          const audioResponse = await fetch(audioUrl);
+          console.log(`[VoiceComprehensive] Audio fetch status: ${audioResponse.status}, content-type: ${audioResponse.headers.get('content-type')}`);
+          
+          if (!audioResponse.ok) {
+            console.error(`[VoiceComprehensive] Audio download failed: ${audioResponse.status} ${audioResponse.statusText}`);
+            throw new Error(`Failed to download audio file: ${audioResponse.status}`);
+          }
+
+          const audioBlob = await audioResponse.blob();
+          console.log(`[VoiceComprehensive] Audio blob size: ${audioBlob.size} bytes, type: ${audioBlob.type}`);
+          
+          // Determine file extension based on content type
+          const contentType = audioBlob.type || 'audio/ogg';
+          const extension = contentType.includes('opus') ? 'opus' : 
+                           contentType.includes('ogg') ? 'ogg' : 
+                           contentType.includes('mp3') ? 'mp3' : 
+                           contentType.includes('wav') ? 'wav' : 'webm';
+          
+          const formData = new FormData();
+          formData.append('file', audioBlob, `audio.${extension}`);
+          formData.append('model_id', 'scribe_v1');
+          formData.append('diarize', String(options.speakerDiarization));
+          formData.append('tag_audio_events', 'true');
+
+          console.log(`[VoiceComprehensive] Sending to ElevenLabs Scribe (file: audio.${extension}, size: ${audioBlob.size})...`);
+          const transcribeResponse = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
+            method: 'POST',
+            headers: { 'xi-api-key': elevenLabsKey },
+            body: formData,
+          });
+
+          console.log(`[VoiceComprehensive] ElevenLabs response status: ${transcribeResponse.status}`);
+          
+          if (!transcribeResponse.ok) {
+            const errorText = await transcribeResponse.text();
+            console.error(`[VoiceComprehensive] ElevenLabs error: ${errorText}`);
+            // Don't throw - continue with AI-only analysis
+            console.warn('[VoiceComprehensive] Transcription failed, continuing with AI analysis only');
+          } else {
+            transcriptionData = await transcribeResponse.json();
+            console.log(`[VoiceComprehensive] Transcription successful, text length: ${transcriptionData?.text?.length || 0}`);
+          }
+        } catch (transcriptError) {
+          console.error('[VoiceComprehensive] Transcription error:', transcriptError);
+          // Continue without transcription rather than failing entirely
+        }
       }
-
-      const audioResponse = await fetch(audioUrl);
-      if (!audioResponse.ok) {
-        throw new Error("Failed to download audio file");
-      }
-
-      const audioBlob = await audioResponse.blob();
-      const formData = new FormData();
-      formData.append('file', audioBlob, 'audio.webm');
-      formData.append('model_id', 'scribe_v1');
-      formData.append('diarize', String(options.speakerDiarization));
-      formData.append('tag_audio_events', 'true');
-
-      const transcribeResponse = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
-        method: 'POST',
-        headers: { 'xi-api-key': elevenLabsKey },
-        body: formData,
-      });
-
-      if (!transcribeResponse.ok) {
-        const errorData = await transcribeResponse.json();
-        throw new Error(errorData.detail?.message || 'Transcription failed');
-      }
-
-      transcriptionData = await transcribeResponse.json();
     }
 
     // Step 2: Get user's keyword watchlists for detection
