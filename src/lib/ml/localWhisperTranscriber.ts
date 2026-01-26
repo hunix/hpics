@@ -66,7 +66,7 @@ const MODEL_MAP: Record<WhisperModel, WhisperModelConfig> = {
     supportedLanguages: 'multilingual'
   },
   distil: {
-    id: "distil-whisper/distil-large-v3",
+    id: "onnx-community/distil-whisper-large-v3",
     name: "Distil-Whisper Large V3",
     size: "~750MB", 
     speed: "~6x faster than base",
