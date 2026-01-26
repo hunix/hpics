@@ -241,18 +241,43 @@ export function VoiceBulkAnalysisPanel({ profileId, profileName, onComplete }: V
         {/* Progress Section */}
         {session && session.status !== 'idle' && (
           <div className="space-y-3 p-4 rounded-lg bg-muted/50 border">
-            {/* Model Loading Phase */}
+            {/* Model Loading Phase - Enhanced with Speed & ETA */}
             {session.phase === 'model_loading' && session.modelStatus === 'loading' && (
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin text-yellow-500" />
-                  <span className="font-medium text-yellow-600 dark:text-yellow-400">
-                    Loading Whisper Model... {Math.round(session.modelProgress || 0)}%
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-yellow-500" />
+                    <span className="font-medium text-yellow-600 dark:text-yellow-400">
+                      Downloading {WHISPER_MODEL_OPTIONS.find(m => m.key === selectedWhisperModel)?.name}...
+                    </span>
+                  </div>
+                  <span className="text-sm font-mono">
+                    {Math.round(session.modelProgress || 0)}%
                   </span>
                 </div>
-                <Progress value={session.modelProgress || 0} className="h-1.5" />
-                <p className="text-xs text-muted-foreground">
-                  First run downloads ~{WHISPER_MODEL_OPTIONS.find(m => m.key === selectedWhisperModel)?.size || '250MB'} model (cached after)
+                <Progress value={session.modelProgress || 0} className="h-2" />
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>
+                    ~{WHISPER_MODEL_OPTIONS.find(m => m.key === selectedWhisperModel)?.size || '250MB'}
+                  </span>
+                  {session.modelDownloadSpeedMBps && session.modelDownloadSpeedMBps > 0 && (
+                    <span className="flex items-center gap-1">
+                      <Zap className="h-3 w-3" />
+                      {session.modelDownloadSpeedMBps.toFixed(1)} MB/s
+                      {session.modelProgress && session.modelProgress < 100 && (
+                        <span className="ml-2">
+                          ~{Math.ceil(
+                            ((100 - session.modelProgress) / 100 * 
+                              (parseInt(WHISPER_MODEL_OPTIONS.find(m => m.key === selectedWhisperModel)?.size || '250') || 250)) /
+                            session.modelDownloadSpeedMBps
+                          )}s remaining
+                        </span>
+                      )}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  First run downloads model to browser cache (won't download again)
                 </p>
               </div>
             )}
