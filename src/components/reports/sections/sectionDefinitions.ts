@@ -103,6 +103,20 @@ export const DEFAULT_SECTIONS: DossierSection[] = [
   { id: 'multiPartyDeception', label: 'Multi-Party Deception Network', icon: Users, enabled: true, category: 'warfare' },
   { id: 'zeroDayAnomalies', label: 'Zero-Day Anomaly Detection', icon: AlertTriangle, enabled: true, category: 'analysis' },
   { id: 'hypergameAnalysis', label: 'Hypergame Strategic Analysis', icon: Brain, enabled: true, category: 'intelligence' },
+  
+  // ============== EXTREME INTELLIGENCE SECTIONS (v7.0) ==============
+  { id: 'subvocalizationDetection', label: 'Subvocalization Detection', icon: Mic, enabled: true, category: 'analysis' },
+  { id: 'audioBurstAnalysis', label: 'Audio Burst Mental State', icon: Waves, enabled: true, category: 'analysis' },
+  { id: 'iioAttribution', label: 'IIO Attribution Matrix', icon: Target, enabled: true, category: 'warfare' },
+  { id: 'reflexiveControl', label: 'Reflexive Control Detection', icon: Brain, enabled: true, category: 'warfare' },
+  { id: 'cognitiveEffect', label: 'Cognitive Effect Operations', icon: Cpu, enabled: true, category: 'warfare' },
+  { id: 'theoryOfMind', label: 'Adversary Theory of Mind', icon: Eye, enabled: true, category: 'intelligence' },
+  { id: 'collectiveBehavior', label: 'Collective Behavior Prediction', icon: Users, enabled: true, category: 'analysis' },
+  { id: 'stylometricAnalysis', label: 'Stylometric Authorship', icon: FileText, enabled: true, category: 'intelligence' },
+  { id: 'dark2Clear', label: 'Dark2Clear Identity Bridge', icon: Network, enabled: true, category: 'analysis' },
+  { id: 'gatedBioFusion', label: 'Gated Biological Fusion', icon: Activity, enabled: true, category: 'analysis' },
+  { id: 'tasComCommunity', label: 'TAS-Com Community Detection', icon: Share2, enabled: true, category: 'analysis' },
+  { id: 'biometricRetention', label: 'Biometric Retention Score', icon: Fingerprint, enabled: true, category: 'analysis' },
 ];
 
 export const TEMPLATE_SECTION_IDS: Record<DossierTemplate, string[]> = {
@@ -110,9 +124,9 @@ export const TEMPLATE_SECTION_IDS: Record<DossierTemplate, string[]> = {
   operational: ['executive', 'sourceDashboard', 'overview', 'behavioralDna', 'psychological', 'playbook', 'actionPlans', 'mice', 'cialdini', 'influence', 'trauma', 'elicitation'],
   full: DEFAULT_SECTIONS.map(s => s.id),
   surveillance: ['overview', 'sourceDashboard', 'patternOfLife', 'mediaIntel', 'voiceIntel', 'timeline', 'network', 'threatActor', 'crossModal', 'deceptionAnalysis', 'patternOfLifeFusion', 'entityResolution'],
-  warfare: ['executive', 'mice', 'cialdini', 'sacredValues', 'realityTesting', 'identityDestab', 'trauma', 'semanticWarfare', 'memeticPropagation', 'choiceArchitecture', 'influenceOps', 'betrayal', 'threatActor', 'hypnoticPatterns', 'elicitation', 'cognitiveLoad', 'cognitiveWarfare', 'deceptionOps', 'vulnerabilityWindows', 'activeDefense', 'trustTrajectory', 'mosaicFusion', 'darkTetrad', 'shadowNetwork', 'sentimentCascade', 'opsecAssessment', 'socialEngineering', 'crisisResponse', 'lawfareDefense', 'reputationDefense', 'familyProtection', 'economicWarfare', 'tscmSweep', 'digitalFootprint', 'behavioralBaseline', 'redTeamAssessment', 'multiPartyDeception'],
-  psychological: ['executive', 'behavioralDna', 'psychological', 'quantumCognition', 'relationship', 'playbook', 'deceptionAnalysis', 'behavioralEconomics', 'trust', 'influenceResistance', 'futureModeling', 'precognitive', 'darkTetrad', 'digitalTwin', 'counterfactual', 'relationshipHalfLife', 'zeroDayAnomalies', 'hypergameAnalysis'],
-  fusion: ['executive', 'temporalFusion', 'digitalTwin', 'graphRag', 'shadowNetwork', 'dempsterShafer', 'counterfactual', 'patternOfLifeFusion', 'entityResolution', 'sentimentCascade', 'mosaicFusion', 'quantumCognition', 'crossModal', 'biometricFusion', 'calendarIntelligence', 'geospatialCommunication', 'financialDocumentSynthesis', 'relationshipHalfLife', 'redTeamAssessment', 'multiPartyDeception', 'zeroDayAnomalies', 'hypergameAnalysis'],
+  warfare: ['executive', 'mice', 'cialdini', 'sacredValues', 'realityTesting', 'identityDestab', 'trauma', 'semanticWarfare', 'memeticPropagation', 'choiceArchitecture', 'influenceOps', 'betrayal', 'threatActor', 'hypnoticPatterns', 'elicitation', 'cognitiveLoad', 'cognitiveWarfare', 'deceptionOps', 'vulnerabilityWindows', 'activeDefense', 'trustTrajectory', 'mosaicFusion', 'darkTetrad', 'shadowNetwork', 'sentimentCascade', 'opsecAssessment', 'socialEngineering', 'crisisResponse', 'lawfareDefense', 'reputationDefense', 'familyProtection', 'economicWarfare', 'tscmSweep', 'digitalFootprint', 'behavioralBaseline', 'redTeamAssessment', 'multiPartyDeception', 'iioAttribution', 'reflexiveControl', 'cognitiveEffect'],
+  psychological: ['executive', 'behavioralDna', 'psychological', 'quantumCognition', 'relationship', 'playbook', 'deceptionAnalysis', 'behavioralEconomics', 'trust', 'influenceResistance', 'futureModeling', 'precognitive', 'darkTetrad', 'digitalTwin', 'counterfactual', 'relationshipHalfLife', 'zeroDayAnomalies', 'hypergameAnalysis', 'theoryOfMind', 'stylometricAnalysis', 'subvocalizationDetection', 'audioBurstAnalysis'],
+  fusion: ['executive', 'temporalFusion', 'digitalTwin', 'graphRag', 'shadowNetwork', 'dempsterShafer', 'counterfactual', 'patternOfLifeFusion', 'entityResolution', 'sentimentCascade', 'mosaicFusion', 'quantumCognition', 'crossModal', 'biometricFusion', 'calendarIntelligence', 'geospatialCommunication', 'financialDocumentSynthesis', 'relationshipHalfLife', 'redTeamAssessment', 'multiPartyDeception', 'zeroDayAnomalies', 'hypergameAnalysis', 'collectiveBehavior', 'dark2Clear', 'gatedBioFusion', 'tasComCommunity', 'biometricRetention'],
 };
 
 export function applySectionTemplate(

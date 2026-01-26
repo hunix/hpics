@@ -11,7 +11,7 @@ export { intelligenceSectionRenderers, renderMICE, renderCialdini, renderPsychol
 export { warfareSectionRenderers, renderCognitiveWarfare, renderDeceptionOps, renderTrauma, renderBetrayal, renderVulnerabilityWindows, renderActiveDefense, renderRealityTesting, renderIdentityDestab, renderSemanticWarfare, renderMemeticPropagation, renderFutureModeling, renderPrecognitive, renderChoiceArchitecture, renderInfluenceOps, renderThreatActor, renderTrustTrajectory, renderCoerciveControl, renderInfluence, renderOpsecAssessment, renderSocialEngineering, renderCrisisResponse, renderLawfareDefense, renderReputationDefense, renderFamilyProtection, renderEconomicWarfare, renderTscmSweep, renderDigitalFootprint, renderBehavioralBaseline } from './WarfareSectionRenderers';
 export { fusionSectionRenderers, renderTemporalFusion, renderDigitalTwin, renderGraphRAG, renderShadowNetwork, renderDempsterShafer, renderCounterfactual, renderMosaicFusion, renderPatternOfLifeFusion, renderEntityResolution, renderSentimentCascade, renderCrossDomainSynthesis, renderPredictiveConvergence, renderBiometricFusion, renderCalendarIntelligence, renderGeospatialCommunication, renderFinancialDocumentSynthesis } from './FusionSectionRenderers';
 export { analysisSectionRenderers, renderBehavioralAnalysis, renderInfluenceResistance, renderBehavioralEconomics, renderNetworkPosition, renderPredictionAccuracy, renderCounterIntel, renderProportionalResponse, renderCrossModalDeception, renderActionPlans } from './AnalysisSectionRenderers';
-export { advancedIntelligenceSectionRenderers, renderRelationshipHalfLife, renderRedTeamAssessment, renderMultiPartyDeception, renderZeroDayAnomalies, renderHypergameAnalysis } from './AdvancedIntelligenceRenderers';
+export { advancedIntelligenceSectionRenderers, renderRelationshipHalfLife, renderRedTeamAssessment, renderMultiPartyDeception, renderZeroDayAnomalies, renderHypergameAnalysis, renderSubvocalizationDetection, renderAudioBurstAnalysis, renderIioAttribution, renderReflexiveControl, renderCognitiveEffect, renderTheoryOfMind, renderCollectiveBehavior, renderStylometricAnalysis, renderDark2Clear, renderGatedBioFusion, renderTasComCommunity, renderBiometricRetention } from './AdvancedIntelligenceRenderers';
 
 import { coreSectionRenderers } from './CoreSectionRenderers';
 import { intelligenceSectionRenderers } from './IntelligenceSectionRenderers';
@@ -22,8 +22,8 @@ import { advancedIntelligenceSectionRenderers } from './AdvancedIntelligenceRend
 import { SectionRendererMap } from './types';
 
 /**
- * Complete map of all 83 section renderers by section ID
- * v6.0: Includes 5 new Advanced Intelligence sections
+ * Complete map of all 95 section renderers by section ID
+ * v7.0: Includes 17 Advanced Intelligence sections (5 v6.0 + 12 v7.0)
  */
 export const allSectionRenderers: SectionRendererMap = {
   ...coreSectionRenderers,

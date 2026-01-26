@@ -1,7 +1,7 @@
 /**
- * Compute Extended Dossier Data (v3.9.50)
+ * Compute Extended Dossier Data (v7.0)
  * Transforms raw DossierDataResult into ExtendedDossierData for rendering
- * Includes email intelligence, v5.0 fusion, and v6.0 advanced intelligence in completeness score
+ * Includes email intelligence, v5.0 fusion, v6.0 advanced intelligence, and v7.0 extreme intelligence in completeness score
  */
 
 import type { DossierDataResult } from '@/components/reports/hooks/useDossierData';
@@ -30,6 +30,19 @@ export interface ExtendedDossierData extends DossierDataResult {
   hasMultiPartyDeception: boolean;
   hasZeroDayAnomalies: boolean;
   hasHypergameAnalysis: boolean;
+  // v7.0 Extreme Intelligence
+  hasSubvocalization: boolean;
+  hasAudioBurstAnalysis: boolean;
+  hasIioAttribution: boolean;
+  hasReflexiveControl: boolean;
+  hasCognitiveEffect: boolean;
+  hasTheoryOfMind: boolean;
+  hasCollectiveBehavior: boolean;
+  hasStylometricAnalysis: boolean;
+  hasDark2Clear: boolean;
+  hasGatedBioFusion: boolean;
+  hasTasComCommunity: boolean;
+  hasBiometricRetention: boolean;
   [key: string]: unknown;
 }
 
@@ -58,7 +71,21 @@ export function computeExtendedDossierData(
   const hasZeroDayAnomalies = (raw.zeroDayAnomalyData?.length ?? 0) > 0;
   const hasHypergameAnalysis = (raw.hypergameTheoryData?.length ?? 0) > 0;
 
-  // Calculate intelligence completeness (expanded to 19 sources for v6.0)
+  // v7.0 Extreme Intelligence checks
+  const hasSubvocalization = (raw.subvocalizationData?.length ?? 0) > 0;
+  const hasAudioBurstAnalysis = (raw.audioBurstData?.length ?? 0) > 0;
+  const hasIioAttribution = (raw.iioAttributionData?.length ?? 0) > 0;
+  const hasReflexiveControl = (raw.reflexiveControlData?.length ?? 0) > 0;
+  const hasCognitiveEffect = (raw.cognitiveEffectData?.length ?? 0) > 0;
+  const hasTheoryOfMind = (raw.theoryOfMindData?.length ?? 0) > 0;
+  const hasCollectiveBehavior = (raw.collectiveBehaviorData?.length ?? 0) > 0;
+  const hasStylometricAnalysis = (raw.stylometricData?.length ?? 0) > 0;
+  const hasDark2Clear = (raw.dark2ClearData?.length ?? 0) > 0;
+  const hasGatedBioFusion = (raw.gatedBioFusionData?.length ?? 0) > 0;
+  const hasTasComCommunity = (raw.tasComCommunityData?.length ?? 0) > 0;
+  const hasBiometricRetention = (raw.biometricRetentionData?.length ?? 0) > 0;
+
+  // Calculate intelligence completeness (expanded to 31 sources for v7.0)
   const sourceChecks = [
     // Core sources (10)
     raw.psychData?.length > 0,
@@ -82,6 +109,19 @@ export function computeExtendedDossierData(
     hasMultiPartyDeception,
     hasZeroDayAnomalies,
     hasHypergameAnalysis,
+    // v7.0 Extreme (12)
+    hasSubvocalization,
+    hasAudioBurstAnalysis,
+    hasIioAttribution,
+    hasReflexiveControl,
+    hasCognitiveEffect,
+    hasTheoryOfMind,
+    hasCollectiveBehavior,
+    hasStylometricAnalysis,
+    hasDark2Clear,
+    hasGatedBioFusion,
+    hasTasComCommunity,
+    hasBiometricRetention,
   ];
   const intelligenceCompleteness = Math.round(
     (sourceChecks.filter(Boolean).length / sourceChecks.length) * 100
@@ -136,5 +176,18 @@ export function computeExtendedDossierData(
     hasMultiPartyDeception,
     hasZeroDayAnomalies,
     hasHypergameAnalysis,
+    // v7.0 Extreme Intelligence
+    hasSubvocalization,
+    hasAudioBurstAnalysis,
+    hasIioAttribution,
+    hasReflexiveControl,
+    hasCognitiveEffect,
+    hasTheoryOfMind,
+    hasCollectiveBehavior,
+    hasStylometricAnalysis,
+    hasDark2Clear,
+    hasGatedBioFusion,
+    hasTasComCommunity,
+    hasBiometricRetention,
   };
 }
