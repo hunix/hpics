@@ -36,18 +36,27 @@ interface RegisterDeviceDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const deviceTypeOptions: { value: DeviceType; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { value: 'flipper_zero', label: 'Flipper Zero', icon: Cpu },
-  { value: 'raspberry_pi', label: 'Raspberry Pi', icon: Server },
-  { value: 'arduino', label: 'Arduino', icon: Cpu },
-  { value: 'drone', label: 'DJI Drone', icon: Plane },
-  { value: 'thermal_camera', label: 'FLIR Thermal Camera', icon: Thermometer },
-  { value: 'spectrum_analyzer', label: 'Spectrum Analyzer', icon: Radio },
-  { value: 'gopro', label: 'GoPro', icon: Camera },
-  { value: 'metal_detector', label: 'Metal Detector', icon: Search },
-  { value: 'sensor_node', label: 'Sensor Node', icon: Wifi },
-  { value: 'sdr', label: 'Software Defined Radio', icon: Radio },
-  { value: 'dji_mic', label: 'DJI Mic 2', icon: Mic },
+const deviceTypeOptions: { value: DeviceType; label: string; icon: React.ComponentType<{ className?: string }>; category: string }[] = [
+  // Field devices
+  { value: 'flipper_zero', label: 'Flipper Zero', icon: Cpu, category: 'Field Devices' },
+  { value: 'raspberry_pi', label: 'Raspberry Pi', icon: Server, category: 'Field Devices' },
+  { value: 'arduino', label: 'Arduino', icon: Cpu, category: 'Field Devices' },
+  { value: 'drone', label: 'DJI Drone', icon: Plane, category: 'Field Devices' },
+  { value: 'thermal_camera', label: 'FLIR Thermal Camera', icon: Thermometer, category: 'Field Devices' },
+  { value: 'spectrum_analyzer', label: 'Spectrum Analyzer', icon: Radio, category: 'Field Devices' },
+  { value: 'gopro', label: 'GoPro', icon: Camera, category: 'Field Devices' },
+  { value: 'metal_detector', label: 'Metal Detector', icon: Search, category: 'Field Devices' },
+  { value: 'sensor_node', label: 'Sensor Node', icon: Wifi, category: 'Field Devices' },
+  { value: 'sdr', label: 'Software Defined Radio', icon: Radio, category: 'Field Devices' },
+  { value: 'dji_mic', label: 'DJI Mic 2', icon: Mic, category: 'Field Devices' },
+  // GPU Compute
+  { value: 'gpu_workstation', label: 'GPU Workstation (RTX)', icon: Server, category: 'GPU Compute' },
+  { value: 'gpu_datacenter', label: 'Data Center GPU (Pro/A100)', icon: Server, category: 'GPU Compute' },
+  { value: 'ai_laptop', label: 'AI Laptop', icon: Cpu, category: 'GPU Compute' },
+  // Mobile Edge
+  { value: 'tablet_ios', label: 'iPad (Neural Engine)', icon: Cpu, category: 'Mobile Edge' },
+  { value: 'tablet_android', label: 'Android Tablet (NPU)', icon: Cpu, category: 'Mobile Edge' },
+  { value: 'phone_android', label: 'Android Phone (NPU)', icon: Cpu, category: 'Mobile Edge' },
 ];
 
 export function RegisterDeviceDialog({ open, onOpenChange }: RegisterDeviceDialogProps) {

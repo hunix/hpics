@@ -1,8 +1,10 @@
 /**
  * Hardware Intelligence Platform Types
+ * Extended with GPU compute, AI laptop, and mobile edge device support
  */
 
 export type DeviceType = 
+  // Field devices
   | 'flipper_zero'
   | 'raspberry_pi'
   | 'arduino'
@@ -13,7 +15,16 @@ export type DeviceType =
   | 'metal_detector'
   | 'sensor_node'
   | 'sdr'
-  | 'dji_mic';
+  | 'dji_mic'
+  // GPU Compute devices (NEW)
+  | 'gpu_workstation'    // Desktop GPUs (RTX 3090Ti, RTX Titan, etc.)
+  | 'gpu_datacenter'     // Data center GPUs (RTX Pro 6000, A100, H100)
+  // High-performance compute (NEW)
+  | 'ai_laptop'          // Gaming/workstation laptops with dedicated GPU
+  // Mobile edge devices (NEW)
+  | 'tablet_ios'         // iPad with Neural Engine (M-series)
+  | 'tablet_android'     // Android tablets with NPU (Snapdragon, MediaTek)
+  | 'phone_android';     // Android phones with NPU
 
 export type MissionType =
   | 'surveillance'
@@ -50,6 +61,17 @@ export interface HardwareDevice {
   metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
+}
+
+export interface GPUMetrics {
+  vram_gb: number;
+  vram_used_gb?: number;
+  cuda_cores?: number;
+  tensor_cores?: number;
+  gpu_utilization?: number;
+  temperature_celsius?: number;
+  power_watts?: number;
+  compute_capability?: string;
 }
 
 export interface HardwareTelemetry {
@@ -221,6 +243,7 @@ export interface TSCMSweep {
 
 // Device capability definitions
 export const DEVICE_CAPABILITIES: Record<DeviceType, string[]> = {
+  // Field devices
   flipper_zero: ['sub_ghz', 'nfc', 'rfid', 'infrared', 'badusb', 'gpio'],
   raspberry_pi: ['compute', 'gpio', 'camera', 'audio', 'networking', 'storage'],
   arduino: ['gpio', 'sensors', 'actuators', 'serial', 'lora'],
@@ -232,6 +255,18 @@ export const DEVICE_CAPABILITIES: Record<DeviceType, string[]> = {
   sensor_node: ['environmental', 'motion', 'contact', 'vibration'],
   sdr: ['rf_receive', 'rf_transmit', 'spectrum_analysis', 'demodulation'],
   dji_mic: ['audio_capture', 'wireless', 'dual_channel', 'recording'],
+  
+  // GPU Compute devices
+  gpu_workstation: ['cuda', 'tensor_cores', 'vram_large', 'local_inference', 'batch_processing', 'video_encode', 'nvenc'],
+  gpu_datacenter: ['cuda', 'tensor_cores', 'vram_massive', 'multi_gpu', 'fp4_inference', 'fp8_inference', 'rag_hosting', 'llm_hosting'],
+  
+  // High-performance compute
+  ai_laptop: ['cuda', 'portable', 'field_ops', 'local_inference', 'usb_power', 'display', 'networking'],
+  
+  // Mobile edge devices
+  tablet_ios: ['neural_engine', 'coreml', 'edge_inference', 'camera', 'audio_capture', 'lidar', 'usb_c'],
+  tablet_android: ['snpe', 'nnapi', 'edge_inference', 'camera', 'audio_capture', 's_pen', 'dex'],
+  phone_android: ['snpe', 'nnapi', 'always_on', 'gps', 'camera', 'audio_capture', '5g', 'uwb'],
 };
 
 export const DEVICE_ICONS: Record<DeviceType, string> = {
@@ -246,4 +281,33 @@ export const DEVICE_ICONS: Record<DeviceType, string> = {
   sensor_node: 'Wifi',
   sdr: 'Antenna',
   dji_mic: 'Mic',
+  // GPU Compute
+  gpu_workstation: 'Gpu',
+  gpu_datacenter: 'Server',
+  // High-performance compute
+  ai_laptop: 'Laptop',
+  // Mobile edge
+  tablet_ios: 'Tablet',
+  tablet_android: 'Tablet',
+  phone_android: 'Smartphone',
+};
+
+// GPU-specific metadata templates
+export const GPU_SPECS: Record<string, GPUMetrics> = {
+  'RTX 3090Ti': { vram_gb: 24, cuda_cores: 10752, tensor_cores: 336, compute_capability: '8.6' },
+  'RTX Titan': { vram_gb: 24, cuda_cores: 4608, tensor_cores: 576, compute_capability: '7.5' },
+  'RTX Pro 6000 Blackwell': { vram_gb: 96, cuda_cores: 18432, tensor_cores: 576, compute_capability: '10.0' },
+  'RTX 4090': { vram_gb: 24, cuda_cores: 16384, tensor_cores: 512, compute_capability: '8.9' },
+  'A100': { vram_gb: 80, cuda_cores: 6912, tensor_cores: 432, compute_capability: '8.0' },
+  'H100': { vram_gb: 80, cuda_cores: 16896, tensor_cores: 528, compute_capability: '9.0' },
+};
+
+// Device categories for UI grouping
+export type DeviceCategory = 'field' | 'gpu_compute' | 'mobile_edge' | 'all';
+
+export const DEVICE_CATEGORIES: Record<DeviceCategory, DeviceType[]> = {
+  field: ['flipper_zero', 'raspberry_pi', 'arduino', 'drone', 'thermal_camera', 'spectrum_analyzer', 'gopro', 'metal_detector', 'sensor_node', 'sdr', 'dji_mic'],
+  gpu_compute: ['gpu_workstation', 'gpu_datacenter', 'ai_laptop'],
+  mobile_edge: ['tablet_ios', 'tablet_android', 'phone_android'],
+  all: ['flipper_zero', 'raspberry_pi', 'arduino', 'drone', 'thermal_camera', 'spectrum_analyzer', 'gopro', 'metal_detector', 'sensor_node', 'sdr', 'dji_mic', 'gpu_workstation', 'gpu_datacenter', 'ai_laptop', 'tablet_ios', 'tablet_android', 'phone_android'],
 };

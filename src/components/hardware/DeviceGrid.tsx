@@ -45,6 +45,14 @@ const deviceIcons: Record<string, React.ComponentType<{ className?: string }>> =
   sensor_node: Wifi,
   sdr: Radio,
   dji_mic: Mic,
+  // GPU Compute
+  gpu_workstation: Server,
+  gpu_datacenter: Server,
+  ai_laptop: Cpu,
+  // Mobile Edge
+  tablet_ios: Cpu,
+  tablet_android: Cpu,
+  phone_android: Cpu,
 };
 
 export function DeviceGrid({ devices, isLoading }: DeviceGridProps) {
