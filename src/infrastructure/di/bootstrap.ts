@@ -57,7 +57,11 @@ export function bootstrapContainer(): void {
   }), 'singleton');
 
   // Domain Services - inject repositories
-  container.register(ServiceKeys.FusionService, getFusionService, 'singleton');
+  container.register(ServiceKeys.FusionService, () => {
+    const fusionRepo = container.resolve<import('@/domains/fusion/repositories/IFusionRepository').IFusionRepository>(ServiceKeys.FusionRepository);
+    const twinRepo = container.resolve<import('@/domains/fusion/repositories/IFusionRepository').IDigitalTwinRepository>(ServiceKeys.DigitalTwinRepository);
+    return new (require('@/domains/fusion/services/FusionService').FusionService)(fusionRepo, twinRepo);
+  }, 'singleton');
   container.register(ServiceKeys.IntelligenceService, getIntelligenceService, 'singleton');
   container.register(ServiceKeys.ProfileService, () => {
     const repo = container.resolve<import('@/domains/profile/repositories/IProfileRepository').IProfileRepository>(ServiceKeys.ProfileRepository);
