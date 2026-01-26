@@ -67,6 +67,9 @@ export interface VoiceBulkSession {
   modelProgress?: number;
   failedRecordings?: FailedRecording[];
   skippedRecordings?: SkippedRecording[];
+  // Download progress tracking
+  modelDownloadStartTime?: number;
+  modelDownloadSpeedMBps?: number;
 }
 
 // Error classification for better user feedback
@@ -366,14 +369,38 @@ export function useVoiceBulkAnalysis(profileId?: string) {
     if (mode === 'local' || mode === 'hybrid') {
       try {
         console.log(`[VoiceBulkAnalysis] Loading Whisper model: ${whisperModel}`);
+        
+        // Track download timing for speed calculation
+        let downloadStartTime = performance.now();
+        let lastProgress = 0;
+        let lastTime = downloadStartTime;
+        
+        // Model sizes in MB for speed calculation
+        const modelSizes: Record<WhisperModel, number> = {
+          tiny: 75, small: 250, distil: 750, turbo: 800
+        };
+        const totalSize = modelSizes[whisperModel] || 250;
+        
         await localAudioAnalyzer.initialize({
           whisperModel: whisperModel,
           onProgress: (progress) => {
             if (progress.status === 'progress') {
+              const now = performance.now();
+              const progressDelta = (progress.progress || 0) - lastProgress;
+              const timeDelta = (now - lastTime) / 1000; // seconds
+              
+              // Calculate speed (MB/s) based on progress percentage and model size
+              const speedMBps = timeDelta > 0.1 ? (progressDelta / 100 * totalSize) / timeDelta : 0;
+              
               setSession(prev => prev ? {
                 ...prev,
-                modelProgress: progress.progress
+                modelProgress: progress.progress,
+                modelDownloadStartTime: downloadStartTime,
+                modelDownloadSpeedMBps: speedMBps > 0.1 ? speedMBps : prev.modelDownloadSpeedMBps
               } : null);
+              
+              lastProgress = progress.progress || 0;
+              lastTime = now;
             }
           }
         });
