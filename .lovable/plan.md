@@ -1,335 +1,238 @@
 
-
-# HPICS Intelligence Platform v7.0: Extreme Intelligence Enhancement Suite
+# v7.0 Implementation Audit: Complete Status Report & Remaining Work
 
 ## Executive Summary
 
-This plan introduces **15 new intelligence engines** derived from recently declassified documents, 2024-2025 patents, NATO cognitive warfare doctrine, and cutting-edge academic research. These enhancements will transform the platform into an unprecedented intelligence masterpiece.
+The v7.0 Extreme Intelligence Enhancement Suite is **~85% complete**. The backend infrastructure, edge functions, database tables, and generation pipeline are fully implemented and operational. However, several frontend integration components are missing, which means the v7.0 intelligence results cannot yet be visualized in the dossier preview or exported to PDF.
 
 ---
 
-## Part 1: New Intelligence Engines (Priority 10)
+## Part 1: What Has Been Successfully Implemented
 
-### 1. Subvocalization Detection Engine
-**Source**: US12142281B2 (Q Cue Ltd, 2024)
+### Database Layer (100% Complete)
+| Component | Status | Location |
+|-----------|--------|----------|
+| 7 new tables with RLS | Done | `supabase/migrations/20260125234049_*.sql` |
+| `reflexive_control_indicators` | Done | |
+| `iio_attributions` | Done | |
+| `stylometric_fingerprints` | Done | |
+| `cognitive_effect_operations` | Done | |
+| `audio_burst_analyses` | Done | |
+| `adversary_mental_models` | Done | |
+| `collective_behavior_predictions` | Done | |
 
-Detects "prevocalized" words from facial skin micromovements before speech occurs.
+### Edge Functions (100% Complete - All 12 Deployed)
+| Function | Analysis Type | Status |
+|----------|--------------|--------|
+| `stylometric-analyzer` | `stylometric_fingerprint` | Deployed |
+| `audio-burst-analyzer` | `audio_burst_mental_state` | Deployed |
+| `iio-attribution-engine` | `iio_attribution` | Deployed |
+| `reflexive-control-detector` | `reflexive_control` | Deployed |
+| `cognitive-effect-orchestrator` | `cognitive_effect` | Deployed |
+| `kallisti-theory-of-mind` | `adversary_mental_model` | Deployed |
+| `collective-behavior-predictor` | `collective_behavior` | Deployed |
+| `dark2clear-deanonymization` | `surface_identity_bridge` | Deployed |
+| `gated-biological-fusion` | `gated_bio_fusion` | Deployed |
+| `tas-com-community-detector` | `tas_com_community` | Deployed |
+| `subvocalization-detector` | `subvocalization_detection` | Deployed |
+| `migration5-biometric-tracker` | `biometric_retention` | Deployed |
 
-**Implementation**:
-- New edge function: `subvocalization-detector`
-- Integrates with existing `biometric-behavioral-fusion`
-- Uses speckle analysis of facial video to detect micro-movements
+### Config.toml Registration (100% Complete)
+All 12 v7.0 edge functions are registered in `supabase/config.toml` with `verify_jwt = false`.
 
-### 2. Audio-Burst Mental State Analyzer
-**Source**: US20240071412A1 (Eleos Mental Systems, 2024)
+### Intelligence Pipeline (100% Complete)
+| Component | Status | Location |
+|-----------|--------|----------|
+| 61 tasks in generation hook | Done | `useIntelligenceGeneration.ts:187-200` |
+| v7.0 Priority 10 tasks | Done | All 12 tasks registered |
+| ANALYSIS_TYPE_ALIASES mapping | Done | `sectionDataCheck.ts:103-115` |
 
-Predicts mental conditions through "audio burst" analysis using Hilbert transforms.
+### Domain Services (100% Complete)
+| Component | Status | Location |
+|-----------|--------|----------|
+| FusionEngineType extended | Done | `FusionResult.ts` (12 new types) |
+| FusionService mapping | Done | `FusionService.ts:409-418` |
+| FusionFacade batch list | Done | `FusionFacade.ts:80-89` |
+| IFusionRepository constants | Done | `IFusionRepository.ts` |
 
-**Implementation**:
-- New library: `src/lib/biometrics/audioBurstAnalyzer.ts`
-- Distinguishes rhythmic (depressive) vs irregular (anxious) speech patterns
-- Integrates with `behavioral-dna-sequencer`
-
-### 3. IIO Attribution Framework
-**Source**: NATO/EU Declassified (Feb 2025)
-
-Traffic-light confidence matrix for Information Influence Operations attribution.
-
-**Implementation**:
-- New edge function: `iio-attribution-engine`
-- Combines Technical + Behavioral + Contextual evidence scoring
-- Detects "Doppelgänger" campaign patterns
-
-### 4. Reflexive Control Detector
-**Source**: CIA Studies in Intelligence (Dec 2025)
-
-Identifies when a target is attempting to "transmit motives" to stimulate self-defeating decisions.
-
-**Implementation**:
-- Enhance `hypergame-theory-engine` with RC detection
-- Add `reflexive_control_indicators` table
-- Track perception management attempts
-
-### 5. Cognitive Effect Orchestrator
-**Source**: GCHQ "Responsible Cyber Power" (2025)
-
-Implements the "Doctrine of Cognitive Effect" for strategic ambiguity operations.
-
-**Implementation**:
-- New edge function: `cognitive-effect-orchestrator`
-- Models narrative synchronization timing
-- Calculates optimal "ambiguity windows"
-
-### 6. DARPA Kallisti-Style Theory of Mind
-**Source**: DARPA Kallisti Program (Dec 2024)
-
-Algorithmic theory of mind to model adversary situational awareness.
-
-**Implementation**:
-- Enhance `gameTheoryEngine.ts` with "basis vector" decomposition
-- Track strategy changes under non-stationary assumptions
-- Add `adversary_mental_model` table
-
-### 7. MAGICS Collective Behavior Predictor
-**Source**: DARPA MAGICS (April 2025)
-
-Predicts collective human behavior in "recursive, reactive, non-ergodic" systems.
-
-**Implementation**:
-- New edge function: `collective-behavior-predictor`
-- Addresses "reflexivity" (behavior changes when observed)
-- Integrates with `sentiment-cascade-predictor`
-
-### 8. Stylometric Authorship Attribution
-**Source**: ACL 2025 / AAAI 2025 Research
-
-11-feature stylometric suite for author identification and AI-generated text detection.
-
-**Implementation**:
-- New library: `src/lib/linguistics/stylometricAnalyzer.ts`
-- Features: Burrows' Delta, hapax legomenon rate, burstiness, MATTR
-- Detects LLM vs human authorship
-
-### 9. Dark2Clear De-anonymization Engine
-**Source**: Int. J. Electronic Security (2023)
-
-Harvests "Clear-Web Mentions" from dark web to de-anonymize actors.
-
-**Implementation**:
-- Enhance `shadow-network-analyzer` with CWM extraction
-- Cross-reference PGP keys, emails, payment accounts
-- Bridge anonymous/surface identity graphs
-
-### 10. Gated Biological Fusion (GBV-Net)
-**Source**: Sensors Journal (Oct 2025)
-
-Hierarchical fusion with gated attention to adaptively weight modalities.
-
-**Implementation**:
-- Enhance `biometric-behavioral-fusion` with gated weighting
-- Prioritize reliable modalities (GSR over facial when lighting poor)
-- Add `modality_confidence_scores` tracking
+### Strategic Libraries (100% Complete)
+| Component | Status | Location |
+|-----------|--------|----------|
+| NATO House Model | Done | `gameTheoryEngine.ts:221-227` |
+| Reflexive Control Detection | Done | `gameTheoryEngine.ts:714-725` |
+| Kallisti Theory of Mind | Done | `gameTheoryEngine.ts:720-725` |
+| Trust Half-Life Functions | Done | `gameTheoryEngine.ts` |
+| Stylometric Analyzer Library | Done | `src/lib/linguistics/stylometricAnalyzer.ts` |
+| Audio Burst Analyzer Library | Done | `src/lib/biometrics/audioBurstAnalyzer.ts` |
 
 ---
 
-## Part 2: Enhanced Existing Engines
+## Part 2: What Is MISSING (Remaining 15%)
 
-### 11. TAS-Com Community Detection
-**Source**: arXiv:2505.10197 (May 2025)
+### 1. Dossier Data Fetching (Critical)
+**File**: `src/components/reports/hooks/useDossierData.ts`
 
-Upgrade `graph-rag-engine` community detection with Leiden algorithm integration.
+The hook currently only fetches data up to Batch 11 (v6.0). Missing:
 
-**Changes**:
-- Replace label propagation with Leiden-based loss function
-- Bridge topological connectivity + attribute similarity
-- Improve community cohesiveness scoring
-
-### 12. Enhanced Hypergame Theory
-**Source**: NATO Chief Scientist 2025
-
-Add NATO "House Model" cognitive effects framework.
-
-**Changes to `gameTheoryEngine.ts`**:
-```typescript
-export interface CognitiveEffectLevel {
-  biological: number;    // Nervous system manipulation
-  psychological: number; // Interpretation/framing manipulation  
-  social: number;        // Cohesion/legitimacy manipulation
-}
-
-export interface PerceptionGap {
-  // ... existing fields
-  cognitiveEffectPotential: CognitiveEffectLevel;
-  reflexiveControlIndicators: string[];
-}
+```text
+Batch 12 - v7.0 Extreme Intelligence Engine Results:
+- subvocalizationData (subvocalization_detection)
+- audioBurstData (audio_burst_mental_state)
+- iioAttributionData (iio_attribution)
+- reflexiveControlData (reflexive_control)
+- cognitiveEffectData (cognitive_effect)
+- theoryOfMindData (adversary_mental_model)
+- collectiveBehaviorData (collective_behavior)
+- stylometricData (stylometric_fingerprint)
+- dark2ClearData (surface_identity_bridge)
+- gatedBioFusionData (gated_bio_fusion)
+- tasComCommunityData (tas_com_community)
+- biometricRetentionData (biometric_retention)
 ```
 
-### 13. Migration-5 Style Biometric Retention
-**Source**: Five Eyes Declassified (June 2024)
+**Required Changes**:
+- Add 12 new fields to `DossierDataResult` interface
+- Add Batch 12 query block with Promise.all for 12 new analysis types
+- Return the 12 new fields in the result object
 
-Implement long-term biometric cross-correlation (75-year retention model).
+### 2. Extended Data Computation (Critical)
+**File**: `src/components/dossier-preview/utils/computeExtendedData.ts`
 
-**Changes**:
-- Add `biometric_retention_score` to profiles
-- Cross-correlate fingerprint/facial/voice biometrics over time
-- Track identity consistency metrics
+Missing:
+- 12 new boolean flags for v7.0 data presence (e.g., `hasSubvocalization`, `hasIioAttribution`)
+- Intelligence completeness score needs expansion from 19 to 31 sources
+- ExtendedDossierData interface needs v7.0 field declarations
 
----
-
-## Part 3: New Database Tables
-
-```sql
--- Reflexive Control Detection
-CREATE TABLE reflexive_control_indicators (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  profile_id UUID REFERENCES profiles(id),
-  user_id UUID REFERENCES auth.users(id),
-  detected_at TIMESTAMPTZ DEFAULT now(),
-  rc_technique TEXT, -- 'motive_transmission', 'false_narrative', 'perception_management'
-  confidence_score NUMERIC(3,2),
-  source_communications UUID[],
-  counter_strategy TEXT,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
--- IIO Attribution Scoring
-CREATE TABLE iio_attributions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  profile_id UUID REFERENCES profiles(id),
-  user_id UUID REFERENCES auth.users(id),
-  technical_evidence JSONB,  -- IP, infrastructure, TTPs
-  behavioral_evidence JSONB, -- Campaign patterns, timing
-  contextual_evidence JSONB, -- Narrative alignment
-  confidence_level TEXT, -- 'red', 'amber', 'green'
-  overall_confidence NUMERIC(3,2),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
--- Stylometric Fingerprints
-CREATE TABLE stylometric_fingerprints (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  profile_id UUID REFERENCES profiles(id),
-  user_id UUID REFERENCES auth.users(id),
-  sample_text TEXT,
-  burrows_delta NUMERIC(5,4),
-  hapax_rate NUMERIC(5,4),
-  burstiness_score NUMERIC(5,4),
-  mattr_score NUMERIC(5,4),
-  is_ai_generated BOOLEAN,
-  ai_model_predicted TEXT,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
--- Cognitive Effect Operations
-CREATE TABLE cognitive_effect_operations (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  profile_id UUID REFERENCES profiles(id),
-  user_id UUID REFERENCES auth.users(id),
-  effect_type TEXT, -- 'distrust', 'morale_decrease', 'decision_paralysis'
-  biological_level NUMERIC(3,2),
-  psychological_level NUMERIC(3,2),
-  social_level NUMERIC(3,2),
-  ambiguity_window_start TIMESTAMPTZ,
-  ambiguity_window_end TIMESTAMPTZ,
-  narrative_synchronization_targets TEXT[],
-  status TEXT DEFAULT 'planned',
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
--- Audio Burst Mental State
-CREATE TABLE audio_burst_analyses (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  voice_insight_id UUID REFERENCES voice_insights(id),
-  user_id UUID REFERENCES auth.users(id),
-  hilbert_transform_data JSONB,
-  rhythmic_score NUMERIC(3,2),  -- Higher = depressive patterns
-  irregular_score NUMERIC(3,2), -- Higher = anxiety patterns
-  auc_integral NUMERIC(10,4),
-  mental_state_prediction TEXT,
-  confidence NUMERIC(3,2),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+**Required Changes**:
+```text
+// Add to ExtendedDossierData interface:
+hasSubvocalization: boolean;
+hasAudioBurstAnalysis: boolean;
+hasIioAttribution: boolean;
+hasReflexiveControl: boolean;
+hasCognitiveEffect: boolean;
+hasTheoryOfMind: boolean;
+hasCollectiveBehavior: boolean;
+hasStylometricAnalysis: boolean;
+hasDark2Clear: boolean;
+hasGatedBioFusion: boolean;
+hasTasComCommunity: boolean;
+hasBiometricRetention: boolean;
 ```
 
----
+### 3. Section Definitions (Critical)
+**File**: `src/components/reports/sections/sectionDefinitions.ts`
 
-## Part 4: New FusionEngineType Values
+Missing 12 section definitions in `DEFAULT_SECTIONS` array:
 
-Add to `src/domains/fusion/entities/FusionResult.ts`:
-
-```typescript
-export type FusionEngineType = 
-  | // ... existing types
-  // v7.0 Extreme Intelligence Engines
-  | 'subvocalization-detection'
-  | 'audio-burst-mental-state'
-  | 'iio-attribution'
-  | 'reflexive-control'
-  | 'cognitive-effect'
-  | 'kallisti-theory-of-mind'
-  | 'magics-collective-behavior'
-  | 'stylometric-authorship'
-  | 'dark2clear-deanonymization'
-  | 'gated-biological-fusion'
-  | 'tas-com-community'
-  | 'migration5-biometric';
+```text
+// v7.0 Extreme Intelligence Sections needed:
+{ id: 'subvocalizationDetection', label: 'Subvocalization Detection', icon: Mic, enabled: true, category: 'analysis' }
+{ id: 'audioBurstAnalysis', label: 'Audio Burst Mental State', icon: Waves, enabled: true, category: 'analysis' }
+{ id: 'iioAttribution', label: 'IIO Attribution Matrix', icon: Target, enabled: true, category: 'warfare' }
+{ id: 'reflexiveControl', label: 'Reflexive Control Detection', icon: Brain, enabled: true, category: 'warfare' }
+{ id: 'cognitiveEffect', label: 'Cognitive Effect Operations', icon: Cpu, enabled: true, category: 'warfare' }
+{ id: 'theoryOfMind', label: 'Adversary Theory of Mind', icon: Eye, enabled: true, category: 'intelligence' }
+{ id: 'collectiveBehavior', label: 'Collective Behavior Prediction', icon: Users, enabled: true, category: 'fusion' }
+{ id: 'stylometricAnalysis', label: 'Stylometric Authorship', icon: FileText, enabled: true, category: 'intelligence' }
+{ id: 'dark2Clear', label: 'Dark2Clear Identity Bridge', icon: Network, enabled: true, category: 'fusion' }
+{ id: 'gatedBioFusion', label: 'Gated Biological Fusion', icon: Activity, enabled: true, category: 'analysis' }
+{ id: 'tasComCommunity', label: 'TAS-Com Community Detection', icon: Share2, enabled: true, category: 'fusion' }
+{ id: 'biometricRetention', label: 'Biometric Retention Score', icon: Fingerprint, enabled: true, category: 'analysis' }
 ```
 
+Also need to update:
+- `TEMPLATE_SECTION_IDS.warfare` - add v7.0 warfare sections
+- `TEMPLATE_SECTION_IDS.fusion` - add v7.0 fusion sections
+- `TEMPLATE_SECTION_IDS.full` already inherits from DEFAULT_SECTIONS
+
+### 4. PDF Section Renderers (Critical)
+**File**: `src/components/reports/sections/renderers/AdvancedIntelligenceRenderers.ts`
+
+Currently only contains v6.0 renderers. Need to add 12 new render functions:
+
+```text
+// Functions to create:
+renderSubvocalizationDetection(ctx, data)
+renderAudioBurstAnalysis(ctx, data)
+renderIioAttribution(ctx, data)
+renderReflexiveControl(ctx, data)
+renderCognitiveEffect(ctx, data)
+renderTheoryOfMind(ctx, data)
+renderCollectiveBehavior(ctx, data)
+renderStylometricAnalysis(ctx, data)
+renderDark2Clear(ctx, data)
+renderGatedBioFusion(ctx, data)
+renderTasComCommunity(ctx, data)
+renderBiometricRetention(ctx, data)
+```
+
+Also need to:
+- Add to `advancedIntelligenceSectionRenderers` export object
+- Export from `renderers/index.ts`
+- Update `allSectionRenderers` map
+
+### 5. HTML Preview Renderers (Critical)
+**File**: `src/components/dossier-preview/sections/AnalysisSections.tsx`
+
+Need 12 new React component renderers for HTML preview (can use `createGenericFusionSection` pattern):
+
+```text
+// Add to AnalysisSections export:
+SubvocalizationDetection: createGenericFusionSection('subvocalizationDetection', 'Subvocalization Detection')
+AudioBurstAnalysis: createGenericFusionSection('audioBurstAnalysis', 'Audio Burst Analysis')
+IioAttribution: createGenericFusionSection('iioAttribution', 'IIO Attribution')
+... (12 total)
+```
+
+### 6. DossierContent Renderer Map (Critical)
+**File**: `src/components/dossier-preview/DossierContent.tsx`
+
+Need to add 12 entries to `sectionRenderers` map:
+
+```text
+// Add to sectionRenderers:
+subvocalizationDetection: AnalysisSections.SubvocalizationDetection,
+audioBurstAnalysis: AnalysisSections.AudioBurstAnalysis,
+iioAttribution: WarfareSections.IioAttribution,
+... (12 total)
+```
+
+### 7. Warfare Sections HTML Renderers (Medium)
+**File**: `src/components/dossier-preview/sections/WarfareSections.tsx`
+
+Need renderers for warfare-categorized v7.0 sections:
+- `IioAttribution`
+- `ReflexiveControl`
+- `CognitiveEffect`
+
 ---
 
-## Part 5: Intelligence Pipeline Expansion
+## Part 3: Implementation Priority Order
 
-Add 12 new tasks to `useIntelligenceGeneration.ts` (Priority 10):
+### Phase 1: Data Pipeline (Highest Priority)
+1. Update `useDossierData.ts` - Add Batch 12 queries and interface fields
+2. Update `computeExtendedData.ts` - Add boolean flags and completeness calculation
 
-| Task Name | Edge Function | Analysis Type |
-|-----------|---------------|---------------|
-| Subvocalization Detection | `subvocalization-detector` | `subvocalization_detection` |
-| Audio Burst Analysis | `audio-burst-analyzer` | `audio_burst_mental_state` |
-| IIO Attribution | `iio-attribution-engine` | `iio_attribution` |
-| Reflexive Control | `reflexive-control-detector` | `reflexive_control` |
-| Cognitive Effect | `cognitive-effect-orchestrator` | `cognitive_effect` |
-| Theory of Mind | `kallisti-theory-of-mind` | `adversary_mental_model` |
-| Collective Behavior | `collective-behavior-predictor` | `collective_behavior` |
-| Stylometric Analysis | `stylometric-analyzer` | `stylometric_fingerprint` |
-| Dark2Clear | `dark2clear-deanonymization` | `surface_identity_bridge` |
-| Gated Bio Fusion | `gated-biological-fusion` | `gated_bio_fusion` |
-| TAS-Com Community | `tas-com-community-detector` | `tas_com_community` |
-| Biometric Retention | `migration5-biometric-tracker` | `biometric_retention` |
+### Phase 2: Section Registry
+3. Update `sectionDefinitions.ts` - Add 12 new DEFAULT_SECTIONS entries
+4. Update template arrays for warfare/fusion templates
 
-**Pipeline grows from 49 to 61 tasks.**
+### Phase 3: PDF Export
+5. Create v7.0 PDF renderers in `AdvancedIntelligenceRenderers.ts`
+6. Export from `renderers/index.ts`
 
----
-
-## Part 6: Key Source Documents
-
-| Source | Year | Key Contribution |
-|--------|------|------------------|
-| NATO Chief Scientist Report | 2025 | Cognitive Warfare "House Model" |
-| GCHQ "Responsible Cyber Power" | 2025 | Doctrine of Cognitive Effect |
-| DARPA Kallisti | 2024 | Algorithmic Theory of Mind |
-| DARPA MAGICS | 2025 | Collective Behavior Prediction |
-| US12142281B2 Patent | 2024 | Subvocalization Detection |
-| US20240071412A1 Patent | 2024 | Audio Burst Mental State |
-| CIA Studies in Intelligence Vol. 69 | 2025 | Memory Techniques, Secure Remote Work |
-| ACL 2025 | 2025 | Multimodal Deception Detection |
-| arXiv:2505.10197 | 2025 | TAS-Com Community Detection |
-| Five Eyes Migration 5 | 2024 | 100X Biometric Data Sharing |
-| NSA Archive MKULTRA | 2024 | Behavioral Science Declassification |
-
----
-
-## Implementation Phases
-
-### Phase A: Core Engines (Week 1-2)
-1. Stylometric Authorship Attribution
-2. Audio Burst Mental State Analyzer
-3. Enhanced Hypergame with Reflexive Control
-4. IIO Attribution Framework
-
-### Phase B: Advanced Fusion (Week 3-4)
-5. Gated Biological Fusion (GBV-Net)
-6. TAS-Com Community Detection upgrade
-7. Cognitive Effect Orchestrator
-8. Kallisti Theory of Mind
-
-### Phase C: Extreme Capabilities (Week 5-6)
-9. MAGICS Collective Behavior Predictor
-10. Dark2Clear De-anonymization
-11. Subvocalization Detection
-12. Migration-5 Biometric Retention
-
-### Phase D: Integration & Dossier (Week 7)
-13. Expand pipeline to 61 tasks
-14. Add 12 new dossier sections
-15. Update sectionDataCheck aliases
+### Phase 4: HTML Preview
+7. Add v7.0 components to `AnalysisSections.tsx`
+8. Add v7.0 warfare components to `WarfareSections.tsx`
+9. Update `DossierContent.tsx` renderer map
 
 ---
 
 ## Technical Notes
 
-- All edge functions follow standard health check pattern
-- Dual auth (JWT + service role) maintained
-- Results persist to `ai_analyses` with upsert pattern
-- New engines use Gemini 3 Pro for complex reasoning tasks
-- Stylometric features computed client-side for privacy
-
+- The v7.0 engines are already being executed during generation (61 tasks)
+- Results ARE being stored in `ai_analyses` table with correct analysis types
+- The only gap is frontend visualization - data exists but isn't being fetched/displayed
+- The `hasAnalysis()` function in sectionDataCheck will correctly detect v7.0 data once sections are defined
+- All v7.0 edge functions include standard health check patterns and error handling
