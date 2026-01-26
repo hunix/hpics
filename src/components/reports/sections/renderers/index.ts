@@ -1,7 +1,7 @@
 /**
- * Section Renderers Barrel Export (v6.0)
+ * Section Renderers Barrel Export (v8.0)
  * Central export for all modular PDF section renderers
- * 83 sections across 5 categories - aligned with DEFAULT_SECTIONS
+ * 137 sections across 6 categories - aligned with DEFAULT_SECTIONS
  */
 
 export * from './types';
@@ -12,6 +12,7 @@ export { warfareSectionRenderers, renderCognitiveWarfare, renderDeceptionOps, re
 export { fusionSectionRenderers, renderTemporalFusion, renderDigitalTwin, renderGraphRAG, renderShadowNetwork, renderDempsterShafer, renderCounterfactual, renderMosaicFusion, renderPatternOfLifeFusion, renderEntityResolution, renderSentimentCascade, renderCrossDomainSynthesis, renderPredictiveConvergence, renderBiometricFusion, renderCalendarIntelligence, renderGeospatialCommunication, renderFinancialDocumentSynthesis } from './FusionSectionRenderers';
 export { analysisSectionRenderers, renderBehavioralAnalysis, renderInfluenceResistance, renderBehavioralEconomics, renderNetworkPosition, renderPredictionAccuracy, renderCounterIntel, renderProportionalResponse, renderCrossModalDeception, renderActionPlans } from './AnalysisSectionRenderers';
 export { advancedIntelligenceSectionRenderers, renderRelationshipHalfLife, renderRedTeamAssessment, renderMultiPartyDeception, renderZeroDayAnomalies, renderHypergameAnalysis, renderSubvocalizationDetection, renderAudioBurstAnalysis, renderIioAttribution, renderReflexiveControl, renderCognitiveEffect, renderTheoryOfMind, renderCollectiveBehavior, renderStylometricAnalysis, renderDark2Clear, renderGatedBioFusion, renderTasComCommunity, renderBiometricRetention } from './AdvancedIntelligenceRenderers';
+export { v8SectionRenderers, renderDracoDeception, renderSentientIntent, renderInsiderThreat, renderBayesianIntention, renderRedTeamSimulation, renderSemaforForgery, renderEpistemicVulnerability, renderCognitiveIW, renderPsychoagentCascade, renderAffectiveManipulation, renderHyperpersonalization, renderComputationalPersuasion, renderSyntheticMemory, renderPreMemBelief, renderLinguisticStress, renderMemoryAnchor, renderEmotionalContagion, renderSacredValuePrediction, renderPupillometry, renderThermalStress, renderAttentionMultimodal, renderKeystrokeDynamics, renderSheafInfluence, renderCtdgLink, renderCascadeVirality, renderNetworkResilience, renderGazePattern, renderMicroExpressionTimeline, renderVoiceStressCorrelation, renderSocialGraphPrediction, renderInfluenceCampaignOptimization, renderCounterNarrative, renderPredictiveDoctrine } from './V8SectionRenderers';
 
 import { coreSectionRenderers } from './CoreSectionRenderers';
 import { intelligenceSectionRenderers } from './IntelligenceSectionRenderers';
@@ -19,11 +20,12 @@ import { warfareSectionRenderers } from './WarfareSectionRenderers';
 import { fusionSectionRenderers } from './FusionSectionRenderers';
 import { analysisSectionRenderers } from './AnalysisSectionRenderers';
 import { advancedIntelligenceSectionRenderers } from './AdvancedIntelligenceRenderers';
+import { v8SectionRenderers } from './V8SectionRenderers';
 import { SectionRendererMap } from './types';
 
 /**
- * Complete map of all 95 section renderers by section ID
- * v7.0: Includes 17 Advanced Intelligence sections (5 v6.0 + 12 v7.0)
+ * Complete map of all 137 section renderers by section ID
+ * v8.0: Includes 33 Masterpiece Intelligence sections
  */
 export const allSectionRenderers: SectionRendererMap = {
   ...coreSectionRenderers,
@@ -32,4 +34,5 @@ export const allSectionRenderers: SectionRendererMap = {
   ...fusionSectionRenderers,
   ...analysisSectionRenderers,
   ...advancedIntelligenceSectionRenderers,
+  ...v8SectionRenderers,
 };

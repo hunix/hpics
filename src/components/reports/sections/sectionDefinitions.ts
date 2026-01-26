@@ -117,6 +117,47 @@ export const DEFAULT_SECTIONS: DossierSection[] = [
   { id: 'gatedBioFusion', label: 'Gated Biological Fusion', icon: Activity, enabled: true, category: 'analysis' },
   { id: 'tasComCommunity', label: 'TAS-Com Community Detection', icon: Share2, enabled: true, category: 'analysis' },
   { id: 'biometricRetention', label: 'Biometric Retention Score', icon: Fingerprint, enabled: true, category: 'analysis' },
+  
+  // ============== v8.0 COUNTER-INTELLIGENCE SECTIONS ==============
+  { id: 'dracoDeception', label: 'Draco Deception Orchestration', icon: Shield, enabled: true, category: 'warfare' },
+  { id: 'sentientIntent', label: 'Sentient Intent Analysis', icon: Eye, enabled: true, category: 'intelligence' },
+  { id: 'insiderThreat', label: 'Insider Threat Matrix', icon: AlertTriangle, enabled: true, category: 'warfare' },
+  { id: 'bayesianIntention', label: 'Bayesian Intention Prediction', icon: Brain, enabled: true, category: 'intelligence' },
+  { id: 'redTeamSimulation', label: 'Red Team Adversary Simulation', icon: Target, enabled: true, category: 'warfare' },
+  { id: 'semaforForgery', label: 'SEMAFOR Forgery Detection', icon: Fingerprint, enabled: true, category: 'analysis' },
+  { id: 'epistemicVulnerability', label: 'Epistemic Vulnerability Scan', icon: ShieldQuestion, enabled: true, category: 'analysis' },
+  { id: 'cognitiveIW', label: 'Cognitive Info Warfare Detection', icon: Radio, enabled: true, category: 'warfare' },
+  
+  // ============== v8.0 PSYCHOLOGICAL WARFARE SECTIONS ==============
+  { id: 'psychoagentCascade', label: 'Psychoagent Cascade Prediction', icon: Waves, enabled: true, category: 'warfare' },
+  { id: 'affectiveManipulation', label: 'Affective Manipulation Detection', icon: Heart, enabled: true, category: 'intelligence' },
+  { id: 'hyperpersonalization', label: 'Hyperpersonalization Targeting', icon: Crosshair, enabled: true, category: 'intelligence' },
+  { id: 'computationalPersuasion', label: 'Computational Persuasion Engine', icon: Cpu, enabled: true, category: 'intelligence' },
+  { id: 'syntheticMemory', label: 'Synthetic Memory Generation', icon: Brain, enabled: true, category: 'intelligence' },
+  { id: 'prememBelief', label: 'PreMem Belief Modification', icon: Sparkles, enabled: true, category: 'intelligence' },
+  { id: 'linguisticStress', label: 'Linguistic Stress Detection', icon: MessageCircle, enabled: true, category: 'analysis' },
+  { id: 'memoryAnchor', label: 'Memory Anchor Generation', icon: Lightbulb, enabled: true, category: 'intelligence' },
+  { id: 'emotionalContagion', label: 'Emotional Contagion Modeling', icon: Waves, enabled: true, category: 'analysis' },
+  { id: 'sacredValuePrediction', label: 'Sacred Value Prediction', icon: Crown, enabled: true, category: 'intelligence' },
+  
+  // ============== v8.0 BIOMETRIC & NETWORK SECTIONS ==============
+  { id: 'pupillometry', label: 'Pupillometry Analysis', icon: Eye, enabled: true, category: 'analysis' },
+  { id: 'thermalStress', label: 'Thermal Stress Detection', icon: Activity, enabled: true, category: 'analysis' },
+  { id: 'attentionMultimodal', label: 'Attention Multimodal Fusion', icon: Layers, enabled: true, category: 'analysis' },
+  { id: 'keystrokeDynamics', label: 'Keystroke Dynamics Analysis', icon: Fingerprint, enabled: true, category: 'analysis' },
+  { id: 'sheafInfluence', label: 'Sheaf Neural Influence Map', icon: Network, enabled: true, category: 'intelligence' },
+  { id: 'ctdgLink', label: 'CTDG Link Prediction', icon: Share2, enabled: true, category: 'analysis' },
+  { id: 'cascadeVirality', label: 'Cascade Virality Prediction', icon: TrendingUp, enabled: true, category: 'analysis' },
+  { id: 'networkResilience', label: 'Network Resilience Analysis', icon: Shield, enabled: true, category: 'analysis' },
+  
+  // ============== v8.0 DOCTRINE & ADVANCED SECTIONS ==============
+  { id: 'gazePattern', label: 'Gaze Pattern Analysis', icon: Eye, enabled: true, category: 'analysis' },
+  { id: 'microExpressionTimeline', label: 'Micro-Expression Timeline', icon: Clock, enabled: true, category: 'analysis' },
+  { id: 'voiceStressCorrelation', label: 'Voice Stress Correlation', icon: Mic, enabled: true, category: 'analysis' },
+  { id: 'socialGraphPrediction', label: 'Social Graph Prediction', icon: Share2, enabled: true, category: 'intelligence' },
+  { id: 'influenceCampaignOptimization', label: 'Influence Campaign Optimization', icon: Target, enabled: true, category: 'warfare' },
+  { id: 'counterNarrative', label: 'Counter-Narrative Generation', icon: MessageCircle, enabled: true, category: 'warfare' },
+  { id: 'predictiveDoctrine', label: 'Predictive Doctrine Engine', icon: Compass, enabled: true, category: 'warfare' },
 ];
 
 export const TEMPLATE_SECTION_IDS: Record<DossierTemplate, string[]> = {
