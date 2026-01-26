@@ -626,30 +626,36 @@ export function useVoiceBulkAnalysis(profileId?: string) {
     // Map source to valid constraint value
     const sourceType = recording.source === 'voice_recording_sessions' ? 'voice_recording_session' : 'media';
 
-    // Store results in voice_insights with language
-    const { error: insertError } = await supabase.from('voice_insights').upsert({
+    // Store results in voice_insights with language - using correct column names
+    const insightData = {
       source_type: sourceType,
       source_id: recording.id,
       profile_id: recording.profile_id,
       user_id: userId,
-      transcription_text: result.transcription.text,
-      transcription_chunks: result.transcription.chunks as unknown as Record<string, unknown>[],
-      overall_sentiment: result.sentiment?.label || 'neutral',
+      full_transcription: result.transcription.text,
+      transcription_with_timestamps: result.transcription.chunks as unknown as Record<string, unknown>[],
       confidence_score: result.sentiment?.confidence || 0.5,
-      processing_method: 'local_whisper_turbo',
+      ai_model_used: 'local_whisper_turbo',
       processing_time_ms: result.totalProcessingMs,
       language_detected: detectedLang,
       created_at: new Date().toISOString()
-    }, {
-      onConflict: 'source_id'
-    });
+    };
+    
+    // Use type assertion to bypass strict type checking for correct column names
+    // The main types.ts is auto-generated and may lag behind actual schema
+    const { error: insertError } = await (supabase
+      .from('voice_insights') as unknown as { upsert: (data: typeof insightData, options?: { onConflict: string }) => Promise<{ error: Error | null }> })
+      .upsert(insightData, {
+        onConflict: 'source_id'
+      });
 
     if (insertError) {
       console.error('[VoiceBulkAnalysis] Failed to save insights:', insertError);
-    } else {
-      // Sync status to media table for cross-system tracking + language
-      await syncMediaAnalysisStatus(recording, ['voice_transcription'], detectedLang);
+      throw new Error(`Failed to save transcription: ${insertError.message}`);
     }
+    
+    // Sync status to media table for cross-system tracking + language
+    await syncMediaAnalysisStatus(recording, ['voice_transcription'], detectedLang);
 
     return { success: true, processingTimeMs: result.totalProcessingMs, detectedLanguage: detectedLang };
   }, [syncMediaAnalysisStatus, getAccessibleUrl]);
