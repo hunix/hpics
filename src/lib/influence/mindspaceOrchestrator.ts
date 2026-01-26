@@ -473,10 +473,12 @@ export function adaptCampaign(
   for (const [trigger, effectiveness] of Object.entries(performance.triggerEffectiveness)) {
     if (effectiveness < 0.3) {
       const config = campaign.triggers[trigger as keyof MindspaceTriggers];
-      adaptations[trigger as keyof MindspaceTriggers] = boostTrigger(
-        trigger as keyof MindspaceTriggers,
-        config
-      );
+      if (config) {
+        (adaptations as Record<string, unknown>)[trigger] = boostTrigger(
+          trigger as keyof MindspaceTriggers,
+          config as unknown as MessengerConfig & IncentivesConfig & NormsConfig & DefaultsConfig & SalienceConfig & PrimingConfig & AffectConfig & CommitmentsConfig & EgoConfig
+        );
+      }
     }
   }
   

@@ -377,7 +377,7 @@ export function exploitPerceptionGap(
   
   return {
     targetGaps: exploitableGaps,
-    widening Strategies: exploitableGaps.map(gap => ({
+    wideningStrategies: exploitableGaps.map(gap => ({
       gap,
       strategy: designWideningStrategy(gap, desiredPerception),
       payloads: generateGapPayloads(gap, adversaryModel)
@@ -434,7 +434,6 @@ interface PerceptionGapPlan {
   wideningStrategies: WideningStrategy[];
   correctionPrevention: CorrectionPrevention;
   expectedOutcome: string;
-}
 }
 
 interface WideningStrategy {

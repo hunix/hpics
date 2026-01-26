@@ -587,7 +587,7 @@ export interface RealityDistortionField {
   targetProfileId: string;
   distortionType: DistortionType;
   alterations: RealityAlteration[];
-  consistency Manager: ConsistencyManager;
+  consistencyManager: ConsistencyManager;
   detectionCountermeasures: string[];
 }
 
