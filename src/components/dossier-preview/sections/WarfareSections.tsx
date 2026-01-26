@@ -392,4 +392,12 @@ export const WarfareSections = {
   TscmSweep: createGenericWarfareSection('tscmSweep', 'TSCM Sweep'),
   DigitalFootprint: createGenericWarfareSection('digitalFootprint', 'Digital Footprint'),
   BehavioralBaseline: createGenericWarfareSection('behavioralBaseline', 'Behavioral Baseline'),
+  // v6.0 Advanced Intelligence
+  RedTeamAssessment: createGenericWarfareSection('redTeamAssessment', 'Red Team Assessment'),
+  MultiPartyDeception: createGenericWarfareSection('multiPartyDeception', 'Multi-Party Deception'),
+  HypergameAnalysis: createGenericWarfareSection('hypergameAnalysis', 'Hypergame Analysis'),
+  // v7.0 Extreme Intelligence
+  IioAttribution: createGenericWarfareSection('iioAttribution', 'IIO Attribution'),
+  ReflexiveControl: createGenericWarfareSection('reflexiveControl', 'Reflexive Control'),
+  CognitiveEffect: createGenericWarfareSection('cognitiveEffect', 'Cognitive Effect'),
 };

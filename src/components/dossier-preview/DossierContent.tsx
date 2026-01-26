@@ -1,6 +1,6 @@
 /**
- * Dossier Content Container (v3.9.34)
- * Renders all 74 sections with proper registration for scroll tracking
+ * Dossier Content Container (v7.0)
+ * Renders all 95 sections with proper registration for scroll tracking
  */
 
 import { useEffect, useRef } from 'react';
@@ -98,6 +98,27 @@ const sectionRenderers: Record<string, React.FC<{ data: ExtendedDossierData }>> 
   counterfactual: AnalysisSections.Counterfactual,
   patternOfLifeFusion: AnalysisSections.PatternOfLifeFusion,
   entityResolution: AnalysisSections.EntityResolution,
+  
+  // v6.0 Advanced Intelligence
+  relationshipHalfLife: AnalysisSections.RelationshipHalfLife,
+  redTeamAssessment: WarfareSections.RedTeamAssessment,
+  multiPartyDeception: WarfareSections.MultiPartyDeception,
+  zeroDayAnomalies: AnalysisSections.ZeroDayAnomalies,
+  hypergameAnalysis: WarfareSections.HypergameAnalysis,
+  
+  // v7.0 Extreme Intelligence
+  subvocalizationDetection: AnalysisSections.SubvocalizationDetection,
+  audioBurstAnalysis: AnalysisSections.AudioBurstAnalysis,
+  iioAttribution: WarfareSections.IioAttribution,
+  reflexiveControl: WarfareSections.ReflexiveControl,
+  cognitiveEffect: WarfareSections.CognitiveEffect,
+  theoryOfMind: AnalysisSections.TheoryOfMind,
+  collectiveBehavior: AnalysisSections.CollectiveBehavior,
+  stylometricAnalysis: AnalysisSections.StylometricAnalysis,
+  dark2Clear: AnalysisSections.Dark2Clear,
+  gatedBioFusion: AnalysisSections.GatedBioFusion,
+  tasComCommunity: AnalysisSections.TasComCommunity,
+  biometricRetention: AnalysisSections.BiometricRetention,
 };
 
 export function DossierContent({ data, sections, registerSection }: DossierContentProps) {

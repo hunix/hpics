@@ -274,4 +274,17 @@ export const AnalysisSections = {
   Counterfactual: createGenericFusionSection('counterfactual', 'Counterfactual'),
   PatternOfLifeFusion: createGenericFusionSection('patternOfLifeFusion', 'Pattern of Life'),
   EntityResolution: createGenericFusionSection('entityResolution', 'Entity Resolution'),
+  // v6.0 Advanced Intelligence
+  RelationshipHalfLife: createGenericFusionSection('relationshipHalfLife', 'Relationship Half-Life'),
+  ZeroDayAnomalies: createGenericFusionSection('zeroDayAnomalies', 'Zero-Day Anomalies'),
+  // v7.0 Extreme Intelligence
+  SubvocalizationDetection: createGenericFusionSection('subvocalizationDetection', 'Subvocalization Detection'),
+  AudioBurstAnalysis: createGenericFusionSection('audioBurstAnalysis', 'Audio Burst Mental State'),
+  TheoryOfMind: createGenericFusionSection('theoryOfMind', 'Adversary Theory of Mind'),
+  CollectiveBehavior: createGenericFusionSection('collectiveBehavior', 'Collective Behavior Prediction'),
+  StylometricAnalysis: createGenericFusionSection('stylometricAnalysis', 'Stylometric Authorship'),
+  Dark2Clear: createGenericFusionSection('dark2Clear', 'Dark2Clear Identity Bridge'),
+  GatedBioFusion: createGenericFusionSection('gatedBioFusion', 'Gated Biological Fusion'),
+  TasComCommunity: createGenericFusionSection('tasComCommunity', 'TAS-Com Community Detection'),
+  BiometricRetention: createGenericFusionSection('biometricRetention', 'Biometric Retention'),
 };

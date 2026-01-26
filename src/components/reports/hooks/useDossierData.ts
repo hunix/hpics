@@ -99,6 +99,19 @@ export interface DossierDataResult {
   multiPartyDeceptionData: any[];
   zeroDayAnomalyData: any[];
   hypergameTheoryData: any[];
+  // New v7.0 Extreme Intelligence fields
+  subvocalizationData: any[];
+  audioBurstData: any[];
+  iioAttributionData: any[];
+  reflexiveControlData: any[];
+  cognitiveEffectData: any[];
+  theoryOfMindData: any[];
+  collectiveBehaviorData: any[];
+  stylometricData: any[];
+  dark2ClearData: any[];
+  gatedBioFusionData: any[];
+  tasComCommunityData: any[];
+  biometricRetentionData: any[];
 }
 
 export function useDossierData() {
@@ -343,6 +356,35 @@ export function useDossierData() {
       supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'hypergame_theory').order('generated_at', { ascending: false }).limit(1),
     ]);
 
+    // Batch 12: Extreme Intelligence Engine Results (v7.0)
+    const [
+      subvocalizationData,
+      audioBurstData,
+      iioAttributionData,
+      reflexiveControlData,
+      cognitiveEffectData,
+      theoryOfMindData,
+      collectiveBehaviorData,
+      stylometricData,
+      dark2ClearData,
+      gatedBioFusionData,
+      tasComCommunityData,
+      biometricRetentionData,
+    ] = await Promise.all([
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'subvocalization_detection').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'audio_burst_mental_state').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'iio_attribution').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'reflexive_control').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'cognitive_effect').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'adversary_mental_model').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'collective_behavior').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'stylometric_fingerprint').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'surface_identity_bridge').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'gated_bio_fusion').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'tas_com_community').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'biometric_retention').order('generated_at', { ascending: false }).limit(1),
+    ]);
+
     const [
       opsecAssessments,
       digitalFootprints,
@@ -450,6 +492,19 @@ export function useDossierData() {
       multiPartyDeceptionData: multiPartyDeceptionData.data || [],
       zeroDayAnomalyData: zeroDayAnomalyData.data || [],
       hypergameTheoryData: hypergameTheoryData.data || [],
+      // New v7.0 Extreme Intelligence fields
+      subvocalizationData: subvocalizationData.data || [],
+      audioBurstData: audioBurstData.data || [],
+      iioAttributionData: iioAttributionData.data || [],
+      reflexiveControlData: reflexiveControlData.data || [],
+      cognitiveEffectData: cognitiveEffectData.data || [],
+      theoryOfMindData: theoryOfMindData.data || [],
+      collectiveBehaviorData: collectiveBehaviorData.data || [],
+      stylometricData: stylometricData.data || [],
+      dark2ClearData: dark2ClearData.data || [],
+      gatedBioFusionData: gatedBioFusionData.data || [],
+      tasComCommunityData: tasComCommunityData.data || [],
+      biometricRetentionData: biometricRetentionData.data || [],
     };
   }, []);
 
