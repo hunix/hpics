@@ -38,7 +38,7 @@ export type ProcessingMode = 'local' | 'cloud' | 'hybrid';
 export interface FailedRecording {
   recording: VoiceRecording;
   error: string;
-  errorType: 'timeout' | 'empty' | 'network' | 'ml' | 'unknown';
+  errorType: 'timeout' | 'empty' | 'network' | 'ml' | 'audio_format' | 'unknown';
   canRetry: boolean;
 }
 
@@ -95,8 +95,14 @@ export interface VoiceBulkSession {
 }
 
 // Error classification for better user feedback
-const classifyError = (error: Error): { type: 'timeout' | 'empty' | 'network' | 'ml' | 'unknown'; canRetry: boolean; message: string } => {
+const classifyError = (error: Error): { type: 'timeout' | 'empty' | 'network' | 'ml' | 'audio_format' | 'unknown'; canRetry: boolean; message: string } => {
   const msg = error.message.toLowerCase();
+  
+  // Audio decode/format errors (non-retryable)
+  if (msg.includes('decodeaudiodata') || msg.includes('unable to decode') || 
+      msg.includes('encoding error') || msg.includes('invalid audio')) {
+    return { type: 'audio_format', canRetry: false, message: 'Audio format not supported or file corrupted' };
+  }
   
   if (msg.includes('timeout')) {
     return { type: 'timeout', canRetry: true, message: 'File took too long to process' };
