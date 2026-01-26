@@ -1,9 +1,8 @@
 /**
- * Dossier Content Container (v7.0)
- * Renders all 95 sections with proper registration for scroll tracking
+ * Dossier Content Container (v8.0)
+ * Renders all 137 sections with proper registration for scroll tracking
  */
 
-import { useEffect, useRef } from 'react';
 import type { DossierSection as DossierSectionType } from '@/components/reports/sections/types';
 import type { ExtendedDossierData } from './utils/computeExtendedData';
 import { DossierSection } from './DossierSection';
@@ -14,6 +13,7 @@ import { CoreSections } from './sections/CoreSections';
 import { IntelligenceSections } from './sections/IntelligenceSections';
 import { WarfareSections } from './sections/WarfareSections';
 import { AnalysisSections } from './sections/AnalysisSections';
+import { V8Sections } from './sections/V8Sections';
 
 interface DossierContentProps {
   data: ExtendedDossierData;
@@ -119,6 +119,49 @@ const sectionRenderers: Record<string, React.FC<{ data: ExtendedDossierData }>> 
   gatedBioFusion: AnalysisSections.GatedBioFusion,
   tasComCommunity: AnalysisSections.TasComCommunity,
   biometricRetention: AnalysisSections.BiometricRetention,
+  
+  // v8.0 Phase 1 - Counter-Intelligence
+  dracoDeception: V8Sections.DracoDeception,
+  sentientIntent: V8Sections.SentientIntent,
+  insiderThreat: V8Sections.InsiderThreat,
+  bayesianIntention: V8Sections.BayesianIntention,
+  redTeamSimulator: V8Sections.RedTeamSimulator,
+  semaforForgery: V8Sections.SemaforForgery,
+  epistemicVulnerability: V8Sections.EpistemicVulnerability,
+  cognitiveIW: V8Sections.CognitiveIW,
+  
+  // v8.0 Phase 2 - Psychological Warfare
+  psychoagentCascade: V8Sections.PsychoagentCascade,
+  affectiveManipulation: V8Sections.AffectiveManipulation,
+  hyperpersonalization: V8Sections.Hyperpersonalization,
+  computationalPersuasion: V8Sections.ComputationalPersuasion,
+  syntheticMemory: V8Sections.SyntheticMemory,
+  prememBelief: V8Sections.PreMemBelief,
+  linguisticStress: V8Sections.LinguisticStress,
+  memoryAnchor: V8Sections.MemoryAnchor,
+  emotionalContagion: V8Sections.EmotionalContagion,
+  sacredValuePredictor: V8Sections.SacredValuePredictor,
+  
+  // v8.0 Phase 3 - Biometric & Network
+  pupillometry: V8Sections.Pupillometry,
+  thermalStress: V8Sections.ThermalStress,
+  attentionMultimodal: V8Sections.AttentionMultimodal,
+  keystrokeDynamics: V8Sections.KeystrokeDynamics,
+  sheafNeural: V8Sections.SheafNeural,
+  ctdgLinkPredictor: V8Sections.CtdgLinkPredictor,
+  cascadeVirality: V8Sections.CascadeVirality,
+  networkResilience: V8Sections.NetworkResilience,
+  gazePattern: V8Sections.GazePattern,
+  microExpressionTimeline: V8Sections.MicroExpressionTimeline,
+  voiceStressCorrelator: V8Sections.VoiceStressCorrelator,
+  socialGraphPredictor: V8Sections.SocialGraphPredictor,
+  behavioralFingerprint: V8Sections.BehavioralFingerprint,
+  
+  // v8.0 Phase 4 - Doctrine & Prediction
+  influenceCampaignOptimizer: V8Sections.InfluenceCampaignOptimizer,
+  counterNarrative: V8Sections.CounterNarrative,
+  predictiveDoctrine: V8Sections.PredictiveDoctrine,
+  cognitiveDefenseSimulator: V8Sections.CognitiveDefenseSimulator,
 };
 
 export function DossierContent({ data, sections, registerSection }: DossierContentProps) {

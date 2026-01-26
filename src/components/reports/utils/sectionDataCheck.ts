@@ -114,6 +114,49 @@ const ANALYSIS_TYPE_ALIASES: Record<string, string[]> = {
   tasComCommunity: ['tas_com_community'],
   biometricRetention: ['biometric_retention'],
   
+  // v8.0 Phase 1 - Counter-Intelligence Sections
+  dracoDeception: ['draco_deception_orchestrator'],
+  sentientIntent: ['sentient_intent_analysis'],
+  insiderThreat: ['insider_threat_matrix'],
+  bayesianIntention: ['bayesian_intention_prediction'],
+  redTeamSimulator: ['red_team_adversary_simulation'],
+  semaforForgery: ['semafor_forgery_detection'],
+  epistemicVulnerability: ['epistemic_vulnerability_scan'],
+  cognitiveIW: ['cognitive_iw_detection'],
+  
+  // v8.0 Phase 2 - Psychological Warfare Sections
+  psychoagentCascade: ['psychoagent_cascade_prediction'],
+  affectiveManipulation: ['affective_manipulation_detection'],
+  hyperpersonalization: ['hyperpersonalization_mapping'],
+  computationalPersuasion: ['computational_persuasion'],
+  syntheticMemory: ['synthetic_memory_generation'],
+  prememBelief: ['premem_belief_modification'],
+  linguisticStress: ['linguistic_stress_detection'],
+  memoryAnchor: ['memory_anchor_generation'],
+  emotionalContagion: ['emotional_contagion_modeling'],
+  sacredValuePredictor: ['sacred_value_prediction'],
+  
+  // v8.0 Phase 3 - Biometric & Network Sections
+  pupillometry: ['pupillometry_analysis'],
+  thermalStress: ['thermal_stress_detection'],
+  attentionMultimodal: ['attention_multimodal_fusion'],
+  keystrokeDynamics: ['keystroke_dynamics_analysis'],
+  sheafNeural: ['sheaf_neural_influence'],
+  ctdgLinkPredictor: ['ctdg_link_prediction'],
+  cascadeVirality: ['cascade_virality_prediction'],
+  networkResilience: ['network_resilience_analysis'],
+  gazePattern: ['gaze_pattern_analysis'],
+  microExpressionTimeline: ['micro_expression_timeline'],
+  voiceStressCorrelator: ['voice_stress_correlation'],
+  socialGraphPredictor: ['social_graph_prediction'],
+  behavioralFingerprint: ['behavioral_fingerprint'],
+  
+  // v8.0 Phase 4 - Doctrine & Prediction Sections
+  influenceCampaignOptimizer: ['influence_campaign_optimization'],
+  counterNarrative: ['counter_narrative_generation'],
+  predictiveDoctrine: ['predictive_doctrine'],
+  cognitiveDefenseSimulator: ['cognitive_defense_simulation'],
+  
   // Analysis sections
   influenceResistance: ['coercion_resistance'],
   behavioralEconomics: ['economic_warfare'],
@@ -231,6 +274,49 @@ export function checkSectionHasData(
     multiPartyDeception: () => !!(Array.isArray(data.multiPartyDeceptionData) && data.multiPartyDeceptionData.length),
     zeroDayAnomalies: () => !!(Array.isArray(data.zeroDayAnomalyData) && data.zeroDayAnomalyData.length),
     hypergameAnalysis: () => !!(Array.isArray(data.hypergameTheoryData) && data.hypergameTheoryData.length),
+    
+    // v8.0 Phase 1 - Counter-Intelligence (all check via hasAnalysis)
+    dracoDeception: () => false,
+    sentientIntent: () => false,
+    insiderThreat: () => false,
+    bayesianIntention: () => false,
+    redTeamSimulator: () => false,
+    semaforForgery: () => false,
+    epistemicVulnerability: () => false,
+    cognitiveIW: () => false,
+    
+    // v8.0 Phase 2 - Psychological Warfare (all check via hasAnalysis)
+    psychoagentCascade: () => false,
+    affectiveManipulation: () => false,
+    hyperpersonalization: () => false,
+    computationalPersuasion: () => false,
+    syntheticMemory: () => false,
+    prememBelief: () => false,
+    linguisticStress: () => false,
+    memoryAnchor: () => false,
+    emotionalContagion: () => false,
+    sacredValuePredictor: () => false,
+    
+    // v8.0 Phase 3 - Biometric & Network (all check via hasAnalysis)
+    pupillometry: () => false,
+    thermalStress: () => false,
+    attentionMultimodal: () => false,
+    keystrokeDynamics: () => false,
+    sheafNeural: () => false,
+    ctdgLinkPredictor: () => false,
+    cascadeVirality: () => false,
+    networkResilience: () => false,
+    gazePattern: () => false,
+    microExpressionTimeline: () => false,
+    voiceStressCorrelator: () => false,
+    socialGraphPredictor: () => false,
+    behavioralFingerprint: () => false,
+    
+    // v8.0 Phase 4 - Doctrine & Prediction (all check via hasAnalysis)
+    influenceCampaignOptimizer: () => false,
+    counterNarrative: () => false,
+    predictiveDoctrine: () => false,
+    cognitiveDefenseSimulator: () => false,
     
     // Analysis sections
     analysis: () => !!(data.allAnalyses?.length),
