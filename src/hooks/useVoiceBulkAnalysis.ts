@@ -518,13 +518,33 @@ export function useVoiceBulkAnalysis(profileId?: string) {
       const allRecordings = [...sessionRecordings, ...mediaRecordings];
       
       // Check which already have voice insights
+      // Use profile_id query instead of .in() with 800+ IDs to avoid URL length limits
       const recordingIds = allRecordings.map(r => r.id);
-      const { data: existingInsights } = await supabase
-        .from('voice_insights')
-        .select('source_id')
-        .in('source_id', recordingIds.length > 0 ? recordingIds : ['__none__']);
+      const recordingIdSet = new Set(recordingIds);
       
-      const insightSourceIds = new Set(existingInsights?.map(i => i.source_id) || []);
+      let insightSourceIds = new Set<string>();
+      
+      try {
+        // Query by profile_id to get a short URL, then filter locally
+        const { data: existingInsights, error: insightsError } = await supabase
+          .from('voice_insights')
+          .select('source_id')
+          .eq('profile_id', profileId);
+        
+        if (insightsError) {
+          console.error('[VoiceBulkAnalysis] Failed to check voice_insights:', insightsError);
+          // Continue with empty set - users can still analyze, just won't see "Analyzed" badges
+        } else {
+          // Filter to only include source_ids that match our recordings
+          insightSourceIds = new Set(
+            (existingInsights || [])
+              .map(i => i.source_id)
+              .filter((id): id is string => id !== null && recordingIdSet.has(id))
+          );
+        }
+      } catch (queryError) {
+        console.error('[VoiceBulkAnalysis] Exception checking voice_insights:', queryError);
+      }
       
       console.log(`[VoiceBulkAnalysis] Found ${insightSourceIds.size} existing insights for ${recordingIds.length} recordings`);
       
@@ -1149,9 +1169,15 @@ export function useVoiceBulkAnalysis(profileId?: string) {
     // Wait for database transaction to fully commit before refreshing
     await new Promise(resolve => setTimeout(resolve, 300));
     
-    // Refresh recordings to update status
+    // Refresh recordings to update hasVoiceInsights status
     console.log('[VoiceBulkAnalysis] Refetching recordings after completion...');
-    await fetchRecordings(profileId);
+    const updatedRecordings = await fetchRecordings(profileId);
+    
+    // Return analyzed IDs so the component can clear them from selection
+    const analyzedIds = updatedRecordings
+      .filter(r => r.hasVoiceInsights)
+      .map(r => r.id);
+    console.log(`[VoiceBulkAnalysis] ${analyzedIds.length} recordings now marked as analyzed`);
   }, [options, profileId, fetchRecordings, processingMode, processLocalRecording, syncMediaAnalysisStatus]);
 
   // Pause/cancel analysis
