@@ -1,59 +1,149 @@
 
-# Fix Distil-Whisper Model ID for Browser Compatibility
 
-## Problem Identified
+# Enhance Voice Analysis Model Download Progress Indicator
 
-The `distil` model in `MODEL_MAP` (line 69) references PyTorch weights that are incompatible with `@huggingface/transformers` browser execution:
+## Current State Analysis
 
-| Model | Current ID | Status |
-|-------|-----------|--------|
-| turbo | `onnx-community/whisper-large-v3-turbo` | Correct |
-| distil | `distil-whisper/distil-large-v3` | **Incorrect - PyTorch weights** |
-| small | `onnx-community/whisper-small` | Correct |
-| tiny | `onnx-community/whisper-tiny.en` | Correct |
+The Voice Analysis system is **fully functional** with all components properly configured:
 
-## Root Cause
+| Component | Status |
+|-----------|--------|
+| Whisper Models (4 variants) | ✅ Correct ONNX IDs |
+| Model Loading Progress | ✅ Basic percentage shown |
+| WebGPU/WASM Detection | ✅ Auto-fallback |
+| Batch Processing | ✅ Complete with error handling |
+| Language Pre-scan | ✅ For English-only model |
 
-The `distil-whisper/distil-large-v3` model on HuggingFace contains PyTorch `.bin` files, not ONNX `.onnx` files. The `@huggingface/transformers` library requires ONNX-format models for WebGPU/WASM execution in browsers.
+The existing progress indicator (lines 244-258 in `VoiceBulkAnalysisPanel.tsx`) shows:
+- Percentage complete with spinner
+- Static model size text
 
-## Solution
+## Enhancement: Estimated Time Remaining
 
-Update line 69 in `src/lib/ml/localWhisperTranscriber.ts`:
+Add dynamic download speed calculation and estimated time remaining.
 
+### Changes Required
+
+**File 1: `src/hooks/useVoiceBulkAnalysis.ts`**
+
+Extend `VoiceBulkSession` interface (line 51):
 ```typescript
-// Before (PyTorch - won't work in browser)
-id: "distil-whisper/distil-large-v3"
-
-// After (ONNX - browser compatible)
-id: "onnx-community/distil-whisper-large-v3"
+export interface VoiceBulkSession {
+  // ... existing fields ...
+  modelDownloadStartTime?: number;  // NEW: Track download start
+  modelDownloadSpeedMBps?: number;  // NEW: Current download speed
+}
 ```
 
-## File Changes
-
-**File:** `src/lib/ml/localWhisperTranscriber.ts`
-
-**Change:** Single line update at line 69
-
+Update `startBulkAnalysis` to track timing (around line 369-379):
 ```typescript
-distil: {
-  id: "onnx-community/distil-whisper-large-v3",  // Changed from "distil-whisper/distil-large-v3"
-  name: "Distil-Whisper Large V3",
-  size: "~750MB", 
-  speed: "~6x faster than base",
-  supportedLanguages: 'multilingual'
-},
+let downloadStartTime = performance.now();
+let lastProgress = 0;
+let lastTime = downloadStartTime;
+
+await localAudioAnalyzer.initialize({
+  whisperModel: whisperModel,
+  onProgress: (progress) => {
+    if (progress.status === 'progress') {
+      const now = performance.now();
+      const progressDelta = (progress.progress || 0) - lastProgress;
+      const timeDelta = (now - lastTime) / 1000; // seconds
+      
+      // Calculate speed (MB/s) based on progress percentage and model size
+      const modelSizes: Record<WhisperModel, number> = {
+        tiny: 75, small: 250, distil: 750, turbo: 800
+      };
+      const totalSize = modelSizes[whisperModel] || 250;
+      const downloadedMB = (progress.progress || 0) / 100 * totalSize;
+      const speedMBps = timeDelta > 0 ? (progressDelta / 100 * totalSize) / timeDelta : 0;
+      
+      setSession(prev => prev ? {
+        ...prev,
+        modelProgress: progress.progress,
+        modelDownloadStartTime: downloadStartTime,
+        modelDownloadSpeedMBps: speedMBps > 0 ? speedMBps : prev.modelDownloadSpeedMBps
+      } : null);
+      
+      lastProgress = progress.progress || 0;
+      lastTime = now;
+    }
+  }
+});
 ```
 
-## Validation
+**File 2: `src/components/analysis/VoiceBulkAnalysisPanel.tsx`**
 
-After this fix:
-- All 4 Whisper models use `onnx-community` namespace
-- Distil model will download ONNX weights correctly
-- WebGPU/WASM transcription will work for Distil selection
-- Model selector in Voice Analysis Hub will function properly
+Enhance the model loading UI (replace lines 244-258):
+```typescript
+{/* Model Loading Phase - Enhanced */}
+{session.phase === 'model_loading' && session.modelStatus === 'loading' && (
+  <div className="space-y-2">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <Loader2 className="h-4 w-4 animate-spin text-yellow-500" />
+        <span className="font-medium text-yellow-600 dark:text-yellow-400">
+          Downloading {WHISPER_MODEL_OPTIONS.find(m => m.key === selectedWhisperModel)?.name}...
+        </span>
+      </div>
+      <span className="text-sm font-mono">
+        {Math.round(session.modelProgress || 0)}%
+      </span>
+    </div>
+    <Progress value={session.modelProgress || 0} className="h-2" />
+    <div className="flex items-center justify-between text-xs text-muted-foreground">
+      <span>
+        ~{WHISPER_MODEL_OPTIONS.find(m => m.key === selectedWhisperModel)?.size || '250MB'}
+      </span>
+      {session.modelDownloadSpeedMBps && session.modelDownloadSpeedMBps > 0 && (
+        <span className="flex items-center gap-1">
+          <Zap className="h-3 w-3" />
+          {session.modelDownloadSpeedMBps.toFixed(1)} MB/s
+          {session.modelProgress && session.modelProgress < 100 && (
+            <span className="ml-2">
+              ~{Math.ceil(
+                ((100 - session.modelProgress) / 100 * 
+                  (parseInt(WHISPER_MODEL_OPTIONS.find(m => m.key === selectedWhisperModel)?.size || '250') || 250)) /
+                session.modelDownloadSpeedMBps
+              )}s remaining
+            </span>
+          )}
+        </span>
+      )}
+    </div>
+    <p className="text-xs text-muted-foreground mt-1">
+      First run downloads model to browser cache (won't download again)
+    </p>
+  </div>
+)}
+```
 
-## Impact
+## Testing Steps
 
-- **Risk:** None - simple ID string change
-- **Testing:** Select "Distil" model in Voice Analysis and run transcription
-- **Rollback:** Revert single line if needed
+After implementation:
+
+1. Navigate to `/analysis` → Voice tab
+2. Select a contact with audio files (or upload test audio)
+3. Choose **Local (Fast)** processing mode
+4. Select **Whisper Tiny (75MB)** for fastest download test
+5. Click **Start Analysis**
+6. Observe:
+   - Download progress percentage updating
+   - Download speed in MB/s
+   - Estimated time remaining countdown
+   - Progress bar filling
+7. After model loads, observe transcription progress
+
+## Files Modified
+
+| File | Changes |
+|------|---------|
+| `src/hooks/useVoiceBulkAnalysis.ts` | Add timing fields to session, calculate download speed |
+| `src/components/analysis/VoiceBulkAnalysisPanel.tsx` | Enhanced progress UI with speed and ETA |
+
+## Technical Notes
+
+- Download speed calculated from progress delta over time delta
+- Model sizes hardcoded (matching WHISPER_MODEL_OPTIONS)
+- Speed smoothing: keeps last valid speed if current delta is zero
+- ETA formula: `(remainingPercentage / 100 * modelSizeMB) / speedMBps`
+
