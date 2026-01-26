@@ -1,179 +1,255 @@
 
 
-# Fix Voice Analysis - Transcriptions Not Being Saved
+# New Version Detection & Update System
 
-## Problem Summary
+## Overview
 
-Based on database and code analysis, I identified **three critical issues**:
+Implement a complete version management system that:
+1. Stores the latest published version in the database (`platform_config` table)
+2. Periodically checks for new versions while the app is running
+3. Shows a prominent but non-intrusive notification when updates are available
+4. Clears all caches and reloads when the user clicks "Update"
 
-1. **Column Name Mismatch** - The upsert to `voice_insights` uses wrong column names
-2. **Silent Failures** - Errors are logged but processing continues as "successful"
-3. **UI State Stuck** - Session detection logic prevents list re-enabling
+## Architecture
 
-## Root Cause Analysis
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          Version Detection Flow                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌─────────────┐      ┌──────────────────┐      ┌───────────────────────┐   │
+│  │   Publish   │ ──── │  Update DB with  │ ──── │  app_published_version│   │
+│  │   (Manual)  │      │  new version     │      │  in platform_config   │   │
+│  └─────────────┘      └──────────────────┘      └───────────────────────┘   │
+│                                                           │                  │
+│                                                           ▼                  │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │                     Client-side (AppLayout)                          │    │
+│  │  ┌──────────────────┐   ┌──────────────────┐   ┌───────────────────┐│    │
+│  │  │ useVersionCheck  │──▶│ Compare versions │──▶│ Show update banner││    │
+│  │  │ (poll every 5min)│   │ APP_VERSION vs DB│   │ if mismatch found ││    │
+│  │  └──────────────────┘   └──────────────────┘   └───────────────────┘│    │
+│  │                                                        │             │    │
+│  │                                                        ▼             │    │
+│  │  ┌─────────────────────────────────────────────────────────────────┐│    │
+│  │  │ User clicks "Update" → clearAllCaches() → forceAppUpdate()      ││    │
+│  │  └─────────────────────────────────────────────────────────────────┘│    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
-### Issue 1: Column Name Mismatch
+## Implementation Plan
 
-The `voice_insights` table has different column names than what the code expects:
+### Phase 1: Store Published Version in Database
 
-| Code Uses | Table Actually Has | Effect |
-|-----------|-------------------|--------|
-| `transcription_text` | `full_transcription` | Upsert fails |
-| `transcription_chunks` | `transcription_with_timestamps` | Upsert fails |
-| `overall_sentiment` | (does not exist) | Upsert fails |
-| `processing_method` | `ai_model_used` | Upsert fails |
+**Database Migration**: Add a platform config entry for the app version
 
-**Evidence from database:**
 ```sql
--- Table columns show:
-full_transcription         -- NOT transcription_text
-transcription_with_timestamps  -- NOT transcription_chunks
-ai_model_used              -- NOT processing_method
--- NO overall_sentiment column
+INSERT INTO platform_config (config_key, config_value, category, display_name, description, value_type, default_value)
+VALUES (
+  'app_published_version',
+  '"3.9.51"',
+  'system',
+  'Published App Version',
+  'The currently published application version. Update this after each publish.',
+  'string',
+  '"3.9.51"'
+)
+ON CONFLICT (config_key) DO UPDATE SET config_value = EXCLUDED.config_value;
 ```
 
-**Evidence from code (line 630-645):**
+### Phase 2: Create Version Check Hook
+
+**File: `src/hooks/useServerVersionCheck.ts`** (new file)
+
+A hook that:
+- Polls the database every 5 minutes for the latest version
+- Compares against the local `APP_VERSION` constant
+- Returns state about whether an update is available
+- Provides an `updateNow()` function that clears caches and reloads
+
 ```typescript
-await supabase.from('voice_insights').upsert({
-  transcription_text: result.transcription.text,      // ❌ Wrong column
-  transcription_chunks: result.transcription.chunks,  // ❌ Wrong column
-  overall_sentiment: result.sentiment?.label,         // ❌ Column doesn't exist
-  processing_method: 'local_whisper_turbo',           // ❌ Wrong column
+export function useServerVersionCheck(options?: {
+  pollInterval?: number;  // default 300000ms (5 min)
+  enabled?: boolean;      // default true
+}) {
+  const [hasNewVersion, setHasNewVersion] = useState(false);
+  const [serverVersion, setServerVersion] = useState<string | null>(null);
+
+  // Query platform_config for app_published_version
+  useEffect(() => {
+    const checkVersion = async () => {
+      const { data } = await supabase
+        .from('platform_config')
+        .select('config_value')
+        .eq('config_key', 'app_published_version')
+        .maybeSingle();
+      
+      if (data?.config_value) {
+        const version = JSON.parse(data.config_value);
+        setServerVersion(version);
+        if (version !== APP_VERSION) {
+          setHasNewVersion(true);
+        }
+      }
+    };
+    
+    // Check immediately, then poll
+    checkVersion();
+    const interval = setInterval(checkVersion, pollInterval);
+    return () => clearInterval(interval);
+  }, [pollInterval]);
+
+  const updateNow = useCallback(async () => {
+    await forceAppUpdate();  // Uses existing function from appVersion.ts
+  }, []);
+
+  return { hasNewVersion, serverVersion, currentVersion: APP_VERSION, updateNow };
+}
+```
+
+### Phase 3: Enhance NewVersionAvailable Component
+
+**File: `src/components/reliability/NewVersionAvailable.tsx`**
+
+Update to accept version information and use the proper cache clearing:
+
+```typescript
+interface NewVersionAvailableProps {
+  onRefresh?: () => void;
+  onDismiss?: () => void;
+  variant?: 'banner' | 'toast' | 'inline';
+  className?: string;
+  currentVersion?: string;
+  newVersion?: string;
+}
+
+// In handleRefresh:
+const handleRefresh = async () => {
+  if (onRefresh) {
+    onRefresh();
+  } else {
+    await forceAppUpdate();  // Use proper cache clearing
+  }
+};
+```
+
+### Phase 4: Integrate Banner into AppLayout
+
+**File: `src/components/AppLayout.tsx`**
+
+Add the version check hook and banner:
+
+```typescript
+import { useServerVersionCheck } from '@/hooks/useServerVersionCheck';
+import { NewVersionAvailable } from '@/components/reliability/NewVersionAvailable';
+
+export function AppLayout({ children, ... }) {
+  const { hasNewVersion, serverVersion, currentVersion, updateNow } = useServerVersionCheck();
   // ...
-});
-```
-
-### Issue 2: Silent Failure
-
-The insert error is logged but processing continues as successful:
-```typescript
-if (insertError) {
-  console.error('[VoiceBulkAnalysis] Failed to save insights:', insertError);
-}
-// ← Processing continues, returns success: true
-return { success: true, processingTimeMs: result.totalProcessingMs };
-```
-
-### Issue 3: Session State Not Clearing
-
-- After completion, `session.status = 'completed'` but UI still shows disabled
-- The "Start New" button is available but checkboxes remain disabled
-- `isRunning` check at line 236 should return `false` when `status === 'completed'`
-- **Actual issue**: The `interruptedSession` detection logic detects a "stuck" session on page refresh
-
-## Solution Plan
-
-### Phase 1: Fix Column Names in processLocalRecording
-
-Update `src/hooks/useVoiceBulkAnalysis.ts` lines 630-645 to use correct column names:
-
-```typescript
-const { error: insertError } = await supabase.from('voice_insights').upsert({
-  source_type: sourceType,
-  source_id: recording.id,
-  profile_id: recording.profile_id,
-  user_id: userId,
-  full_transcription: result.transcription.text,         // ✅ Correct column
-  transcription_with_timestamps: result.transcription.chunks as unknown as Record<string, unknown>[],  // ✅ Correct column
-  // Remove overall_sentiment - column doesn't exist
-  confidence_score: result.sentiment?.confidence || 0.5,
-  ai_model_used: 'local_whisper_turbo',                  // ✅ Correct column
-  processing_time_ms: result.totalProcessingMs,
-  language_detected: detectedLang,
-  created_at: new Date().toISOString()
-}, {
-  onConflict: 'source_id'
-});
-```
-
-### Phase 2: Add Error Propagation
-
-Make the insert failure throw an error so it gets properly tracked:
-
-```typescript
-if (insertError) {
-  console.error('[VoiceBulkAnalysis] Failed to save insights:', insertError);
-  throw new Error(`Failed to save transcription: ${insertError.message}`);
+  
+  return (
+    <SidebarProvider>
+      {/* Show update banner above everything when new version detected */}
+      {hasNewVersion && (
+        <NewVersionAvailable
+          variant="banner"
+          currentVersion={currentVersion}
+          newVersion={serverVersion || undefined}
+          onRefresh={updateNow}
+        />
+      )}
+      <div className="min-h-screen-mobile flex w-full">
+        {/* ... rest of layout */}
+      </div>
+    </SidebarProvider>
+  );
 }
 ```
 
-### Phase 3: Update Item Status with Transcription
+### Phase 5: Create Version Update Script/Instructions
 
-Store the transcription text in `voice_analysis_items` for backup:
+Since this is a manual process each time you publish, provide two options:
+
+**Option A: Manual Update After Publish**
+
+After each publish:
+1. Update `src/lib/appVersion.ts` - increment `APP_VERSION`
+2. Run SQL to update database:
+```sql
+UPDATE platform_config 
+SET config_value = '"3.9.52"' 
+WHERE config_key = 'app_published_version';
+```
+
+**Option B: Edge Function to Update Version**
+
+Create an edge function `update-app-version` that you can call after publishing:
 
 ```typescript
-if (dbSessionId) {
-  await updateDbItemStatus(dbSessionId, recording.id, 'completed', {
-    transcription: result.transcription.text,
-    language: detectedLang
-  });
-}
+// POST /update-app-version
+// Body: { version: "3.9.52" }
+// Requires admin/service role authentication
+
+const { version } = await req.json();
+await supabase
+  .from('platform_config')
+  .update({ config_value: JSON.stringify(version) })
+  .eq('config_key', 'app_published_version');
 ```
 
-### Phase 4: Fix Session Cleanup on Completion
+## Files to Create/Modify
 
-Ensure the database session is marked as completed properly:
+| File | Action | Description |
+|------|--------|-------------|
+| `supabase/migrations/xxx.sql` | Create | Add `app_published_version` to platform_config |
+| `src/hooks/useServerVersionCheck.ts` | Create | Hook to poll database for latest version |
+| `src/components/reliability/NewVersionAvailable.tsx` | Modify | Add version props, use forceAppUpdate |
+| `src/components/AppLayout.tsx` | Modify | Integrate version check and banner |
+| `supabase/functions/update-app-version/index.ts` | Create | Edge function to update published version |
+| `src/lib/appVersion.ts` | Modify | Add function to sync version from server |
 
-```typescript
-// After processing loop completes
-if (dbSessionId) {
-  await supabase
-    .from('voice_analysis_sessions')
-    .update({
-      status: 'completed',
-      completed_at: new Date().toISOString(),
-      completed_items: successCount,
-      failed_items: failedRecordingsTracker.length,
-    })
-    .eq('id', dbSessionId);
-}
-```
+## User Experience Flow
 
-## Files to Modify
+1. **Developer publishes new version**:
+   - Update `APP_VERSION` in code (e.g., 3.9.51 → 3.9.52)
+   - Publish via Lovable
+   - Update database: `app_published_version` = "3.9.52"
 
-| File | Changes |
-|------|---------|
-| `src/hooks/useVoiceBulkAnalysis.ts` | Fix column names, add error propagation, update session status |
+2. **User has app open with old version (3.9.51)**:
+   - Every 5 minutes, hook queries database
+   - Detects 3.9.52 > 3.9.51
+   - Shows banner: "A new version (v3.9.52) is available"
 
-## Technical Details
+3. **User clicks "Update Now"**:
+   - `forceAppUpdate()` is called
+   - Unregisters all service workers
+   - Clears all Cache Storage
+   - Clears sessionStorage and non-auth localStorage
+   - Stores new version in localStorage
+   - Reloads page with cache-bust query param
 
-### Correct voice_insights Schema
+4. **App reloads fresh**:
+   - Downloads new assets from server
+   - `APP_VERSION` now matches server
+   - No more banner shown
 
-```
-id                              uuid (PK)
-user_id                         uuid (required)
-source_type                     text (required) - voice_note, media, etc.
-source_id                       uuid (required)
-profile_id                      uuid
-full_transcription              text           ← Use this
-transcription_with_timestamps   jsonb          ← Use this
-confidence_score                numeric
-ai_model_used                   text           ← Use this
-processing_time_ms              integer
-language_detected               text
-created_at                      timestamp
-updated_at                      timestamp
-```
+## Technical Notes
 
-### Testing Steps
+- The 5-minute poll interval balances freshness vs. database load
+- Service worker `updatefound` event still works as backup detection
+- Banner uses existing component with toast/banner/inline variants
+- `forceAppUpdate()` already exists in `appVersion.ts` - reuse it
+- Version stored in DB as JSON string (e.g., `"3.9.52"`) for type consistency
 
-After implementation:
+## Testing Steps
 
-1. Navigate to `/analysis` → Voice tab
-2. Select a contact with audio files
-3. Choose **Local (Fast)** processing
-4. Click **Start Analysis**
-5. Verify all files complete successfully
-6. Verify `voice_insights` table now has records
-7. Refresh the page
-8. Verify NO "stuck job" notification appears
-9. Verify the list is enabled and analyzed files are excluded
-
-## Expected Outcomes
-
-1. **Transcriptions saved** - `voice_insights` table will have records
-2. **Files marked as analyzed** - `hasVoiceInsights` check will work
-3. **List properly enabled** - UI re-enables after completion
-4. **No stuck jobs** - Session marked as truly completed
-5. **Transcriptions accessible** - Analysis results can be viewed
+1. Deploy with version 3.9.52
+2. Run SQL to set `app_published_version` = "3.9.52"
+3. In an existing tab (running 3.9.51), wait 5 minutes or manually trigger check
+4. Verify banner appears
+5. Click "Update Now"
+6. Verify caches cleared and app reloads with new version
+7. Verify banner no longer appears after update
 
