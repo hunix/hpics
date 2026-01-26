@@ -1,82 +1,119 @@
 
-# ✅ COMPLETED: Local Whisper Opus Decoding Fix
+# Fix Local Whisper Analysis: WASM Loading and Opus Decoding
 
-## Summary
+## Problem Confirmed
 
-Implemented a robust multi-layered audio preprocessing solution to make Local Whisper reliably transcribe WhatsApp `.opus` voice notes in Chrome/Edge without freezing the UI.
+Local voice transcription for WhatsApp `.opus` files is still failing despite adding `ogg-opus-decoder`. Based on my investigation:
 
-## Changes Made
+| Finding | Evidence |
+|---------|----------|
+| Vite is breaking WASM | `vite.config.ts` does NOT exclude `ogg-opus-decoder` from dependency optimization |
+| Main-thread blocking | Using `OggOpusDecoder` (sync) instead of `OggOpusDecoderWebWorker` (async/worker) |
+| Silent failures | WASM load errors may be caught but not clearly surfaced to UI |
+| Published site issue | You confirmed failures happen on published site (production build) |
 
-### 1. `src/lib/ml/localWhisperTranscriber.ts` - Major Overhaul
+## Root Cause: Vite Bundling Breaks WASM
 
-**Added:**
-- **WASM Opus Decoder**: Integrated `ogg-opus-decoder` library for reliable OGG/Opus decoding when Chrome's native `decodeAudioData` fails/hangs
-- **Content Sniffing**: `detectAudioFormat()` function checks:
-  - Magic bytes signature (OggS, HTML, etc.)
-  - Content-Type header
-  - File size validation
-  - Early fail for HTML responses (expired signed URLs)
-- **Timeout Wrapper**: 10-second timeout on `decodeAudioData` to prevent hangs
-- **Pure JS Resampler**: `resampleTo16kHz()` using linear interpolation - no `OfflineAudioContext` needed
-- **Mono Mixer**: `mixToMono()` for multi-channel audio
-- **Test Decode API**: `testDecode()` method for capability probing
-- **Decoder Cleanup**: `unload()` now properly frees WASM decoder resources
+When Vite/esbuild optimizes `ogg-opus-decoder`, it mangles the WASM file paths or fails to bundle them correctly. The decoder silently fails during initialization, causing every subsequent `.decode()` call to throw.
 
-**Decode Strategy:**
-1. Detect if audio is OGG/Opus (signature or content-type)
-2. If Opus → use WASM decoder first, native fallback
-3. If not Opus → use native decoder first, WASM fallback
-4. Both paths resample to 16kHz mono Float32Array
+## Solution: Multi-Layer Fix
 
-### 2. `src/hooks/useVoiceBulkAnalysis.ts` - Capability Probe
+### Layer 1: Vite Configuration (Critical)
 
-**Added:**
-- Import `localWhisperTranscriber` for direct access
-- **Capability Probe**: Before batch processing starts:
-  - Tests decoding the first file with 5-second timeout
-  - If fails with audio format error → auto-switch to cloud mode
-  - Shows toast: "Local decoding for this audio format is not fully supported..."
-  - Prevents wasting time failing 100+ files sequentially
+Add `ogg-opus-decoder` to Vite's optimization exclusion list so WASM files are served correctly:
 
-### 3. Dependencies
-
-- Added: `ogg-opus-decoder@latest` (WASM-based Opus decoder with Web Worker support)
-
-## How It Works Now
-
-```
-User selects .opus files → Start Local Analysis
-    ↓
-Model loads (unchanged)
-    ↓
-✨ NEW: Capability Probe
-    → testDecode(firstFile)
-    → If fails: switch to cloud mode with toast
-    → If passes: continue local
-    ↓
-Process each file:
-    → fetch() → ArrayBuffer
-    → detectAudioFormat() → {isOggOpus, isHtml, size, signature}
-    → If HTML: throw "URL expired" error immediately
-    → If OggOpus: decodeOpusWithWasm() → Float32Array @ 48kHz
-    → Else: decodeWithAudioContext() with 10s timeout
-    → resampleTo16kHz() via pure JS interpolation
-    → Pass Float32Array to Whisper pipeline
-    ↓
-Transcription saved to voice_insights
+```typescript
+// vite.config.ts
+export default defineConfig({
+  optimizeDeps: {
+    exclude: ['ogg-opus-decoder']
+  },
+  // ... rest of config
+});
 ```
 
-## Testing Checklist
+### Layer 2: Use Web Worker Decoder (Prevent UI Freeze)
 
-- [ ] WhatsApp .opus files on Chrome/Edge - should transcribe successfully
-- [ ] No UI freezing during batch processing
-- [ ] MP3/WAV files still work (native path regression test)
-- [ ] Expired signed URL shows "URL may have expired" error
-- [ ] Capability probe triggers cloud fallback when format unsupported
+Replace `OggOpusDecoder` with `OggOpusDecoderWebWorker` for off-main-thread decoding:
 
-## Technical Notes
+```typescript
+// Before:
+import { OggOpusDecoder } from "ogg-opus-decoder";
+this.opusDecoder = new OggOpusDecoder();
 
-- WASM decoder loaded lazily on first Opus file encounter
-- Pure JS resampler avoids OfflineAudioContext main-thread blocking
-- Timeout ensures no single file can hang indefinitely
-- Content sniffing catches 403/auth failures that return HTML
+// After:
+import { OggOpusDecoderWebWorker } from "ogg-opus-decoder";
+this.opusDecoder = new OggOpusDecoderWebWorker();
+```
+
+Both have the same API (`ready`, `decode`, `free`), but the worker version runs decoding in a background thread.
+
+### Layer 3: Initialization Error Handling
+
+Wrap WASM decoder initialization with explicit error logging so failures are visible:
+
+```typescript
+try {
+  this.opusDecoder = new OggOpusDecoderWebWorker();
+  await this.opusDecoder.ready;
+  console.log('[LocalWhisper] WASM Opus decoder initialized successfully');
+} catch (initError) {
+  console.error('[LocalWhisper] WASM Opus decoder failed to initialize:', initError);
+  this.opusDecoder = null; // Mark as unavailable
+  throw new Error('Opus decoder unavailable - WASM failed to load');
+}
+```
+
+### Layer 4: Fallback When WASM Unavailable
+
+If WASM fails entirely (e.g., browser restrictions), skip local Opus decoding and auto-switch to cloud:
+
+```typescript
+if (diagnostics.isOggOpus) {
+  if (!this.opusDecoder) {
+    throw new Error('Opus format requires WASM decoder which is unavailable');
+  }
+  return await this.decodeOpusWithWasm(arrayBuffer);
+}
+```
+
+## Files to Modify
+
+| File | Change |
+|------|--------|
+| `vite.config.ts` | Add `optimizeDeps.exclude: ['ogg-opus-decoder']` |
+| `src/lib/ml/localWhisperTranscriber.ts` | Switch to `OggOpusDecoderWebWorker`, add init error handling |
+
+## Technical Details
+
+### Why OggOpusDecoderWebWorker?
+
+- Runs WASM decoding in a Web Worker (off main thread)
+- Prevents the "freeze then fail" pattern you're seeing
+- Has identical API to `OggOpusDecoder`
+- Recommended by library maintainers for production use
+
+### Why optimizeDeps.exclude?
+
+- Vite's esbuild pre-bundling can't handle WASM correctly
+- Excluding the package forces Vite to serve it as-is
+- This is a known pattern for WASM-heavy npm packages
+
+## Expected Outcomes
+
+After this fix:
+1. WASM loads correctly in production builds
+2. Decoding runs in a worker (no UI freezes)
+3. `.opus` files transcribe successfully
+4. Clear error messages if WASM truly can't load (rare edge cases)
+
+## Testing Plan
+
+1. Rebuild and deploy
+2. Navigate to Media Analysis Hub → Voice tab
+3. Select WhatsApp `.opus` files
+4. Run Local analysis
+5. Verify:
+   - No UI freeze
+   - Files succeed (not all failing)
+   - Console shows `[LocalWhisper] WASM Opus decoder initialized successfully`
