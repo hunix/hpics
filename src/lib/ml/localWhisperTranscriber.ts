@@ -9,7 +9,8 @@
  */
 
 import { pipeline, env } from "@huggingface/transformers";
-import { OggOpusDecoderWebWorker } from "ogg-opus-decoder";
+// OggOpusDecoderWebWorker is dynamically imported in decodeOpusWithWasm to avoid
+// Vite module resolution issues with @eshaz/web-worker CommonJS dependency
 
 // Configure for browser usage
 env.allowLocalModels = false;
@@ -253,7 +254,7 @@ class LocalWhisperTranscriber {
   private currentModel: WhisperModel = 'turbo';
   private currentDevice: 'webgpu' | 'wasm' = 'webgpu';
   private progressCallback: ProgressCallback | null = null;
-  private opusDecoder: OggOpusDecoderWebWorker | null = null;
+  private opusDecoder: any = null; // Dynamically imported OggOpusDecoderWebWorker
   private opusDecoderReady: boolean = false;
 
   /**
@@ -276,9 +277,12 @@ class LocalWhisperTranscriber {
   private async decodeOpusWithWasm(arrayBuffer: ArrayBuffer): Promise<Float32Array> {
     console.log('[LocalWhisper] Using WASM Opus decoder (Web Worker)...');
     
-    // Lazy-initialize decoder with explicit error handling
+    // Lazy-initialize decoder with dynamic import to avoid Vite module resolution issues
     if (!this.opusDecoder || !this.opusDecoderReady) {
       try {
+        console.log('[LocalWhisper] Dynamically importing ogg-opus-decoder...');
+        const { OggOpusDecoderWebWorker } = await import('ogg-opus-decoder');
+        
         console.log('[LocalWhisper] Initializing OggOpusDecoderWebWorker...');
         this.opusDecoder = new OggOpusDecoderWebWorker();
         await this.opusDecoder.ready;

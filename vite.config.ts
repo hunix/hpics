@@ -11,7 +11,18 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
   },
   optimizeDeps: {
-    exclude: ['ogg-opus-decoder']
+    exclude: [
+      'ogg-opus-decoder',
+      '@eshaz/web-worker',
+      '@wasm-audio-decoders/common',
+      '@wasm-audio-decoders/opus-ml'
+    ]
+  },
+  build: {
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true,
+    }
   },
   plugins: [
     react(),
