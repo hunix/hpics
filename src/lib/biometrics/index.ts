@@ -88,3 +88,20 @@ export {
   type KeystrokeProfile,
   type KeystrokeComparison
 } from './keystrokeDynamics';
+
+// Continuous Authentication Engine (v9.0)
+export {
+  analyzeKeystrokeDynamics,
+  analyzeTouchPatterns,
+  analyzeMouseMovements,
+  analyzeGaitPatterns,
+  estimateCognitiveState,
+  authenticateUser,
+  type KeystrokeProfile as ContinuousKeystrokeProfile,
+  type TouchProfile,
+  type MouseProfile,
+  type GaitProfile as ContinuousGaitProfile,
+  type CognitiveStateEstimate,
+  type AuthenticationResult,
+  type BiometricAnomaly,
+} from './continuousAuthEngine';

@@ -51,3 +51,17 @@ export {
   analyzeVoiceDeception,
   buildVoiceBaseline
 } from './voiceStressAnalyzer';
+
+// Reconsolidation Tracker (v9.0)
+export {
+  trackMemoryRetrieval,
+  getReconsolidationWindow,
+  generateInterventionStrategies,
+  profileSuggestibility,
+  findOptimalInterventionWindows,
+  type MemoryEvent,
+  type ReconsolidationWindow,
+  type InterventionStrategy,
+  type SuggestibilityProfile,
+  type SuggestibilityFactor,
+} from './reconsolidationTracker';
