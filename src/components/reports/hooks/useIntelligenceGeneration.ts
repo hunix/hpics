@@ -183,6 +183,20 @@ const ALL_INTELLIGENCE_TASKS: IntelligenceTask[] = [
   { name: 'Multi-Party Deception', edgeFunction: 'multi-party-deception-detector', analysisType: 'multi_party_deception', required: false, category: 'warfare', priority: 9 },
   { name: 'Zero-Day Anomaly', edgeFunction: 'zero-day-anomaly-detector', analysisType: 'zero_day_anomaly', required: false, category: 'fusion', priority: 9 },
   { name: 'Hypergame Theory', edgeFunction: 'hypergame-theory-engine', analysisType: 'hypergame_theory', required: false, category: 'fusion', priority: 9 },
+  
+  // v7.0 Extreme Intelligence Engines (Priority 10) - 12 tasks
+  { name: 'Subvocalization Detection', edgeFunction: 'subvocalization-detector', analysisType: 'subvocalization_detection', required: false, category: 'fusion', priority: 10 },
+  { name: 'Audio Burst Analysis', edgeFunction: 'audio-burst-analyzer', analysisType: 'audio_burst_mental_state', required: false, category: 'fusion', priority: 10 },
+  { name: 'IIO Attribution', edgeFunction: 'iio-attribution-engine', analysisType: 'iio_attribution', required: false, category: 'warfare', priority: 10 },
+  { name: 'Reflexive Control', edgeFunction: 'reflexive-control-detector', analysisType: 'reflexive_control', required: false, category: 'warfare', priority: 10 },
+  { name: 'Cognitive Effect', edgeFunction: 'cognitive-effect-orchestrator', analysisType: 'cognitive_effect', required: false, category: 'warfare', priority: 10 },
+  { name: 'Theory of Mind', edgeFunction: 'kallisti-theory-of-mind', analysisType: 'adversary_mental_model', required: false, category: 'fusion', priority: 10 },
+  { name: 'Collective Behavior', edgeFunction: 'collective-behavior-predictor', analysisType: 'collective_behavior', required: false, category: 'fusion', priority: 10 },
+  { name: 'Stylometric Analysis', edgeFunction: 'stylometric-analyzer', analysisType: 'stylometric_fingerprint', required: false, category: 'fusion', priority: 10 },
+  { name: 'Dark2Clear', edgeFunction: 'dark2clear-deanonymization', analysisType: 'surface_identity_bridge', required: false, category: 'fusion', priority: 10 },
+  { name: 'Gated Bio Fusion', edgeFunction: 'gated-biological-fusion', analysisType: 'gated_bio_fusion', required: false, category: 'fusion', priority: 10 },
+  { name: 'TAS-Com Community', edgeFunction: 'tas-com-community-detector', analysisType: 'tas_com_community', required: false, category: 'fusion', priority: 10 },
+  { name: 'Biometric Retention', edgeFunction: 'migration5-biometric-tracker', analysisType: 'biometric_retention', required: false, category: 'fusion', priority: 10 },
 ];
 
 /**

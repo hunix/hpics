@@ -100,6 +100,20 @@ const ANALYSIS_TYPE_ALIASES: Record<string, string[]> = {
   zeroDayAnomalies: ['zero_day_anomaly', 'behavioral_baseline'],
   hypergameAnalysis: ['hypergame_theory', 'behavioral_prediction'],
   
+  // v7.0 Extreme Intelligence Sections
+  subvocalizationDetection: ['subvocalization_detection'],
+  audioBurstAnalysis: ['audio_burst_mental_state'],
+  iioAttribution: ['iio_attribution'],
+  reflexiveControl: ['reflexive_control'],
+  cognitiveEffect: ['cognitive_effect'],
+  theoryOfMind: ['adversary_mental_model'],
+  collectiveBehavior: ['collective_behavior'],
+  stylometricAnalysis: ['stylometric_fingerprint'],
+  dark2Clear: ['surface_identity_bridge'],
+  gatedBioFusion: ['gated_bio_fusion'],
+  tasComCommunity: ['tas_com_community'],
+  biometricRetention: ['biometric_retention'],
+  
   // Analysis sections
   influenceResistance: ['coercion_resistance'],
   behavioralEconomics: ['economic_warfare'],
