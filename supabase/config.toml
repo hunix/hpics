@@ -623,3 +623,6 @@ verify_jwt = false
 
 [functions.process-voice-analysis-runner]
 verify_jwt = false
+
+[functions.update-app-version]
+verify_jwt = false

@@ -16,6 +16,9 @@ import { NotificationCenter } from '@/components/navigation/NotificationCenter';
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
 import { useOfflineData } from '@/hooks/useOfflineData';
 import { FloatingCascadeAlerts } from '@/components/intelligence/phase19/FloatingCascadeAlerts';
+import { useServerVersionCheck } from '@/hooks/useServerVersionCheck';
+import { NewVersionAvailable } from '@/components/reliability/NewVersionAvailable';
+import { cn } from '@/lib/utils';
 
 // Lazy load heavy components
 const FloatingAIAssistant = lazy(() => 
@@ -38,6 +41,16 @@ export function AppLayout({ children, title, showQuickCapture = false, capturePr
   const navigate = useNavigate();
   const location = useLocation();
   const { pendingCount, syncPendingChanges, cacheContacts } = useOfflineData();
+  
+  // Server version check for update notifications
+  const { 
+    hasNewVersion, 
+    serverVersion, 
+    currentVersion, 
+    updateNow, 
+    dismissUpdate,
+    isDismissed 
+  } = useServerVersionCheck();
   
 
   // Cache contacts on mount for offline access
@@ -67,7 +80,21 @@ export function AppLayout({ children, title, showQuickCapture = false, capturePr
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen-mobile flex w-full">
+      {/* Show update banner above everything when new version detected */}
+      {hasNewVersion && !isDismissed && (
+        <NewVersionAvailable
+          variant="banner"
+          currentVersion={currentVersion}
+          newVersion={serverVersion || undefined}
+          onRefresh={updateNow}
+          onDismiss={dismissUpdate}
+        />
+      )}
+      <div className={cn(
+        "min-h-screen-mobile flex w-full",
+        // Add top padding when banner is shown
+        hasNewVersion && !isDismissed && "pt-10"
+      )}>
         <AppSidebar />
         <SidebarInset className="flex flex-col flex-1">
           {/* Header with clean layout */}
