@@ -620,3 +620,6 @@ verify_jwt = false
 
 [functions.hypergame-theory-engine]
 verify_jwt = false
+
+[functions.process-voice-analysis-runner]
+verify_jwt = false
