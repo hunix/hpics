@@ -1,7 +1,7 @@
 /**
- * Compute Extended Dossier Data (v7.0)
+ * Compute Extended Dossier Data (v8.0)
  * Transforms raw DossierDataResult into ExtendedDossierData for rendering
- * Includes email intelligence, v5.0 fusion, v6.0 advanced intelligence, and v7.0 extreme intelligence in completeness score
+ * Includes email intelligence, v5.0 fusion, v6.0 advanced, v7.0 extreme, and v8.0 masterpiece intelligence in completeness score
  */
 
 import type { DossierDataResult } from '@/components/reports/hooks/useDossierData';
@@ -43,6 +43,45 @@ export interface ExtendedDossierData extends DossierDataResult {
   hasGatedBioFusion: boolean;
   hasTasComCommunity: boolean;
   hasBiometricRetention: boolean;
+  // v8.0 Masterpiece Intelligence - Phase 1
+  hasDracoDeception: boolean;
+  hasSentientIntent: boolean;
+  hasInsiderThreat: boolean;
+  hasBayesianIntention: boolean;
+  hasRedTeamAdversary: boolean;
+  hasSemaforForgery: boolean;
+  hasEpistemicVulnerability: boolean;
+  hasCognitiveIw: boolean;
+  // v8.0 Masterpiece Intelligence - Phase 2
+  hasPsychoagentCascade: boolean;
+  hasAffectiveManipulation: boolean;
+  hasHyperpersonalization: boolean;
+  hasComputationalPersuasion: boolean;
+  hasSyntheticMemory: boolean;
+  hasPreMemBelief: boolean;
+  hasLinguisticStress: boolean;
+  hasMemoryAnchor: boolean;
+  hasEmotionalContagion: boolean;
+  hasSacredValuePredictor: boolean;
+  // v8.0 Masterpiece Intelligence - Phase 3
+  hasPupillometry: boolean;
+  hasThermalStress: boolean;
+  hasAttentionFuser: boolean;
+  hasKeystrokeDynamics: boolean;
+  hasSheafNeural: boolean;
+  hasCtdgLink: boolean;
+  hasCascadeVirality: boolean;
+  hasNetworkResilience: boolean;
+  // v8.0 Masterpiece Intelligence - Phase 4
+  hasGazePattern: boolean;
+  hasMicroExpression: boolean;
+  hasVoiceStressCorrelator: boolean;
+  hasSocialGraphPredictor: boolean;
+  hasInfluenceCampaign: boolean;
+  hasCounterNarrative: boolean;
+  hasPredictiveDoctrine: boolean;
+  hasCognitiveDefense: boolean;
+  hasBehavioralFingerprint: boolean;
   [key: string]: unknown;
 }
 
@@ -85,7 +124,50 @@ export function computeExtendedDossierData(
   const hasTasComCommunity = (raw.tasComCommunityData?.length ?? 0) > 0;
   const hasBiometricRetention = (raw.biometricRetentionData?.length ?? 0) > 0;
 
-  // Calculate intelligence completeness (expanded to 31 sources for v7.0)
+  // v8.0 Masterpiece Intelligence checks - Phase 1 (Counter-Intelligence)
+  const hasDracoDeception = (raw.dracoDeceptionData?.length ?? 0) > 0;
+  const hasSentientIntent = (raw.sentientIntentData?.length ?? 0) > 0;
+  const hasInsiderThreat = (raw.insiderThreatData?.length ?? 0) > 0;
+  const hasBayesianIntention = (raw.bayesianIntentionData?.length ?? 0) > 0;
+  const hasRedTeamAdversary = (raw.redTeamAdversaryData?.length ?? 0) > 0;
+  const hasSemaforForgery = (raw.semaforForgeryData?.length ?? 0) > 0;
+  const hasEpistemicVulnerability = (raw.epistemicVulnerabilityData?.length ?? 0) > 0;
+  const hasCognitiveIw = (raw.cognitiveIwData?.length ?? 0) > 0;
+
+  // v8.0 Masterpiece Intelligence checks - Phase 2 (Psychological Warfare)
+  const hasPsychoagentCascade = (raw.psychoagentCascadeData?.length ?? 0) > 0;
+  const hasAffectiveManipulation = (raw.affectiveManipulationData?.length ?? 0) > 0;
+  const hasHyperpersonalization = (raw.hyperpersonalizationData?.length ?? 0) > 0;
+  const hasComputationalPersuasion = (raw.computationalPersuasionData?.length ?? 0) > 0;
+  const hasSyntheticMemory = (raw.syntheticMemoryData?.length ?? 0) > 0;
+  const hasPreMemBelief = (raw.prememBeliefData?.length ?? 0) > 0;
+  const hasLinguisticStress = (raw.linguisticStressData?.length ?? 0) > 0;
+  const hasMemoryAnchor = (raw.memoryAnchorData?.length ?? 0) > 0;
+  const hasEmotionalContagion = (raw.emotionalContagionData?.length ?? 0) > 0;
+  const hasSacredValuePredictor = (raw.sacredValuePredictorData?.length ?? 0) > 0;
+
+  // v8.0 Masterpiece Intelligence checks - Phase 3 (Biometric & Network)
+  const hasPupillometry = (raw.pupillometryData?.length ?? 0) > 0;
+  const hasThermalStress = (raw.thermalStressData?.length ?? 0) > 0;
+  const hasAttentionFuser = (raw.attentionFuserData?.length ?? 0) > 0;
+  const hasKeystrokeDynamics = (raw.keystrokeDynamicsData?.length ?? 0) > 0;
+  const hasSheafNeural = (raw.sheafNeuralData?.length ?? 0) > 0;
+  const hasCtdgLink = (raw.ctdgLinkData?.length ?? 0) > 0;
+  const hasCascadeVirality = (raw.cascadeViralityData?.length ?? 0) > 0;
+  const hasNetworkResilience = (raw.networkResilienceData?.length ?? 0) > 0;
+
+  // v8.0 Masterpiece Intelligence checks - Phase 4 (Doctrine & Prediction)
+  const hasGazePattern = (raw.gazePatternData?.length ?? 0) > 0;
+  const hasMicroExpression = (raw.microExpressionData?.length ?? 0) > 0;
+  const hasVoiceStressCorrelator = (raw.voiceStressCorrelatorData?.length ?? 0) > 0;
+  const hasSocialGraphPredictor = (raw.socialGraphPredictorData?.length ?? 0) > 0;
+  const hasInfluenceCampaign = (raw.influenceCampaignData?.length ?? 0) > 0;
+  const hasCounterNarrative = (raw.counterNarrativeData?.length ?? 0) > 0;
+  const hasPredictiveDoctrine = (raw.predictiveDoctrineData?.length ?? 0) > 0;
+  const hasCognitiveDefense = (raw.cognitiveDefenseData?.length ?? 0) > 0;
+  const hasBehavioralFingerprint = (raw.behavioralFingerprintData?.length ?? 0) > 0;
+
+  // Calculate intelligence completeness (expanded to 66 sources for v8.0)
   const sourceChecks = [
     // Core sources (10)
     raw.psychData?.length > 0,
@@ -122,6 +204,45 @@ export function computeExtendedDossierData(
     hasGatedBioFusion,
     hasTasComCommunity,
     hasBiometricRetention,
+    // v8.0 Phase 1: Counter-Intelligence (8)
+    hasDracoDeception,
+    hasSentientIntent,
+    hasInsiderThreat,
+    hasBayesianIntention,
+    hasRedTeamAdversary,
+    hasSemaforForgery,
+    hasEpistemicVulnerability,
+    hasCognitiveIw,
+    // v8.0 Phase 2: Psychological Warfare (10)
+    hasPsychoagentCascade,
+    hasAffectiveManipulation,
+    hasHyperpersonalization,
+    hasComputationalPersuasion,
+    hasSyntheticMemory,
+    hasPreMemBelief,
+    hasLinguisticStress,
+    hasMemoryAnchor,
+    hasEmotionalContagion,
+    hasSacredValuePredictor,
+    // v8.0 Phase 3: Biometric & Network (8)
+    hasPupillometry,
+    hasThermalStress,
+    hasAttentionFuser,
+    hasKeystrokeDynamics,
+    hasSheafNeural,
+    hasCtdgLink,
+    hasCascadeVirality,
+    hasNetworkResilience,
+    // v8.0 Phase 4: Doctrine & Prediction (9)
+    hasGazePattern,
+    hasMicroExpression,
+    hasVoiceStressCorrelator,
+    hasSocialGraphPredictor,
+    hasInfluenceCampaign,
+    hasCounterNarrative,
+    hasPredictiveDoctrine,
+    hasCognitiveDefense,
+    hasBehavioralFingerprint,
   ];
   const intelligenceCompleteness = Math.round(
     (sourceChecks.filter(Boolean).length / sourceChecks.length) * 100
@@ -189,5 +310,44 @@ export function computeExtendedDossierData(
     hasGatedBioFusion,
     hasTasComCommunity,
     hasBiometricRetention,
+    // v8.0 Phase 1: Counter-Intelligence
+    hasDracoDeception,
+    hasSentientIntent,
+    hasInsiderThreat,
+    hasBayesianIntention,
+    hasRedTeamAdversary,
+    hasSemaforForgery,
+    hasEpistemicVulnerability,
+    hasCognitiveIw,
+    // v8.0 Phase 2: Psychological Warfare
+    hasPsychoagentCascade,
+    hasAffectiveManipulation,
+    hasHyperpersonalization,
+    hasComputationalPersuasion,
+    hasSyntheticMemory,
+    hasPreMemBelief,
+    hasLinguisticStress,
+    hasMemoryAnchor,
+    hasEmotionalContagion,
+    hasSacredValuePredictor,
+    // v8.0 Phase 3: Biometric & Network
+    hasPupillometry,
+    hasThermalStress,
+    hasAttentionFuser,
+    hasKeystrokeDynamics,
+    hasSheafNeural,
+    hasCtdgLink,
+    hasCascadeVirality,
+    hasNetworkResilience,
+    // v8.0 Phase 4: Doctrine & Prediction
+    hasGazePattern,
+    hasMicroExpression,
+    hasVoiceStressCorrelator,
+    hasSocialGraphPredictor,
+    hasInfluenceCampaign,
+    hasCounterNarrative,
+    hasPredictiveDoctrine,
+    hasCognitiveDefense,
+    hasBehavioralFingerprint,
   };
 }

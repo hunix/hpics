@@ -1,7 +1,7 @@
 /**
- * Dossier Data Fetching Hook (v3.7.3)
+ * Dossier Data Fetching Hook (v8.0)
  * Centralizes all Supabase queries for dossier generation
- * Expanded to fetch 55+ data sources for 64-section PDF
+ * Expanded to fetch 73+ data sources for 137-section PDF
  */
 
 import { useCallback } from 'react';
@@ -112,6 +112,46 @@ export interface DossierDataResult {
   gatedBioFusionData: any[];
   tasComCommunityData: any[];
   biometricRetentionData: any[];
+  // New v8.0 Masterpiece Intelligence fields
+  // Phase 1: Counter-Intelligence
+  dracoDeceptionData: any[];
+  sentientIntentData: any[];
+  insiderThreatData: any[];
+  bayesianIntentionData: any[];
+  redTeamAdversaryData: any[];
+  semaforForgeryData: any[];
+  epistemicVulnerabilityData: any[];
+  cognitiveIwData: any[];
+  // Phase 2: Psychological Warfare
+  psychoagentCascadeData: any[];
+  affectiveManipulationData: any[];
+  hyperpersonalizationData: any[];
+  computationalPersuasionData: any[];
+  syntheticMemoryData: any[];
+  prememBeliefData: any[];
+  linguisticStressData: any[];
+  memoryAnchorData: any[];
+  emotionalContagionData: any[];
+  sacredValuePredictorData: any[];
+  // Phase 3: Biometric & Network
+  pupillometryData: any[];
+  thermalStressData: any[];
+  attentionFuserData: any[];
+  keystrokeDynamicsData: any[];
+  sheafNeuralData: any[];
+  ctdgLinkData: any[];
+  cascadeViralityData: any[];
+  networkResilienceData: any[];
+  // Phase 4: Doctrine & Prediction
+  gazePatternData: any[];
+  microExpressionData: any[];
+  voiceStressCorrelatorData: any[];
+  socialGraphPredictorData: any[];
+  influenceCampaignData: any[];
+  counterNarrativeData: any[];
+  predictiveDoctrineData: any[];
+  cognitiveDefenseData: any[];
+  behavioralFingerprintData: any[];
 }
 
 export function useDossierData() {
@@ -385,6 +425,96 @@ export function useDossierData() {
       supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'biometric_retention').order('generated_at', { ascending: false }).limit(1),
     ]);
 
+    // Batch 13: v8.0 Masterpiece Intelligence - Phase 1 (Counter-Intelligence)
+    const [
+      dracoDeceptionData,
+      sentientIntentData,
+      insiderThreatData,
+      bayesianIntentionData,
+      redTeamAdversaryData,
+      semaforForgeryData,
+      epistemicVulnerabilityData,
+      cognitiveIwData,
+    ] = await Promise.all([
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'draco_deception').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'sentient_intent').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'insider_threat_matrix').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'bayesian_intention').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'red_team_adversary').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'semafor_forgery').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'epistemic_vulnerability').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'cognitive_iw').order('generated_at', { ascending: false }).limit(1),
+    ]);
+
+    // Batch 14: v8.0 Masterpiece Intelligence - Phase 2 (Psychological Warfare)
+    const [
+      psychoagentCascadeData,
+      affectiveManipulationData,
+      hyperpersonalizationData,
+      computationalPersuasionData,
+      syntheticMemoryData,
+      prememBeliefData,
+      linguisticStressData,
+      memoryAnchorData,
+      emotionalContagionData,
+      sacredValuePredictorData,
+    ] = await Promise.all([
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'psychoagent_cascade').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'affective_manipulation').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'hyperpersonalization').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'computational_persuasion').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'synthetic_memory').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'premem_belief').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'linguistic_stress').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'memory_anchor').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'emotional_contagion').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'sacred_value_predictor').order('generated_at', { ascending: false }).limit(1),
+    ]);
+
+    // Batch 15: v8.0 Masterpiece Intelligence - Phase 3 (Biometric & Network)
+    const [
+      pupillometryData,
+      thermalStressData,
+      attentionFuserData,
+      keystrokeDynamicsData,
+      sheafNeuralData,
+      ctdgLinkData,
+      cascadeViralityData,
+      networkResilienceData,
+    ] = await Promise.all([
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'pupillometry').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'thermal_stress').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'attention_multimodal').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'keystroke_dynamics').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'sheaf_neural').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'ctdg_link').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'cascade_virality').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'network_resilience').order('generated_at', { ascending: false }).limit(1),
+    ]);
+
+    // Batch 16: v8.0 Masterpiece Intelligence - Phase 4 (Doctrine & Prediction)
+    const [
+      gazePatternData,
+      microExpressionData,
+      voiceStressCorrelatorData,
+      socialGraphPredictorData,
+      influenceCampaignData,
+      counterNarrativeData,
+      predictiveDoctrineData,
+      cognitiveDefenseData,
+      behavioralFingerprintData,
+    ] = await Promise.all([
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'gaze_pattern').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'micro_expression_timeline').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'voice_stress_correlator').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'social_graph_predictor').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'influence_campaign_optimizer').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'counter_narrative').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'predictive_doctrine').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'cognitive_defense').order('generated_at', { ascending: false }).limit(1),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'behavioral_fingerprint').order('generated_at', { ascending: false }).limit(1),
+    ]);
+
     const [
       opsecAssessments,
       digitalFootprints,
@@ -505,6 +635,46 @@ export function useDossierData() {
       gatedBioFusionData: gatedBioFusionData.data || [],
       tasComCommunityData: tasComCommunityData.data || [],
       biometricRetentionData: biometricRetentionData.data || [],
+      // New v8.0 Masterpiece Intelligence fields
+      // Phase 1: Counter-Intelligence
+      dracoDeceptionData: dracoDeceptionData.data || [],
+      sentientIntentData: sentientIntentData.data || [],
+      insiderThreatData: insiderThreatData.data || [],
+      bayesianIntentionData: bayesianIntentionData.data || [],
+      redTeamAdversaryData: redTeamAdversaryData.data || [],
+      semaforForgeryData: semaforForgeryData.data || [],
+      epistemicVulnerabilityData: epistemicVulnerabilityData.data || [],
+      cognitiveIwData: cognitiveIwData.data || [],
+      // Phase 2: Psychological Warfare
+      psychoagentCascadeData: psychoagentCascadeData.data || [],
+      affectiveManipulationData: affectiveManipulationData.data || [],
+      hyperpersonalizationData: hyperpersonalizationData.data || [],
+      computationalPersuasionData: computationalPersuasionData.data || [],
+      syntheticMemoryData: syntheticMemoryData.data || [],
+      prememBeliefData: prememBeliefData.data || [],
+      linguisticStressData: linguisticStressData.data || [],
+      memoryAnchorData: memoryAnchorData.data || [],
+      emotionalContagionData: emotionalContagionData.data || [],
+      sacredValuePredictorData: sacredValuePredictorData.data || [],
+      // Phase 3: Biometric & Network
+      pupillometryData: pupillometryData.data || [],
+      thermalStressData: thermalStressData.data || [],
+      attentionFuserData: attentionFuserData.data || [],
+      keystrokeDynamicsData: keystrokeDynamicsData.data || [],
+      sheafNeuralData: sheafNeuralData.data || [],
+      ctdgLinkData: ctdgLinkData.data || [],
+      cascadeViralityData: cascadeViralityData.data || [],
+      networkResilienceData: networkResilienceData.data || [],
+      // Phase 4: Doctrine & Prediction
+      gazePatternData: gazePatternData.data || [],
+      microExpressionData: microExpressionData.data || [],
+      voiceStressCorrelatorData: voiceStressCorrelatorData.data || [],
+      socialGraphPredictorData: socialGraphPredictorData.data || [],
+      influenceCampaignData: influenceCampaignData.data || [],
+      counterNarrativeData: counterNarrativeData.data || [],
+      predictiveDoctrineData: predictiveDoctrineData.data || [],
+      cognitiveDefenseData: cognitiveDefenseData.data || [],
+      behavioralFingerprintData: behavioralFingerprintData.data || [],
     };
   }, []);
 
