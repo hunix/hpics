@@ -37395,6 +37395,7 @@ export type Database = {
           session_id: string
           source: string | null
           status: string | null
+          storage_path: string | null
           transcription_text: string | null
         }
         Insert: {
@@ -37416,6 +37417,7 @@ export type Database = {
           session_id: string
           source?: string | null
           status?: string | null
+          storage_path?: string | null
           transcription_text?: string | null
         }
         Update: {
@@ -37437,6 +37439,7 @@ export type Database = {
           session_id?: string
           source?: string | null
           status?: string | null
+          storage_path?: string | null
           transcription_text?: string | null
         }
         Relationships: [
