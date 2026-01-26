@@ -1,154 +1,176 @@
 
-# Fix: Analysis Page Module Loading Error
+# Fix: Voice Analysis UI Not Reflecting Analyzed Files
 
-## Problem Summary
+## Problem Identified
 
-The `/analysis` page crashes immediately with:
-```
-SyntaxError: The requested module '/node_modules/@eshaz/web-worker/cjs/browser.js' does not provide an export named 'default'
-```
+After analyzing 10+ voice files successfully, the UI still shows:
+- "Select Unanalyzed (881)" count unchanged
+- "Hide analyzed" toggle not filtering anything
+- No "Analyzed" badge on completed files
+- Analyzed files remain selected
 
-This error occurs because:
-1. `ogg-opus-decoder` uses `@eshaz/web-worker` (nested dependency)
-2. `@eshaz/web-worker` is a **CommonJS module** in the `cjs/` folder
-3. Vite's dependency optimizer is incorrectly treating it as ESM
-4. The `localWhisperTranscriber.ts` has a **top-level import** of `OggOpusDecoderWebWorker`
-5. This import runs immediately when the Analysis page loads
+## Root Cause: URL Too Long for Supabase Query
 
-## Root Cause Analysis
+The `fetchRecordings` function queries `voice_insights` to check which recordings have already been analyzed. With 881 audio files, the query uses:
 
-```text
-Analysis Page Load
-      │
-      ▼
-VoiceBulkAnalysisPanel.tsx
-      │ imports
-      ▼
-localWhisperTranscriber.ts (line 12)
-      │ top-level import
-      ▼
-import { OggOpusDecoderWebWorker } from "ogg-opus-decoder"
-      │
-      ▼
-@wasm-audio-decoders/common
-      │
-      ▼
-@eshaz/web-worker/cjs/browser.js  ← FAILS HERE
-      │
-      ✗ SyntaxError: no 'default' export
-```
-
-## Solution: Two-Part Fix
-
-### Part 1: Vite Configuration Update
-
-Add the problematic nested dependencies to `optimizeDeps.exclude` and configure CommonJS handling:
-
-**File: `vite.config.ts`**
 ```typescript
-optimizeDeps: {
-  exclude: [
-    'ogg-opus-decoder',
-    '@eshaz/web-worker',              // Add this
-    '@wasm-audio-decoders/common',    // Add this
-    '@wasm-audio-decoders/opus-ml'    // Add this
-  ]
-},
-build: {
-  commonjsOptions: {
-    include: [/node_modules/],
-    transformMixedEsModules: true,
-  }
+.in('source_id', recordingIds) // 881 UUIDs
+```
+
+This generates a URL over **10,000 characters** which exceeds the HTTP URL length limit (~8KB). The server returns a **400 Bad Request** error, but the code doesn't check for errors and continues with an empty result set.
+
+**Evidence from network logs:**
+```
+Status: 400 (Bad Request)
+URL: /rest/v1/voice_insights?select=source_id&source_id=in.(uuid1,uuid2,...881 total)
+Response Body: Bad Request
+```
+
+## Solution: Batch the Query or Use Alternative Strategy
+
+### Option A: Batch the `.in()` Query (Recommended)
+
+Split the 881 IDs into chunks of 100-200 and query in parallel:
+
+```typescript
+// Instead of one query with 881 IDs
+const BATCH_SIZE = 100;
+const batches = chunk(recordingIds, BATCH_SIZE);
+
+const batchResults = await Promise.all(
+  batches.map(batch =>
+    supabase
+      .from('voice_insights')
+      .select('source_id')
+      .in('source_id', batch)
+  )
+);
+
+const existingInsights = batchResults.flatMap(r => r.data || []);
+```
+
+### Option B: Query All Insights for Profile
+
+Instead of filtering by `source_id`, get all insights for the profile and match locally:
+
+```typescript
+const { data: existingInsights } = await supabase
+  .from('voice_insights')
+  .select('source_id')
+  .eq('profile_id', profileId);
+
+const insightSourceIds = new Set(existingInsights?.map(i => i.source_id) || []);
+```
+
+This is simpler and the query URL stays short. The profile typically has fewer insights than recordings.
+
+### Option C: Add Error Handling
+
+Regardless of the fix chosen, add proper error handling:
+
+```typescript
+const { data: existingInsights, error } = await supabase
+  .from('voice_insights')
+  .select('source_id')
+  .in('source_id', recordingIds);
+
+if (error) {
+  console.error('[VoiceBulkAnalysis] Failed to check insights:', error);
+  // Fallback: try batch approach or profile-based query
 }
 ```
 
-### Part 2: Lazy Dynamic Import
+## Additional Fixes Required
 
-Move the `OggOpusDecoderWebWorker` import from top-level to a **dynamic import** inside the method that uses it. This prevents the module from loading until actually needed:
+### 1. Clear Selection After Analysis
 
-**File: `src/lib/ml/localWhisperTranscriber.ts`**
+When analysis completes, remove analyzed files from selection:
 
-Before (line 12):
 ```typescript
-import { OggOpusDecoderWebWorker } from "ogg-opus-decoder";
-```
-
-After:
-```typescript
-// Remove the top-level import entirely
-// Import dynamically inside decodeOpusWithWasm method
-
-private async decodeOpusWithWasm(arrayBuffer: ArrayBuffer): Promise<Float32Array> {
-  // Lazy-initialize decoder with dynamic import
-  if (!this.opusDecoder || !this.opusDecoderReady) {
-    try {
-      console.log('[LocalWhisper] Dynamically importing ogg-opus-decoder...');
-      const { OggOpusDecoderWebWorker } = await import('ogg-opus-decoder');
-      
-      console.log('[LocalWhisper] Initializing OggOpusDecoderWebWorker...');
-      this.opusDecoder = new OggOpusDecoderWebWorker();
-      await this.opusDecoder.ready;
-      this.opusDecoderReady = true;
-      console.log('[LocalWhisper] WASM Opus decoder initialized successfully');
-    } catch (initError) {
-      console.error('[LocalWhisper] WASM Opus decoder failed to initialize:', initError);
-      this.opusDecoder = null;
-      this.opusDecoderReady = false;
-      throw new Error('Opus decoder unavailable - WASM failed to load. Try Cloud mode for .opus files.');
+// After refetch, update selection to remove analyzed items
+setSelectedRecordings(prev => {
+  const updated = new Set(prev);
+  recordingsWithStatus.forEach(r => {
+    if (r.hasVoiceInsights) {
+      updated.delete(r.id);
     }
-  }
-  // ... rest of method unchanged
+  });
+  return updated;
+});
+```
+
+### 2. Verify "Hide Analyzed" Toggle Works
+
+The toggle logic at line 178 is correct:
+```typescript
+if (hideAnalyzed) {
+  filtered = filtered.filter(r => !r.hasVoiceInsights);
 }
 ```
 
-### Part 3: Separate Type Export
-
-The `VoiceBulkAnalysisPanel` imports types from `localWhisperTranscriber.ts`. We need to ensure the type exports don't trigger the WASM module load:
-
-**File: `src/lib/ml/localWhisperTranscriber.ts`**
-
-The existing exports (`WhisperModel`, `LANGUAGE_DISPLAY_MAP`) are pure TypeScript types and constants, so they're safe. The issue is only with the runtime import of `OggOpusDecoderWebWorker`.
+This will work once `hasVoiceInsights` is set correctly after fixing the query.
 
 ## Files to Modify
 
-| File | Change |
-|------|--------|
-| `vite.config.ts` | Add nested dependencies to `optimizeDeps.exclude`, add `build.commonjsOptions` |
-| `src/lib/ml/localWhisperTranscriber.ts` | Change top-level import to dynamic `import()` inside `decodeOpusWithWasm` |
+| File | Changes |
+|------|---------|
+| `src/hooks/useVoiceBulkAnalysis.ts` | 1. Change query strategy (Option A or B) 2. Add error handling 3. Clear selection on completion |
+| `src/components/analysis/VoiceBulkAnalysisPanel.tsx` | Optionally add callback to clear selection |
 
-## Technical Notes
+## Implementation Steps
 
-### Why Dynamic Import Fixes This
+1. **Modify `fetchRecordings` function** (lines 520-537):
+   - Replace single `.in()` query with batched approach OR profile-based query
+   - Add error handling with fallback
 
-- **Top-level import**: Module loads immediately when parent file is imported
-- **Dynamic import**: Module loads only when `import()` is called at runtime
-- The Analysis page doesn't need Opus decoding until the user actually clicks "Analyze" on voice files
+2. **Modify completion handler** (around line 1154):
+   - After `fetchRecordings(profileId)` completes, expose the updated recordings
+   - Allow parent component to clear analyzed items from selection
 
-### Why Vite Config Changes Are Needed
+3. **Update selection state**:
+   - Either in the hook (by returning the updated state)
+   - Or in the component (by checking after refresh)
 
-- `optimizeDeps.exclude`: Prevents Vite from pre-bundling these packages (which breaks WASM)
-- `build.commonjsOptions.transformMixedEsModules`: Helps Rollup correctly handle mixed CJS/ESM modules
-- `build.commonjsOptions.include`: Ensures all node_modules are considered for CJS transformation
+## Technical Details
 
-### Alternative Approaches Considered
+### Why the Current Approach Fails
 
-1. **Lazy load entire `localWhisperTranscriber`**: Would require refactoring all consuming components
-2. **Use synchronous decoder**: `OggOpusDecoder` has the same dependency issue
-3. **Remove WASM decoder**: Would break WhatsApp `.opus` file support entirely
+```text
+fetchRecordings()
+    │
+    ├── Get 881 recordings from media table ✓
+    │
+    ├── Query voice_insights with .in('source_id', [881 UUIDs])
+    │   │
+    │   └── URL: 10,000+ characters → HTTP 400 Bad Request
+    │
+    ├── { data: undefined, error: {...} }
+    │   │
+    │   └── Code uses: existingInsights?.map() → []
+    │
+    └── All recordings get hasVoiceInsights: false ✗
+```
 
-The dynamic import approach is the least invasive and most robust solution.
+### Recommended Fix Flow
 
-## Expected Outcome
+```text
+fetchRecordings()
+    │
+    ├── Get 881 recordings from media table ✓
+    │
+    ├── Query voice_insights with .eq('profile_id', profileId)
+    │   │
+    │   └── URL: Short, works perfectly ✓
+    │
+    ├── Match source_ids locally in JavaScript
+    │
+    └── Analyzed recordings get hasVoiceInsights: true ✓
+```
 
-After this fix:
-1. Analysis page loads without errors
-2. Opus decoder only loads when actually needed (voice file analysis)
-3. WASM files work correctly in both dev and production builds
-4. No impact on Cloud mode (doesn't use local WASM decoder)
+## Expected Outcome After Fix
 
-## Testing Plan
-
-1. Navigate to `/analysis` - page should load without errors
-2. Switch to Voice tab - no errors
-3. Select `.opus` files and run Local analysis - decoder loads dynamically
-4. Verify console shows `[LocalWhisper] Dynamically importing ogg-opus-decoder...` only when processing
+1. **Correct Count**: "Select Unanalyzed (866)" after analyzing 15 files
+2. **Toggle Works**: "Hide analyzed" filters out analyzed files
+3. **Visual Indicator**: "Analyzed" badge appears on completed files
+4. **Selection Cleared**: Analyzed files are deselected automatically
+5. **No Duplicates**: Can't accidentally re-analyze the same file
