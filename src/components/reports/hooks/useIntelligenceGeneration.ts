@@ -197,6 +197,47 @@ const ALL_INTELLIGENCE_TASKS: IntelligenceTask[] = [
   { name: 'Gated Bio Fusion', edgeFunction: 'gated-biological-fusion', analysisType: 'gated_bio_fusion', required: false, category: 'fusion', priority: 10 },
   { name: 'TAS-Com Community', edgeFunction: 'tas-com-community-detector', analysisType: 'tas_com_community', required: false, category: 'fusion', priority: 10 },
   { name: 'Biometric Retention', edgeFunction: 'migration5-biometric-tracker', analysisType: 'biometric_retention', required: false, category: 'fusion', priority: 10 },
+  
+  // v8.0 Masterpiece Counter-Intelligence (Priority 11) - 8 tasks
+  { name: 'Draco Deception Orchestrator', edgeFunction: 'draco-deception-orchestrator', analysisType: 'draco_deception', required: false, category: 'warfare', priority: 11 },
+  { name: 'Sentient Intent Analyzer', edgeFunction: 'sentient-intent-analyzer', analysisType: 'sentient_intent', required: false, category: 'fusion', priority: 11 },
+  { name: 'Insider Threat Matrix', edgeFunction: 'insider-threat-matrix-engine', analysisType: 'insider_threat_matrix', required: false, category: 'warfare', priority: 11 },
+  { name: 'Bayesian Intention Predictor', edgeFunction: 'bayesian-intention-predictor', analysisType: 'bayesian_intention', required: false, category: 'fusion', priority: 11 },
+  { name: 'Red Team Adversary Simulator', edgeFunction: 'red-team-adversary-simulator', analysisType: 'red_team_simulation', required: false, category: 'warfare', priority: 11 },
+  { name: 'SEMAFOR Forgery Detector', edgeFunction: 'semafor-forgery-detector', analysisType: 'semafor_forgery', required: false, category: 'fusion', priority: 11 },
+  { name: 'Epistemic Vulnerability Scanner', edgeFunction: 'epistemic-vulnerability-scanner', analysisType: 'epistemic_vulnerability', required: false, category: 'fusion', priority: 11 },
+  { name: 'Cognitive IW Detector', edgeFunction: 'cognitive-iw-detector', analysisType: 'cognitive_iw', required: false, category: 'warfare', priority: 11 },
+  
+  // v8.0 Psychological Warfare (Priority 12) - 10 tasks
+  { name: 'Psychoagent Cascade Predictor', edgeFunction: 'psychoagent-cascade-predictor', analysisType: 'psychoagent_cascade', required: false, category: 'psychological', priority: 12 },
+  { name: 'Affective Manipulation Detector', edgeFunction: 'affective-manipulation-detector', analysisType: 'affective_manipulation', required: false, category: 'psychological', priority: 12 },
+  { name: 'Hyperpersonalization Engine', edgeFunction: 'hyperpersonalization-engine', analysisType: 'hyperpersonalization', required: false, category: 'psychological', priority: 12 },
+  { name: 'Computational Persuasion', edgeFunction: 'computational-persuasion-engine', analysisType: 'computational_persuasion', required: false, category: 'psychological', priority: 12 },
+  { name: 'Synthetic Memory Generator', edgeFunction: 'synthetic-memory-generator', analysisType: 'synthetic_memory', required: false, category: 'psychological', priority: 12 },
+  { name: 'PreMem Belief Modifier', edgeFunction: 'premem-belief-modifier', analysisType: 'premem_belief', required: false, category: 'psychological', priority: 12 },
+  { name: 'Linguistic Stress Detector', edgeFunction: 'linguistic-stress-detector', analysisType: 'linguistic_stress', required: false, category: 'psychological', priority: 12 },
+  { name: 'Memory Anchor Generator', edgeFunction: 'memory-anchor-generator', analysisType: 'memory_anchor', required: false, category: 'psychological', priority: 12 },
+  { name: 'Emotional Contagion Modeler', edgeFunction: 'emotional-contagion-modeler', analysisType: 'emotional_contagion', required: false, category: 'fusion', priority: 12 },
+  { name: 'Sacred Value Predictor', edgeFunction: 'sacred-value-predictor', analysisType: 'sacred_value_prediction', required: false, category: 'psychological', priority: 12 },
+  
+  // v8.0 Biometric & Network (Priority 13) - 8 tasks
+  { name: 'Pupillometry Analyzer', edgeFunction: 'pupillometry-analyzer', analysisType: 'pupillometry', required: false, category: 'fusion', priority: 13 },
+  { name: 'Thermal Stress Detector', edgeFunction: 'thermal-stress-detector', analysisType: 'thermal_stress', required: false, category: 'fusion', priority: 13 },
+  { name: 'Attention Multimodal Fuser', edgeFunction: 'attention-multimodal-fuser', analysisType: 'attention_multimodal', required: false, category: 'fusion', priority: 13 },
+  { name: 'Keystroke Dynamics Analyzer', edgeFunction: 'keystroke-dynamics-analyzer', analysisType: 'keystroke_dynamics', required: false, category: 'fusion', priority: 13 },
+  { name: 'Sheaf Neural Influence Mapper', edgeFunction: 'sheaf-neural-influence-mapper', analysisType: 'sheaf_influence', required: false, category: 'fusion', priority: 13 },
+  { name: 'CTDG Link Predictor', edgeFunction: 'ctdg-link-predictor', analysisType: 'ctdg_link', required: false, category: 'fusion', priority: 13 },
+  { name: 'Cascade Virality Predictor', edgeFunction: 'cascade-virality-predictor', analysisType: 'cascade_virality', required: false, category: 'fusion', priority: 13 },
+  { name: 'Network Resilience Analyzer', edgeFunction: 'network-resilience-analyzer', analysisType: 'network_resilience', required: false, category: 'fusion', priority: 13 },
+  
+  // v8.0 Doctrine & Advanced (Priority 14) - 7 tasks
+  { name: 'Gaze Pattern Analyzer', edgeFunction: 'gaze-pattern-analyzer', analysisType: 'gaze_pattern', required: false, category: 'fusion', priority: 14 },
+  { name: 'Micro-Expression Timeline', edgeFunction: 'micro-expression-timeline', analysisType: 'micro_expression_timeline', required: false, category: 'fusion', priority: 14 },
+  { name: 'Voice Stress Correlator', edgeFunction: 'voice-stress-correlator', analysisType: 'voice_stress_correlation', required: false, category: 'fusion', priority: 14 },
+  { name: 'Social Graph Predictor', edgeFunction: 'social-graph-predictor', analysisType: 'social_graph_prediction', required: false, category: 'fusion', priority: 14 },
+  { name: 'Influence Campaign Optimizer', edgeFunction: 'influence-campaign-optimizer', analysisType: 'influence_campaign_optimization', required: false, category: 'warfare', priority: 14 },
+  { name: 'Counter-Narrative Generator', edgeFunction: 'counter-narrative-generator', analysisType: 'counter_narrative', required: false, category: 'warfare', priority: 14 },
+  { name: 'Predictive Doctrine Engine', edgeFunction: 'predictive-doctrine-engine', analysisType: 'predictive_doctrine', required: false, category: 'warfare', priority: 14 },
 ];
 
 /**
