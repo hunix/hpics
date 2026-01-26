@@ -1,149 +1,303 @@
 
 
-# Enhance Voice Analysis Model Download Progress Indicator
+# Browser-Resilient Voice Analysis System
 
-## Current State Analysis
+## Problem Diagnosis
 
-The Voice Analysis system is **fully functional** with all components properly configured:
+The browser refresh during voice analysis is caused by multiple factors in the current client-side architecture:
 
-| Component | Status |
-|-----------|--------|
-| Whisper Models (4 variants) | ✅ Correct ONNX IDs |
-| Model Loading Progress | ✅ Basic percentage shown |
-| WebGPU/WASM Detection | ✅ Auto-fallback |
-| Batch Processing | ✅ Complete with error handling |
-| Language Pre-scan | ✅ For English-only model |
+| Cause | Location | Trigger |
+|-------|----------|---------|
+| PWA Auto-Update | `src/main.tsx:100-119` | Service worker detects new deployment |
+| Version Mismatch | `src/main.tsx:32-55` | `FORCE_CLEAR_VERSIONS` contains previous version |
+| Chunk Errors | `src/lib/appVersion.ts:180-202` | 2+ chunk loading failures in 60 seconds |
 
-The existing progress indicator (lines 244-258 in `VoiceBulkAnalysisPanel.tsx`) shows:
-- Percentage complete with spinner
-- Static model size text
+The fundamental issue is that **local WebGPU Whisper processing runs entirely in the browser**, so any page refresh terminates the process and loses progress.
 
-## Enhancement: Estimated Time Remaining
+## Solution: Hybrid Backend-Resilient Voice Analysis
 
-Add dynamic download speed calculation and estimated time remaining.
+Implement a dual-mode architecture that allows voice analysis to either:
+1. **Run locally** (fast, uses WebGPU) with progress checkpointing
+2. **Continue in backend** (resilient, uses cloud transcription) when browser closes
 
-### Changes Required
+### Architecture Overview
 
-**File 1: `src/hooks/useVoiceBulkAnalysis.ts`**
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│                     Voice Analysis Session                          │
+├─────────────────────────────────────────────────────────────────────┤
+│  1. User selects files and starts analysis                          │
+│  2. Session created in voice_analysis_sessions table                │
+│  3. Items created in voice_analysis_items table                     │
+│  4. Local processing begins (WebGPU Whisper)                        │
+│  5. Progress checkpointed to DB after each file                     │
+│  6. "Continue in Background" button available                       │
+│  7. On refresh/close: Backend runner picks up pending items         │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
-Extend `VoiceBulkSession` interface (line 51):
+## Implementation Plan
+
+### Phase 1: Database Schema for Session Persistence
+
+Create tables to track voice analysis sessions and items with the same pattern as `bulk_analysis_sessions`:
+
+**New Tables:**
+- `voice_analysis_sessions` - Tracks overall session state, model choice, processing mode
+- `voice_analysis_items` - Tracks each audio file with status, progress, results
+
+**Key Fields:**
+- `status`: idle | running | paused | completed | failed
+- `processing_mode`: local | cloud | hybrid
+- `whisper_model`: tiny | small | distil | turbo
+- `checkpoint_progress`: JSON with last successfully processed item
+
+### Phase 2: Backend Voice Analysis Runner
+
+Create a new edge function `process-voice-analysis-runner` that:
+
+1. Receives `sessionId` and `action` (start/continue/pause)
+2. Fetches pending items from `voice_analysis_items`
+3. Uses `EdgeRuntime.waitUntil()` for background processing
+4. Calls existing `process-voice-recording` or `transcribe-audio` for each item
+5. Updates item and session status atomically
+
 ```typescript
-export interface VoiceBulkSession {
-  // ... existing fields ...
-  modelDownloadStartTime?: number;  // NEW: Track download start
-  modelDownloadSpeedMBps?: number;  // NEW: Current download speed
+// supabase/functions/process-voice-analysis-runner/index.ts
+EdgeRuntime.waitUntil(processItemsInBackground(session, pendingItems));
+```
+
+### Phase 3: Enhanced Hook with Persistence
+
+Update `useVoiceBulkAnalysis.ts` to:
+
+1. **Create session in DB** before starting processing
+2. **Checkpoint progress** after each file completes (update `voice_analysis_items`)
+3. **Detect orphaned sessions** on mount and offer recovery
+4. **Subscribe to Realtime** for progress updates from backend
+5. **Provide "Continue in Background"** action that triggers backend runner
+
+### Phase 4: UI Enhancements
+
+Update `VoiceBulkAnalysisPanel.tsx`:
+
+1. **Session Recovery Dialog**: On mount, check for interrupted sessions
+2. **Continue in Background Button**: Visible during active processing
+3. **Backend Progress Indicator**: Show progress even when backend is processing
+4. **Realtime Status**: Subscribe to session updates
+
+## File Changes
+
+| File | Change |
+|------|--------|
+| `supabase/migrations/YYYYMMDD_voice_analysis_sessions.sql` | New tables + RLS |
+| `supabase/functions/process-voice-analysis-runner/index.ts` | New backend runner |
+| `src/hooks/useVoiceBulkAnalysis.ts` | Add persistence, recovery, realtime |
+| `src/components/analysis/VoiceBulkAnalysisPanel.tsx` | Add recovery UI, background button |
+
+## Technical Details
+
+### Database Schema
+
+```sql
+-- Voice Analysis Sessions (parent)
+CREATE TABLE voice_analysis_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) NOT NULL,
+  profile_id UUID REFERENCES profiles(id),
+  status TEXT DEFAULT 'idle' CHECK (status IN ('idle', 'running', 'paused', 'completed', 'failed', 'cancelled')),
+  processing_mode TEXT DEFAULT 'local' CHECK (processing_mode IN ('local', 'cloud', 'hybrid')),
+  whisper_model TEXT DEFAULT 'small',
+  total_items INTEGER DEFAULT 0,
+  completed_items INTEGER DEFAULT 0,
+  failed_items INTEGER DEFAULT 0,
+  skipped_items INTEGER DEFAULT 0,
+  current_item_id UUID,
+  started_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ,
+  error_message TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Voice Analysis Items (children)
+CREATE TABLE voice_analysis_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id UUID REFERENCES voice_analysis_sessions(id) ON DELETE CASCADE,
+  media_id UUID,
+  recording_id UUID,
+  source TEXT CHECK (source IN ('media', 'voice_recording_sessions')),
+  file_url TEXT,
+  file_name TEXT,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'running', 'completed', 'failed', 'skipped')),
+  queue_position INTEGER,
+  transcription_text TEXT,
+  detected_language TEXT,
+  processing_time_ms INTEGER,
+  error_message TEXT,
+  retry_count INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  completed_at TIMESTAMPTZ
+);
+
+-- RLS Policies
+ALTER TABLE voice_analysis_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE voice_analysis_items ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage own sessions" ON voice_analysis_sessions
+  FOR ALL USING (user_id = auth.uid());
+
+CREATE POLICY "Users can manage own items" ON voice_analysis_items
+  FOR ALL USING (
+    session_id IN (SELECT id FROM voice_analysis_sessions WHERE user_id = auth.uid())
+  );
+
+-- Enable Realtime
+ALTER PUBLICATION supabase_realtime ADD TABLE voice_analysis_sessions;
+ALTER PUBLICATION supabase_realtime ADD TABLE voice_analysis_items;
+
+-- RPC for atomic progress increment
+CREATE OR REPLACE FUNCTION increment_voice_session_progress(
+  p_session_id UUID,
+  p_is_completed BOOLEAN,
+  p_is_failed BOOLEAN,
+  p_is_skipped BOOLEAN DEFAULT FALSE
+) RETURNS VOID AS $$
+BEGIN
+  UPDATE voice_analysis_sessions SET
+    completed_items = CASE WHEN p_is_completed THEN completed_items + 1 ELSE completed_items END,
+    failed_items = CASE WHEN p_is_failed THEN failed_items + 1 ELSE failed_items END,
+    skipped_items = CASE WHEN p_is_skipped THEN skipped_items + 1 ELSE skipped_items END,
+    updated_at = now()
+  WHERE id = p_session_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+### Backend Runner Logic
+
+```typescript
+// supabase/functions/process-voice-analysis-runner/index.ts
+async function processItemsInBackground(session: any, items: any[]) {
+  for (const item of items) {
+    // Check for pause/cancel
+    const { data: currentSession } = await supabase
+      .from('voice_analysis_sessions')
+      .select('status')
+      .eq('id', session.id)
+      .single();
+    
+    if (currentSession?.status === 'paused' || currentSession?.status === 'cancelled') {
+      break;
+    }
+
+    // Update item to running
+    await supabase.from('voice_analysis_items')
+      .update({ status: 'running' })
+      .eq('id', item.id);
+
+    try {
+      // Call process-voice-recording for transcription
+      const { data, error } = await supabase.functions.invoke('process-voice-recording', {
+        body: { audioUrl: item.file_url, recordingId: item.recording_id }
+      });
+
+      if (error) throw error;
+
+      // Update item to completed
+      await supabase.from('voice_analysis_items')
+        .update({
+          status: 'completed',
+          transcription_text: data.transcription,
+          detected_language: data.analysis?.language || 'en',
+          completed_at: new Date().toISOString()
+        })
+        .eq('id', item.id);
+
+      await supabase.rpc('increment_voice_session_progress', {
+        p_session_id: session.id,
+        p_is_completed: true,
+        p_is_failed: false
+      });
+
+    } catch (error) {
+      await supabase.from('voice_analysis_items')
+        .update({
+          status: 'failed',
+          error_message: error.message,
+          retry_count: item.retry_count + 1
+        })
+        .eq('id', item.id);
+
+      await supabase.rpc('increment_voice_session_progress', {
+        p_session_id: session.id,
+        p_is_completed: false,
+        p_is_failed: true
+      });
+    }
+  }
+
+  // Mark session completed if no pending items remain
+  const { data: remaining } = await supabase
+    .from('voice_analysis_items')
+    .select('id')
+    .eq('session_id', session.id)
+    .eq('status', 'pending')
+    .limit(1);
+
+  if (!remaining?.length) {
+    await supabase.from('voice_analysis_sessions')
+      .update({ status: 'completed', completed_at: new Date().toISOString() })
+      .eq('id', session.id);
+  }
 }
 ```
 
-Update `startBulkAnalysis` to track timing (around line 369-379):
-```typescript
-let downloadStartTime = performance.now();
-let lastProgress = 0;
-let lastTime = downloadStartTime;
+### Hook Recovery Logic
 
-await localAudioAnalyzer.initialize({
-  whisperModel: whisperModel,
-  onProgress: (progress) => {
-    if (progress.status === 'progress') {
-      const now = performance.now();
-      const progressDelta = (progress.progress || 0) - lastProgress;
-      const timeDelta = (now - lastTime) / 1000; // seconds
-      
-      // Calculate speed (MB/s) based on progress percentage and model size
-      const modelSizes: Record<WhisperModel, number> = {
-        tiny: 75, small: 250, distil: 750, turbo: 800
-      };
-      const totalSize = modelSizes[whisperModel] || 250;
-      const downloadedMB = (progress.progress || 0) / 100 * totalSize;
-      const speedMBps = timeDelta > 0 ? (progressDelta / 100 * totalSize) / timeDelta : 0;
-      
-      setSession(prev => prev ? {
-        ...prev,
-        modelProgress: progress.progress,
-        modelDownloadStartTime: downloadStartTime,
-        modelDownloadSpeedMBps: speedMBps > 0 ? speedMBps : prev.modelDownloadSpeedMBps
-      } : null);
-      
-      lastProgress = progress.progress || 0;
-      lastTime = now;
-    }
+```typescript
+// In useVoiceBulkAnalysis.ts - detect orphaned sessions
+const checkForInterruptedSession = useCallback(async () => {
+  const { data: interrupted } = await supabase
+    .from('voice_analysis_sessions')
+    .select('*')
+    .eq('user_id', userId)
+    .in('status', ['running', 'paused'])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (interrupted) {
+    setInterruptedSession(interrupted);
+    return interrupted;
   }
-});
+  return null;
+}, [userId]);
+
+// Resume from interrupted session
+const resumeInterruptedSession = useCallback(async () => {
+  // Trigger backend runner to continue
+  await supabase.functions.invoke('process-voice-analysis-runner', {
+    body: { sessionId: interruptedSession.id, action: 'continue' }
+  });
+}, [interruptedSession]);
 ```
 
-**File 2: `src/components/analysis/VoiceBulkAnalysisPanel.tsx`**
+## Benefits
 
-Enhance the model loading UI (replace lines 244-258):
-```typescript
-{/* Model Loading Phase - Enhanced */}
-{session.phase === 'model_loading' && session.modelStatus === 'loading' && (
-  <div className="space-y-2">
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <Loader2 className="h-4 w-4 animate-spin text-yellow-500" />
-        <span className="font-medium text-yellow-600 dark:text-yellow-400">
-          Downloading {WHISPER_MODEL_OPTIONS.find(m => m.key === selectedWhisperModel)?.name}...
-        </span>
-      </div>
-      <span className="text-sm font-mono">
-        {Math.round(session.modelProgress || 0)}%
-      </span>
-    </div>
-    <Progress value={session.modelProgress || 0} className="h-2" />
-    <div className="flex items-center justify-between text-xs text-muted-foreground">
-      <span>
-        ~{WHISPER_MODEL_OPTIONS.find(m => m.key === selectedWhisperModel)?.size || '250MB'}
-      </span>
-      {session.modelDownloadSpeedMBps && session.modelDownloadSpeedMBps > 0 && (
-        <span className="flex items-center gap-1">
-          <Zap className="h-3 w-3" />
-          {session.modelDownloadSpeedMBps.toFixed(1)} MB/s
-          {session.modelProgress && session.modelProgress < 100 && (
-            <span className="ml-2">
-              ~{Math.ceil(
-                ((100 - session.modelProgress) / 100 * 
-                  (parseInt(WHISPER_MODEL_OPTIONS.find(m => m.key === selectedWhisperModel)?.size || '250') || 250)) /
-                session.modelDownloadSpeedMBps
-              )}s remaining
-            </span>
-          )}
-        </span>
-      )}
-    </div>
-    <p className="text-xs text-muted-foreground mt-1">
-      First run downloads model to browser cache (won't download again)
-    </p>
-  </div>
-)}
-```
+1. **Zero Data Loss**: Progress is checkpointed after each file
+2. **Browser-Independent**: Backend runner continues if browser closes
+3. **Seamless Recovery**: Users can resume interrupted sessions
+4. **Realtime Updates**: UI reflects progress even from backend processing
+5. **Fallback Path**: Cloud transcription available when WebGPU unavailable
 
-## Testing Steps
+## Estimated Implementation Time
 
-After implementation:
+- Phase 1 (Schema): 30 minutes
+- Phase 2 (Backend Runner): 1 hour
+- Phase 3 (Hook Updates): 2 hours
+- Phase 4 (UI Updates): 1 hour
+- Testing: 1 hour
 
-1. Navigate to `/analysis` → Voice tab
-2. Select a contact with audio files (or upload test audio)
-3. Choose **Local (Fast)** processing mode
-4. Select **Whisper Tiny (75MB)** for fastest download test
-5. Click **Start Analysis**
-6. Observe:
-   - Download progress percentage updating
-   - Download speed in MB/s
-   - Estimated time remaining countdown
-   - Progress bar filling
-7. After model loads, observe transcription progress
-
-## Files Modified
-
-| File | Changes |
-|------|---------|
-| `src/hooks/useVoiceBulkAnalysis.ts` | Add timing fields to session, calculate download speed |
-| `src/components/analysis/VoiceBulkAnalysisPanel.tsx` | Enhanced progress UI with speed and ETA |
-
-## Technical Notes
-
-- Download speed calculated from progress delta over time delta
-- Model sizes hardcoded (matching WHISPER_MODEL_OPTIONS)
-- Speed smoothing: keeps last valid speed if current delta is zero
-- ETA formula: `(remainingPercentage / 100 * modelSizeMB) / speedMBps`
+**Total: ~5-6 hours**
 
