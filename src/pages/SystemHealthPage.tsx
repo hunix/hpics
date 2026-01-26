@@ -1,9 +1,10 @@
 import { AppLayout } from '@/components/AppLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Activity, BarChart3, Clock, Cpu } from 'lucide-react';
+import { Activity, BarChart3, Clock, Cpu, Layers } from 'lucide-react';
 import { DataValidationDashboard } from '@/components/testing/DataValidationDashboard';
 import { PredictionAccuracyTracker } from '@/components/testing/PredictionAccuracyTracker';
 import { CronJobManager } from '@/components/settings/CronJobManager';
+import { FusionHealthDashboard } from '@/components/intelligence/FusionHealthDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -80,8 +81,12 @@ function EdgeFunctionStatus() {
 export default function SystemHealthPage() {
   return (
     <AppLayout title="System Health">
-      <Tabs defaultValue="validation" className="space-y-6">
+      <Tabs defaultValue="fusion" className="space-y-6">
         <TabsList>
+          <TabsTrigger value="fusion" className="flex items-center gap-2">
+            <Layers className="h-4 w-4" />
+            Fusion Engines
+          </TabsTrigger>
           <TabsTrigger value="validation" className="flex items-center gap-2">
             <Activity className="h-4 w-4" />
             Validation
@@ -99,6 +104,10 @@ export default function SystemHealthPage() {
             Scheduled Jobs
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="fusion">
+          <FusionHealthDashboard />
+        </TabsContent>
 
         <TabsContent value="validation">
           <DataValidationDashboard />
