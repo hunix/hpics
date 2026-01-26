@@ -526,12 +526,15 @@ export function useVoiceBulkAnalysis(profileId?: string) {
       
       const insightSourceIds = new Set(existingInsights?.map(i => i.source_id) || []);
       
+      console.log(`[VoiceBulkAnalysis] Found ${insightSourceIds.size} existing insights for ${recordingIds.length} recordings`);
+      
       const recordingsWithStatus: VoiceRecording[] = allRecordings.map(r => ({
         ...r,
         hasVoiceInsights: insightSourceIds.has(r.id),
       }));
       
-      setRecordings(recordingsWithStatus);
+      // Force new array reference to ensure React re-render
+      setRecordings([...recordingsWithStatus]);
       return recordingsWithStatus;
     } catch (error) {
       console.error('[VoiceBulkAnalysis] Error fetching recordings:', error);
@@ -1003,18 +1006,22 @@ export function useVoiceBulkAnalysis(profileId?: string) {
 
         } else {
           // Pure cloud processing with timeout
+          // Fix: Use correct sourceType based on recording source
+          const sourceType = recording.source === 'media' ? 'media' : 'voice_recording';
+          console.log(`[VoiceBulkAnalysis] Cloud processing ${recording.id} with sourceType: ${sourceType}`);
+          
           const cloudPromise = supabase.functions.invoke('analyze-voice-comprehensive', {
             body: {
               audioUrl: recording.audio_url,
-              sourceType: 'voice_recording',
+              sourceType,
               sourceId: recording.id,
               profileId: recording.profile_id,
               options: {
-                transcribe: analysisOptions.transcription,
-                diarize: analysisOptions.speakerDiarization,
-                analyzeVocalPsychology: analysisOptions.vocalPsychology,
-                extractContentIntelligence: analysisOptions.contentIntelligence,
-                extractBiometrics: analysisOptions.voiceBiometrics,
+                transcription: analysisOptions.transcription,
+                speakerDiarization: analysisOptions.speakerDiarization,
+                vocalPsychology: analysisOptions.vocalPsychology,
+                contentIntelligence: analysisOptions.contentIntelligence,
+                voiceBiometrics: analysisOptions.voiceBiometrics,
               },
             },
           });
@@ -1139,7 +1146,11 @@ export function useVoiceBulkAnalysis(profileId?: string) {
       toast.warning(`Analysis complete: ${successCount} succeeded, ${failedRecordingsTracker.length} failed, ${totalSkipped} skipped.`);
     }
 
+    // Wait for database transaction to fully commit before refreshing
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
     // Refresh recordings to update status
+    console.log('[VoiceBulkAnalysis] Refetching recordings after completion...');
     await fetchRecordings(profileId);
   }, [options, profileId, fetchRecordings, processingMode, processLocalRecording, syncMediaAnalysisStatus]);
 
