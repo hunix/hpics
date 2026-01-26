@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { localAudioAnalyzer, type BatchAnalysisProgress, type LanguageDetectionResult } from '@/lib/ml';
+import { localAudioAnalyzer, localWhisperTranscriber, type BatchAnalysisProgress, type LanguageDetectionResult } from '@/lib/ml';
 import { type WhisperModel, isLanguageSupported, getLanguageDisplay } from '@/lib/ml/localWhisperTranscriber';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -775,6 +775,46 @@ export function useVoiceBulkAnalysis(profileId?: string) {
         // Fall back to cloud
         actualMode = 'cloud';
         setSession(prev => prev ? { ...prev, processingMode: 'cloud', phase: 'processing' } : null);
+      }
+    }
+
+    // ============ CAPABILITY PROBE ============
+    // Test if we can decode the first file before committing to processing all
+    // This prevents wasting time on unsupported formats (e.g., WhatsApp .opus in some browsers)
+    if ((actualMode === 'local' || actualMode === 'hybrid') && selectedRecordings.length > 0) {
+      const firstRecording = selectedRecordings[0];
+      console.log(`[VoiceBulkAnalysis] Running capability probe on first file: ${firstRecording.title}`);
+      setSession(prev => prev ? { ...prev, phase: 'initializing', currentFileName: 'Testing audio format...' } : null);
+      
+      try {
+        // Get signed URL for private bucket
+        const testUrl = await getAccessibleUrl(firstRecording);
+        const canDecode = await localWhisperTranscriber.testDecode(testUrl);
+        
+        if (!canDecode) {
+          throw new Error('Audio format not decodable locally');
+        }
+        console.log('[VoiceBulkAnalysis] Capability probe passed - format is supported');
+      } catch (probeError) {
+        const errMsg = probeError instanceof Error ? probeError.message : 'Unknown error';
+        console.warn('[VoiceBulkAnalysis] Capability probe failed:', errMsg);
+        
+        // Check if it's an audio format issue
+        const isFormatError = errMsg.toLowerCase().includes('audio') || 
+                              errMsg.toLowerCase().includes('decode') ||
+                              errMsg.toLowerCase().includes('opus');
+        
+        if (isFormatError) {
+          toast.warning(
+            'Local decoding for this audio format is not fully supported on your browser. Switching to Cloud processing.',
+            { duration: 6000 }
+          );
+          actualMode = 'cloud';
+          setSession(prev => prev ? { ...prev, processingMode: 'cloud', phase: 'processing' } : null);
+        } else {
+          // Other error - might still work, proceed with local
+          console.log('[VoiceBulkAnalysis] Non-format error in probe, continuing with local...');
+        }
       }
     }
 
