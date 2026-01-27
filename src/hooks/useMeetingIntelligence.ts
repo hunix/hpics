@@ -37,6 +37,8 @@ interface TranscriptSegment {
   endTime?: number;
   isQuestion?: boolean;
   sentiment?: 'positive' | 'negative' | 'neutral';
+  emotions?: string[];
+  confidence?: number;
 }
 
 interface Meeting {
