@@ -442,21 +442,34 @@ serve(async (req) => {
       );
     }
 
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid authentication' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
     const body: IIOAttributionRequest = await req.json();
+    const token = authHeader.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseServiceKey;
+
+    let userId: string;
+    if (isServiceRoleCall) {
+      userId = (body as any).userId || (body as any).user_id;
+      if (!userId) {
+        return new Response(
+          JSON.stringify({ error: 'userId required for service calls' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } else {
+      const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+      if (authError || !user) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid authentication' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      userId = user.id;
+    }
+
     const { profileId, technicalIndicators, behavioralIndicators, contextualIndicators } = body;
 
     if (!profileId) {
@@ -510,7 +523,7 @@ serve(async (req) => {
       .from('iio_attributions')
       .insert({
         profile_id: profileId,
-        user_id: user.id,
+        user_id: userId,
         technical_evidence: technical.evidence,
         behavioral_evidence: behavioral.evidence,
         contextual_evidence: contextual.evidence,
@@ -527,7 +540,7 @@ serve(async (req) => {
       .from('ai_analyses')
       .upsert({
         profile_id: profileId,
-        user_id: user.id,
+        user_id: userId,
         analysis_type: 'iio_attribution',
         result: { ...attribution, analysisVersion: '7.0.0', framework: 'NATO/EU 2025' },
         generated_at: new Date().toISOString(),

@@ -32,21 +32,42 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) throw new Error('No authorization header');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'No authorization header' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) throw new Error('Invalid token');
-
     const body = await req.json();
+    const token = authHeader.replace('Bearer ', '');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const isServiceRoleCall = token === supabaseServiceKey;
+
+    let userId: string;
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'userId required for service calls' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    } else {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      userId = user.id;
+    }
+
     const profileId = body.profileId || body.profile_id;
     const keystrokeData = body.keystrokeData || body.keystroke_data;
-    const userId = user.id;
 
     if (!profileId) throw new Error('Profile ID required');
 

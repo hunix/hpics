@@ -51,31 +51,48 @@ serve(async (req) => {
       });
     }
 
+    const body = await req.json();
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const isServiceRoleCall = token === supabaseServiceKey;
+
+    let userId: string;
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'userId required for service calls' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      userId = user.id;
     }
 
-    const { profile_id } = await req.json();
+    const { profile_id, profileId } = body;
+    const finalProfileId = profile_id || profileId;
 
-    if (!profile_id) {
+    if (!finalProfileId) {
       return new Response(JSON.stringify({ error: 'profile_id required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log(`[AggregateVoiceIntelligence] Aggregating for profile: ${profile_id}`);
+    console.log(`[AggregateVoiceIntelligence] Aggregating for profile: ${finalProfileId}`);
 
     // Fetch all voice insights for this profile
     const { data: voiceInsights, error: insightsError } = await supabase
       .from('voice_insights')
       .select('*')
-      .eq('profile_id', profile_id)
+      .eq('profile_id', finalProfileId)
       .order('created_at', { ascending: false });
 
     if (insightsError) {
@@ -234,8 +251,8 @@ serve(async (req) => {
     const { error: insertError } = await supabase
       .from('ai_analyses')
       .upsert({
-        profile_id,
-        user_id: user.id,
+        profile_id: finalProfileId,
+        user_id: userId,
         analysis_type: 'voice_intelligence_aggregate',
         result: aggregatedIntelligence,
         generated_at: new Date().toISOString(),
