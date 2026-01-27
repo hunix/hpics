@@ -352,7 +352,7 @@ serve(async (req) => {
     }
 
     // Analyze content from communications
-    let contentAnalysis = { markers: {}, score: 0, dominantPattern: undefined };
+    let contentAnalysis: { markers: Record<string, string[]>; score: number; dominantPattern?: string } = { markers: {}, score: 0, dominantPattern: undefined };
     const communicationFlags: string[] = [];
 
     if (communications && communications.length > 0) {
