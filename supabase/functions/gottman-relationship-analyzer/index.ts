@@ -210,7 +210,7 @@ ${messages?.slice(0, 50).map((m: { is_from_contact?: boolean; content?: string }
       },
       overallAssessment: { relationshipHealthScore: 0.7, dissolutionRisk: 0.3 },
       positiveIndicators: {},
-      intervention: { urgencyLevel: 'low' },
+      intervention: { urgencyLevel: 'low', specificRecommendations: [] },
       trajectory: {}
     });
 

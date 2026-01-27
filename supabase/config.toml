@@ -650,3 +650,12 @@ verify_jwt = false
 
 [functions.quantum-decision-modeler]
 verify_jwt = false
+
+[functions.gottman-relationship-analyzer]
+verify_jwt = false
+
+[functions.elicitation-engine]
+verify_jwt = false
+
+[functions.betrayal-likelihood-scorer]
+verify_jwt = false

@@ -164,8 +164,13 @@ ${analyses.data?.slice(0, 5).map(a => `- ${a.analysis_type}: ${JSON.stringify(a.
     const prediction = parseAIJson(aiResponse.content, {
       trustAssessment: { currentTrustScore: 0.5, trustTrajectory: 'stable' },
       gottmanAnalysis: { overallRisk: 0.3 },
-      betrayalPrediction: { defectionProbability: 0.3, warningSignsDetected: [] },
-      loyaltyIndicators: { positiveSignals: [] },
+      betrayalPrediction: { 
+        defectionProbability: 0.3, 
+        warningSignsDetected: [],
+        predictedTriggers: [],
+        timelineEstimate: 'unknown'
+      },
+      loyaltyIndicators: { positiveSignals: [], protectiveFactors: [] },
       riskMitigation: { recommendedActions: [] }
     });
 
