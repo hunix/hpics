@@ -209,28 +209,36 @@ export function useVersionCheck(options: {
   
   // Listen for service worker updates
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.ready.then((registration) => {
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing;
-        if (newWorker) {
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              setHasNewVersion(true);
-              onNewVersion?.();
-            }
-          });
-        }
+    navigator.serviceWorker.ready
+      .then((registration) => {
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                setHasNewVersion(true);
+                onNewVersion?.();
+              }
+            });
+          }
+        });
+      })
+      .catch((error) => {
+        console.error('[useVersionCheck] Service worker ready failed:', error);
       });
-    });
   }
   
   return {
     hasNewVersion,
     checkForUpdate: () => {
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.ready.then((registration) => {
-          registration.update();
-        });
+        navigator.serviceWorker.ready
+          .then((registration) => {
+            registration.update();
+          })
+          .catch((error) => {
+            console.error('[useVersionCheck] Service worker update check failed:', error);
+          });
       }
     },
     refresh: () => forceAppUpdate(),

@@ -21,11 +21,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // FIXED: Get initial session FIRST, then subscribe to changes
     // This prevents race condition between getSession and onAuthStateChange
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error('[useAuth] Failed to get session:', error);
+        setLoading(false);
+      });
 
     // Subscribe to auth changes (no loading state update here to prevent race)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -54,6 +54,9 @@ export function MobileBiometricFusion({
   });
 
   const isNative = Capacitor.isNativePlatform();
+  
+  // Ref for web motion handler cleanup
+  const motionHandlerRef = useRef<((event: DeviceMotionEvent) => void) | null>(null);
 
   // Check device capabilities
   useEffect(() => {
@@ -129,7 +132,7 @@ export function MobileBiometricFusion({
         console.error('Geolocation error:', error);
       }
     } else {
-      // Web fallback
+      // Web fallback - use stable handler ref for proper cleanup
       const handleMotion = (event: DeviceMotionEvent) => {
         if (!event.accelerationIncludingGravity) return;
         
@@ -149,18 +152,31 @@ export function MobileBiometricFusion({
         setSensorData(prev => [...prev, sample]);
       };
 
+      // Store ref for cleanup and add listener
+      motionHandlerRef.current = handleMotion;
       window.addEventListener('devicemotion', handleMotion);
-
-      // Cleanup function stored for later
-      return () => window.removeEventListener('devicemotion', handleMotion);
     }
   }, [isNative, onLocationCapture]);
+
+  // Cleanup web motion listener on unmount
+  useEffect(() => {
+    return () => {
+      if (motionHandlerRef.current) {
+        window.removeEventListener('devicemotion', motionHandlerRef.current);
+        motionHandlerRef.current = null;
+      }
+    };
+  }, []);
 
   const stopCapture = useCallback(async () => {
     setIsCapturing(false);
 
     if (isNative) {
       await Motion.removeAllListeners();
+    } else if (motionHandlerRef.current) {
+      // Clean up web motion handler
+      window.removeEventListener('devicemotion', motionHandlerRef.current);
+      motionHandlerRef.current = null;
     }
 
     // Analyze gait from collected data
