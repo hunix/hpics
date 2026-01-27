@@ -23,8 +23,11 @@ export function useAutoAggregateOnCompletion({
 }: UseAutoAggregateOnCompletionOptions) {
   const hasAggregatedRef = useRef<Set<string>>(new Set());
   const isAggregatingRef = useRef(false);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
+    isMountedRef.current = true;
+    
     // Only trigger on completion
     if (sessionStatus !== 'completed') return;
     if (!sessionId || !profileId) return;
@@ -90,6 +93,8 @@ export function useAutoAggregateOnCompletion({
           console.log('[AutoAggregate] Dossier generated:', dossierResult);
         }
 
+        if (!isMountedRef.current) return;
+        
         const totalCount = mediaCount + voiceCount;
         if (totalCount > 0 || !aggregateError) {
           toast.success('Intelligence aggregated', {
@@ -101,7 +106,9 @@ export function useAutoAggregateOnCompletion({
 
       } catch (error) {
         console.error('[AutoAggregate] Aggregation error:', error);
-        toast.error('Intelligence aggregation failed');
+        if (isMountedRef.current) {
+          toast.error('Intelligence aggregation failed');
+        }
       } finally {
         isAggregatingRef.current = false;
       }
@@ -109,7 +116,10 @@ export function useAutoAggregateOnCompletion({
 
     // Delay slightly to ensure all DB updates are complete
     const timeout = setTimeout(aggregateIntelligence, 2000);
-    return () => clearTimeout(timeout);
+    return () => {
+      isMountedRef.current = false;
+      clearTimeout(timeout);
+    };
   }, [sessionId, sessionStatus, profileId, autoAggregate, includeVoice]);
 
   return {

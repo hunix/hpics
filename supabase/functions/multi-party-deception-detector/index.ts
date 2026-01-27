@@ -96,7 +96,7 @@ serve(async (req: Request) => {
         .limit(100),
       supabase.from('communications').select('*')
         .eq('user_id', user.id)
-        .order('communication_date', { ascending: false })
+        .order('occurred_at', { ascending: false })
         .limit(500),
       supabase.from('contact_relationships').select('*')
         .eq('user_id', user.id)

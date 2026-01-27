@@ -97,7 +97,7 @@ serve(async (req) => {
         .from("media")
         .select("id, storage_path")
         .eq("user_id", job.user_id)
-        .in("media_type", ["image", "photo"]);
+        .ilike("mime_type", "image/%");
 
       // Apply scope filter
       if (job.media_ids?.length > 0) {

@@ -3,7 +3,7 @@
  * Cognitive bias exploitation and financial psychology visualization
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,11 +27,20 @@ interface BehavioralEconomicsPanelProps {
 export function BehavioralEconomicsPanel({ profileId }: BehavioralEconomicsPanelProps) {
   const { isAnalyzing, analyzeProfile, loadProfile, getProfile } = useBehavioralEconomics();
   const [profile, setProfile] = useState<ReturnType<typeof getProfile>>(undefined);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
+    isMountedRef.current = true;
     if (profileId) {
-      loadProfile(profileId).then(setProfile);
+      loadProfile(profileId).then((result) => {
+        if (isMountedRef.current) {
+          setProfile(result);
+        }
+      });
     }
+    return () => {
+      isMountedRef.current = false;
+    };
   }, [profileId, loadProfile]);
 
   const handleAnalyze = async () => {

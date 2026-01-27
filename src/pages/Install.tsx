@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +39,8 @@ const Install = () => {
   const [isInstalled, setIsInstalled] = useState(false);
   const [instructions, setInstructions] = useState(getInstallInstructions());
 
+  const timeoutRef = useRef<number>();
+
   useEffect(() => {
     captureInstallPrompt();
     setIsInstalled(isAppInstalled());
@@ -59,11 +61,14 @@ const Install = () => {
     }, 1000);
 
     // Stop checking after 5 seconds
-    setTimeout(() => clearInterval(checkInterval), 5000);
+    timeoutRef.current = window.setTimeout(() => clearInterval(checkInterval), 5000);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleInstallPrompt);
       clearInterval(checkInterval);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
   }, []);
 
