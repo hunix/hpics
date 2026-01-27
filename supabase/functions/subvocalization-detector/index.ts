@@ -33,20 +33,37 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      throw new Error('No authorization header');
+      return new Response(JSON.stringify({ error: 'No authorization header' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    const body = await req.json();
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    if (userError || !user) {
-      throw new Error('Invalid user token');
+    const isServiceRoleCall = token === supabaseServiceKey;
+
+    let userId: string;
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'userId required for service calls' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    } else {
+      const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+      if (userError || !user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      userId = user.id;
     }
 
-    const body = await req.json();
     const profileId = body.profileId || body.profile_id;
 
     if (!profileId) {
@@ -110,10 +127,17 @@ serve(async (req) => {
       .from('ai_analyses')
       .upsert({
         profile_id: profileId,
-        user_id: user.id,
+        user_id: userId,
         analysis_type: 'subvocalization_detection',
         result: detectionResult,
         confidence_score: confidence.overall,
+        model_used: 'subvoc-detector-v1.0',
+        tokens_used: 0,
+        cost_cents: 0,
+        created_at: new Date().toISOString(),
+      }, {
+        onConflict: 'profile_id,analysis_type',
+      });
         model_used: 'subvoc-detector-v1.0',
         tokens_used: 0,
         cost_cents: 0,

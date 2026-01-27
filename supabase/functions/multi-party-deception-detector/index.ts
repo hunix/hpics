@@ -67,19 +67,33 @@ serve(async (req: Request) => {
       });
     }
 
+    const body = await req.json();
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const isServiceRoleCall = token === supabaseKey;
+
+    let userId: string;
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'userId required for service calls' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      userId = user.id;
     }
 
-    const body = await req.json();
     const profileId = body.profileId || body.profile_id;
 
-    console.log(`[multi-party-deception-detector] Processing for user: ${user.id}`);
+    console.log(`[multi-party-deception-detector] Processing for user: ${userId}`);
 
     // Fetch all relevant data
     const [
@@ -91,26 +105,26 @@ serve(async (req: Request) => {
       profilesResult,
     ] = await Promise.all([
       supabase.from('deception_analyses').select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('detected_at', { ascending: false })
         .limit(100),
       supabase.from('communications').select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('occurred_at', { ascending: false })
         .limit(500),
       supabase.from('contact_relationships').select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .limit(300),
       supabase.from('ai_analyses').select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('analysis_type', 'cross_modal_deception')
         .limit(50),
       supabase.from('behavioral_anomalies').select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('detected_at', { ascending: false })
         .limit(100),
       supabase.from('profiles').select('id, first_name, last_name')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .limit(200),
     ]);
 
@@ -293,9 +307,9 @@ serve(async (req: Request) => {
     };
 
     // Save analysis result
-    const targetProfileId = profileId || user.id;
+    const targetProfileId = profileId || userId;
     await supabase.from('ai_analyses').upsert({
-      user_id: user.id,
+      user_id: userId,
       profile_id: targetProfileId,
       analysis_type: 'multi_party_deception',
       result,

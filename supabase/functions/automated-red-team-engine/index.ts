@@ -57,19 +57,33 @@ serve(async (req: Request) => {
       });
     }
 
+    const body = await req.json();
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const isServiceRoleCall = token === supabaseKey;
+
+    let userId: string;
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'userId required for service calls' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      userId = user.id;
     }
 
-    const body = await req.json();
     const profileId = body.profileId || body.profile_id;
 
-    console.log(`[automated-red-team-engine] Processing for user: ${user.id}, profile: ${profileId || 'self'}`);
+    console.log(`[automated-red-team-engine] Processing for user: ${userId}, profile: ${profileId || 'self'}`);
 
     // Fetch security-relevant data
     const [
@@ -81,24 +95,24 @@ serve(async (req: Request) => {
       communicationsResult,
     ] = await Promise.all([
       supabase.from('opsec_assessments').select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(5),
       supabase.from('digital_footprint_items').select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .limit(50),
       supabase.from('social_engineering_incidents').select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('detected_at', { ascending: false })
         .limit(20),
       supabase.from('profiles').select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .limit(100),
       supabase.from('contact_relationships').select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .limit(200),
       supabase.from('communications').select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('occurred_at', { ascending: false })
         .limit(100),
     ]);
@@ -288,7 +302,7 @@ serve(async (req: Request) => {
 
     // Update opsec_assessments with red team findings
     await supabase.from('opsec_assessments').insert({
-      user_id: user.id,
+      user_id: userId,
       profile_id: profileId || null,
       assessment_type: 'automated_red_team',
       overall_score: overallVulnerabilityScore,
@@ -298,9 +312,9 @@ serve(async (req: Request) => {
     });
 
     // Save to ai_analyses
-    const targetProfileId = profileId || user.id;
+    const targetProfileId = profileId || userId;
     await supabase.from('ai_analyses').upsert({
-      user_id: user.id,
+      user_id: userId,
       profile_id: targetProfileId,
       analysis_type: 'automated_red_team',
       result,

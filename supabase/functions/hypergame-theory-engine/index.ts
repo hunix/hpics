@@ -98,16 +98,30 @@ serve(async (req: Request) => {
       });
     }
 
+    const body = await req.json();
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const isServiceRoleCall = token === supabaseKey;
+
+    let userId: string;
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'userId required for service calls' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      userId = user.id;
     }
 
-    const body = await req.json();
     const profileId = body.profileId || body.profile_id;
 
     if (!profileId) {
@@ -255,7 +269,7 @@ serve(async (req: Request) => {
 
     // Save analysis result
     await supabase.from('ai_analyses').upsert({
-      user_id: user.id,
+      user_id: userId,
       profile_id: profileId,
       analysis_type: 'hypergame_theory',
       result,

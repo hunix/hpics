@@ -291,21 +291,34 @@ serve(async (req) => {
       );
     }
 
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid authentication' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
     const body: AudioBurstRequest = await req.json();
+    const token = authHeader.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseServiceKey;
+
+    let userId: string;
+    if (isServiceRoleCall) {
+      userId = (body as any).userId || (body as any).user_id;
+      if (!userId) {
+        return new Response(
+          JSON.stringify({ error: 'userId required for service calls' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } else {
+      const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+      if (authError || !user) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid authentication' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      userId = user.id;
+    }
+
     const { profileId, voiceInsightId, signalData, sampleRate = 16000, speechMetrics } = body;
 
     if (!profileId) {
@@ -347,7 +360,7 @@ serve(async (req) => {
       .from('audio_burst_analyses')
       .insert({
         voice_insight_id: voiceInsightId,
-        user_id: user.id,
+        user_id: userId,
         hilbert_transform_data: { envelope: analysis.hilbertEnvelope.slice(0, 50) },
         rhythmic_score: analysis.rhythmicScore,
         irregular_score: analysis.irregularScore,
@@ -373,7 +386,7 @@ serve(async (req) => {
       .from('ai_analyses')
       .upsert({
         profile_id: profileId,
-        user_id: user.id,
+        user_id: userId,
         analysis_type: 'audio_burst_mental_state',
         result: analysisResult,
         generated_at: new Date().toISOString(),

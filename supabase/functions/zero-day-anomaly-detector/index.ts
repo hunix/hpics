@@ -59,19 +59,33 @@ serve(async (req: Request) => {
       });
     }
 
+    const body = await req.json();
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const isServiceRoleCall = token === supabaseKey;
+
+    let userId: string;
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'userId required for service calls' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      userId = user.id;
     }
 
-    const body = await req.json();
     const profileId = body.profileId || body.profile_id;
 
-    console.log(`[zero-day-anomaly-detector] Processing for user: ${user.id}, profile: ${profileId || 'all'}`);
+    console.log(`[zero-day-anomaly-detector] Processing for user: ${userId}, profile: ${profileId || 'all'}`);
 
     // Fetch all required data
     const [
@@ -83,11 +97,11 @@ serve(async (req: Request) => {
       profilesResult,
     ] = await Promise.all([
       supabase.from('behavioral_baselines').select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('baseline_date', { ascending: false })
         .limit(100),
       supabase.from('behavioral_anomalies').select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('detected_at', { ascending: false })
         .limit(200),
       profileId 
@@ -96,7 +110,7 @@ serve(async (req: Request) => {
             .order('communication_date', { ascending: false })
             .limit(100)
         : supabase.from('communications').select('*')
-            .eq('user_id', user.id)
+            .eq('user_id', userId)
             .order('communication_date', { ascending: false })
             .limit(500),
       profileId
@@ -105,15 +119,15 @@ serve(async (req: Request) => {
             .order('observation_date', { ascending: false })
             .limit(50)
         : supabase.from('contact_observations').select('*')
-            .eq('user_id', user.id)
+            .eq('user_id', userId)
             .order('observation_date', { ascending: false })
             .limit(200),
       supabase.from('interaction_biometrics').select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('recorded_at', { ascending: false })
         .limit(100),
       supabase.from('profiles').select('id, first_name, last_name')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .limit(200),
     ]);
 
@@ -217,7 +231,7 @@ serve(async (req: Request) => {
     // Save detected zero-day anomalies to behavioral_anomalies table
     for (const anomaly of zeroDayAnomalies) {
       await supabase.from('behavioral_anomalies').insert({
-        user_id: user.id,
+        user_id: userId,
         profile_id: anomaly.profileId,
         anomaly_type: 'zero_day_' + anomaly.affectedDomains[0],
         description: anomaly.description,
@@ -231,9 +245,9 @@ serve(async (req: Request) => {
     }
 
     // Save analysis result
-    const targetProfileId = profileId || user.id;
+    const targetProfileId = profileId || userId;
     await supabase.from('ai_analyses').upsert({
-      user_id: user.id,
+      user_id: userId,
       profile_id: targetProfileId,
       analysis_type: 'zero_day_anomaly',
       result,
