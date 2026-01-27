@@ -626,3 +626,18 @@ verify_jwt = false
 
 [functions.update-app-version]
 verify_jwt = false
+
+[functions.multimodal-deception-analyzer]
+verify_jwt = false
+
+[functions.stylometric-fingerprinter]
+verify_jwt = false
+
+[functions.hypergame-solver]
+verify_jwt = false
+
+[functions.digital-twin-generator]
+verify_jwt = false
+
+[functions.dark-tetrad-profiler]
+verify_jwt = false

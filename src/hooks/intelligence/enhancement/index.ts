@@ -28,5 +28,13 @@ export type { QuantumDecisionState, EntanglementResult } from '../useQuantumCogn
 export { useNetworkIntelligence } from '../useNetworkIntelligence';
 export type { NetworkIntelligenceResult, CommunityResult, Community, InfluenceNode } from '../useNetworkIntelligence';
 
+// Stylometric Analysis (v9.0)
+export { useStylemetricAnalysis } from '../useStylemetricAnalysis';
+export type { StylometricRecord } from '../useStylemetricAnalysis';
+
+// Hypergame Theory (v9.0)
+export { useHypergameTheory } from '../useHypergameTheory';
+export type { HypergameRecord } from '../useHypergameTheory';
+
 // Note: useCollectiveBehavior and useMemoryExploitation already exist with different implementations
 // They are exported from their original files
