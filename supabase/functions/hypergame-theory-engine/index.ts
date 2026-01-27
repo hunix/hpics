@@ -152,7 +152,7 @@ serve(async (req: Request) => {
         .limit(1),
       supabase.from('communications').select('*')
         .eq('profile_id', profileId)
-        .order('communication_date', { ascending: false })
+        .order('occurred_at', { ascending: false })
         .limit(50),
     ]);
 

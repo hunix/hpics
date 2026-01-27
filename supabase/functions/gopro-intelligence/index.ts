@@ -244,11 +244,11 @@ serve(async (req) => {
         // Store media references in the media table
         const mediaInserts = media_list.map(item => ({
           user_id: user.id,
-          media_type: item.type === 'video' ? 'video' : 'image',
+          mime_type: item.type === 'video' ? 'video/mp4' : 'image/jpeg',
           storage_path: item.download_url,
-          thumbnail_path: item.thumbnail_url,
+          thumbnail_url: item.thumbnail_url,
           file_size: item.size_bytes,
-          metadata: {
+          ai_metadata: {
             source: 'gopro',
             device_id,
             filename: item.filename,
