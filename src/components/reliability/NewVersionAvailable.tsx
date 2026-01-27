@@ -1,5 +1,5 @@
 // New Version Available Banner
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { RefreshCw, X, Sparkles, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -204,43 +204,71 @@ export function useVersionCheck(options: {
   checkInterval?: number;
   onNewVersion?: () => void;
 } = {}) {
-  const { checkInterval = 300000, onNewVersion } = options; // 5 minutes default
+  const { onNewVersion } = options;
   const [hasNewVersion, setHasNewVersion] = useState(false);
+  const onNewVersionRef = useRef(onNewVersion);
   
-  // Listen for service worker updates
-  if ('serviceWorker' in navigator) {
+  // Keep callback ref up to date
+  useEffect(() => {
+    onNewVersionRef.current = onNewVersion;
+  }, [onNewVersion]);
+  
+  // Listen for service worker updates with proper cleanup
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    
+    let registration: ServiceWorkerRegistration | null = null;
+    let newWorker: ServiceWorker | null = null;
+    
+    const handleUpdateFound = () => {
+      newWorker = registration?.installing || null;
+      if (newWorker) {
+        newWorker.addEventListener('statechange', handleStateChange);
+      }
+    };
+    
+    const handleStateChange = () => {
+      if (newWorker?.state === 'installed' && navigator.serviceWorker.controller) {
+        setHasNewVersion(true);
+        onNewVersionRef.current?.();
+      }
+    };
+    
     navigator.serviceWorker.ready
-      .then((registration) => {
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
-          if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                setHasNewVersion(true);
-                onNewVersion?.();
-              }
-            });
-          }
-        });
+      .then((reg) => {
+        registration = reg;
+        registration.addEventListener('updatefound', handleUpdateFound);
       })
       .catch((error) => {
         console.error('[useVersionCheck] Service worker ready failed:', error);
       });
-  }
+    
+    // Cleanup function
+    return () => {
+      if (registration) {
+        registration.removeEventListener('updatefound', handleUpdateFound);
+      }
+      if (newWorker) {
+        newWorker.removeEventListener('statechange', handleStateChange);
+      }
+    };
+  }, []);
+  
+  const checkForUpdate = useCallback(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready
+        .then((registration) => {
+          registration.update();
+        })
+        .catch((error) => {
+          console.error('[useVersionCheck] Service worker update check failed:', error);
+        });
+    }
+  }, []);
   
   return {
     hasNewVersion,
-    checkForUpdate: () => {
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.ready
-          .then((registration) => {
-            registration.update();
-          })
-          .catch((error) => {
-            console.error('[useVersionCheck] Service worker update check failed:', error);
-          });
-      }
-    },
+    checkForUpdate,
     refresh: () => forceAppUpdate(),
   };
 }

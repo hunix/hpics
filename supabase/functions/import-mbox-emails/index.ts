@@ -222,12 +222,12 @@ serve(async (req) => {
     const emails = parseMboxContent(fullContent);
     console.log(`[import-mbox-emails] Parsed ${emails.length} emails`);
 
-    // Get contact emails for matching
+    // Get contact emails for matching (join via profiles since contact_methods has no user_id)
     const { data: contactMethods } = await supabase
       .from('contact_methods')
-      .select('profile_id, value')
-      .eq('user_id', userId)
-      .eq('method_type', 'email');
+      .select('profile_id, value, profiles!inner(user_id)')
+      .eq('profiles.user_id', userId)
+      .eq('contact_type', 'email');
 
     const emailToProfile = new Map(
       contactMethods?.map(cm => [cm.value.toLowerCase(), cm.profile_id]) || []
