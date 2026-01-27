@@ -1,219 +1,86 @@
 
-# Fix 30 Failed Edge Functions: Missing Dual Authentication Pattern
+Goal
+- Stop the “30 tasks failed again” loop by fixing the real cause of the repeated 401/invalid-token errors, without requiring a full rerun. Ensure “Retry Failed” successfully completes Mona’s dossier.
 
-## Problem Summary
+What we know from current evidence
+- The session runner is correctly calling child backend functions with Authorization: Bearer <service role key>.
+- Runner logs show two distinct failure signatures:
+  1) HTTP 401 {"error":"Invalid authentication"} for several v6/v7/v8 functions.
+  2) HTTP 500 bodies like {"error":"Invalid user token"} / {"success":false,"error":"Invalid token"} for others.
+- supabase/config.toml is missing verify_jwt=false entries for several of the failing functions (confirmed: no config sections for audio-burst-analyzer, iio-attribution-engine, stylometric-analyzer; and likely others in the failing set). When a function has no explicit config, platform JWT verification can reject non-user tokens or transform token handling, producing “Invalid authentication” before our code runs.
+- Child function logs show only “booted”, which strongly suggests requests are being rejected upstream (especially for the ones returning 401 Invalid authentication).
+- The version banner confusion is real: platform_config.app_published_version (config_value) is 3.9.51 in Test, while the app is reporting current 3.9.54, so the update banner is inverted.
 
-The intelligence session runner completed with **65 tasks succeeded** and **30 tasks failed**. All 30 failures share the same root cause:
+Root cause (precise)
+A) Missing function-level verify_jwt=false config for many of the v6/v7/v8 engines:
+- The platform is performing JWT enforcement/processing by default for those functions, which breaks runner calls and yields “HTTP 401: Invalid authentication”.
 
-**Authentication Mismatch**: The `intelligence-session-runner` calls child edge functions using the `SUPABASE_SERVICE_ROLE_KEY` in the Authorization header (line 806). However, the failing functions only validate tokens using `supabase.auth.getUser(token)`, which expects a **user JWT token** - not a service role key.
+B) Inconsistent token path for some functions:
+- Some functions still emit “Invalid user token/Invalid token” (HTTP 500) because the service-role detection branch isn’t being taken reliably in practice (often due to upstream JWT behavior). The robust fix is still to set verify_jwt=false so the runner’s service role key arrives unchanged and equality checks behave predictably.
 
-## Failure Pattern Analysis
+C) UI update banner mismatch:
+- app_published_version is stale (3.9.51), causing the banner to claim an older version is “available”.
 
-| Error Message | Count | Cause |
-|---------------|-------|-------|
-| `HTTP 401: {"error":"Unauthorized"}` | 12 | `auth.getUser()` fails for service key |
-| `HTTP 401: {"error":"Invalid authentication"}` | 6 | Same pattern |
-| `HTTP 500: {"error":"Invalid user token"}` | 6 | Same pattern (thrown error) |
-| `HTTP 500: {"success":false,"error":"Invalid token"}` | 6 | Same pattern (500 wrapper) |
+Implementation plan (no full rerun required)
+Phase 1 — Make runner-to-function auth reliable (the actual blocker)
+1) Update supabase/config.toml
+   - Add [functions.<name>] verify_jwt = false for every function invoked by intelligence-session-runner that is currently missing an entry.
+   - Minimum set based on the latest runner failure logs:
+     - audio-burst-analyzer
+     - iio-attribution-engine
+     - stylometric-analyzer
+     - reflexive-control-detector
+     - cognitive-effect-orchestrator
+     - plus any other v6/v7/v8 task functions that are currently missing verify_jwt config (we will cross-check the INTELLIGENCE_TASKS list in intelligence-session-runner and ensure all 94 tasks have explicit verify_jwt=false entries to prevent regressions).
+   - Why: eliminates upstream JWT enforcement issues and stops the “Invalid authentication” 401s.
 
-## Working vs Failing Pattern Comparison
+2) Redeploy backend functions
+   - Redeploy at least:
+     - intelligence-session-runner
+     - all functions that were failing (the 30 list from runner logs)
+   - Why: config changes must be applied to the deployed backend functions environment to take effect.
 
-### Working Pattern (e.g., `mice-recruitment-analyzer`):
-```typescript
-const token = authHeader.replace('Bearer ', '');
-const isServiceRoleCall = token === supabaseServiceKey;
+3) Add targeted diagnostics (only if needed after config fix)
+   - If any tasks still fail, add minimal safe logging to a small subset of still-failing functions:
+     - log whether request is recognized as service call, without printing secrets (e.g., log token length, not token value).
+   - Why: confirms whether the request is reaching the handler and which branch is taken.
 
-if (isServiceRoleCall) {
-  // Backend-to-backend call - trust userId from body
-  userId = body.userId || body.user_id;
-} else {
-  // User call - validate JWT
-  const { data: { user }, error } = await supabase.auth.getUser(token);
-  if (error || !user) return 401 error;
-  userId = user.id;
-}
-```
+Phase 2 — Fix the “inverted update banner” (stops version confusion + reduces cache surprises)
+4) Update platform_config
+   - Update platform_config row:
+     - config_key = 'app_published_version'
+     - set config_value to the actual current shipped APP_VERSION (and after the next patch, bump to the new version).
+   - Important: use config_value (not override_value).
 
-### Failing Pattern (e.g., `relationship-half-life-calculator`):
-```typescript
-const token = authHeader.replace('Bearer ', '');
-const { data: { user }, error } = await supabase.auth.getUser(token);
-// FAILS: service role key is not a user token
-if (authError || !user) {
-  return 401 error; // Always fails for runner calls
-}
-```
+Phase 3 — Validate without spending credits on a full rerun
+5) Use “Retry Failed” (existing capability)
+   - You already have a retry path wired:
+     - Frontend: useIntelligenceSession.retryFailed() calls intelligence-session-runner with action 'retry_failed'.
+   - After redeploy + config fix:
+     - Click “Retry Failed” in /dossier-intelligence to run only the failed tasks for Mona.
+   - Expected result:
+     - The 30 tasks should move from Failed → Running → Completed.
+     - The dossier should become complete without re-running the 65 already completed tasks.
 
-## List of 30 Failing Edge Functions
+Success criteria
+- No “HTTP 401: Invalid authentication” errors from runner for any task.
+- Failed tasks complete successfully when using “Retry Failed”.
+- Voice aggregate task completes and the VoiceIntel section reflects voice_insights + voice_intelligence_aggregate.
+- Update banner no longer suggests “3.9.51 available” when app is on 3.9.54+.
 
-All these functions need the dual authentication pattern added:
+Risk/edge cases to watch
+- If any task still returns “Invalid token” after verify_jwt=false:
+  - That indicates the handler is running and still not recognizing the runner call; we will then normalize the dual-auth detection to be resilient (optionally using claims.role === 'service_role' via getClaims) and redeploy only those remaining functions.
+- If some tasks are still failing due to missing function deployment (404):
+  - We will confirm by runner logs (it marks 404 as skipped) and then create/deploy the missing function folder(s). (Note: your latest logs show tas-com-community-detector returning “Invalid user token” rather than 404, suggesting it exists.)
 
-### v6.0 Advanced Intelligence (Priority 9) - 5 functions
-1. `relationship-half-life-calculator`
-2. `automated-red-team-engine`
-3. `multi-party-deception-detector`
-4. `zero-day-anomaly-detector`
-5. `hypergame-theory-engine`
+Work breakdown checklist (what I will do in Default mode)
+- [ ] Parse intelligence-session-runner’s INTELLIGENCE_TASKS and build the definitive list of required function configs
+- [ ] Patch supabase/config.toml to include verify_jwt=false for all task functions (especially the missing v6/v7/v8 engines)
+- [ ] Redeploy the runner + affected task functions
+- [ ] Update platform_config.app_published_version config_value to match APP_VERSION
+- [ ] Validate by using “Retry Failed” on Mona and monitoring runner logs for zero auth failures
 
-### v7.0 Extreme Intelligence (Priority 10) - 12 functions
-6. `subvocalization-detector`
-7. `audio-burst-analyzer`
-8. `iio-attribution-engine`
-9. `reflexive-control-detector`
-10. `cognitive-effect-orchestrator`
-11. `kallisti-theory-of-mind`
-12. `collective-behavior-predictor`
-13. `dark2clear-deanonymization`
-14. `gated-biological-fusion`
-15. `tas-com-community-detector` (skipped - 404)
-16. `migration5-biometric-tracker`
-
-### v8.0 Counter-Intelligence (Priority 11) - 8 functions
-17. `draco-deception-orchestrator`
-18. `sentient-intent-analyzer`
-19. `insider-threat-matrix-engine`
-20. `bayesian-intention-predictor`
-21. `red-team-adversary-simulator`
-22. `semafor-forgery-detector`
-23. `epistemic-vulnerability-scanner`
-24. `cognitive-iw-detector`
-
-### v8.0 Biometric & Network (Priority 13) - 8 functions
-25. `pupillometry-analyzer`
-26. `thermal-stress-detector`
-27. `attention-multimodal-fuser`
-28. `keystroke-dynamics-analyzer`
-29. `sheaf-neural-influence-mapper`
-30. `ctdg-link-predictor`
-31. `cascade-virality-predictor`
-32. `network-resilience-analyzer`
-
-### Voice Intelligence Aggregate (Priority 15) - 1 function
-33. `aggregate-voice-intelligence`
-
-## Solution
-
-For each failing function, replace the authentication block with the dual-auth pattern:
-
-```typescript
-// Before (failing):
-const authHeader = req.headers.get('Authorization');
-if (!authHeader) {
-  return new Response(JSON.stringify({ error: 'No authorization header' }), {
-    status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-  });
-}
-
-const token = authHeader.replace('Bearer ', '');
-const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-if (authError || !user) {
-  return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-    status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-  });
-}
-const userId = user.id;
-
-// After (fixed):
-const authHeader = req.headers.get('Authorization');
-if (!authHeader) {
-  return new Response(JSON.stringify({ error: 'No authorization header' }), {
-    status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-  });
-}
-
-const body = await req.json();
-const token = authHeader.replace('Bearer ', '');
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const isServiceRoleCall = token === supabaseServiceKey;
-
-let userId: string;
-if (isServiceRoleCall) {
-  // Backend-to-backend call from intelligence-session-runner
-  userId = body.userId || body.user_id;
-  if (!userId) {
-    return new Response(JSON.stringify({ error: 'userId required for service calls' }), {
-      status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-  }
-} else {
-  // Direct user call - validate JWT token
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-  if (authError || !user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-  }
-  userId = user.id;
-}
-```
-
-## Implementation Order
-
-Due to the large number of files (30+), I recommend fixing them in priority batches:
-
-### Batch 1: Critical Voice & Aggregation (5 functions)
-- `aggregate-voice-intelligence` (blocks voice data in dossier)
-- `audio-burst-analyzer`
-- `subvocalization-detector`
-- `linguistic-stress-detector`
-- `voice-stress-correlator`
-
-### Batch 2: v6.0 Advanced (5 functions)
-- `relationship-half-life-calculator`
-- `automated-red-team-engine`
-- `multi-party-deception-detector`
-- `zero-day-anomaly-detector`
-- `hypergame-theory-engine`
-
-### Batch 3: v7.0 Intelligence (7 functions)
-- `iio-attribution-engine`
-- `reflexive-control-detector`
-- `cognitive-effect-orchestrator`
-- `kallisti-theory-of-mind`
-- `collective-behavior-predictor`
-- `dark2clear-deanonymization`
-- `gated-biological-fusion`
-
-### Batch 4: v8.0 Counter-Intelligence (8 functions)
-- `draco-deception-orchestrator`
-- `sentient-intent-analyzer`
-- `insider-threat-matrix-engine`
-- `bayesian-intention-predictor`
-- `red-team-adversary-simulator`
-- `semafor-forgery-detector`
-- `epistemic-vulnerability-scanner`
-- `cognitive-iw-detector`
-
-### Batch 5: v8.0 Biometric & Network (8 functions)
-- `pupillometry-analyzer`
-- `thermal-stress-detector`
-- `attention-multimodal-fuser`
-- `keystroke-dynamics-analyzer`
-- `sheaf-neural-influence-mapper`
-- `ctdg-link-predictor`
-- `cascade-virality-predictor`
-- `network-resilience-analyzer`
-
-### Batch 6: Remaining (remaining functions)
-- `migration5-biometric-tracker`
-- Any other v8.0 Doctrine functions with same issue
-
-## Additional Fix: Missing `tas-com-community-detector`
-
-One function returned 404 (not deployed), which means the edge function folder doesn't exist. This needs to be created.
-
-## Version Bump
-
-After all fixes:
-- Update `APP_VERSION` to `3.9.55`
-- Add `3.9.54` to `FORCE_CLEAR_VERSIONS`
-- Deploy all updated edge functions
-
-## Expected Outcome
-
-After implementing these fixes:
-- All 94 tasks will execute successfully
-- Voice intelligence aggregate will populate in dossier
-- v6.0/v7.0/v8.0 analyses will be stored in `ai_analyses` table
-- Mona's 791 voice insights will be aggregated
-- Full 124-section dossier will be complete
+Notes for you (non-technical)
+- You won’t need to re-run the entire package. After this fix, “Retry Failed” should finish only the remaining items, saving credits.
+- The weird “Update Now” banner behavior is due to the backend’s “latest version” value being outdated; we’ll align it so it stops prompting incorrectly.
