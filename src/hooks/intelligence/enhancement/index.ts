@@ -36,5 +36,10 @@ export type { StylometricRecord } from '../useStylemetricAnalysis';
 export { useHypergameTheory } from '../useHypergameTheory';
 export type { HypergameRecord } from '../useHypergameTheory';
 
-// Note: useCollectiveBehavior and useMemoryExploitation already exist with different implementations
-// They are exported from their original files
+// Collective Behavior (v9.0)
+export { useCollectiveBehavior } from '../useCollectiveBehavior';
+export type { CollectiveSimulationState } from '../useCollectiveBehavior';
+
+// Memory Exploitation (v9.0)
+export { useMemoryExploitation } from '../useMemoryExploitation';
+export type { MemoryTrackingState } from '../useMemoryExploitation';

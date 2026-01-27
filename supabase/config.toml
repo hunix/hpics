@@ -641,3 +641,12 @@ verify_jwt = false
 
 [functions.dark-tetrad-profiler]
 verify_jwt = false
+
+[functions.cascade-predictor]
+verify_jwt = false
+
+[functions.cognitive-warfare-planner]
+verify_jwt = false
+
+[functions.quantum-decision-modeler]
+verify_jwt = false
