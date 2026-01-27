@@ -357,21 +357,34 @@ serve(async (req) => {
       );
     }
 
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid authentication' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
     const body: CognitiveEffectRequest = await req.json();
+    const token = authHeader.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseServiceKey;
+
+    let userId: string;
+    if (isServiceRoleCall) {
+      userId = (body as any).userId || (body as any).user_id;
+      if (!userId) {
+        return new Response(
+          JSON.stringify({ error: 'userId required for service calls' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } else {
+      const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+      if (authError || !user) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid authentication' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      userId = user.id;
+    }
+
     const { profileId, effectType, targetContext, availableChannels, constraints } = body;
 
     if (!profileId || !effectType) {
@@ -427,7 +440,7 @@ serve(async (req) => {
       .from('cognitive_effect_operations')
       .insert({
         profile_id: profileId,
-        user_id: user.id,
+        user_id: userId,
         effect_type: effectType,
         biological_level: config.levels.biological,
         psychological_level: config.levels.psychological,
@@ -447,7 +460,7 @@ serve(async (req) => {
       .from('ai_analyses')
       .upsert({
         profile_id: profileId,
-        user_id: user.id,
+        user_id: userId,
         analysis_type: 'cognitive_effect',
         result: { ...plan, analysisVersion: '7.0.0', framework: 'GCHQ Responsible Cyber Power 2025' },
         generated_at: new Date().toISOString(),
