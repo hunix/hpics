@@ -52,6 +52,7 @@ export function VideoFaceEnrollment({ profileId, onComplete, onCancel }: VideoFa
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const animationRef = useRef<number | null>(null);
+  const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
   const [isInitializing, setIsInitializing] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
@@ -364,10 +365,18 @@ export function VideoFaceEnrollment({ profileId, onComplete, onCancel }: VideoFa
   const startEnrollment = () => {
     setCountdown(3);
     
-    const timer = setInterval(() => {
+    // Clear any existing timer
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+    }
+    
+    countdownTimerRef.current = setInterval(() => {
       setCountdown(prev => {
         if (prev === null || prev <= 1) {
-          clearInterval(timer);
+          if (countdownTimerRef.current) {
+            clearInterval(countdownTimerRef.current);
+            countdownTimerRef.current = null;
+          }
           setIsRecording(true);
           setCountdown(null);
           return null;
@@ -376,6 +385,15 @@ export function VideoFaceEnrollment({ profileId, onComplete, onCancel }: VideoFa
       });
     }, 1000);
   };
+
+  // Cleanup countdown timer on unmount
+  useEffect(() => {
+    return () => {
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current);
+      }
+    };
+  }, []);
 
   const finishEnrollment = () => {
     setIsRecording(false);

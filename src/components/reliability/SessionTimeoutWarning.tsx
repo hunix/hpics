@@ -1,4 +1,5 @@
 // Session Timeout Warning Dialog
+import React, { forwardRef } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Clock, LogOut, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -11,18 +12,18 @@ interface SessionTimeoutWarningProps {
   onLogout: () => void;
 }
 
-export const SessionTimeoutWarning = ({
+export const SessionTimeoutWarning = forwardRef<HTMLDivElement, SessionTimeoutWarningProps>(({
   isOpen,
   timeRemaining,
   secondsRemaining,
   onExtendSession,
   onLogout,
-}: SessionTimeoutWarningProps) => {
+}, ref) => {
   const isUrgent = secondsRemaining <= 60;
 
   return (
     <AlertDialog open={isOpen}>
-      <AlertDialogContent className="max-w-md">
+      <AlertDialogContent ref={ref} className="max-w-md">
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
             <Clock className={cn(
@@ -71,4 +72,6 @@ export const SessionTimeoutWarning = ({
       </AlertDialogContent>
     </AlertDialog>
   );
-};
+});
+
+SessionTimeoutWarning.displayName = "SessionTimeoutWarning";

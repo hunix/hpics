@@ -224,15 +224,20 @@ export function GaitCapturePanel({ profileId, profileName, onCapture }: GaitCapt
     onCapture?.(profile);
   }, [onCapture, saveGaitMutation]);
 
-  // Cleanup on unmount
+  // Store handleMotion in ref for stable cleanup
+  const handleMotionRef = useRef(handleMotion);
+  handleMotionRef.current = handleMotion;
+
+  // Cleanup on unmount - use ref to avoid dependency issues
   useEffect(() => {
     return () => {
-      window.removeEventListener('devicemotion', handleMotion);
+      // Remove listener using captured function reference
+      window.removeEventListener('devicemotion', handleMotionRef.current);
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
     };
-  }, [handleMotion]);
+  }, []);
 
   return (
     <Card>

@@ -1,10 +1,10 @@
-import { useEffect } from 'react';
+import React, { useEffect, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Users, ArrowRight, Loader2 } from 'lucide-react';
 
-export default function Index() {
+const Index = forwardRef<HTMLDivElement>(function Index(_props, ref) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -23,7 +23,7 @@ export default function Index() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
+    <div ref={ref} className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
       <div className="text-center space-y-6 max-w-2xl">
         <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary">
           <Users className="h-10 w-10 text-primary-foreground" />
@@ -43,4 +43,6 @@ export default function Index() {
       </div>
     </div>
   );
-}
+});
+
+export default Index;
