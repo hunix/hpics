@@ -359,7 +359,7 @@ function assessMeans(
       'Internal communications',
       'Contact database',
       accessLevel === 'administrative' ? 'System configurations' : null,
-      accessLevel !== 'minimal' ? 'Sensitive documents' : null
+      accessLevel !== 'standard' ? 'Sensitive documents' : null
     ].filter(Boolean) as string[]
   };
 }

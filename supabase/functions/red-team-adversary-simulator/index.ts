@@ -129,14 +129,14 @@ serve(async (req) => {
     const adversaryPersonas: AdversaryPersona[] = buildAdversaryPersonas(
       profile,
       behavioralDna,
-      threatData,
-      communications
+      threatData || [],
+      communications || []
     );
 
     // Generate simulation scenarios if none provided
     const simulationScenarios: SimulationScenario[] = scenarios.length > 0 
       ? scenarios 
-      : generateDefaultScenarios(profile, threatData);
+      : generateDefaultScenarios(profile, threatData || []);
 
     // Run Monte Carlo simulations
     const simulationResults: SimulationResult[] = [];

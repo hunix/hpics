@@ -659,3 +659,179 @@ verify_jwt = false
 
 [functions.betrayal-likelihood-scorer]
 verify_jwt = false
+
+# === v7.0/v8.0 Intelligence Task Functions (required for intelligence-session-runner) ===
+
+[functions.phobia-exploitation-engine]
+verify_jwt = false
+
+[functions.trauma-exploitation-engine]
+verify_jwt = false
+
+[functions.predict-behavioral-scenarios]
+verify_jwt = false
+
+[functions.opsec-vulnerability-analyzer]
+verify_jwt = false
+
+[functions.social-engineering-detector]
+verify_jwt = false
+
+[functions.crisis-response-orchestrator]
+verify_jwt = false
+
+[functions.lawfare-defense-analyzer]
+verify_jwt = false
+
+[functions.reputation-defense-engine]
+verify_jwt = false
+
+[functions.behavioral-baseline-monitor]
+verify_jwt = false
+
+[functions.family-protection-analyzer]
+verify_jwt = false
+
+[functions.economic-warfare-detector]
+verify_jwt = false
+
+[functions.tscm-sweep-analyzer]
+verify_jwt = false
+
+[functions.digital-footprint-scanner]
+verify_jwt = false
+
+[functions.subvocalization-detector]
+verify_jwt = false
+
+[functions.audio-burst-analyzer]
+verify_jwt = false
+
+[functions.iio-attribution-engine]
+verify_jwt = false
+
+[functions.reflexive-control-detector]
+verify_jwt = false
+
+[functions.cognitive-effect-orchestrator]
+verify_jwt = false
+
+[functions.kallisti-theory-of-mind]
+verify_jwt = false
+
+[functions.collective-behavior-predictor]
+verify_jwt = false
+
+[functions.stylometric-analyzer]
+verify_jwt = false
+
+[functions.dark2clear-deanonymization]
+verify_jwt = false
+
+[functions.gated-biological-fusion]
+verify_jwt = false
+
+[functions.tas-com-community-detector]
+verify_jwt = false
+
+[functions.migration5-biometric-tracker]
+verify_jwt = false
+
+[functions.draco-deception-orchestrator]
+verify_jwt = false
+
+[functions.sentient-intent-analyzer]
+verify_jwt = false
+
+[functions.insider-threat-matrix-engine]
+verify_jwt = false
+
+[functions.bayesian-intention-predictor]
+verify_jwt = false
+
+[functions.red-team-adversary-simulator]
+verify_jwt = false
+
+[functions.semafor-forgery-detector]
+verify_jwt = false
+
+[functions.epistemic-vulnerability-scanner]
+verify_jwt = false
+
+[functions.cognitive-iw-detector]
+verify_jwt = false
+
+[functions.psychoagent-cascade-predictor]
+verify_jwt = false
+
+[functions.affective-manipulation-detector]
+verify_jwt = false
+
+[functions.hyperpersonalization-engine]
+verify_jwt = false
+
+[functions.computational-persuasion-engine]
+verify_jwt = false
+
+[functions.synthetic-memory-generator]
+verify_jwt = false
+
+[functions.premem-belief-modifier]
+verify_jwt = false
+
+[functions.linguistic-stress-detector]
+verify_jwt = false
+
+[functions.memory-anchor-generator]
+verify_jwt = false
+
+[functions.emotional-contagion-modeler]
+verify_jwt = false
+
+[functions.sacred-value-predictor]
+verify_jwt = false
+
+[functions.pupillometry-analyzer]
+verify_jwt = false
+
+[functions.thermal-stress-detector]
+verify_jwt = false
+
+[functions.attention-multimodal-fuser]
+verify_jwt = false
+
+[functions.keystroke-dynamics-analyzer]
+verify_jwt = false
+
+[functions.sheaf-neural-influence-mapper]
+verify_jwt = false
+
+[functions.ctdg-link-predictor]
+verify_jwt = false
+
+[functions.cascade-virality-predictor]
+verify_jwt = false
+
+[functions.network-resilience-analyzer]
+verify_jwt = false
+
+[functions.gaze-pattern-analyzer]
+verify_jwt = false
+
+[functions.micro-expression-timeline]
+verify_jwt = false
+
+[functions.voice-stress-correlator]
+verify_jwt = false
+
+[functions.social-graph-predictor]
+verify_jwt = false
+
+[functions.influence-campaign-optimizer]
+verify_jwt = false
+
+[functions.counter-narrative-generator]
+verify_jwt = false
+
+[functions.predictive-doctrine-engine]
+verify_jwt = false

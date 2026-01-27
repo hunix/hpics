@@ -138,13 +138,6 @@ serve(async (req) => {
       }, {
         onConflict: 'profile_id,analysis_type',
       });
-        model_used: 'subvoc-detector-v1.0',
-        tokens_used: 0,
-        cost_cents: 0,
-        created_at: new Date().toISOString(),
-      }, {
-        onConflict: 'profile_id,analysis_type',
-      });
 
     console.log(`[Subvocalization] Detection complete for ${profileId} with confidence ${confidence.overall.toFixed(2)}`);
 

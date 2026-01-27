@@ -262,7 +262,7 @@ function generateDeceptionAssets(profile: Record<string, unknown> | null, digita
 }
 
 function generateCanaryTokens(profile: Record<string, unknown> | null, communications: Record<string, unknown>[]): DracoAnalysis['canaryTokens'] {
-  const tokens = [];
+  const tokens: Array<{ id: string; type: string; embedLocation: string; status: string; triggerDetails?: Record<string, unknown> }> = [];
   const tokenTypes = ['dns', 'web_bug', 'pdf', 'docx', 'aws_key', 'url'];
   
   tokenTypes.forEach((type, index) => {
@@ -286,7 +286,7 @@ function generateCanaryTokens(profile: Record<string, unknown> | null, communica
 }
 
 function getTokenEmbedLocation(type: string, profile: Record<string, unknown> | null): string {
-  const name = profile?.first_name || 'target';
+  const name = String(profile?.first_name || 'target');
   const locations: Record<string, string> = {
     'dns': `${name.toLowerCase()}-internal.tracking.local`,
     'web_bug': `shared_documents/${name}_files/`,
