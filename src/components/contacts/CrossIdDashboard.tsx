@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +27,7 @@ export function CrossIdDashboard({ profileId, profileName }: CrossIdDashboardPro
   const queryClient = useQueryClient();
   const [scanning, setScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data: biometrics } = useQuery({
     queryKey: ['contact-biometrics-crossid', profileId, user?.id],
@@ -111,12 +112,26 @@ export function CrossIdDashboard({ profileId, profileName }: CrossIdDashboardPro
     }
   });
 
+  // Cleanup progress interval on unmount
+  useEffect(() => {
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
+  }, []);
+
   const handleRunScan = async () => {
     setScanning(true);
     setScanProgress(0);
 
+    // Clear any existing interval
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+    }
+
     // Simulate progress
-    const interval = setInterval(() => {
+    progressIntervalRef.current = setInterval(() => {
       setScanProgress(prev => Math.min(prev + 10, 90));
     }, 500);
 
@@ -124,7 +139,10 @@ export function CrossIdDashboard({ profileId, profileName }: CrossIdDashboardPro
       await runScanMutation.mutateAsync();
       setScanProgress(100);
     } finally {
-      clearInterval(interval);
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
       setTimeout(() => {
         setScanning(false);
         setScanProgress(0);

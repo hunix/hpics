@@ -155,7 +155,7 @@ serve(async (req) => {
       supabase.from('profiles').select('id, first_name, last_name, organization, job_title, tags, relationship_type').eq('user_id', userId).eq('is_active', true).limit(200),
       // NOTE: messages table has no profile_id/direction columns - query via conversations
       supabase.from('messages').select('content, is_from_contact, created_at, conversations!inner(profile_id, user_id)').eq('conversations.user_id', userId).order('created_at', { ascending: false }).limit(1000),
-      supabase.from('contact_interactions').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(500),
+      supabase.from('contact_interaction_notes').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(500),
       supabase.from('contact_observations').select('profile_id, category, observation, created_at').eq('user_id', userId).limit(300),
       supabase.from('meeting_recordings').select('profile_id, summary, entities_mentioned, created_at').eq('user_id', userId).limit(100),
       supabase.from('location_history').select('profile_id, location, created_at').eq('user_id', userId).limit(500),
