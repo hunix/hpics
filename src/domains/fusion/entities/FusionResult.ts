@@ -78,7 +78,16 @@ export type FusionEngineType =
   | 'influence-campaign-optimizer'
   | 'counter-narrative-generator'
   | 'predictive-doctrine-engine'
-  | 'cognitive-defense-simulator';
+  | 'cognitive-defense-simulator'
+  // v9.0 Warfare Engines
+  | 'mice-recruitment'
+  | 'betrayal-likelihood'
+  | 'semantic-warfare'
+  | 'memetic-propagation'
+  | 'sacred-values'
+  | 'elicitation'
+  | 'cognitive-warfare'
+  | 'gottman-relationship';
 
 export interface FusionMetrics {
   processingTimeMs: number;
