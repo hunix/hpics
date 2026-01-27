@@ -99,6 +99,7 @@ const PlatformConfiguration = lazyWithRetry(() => import("./pages/PlatformConfig
 const AgentIntelligenceConfig = lazyWithRetry(() => import("./pages/AgentIntelligenceConfig"));
 const DatabaseMaintenance = lazyWithRetry(() => import("./pages/DatabaseMaintenance"));
 const DataCollectionGuide = lazyWithRetry(() => import("./pages/DataCollectionGuide"));
+const EnhancementSuite = lazyWithRetry(() => import("./pages/EnhancementSuite"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -218,6 +219,7 @@ const App = () => (
                           <Route path="/platform-config" element={<PlatformConfiguration />} />
                           <Route path="/agent-intelligence" element={<AgentIntelligenceConfig />} />
                           <Route path="/maintenance" element={<DatabaseMaintenance />} />
+                          <Route path="/enhancement-suite" element={<EnhancementSuite />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                       </Suspense>

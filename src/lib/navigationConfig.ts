@@ -232,6 +232,17 @@ export const navigationItems: NavItem[] = [
     keywords: ['cognitive', 'warfare', 'agis', 'phase 3', 'memetic', 'mice', 'semantic', 'betrayal', 'sacred'],
   },
   {
+    id: 'enhancement-suite',
+    title: 'Enhancement Suite',
+    url: '/enhancement-suite',
+    icon: Atom,
+    badge: 'new',
+    description: 'Revolutionary 50+ AI intelligence engines',
+    category: 'intelligence',
+    requiredRole: 'analyst',
+    keywords: ['enhancement', 'cognitive', 'warfare', 'deception', 'quantum', 'digital twin', 'dark psych', 'network', 'hypergame', 'stylometry'],
+  },
+  {
     id: 'defense-grid',
     title: 'Defense Grid',
     url: '/defense-grid',

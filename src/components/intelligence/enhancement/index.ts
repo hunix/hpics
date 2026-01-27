@@ -21,3 +21,15 @@ export { QuantumDecisionPanel } from './QuantumDecisionPanel';
 
 // Network Intelligence
 export { NetworkIntelligenceGraph } from './NetworkIntelligenceGraph';
+
+// Stylometric Analysis (v9.0)
+export { StylemetryAnalyzer } from './StylemetryAnalyzer';
+
+// Memory Exploitation (v9.0)
+export { MemoryExploitationPanel } from './MemoryExploitationPanel';
+
+// Hypergame Theory (v9.0)
+export { HypergameVisualizer } from './HypergameVisualizer';
+
+// Collective Behavior (v9.0)
+export { CollectiveBehaviorMonitor } from './CollectiveBehaviorMonitor';
