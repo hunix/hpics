@@ -113,7 +113,7 @@ export function DossierLoadingScreen({ contactName }: DossierLoadingScreenProps)
 
         {/* Tip */}
         <p className="text-xs text-muted-foreground/60">
-          Tip: Intelligence dossiers contain up to 74 sections of analyzed data
+          Tip: Intelligence dossiers contain up to 161 sections of analyzed data
         </p>
       </motion.div>
     </div>

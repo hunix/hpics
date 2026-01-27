@@ -47,7 +47,7 @@ interface PDFDossierGeneratorProps {
 
 export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGeneratorProps) {
   // Version logging for cache debugging
-  console.log('[PDFDossierGenerator] v5.2.1 - 74 Sections, 40 Tasks - Auto-Disable Empty Sections');
+  console.log('[PDFDossierGenerator] v6.0 - 161 Sections, 85 Tasks - Auto-Disable Empty Sections');
   const navigate = useNavigate();
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<string | null>(profileId || null);
@@ -153,8 +153,8 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
     retryTask(taskId);
   }, [retryTask]);
   
-  // Total tasks count from session or default (40 tasks in v5.2)
-  const totalTasks = session?.totalTasks || 40;
+  // Total tasks count from session or default (85 tasks in v6.0)
+  const totalTasks = session?.totalTasks || 85;
 
   const generatePDF = async () => {
     if (!selectedProfile && !profileId) {
@@ -457,11 +457,11 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
               <FileText className="h-5 w-5" />
               Ultimate Intelligence Dossier Generator
               <Badge variant="secondary" className="text-[10px] font-mono bg-primary/10">
-                v5.2 | 74 Sections | 40 Tasks
+                v6.0 | 161 Sections | 85 Tasks
               </Badge>
             </CardTitle>
             <CardDescription>
-              Generate comprehensive 74-section dossiers with Data Fusion Engines, Digital Twins, Temporal Transformers, and Defense Operations
+              Generate comprehensive 161-section dossiers with Data Fusion Engines, Digital Twins, Temporal Transformers, and Defense Operations
             </CardDescription>
           </div>
           {dataStats && (
@@ -503,7 +503,7 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
               <SelectContent>
                 <SelectItem value="executive">Executive Brief (1-2 pages)</SelectItem>
                 <SelectItem value="operational">Operational Dossier (5-10 pages)</SelectItem>
-                <SelectItem value="full">Full Intelligence Package (Complete - All 74 Sections)</SelectItem>
+                <SelectItem value="full">Full Intelligence Package (Complete - All 161 Sections)</SelectItem>
                 <SelectItem value="surveillance">Surveillance Report (Media Focus)</SelectItem>
                 <SelectItem value="warfare">Warfare Assessment (MICE, Cialdini, Sacred Values)</SelectItem>
                 <SelectItem value="psychological">Psychological Deep Dive (DNA, Quantum, Behavioral)</SelectItem>
