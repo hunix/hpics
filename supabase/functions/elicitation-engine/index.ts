@@ -156,7 +156,7 @@ Target: ${profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.tri
 Context: ${request.context || 'Casual conversation'}
 
 Target Information to Extract:
-${request.targetInformation.map((t, i) => `${i + 1}. ${t}`).join('\n')}
+${request.targetInformation.map((t: string, i: number) => `${i + 1}. ${t}`).join('\n')}
 
 ${request.conversationHistory ? `Previous Conversation:\n${request.conversationHistory.join('\n')}` : ''}`;
 
