@@ -52,19 +52,27 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) throw new Error('Missing authorization header');
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
-    if (authError || !user) throw new Error('Unauthorized');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json();
+    const token = authHeader.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseServiceKey;
+
+    let userId: string;
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+      if (!userId) throw new Error('userId required for service calls');
+    } else {
+      const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+      if (authError || !user) throw new Error('Unauthorized');
+      userId = user.id;
+    }
+
     const profileId = body.profileId || body.profile_id;
     const analysisDepth = body.analysisDepth || 'comprehensive';
 
@@ -199,7 +207,7 @@ serve(async (req) => {
       .from('ai_analyses')
       .upsert({
         profile_id: profileId,
-        user_id: user.id,
+        user_id: userId,
         analysis_type: 'semafor_forgery_detection',
         results: analysisResult as unknown as Record<string, unknown>,
         confidence_score: 1 - overallRisk,

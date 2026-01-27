@@ -40,13 +40,20 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    const body = await req.json();
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    if (userError || !user) {
-      throw new Error('Invalid user token');
+    const isServiceRoleCall = token === supabaseServiceKey;
+
+    let userId: string;
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+      if (!userId) throw new Error('userId required for service calls');
+    } else {
+      const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+      if (userError || !user) throw new Error('Invalid user token');
+      userId = user.id;
     }
 
-    const body = await req.json();
     const profileId = body.profileId || body.profile_id;
 
     if (!profileId) {
@@ -118,7 +125,7 @@ serve(async (req) => {
       .from('ai_analyses')
       .upsert({
         profile_id: profileId,
-        user_id: user.id,
+        user_id: userId,
         analysis_type: 'gated_bio_fusion',
         result: fusionResult,
         confidence_score: reliabilityAssessment.overallConfidence,

@@ -314,21 +314,34 @@ serve(async (req) => {
       );
     }
 
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid authentication' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
     const body: ReflexiveControlRequest = await req.json();
+    const token = authHeader.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseServiceKey;
+
+    let userId: string;
+    if (isServiceRoleCall) {
+      userId = (body as any).userId || (body as any).user_id;
+      if (!userId) {
+        return new Response(
+          JSON.stringify({ error: 'userId required for service calls' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } else {
+      const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+      if (authError || !user) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid authentication' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      userId = user.id;
+    }
+
     const { profileId, communications, behavioralCues, context } = body;
 
     if (!profileId) {
@@ -409,7 +422,7 @@ serve(async (req) => {
           .from('reflexive_control_indicators')
           .insert({
             profile_id: profileId,
-            user_id: user.id,
+            user_id: userId,
             rc_technique: indicator.technique,
             confidence_score: indicator.confidence,
             counter_strategy: counterStrategies[0] || null,
@@ -424,7 +437,7 @@ serve(async (req) => {
       .from('ai_analyses')
       .upsert({
         profile_id: profileId,
-        user_id: user.id,
+        user_id: userId,
         analysis_type: 'reflexive_control',
         result: { ...analysis, analysisVersion: '7.0.0', source: 'CIA Studies in Intelligence' },
         generated_at: new Date().toISOString(),
