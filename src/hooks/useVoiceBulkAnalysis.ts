@@ -326,6 +326,28 @@ export function useVoiceBulkAnalysis(profileId?: string) {
     }
   }, []);
 
+  // Finalize database session when processing completes
+  const finalizeDbSession = useCallback(async (
+    dbSessionId: string,
+    status: 'completed' | 'failed' | 'cancelled' | 'paused'
+  ) => {
+    try {
+      await supabase
+        .from('voice_analysis_sessions')
+        .update({ 
+          status,
+          completed_at: status !== 'paused' ? new Date().toISOString() : null,
+          current_item_id: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', dbSessionId);
+      
+      console.log(`[VoiceBulkAnalysis] Database session ${dbSessionId} marked as ${status}`);
+    } catch (error) {
+      console.warn('[VoiceBulkAnalysis] Failed to finalize session:', error);
+    }
+  }, []);
+
   // Continue processing in backend
   const continueInBackground = useCallback(async () => {
     if (!session?.dbSessionId) {
@@ -923,6 +945,12 @@ export function useVoiceBulkAnalysis(profileId?: string) {
           failedRecordings: failedRecordingsTracker,
           skippedRecordings: skippedRecordingsTracker 
         } : null);
+        
+        // Update database session to paused status
+        if (dbSessionId) {
+          await finalizeDbSession(dbSessionId, 'paused');
+        }
+        
         toast.info('Analysis paused');
         return;
       }
@@ -1155,6 +1183,11 @@ export function useVoiceBulkAnalysis(profileId?: string) {
       skippedRecordings: skippedRecordingsTracker,
     } : null);
 
+    // Finalize database session to prevent "interrupted session" on refresh
+    if (dbSessionId) {
+      await finalizeDbSession(dbSessionId, 'completed');
+    }
+
     const successCount = recordingsToProcess.length - failedRecordingsTracker.length;
     const totalSkipped = skippedRecordingsTracker.length;
     
@@ -1178,7 +1211,7 @@ export function useVoiceBulkAnalysis(profileId?: string) {
       .filter(r => r.hasVoiceInsights)
       .map(r => r.id);
     console.log(`[VoiceBulkAnalysis] ${analyzedIds.length} recordings now marked as analyzed`);
-  }, [options, profileId, fetchRecordings, processingMode, processLocalRecording, syncMediaAnalysisStatus]);
+  }, [options, profileId, fetchRecordings, processingMode, processLocalRecording, syncMediaAnalysisStatus, finalizeDbSession, updateDbItemStatus, createDbSession, user?.id]);
 
   // Pause/cancel analysis
   const pauseAnalysis = useCallback(() => {
