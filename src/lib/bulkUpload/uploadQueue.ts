@@ -455,10 +455,8 @@ export class BulkUploadQueue {
         .insert({
           user_id: this.userId!,
           profile_id: this.profileId,
-          media_type: mediaType || 'image',
           file_url: urlData.publicUrl,
           storage_path: storagePath,
-          file_name: item.filename,
           file_size: item.fileSize,
           mime_type: item.mimeType,
           caption: item.filename,

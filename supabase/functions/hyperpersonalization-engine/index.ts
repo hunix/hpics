@@ -392,7 +392,7 @@ function analyzeChannelPreferences(comms: any[]): any {
   const channelCounts: Record<string, number> = {};
   
   comms.forEach(c => {
-    const channel = c.communication_type || 'unknown';
+    const channel = c.channel || 'unknown';
     channelCounts[channel] = (channelCounts[channel] || 0) + 1;
   });
 

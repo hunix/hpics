@@ -81,7 +81,7 @@ serve(async (req) => {
       // Get communications for this profile
       const { data: communications } = await supabaseClient
         .from('communications')
-        .select('channel, occurred_at, sentiment_score, is_from_contact')
+        .select('channel, occurred_at, sentiment_score, direction')
         .eq('profile_id', profile.id)
         .gte('occurred_at', ninetyDaysAgo.toISOString())
         .order('occurred_at', { ascending: false });

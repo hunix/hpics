@@ -1,5 +1,5 @@
 // Hook for managing proactive insights with full validation
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -36,6 +36,14 @@ export function useProactiveInsights(filters?: InsightFilters) {
   const [insights, setInsights] = useState<ProactiveInsight[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const fetchInsights = useCallback(async (limit = 50) => {
     if (!user?.id) return;
@@ -66,13 +74,17 @@ export function useProactiveInsights(filters?: InsightFilters) {
 
       const { data, error: queryError } = await query;
 
+      if (!isMountedRef.current) return;
       if (queryError) throw new Error(queryError.message);
 
       setInsights(data as ProactiveInsight[]);
     } catch (err) {
+      if (!isMountedRef.current) return;
       setError(err instanceof Error ? err.message : 'Failed to fetch insights');
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [user?.id, filters]);
 

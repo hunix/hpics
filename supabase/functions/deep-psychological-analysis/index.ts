@@ -108,7 +108,7 @@ serve(async (req) => {
     // 3. Media with AI metadata
     const { data: media } = await supabase
       .from('media')
-      .select('id, media_type, caption, ai_metadata, created_at')
+      .select('id, mime_type, caption, ai_metadata, created_at')
       .eq('profile_id', profile_id)
       .eq('user_id', user.id)
       .not('ai_metadata', 'is', null)

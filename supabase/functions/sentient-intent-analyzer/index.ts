@@ -233,7 +233,7 @@ function buildProvenanceGraph(
     nodes.push({
       id: nodeId,
       type: 'action',
-      label: `Communication: ${comm.communication_type || 'message'}`,
+      label: `Communication: ${comm.channel || 'message'}`,
       timestamp: String(comm.created_at),
       attributes: {
         direction: comm.direction,

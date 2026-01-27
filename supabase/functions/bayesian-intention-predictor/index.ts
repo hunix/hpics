@@ -346,7 +346,7 @@ function processObservedActions(
     }
 
     actions.push({
-      action: `communication_${comm.communication_type || 'general'}`,
+      action: `communication_${comm.channel || 'general'}`,
       timestamp: String(comm.created_at),
       confidence: 0.7 + Math.abs(sentiment) * 0.2,
       intentionUpdate

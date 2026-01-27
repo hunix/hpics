@@ -48,6 +48,14 @@ export function ShadowNetworkGraph({ userId, profileId }: ShadowNetworkGraphProp
   const [loading, setLoading] = useState(false);
   const [zoom, setZoom] = useState(1);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const detectShadowNetworks = async () => {
     setLoading(true);
@@ -56,13 +64,18 @@ export function ShadowNetworkGraph({ userId, profileId }: ShadowNetworkGraphProp
         body: { userId, profileId, analysisDepth: 'deep' }
       });
 
+      if (!isMountedRef.current) return;
       if (error) throw error;
       setData(result.analysis);
       toast.success('Shadow network detection complete');
     } catch (error: any) {
-      toast.error(error.message || 'Detection failed');
+      if (isMountedRef.current) {
+        toast.error(error.message || 'Detection failed');
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   };
 
