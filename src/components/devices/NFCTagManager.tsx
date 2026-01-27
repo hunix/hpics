@@ -102,6 +102,7 @@ export function NFCTagManager({ className, onTagTapped }: NFCTagManagerProps) {
   // Store NFC reader ref for cleanup
   const ndefReaderRef = React.useRef<any>(null);
   const nfcTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleReadingRef = React.useRef<((event: { serialNumber: string }) => void) | null>(null);
 
   // Cleanup NFC resources on unmount
   useEffect(() => {
@@ -110,7 +111,15 @@ export function NFCTagManager({ className, onTagTapped }: NFCTagManagerProps) {
         clearTimeout(nfcTimeoutRef.current);
         nfcTimeoutRef.current = null;
       }
-      // NFC reader cleanup is handled by browser when ref goes out of scope
+      // Remove NFC reading event listener if attached
+      if (ndefReaderRef.current && handleReadingRef.current) {
+        try {
+          ndefReaderRef.current.removeEventListener('reading', handleReadingRef.current);
+        } catch {
+          // Ignore if removal fails
+        }
+        handleReadingRef.current = null;
+      }
       ndefReaderRef.current = null;
     };
   }, []);
@@ -149,6 +158,8 @@ export function NFCTagManager({ className, onTagTapped }: NFCTagManagerProps) {
         });
       };
 
+      // Store ref for cleanup
+      handleReadingRef.current = handleReading;
       ndef.addEventListener('reading', handleReading);
 
       toast({

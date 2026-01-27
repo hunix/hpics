@@ -45,11 +45,11 @@ export function useRelationshipAnalytics(dateRange: DateRange = '30d') {
         .gte('occurred_at', startDateStr)
         .order('occurred_at', { ascending: true });
 
-      // Fetch messages
+      // Fetch messages (join via conversations since messages has no user_id)
       const { data: messages } = await supabase
         .from('messages')
-        .select('id, sent_at, conversation_id, is_from_contact')
-        .eq('user_id', user!.id)
+        .select('id, sent_at, conversation_id, is_from_contact, conversations!inner(user_id)')
+        .eq('conversations.user_id', user!.id)
         .gte('sent_at', startDateStr);
 
       // Fetch contacts with relationship scores
