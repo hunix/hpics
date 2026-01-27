@@ -109,6 +109,15 @@ export const FUSION_ANALYSIS_TYPES: Record<FusionEngineType, string> = {
   'counter-narrative-generator': 'counter_narrative',
   'predictive-doctrine-engine': 'predictive_doctrine',
   'cognitive-defense-simulator': 'cognitive_defense',
+  // v9.0 Warfare Engines
+  'mice-recruitment': 'mice_recruitment',
+  'betrayal-likelihood': 'betrayal_likelihood',
+  'semantic-warfare': 'semantic_warfare',
+  'memetic-propagation': 'memetic_propagation',
+  'sacred-values': 'sacred_values',
+  'elicitation': 'elicitation_guide',
+  'cognitive-warfare': 'cognitive_warfare',
+  'gottman-relationship': 'gottman_relationship',
 };
 
 /**

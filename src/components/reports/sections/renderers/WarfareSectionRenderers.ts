@@ -931,6 +931,184 @@ export const renderBehavioralBaseline: SectionRenderer = (ctx, data) => {
   ctx.yPos += 8;
 };
 
+// MICE Vulnerability Renderer (v9.0)
+export const renderMICE: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  
+  const rawData = data.miceData?.length
+    ? data.miceData[0]
+    : getAnalysisForSection(data, 'mice');
+  
+  if (!rawData) return;
+  
+  ctx.renderSectionHeader('MICE Recruitment Vulnerability', PDF_DESIGN.colors.danger);
+  const mice = extractResult(rawData as Record<string, unknown>);
+  
+  ctx.checkPageBreak(60);
+  doc.setFillColor(255, 245, 240);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 55, 3, 3, 'F');
+  
+  // MICE Component scores
+  const components = [
+    { name: 'Money', score: mice.money_vulnerability || mice.money_score || 0 },
+    { name: 'Ideology', score: mice.ideology_alignment || mice.ideology_score || 0 },
+    { name: 'Compromise', score: mice.compromise_material || mice.compromise_score || 0 },
+    { name: 'Ego', score: mice.ego_needs || mice.ego_score || 0 },
+  ];
+  
+  ctx.renderSubsection('Vulnerability Components');
+  components.forEach(comp => {
+    const score = typeof comp.score === 'number' ? comp.score : 0;
+    ctx.renderScoreBar(comp.name, score * 100, 100, getSectionColor('mice'));
+  });
+  
+  if (mice.optimal_approach) {
+    ctx.yPos += 5;
+    ctx.renderSubsection('Optimal Recruitment Approach');
+    doc.setFontSize(PDF_DESIGN.fonts.body);
+    doc.text(`Primary: ${(mice.optimal_approach as Record<string, unknown>).primary || 'Unknown'}`, ctx.margin + 5, ctx.yPos);
+    ctx.yPos += ctx.lineHeight;
+  }
+  
+  if (mice.risk_level) {
+    doc.setFont('helvetica', 'bold');
+    const riskColor: [number, number, number] = mice.risk_level === 'extreme' || mice.risk_level === 'high' 
+      ? PDF_DESIGN.colors.danger : PDF_DESIGN.colors.warning;
+    doc.setTextColor(...riskColor);
+    doc.text(`Risk Level: ${(mice.risk_level as string).toUpperCase()}`, ctx.margin + 5, ctx.yPos);
+    doc.setTextColor(0);
+    ctx.yPos += ctx.lineHeight;
+  }
+  ctx.yPos += 8;
+};
+
+// Sacred Values Renderer (v9.0)
+export const renderSacredValues: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  
+  const rawData = (Array.isArray(data.sacredValuesData) && data.sacredValuesData.length)
+    ? data.sacredValuesData[0]
+    : getAnalysisForSection(data, 'sacredValues');
+  
+  if (!rawData) return;
+  
+  ctx.renderSectionHeader('Sacred Values Profile', getSectionColor('sacredValues'));
+  const sacred = extractResult(rawData as Record<string, unknown>);
+  
+  ctx.checkPageBreak(55);
+  doc.setFillColor(250, 245, 255);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 50, 3, 3, 'F');
+  
+  if (sacred.sacred_values || sacred.values) {
+    const values = (sacred.sacred_values || sacred.values) as Array<Record<string, unknown>>;
+    ctx.renderSubsection('Core Sacred Values');
+    values.slice(0, 5).forEach((v) => {
+      const domain = v.domain || v.category || 'Unknown';
+      const value = v.value || v.name || 'Unknown';
+      const protection = v.protection_level || v.protectionLevel || 0;
+      ctx.renderBullet(`${domain}: ${value} (Protection: ${Math.round((protection as number) * 100)}%)`, 5);
+    });
+  }
+  
+  if (sacred.violation_triggers || sacred.triggers) {
+    const triggers = (sacred.violation_triggers || sacred.triggers) as string[];
+    ctx.yPos += 3;
+    ctx.renderSubsection('Violation Triggers');
+    triggers.slice(0, 4).forEach(t => ctx.renderBullet(t, 5));
+  }
+  
+  if (sacred.exploitation_vectors || sacred.manipulation_vectors) {
+    const vectors = (sacred.exploitation_vectors || sacred.manipulation_vectors) as Array<Record<string, unknown>>;
+    ctx.yPos += 3;
+    ctx.renderSubsection('Exploitation Vectors');
+    vectors.slice(0, 3).forEach((v) => {
+      ctx.renderBullet(`${v.approach || v.vector}: ${v.expected_response || v.expectedResponse || ''}`, 5);
+    });
+  }
+  ctx.yPos += 8;
+};
+
+// Elicitation Guide Renderer (v9.0)
+export const renderElicitation: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  
+  const rawData = data.elicitationData?.length
+    ? data.elicitationData[0]
+    : getAnalysisForSection(data, 'elicitation');
+  
+  if (!rawData) return;
+  
+  ctx.renderSectionHeader('Elicitation Guide', getSectionColor('elicitation'));
+  const elicit = extractResult(rawData as Record<string, unknown>);
+  
+  ctx.checkPageBreak(50);
+  doc.setFillColor(245, 250, 255);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
+  
+  if (elicit.recommended_techniques || elicit.techniques) {
+    const techniques = (elicit.recommended_techniques || elicit.techniques) as Array<Record<string, unknown>>;
+    ctx.renderSubsection('Recommended Techniques');
+    techniques.slice(0, 5).forEach((t) => {
+      const name = t.name || t.technique || 'Unknown';
+      const effectiveness = t.effectiveness || 0;
+      ctx.renderBullet(`${name} (${Math.round((effectiveness as number) * 100)}% effective)`, 5);
+    });
+  }
+  
+  if (elicit.conversation_starters || elicit.openers) {
+    const starters = (elicit.conversation_starters || elicit.openers) as string[];
+    ctx.yPos += 3;
+    ctx.renderSubsection('Conversation Starters');
+    starters.slice(0, 3).forEach(s => ctx.renderBullet(s, 5));
+  }
+  
+  if (elicit.target_information || elicit.objectives) {
+    const targets = (elicit.target_information || elicit.objectives) as string[];
+    ctx.yPos += 3;
+    ctx.renderSubsection('Target Information');
+    targets.slice(0, 4).forEach(t => ctx.renderBullet(t, 5));
+  }
+  ctx.yPos += 8;
+};
+
+// Gottman Relationship Analyzer Renderer (v9.0)
+export const renderGottmanHorsemen: SectionRenderer = (ctx, data) => {
+  const { doc } = ctx;
+  
+  const rawData = getAnalysisForSection(data, 'gottmanHorsemen');
+  
+  if (!rawData) return;
+  
+  ctx.renderSectionHeader('Gottman Four Horsemen Analysis', getSectionColor('gottmanHorsemen'));
+  const gottman = extractResult(rawData as Record<string, unknown>);
+  
+  ctx.checkPageBreak(50);
+  doc.setFillColor(255, 248, 245);
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
+  
+  const horsemen = [
+    { name: 'Criticism', score: gottman.criticism_score || gottman.criticism || 0 },
+    { name: 'Contempt', score: gottman.contempt_score || gottman.contempt || 0 },
+    { name: 'Defensiveness', score: gottman.defensiveness_score || gottman.defensiveness || 0 },
+    { name: 'Stonewalling', score: gottman.stonewalling_score || gottman.stonewalling || 0 },
+  ];
+  
+  ctx.renderSubsection('Four Horsemen Scores');
+  horsemen.forEach(h => {
+    const score = typeof h.score === 'number' ? h.score : 0;
+    const color: [number, number, number] = score > 0.7 ? PDF_DESIGN.colors.danger : 
+      score > 0.4 ? PDF_DESIGN.colors.warning : PDF_DESIGN.colors.success;
+    ctx.renderScoreBar(h.name, score * 100, 100, color);
+  });
+  
+  if (gottman.relationship_health !== undefined) {
+    ctx.yPos += 5;
+    const health = gottman.relationship_health as number;
+    ctx.renderScoreBar('Relationship Health', health * 100, 100, PDF_DESIGN.colors.success);
+  }
+  ctx.yPos += 8;
+};
+
 export const warfareSectionRenderers = {
   cognitiveWarfare: renderCognitiveWarfare,
   deceptionOps: renderDeceptionOps,
@@ -961,6 +1139,11 @@ export const warfareSectionRenderers = {
   tscmSweep: renderTscmSweep,
   digitalFootprint: renderDigitalFootprint,
   behavioralBaseline: renderBehavioralBaseline,
+  // v9.0 Warfare Integration renderers
+  mice: renderMICE,
+  sacredValues: renderSacredValues,
+  elicitation: renderElicitation,
+  gottmanHorsemen: renderGottmanHorsemen,
   // Cross-references for complete 74-section coverage
   crossModal: renderDeceptionOps, // Cross-modal uses deception analysis
 };
