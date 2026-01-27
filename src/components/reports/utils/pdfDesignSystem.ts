@@ -1,9 +1,9 @@
 /**
- * Unified PDF Design System (v4.0)
+ * Unified PDF Design System (v6.0)
  * Centralized design utilities for consistent PDF styling
  * 
  * This module provides:
- * - Category-based color mapping for all 74 sections
+ * - Category-based color mapping for all 161 sections
  * - Robust data extraction handling nested and flat structures
  * - Content validation to prevent blank pages
  * - Standardized content box rendering
@@ -16,7 +16,7 @@ import { PDF_DESIGN } from '../hooks/usePDFGeneration';
 export { PDF_DESIGN };
 
 /**
- * Section category mapping for all 74 sections
+ * Section category mapping for all 161 sections
  * Maps section IDs to their category for consistent coloring
  */
 const SECTION_CATEGORIES: Record<string, 'core' | 'intelligence' | 'warfare' | 'analysis' | 'fusion'> = {

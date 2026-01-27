@@ -1,9 +1,10 @@
 /**
- * Intelligence Generation Hook v5.3.0
+ * Intelligence Generation Hook v6.0.0
  * Handles pre-generation of intelligence data before PDF export
  * 
- * v5.3.0: Added 9 new v5.0/v6.0 fusion engines (49 total tasks)
- * v5.2.0: Synced 40 tasks with backend intelligence-session-runner
+ * v6.0.0: Updated to 85 total tasks across 14 priority groups
+ * v5.3.0: Added 9 new v5.0/v6.0 fusion engines
+ * v5.2.0: Synced tasks with backend intelligence-session-runner
  * v3.7.7: Circuit breaker integration, health monitoring, background retry queue
  * v3.7.6: Enhanced reliability with retry logic, parallel batch execution, timeout handling
  * v3.7.5: 34 intelligence tasks covering all 64 dossier sections
@@ -115,7 +116,7 @@ async function invokeWithRetry(
   return { data: null, error: lastError };
 }
 
-// Comprehensive task definitions - SYNCED with backend intelligence-session-runner (40 tasks)
+// Comprehensive task definitions - SYNCED with backend intelligence-session-runner (85 tasks)
 const ALL_INTELLIGENCE_TASKS: IntelligenceTask[] = [
   // Core Intelligence (Priority 1) - 5 tasks
   { name: 'MICE Assessment', edgeFunction: 'mice-recruitment-analyzer', analysisType: 'full_assessment', required: true, category: 'core', priority: 1 },
