@@ -1,129 +1,190 @@
 
-# Fix: Correct Section and Task Counts to Actual Values
+# Voice Intelligence Pipeline & Task Runner Sync Plan
 
-## Problem Identified
+## Summary
 
-The hardcoded section and task counts we just updated are **INCORRECT**. I mistakenly used 161 sections and 85 tasks based on outdated documentation, but the actual counts in the codebase are:
+This plan fixes three critical gaps in the intelligence pipeline:
 
-| Metric | What I Set | Actual Value | Difference |
-|--------|------------|--------------|------------|
-| Sections | 161 | **124** | -37 sections |
-| Tasks | 85 | **94** | +9 tasks |
+1. **Voice Intelligence Section** pulls from `voice_recording_sessions` (empty recordings) instead of `voice_insights` (791 analyzed records for Mona)
+2. **Voice Intelligence Aggregate** analysis type is produced by the edge function but never consumed by the dossier
+3. **Backend Task Runner** is out of sync - only has 44 tasks while frontend defines 94 tasks, missing all v7.0 and v8.0 engines
 
-The user is seeing 121/122 in the UI because `DEFAULT_SECTIONS.length` correctly returns **124**, and one section (`timeline`) has `enabled: false` by default, leaving 121-123 enabled depending on template.
+## Technical Details
 
-## Verified Counts
+### Issue 1: voiceIntel Section Uses Wrong Data Source
 
-### Sections (from `sectionDefinitions.ts`)
+**Current State:**
+- `useDossierData.ts` line 185: `supabase.from('voice_recording_sessions').select('*')`
+- `sectionDataSources.ts` line 55: `voiceIntel: { type: 'table', table: 'voice_recording_sessions' }`
 
-| Category | Lines | Count |
-|----------|-------|-------|
-| Core | 17-23 | 7 |
-| Intelligence | 26-36 | 11 |
-| Warfare | 39-72 | 34 |
-| Analysis | 75-82 | 8 |
-| Data Fusion | 85-98 | 14 |
-| v6.0 Advanced | 101-105 | 5 |
-| v7.0 Extreme | 108-119 | 12 |
-| v8.0 Counter-Intel | 122-129 | 8 |
-| v8.0 Psych Warfare | 132-141 | 10 |
-| v8.0 Biometric/Network | 144-151 | 8 |
-| v8.0 Doctrine/Advanced | 154-160 | 7 |
-| **TOTAL** | | **124** |
+**Problem:**
+The analyzed voice data is stored in `voice_insights` table (791 records for Mona), not in `voice_recording_sessions` which only contains raw recording session metadata.
 
-### Tasks (from `useIntelligenceGeneration.ts`)
+### Issue 2: Missing Voice Intelligence Aggregate
 
-| Priority | Category | Lines | Count |
-|----------|----------|-------|-------|
-| 1 | Core Intelligence | 122-126 | 5 |
-| 2 | Psychological Operations | 129-134 | 6 |
-| 3 | Advanced Warfare | 137-142 | 6 |
-| 4 | Network Intelligence | 145-148 | 4 |
-| 5 | Temporal & Quantum | 151-154 | 4 |
-| 6 | Fusion Intelligence | 157-161 | 5 |
-| 7 | Defense Operations (v5.0) | 164-173 | 10 |
-| 8 | Advanced Fusion (v5.0) | 176-179 | 4 |
-| 9 | v6.0 Advanced Intelligence | 182-186 | 5 |
-| 10 | v7.0 Extreme Intelligence | 189-200 | 12 |
-| 11 | v8.0 Counter-Intelligence | 203-210 | 8 |
-| 12 | v8.0 Psychological Warfare | 213-222 | 10 |
-| 13 | v8.0 Biometric & Network | 225-232 | 8 |
-| 14 | v8.0 Doctrine & Advanced | 235-241 | 7 |
-| **TOTAL** | | | **94** |
+**Current State:**
+- `aggregate-voice-intelligence` edge function (line 239) stores results as `analysis_type: 'voice_intelligence_aggregate'`
+- This analysis type is NOT queried in `useDossierData.ts`
+- This analysis type is NOT mapped in `sectionDataSources.ts`
 
-## Files to Update
+### Issue 3: Backend Task Runner Missing v7.0/v8.0 Tasks
 
-### 1. `src/components/reports/PDFDossierGenerator.tsx`
+**Current State in `intelligence-session-runner/index.ts`:**
+| Priority | Category | Tasks |
+|----------|----------|-------|
+| 1-6 | Core through Fusion | 30 tasks |
+| 7 | Defense Operations (v5.0) | 10 tasks |
+| 8 | Advanced Fusion (v5.0) | 4 tasks |
+| **TOTAL** | | **44 tasks** |
 
-| Line | Current (Wrong) | Corrected |
-|------|-----------------|-----------|
-| 50 | `v6.0 - 161 Sections, 85 Tasks` | `v8.0 - 124 Sections, 94 Tasks` |
-| 157 | `session?.totalTasks \|\| 85` | `session?.totalTasks \|\| 94` |
-| 460 | `v6.0 \| 161 Sections \| 85 Tasks` | `v8.0 \| 124 Sections \| 94 Tasks` |
-| 464 | `161-section dossiers` | `124-section dossiers` |
-| 506 | `All 161 Sections` | `All 124 Sections` |
+**Missing from Backend Runner:**
+| Priority | Category | Tasks |
+|----------|----------|-------|
+| 9 | v6.0 Advanced Intelligence | 5 tasks |
+| 10 | v7.0 Extreme Intelligence | 12 tasks |
+| 11 | v8.0 Counter-Intelligence | 8 tasks |
+| 12 | v8.0 Psychological Warfare | 10 tasks |
+| 13 | v8.0 Biometric & Network | 8 tasks |
+| 14 | v8.0 Doctrine & Advanced | 7 tasks |
+| **TOTAL MISSING** | | **50 tasks** |
 
-### 2. `src/components/reports/utils/pdfDesignSystem.ts`
+**Note:** The frontend `useIntelligenceGeneration.ts` already has all 94 tasks properly defined. The backend runner needs to be synced.
 
-| Line | Current (Wrong) | Corrected |
-|------|-----------------|-----------|
-| ~6 | `all 161 sections` | `all 124 sections` |
-| ~19 | `all 161 sections` | `all 124 sections` |
+---
 
-### 3. `src/components/dossier-preview/DossierLoadingScreen.tsx`
+## Files to Modify
 
-| Line | Current (Wrong) | Corrected |
-|------|-----------------|-----------|
-| ~116 | `up to 161 sections` | `up to 124 sections` |
+### 1. `src/components/reports/hooks/useDossierData.ts`
 
-### 4. `src/components/reports/hooks/useIntelligenceGeneration.ts`
+**Changes:**
+- Line 17: Add `voiceInsightsData: any[];` to interface
+- Line 155: Add `voiceIntelAggregateData: any[];` to interface
+- Line 185: Change query from `voice_recording_sessions` to `voice_insights` with full field selection
+- Add new query for `voice_intelligence_aggregate` from `ai_analyses` table
+- Update return object to include both data sources
 
-| Line | Current (Wrong) | Corrected |
-|------|-----------------|-----------|
-| 5-6 | `(85 total tasks)` / `85 tasks` | `(94 total tasks)` / `94 tasks` |
-| 118 | `(85 tasks)` | `(94 tasks)` |
+### 2. `src/components/reports/sections/sectionDataSources.ts`
 
-### 5. `src/components/reports/sections/renderers/index.ts`
+**Changes:**
+- Line 55: Change `voiceIntel` source from `voice_recording_sessions` to `voice_insights`
+- Add new mapping for `voiceIntelAggregate: { type: 'ai_analyses', analysisType: 'voice_intelligence_aggregate' }`
 
-| Line | Current (Wrong) | Corrected |
-|------|-----------------|-----------|
-| 4 | `137 sections across 6 categories` | `124 sections across 6 categories` |
-| 27-28 | `all 137 section renderers` | `all 124 section renderers` |
+### 3. `src/components/reports/sections/renderers/CoreSectionRenderers.ts`
 
-### 6. `src/lib/appVersion.ts`
+**Changes:**
+- Lines 355-400: Update `renderVoiceIntel` to consume `voice_insights` data structure:
+  - Read from `data.voiceInsightsData` instead of `data.voiceData`
+  - Extract fields: `full_transcription`, `topics_discussed`, `sentiment_timeline`, `keywords`, `speakers`
+  - Display aggregated emotional/stress patterns from the insight records
+  - Add support for voice_intelligence_aggregate display
 
-| Change | Value |
-|--------|-------|
-| `APP_VERSION` | `3.9.53` (bump from 3.9.52) |
-| `FORCE_CLEAR_VERSIONS` | Add `3.9.52` |
-| Changelog | Update to reflect corrected counts |
+### 4. `supabase/functions/intelligence-session-runner/index.ts`
 
-## Future-Proofing Recommendation
-
-Add computed constants to eliminate drift:
+**Changes:**
+Add all missing tasks to `INTELLIGENCE_TASKS` array (lines 72-78):
 
 ```typescript
-// In sectionDefinitions.ts
-export const TOTAL_SECTIONS = DEFAULT_SECTIONS.length; // 124
+// v6.0 Advanced Intelligence (Priority 9) - 5 tasks
+{ name: 'Relationship Half-Life', edgeFunction: 'relationship-half-life-calculator', analysisType: 'relationship_half_life', category: 'intelligence', priority: 9, complexity: 'complex' },
+{ name: 'Automated Red Team', edgeFunction: 'automated-red-team-engine', analysisType: 'automated_red_team', category: 'warfare', priority: 9, complexity: 'extreme' },
+{ name: 'Multi-Party Deception', edgeFunction: 'multi-party-deception-detector', analysisType: 'multi_party_deception', category: 'warfare', priority: 9, complexity: 'extreme' },
+{ name: 'Zero-Day Anomaly', edgeFunction: 'zero-day-anomaly-detector', analysisType: 'zero_day_anomaly', category: 'intelligence', priority: 9, complexity: 'complex' },
+{ name: 'Hypergame Theory', edgeFunction: 'hypergame-theory-engine', analysisType: 'hypergame_theory', category: 'intelligence', priority: 9, complexity: 'extreme' },
 
-// In useIntelligenceGeneration.ts
-export const TOTAL_TASKS = ALL_INTELLIGENCE_TASKS.length; // 94
+// v7.0 Extreme Intelligence (Priority 10) - 12 tasks
+{ name: 'Subvocalization Detection', edgeFunction: 'subvocalization-detector', analysisType: 'subvocalization_detection', category: 'voice', priority: 10, complexity: 'complex' },
+{ name: 'Audio Burst Analysis', edgeFunction: 'audio-burst-analyzer', analysisType: 'audio_burst_mental_state', category: 'voice', priority: 10, complexity: 'complex' },
+{ name: 'IIO Attribution', edgeFunction: 'iio-attribution-engine', analysisType: 'iio_attribution', category: 'warfare', priority: 10, complexity: 'extreme' },
+{ name: 'Reflexive Control', edgeFunction: 'reflexive-control-detector', analysisType: 'reflexive_control', category: 'warfare', priority: 10, complexity: 'extreme' },
+{ name: 'Cognitive Effect', edgeFunction: 'cognitive-effect-orchestrator', analysisType: 'cognitive_effect', category: 'warfare', priority: 10, complexity: 'complex' },
+{ name: 'Theory of Mind', edgeFunction: 'kallisti-theory-of-mind', analysisType: 'adversary_mental_model', category: 'intelligence', priority: 10, complexity: 'extreme' },
+{ name: 'Collective Behavior', edgeFunction: 'collective-behavior-predictor', analysisType: 'collective_behavior', category: 'intelligence', priority: 10, complexity: 'complex' },
+{ name: 'Stylometric Analysis', edgeFunction: 'stylometric-analyzer', analysisType: 'stylometric_fingerprint', category: 'intelligence', priority: 10, complexity: 'standard' },
+{ name: 'Dark2Clear', edgeFunction: 'dark2clear-deanonymization', analysisType: 'surface_identity_bridge', category: 'intelligence', priority: 10, complexity: 'extreme' },
+{ name: 'Gated Bio Fusion', edgeFunction: 'gated-biological-fusion', analysisType: 'gated_bio_fusion', category: 'fusion', priority: 10, complexity: 'complex' },
+{ name: 'TAS-Com Community', edgeFunction: 'tas-com-community-detector', analysisType: 'tas_com_community', category: 'network', priority: 10, complexity: 'complex' },
+{ name: 'Biometric Retention', edgeFunction: 'migration5-biometric-tracker', analysisType: 'biometric_retention', category: 'fusion', priority: 10, complexity: 'light' },
+
+// v8.0 Counter-Intelligence (Priority 11) - 8 tasks
+{ name: 'Draco Deception Orchestrator', edgeFunction: 'draco-deception-orchestrator', analysisType: 'draco_deception', category: 'warfare', priority: 11, complexity: 'extreme' },
+{ name: 'Sentient Intent Analyzer', edgeFunction: 'sentient-intent-analyzer', analysisType: 'sentient_intent', category: 'intelligence', priority: 11, complexity: 'extreme' },
+{ name: 'Insider Threat Matrix', edgeFunction: 'insider-threat-matrix-engine', analysisType: 'insider_threat_matrix', category: 'warfare', priority: 11, complexity: 'complex' },
+{ name: 'Bayesian Intention Predictor', edgeFunction: 'bayesian-intention-predictor', analysisType: 'bayesian_intention', category: 'intelligence', priority: 11, complexity: 'complex' },
+{ name: 'Red Team Adversary Simulator', edgeFunction: 'red-team-adversary-simulator', analysisType: 'red_team_simulation', category: 'warfare', priority: 11, complexity: 'extreme' },
+{ name: 'SEMAFOR Forgery Detector', edgeFunction: 'semafor-forgery-detector', analysisType: 'semafor_forgery', category: 'intelligence', priority: 11, complexity: 'standard' },
+{ name: 'Epistemic Vulnerability Scanner', edgeFunction: 'epistemic-vulnerability-scanner', analysisType: 'epistemic_vulnerability', category: 'intelligence', priority: 11, complexity: 'standard' },
+{ name: 'Cognitive IW Detector', edgeFunction: 'cognitive-iw-detector', analysisType: 'cognitive_iw', category: 'warfare', priority: 11, complexity: 'complex' },
+
+// v8.0 Psychological Warfare (Priority 12) - 10 tasks
+{ name: 'Psychoagent Cascade Predictor', edgeFunction: 'psychoagent-cascade-predictor', analysisType: 'psychoagent_cascade', category: 'psychological', priority: 12, complexity: 'extreme' },
+{ name: 'Affective Manipulation Detector', edgeFunction: 'affective-manipulation-detector', analysisType: 'affective_manipulation', category: 'psychological', priority: 12, complexity: 'complex' },
+{ name: 'Hyperpersonalization Engine', edgeFunction: 'hyperpersonalization-engine', analysisType: 'hyperpersonalization', category: 'psychological', priority: 12, complexity: 'complex' },
+{ name: 'Computational Persuasion', edgeFunction: 'computational-persuasion-engine', analysisType: 'computational_persuasion', category: 'psychological', priority: 12, complexity: 'complex' },
+{ name: 'Synthetic Memory Generator', edgeFunction: 'synthetic-memory-generator', analysisType: 'synthetic_memory', category: 'psychological', priority: 12, complexity: 'extreme' },
+{ name: 'PreMem Belief Modifier', edgeFunction: 'premem-belief-modifier', analysisType: 'premem_belief', category: 'psychological', priority: 12, complexity: 'extreme' },
+{ name: 'Linguistic Stress Detector', edgeFunction: 'linguistic-stress-detector', analysisType: 'linguistic_stress', category: 'voice', priority: 12, complexity: 'standard' },
+{ name: 'Memory Anchor Generator', edgeFunction: 'memory-anchor-generator', analysisType: 'memory_anchor', category: 'psychological', priority: 12, complexity: 'complex' },
+{ name: 'Emotional Contagion Modeler', edgeFunction: 'emotional-contagion-modeler', analysisType: 'emotional_contagion', category: 'intelligence', priority: 12, complexity: 'complex' },
+{ name: 'Sacred Value Predictor', edgeFunction: 'sacred-value-predictor', analysisType: 'sacred_value_prediction', category: 'psychological', priority: 12, complexity: 'complex' },
+
+// v8.0 Biometric & Network (Priority 13) - 8 tasks
+{ name: 'Pupillometry Analyzer', edgeFunction: 'pupillometry-analyzer', analysisType: 'pupillometry', category: 'biometric', priority: 13, complexity: 'standard' },
+{ name: 'Thermal Stress Detector', edgeFunction: 'thermal-stress-detector', analysisType: 'thermal_stress', category: 'biometric', priority: 13, complexity: 'standard' },
+{ name: 'Attention Multimodal Fuser', edgeFunction: 'attention-multimodal-fuser', analysisType: 'attention_multimodal', category: 'fusion', priority: 13, complexity: 'complex' },
+{ name: 'Keystroke Dynamics Analyzer', edgeFunction: 'keystroke-dynamics-analyzer', analysisType: 'keystroke_dynamics', category: 'biometric', priority: 13, complexity: 'standard' },
+{ name: 'Sheaf Neural Influence Mapper', edgeFunction: 'sheaf-neural-influence-mapper', analysisType: 'sheaf_influence', category: 'network', priority: 13, complexity: 'extreme' },
+{ name: 'CTDG Link Predictor', edgeFunction: 'ctdg-link-predictor', analysisType: 'ctdg_link', category: 'network', priority: 13, complexity: 'complex' },
+{ name: 'Cascade Virality Predictor', edgeFunction: 'cascade-virality-predictor', analysisType: 'cascade_virality', category: 'network', priority: 13, complexity: 'complex' },
+{ name: 'Network Resilience Analyzer', edgeFunction: 'network-resilience-analyzer', analysisType: 'network_resilience', category: 'network', priority: 13, complexity: 'standard' },
+
+// v8.0 Doctrine & Advanced (Priority 14) - 7 tasks
+{ name: 'Gaze Pattern Analyzer', edgeFunction: 'gaze-pattern-analyzer', analysisType: 'gaze_pattern', category: 'biometric', priority: 14, complexity: 'standard' },
+{ name: 'Micro-Expression Timeline', edgeFunction: 'micro-expression-timeline', analysisType: 'micro_expression_timeline', category: 'biometric', priority: 14, complexity: 'complex' },
+{ name: 'Voice Stress Correlator', edgeFunction: 'voice-stress-correlator', analysisType: 'voice_stress_correlation', category: 'voice', priority: 14, complexity: 'standard' },
+{ name: 'Social Graph Predictor', edgeFunction: 'social-graph-predictor', analysisType: 'social_graph_prediction', category: 'network', priority: 14, complexity: 'complex' },
+{ name: 'Influence Campaign Optimizer', edgeFunction: 'influence-campaign-optimizer', analysisType: 'influence_campaign_optimization', category: 'warfare', priority: 14, complexity: 'extreme' },
+{ name: 'Counter-Narrative Generator', edgeFunction: 'counter-narrative-generator', analysisType: 'counter_narrative', category: 'warfare', priority: 14, complexity: 'complex' },
+{ name: 'Predictive Doctrine Engine', edgeFunction: 'predictive-doctrine-engine', analysisType: 'predictive_doctrine', category: 'warfare', priority: 14, complexity: 'extreme' },
+
+// Voice Intelligence Aggregate (Priority 15) - 1 task
+{ name: 'Voice Intelligence Aggregate', edgeFunction: 'aggregate-voice-intelligence', analysisType: 'voice_intelligence_aggregate', category: 'fusion', priority: 15, complexity: 'standard' },
 ```
 
-Then reference these constants throughout the codebase instead of hardcoded values. This change is optional but recommended.
+### 5. `src/lib/appVersion.ts`
+
+**Changes:**
+- Bump `APP_VERSION` to `3.9.54`
+- Add `3.9.53` to `FORCE_CLEAR_VERSIONS`
+- Add changelog entry for voice pipeline and task sync fixes
+
+---
 
 ## Implementation Order
 
-1. Fix `useIntelligenceGeneration.ts` (task count: 85 → 94)
-2. Fix `PDFDossierGenerator.tsx` (5 locations)
-3. Fix `pdfDesignSystem.ts` (2 locations)
-4. Fix `DossierLoadingScreen.tsx` (1 location)
-5. Fix `renderers/index.ts` (2 locations)
-6. Bump version to `3.9.53` in `appVersion.ts`
+1. Update `useDossierData.ts` - Add voice_insights query and voice_intelligence_aggregate
+2. Update `sectionDataSources.ts` - Fix voiceIntel mapping
+3. Update `CoreSectionRenderers.ts` - Refactor renderVoiceIntel to use new data structure
+4. Update `intelligence-session-runner/index.ts` - Add 50 missing tasks + 1 voice aggregate task
+5. Bump version in `appVersion.ts`
+6. Deploy edge function
+
+---
+
+## Data Migration Note
+
+**For Mona Abu Azab specifically:**
+After implementing these changes, you should:
+1. Run the "Generate Full Package" - this will now execute all 94 tasks including the new voice intelligence aggregate
+2. The 791 voice insights already analyzed will be aggregated and displayed in the dossier
+3. No need to re-analyze the 600+ audio files - the insights are already in the database
+
+---
 
 ## Expected Outcome
 
-- UI will accurately display **124 Sections | 94 Tasks**
-- Template selector shows "All 124 Sections"
-- Loading tips reference correct counts
-- Users see accurate progress indicators
+After implementation:
+- Voice Intelligence section will show data from `voice_insights` (791 records for Mona)
+- Voice Intelligence Aggregate will be included in dossier generation
+- Backend runner will execute all 94 tasks (was 44)
+- Full sync between frontend task definitions and backend execution
+- New v7.0/v8.0 engines will run during full package generation
