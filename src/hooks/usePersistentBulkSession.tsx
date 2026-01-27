@@ -191,6 +191,8 @@ export function usePersistentBulkSession({
       }
     }, 3000); // Poll every 3 seconds
 
+    let mounted = true;
+
     // Also do an immediate fetch
     (async () => {
       const { data: items } = await supabase
@@ -199,14 +201,17 @@ export function usePersistentBulkSession({
         .eq('session_id', session.id)
         .order('queue_position', { ascending: true });
 
-      if (items && items.length > 0) {
+      if (mounted && items && items.length > 0) {
         logger.debug('Immediate fetch completed', { count: items.length });
         setSession(prev => prev ? { ...prev, items: items.map(mapDbItem) } : null);
         clearInterval(pollInterval);
       }
     })();
 
-    return () => clearInterval(pollInterval);
+    return () => {
+      mounted = false;
+      clearInterval(pollInterval);
+    };
   }, [session?.id, session?.items?.length, session?.status]);
 
   // Check for existing active sessions on mount

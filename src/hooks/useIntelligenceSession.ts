@@ -123,6 +123,15 @@ export function useIntelligenceSession(profileId: string): UseIntelligenceSessio
   const tasksChannelRef = useRef<RealtimeChannel | null>(null);
   const processingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isProcessingRef = useRef(false); // Prevent concurrent processing calls
+  const isMountedRef = useRef(true); // Track component mount status
+
+  // Cleanup effect for mount tracking
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Load existing session and subscribe to updates
   useEffect(() => {
@@ -273,7 +282,9 @@ export function useIntelligenceSession(profileId: string): UseIntelligenceSessio
       return null;
     } finally {
       isProcessingRef.current = false;
-      setIsProcessing(false);
+      if (isMountedRef.current) {
+        setIsProcessing(false);
+      }
     }
   }, []);
 

@@ -66,7 +66,7 @@ serve(async (req) => {
       supabase.from('media')
         .select('*')
         .eq('profile_id', profileId)
-        .eq('type', 'video')
+        .ilike('mime_type', 'video/%')
         .order('created_at', { ascending: false })
         .limit(10),
       supabase.from('voice_insights')
