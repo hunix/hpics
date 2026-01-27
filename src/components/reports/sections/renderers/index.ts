@@ -1,7 +1,7 @@
 /**
  * Section Renderers Barrel Export (v8.0)
  * Central export for all modular PDF section renderers
- * 137 sections across 6 categories - aligned with DEFAULT_SECTIONS
+ * 124 sections across 6 categories - aligned with DEFAULT_SECTIONS
  */
 
 export * from './types';
@@ -24,7 +24,7 @@ import { v8SectionRenderers } from './V8SectionRenderers';
 import { SectionRendererMap } from './types';
 
 /**
- * Complete map of all 137 section renderers by section ID
+ * Complete map of all 124 section renderers by section ID
  * v8.0: Includes 33 Masterpiece Intelligence sections
  */
 export const allSectionRenderers: SectionRendererMap = {

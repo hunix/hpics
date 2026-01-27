@@ -1,13 +1,13 @@
 /**
- * Intelligence Generation Hook v6.0.0
+ * Intelligence Generation Hook v8.0.0
  * Handles pre-generation of intelligence data before PDF export
  * 
- * v6.0.0: Updated to 85 total tasks across 14 priority groups
+ * v8.0.0: Updated to 94 total tasks across 14 priority groups
+ * v6.0.0: Added v6.0, v7.0, v8.0 intelligence engines
  * v5.3.0: Added 9 new v5.0/v6.0 fusion engines
  * v5.2.0: Synced tasks with backend intelligence-session-runner
  * v3.7.7: Circuit breaker integration, health monitoring, background retry queue
  * v3.7.6: Enhanced reliability with retry logic, parallel batch execution, timeout handling
- * v3.7.5: 34 intelligence tasks covering all 64 dossier sections
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
