@@ -1,425 +1,211 @@
 
-# HPICS Revolutionary Enhancement Suite - Completion Plan
-## Comprehensive Implementation of All Missing Components
+# HPICS Enhancement Suite - Cleanup & Completion Plan
+## Final Phase: Addressing All Remaining Items
 
 ---
 
 ## Overview
 
-This plan addresses the complete implementation of all remaining components from the approved Revolutionary Enhancement Suite plan. The work is organized into 4 parallel tracks that can be executed efficiently.
+Based on a comprehensive audit of the Revolutionary Enhancement Suite (v9.0), the core implementation is **95% complete**. This plan addresses the remaining cleanup tasks, missing registrations, and architectural improvements needed for full production readiness.
 
 ---
 
-## Track 1: Missing Core Libraries (6 files)
+## Audit Summary
 
-### 1.1 Game Theory Suite (NEW DIRECTORY: `src/lib/gameTheory/`)
+### Completed Items
+| Category | Status | Files |
+|----------|--------|-------|
+| Core Libraries (gameTheory) | Complete | 4 files with barrel exports |
+| Core Libraries (linguistics) | Complete | 5 files with barrel exports |
+| Core Libraries (deception) | Partial | 3 files, **missing barrel exports** |
+| React Hooks | Complete | 10 hooks total in enhancement suite |
+| UI Components | Complete | 10 components in enhancement directory |
+| Edge Functions | Mostly Complete | 6/8 registered in config.toml |
+| Dashboard Page | Complete | EnhancementSuite.tsx functional |
+| Navigation | Complete | Sidebar entry configured |
+| Route Registration | Complete | App.tsx route added |
 
-| File | Purpose | Key Features |
-|------|---------|--------------|
-| `hypergameEngine.ts` | Level-N belief modeling when adversaries play "different games" | ASP solver simulation, perception gap analysis, Strong/Weak HNE computation |
-| `bayesianPersuader.ts` | Optimal information disclosure strategies | Trust-constrained persuasion, sequential online persuasion, signal design |
-| `quantumGameSimulator.ts` | Quantum-like decision models for strategic interactions | EWL/Meyer schemes, "miracle moves", entangled strategy simulation |
-| `index.ts` | Barrel exports | Type-safe exports for all engines |
-
-### 1.2 Linguistics Extensions (2 files in `src/lib/linguistics/`)
-
-| File | Purpose | Key Features |
-|------|---------|--------------|
-| `llmDetectionEngine.ts` | Distinguish human vs. LLM-generated text | Burrows' Delta clustering, model fingerprinting, perplexity analysis |
-| `crossLanguageDeception.ts` | Culture-specific deception markers | 10+ language support, culture-weighted feature extraction |
-
-### 1.3 Deception Extensions (1 file in `src/lib/deception/`)
-
-| File | Purpose | Key Features |
-|------|---------|--------------|
-| `cognitiveLoadAnalyzer.ts` | Measure mental effort during deception | Response latency, linguistic complexity under load, concurrent task errors |
+### Issues Identified
+1. **Missing config.toml registrations**: `cascade-predictor` and `cognitive-warfare-planner` are NOT in config.toml (functions exist but won't deploy)
+2. **Missing barrel export**: `src/lib/deception/index.ts` does not exist
+3. **Hook re-exports**: `useCollectiveBehavior` and `useMemoryExploitation` are not in the enhancement barrel (intentional but should be documented)
+4. **Placeholder logic**: Several engines use mock/placeholder calculations (acceptable for v9.0 but documented)
 
 ---
 
-## Track 2: Missing React Hooks (2 files)
+## Track 1: Configuration Fixes (CRITICAL)
 
-### 2.1 `src/hooks/intelligence/useStylemetricAnalysis.ts`
+### 1.1 Add Missing Edge Function Registrations
 
-Wraps the existing `stylometricAnalyzer.ts` library for React consumption.
+The functions `cascade-predictor` and `cognitive-warfare-planner` exist in `supabase/functions/` but are not registered in `config.toml`, meaning they will not deploy.
 
-**Features**:
-- `analyzeText(text)` - Returns stylometric features
-- `compareAuthorship(text, profileId)` - Match against known writing samples
-- `detectLLM(text)` - Check for AI-generated content
-- Caches results in `ai_analyses` table
+**File**: `supabase/config.toml`
 
-### 2.2 `src/hooks/intelligence/useHypergameTheory.ts`
+**Action**: Add the following entries after `dark-tetrad-profiler`:
 
-Interfaces with the new Game Theory suite and existing `hypergame-theory-engine` edge function.
+```toml
+[functions.cascade-predictor]
+verify_jwt = false
 
-**Features**:
-- `modelHypergame(players, perceivedGames)` - Compute HNE
-- `findPerceptionGaps(profileIds)` - Identify exploitable belief differences
-- `simulateQuantumGame(scenario)` - Run quantum game simulations
-- Persists to `ai_analyses` with `analysis_type: 'hypergame'`
+[functions.cognitive-warfare-planner]
+verify_jwt = false
+```
 
 ---
 
-## Track 3: Missing UI Components (4 files)
+## Track 2: Missing Barrel Exports
 
-### 3.1 `src/components/intelligence/enhancement/StylemetryAnalyzer.tsx`
+### 2.1 Create Deception Library Index
 
-**Layout**:
-- Text input area (paste or file upload)
-- Real-time feature extraction display
-- Authorship comparison panel
-- LLM detection indicator with confidence
-- Historical comparison timeline
+**File to Create**: `src/lib/deception/index.ts`
 
-### 3.2 `src/components/intelligence/enhancement/MemoryExploitationPanel.tsx`
+**Contents**:
+```typescript
+/**
+ * Deception Analysis Module Index (v9.0)
+ * 
+ * Centralized exports for deception detection and analysis.
+ */
 
-**Layout**:
-- Reconsolidation window timeline visualization
-- Suggestibility profile radar chart
-- Intervention timing recommendations
-- Memory anchor status indicators
-- Integration with existing `memory-reconsolidation-engine`
+// Core Deception Analyzer
+export {
+  analyzeDeception,
+  detectVerbalDeception,
+  analyzeNonverbalCues,
+  type DeceptionIndicator,
+  type DeceptionAnalysis,
+  type VerbalMarker,
+} from './deceptionAnalyzer';
 
-### 3.3 `src/components/intelligence/enhancement/HypergameVisualizer.tsx`
+// Multimodal Fusion Engine
+export {
+  fuseModalities,
+  analyzeTextModality,
+  analyzeAudioModality,
+  analyzeVisualModality,
+  type ModalityResult,
+  type FusionResult,
+  type DeceptionScore,
+} from './multimodalFusionEngine';
 
-**Layout**:
-- Multi-level game tree visualization (Level 0 → Level N)
-- Perception gap heatmap
-- Nash equilibrium indicators
-- Strategy simulation controls
-- Belief divergence metrics
+// Cognitive Load Analyzer
+export {
+  analyzeCognitiveLoad,
+  detectLoadIndicators,
+  calculateComplexityMetrics,
+  type CognitiveLoadResult,
+  type LatencyMetrics,
+  type ComplexityIndicators,
+} from './cognitiveLoadAnalyzer';
+```
 
-### 3.4 `src/components/intelligence/enhancement/CollectiveBehaviorMonitor.tsx`
-
-**Layout**:
-- Information cascade simulation controls
-- Epidemic model selector (SI/SIR/IC/LT)
-- Network contagion visualization
-- Panic propagation timeline
-- Super-spreader identification panel
+Note: Actual export names will be verified from file contents during implementation.
 
 ---
 
-## Track 4: Edge Functions (8 functions)
+## Track 3: Hook Index Cleanup
 
-All functions follow the Enterprise Edge Function Standard with:
-- CORS headers + OPTIONS preflight
-- GET-based health check (`?healthCheck=1`)
-- Dual auth (JWT for users, service role for backend)
-- Explicit `instanceof Error` guards
-- Result persistence to appropriate tables
+### 3.1 Update Enhancement Hook Exports
 
-### 4.1 `multimodal-deception-analyzer`
+**File**: `src/hooks/intelligence/enhancement/index.ts`
 
-**Purpose**: Fuse text/audio/visual signals for deception scoring  
-**Model**: `google/gemini-2.5-pro` (multimodal)  
-**Persists to**: `deception_analyses` table
+**Action**: Add explicit exports for collective behavior and memory exploitation hooks for completeness:
 
 ```typescript
-// Input
-{
-  profileId: string;
-  text?: string;
-  audioUrl?: string;
-  videoUrl?: string;
-  modalities: ('text' | 'audio' | 'visual')[];
-}
-// Output
-{
-  deceptionProbability: number;
-  confidence: number;
-  modalityScores: Record<string, number>;
-  fusedMarkers: DeceptionMarker[];
-  cognitiveLoadScore: number;
-}
+// Collective Behavior (v9.0)
+export { useCollectiveBehavior } from '../useCollectiveBehavior';
+export type { CollectiveSimulationState } from '../useCollectiveBehavior';
+
+// Memory Exploitation (v9.0)
+export { useMemoryExploitation } from '../useMemoryExploitation';
+export type { MemoryTrackingState } from '../useMemoryExploitation';
 ```
 
-### 4.2 `stylometric-fingerprinter`
-
-**Purpose**: Extract layered authorship signatures  
-**Model**: Local computation + `google/gemini-3-flash-preview` for semantic layers  
-**Persists to**: `ai_analyses` with `analysis_type: 'stylometric'`
-
-### 4.3 `hypergame-solver`
-
-**Purpose**: Compute Hypergame Nash Equilibria  
-**Model**: `google/gemini-2.5-pro` for belief modeling  
-**Persists to**: `ai_analyses` with `analysis_type: 'hypergame'`
-
-### 4.4 `digital-twin-generator`
-
-**Purpose**: Create HDTwin from profile data  
-**Model**: `google/gemini-2.5-flash`  
-**Persists to**: `digital_twins` table
-
-### 4.5 `cascade-predictor`
-
-**Purpose**: Predict viral spread and blast radius  
-**Model**: Local GNN simulation  
-**Persists to**: `network_intelligence` table
-
-### 4.6 `cognitive-warfare-planner`
-
-**Purpose**: Generate reflexive control payloads  
-**Model**: `openai/gpt-5` (highest accuracy for sensitive operations)  
-**Persists to**: `cognitive_operations` table
-
-### 4.7 `quantum-decision-modeler`
-
-**Purpose**: Apply Quantum Bayesian Networks to predictions  
-**Model**: Local computation  
-**Persists to**: `quantum_decision_states` table
-
-### 4.8 `dark-tetrad-profiler`
-
-**Purpose**: Score dark personality traits  
-**Model**: `google/gemini-3-flash-preview` with structured output  
-**Persists to**: `ai_analyses` with `analysis_type: 'dark_tetrad'`
+This ensures all 10 enhancement hooks are accessible from a single import path.
 
 ---
 
-## Track 5: Dashboard Page & Navigation
+## Track 4: Documentation Cleanup
 
-### 5.1 New Page: `src/pages/EnhancementSuite.tsx`
+### 4.1 Update Version Header Comments
 
-A unified dashboard page at `/enhancement-suite` that provides access to all Enhancement Suite tools.
+Ensure all new files include proper v9.0 version headers for traceability.
 
-**Layout**:
-```text
-+--------------------------------------------------+
-|  Enhancement Suite                    [Status]   |
-+--------------------------------------------------+
-|  Quick Actions                                   |
-|  [Cognitive Warfare] [Deception] [Digital Twin]  |
-|  [Dark Psych] [Quantum] [Network] [Stylometry]   |
-|  [Memory] [Hypergame] [Collective]               |
-+--------------------------------------------------+
-|  Tabs:                                           |
-|  [Cognitive] [Deception] [Psychology] [Network]  |
-|  [Game Theory] [Collective] [Digital Twins]      |
-+--------------------------------------------------+
-|                                                  |
-|  < Active Tab Content - Renders Selected Panel > |
-|                                                  |
-+--------------------------------------------------+
-|  Recent Analysis Results (cross-suite)           |
-+--------------------------------------------------+
-```
-
-**Tab Mapping**:
-| Tab | Components Rendered |
-|-----|---------------------|
-| Cognitive | CognitiveWarfarePanel |
-| Deception | DeceptionFusionDashboard, StylemetryAnalyzer |
-| Psychology | DarkPsychologyScanner, MemoryExploitationPanel |
-| Network | NetworkIntelligenceGraph |
-| Game Theory | QuantumDecisionPanel, HypergameVisualizer |
-| Collective | CollectiveBehaviorMonitor |
-| Digital Twins | DigitalTwinManager |
-
-### 5.2 Navigation Updates
-
-**File**: `src/lib/navigationConfig.ts`
-
-Add new navigation item:
-```typescript
-{
-  id: 'enhancement-suite',
-  title: 'Enhancement Suite',
-  url: '/enhancement-suite',
-  icon: Atom, // or Sparkles
-  description: 'Revolutionary 50+ AI intelligence engines',
-  badge: 'new',
-  category: 'intelligence',
-  requiredRole: 'analyst',
-  keywords: ['enhancement', 'cognitive', 'warfare', 'deception', 'quantum', 'digital twin', 'dark psych', 'network', 'hypergame'],
-}
-```
-
-### 5.3 Route Registration
-
-**File**: `src/App.tsx`
-
-Add lazy import and route:
-```typescript
-const EnhancementSuite = lazyWithRetry(() => import("./pages/EnhancementSuite"));
-
-// In Routes:
-<Route path="/enhancement-suite" element={<EnhancementSuite />} />
-```
+**Files to Update** (headers only):
+- All files in `src/lib/gameTheory/`
+- All files in `src/lib/linguistics/`  
+- All files in `src/lib/deception/`
+- All hooks in `src/hooks/intelligence/`
+- All components in `src/components/intelligence/enhancement/`
 
 ---
 
-## File Summary
+## Implementation Summary
 
-### New Files to Create (25 total)
+### Files to Create
+| File | Purpose |
+|------|---------|
+| `src/lib/deception/index.ts` | Barrel exports for deception module |
 
-| Track | Files |
-|-------|-------|
-| Libraries | 7 files (`src/lib/gameTheory/*`, `src/lib/linguistics/*`, `src/lib/deception/*`) |
-| Hooks | 2 files (`src/hooks/intelligence/use*.ts`) |
-| Components | 4 files (`src/components/intelligence/enhancement/*`) |
-| Edge Functions | 8 functions (`supabase/functions/*/index.ts`) |
-| Pages | 1 file (`src/pages/EnhancementSuite.tsx`) |
-| Config Updates | 3 files (navigation, app routes, enhancement index) |
-
-### Files to Modify (3 total)
-
+### Files to Modify
 | File | Change |
 |------|--------|
-| `src/lib/navigationConfig.ts` | Add enhancement-suite nav item |
-| `src/App.tsx` | Add lazy import + route |
-| `src/components/intelligence/enhancement/index.ts` | Add 4 new component exports |
-| `src/hooks/intelligence/enhancement/index.ts` | Add 2 new hook exports |
-| `supabase/config.toml` | Add 8 new function configurations |
+| `supabase/config.toml` | Add 2 missing edge function registrations |
+| `src/hooks/intelligence/enhancement/index.ts` | Add 2 hook exports (useCollectiveBehavior, useMemoryExploitation) |
+
+### Total Changes
+- **1 new file** to create
+- **2 files** to modify
 
 ---
 
-## Implementation Order
+## Verification Checklist
 
-### Phase A: Foundation (Parallel)
-1. Create `src/lib/gameTheory/` directory with all 4 files
-2. Create `src/lib/linguistics/llmDetectionEngine.ts`
-3. Create `src/lib/linguistics/crossLanguageDeception.ts`
-4. Create `src/lib/deception/cognitiveLoadAnalyzer.ts`
+After implementation, verify:
 
-### Phase B: Hooks (Depends on Phase A)
-1. Create `useStylemetricAnalysis.ts`
-2. Create `useHypergameTheory.ts`
-3. Update `enhancement/index.ts` exports
+1. All 8 new edge functions respond to health checks:
+   - `multimodal-deception-analyzer`
+   - `stylometric-fingerprinter`
+   - `hypergame-solver`
+   - `digital-twin-generator`
+   - `dark-tetrad-profiler`
+   - `cascade-predictor`
+   - `cognitive-warfare-planner`
+   - `quantum-decision-modeler`
 
-### Phase C: Edge Functions (Parallel with Phase B)
-1. Create all 8 edge functions with health checks
-2. Update `supabase/config.toml`
+2. All barrel exports compile without errors:
+   - `src/lib/gameTheory/index.ts`
+   - `src/lib/linguistics/index.ts`
+   - `src/lib/deception/index.ts`
 
-### Phase D: UI Components (Depends on Phase B)
-1. Create StylemetryAnalyzer.tsx
-2. Create MemoryExploitationPanel.tsx
-3. Create HypergameVisualizer.tsx
-4. Create CollectiveBehaviorMonitor.tsx
-5. Update component index exports
+3. Enhancement Suite page loads without errors at `/enhancement-suite`
 
-### Phase E: Integration (Depends on Phase D)
-1. Create EnhancementSuite.tsx page
-2. Update navigationConfig.ts
-3. Update App.tsx routes
+4. All 7 tabs render their respective components correctly
+
+5. Build completes with zero TypeScript errors
 
 ---
 
-## Technical Specifications
+## Known Placeholder Logic (Documented for Future Enhancement)
 
-### Edge Function Template
+The following use simplified/proxy logic acceptable for v9.0:
 
-All edge functions follow this structure:
-```typescript
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+| File | Placeholder | Future Enhancement |
+|------|------------|-------------------|
+| `llmDetectionEngine.ts` | Perplexity uses entropy proxy | Integrate actual LLM inference |
+| `voiceStressAnalyzer.ts` | Bandpass filter placeholder | Use actual DSP filter |
+| `multimodalFusionEngine.ts` | Hardcoded consistency scores | Calculate from actual data |
+| `cognitiveLoadAnalyzer.ts` | Latency estimates from text | Integrate timing data source |
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-serve(async (req) => {
-  // CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  // Health check
-  const url = new URL(req.url);
-  if (url.searchParams.get('healthCheck') === '1') {
-    return new Response(JSON.stringify({ 
-      ok: true, 
-      function: 'function-name', 
-      timestamp: Date.now() 
-    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-  }
-
-  try {
-    const body = await req.json();
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    // Normalize parameters (snake_case and camelCase)
-    const profileId = body.profileId || body.profile_id;
-    const userId = body.userId || body.user_id;
-
-    // ... implementation ...
-
-    return new Response(JSON.stringify({ success: true, data: result }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  } catch (error) {
-    console.error('[function-name] Error:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
-});
-```
-
-### Hook Template
-
-All hooks follow DDD patterns:
-```typescript
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-
-export function useFeatureName(profileId?: string) {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-
-  const query = useQuery({
-    queryKey: ['feature-key', profileId],
-    queryFn: async () => { /* fetch logic */ },
-    enabled: !!user,
-  });
-
-  const mutation = useMutation({
-    mutationFn: async (input) => {
-      return supabase.functions.invoke('edge-function', { body: input });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['feature-key'] });
-    }
-  });
-
-  return {
-    data: query.data,
-    isLoading: query.isLoading,
-    mutate: mutation.mutateAsync,
-    isMutating: mutation.isPending,
-  };
-}
-```
-
----
-
-## Estimated Effort
-
-| Track | Files | Complexity |
-|-------|-------|------------|
-| Libraries | 7 | Medium-High |
-| Hooks | 2 | Medium |
-| Edge Functions | 8 | High |
-| UI Components | 4 | Medium |
-| Page + Navigation | 3 | Low |
-
-**Total**: 25 new files, 3 modified files
+These are acceptable for the initial release and should be enhanced in future iterations as actual data sources become available.
 
 ---
 
 ## Success Criteria
 
-1. All 8 edge functions respond to health checks
-2. All hooks successfully query/mutate data
-3. All UI components render without errors
-4. Enhancement Suite page accessible at `/enhancement-suite`
-5. Navigation item appears in sidebar under "Intelligence" category
-6. Build completes with zero TypeScript errors
+1. All 8 edge functions deploy successfully
+2. Build compiles with zero TypeScript errors
+3. Enhancement Suite page accessible and functional
+4. All 10 components render correctly
+5. Navigation item visible in sidebar
+6. All barrel exports resolve correctly
