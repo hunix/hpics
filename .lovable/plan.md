@@ -7,129 +7,148 @@
 
 ## Executive Summary
 
-After a thorough line-by-line audit of the entire codebase, I identified **5 actionable issues** across 4 categories:
+After a thorough line-by-line audit of the entire codebase, I identified **19 actionable issues** across 5 categories:
 
 | Category | Critical | High | Medium | Total |
 |----------|----------|------|--------|-------|
-| Database Column Mismatches | 1 | 0 | 0 | 1 |
-| Race Conditions (State Updates) | 0 | 2 | 0 | 2 |
-| Type Safety Issues | 0 | 0 | 1 | 1 |
+| Database Column Mismatches | 9 | 0 | 0 | 9 |
+| Schema Direction Mismatches | 4 | 0 | 0 | 4 |
+| Race Conditions (State Updates) | 0 | 4 | 0 | 4 |
 | Security Linter Warnings | 0 | 0 | 2 | 2 |
+| **TOTAL** | **13** | **4** | **2** | **19** |
 
 ---
 
-## Category 1: Database Column Mismatch (CRITICAL)
+## Category 1: Database Column Mismatches - `media_type` vs `mime_type` (CRITICAL)
 
-### Issue 1.1: `subvocalization-detector` uses non-existent column
-**File**: `supabase/functions/subvocalization-detector/index.ts:69`
+**Root Cause**: The `media` table has a `mime_type` column (e.g., `video/mp4`, `image/jpeg`) but **no `media_type` column**. Multiple edge functions and hooks query or insert using the non-existent `media_type` field.
 
-**Problem**: Queries `.eq('type', 'video')` but the `media` table uses `mime_type` or `media_type`, NOT `type`.
+### Issue 1.1: `autonomous-intelligence-orchestrator` queries non-existent column
+**File**: `supabase/functions/autonomous-intelligence-orchestrator/index.ts:84`
+**Problem**: `.select('id, profile_id, media_type, ...')` - `media_type` doesn't exist
+**Fix**: Change to `.select('id, profile_id, mime_type, ...')`
 
-**Evidence**: 
-- `supabase/migrations/20260103143333_.sql:71-81` shows `media` table has `mime_type`
-- `supabase/functions/execute-face-scan-job/index.ts:100` correctly uses `.in("media_type", ["image", "photo"])`
+### Issue 1.2: `deep-psychological-analysis` queries non-existent column
+**File**: `supabase/functions/deep-psychological-analysis/index.ts:111`
+**Problem**: `.select('id, media_type, caption, ai_metadata, created_at')` - `media_type` doesn't exist
+**Fix**: Change to `.select('id, mime_type, caption, ai_metadata, created_at')`
 
-**Fix**: Change line 69 from:
+### Issue 1.3: `mosaic-intelligence-fuser` queries non-existent column
+**File**: `supabase/functions/mosaic-intelligence-fuser/index.ts:109`
+**Problem**: `.select('id, media_type, ai_metadata, created_at')` - `media_type` doesn't exist
+**Fix**: Change to `.select('id, mime_type, ai_metadata, created_at')`
+
+### Issue 1.4: `process-bulk-upload` inserts into non-existent column
+**File**: `supabase/functions/process-bulk-upload/index.ts:180`
+**Problem**: `media_type: item.file_type` - column doesn't exist, insert will fail
+**Fix**: Remove `media_type` line since table doesn't have this column
+
+### Issue 1.5: `uploadQueue.ts` inserts into non-existent column
+**File**: `src/lib/bulkUpload/uploadQueue.ts:458`
+**Problem**: `media_type: mediaType || 'image'` - column doesn't exist
+**Fix**: Remove `media_type` line since table doesn't have this column
+
+### Issue 1.6: `useDataCollectionStatus` queries non-existent columns
+**File**: `src/hooks/useDataCollectionStatus.ts:86-87`
+**Problem**: 
+- Line 86: `.select('id, communication_type')` - `communication_type` doesn't exist on `communications`, should be `channel`
+- Line 87: `.select('id, media_type')` - `media_type` doesn't exist on `media`, should be `mime_type`
+
+**Fix**: Change to:
 ```typescript
-.eq('type', 'video')
-```
-To:
-```typescript
-.eq('mime_type', 'video/mp4').or('mime_type.ilike.video/*')
-```
-Or if using the newer schema pattern:
-```typescript
-.ilike('mime_type', 'video/%')
-```
-
----
-
-## Category 2: Race Conditions (HIGH)
-
-### Issue 2.1: `useIntelligenceSession` lacks isMounted check
-**File**: `src/hooks/useIntelligenceSession.ts:274-278`
-
-**Problem**: The `processBatch` callback updates state (`setIsProcessing(false)`) in the `finally` block without checking if the component is still mounted. If the component unmounts while a batch is in-flight, this causes a memory leak.
-
-**Fix**: Add `isMountedRef` pattern:
-```typescript
-const isMountedRef = useRef(true);
-
-// In cleanup effect:
-useEffect(() => {
-  return () => { isMountedRef.current = false; };
-}, []);
-
-// In processBatch finally block:
-} finally {
-  isProcessingRef.current = false;
-  if (isMountedRef.current) {
-    setIsProcessing(false);
-  }
-}
-```
-
-### Issue 2.2: `usePersistentBulkSession` IIFE lacks mount check
-**File**: `src/hooks/usePersistentBulkSession.tsx:195-207`
-
-**Problem**: Immediate async IIFE in `useEffect` calls `setSession` without verifying the component is still mounted.
-
-**Fix**: Add mounted flag:
-```typescript
-useEffect(() => {
-  let mounted = true;
-  
-  (async () => {
-    const { data: items } = await supabase...
-    if (mounted && items && items.length > 0) {
-      setSession(prev => ...);
-      clearInterval(pollInterval);
-    }
-  })();
-
-  return () => { mounted = false; clearInterval(pollInterval); };
-}, [...]);
+supabase.from('communications').select('id, channel').eq('profile_id', profileId),
+supabase.from('media').select('id, mime_type').eq('profile_id', profileId),
 ```
 
 ---
 
-## Category 3: Type Safety (MEDIUM)
+## Category 2: Schema Direction Mismatches - `communication_type` vs `channel` (CRITICAL)
 
-### Issue 3.1: Missing interface for TranscriptSegment
-**File**: `src/hooks/useMeetingIntelligence.ts:151`
+**Root Cause**: The `communications` table uses `channel` for the communication method and `direction` for flow. Several edge functions incorrectly access `communication_type` or `is_from_contact` (which doesn't exist on `communications`).
 
-**Problem**: `extractInsightFromSegment(segment)` uses implicit `any` type for segment parameter.
+### Issue 2.1: `bayesian-intention-predictor` accesses wrong property
+**File**: `supabase/functions/bayesian-intention-predictor/index.ts:349`
+**Problem**: `comm.communication_type || 'general'` - property doesn't exist, always returns `'general'`
+**Fix**: Change to `comm.channel || 'general'`
 
-**Fix**: Define and use proper interface:
-```typescript
-interface TranscriptSegment {
-  text: string;
-  speakerLabel: string;
-  startTime: number;
-  endTime: number;
-  sentiment?: 'positive' | 'negative' | 'neutral';
-  emotions?: string[];
-  confidence?: number;
-}
+### Issue 2.2: `predict-behavioral-scenarios` accesses wrong property
+**File**: `supabase/functions/predict-behavioral-scenarios/index.ts:373`
+**Problem**: `comm.communication_type || 'unknown'` - property doesn't exist
+**Fix**: Change to `comm.channel || 'unknown'`
 
-const extractInsightFromSegment = useCallback((segment: TranscriptSegment) => {
-  // ...
-}, []);
-```
+### Issue 2.3: `hyperpersonalization-engine` accesses wrong property
+**File**: `supabase/functions/hyperpersonalization-engine/index.ts:395`
+**Problem**: `c.communication_type || 'unknown'` in `analyzeChannelPreferences`
+**Fix**: Change to `c.channel || 'unknown'`
+
+### Issue 2.4: `sentient-intent-analyzer` accesses wrong property
+**File**: `supabase/functions/sentient-intent-analyzer/index.ts:236`
+**Problem**: `comm.communication_type || 'message'` in label generation
+**Fix**: Change to `comm.channel || 'message'`
 
 ---
 
-## Category 4: Security Linter Warnings (MEDIUM)
+## Category 3: Schema Direction Mismatches - `direction` vs `is_from_contact` (CRITICAL)
 
-### Issue 4.1: Function Search Path Mutable
+**Root Cause**: The `communications` table uses `direction` (enum: `'inbound'` | `'outbound'`), NOT `is_from_contact` (which is only on the `messages` table).
+
+### Issue 3.1: `rag-query` uses wrong column for direction
+**File**: `supabase/functions/rag-query/index.ts:276`
+**Problem**: `direction: comm.is_from_contact ? 'inbound' : 'outbound'`
+**Fix**: Change to `direction: comm.direction` (already a string)
+
+### Issue 3.2: `calculate-relationship-scores` queries wrong column
+**File**: `supabase/functions/calculate-relationship-scores/index.ts:84`
+**Problem**: `.select('channel, occurred_at, sentiment_score, is_from_contact')` - `is_from_contact` doesn't exist
+**Fix**: Change to `.select('channel, occurred_at, sentiment_score, direction')`
+
+### Issue 3.3: `generate-meeting-prep` uses wrong column
+**File**: `supabase/functions/generate-meeting-prep/index.ts:98`
+**Problem**: `direction: c.is_from_contact ? 'inbound' : 'outbound'`
+**Fix**: Change to `direction: c.direction`
+
+---
+
+## Category 4: Race Conditions - Missing Mount Checks (HIGH)
+
+These components update React state after async operations without verifying the component is still mounted.
+
+### Issue 4.1: Intelligence Dashboard Panels
+**Files**: Multiple intelligence panels lack mount guards
+- `src/components/intelligence/CounterIntelligenceDashboard.tsx:56-72`
+- `src/components/intelligence/FortuneTrajectoryPanel.tsx:66-84`
+- `src/components/intelligence/ShadowNetworkGraph.tsx:52-67`
+- `src/components/intelligence/ManipulationVulnerabilityPanel.tsx:64-82`
+
+**Problem**: All call `setLoading(false)` and `setData(...)` in `finally` blocks without mount checks.
+**Fix**: Add `isMountedRef` pattern to each component.
+
+### Issue 4.2: `useSignedUrl` lacks mount check
+**File**: `src/hooks/useSignedUrl.ts:21-41`
+**Problem**: `fetchSignedUrl` calls `setSignedUrl` and `setIsLoading` without checking if component is mounted
+**Fix**: Add `mounted` flag to the useEffect
+
+### Issue 4.3: `useProactiveInsights` lacks mount check
+**File**: `src/hooks/useProactiveInsights.ts:40-77`
+**Problem**: `fetchInsights` updates state without mount guard
+**Fix**: Add `isMountedRef` pattern
+
+### Issue 4.4: `useMLModels` lacks mount check
+**File**: `src/hooks/useMLModels.ts:74-100`
+**Problem**: `loadModels` updates multiple states without mount guard
+**Fix**: Add `isMountedRef` pattern
+
+---
+
+## Category 5: Security Linter Warnings (MEDIUM)
+
+### Issue 5.1: Function Search Path Mutable
 **Level**: WARN
+**Description**: Some database functions don't set `search_path`, potentially allowing schema injection attacks.
 
-Some database functions don't set `search_path`, which could allow schema injection attacks.
-
-### Issue 4.2: Permissive RLS Policies
+### Issue 5.2: Permissive RLS Policies
 **Level**: WARN
-
-Some tables have overly permissive policies using `USING (true)` for UPDATE/DELETE/INSERT operations. This warrants a security review.
+**Description**: Some tables have overly permissive policies using `USING (true)` for UPDATE/DELETE/INSERT operations.
 
 ---
 
@@ -141,18 +160,10 @@ Some tables have overly permissive policies using `USING (true)` for UPDATE/DELE
 | `sync-outlook-calendar` | ✅ Fixed | Uses `contact_type` and proper join |
 | `import-mbox-emails` | ✅ Fixed | Uses `contact_type` and proper join |
 | `cross-reference-analysis` | ✅ Fixed | Uses `method.contact_type` |
-| `deep-correlation-mapper` | ✅ Fixed | Uses `contact_interaction_notes` |
-| `hypergame-theory-engine` | ✅ Fixed | Has `MiceAssessmentData` and `PsychologicalProfileData` interfaces |
-| `NFCTagManager` | ✅ Fixed | Proper event listener cleanup |
-| `WhatsAppImport` | ✅ Fixed | Polling cleanup on unmount (lines 128-136) |
-| `useVersionCheck` | ✅ Fixed | Proper SW listener cleanup (lines 246-254) |
-| `VideoFaceEnrollment` | ✅ Fixed | Timer cleanup on unmount |
-| `CrossIdDashboard` | ✅ Fixed | Interval cleanup on unmount |
-| `GaitCapturePanel` | ✅ Fixed | Motion handler ref pattern |
-| `useRelationshipAnalytics` | ✅ Fixed | Proper messages join via conversations |
-| `useAuth` | ✅ Fixed | Has `.catch()` error handler |
-| `useBluetoothProximity` | ✅ Fixed | Calls `stopScanning()` on unmount |
-| `useAutoSocialSync` | ✅ Correct | Has `isMountedRef` check at line 174 |
+| `subvocalization-detector` | ✅ Fixed | Uses `.ilike('mime_type', 'video/%')` |
+| `useIntelligenceSession` | ✅ Fixed | Has `isMountedRef` pattern |
+| `usePersistentBulkSession` | ✅ Fixed | Has mounted flag check |
+| `useVersionCheck` | ✅ Fixed | Proper SW listener cleanup |
 
 ---
 
@@ -160,24 +171,55 @@ Some tables have overly permissive policies using `USING (true)` for UPDATE/DELE
 
 | File | Change | Priority |
 |------|--------|----------|
-| `supabase/functions/subvocalization-detector/index.ts` | Fix `type` → `mime_type` with proper video pattern | CRITICAL |
-| `src/hooks/useIntelligenceSession.ts` | Add `isMountedRef` check in processBatch | HIGH |
-| `src/hooks/usePersistentBulkSession.tsx` | Add mounted check in IIFE | HIGH |
-| `src/hooks/useMeetingIntelligence.ts` | Add `TranscriptSegment` interface | MEDIUM |
+| `supabase/functions/autonomous-intelligence-orchestrator/index.ts` | `media_type` → `mime_type` in select | CRITICAL |
+| `supabase/functions/deep-psychological-analysis/index.ts` | `media_type` → `mime_type` in select | CRITICAL |
+| `supabase/functions/mosaic-intelligence-fuser/index.ts` | `media_type` → `mime_type` in select | CRITICAL |
+| `supabase/functions/process-bulk-upload/index.ts` | Remove `media_type` from insert | CRITICAL |
+| `src/lib/bulkUpload/uploadQueue.ts` | Remove `media_type` from insert | CRITICAL |
+| `src/hooks/useDataCollectionStatus.ts` | Fix both `communication_type` and `media_type` | CRITICAL |
+| `supabase/functions/bayesian-intention-predictor/index.ts` | `communication_type` → `channel` | CRITICAL |
+| `supabase/functions/predict-behavioral-scenarios/index.ts` | `communication_type` → `channel` | CRITICAL |
+| `supabase/functions/hyperpersonalization-engine/index.ts` | `communication_type` → `channel` | CRITICAL |
+| `supabase/functions/sentient-intent-analyzer/index.ts` | `communication_type` → `channel` | CRITICAL |
+| `supabase/functions/rag-query/index.ts` | `is_from_contact` → `direction` | CRITICAL |
+| `supabase/functions/calculate-relationship-scores/index.ts` | `is_from_contact` → `direction` | CRITICAL |
+| `supabase/functions/generate-meeting-prep/index.ts` | `is_from_contact` → `direction` | CRITICAL |
+| `src/components/intelligence/CounterIntelligenceDashboard.tsx` | Add `isMountedRef` | HIGH |
+| `src/components/intelligence/FortuneTrajectoryPanel.tsx` | Add `isMountedRef` | HIGH |
+| `src/components/intelligence/ShadowNetworkGraph.tsx` | Add `isMountedRef` | HIGH |
+| `src/components/intelligence/ManipulationVulnerabilityPanel.tsx` | Add `isMountedRef` | HIGH |
+| `src/hooks/useSignedUrl.ts` | Add mounted flag | HIGH |
+| `src/hooks/useProactiveInsights.ts` | Add `isMountedRef` | HIGH |
+| `src/hooks/useMLModels.ts` | Add `isMountedRef` | HIGH |
 
 ---
 
 ## Implementation Summary
 
 **Total Changes**:
-- 4 files to modify
-- ~25 lines of code changes
-- 1 critical database column fix
-- 2 race condition fixes
-- 1 type safety improvement
+- 20 files to modify
+- 13 critical database column/property fixes
+- 4 race condition fixes (affecting 7 components/hooks)
+- 2 security warnings (no immediate code changes, requires security review)
 
 **Priority Order**:
-1. Fix `subvocalization-detector` media query (prevents silent failures)
-2. Add isMounted checks to `useIntelligenceSession` and `usePersistentBulkSession`
-3. Add `TranscriptSegment` interface to `useMeetingIntelligence`
+1. **Phase 1 (CRITICAL)**: Fix all 9 `media_type` → `mime_type` issues (prevents silent query failures)
+2. **Phase 2 (CRITICAL)**: Fix all 4 `communication_type` → `channel` issues
+3. **Phase 3 (CRITICAL)**: Fix all 3 `is_from_contact` → `direction` issues
+4. **Phase 4 (HIGH)**: Add mount guards to 7 components/hooks to prevent memory leaks
+5. **Phase 5 (MEDIUM)**: Security review for RLS policies and function search paths
+
+---
+
+## Technical Details
+
+### Database Schema Reference (Verified via SQL Query)
+
+**`media` table columns**:
+`id, user_id, profile_id, file_url, thumbnail_url, caption, file_size, mime_type, created_at, storage_path, ai_metadata, ai_metadata_generated_at, ai_model_used, ai_generation_status, ai_generation_error, completed_analysis_modes, last_analysis_at, detected_language`
+
+**`communications` table columns**:
+`id, user_id, profile_id, channel, direction, subject, content, duration_minutes, sentiment_score, occurred_at, created_at`
+
+Note: `media_type` does NOT exist on `media` table. `communication_type` and `is_from_contact` do NOT exist on `communications` table.
 
