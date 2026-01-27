@@ -351,51 +351,126 @@ export const renderMediaIntel: SectionRenderer = (ctx, data) => {
   ctx.yPos += 8;
 };
 
-// Voice Intelligence renderer
+// Voice Intelligence renderer - v3.9.54: Updated to use voice_insights table
 export const renderVoiceIntel: SectionRenderer = (ctx, data) => {
   const { doc } = ctx;
-  if (!data.voiceData?.length) return;
+  
+  // Prefer voice_insights (analyzed data) over voice_recording_sessions (raw metadata)
+  const voiceInsights = data.voiceInsightsData as Array<Record<string, unknown>> || [];
+  const voiceSessions = data.voiceData as Array<Record<string, unknown>> || [];
+  const voiceAggregate = data.voiceIntelAggregateData?.[0] as Record<string, unknown> | undefined;
+  
+  // Check if we have any voice data
+  const hasVoiceData = voiceInsights.length > 0 || voiceSessions.length > 0 || voiceAggregate;
+  if (!hasVoiceData) return;
   
   ctx.renderSectionHeader('Voice Pattern Intelligence', getSectionColor('voiceIntel'));
-  const voice = data.voiceData as Array<Record<string, unknown>>;
   
-  ctx.checkPageBreak(50);
+  ctx.checkPageBreak(60);
   doc.setFillColor(255, 245, 255);
-  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 45, 3, 3, 'F');
+  doc.roundedRect(ctx.margin, ctx.yPos - 3, ctx.contentWidth, 55, 3, 3, 'F');
   
-  // Summary
+  // Summary with insights count
   doc.setFontSize(PDF_DESIGN.fonts.subheader);
   doc.setFont('helvetica', 'bold');
-  doc.text(`Voice Sessions Analyzed: ${voice.length}`, ctx.margin + 5, ctx.yPos + 8);
+  doc.text(`Voice Insights Analyzed: ${voiceInsights.length}`, ctx.margin + 5, ctx.yPos + 8);
+  if (voiceSessions.length > 0) {
+    doc.setFontSize(PDF_DESIGN.fonts.small);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Recording Sessions: ${voiceSessions.length}`, ctx.margin + 5, ctx.yPos + 18);
+  }
+  ctx.yPos += 25;
   
-  // Aggregate emotional profile
+  // Extract emotional patterns from voice_insights
   const emotionalStates: Record<string, number> = {};
-  voice.forEach((v) => {
-    const emotions = v.detected_emotions as Record<string, number>;
-    if (emotions) {
-      Object.entries(emotions).forEach(([emotion, score]) => {
-        emotionalStates[emotion] = (emotionalStates[emotion] || 0) + (score as number);
+  const allTopics: string[] = [];
+  const allKeywords: string[] = [];
+  let totalStressPoints = 0;
+  let stressCount = 0;
+  
+  voiceInsights.forEach((insight) => {
+    // Topics discussed
+    const topics = insight.topics_discussed as Array<{ topic: string; confidence: number }> | undefined;
+    if (topics?.length) {
+      topics.forEach(t => allTopics.push(t.topic));
+    }
+    
+    // Keywords
+    const keywords = insight.detected_keywords as string[] | undefined;
+    if (keywords?.length) {
+      allKeywords.push(...keywords);
+    }
+    
+    // Sentiment timeline for emotional extraction
+    const sentimentTimeline = insight.sentiment_timeline as Array<{ sentiment: string; score: number }> | undefined;
+    if (sentimentTimeline?.length) {
+      sentimentTimeline.forEach(s => {
+        emotionalStates[s.sentiment] = (emotionalStates[s.sentiment] || 0) + 1;
+      });
+    }
+    
+    // Overall sentiment
+    const overallSentiment = insight.overall_sentiment as string | undefined;
+    if (overallSentiment) {
+      emotionalStates[overallSentiment] = (emotionalStates[overallSentiment] || 0) + 1;
+    }
+    
+    // Stress points
+    const stressPoints = insight.stress_points as Array<{ level: number }> | undefined;
+    if (stressPoints?.length) {
+      stressPoints.forEach(sp => {
+        totalStressPoints += sp.level;
+        stressCount++;
       });
     }
   });
   
+  // Display top topics
+  const topicCounts: Record<string, number> = {};
+  allTopics.forEach(t => { topicCounts[t] = (topicCounts[t] || 0) + 1; });
+  const sortedTopics = Object.entries(topicCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  
+  if (sortedTopics.length > 0) {
+    ctx.renderSubsection('Frequently Discussed Topics');
+    sortedTopics.forEach(([topic, count]) => {
+      ctx.renderBullet(`${topic} (${count} occurrences)`, 5);
+    });
+    ctx.yPos += 5;
+  }
+  
+  // Display emotional patterns
   const topEmotions = Object.entries(emotionalStates)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3);
   
   if (topEmotions.length > 0) {
-    ctx.yPos += 15;
     ctx.renderSubsection('Dominant Emotional Patterns');
-    topEmotions.forEach(([emotion, _]) => {
-      ctx.renderBullet(emotion.charAt(0).toUpperCase() + emotion.slice(1), 5);
+    topEmotions.forEach(([emotion, count]) => {
+      ctx.renderBullet(`${emotion.charAt(0).toUpperCase() + emotion.slice(1)} (${count} instances)`, 5);
     });
+    ctx.yPos += 5;
   }
   
   // Stress indicators
-  const avgStress = voice.reduce((sum, v) => sum + ((v.stress_level as number) || 0), 0) / voice.length;
-  if (avgStress > 0) {
+  if (stressCount > 0) {
+    const avgStress = totalStressPoints / stressCount;
     ctx.renderScoreBar('Average Stress Level', avgStress * 100, 100, PDF_DESIGN.colors.danger);
   }
+  
+  // Voice intelligence aggregate summary
+  if (voiceAggregate?.result) {
+    const aggResult = voiceAggregate.result as Record<string, unknown>;
+    ctx.yPos += 5;
+    ctx.renderSubsection('Aggregated Voice Intelligence');
+    if (aggResult.summary) {
+      const summaryLines = doc.splitTextToSize(String(aggResult.summary).substring(0, 300), ctx.contentWidth - 10);
+      doc.setFontSize(PDF_DESIGN.fonts.small);
+      doc.setFont('helvetica', 'normal');
+      doc.text(summaryLines, ctx.margin + 5, ctx.yPos);
+      ctx.yPos += summaryLines.length * ctx.lineHeight;
+    }
+  }
+  
   ctx.yPos += 8;
 };
 

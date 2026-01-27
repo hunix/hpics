@@ -15,6 +15,8 @@ export interface DossierDataResult {
   influenceData: any;
   mediaData: any[];
   voiceData: any[];
+  voiceInsightsData: any[];
+  voiceIntelAggregateData: any[];
   observationsData: any[];
   commData: any[];
   anomaliesData: any[];
@@ -182,7 +184,16 @@ export function useDossierData() {
       supabase.from('mice_assessments').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(1),
       supabase.from('contact_influence_profiles').select('*').eq('profile_id', profileId).maybeSingle(),
       supabase.from('media').select('*').eq('profile_id', profileId).not('ai_metadata', 'is', null).order('created_at', { ascending: false }).limit(50),
+      supabase.from('voice_insights').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(100),
+    ]);
+
+    // Batch 1.5: Additional voice data sources
+    const [
+      voiceRecordingSessions,
+      voiceIntelAggregate,
+    ] = await Promise.all([
       supabase.from('voice_recording_sessions').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(20),
+      supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'voice_intelligence_aggregate').order('generated_at', { ascending: false }).limit(1),
     ]);
 
     // Batch 2: Secondary intelligence sources
@@ -537,7 +548,9 @@ export function useDossierData() {
       miceData: miceData.data || [],
       influenceData: influenceData,
       mediaData: mediaData.data || [],
-      voiceData: voiceData.data || [],
+      voiceData: voiceRecordingSessions.data || [],
+      voiceInsightsData: voiceData.data || [],
+      voiceIntelAggregateData: voiceIntelAggregate.data || [],
       observationsData: observationsData.data || [],
       commData: commData.data || [],
       anomaliesData: anomaliesData.data || [],
