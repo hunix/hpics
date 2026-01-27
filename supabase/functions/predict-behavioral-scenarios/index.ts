@@ -370,7 +370,7 @@ function buildPredictionContext(
   if (communications && communications.length > 0) {
     const types = new Map<string, number>();
     communications.forEach(comm => {
-      const type = comm.communication_type || 'unknown';
+      const type = comm.channel || 'unknown';
       types.set(type, (types.get(type) || 0) + 1);
     });
     

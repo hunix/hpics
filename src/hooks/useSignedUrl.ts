@@ -18,6 +18,8 @@ export function useSignedUrl({ bucket, path, expiresIn = 3600 }: UseSignedUrlOpt
       return;
     }
 
+    let mounted = true;
+
     const fetchSignedUrl = async () => {
       setIsLoading(true);
       setError(null);
@@ -27,17 +29,25 @@ export function useSignedUrl({ bucket, path, expiresIn = 3600 }: UseSignedUrlOpt
           .from(bucket)
           .createSignedUrl(path, expiresIn);
 
+        if (!mounted) return;
         if (signError) throw signError;
         setSignedUrl(data.signedUrl);
       } catch (err) {
+        if (!mounted) return;
         setError(err instanceof Error ? err : new Error('Failed to get signed URL'));
         setSignedUrl(null);
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchSignedUrl();
+    
+    return () => {
+      mounted = false;
+    };
   }, [bucket, path, expiresIn]);
 
   return { signedUrl, isLoading, error };

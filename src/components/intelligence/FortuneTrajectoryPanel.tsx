@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -62,6 +62,14 @@ interface FortuneData {
 export function FortuneTrajectoryPanel({ profileId, profileName }: FortuneTrajectoryPanelProps) {
   const [data, setData] = useState<FortuneData | null>(null);
   const [loading, setLoading] = useState(false);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const projectFortune = async () => {
     setLoading(true);
@@ -73,13 +81,18 @@ export function FortuneTrajectoryPanel({ profileId, profileName }: FortuneTrajec
         body: { profileId, userId: user.id, forecastHorizon: 'extended' }
       });
 
+      if (!isMountedRef.current) return;
       if (error) throw error;
       setData(result.analysis);
       toast.success('Fortune trajectory projection complete');
     } catch (error: any) {
-      toast.error(error.message || 'Projection failed');
+      if (isMountedRef.current) {
+        toast.error(error.message || 'Projection failed');
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   };
 

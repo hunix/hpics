@@ -81,7 +81,7 @@ serve(async (req) => {
         // Find unanalyzed or partially analyzed media
         let query = supabase
           .from('media')
-          .select('id, profile_id, media_type, completed_analysis_modes, created_at')
+          .select('id, profile_id, mime_type, completed_analysis_modes, created_at')
           .eq('user_id', userId)
           .or('ai_metadata.is.null,completed_analysis_modes.is.null')
           .order('created_at', { ascending: false })

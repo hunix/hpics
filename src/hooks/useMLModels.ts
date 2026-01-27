@@ -7,7 +7,7 @@
  * - Automatic cleanup
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { offlineMLService, MLModelStatus } from '@/lib/offlineMLService';
 import { modelCacheManager } from '@/lib/modelCacheManager';
 
@@ -55,16 +55,26 @@ export function useMLModels(options: UseMLModelsOptions = {}): UseMLModelsResult
     offlineMLService.getModelStatus()
   );
   const [cacheInfo, setCacheInfo] = useState<UseMLModelsResult['cacheInfo']>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Load cache info
   const loadCacheInfo = useCallback(async () => {
     try {
       const stats = await modelCacheManager.getStats();
-      setCacheInfo({
-        totalSize: stats.totalSize,
-        modelCount: stats.totalCached,
-        models: stats.models,
-      });
+      if (isMountedRef.current) {
+        setCacheInfo({
+          totalSize: stats.totalSize,
+          modelCount: stats.totalCached,
+          models: stats.models,
+        });
+      }
     } catch (err) {
       console.error('[useMLModels] Failed to get cache info:', err);
     }
@@ -89,13 +99,19 @@ export function useMLModels(options: UseMLModelsOptions = {}): UseMLModelsResult
         await offlineMLService.loadBlazeFace();
       }
 
-      setModelStatus(offlineMLService.getModelStatus());
-      setIsReady(offlineMLService.isReady());
-      await loadCacheInfo();
+      if (isMountedRef.current) {
+        setModelStatus(offlineMLService.getModelStatus());
+        setIsReady(offlineMLService.isReady());
+        await loadCacheInfo();
+      }
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to load models'));
+      if (isMountedRef.current) {
+        setError(err instanceof Error ? err : new Error('Failed to load models'));
+      }
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [isLoading, includeAgeGender, includeExpressions, includeBlazeFace, loadCacheInfo]);
 

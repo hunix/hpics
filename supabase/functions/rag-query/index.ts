@@ -273,7 +273,7 @@ serve(async (req) => {
           relevance_score: 0.7,
           metadata: {
             channel: comm.channel,
-            direction: comm.is_from_contact ? 'inbound' : 'outbound',
+            direction: comm.direction,
             occurred_at: comm.occurred_at,
             search_type: 'keyword',
           },

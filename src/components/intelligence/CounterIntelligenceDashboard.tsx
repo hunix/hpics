@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -52,6 +52,14 @@ export function CounterIntelligenceDashboard({ userId }: CounterIntelligenceDash
   const [loading, setLoading] = useState(false);
   const [lastScan, setLastScan] = useState<Date | null>(null);
   const { getThreatSummary } = useSecurityMonitor();
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const runCounterIntelScan = async () => {
     setLoading(true);
@@ -60,14 +68,19 @@ export function CounterIntelligenceDashboard({ userId }: CounterIntelligenceDash
         body: { userId, scanType: 'full' }
       });
 
+      if (!isMountedRef.current) return;
       if (error) throw error;
       setData(result.analysis);
       setLastScan(new Date());
       toast.success('Counter-intelligence scan complete');
     } catch (error: any) {
-      toast.error(error.message || 'Scan failed');
+      if (isMountedRef.current) {
+        toast.error(error.message || 'Scan failed');
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   };
 

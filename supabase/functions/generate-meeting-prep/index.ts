@@ -95,7 +95,7 @@ serve(async (req) => {
     const briefing = {
       recentCommunications: (communications || []).map((c: any) => ({
         channel: c.channel,
-        direction: c.is_from_contact ? 'inbound' : 'outbound',
+        direction: c.direction,
         subject: c.subject,
         occurred_at: c.occurred_at,
         sentiment_score: c.sentiment_score,

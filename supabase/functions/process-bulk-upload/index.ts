@@ -177,10 +177,9 @@ serve(async (req) => {
               .insert({
                 user_id: user.id,
                 profile_id: session?.profile_id,
-                media_type: item.file_type,
+                mime_type: item.file_type === 'image' ? 'image/jpeg' : 'video/mp4',
                 file_url: body.publicUrl,
                 storage_path: body.storagePath,
-                file_name: item.filename,
                 file_size: item.file_size,
                 caption: item.filename
               })
