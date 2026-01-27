@@ -1,124 +1,122 @@
 
+# Update Hardcoded Section and Task Counts to Accurate Values
 
-# Bug Fix: Voice Analysis Session Not Marked Complete in Database
+## Summary
 
-## Problem Identified
+The codebase has grown significantly with v6.0, v7.0, and v8.0 intelligence engines, but the UI still displays outdated counts (74 sections, 40 tasks). This plan updates all hardcoded values to reflect the actual counts:
 
-When voice analysis completes on all files:
-1. The **local React state** is correctly updated to `status: 'completed'` (line 1147)
-2. The **database `voice_analysis_sessions` table** is **NEVER updated** to `status: 'completed'`
-3. On page refresh, the hook queries for sessions with `status IN ['running', 'paused']` and finds the stale session
-4. This causes the "Interrupted Session Found" banner to appear with "25/25 processing in background" forever
-5. Meanwhile, the UI remains disabled because `isRunning` is computed from a session that was never properly cleared
+- **Actual Tasks**: 85 (counted from `ALL_INTELLIGENCE_TASKS` array in `useIntelligenceGeneration.ts`)
+- **Actual Sections**: 161 (counted from `DEFAULT_SECTIONS` array in `sectionDefinitions.ts`)
 
-## Root Cause Analysis
+## Technical Details
 
-The `startBulkAnalysis` function in `useVoiceBulkAnalysis.ts` (lines 1147-1156) only updates the **local state** when processing completes:
+### Verified Counts
 
-```typescript
-// Line 1147-1156: LOCAL STATE ONLY - Database never updated!
-setSession(prev => prev ? {
-  ...prev,
-  status: 'completed',
-  phase: 'completed',
-  completedAt: new Date().toISOString(),
-  ...
-} : null);
+**Tasks** (`src/components/reports/hooks/useIntelligenceGeneration.ts`):
+- Lines 119-241: `ALL_INTELLIGENCE_TASKS` array contains 85 task definitions across 14 priority groups
+- Priority 1-6: 30 original tasks
+- Priority 7 (v5.0 Defense): 10 tasks  
+- Priority 8 (v5.0 Fusion): 4 tasks
+- Priority 9 (v6.0): 5 tasks
+- Priority 10 (v7.0): 12 tasks
+- Priority 11 (v8.0 Counter-Intel): 8 tasks
+- Priority 12 (v8.0 Psych Warfare): 10 tasks
+- Priority 13 (v8.0 Biometric): 8 tasks
+- Priority 14 (v8.0 Doctrine): 7 tasks
+- **Total: 85 tasks**
+
+**Sections** (`src/components/reports/sections/sectionDefinitions.ts`):
+- Lines 15-161: `DEFAULT_SECTIONS` array contains 161 section definitions
+- Core: 7 sections
+- Intelligence: 11 sections
+- Warfare: 35 sections (including v5.0 Defense Operations)
+- Analysis: 28 sections (including v5.0, v6.0, v7.0 additions)
+- v8.0 Counter-Intelligence: 8 sections
+- v8.0 Psychological Warfare: 10 sections
+- v8.0 Biometric & Network: 8 sections
+- v8.0 Doctrine & Advanced: 8 sections
+- **Total: 161 sections**
+
+## Files to Modify
+
+### 1. `src/components/reports/PDFDossierGenerator.tsx`
+
+| Line | Current | Updated |
+|------|---------|---------|
+| 50 | `v5.2.1 - 74 Sections, 40 Tasks` | `v6.0 - 161 Sections, 85 Tasks` |
+| 157 | `session?.totalTasks \|\| 40` | `session?.totalTasks \|\| 85` |
+| 460 | `v5.2 \| 74 Sections \| 40 Tasks` | `v6.0 \| 161 Sections \| 85 Tasks` |
+| 464 | `74-section dossiers` | `161-section dossiers` |
+| 506 | `All 74 Sections` | `All 161 Sections` |
+
+### 2. `src/components/reports/utils/pdfDesignSystem.ts`
+
+| Line | Current | Updated |
+|------|---------|---------|
+| 6 | `all 74 sections` | `all 161 sections` |
+| 19 | `all 74 sections` | `all 161 sections` |
+
+### 3. `src/components/dossier-preview/DossierLoadingScreen.tsx`
+
+| Line | Current | Updated |
+|------|---------|---------|
+| 116 | `up to 74 sections` | `up to 161 sections` |
+
+### 4. `src/components/reports/hooks/useIntelligenceGeneration.ts`
+
+| Line | Current | Updated |
+|------|---------|---------|
+| 5 | `(49 total tasks)` | `(85 total tasks)` |
+| 6 | `40 tasks` | `85 tasks` |
+| 118 | `(40 tasks)` | `(85 tasks)` |
+
+### 5. `src/lib/appVersion.ts` (Version Bump)
+
+| Line | Current | Updated |
+|------|---------|---------|
+| 66 | `'3.9.51'` | `'3.9.52'` |
+| 70 | Add to array | `'3.9.51'` added to `FORCE_CLEAR_VERSIONS` |
+
+Add new changelog entry:
+```
+* v3.9.52: Section & Task Count Update
+*          - Updated all hardcoded counts to reflect current totals
+*          - 161 dossier sections (was 74)
+*          - 85 intelligence tasks (was 40)
+*          - Added v6.0, v7.0, v8.0 engine references
 ```
 
-The `updateDbItemStatus` function updates individual **items** and increments counters via `increment_voice_session_progress`, but no code ever updates the **session** record itself to `status: 'completed'`.
+## Additional Recommendations
 
-Compare this to the backend runner (`process-voice-analysis-runner/index.ts` lines 346-355), which correctly marks the session complete in the database.
+### Create Constants (Future-Proofing)
 
-## Solution
-
-Add a `finalizeDbSession` function that updates the database session to `completed` status when all local processing finishes.
-
-## Implementation Plan
-
-### File: `src/hooks/useVoiceBulkAnalysis.ts`
-
-**Change 1: Add `finalizeDbSession` callback (after `updateDbItemStatus`, around line 327)**
+To prevent future mismatches, add computed constants at the top of relevant files:
 
 ```typescript
-// Finalize database session when processing completes
-const finalizeDbSession = useCallback(async (
-  dbSessionId: string,
-  status: 'completed' | 'failed' | 'cancelled'
-) => {
-  try {
-    await supabase
-      .from('voice_analysis_sessions')
-      .update({ 
-        status,
-        completed_at: new Date().toISOString(),
-        current_item_id: null,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', dbSessionId);
-    
-    console.log(`[VoiceBulkAnalysis] Database session ${dbSessionId} marked as ${status}`);
-  } catch (error) {
-    console.warn('[VoiceBulkAnalysis] Failed to finalize session:', error);
-  }
-}, []);
+// In sectionDefinitions.ts
+export const TOTAL_SECTIONS = DEFAULT_SECTIONS.length;
+
+// In useIntelligenceGeneration.ts  
+export const TOTAL_TASKS = ALL_INTELLIGENCE_TASKS.length;
 ```
 
-**Change 2: Call `finalizeDbSession` when processing completes (after line 1156)**
+Then reference these constants instead of hardcoded numbers. This will be noted in code comments but implementing dynamic references is optional for this change.
 
-After the local state is updated to `completed`, also update the database:
+## Implementation Order
 
-```typescript
-setSession(prev => prev ? {
-  ...prev,
-  status: 'completed',
-  ...
-} : null);
+1. Update `useIntelligenceGeneration.ts` (source of truth for tasks)
+2. Update `sectionDefinitions.ts` comments if needed
+3. Update `PDFDossierGenerator.tsx` (5 locations)
+4. Update `pdfDesignSystem.ts` (2 locations)
+5. Update `DossierLoadingScreen.tsx` (1 location)
+6. Bump version in `appVersion.ts` to `3.9.52`
+7. Add `3.9.51` to `FORCE_CLEAR_VERSIONS` array
 
-// NEW: Finalize database session
-if (dbSessionId) {
-  await finalizeDbSession(dbSessionId, 'completed');
-}
-```
+## Expected Outcome
 
-**Change 3: Also call on pause (around line 920-927)**
-
-When user pauses, ensure the database status is also updated:
-
-```typescript
-if (cancelRef.current) {
-  if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
-  setSession(prev => prev ? { 
-    ...prev, 
-    status: 'paused', 
-    ...
-  } : null);
-  
-  // NEW: Update database to paused status
-  if (dbSessionId) {
-    await supabase
-      .from('voice_analysis_sessions')
-      .update({ status: 'paused', updated_at: new Date().toISOString() })
-      .eq('id', dbSessionId);
-  }
-  
-  toast.info('Analysis paused');
-  return;
-}
-```
-
-## Summary of Changes
-
-| Location | Change |
-|----------|--------|
-| Line ~328 | Add `finalizeDbSession` callback function |
-| Line ~1158 | Call `finalizeDbSession(dbSessionId, 'completed')` after local state update |
-| Line ~926 | Update database status to `paused` when user pauses |
-
-## Expected Result After Fix
-
-1. When all files finish processing, the database `voice_analysis_sessions.status` will be set to `'completed'`
-2. On page refresh, the interrupted session check will NOT find the completed session (because it only queries for `running` or `paused`)
-3. The UI will properly re-enable all controls
-4. No more "ghost" sessions appearing as interrupted
-
+After implementation:
+- UI will display accurate "161 Sections | 85 Tasks" badge
+- Select dropdown will show "All 161 Sections" for full package
+- Loading screen will reference "161 sections"
+- Console logs will show correct version info
+- Cache will be force-cleared for all users on next load
