@@ -52,6 +52,25 @@ interface HypergameAnalysis {
   signalingSuggestions: string[];
 }
 
+interface MiceAssessmentData {
+  money_score?: number;
+  ideology_score?: number;
+  coercion_score?: number;
+  ego_score?: number;
+  [key: string]: unknown;
+}
+
+interface PsychologicalProfileData {
+  personality_traits?: {
+    machiavellianism?: number;
+    narcissism?: number;
+    agreeableness?: number;
+    [key: string]: number | undefined;
+  };
+  cognitive_biases?: string[];
+  [key: string]: unknown;
+}
+
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -139,8 +158,8 @@ serve(async (req: Request) => {
 
     const profile = profileResult.data;
     const gameTheoryData = gameTheoryResult.data || [];
-    const miceData = miceResult.data?.[0];
-    const psychProfile = psychResult.data?.[0];
+    const miceData = miceResult.data?.[0] as MiceAssessmentData | undefined;
+    const psychProfile = psychResult.data?.[0] as PsychologicalProfileData | undefined;
     const betrayalData = betrayalResult.data?.[0];
     const influenceProfile = influenceResult.data?.[0];
     const communications = communicationsResult.data || [];
@@ -286,8 +305,8 @@ function inferInteractionContext(communications: any[], profile: any): string {
 function buildOurPerception(
   relationshipType: string,
   context: string,
-  miceData: any,
-  influenceProfile: any
+  miceData: MiceAssessmentData | undefined,
+  influenceProfile: Record<string, unknown> | undefined
 ): GamePerception {
   // Determine game type based on relationship and context
   let gameType = 'cooperation';
@@ -329,9 +348,9 @@ function buildOurPerception(
 }
 
 function modelTheirPerception(
-  psychProfile: any,
-  communications: any[],
-  influenceProfile: any,
+  psychProfile: PsychologicalProfileData | undefined,
+  communications: Record<string, unknown>[],
+  influenceProfile: Record<string, unknown> | undefined,
   relationshipType: string
 ): GamePerception {
   // Model how they likely perceive the interaction
@@ -344,12 +363,12 @@ function modelTheirPerception(
   if (psychProfile) {
     const traits = psychProfile.personality_traits || {};
     
-    if (traits.machiavellianism > 0.6 || traits.narcissism > 0.6) {
+    if ((traits.machiavellianism ?? 0) > 0.6 || (traits.narcissism ?? 0) > 0.6) {
       gameType = 'zero_sum';
       strategies = ['win_at_all_costs', 'manipulation', 'self_promotion'];
       nashEquilibrium = 'dominance';
       confidence = 0.75;
-    } else if (traits.agreeableness > 0.7) {
+    } else if ((traits.agreeableness ?? 0) > 0.7) {
       gameType = 'coordination';
       strategies = ['cooperate', 'harmonize', 'avoid_conflict'];
       nashEquilibrium = 'mutual_accommodation';
@@ -359,9 +378,12 @@ function modelTheirPerception(
 
   // Adjust based on communication patterns
   if (communications.length > 10) {
-    const avgSentiment = communications
-      .filter(c => c.sentiment_score !== null)
-      .reduce((sum, c) => sum + c.sentiment_score, 0) / communications.length || 0;
+    const commsWithSentiment = communications.filter(c => 
+      typeof c === 'object' && c !== null && 'sentiment_score' in c && c.sentiment_score !== null
+    );
+    const avgSentiment = commsWithSentiment.length > 0
+      ? commsWithSentiment.reduce((sum, c) => sum + (Number((c as { sentiment_score: number }).sentiment_score) || 0), 0) / commsWithSentiment.length
+      : 0;
     
     if (avgSentiment < -0.2) {
       gameType = 'conflict';
@@ -422,8 +444,8 @@ function generateStrategicRecommendations(
   our: GamePerception,
   their: GamePerception,
   gap: PerceptionGap,
-  miceData: any,
-  psychProfile: any
+  miceData: MiceAssessmentData | undefined,
+  psychProfile: PsychologicalProfileData | undefined
 ): StrategicRecommendation[] {
   const recommendations: StrategicRecommendation[] = [];
 
@@ -503,9 +525,9 @@ function generateStrategicRecommendations(
 }
 
 function identifyInformationAdvantages(
-  miceData: any,
-  psychProfile: any,
-  betrayalData: any,
+  miceData: MiceAssessmentData | undefined,
+  psychProfile: PsychologicalProfileData | undefined,
+  betrayalData: Record<string, unknown> | undefined,
   our: GamePerception,
   their: GamePerception
 ): string[] {
@@ -513,8 +535,9 @@ function identifyInformationAdvantages(
 
   if (psychProfile) {
     advantages.push('Detailed psychological profile available');
-    if (psychProfile.cognitive_biases?.length > 0) {
-      advantages.push(`Known cognitive biases: ${psychProfile.cognitive_biases.slice(0, 3).join(', ')}`);
+    const biases = psychProfile.cognitive_biases;
+    if (biases && biases.length > 0) {
+      advantages.push(`Known cognitive biases: ${biases.slice(0, 3).join(', ')}`);
     }
   }
 
@@ -522,8 +545,9 @@ function identifyInformationAdvantages(
     advantages.push('MICE vulnerability assessment complete');
   }
 
-  if (betrayalData) {
-    advantages.push(`Defection probability known: ${Math.round(betrayalData.defection_probability * 100)}%`);
+  if (betrayalData && 'defection_probability' in betrayalData) {
+    const defectionProb = Number(betrayalData.defection_probability) || 0;
+    advantages.push(`Defection probability known: ${Math.round(defectionProb * 100)}%`);
   }
 
   if (our.confidenceLevel > their.confidenceLevel) {
@@ -538,7 +562,7 @@ function identifyInformationAdvantages(
 }
 
 function identifyInformationVulnerabilities(
-  communications: any[],
+  communications: Record<string, unknown>[],
   our: GamePerception,
   their: GamePerception
 ): string[] {
@@ -565,8 +589,8 @@ function identifyInformationVulnerabilities(
 
 function generateDeceptionStrategies(
   gap: PerceptionGap,
-  psychProfile: any,
-  miceData: any
+  psychProfile: PsychologicalProfileData | undefined,
+  miceData: MiceAssessmentData | undefined
 ): string[] {
   const strategies: string[] = [];
 
@@ -624,8 +648,8 @@ function generateSignalingSuggestions(
   return suggestions;
 }
 
-function getDominantMiceVector(miceData: any): string {
-  const vectors = {
+function getDominantMiceVector(miceData: MiceAssessmentData): string {
+  const vectors: Record<string, number> = {
     money: miceData.money_score || 0,
     ideology: miceData.ideology_score || 0,
     coercion: miceData.coercion_score || 0,
@@ -646,9 +670,9 @@ function getDominantMiceVector(miceData: any): string {
 }
 
 function calculateAnalysisConfidence(
-  psychProfile: any,
-  miceData: any,
-  communications: any[]
+  psychProfile: PsychologicalProfileData | undefined,
+  miceData: MiceAssessmentData | undefined,
+  communications: Record<string, unknown>[]
 ): number {
   let confidence = 0.5;
 

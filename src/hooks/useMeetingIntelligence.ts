@@ -29,6 +29,16 @@ interface MeetingInsight {
   importance: 'high' | 'medium' | 'low';
 }
 
+interface TranscriptSegment {
+  text: string;
+  speakerLabel?: string;
+  matchedProfileId?: string;
+  startTime: number;
+  endTime?: number;
+  isQuestion?: boolean;
+  sentiment?: 'positive' | 'negative' | 'neutral';
+}
+
 interface Meeting {
   id: string;
   title: string;
@@ -144,7 +154,7 @@ export function useMeetingIntelligence(
   });
 
   // Extract insights from transcript segment
-  const extractInsightFromSegment = useCallback((segment: any) => {
+  const extractInsightFromSegment = useCallback((segment: TranscriptSegment) => {
     const text = segment.text.toLowerCase();
 
     // Action item patterns

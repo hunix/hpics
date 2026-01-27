@@ -119,7 +119,7 @@ serve(async (req) => {
 
       // Index phones and emails
       for (const method of contactMethods || []) {
-        if (method.type === 'phone' && method.value) {
+        if (method.contact_type === 'phone' && method.value) {
           const normalized = normalizePhone(method.value);
           newCrossRefs.push({
             profile_id: profile.id,
@@ -131,7 +131,7 @@ serve(async (req) => {
             user_id: user.id
           });
         }
-        if (method.type === 'email' && method.value) {
+        if (method.contact_type === 'email' && method.value) {
           const normalized = normalizeEmail(method.value);
           const domain = normalized.split('@')[1];
           newCrossRefs.push({

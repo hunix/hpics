@@ -149,9 +149,9 @@ serve(async (req) => {
           for (const attendee of event.attendees) {
             const { data: contact } = await supabase
               .from('contact_methods')
-              .select('profile_id')
-              .eq('user_id', userId)
-              .eq('type', 'email')
+              .select('profile_id, profiles!inner(user_id)')
+              .eq('profiles.user_id', userId)
+              .eq('contact_type', 'email')
               .ilike('value', attendee.email)
               .maybeSingle();
 
