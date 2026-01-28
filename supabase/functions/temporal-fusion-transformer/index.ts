@@ -268,13 +268,15 @@ serve(async (req) => {
         .order('interaction_date', { ascending: true })
         .limit(100);
       
-      if (interactions) {
+      if (interactions && interactions.length > 0) {
         const moodScores: Record<string, number> = { 'great': 90, 'good': 75, 'neutral': 50, 'stressed': 30, 'difficult': 15 };
-        profileDynamicFeatures = interactions.map((i: any) => ({
-          timestamp: new Date(i.interaction_date).getTime(),
-          value: i.relationship_temperature || moodScores[i.mood_observed] || 50,
-          type: 'interaction'
-        }));
+        profileDynamicFeatures = interactions
+          .filter((i: any) => i && i.interaction_date)
+          .map((i: any) => ({
+            timestamp: new Date(i.interaction_date).getTime(),
+            value: i.relationship_temperature ?? moodScores[i.mood_observed as string] ?? 50,
+            type: 'interaction'
+          }));
       }
     }
 
