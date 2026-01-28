@@ -150,7 +150,7 @@ serve(async (req) => {
       predictionsResult,
       networkResult
     ] = await Promise.all([
-      supabase.from('communications').select('*').eq('profile_id', profileId).order('created_at', { ascending: true }).limit(300),
+      supabase.from('communications').select('*').eq('profile_id', profileId).order('occurred_at', { ascending: true }).limit(300),
       supabase.from('contact_observations').select('*').eq('profile_id', profileId).order('observation_date', { ascending: true }).limit(150),
       supabase.from('location_history').select('*').eq('profile_id', profileId).order('recorded_at', { ascending: true }).limit(100),
       supabase.from('behavioral_predictions').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(20),
@@ -376,8 +376,8 @@ function processObservedActions(
     }
 
     actions.push({
-      action: `communication_${comm.channel || 'general'}`,
-      timestamp: String(comm.created_at),
+      action: `communication_${(comm.channel as string) || 'general'}`,
+      timestamp: String(comm.occurred_at || comm.created_at),
       confidence: 0.7 + Math.abs(sentiment) * 0.2,
       intentionUpdate
     });

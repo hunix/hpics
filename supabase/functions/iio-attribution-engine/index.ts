@@ -146,7 +146,7 @@ function scoreTechnicalEvidence(indicators: IIOAttributionRequest['technicalIndi
   if (indicators.domains && indicators.domains.length > 0) {
     for (const domain of indicators.domains) {
       // Check for typosquatting patterns
-      if (domain.includes('-') || /\d/.test(domain)) {
+      if (domain && (domain.includes('-') || /\d/.test(domain))) {
         evidence.push({
           category: 'Domain Pattern',
           indicator: domain,

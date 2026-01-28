@@ -349,7 +349,10 @@ function detectSynchronizedMessaging(communications: any[], profiles: any[]): an
   );
   
   let windowStart = 0;
+  let safetyCounter = 0;
+  const MAX_ITERATIONS = 10000;
   while (windowStart < sortedComms.length) {
+    if (++safetyCounter > MAX_ITERATIONS) break;
     const windowStartTime = new Date(sortedComms[windowStart].communication_date).getTime();
     const windowEnd = sortedComms.findIndex((c, i) => 
       i > windowStart && 

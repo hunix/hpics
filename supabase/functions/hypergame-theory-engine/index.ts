@@ -393,10 +393,13 @@ function modelTheirPerception(
   // Adjust based on communication patterns
   if (communications.length > 10) {
     const commsWithSentiment = communications.filter(c => 
-      typeof c === 'object' && c !== null && 'sentiment_score' in c && c.sentiment_score !== null
+      typeof c === 'object' && c !== null && 'sentiment_score' in c && (c as Record<string, unknown>).sentiment_score != null
     );
     const avgSentiment = commsWithSentiment.length > 0
-      ? commsWithSentiment.reduce((sum, c) => sum + (Number((c as { sentiment_score: number }).sentiment_score) || 0), 0) / commsWithSentiment.length
+      ? commsWithSentiment.reduce((sum, c) => {
+          const score = (c as Record<string, unknown>).sentiment_score;
+          return sum + (typeof score === 'number' ? score : 0);
+        }, 0) / commsWithSentiment.length
       : 0;
     
     if (avgSentiment < -0.2) {

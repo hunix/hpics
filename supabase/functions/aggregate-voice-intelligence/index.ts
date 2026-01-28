@@ -268,7 +268,7 @@ serve(async (req) => {
     const { data: existingProfile } = await supabase
       .from('psychological_profiles')
       .select('id, voice_analysis_data')
-      .eq('profile_id', profile_id)
+      .eq('profile_id', finalProfileId)
       .single();
 
     if (existingProfile) {
