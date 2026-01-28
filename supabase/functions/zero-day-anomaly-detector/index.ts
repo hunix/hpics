@@ -228,12 +228,12 @@ serve(async (req: Request) => {
       },
     };
 
-    // Save detected zero-day anomalies to behavioral_anomalies table
-    for (const anomaly of zeroDayAnomalies) {
-      await supabase.from('behavioral_anomalies').insert({
+    // Save detected zero-day anomalies to behavioral_anomalies table (batch insert)
+    if (zeroDayAnomalies.length > 0) {
+      const anomalyRecords = zeroDayAnomalies.map(anomaly => ({
         user_id: userId,
         profile_id: anomaly.profileId,
-        anomaly_type: 'zero_day_' + anomaly.affectedDomains[0],
+        anomaly_type: 'zero_day_' + (anomaly.affectedDomains?.[0] || 'unknown'),
         description: anomaly.description,
         severity: anomaly.urgency,
         deviation_score: anomaly.noveltyScore,
@@ -241,7 +241,8 @@ serve(async (req: Request) => {
         novelty_score: anomaly.noveltyScore,
         matched_known_patterns: anomaly.similarHistoricalPatterns,
         detected_at: new Date().toISOString(),
-      });
+      }));
+      await supabase.from('behavioral_anomalies').insert(anomalyRecords);
     }
 
     // Save analysis result
