@@ -31,22 +31,41 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
-    }
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    if (userError || !user) {
-      throw new Error('Invalid user token');
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'No authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const body = await req.json();
+    const token = authHeader.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseServiceKey;
+
+    let userId: string;
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'userId required for service calls' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+      if (userError || !user) {
+        return new Response(JSON.stringify({ error: 'Invalid user token' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      userId = user.id;
+    }
     const profileId = body.profileId || body.profile_id;
 
     if (!profileId) {
@@ -58,13 +77,13 @@ serve(async (req) => {
     // Gather network data
     const [profileResult, relationshipsResult, contactsResult, networkResult] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', profileId).single(),
-      supabase.from('relationships')
+      supabase.from('contact_relationships')
         .select('*')
-        .or(`profile_id.eq.${profileId},related_profile_id.eq.${profileId}`)
+        .or(`from_profile_id.eq.${profileId},to_profile_id.eq.${profileId}`)
         .limit(200),
       supabase.from('profiles')
         .select('id, first_name, last_name, job_title, company, city, tags')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .limit(200),
       supabase.from('ai_analyses')
         .select('*')
@@ -112,7 +131,7 @@ serve(async (req) => {
       .from('ai_analyses')
       .upsert({
         profile_id: profileId,
-        user_id: user.id,
+        user_id: userId,
         analysis_type: 'tas_com_community',
         result: detectionResult,
         confidence_score: communityMetrics.overallConfidence,
@@ -171,8 +190,8 @@ function buildGraph(focusProfileId: string, relationships: any[], contacts: any[
 
   // Add edges from relationships
   for (const rel of relationships) {
-    const source = rel.profile_id;
-    const target = rel.related_profile_id;
+    const source = rel.from_profile_id;
+    const target = rel.to_profile_id;
     
     if (!nodes.has(source) || !nodes.has(target)) continue;
 

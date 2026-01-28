@@ -62,7 +62,7 @@ serve(async (req) => {
     } else {
       const { data: { user }, error: authError } = await supabase.auth.getUser(token);
       if (authError || !user) {
-        return new Response(JSON.stringify({ error: 'Invalid token' }), {
+        return new Response(JSON.stringify({ error: 'Invalid user token' }), {
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });

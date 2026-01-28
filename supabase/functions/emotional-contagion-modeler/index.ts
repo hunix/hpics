@@ -77,7 +77,7 @@ serve(async (req) => {
       { data: networkAnalysis }
     ] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', profileId).single(),
-      supabase.from('relationships').select('*').or(`profile_id.eq.${profileId},related_profile_id.eq.${profileId}`).limit(50),
+      supabase.from('contact_relationships').select('*').or(`from_profile_id.eq.${profileId},to_profile_id.eq.${profileId}`).limit(50),
       supabase.from('communications').select('*').eq('profile_id', profileId).order('occurred_at', { ascending: false }).limit(100),
       supabase.from('ai_analyses').select('*').eq('profile_id', profileId).eq('analysis_type', 'network_centrality').single()
     ]);
@@ -87,7 +87,7 @@ serve(async (req) => {
       profile,
       relationships || [],
       communications || [],
-      networkAnalysis?.results
+      networkAnalysis?.result
     );
 
     // Identify Super-Spreader Nodes
@@ -156,7 +156,7 @@ serve(async (req) => {
         profile_id: profileId,
         user_id: userId,
         analysis_type: 'emotional_contagion_modeling',
-        results: result,
+        result: result,
         confidence_score: result.confidence,
         updated_at: new Date().toISOString()
       }, { onConflict: 'profile_id,analysis_type' });
@@ -193,13 +193,13 @@ function buildEmotionalNetwork(
     emotionalIntensity: calculateEmotionalIntensity(communications),
     susceptibility: 0.6 + Math.random() * 0.3,
     influence: networkAnalysis?.centrality || 0.5,
-    connections: relationships.map(r => r.related_profile_id || r.profile_id)
+    connections: relationships.map(r => r.to_profile_id || r.from_profile_id)
   });
 
   // Add connected nodes
   const uniqueConnections = new Set<string>();
   relationships.forEach(r => {
-    const connectedId = r.related_profile_id !== profile?.id ? r.related_profile_id : r.profile_id;
+    const connectedId = r.to_profile_id !== profile?.id ? r.to_profile_id : r.from_profile_id;
     if (connectedId && !uniqueConnections.has(connectedId)) {
       uniqueConnections.add(connectedId);
       nodes.push({
