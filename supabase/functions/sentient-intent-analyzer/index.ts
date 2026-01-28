@@ -149,7 +149,7 @@ serve(async (req) => {
       networkResult
     ] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', profileId).single(),
-      supabase.from('communications').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }).limit(200),
+      supabase.from('communications').select('*').eq('profile_id', profileId).order('occurred_at', { ascending: false }).limit(200),
       supabase.from('contact_observations').select('*').eq('profile_id', profileId).order('observation_date', { ascending: false }).limit(100),
       supabase.from('location_history').select('*').eq('profile_id', profileId).order('recorded_at', { ascending: false }).limit(100),
       supabase.from('network_connections').select('*').or(`source_profile_id.eq.${profileId},target_profile_id.eq.${profileId}`).limit(100)

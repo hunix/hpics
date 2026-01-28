@@ -97,11 +97,11 @@ serve(async (req) => {
         criticalMass: Math.floor(networkSize * 0.15)
       },
       optimalInjectionPoints: (profiles || [])
-        .filter(p => p.is_favorite || Math.random() > 0.7)
+        .filter(p => p && (p.is_favorite || Math.random() > 0.7))
         .slice(0, 5)
         .map(p => ({
           nodeId: p.id,
-          nodeName: `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Unknown',
+          nodeName: `${p?.first_name || ''} ${p?.last_name || ''}`.trim() || 'Unknown',
           influenceScore: p.is_favorite ? 0.8 : Math.random() * 0.5 + 0.3,
           reachPotential: Math.floor(networkSize * (Math.random() * 0.3 + 0.1)),
           optimalTiming: Math.random() > 0.5 ? 'morning' : Math.random() > 0.5 ? 'afternoon' : 'evening'

@@ -50,7 +50,12 @@ serve(async (req) => {
       if (!userId) throw new Error('userId required for service calls');
     } else {
       const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-      if (userError || !user) throw new Error('Invalid user token');
+      if (userError || !user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
       userId = user.id;
     }
 
@@ -65,7 +70,7 @@ serve(async (req) => {
     // Gather network and relationship data
     const [profileResult, relationshipsResult, networkResult, groupsResult] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', profileId).single(),
-      supabase.from('relationships')
+      supabase.from('contact_relationships')
         .select('*')
         .or(`profile_id.eq.${profileId},related_profile_id.eq.${profileId}`)
         .limit(100),

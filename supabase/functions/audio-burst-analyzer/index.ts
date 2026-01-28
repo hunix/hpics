@@ -57,7 +57,7 @@ interface AudioBurstAnalysis {
  * In production, this would use proper DSP libraries
  */
 function computeHilbertEnvelope(signal: number[]): number[] {
-  if (signal.length === 0) return [];
+  if (!signal || signal.length === 0) return [];
   
   const envelope: number[] = [];
   const windowSize = 5;
