@@ -50,7 +50,12 @@ serve(async (req) => {
       if (!userId) throw new Error('userId required for service calls');
     } else {
       const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-      if (userError || !user) throw new Error('Invalid user token');
+      if (userError || !user) {
+        return new Response(JSON.stringify({ error: 'Invalid user token' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
       userId = user.id;
     }
 

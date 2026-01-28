@@ -36,22 +36,51 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const body = await req.json();
-    const profileId = body.profileId || body.profile_id;
-    const userId = body.userId || body.user_id;
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'No authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
-    if (!profileId || !userId) {
+    const body = await req.json();
+    const token = authHeader.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseKey;
+
+    let userId: string;
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'userId required for service calls' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Invalid user token' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      userId = user.id;
+    }
+
+    const profileId = body.profileId || body.profile_id;
+    if (!profileId) {
       return new Response(
-        JSON.stringify({ error: 'profileId and userId required' }),
+        JSON.stringify({ error: 'profileId required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Fetch network data
     const { data: relationships } = await supabase
-      .from('relationships')
+      .from('contact_relationships')
       .select('*')
-      .or(`source_profile_id.eq.${profileId},target_profile_id.eq.${profileId}`)
+      .or(`from_profile_id.eq.${profileId},to_profile_id.eq.${profileId}`)
       .limit(200);
 
     const predictions = generateSocialGraphPredictions(relationships || [], profileId);
