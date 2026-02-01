@@ -54,13 +54,41 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Dual-auth pattern: support both user tokens and service role calls
+    const authHeader = req.headers.get('Authorization');
     const body = await req.json();
+    
+    const token = authHeader?.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseServiceKey;
+
+    let userId = body.userId || body.user_id;
     const profileId = body.profileId || body.profile_id;
-    const userId = body.userId || body.user_id;
     const proposedAction = body.proposedAction || body.proposed_action;
 
-    if (!profileId || !userId) {
-      throw new Error('Missing required parameters: profileId and userId');
+    if (!isServiceRoleCall && authHeader) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token!);
+      if (!authError && user) {
+        userId = user.id;
+      } else if (!userId) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    if (!profileId) {
+      return new Response(JSON.stringify({ error: 'profileId is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!userId && !isServiceRoleCall) {
+      return new Response(JSON.stringify({ error: 'userId is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     console.log(`[SacredValue] Analyzing sacred values for profile: ${profileId}`);
