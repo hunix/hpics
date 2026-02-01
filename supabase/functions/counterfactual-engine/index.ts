@@ -148,13 +148,16 @@ function applyIntervention(
 
   effects.set(intervention.variable, newValue);
 
-  // Propagate to children using topological order
+  // Propagate to children using topological order with safety counter
   const visited = new Set<string>();
   const queue = [...node.children];
+  const MAX_ITERATIONS = 1000;
+  let safetyCounter = 0;
 
-  while (queue.length > 0) {
-    const childVar = queue.shift()!;
-    if (visited.has(childVar)) continue;
+  while (queue.length > 0 && safetyCounter < MAX_ITERATIONS) {
+    safetyCounter++;
+    const childVar = queue.shift();
+    if (!childVar || visited.has(childVar)) continue;
     visited.add(childVar);
 
     const childNode = graph.get(childVar);
@@ -172,6 +175,10 @@ function applyIntervention(
 
     // Add grandchildren to queue
     queue.push(...childNode.children);
+  }
+
+  if (safetyCounter >= MAX_ITERATIONS) {
+    console.warn('[Counterfactual] Loop guard triggered in applyIntervention');
   }
 
   return effects;

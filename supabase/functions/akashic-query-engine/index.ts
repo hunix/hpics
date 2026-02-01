@@ -24,16 +24,44 @@ serve(async (req) => {
   }
 
   try {
-    const { userId, profileId, queryType = 'comprehensive', queryFocus } = await req.json();
-
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY not configured");
+    }
+
+    // Dual-auth pattern: support both user tokens and service role calls
+    const authHeader = req.headers.get('Authorization');
+    const body = await req.json();
+    
+    const token = authHeader?.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseKey;
+
+    let userId = body.userId || body.user_id;
+    const profileId = body.profileId || body.profile_id;
+    const queryType = body.queryType || 'comprehensive';
+    const queryFocus = body.queryFocus;
+
+    if (!isServiceRoleCall && authHeader) {
+      const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token!);
+      if (!authError && user) {
+        userId = user.id;
+      } else if (!userId) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'userId is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Gather comprehensive data for Akashic analysis

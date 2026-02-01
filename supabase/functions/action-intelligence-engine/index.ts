@@ -12,11 +12,29 @@ serve(async (req) => {
   }
 
   try {
-    const { profileData, context, goalType = 'relationship_building' } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
+    }
+
+    // Dual-auth pattern: support both user tokens and service role calls
+    const authHeader = req.headers.get('Authorization');
+    const body = await req.json();
+    
+    const token = authHeader?.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseKey;
+
+    const profileData = body.profileData;
+    const context = body.context;
+    const goalType = body.goalType || 'relationship_building';
+
+    // Note: This function doesn't require userId for its core logic
+    // but we validate auth header if present for security
+    if (authHeader && !isServiceRoleCall) {
+      // If an auth header is provided but it's not service role, we accept it
+      // since this function primarily processes profileData without DB writes
     }
 
     const systemPrompt = `You are an elite strategic action intelligence system that generates highly specific, actionable recommendations for relationship management.

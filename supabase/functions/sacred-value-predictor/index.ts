@@ -189,7 +189,7 @@ function identifySacredValues(
     { category: 'authority', keywords: ['authority', 'tradition', 'order', 'hierarchy', 'respect'] }
   ];
 
-  const allText = communications.map(c => c.notes || '').join(' ').toLowerCase();
+  const allText = communications.map(c => c.content || '').join(' ').toLowerCase();
 
   valueCategories.forEach(cat => {
     const mentions = cat.keywords.filter(kw => allText.includes(kw)).length;
