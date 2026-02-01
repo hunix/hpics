@@ -123,14 +123,55 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    const { profileId, userId, scenarioType, stimulus, context = '' } = await req.json() as PredictionRequest;
+  // Health check short-circuit
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ 
+      ok: true, 
+      function: 'behavioral-future-modeler', 
+      timestamp: Date.now() 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
 
+  try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
-
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Dual-auth pattern: support both user tokens and service role calls
+    const authHeader = req.headers.get('Authorization');
+    const body = await req.json() as PredictionRequest;
+    
+    const token = authHeader?.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseKey;
+
+    let userId = body.userId;
+    const profileId = body.profileId;
+    const scenarioType = body.scenarioType;
+    const stimulus = body.stimulus;
+    const context = body.context || '';
+
+    if (!isServiceRoleCall && authHeader) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token!);
+      if (!authError && user) {
+        userId = user.id;
+      } else if (!userId) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'userId is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Gather all behavioral data
     // NOTE: messages table has no profile_id or direction column - must join via conversations

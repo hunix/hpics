@@ -141,7 +141,7 @@ Relationship Type: ${profile.data?.relationship_type || 'Unknown'}
 Relationship Duration: ${profile.data?.created_at ? `Since ${new Date(profile.data.created_at).toLocaleDateString()}` : 'Unknown'}
 
 Recent Communications (${messages.data?.length || 0} messages):
-${messages.data?.slice(0, 30).map(m => `[${m.direction}] ${m.content?.substring(0, 150)}`).join('\n') || 'No messages'}
+${messages.data?.slice(0, 30).map((m: any) => `[${m.is_from_contact ? 'received' : 'sent'}] ${m.content?.substring(0, 150)}`).join('\n') || 'No messages'}
 
 Relationship Scores:
 ${relationships.data?.map(r => `- Score: ${r.overall_score}, Trend: ${r.trend}`).join('\n') || 'No scores'}

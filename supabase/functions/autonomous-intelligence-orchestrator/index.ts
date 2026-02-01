@@ -49,14 +49,38 @@ serve(async (req) => {
     const lovableKey = Deno.env.get('LOVABLE_API_KEY');
     
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Dual-auth pattern: support both user tokens and service role calls
+    const authHeader = req.headers.get('Authorization');
+    const body = await req.json() as OrchestrationRequest;
     
-    const { 
-      userId, 
-      action, 
-      profileId,
-      priority = 'normal',
-      options = {}
-    } = await req.json() as OrchestrationRequest;
+    const token = authHeader?.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseKey;
+
+    let userId = body.userId;
+    const action = body.action;
+    const profileId = body.profileId;
+    const priority = body.priority || 'normal';
+    const options = body.options || {};
+
+    if (!isServiceRoleCall && authHeader) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token!);
+      if (!authError && user) {
+        userId = user.id;
+      } else if (!userId) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'userId is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     console.log(`Autonomous orchestrator: ${action} for user ${userId}, priority: ${priority}`);
 
@@ -265,7 +289,7 @@ serve(async (req) => {
           // Simple anomaly detection: sudden sentiment shifts
           const profileSentiments: Record<string, number[]> = {};
           recentComms?.forEach(c => {
-            if (c.sentiment_score !== null) {
+            if (c.sentiment_score !== null && c.sentiment_score !== undefined) {
               if (!profileSentiments[c.profile_id]) profileSentiments[c.profile_id] = [];
               profileSentiments[c.profile_id].push(c.sentiment_score);
             }
@@ -393,7 +417,8 @@ serve(async (req) => {
         const { data: profiles } = await supabase
           .from('profiles')
           .select('id')
-          .eq('user_id', userId);
+          .eq('user_id', userId)
+          .limit(500);
 
         if (profiles) {
           for (const profile of profiles) {

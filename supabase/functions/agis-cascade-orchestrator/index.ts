@@ -51,7 +51,30 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { userId, triggerPhase, eventType, eventData, sourceId }: CascadeRequest = await req.json();
+    // Dual-auth pattern: support both user tokens and service role calls
+    const authHeader = req.headers.get('Authorization');
+    const body: CascadeRequest = await req.json();
+    
+    const token = authHeader?.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseKey;
+
+    let userId = body.userId;
+    const triggerPhase = body.triggerPhase;
+    const eventType = body.eventType;
+    const eventData = body.eventData;
+    const sourceId = body.sourceId;
+
+    if (!isServiceRoleCall && authHeader) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token!);
+      if (!authError && user) {
+        userId = user.id;
+      } else if (!userId) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
 
     if (!userId || !triggerPhase || !eventType) {
       return new Response(

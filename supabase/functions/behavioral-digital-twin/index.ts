@@ -344,25 +344,47 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    // Variable userId will be set during auth validation below
 
+    // Dual-auth pattern: support both user tokens and service role calls
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    const body = await req.json() as DigitalTwinRequest & { userId?: string; user_id?: string };
+    
+    const token = authHeader?.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseKey;
+
+    let userId: string | undefined;
+    const action = body.action;
+    const profileId = body.profileId;
+    const scenario = body.scenario;
+    const queryType = body.queryType;
+
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+    } else if (authHeader) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token!);
+      if (!authError && user) {
+        userId = user.id;
+      } else {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    } else {
       return new Response(JSON.stringify({ error: 'No authorization header' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'userId is required' }), {
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
-
-    const { action, profileId, scenario, queryType } = await req.json() as DigitalTwinRequest;
 
     console.log(`[Digital Twin] Action: ${action} for profile ${profileId}`);
 
@@ -404,7 +426,7 @@ serve(async (req) => {
       const { data: twin, error: upsertError } = await supabase
         .from('digital_twins')
         .upsert({
-          user_id: user.id,
+          user_id: userId,
           profile_id: profileId,
           twin_state: smgaState,
           smga_state: smgaState,
@@ -430,7 +452,7 @@ serve(async (req) => {
         .from('digital_twins')
         .select('simulation_history')
         .eq('profile_id', profileId)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .single();
 
       const history = (existingTwin?.simulation_history as any[] || []).slice(-19);
@@ -444,7 +466,7 @@ serve(async (req) => {
         .from('digital_twins')
         .update({ simulation_history: history })
         .eq('profile_id', profileId)
-        .eq('user_id', user.id);
+        .eq('user_id', userId);
     }
 
     const result = {
@@ -486,7 +508,7 @@ serve(async (req) => {
 
     // Store in ai_analyses for section availability detection
     await supabase.from('ai_analyses').upsert({
-      user_id: user.id,
+      user_id: userId,
       profile_id: profileId,
       analysis_type: 'behavioral_digital_twin',
       result: result,

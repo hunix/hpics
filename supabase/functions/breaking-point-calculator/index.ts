@@ -46,12 +46,31 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
-    const { profileId, userId } = await req.json();
+    // Dual-auth pattern: support both user tokens and service role calls
+    const authHeader = req.headers.get('Authorization');
+    const body = await req.json();
+    
+    const token = authHeader?.replace('Bearer ', '');
+    const isServiceRoleCall = token === supabaseKey;
+
+    let userId = body.userId || body.user_id;
+    const profileId = body.profileId || body.profile_id;
+
+    if (!isServiceRoleCall && authHeader) {
+      const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token!);
+      if (!authError && user) {
+        userId = user.id;
+      } else if (!userId) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
 
     if (!profileId || !userId) {
       return new Response(

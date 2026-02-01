@@ -372,20 +372,41 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Dual-auth pattern: support both user tokens and service role calls
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
-    }
-
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      throw new Error('Unauthorized');
-    }
-
     const body = await req.json();
+    
+    const token = authHeader?.replace('Bearer ', '');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const isServiceRoleCall = token === supabaseKey;
+
+    let userId: string | undefined;
+
+    if (isServiceRoleCall) {
+      userId = body.userId || body.user_id;
+    } else if (authHeader) {
+      const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token!);
+      if (!authError && user) {
+        userId = user.id;
+      } else {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      return new Response(JSON.stringify({ error: 'No authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'userId is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     const { action, profile_id } = body;
 
     let result: any;
@@ -408,7 +429,7 @@ serve(async (req) => {
         // Store profile
         if (profile_id) {
           await supabaseClient.from('financial_psychology_profiles').upsert({
-            user_id: user.id,
+            user_id: userId,
             profile_id,
             loss_aversion_score: biasProfile.loss_aversion,
             endowment_effect_susceptibility: biasProfile.endowment_effect,
