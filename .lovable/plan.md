@@ -1,246 +1,247 @@
 
-
-# Comprehensive Edge Function Audit Report & Fix Plan
+# Comprehensive Edge Function Audit - Round 3: Final Report & Fix Plan
 
 ## Executive Summary
-After reviewing 50+ edge functions across v5.0 through v8.0 intelligence engines, I identified **42 distinct issues** spanning critical authentication patterns, schema mismatches, missing dual-auth support, potential loops, and type safety concerns. This audit builds upon the previous 28 fixes and identifies remaining issues that need addressing.
+After systematically reviewing 60+ edge functions across all versions (v5.0 through v8.0), I identified **35 additional issues** that need addressing. This audit focuses on remaining authentication gaps, schema mismatches, missing dual-auth patterns, and performance concerns not caught in previous rounds.
 
 ---
 
 ## Issue Categories Identified
 
-### CATEGORY A: Authentication Pattern Issues (7 issues)
+### CATEGORY A: Missing Auth Validation (6 issues)
 
-Functions using `throw new Error('Invalid user token')` instead of returning proper HTTP 401 responses. This causes the error to be caught and returned as HTTP 500 instead of 401, breaking client-side error handling.
-
-| # | Function | Lines | Issue | Severity |
-|---|----------|-------|-------|----------|
-| A1 | `tas-com-community-detector` | 44-47 | Throws error instead of HTTP 401, also missing dual-auth pattern entirely | **HIGH** |
-| A2 | `migration5-biometric-tracker` | 52-54 | Uses throw pattern for auth failures | Medium |
-| A3 | `gated-biological-fusion` | 52-54 | Uses throw pattern for auth failures | Medium |
-| A4 | `intelligence-session-runner` | 222-225 | Uses throw pattern for auth failures | Medium |
-| A5 | `omniscient-orchestrator` | 33 | Missing auth validation entirely - accepts body.userId without verification | **HIGH** |
-| A6 | `psychoagent-cascade-predictor` | 63-65 | Missing auth header validation - directly reads from body | **HIGH** |
-| A7 | `synthetic-memory-generator` | 53-54 | Missing auth header validation - directly reads from body | **HIGH** |
-
-**Fix**: Replace throw pattern with explicit HTTP 401 Response returns and add dual-auth pattern.
-
----
-
-### CATEGORY B: Table Name Mismatches (5 issues)
-
-Functions querying non-existent `relationships` table instead of `contact_relationships`.
+Functions that accept body parameters without verifying authorization:
 
 | # | Function | Lines | Issue | Severity |
 |---|----------|-------|-------|----------|
-| B1 | `tas-com-community-detector` | 61-64 | Queries `relationships` table - should be `contact_relationships` | **HIGH** |
-| B2 | `emotional-contagion-modeler` | 80 | Queries `relationships` table - should be `contact_relationships` | **HIGH** |
-| B3 | `social-graph-predictor` | 51-55 | Queries `relationships` table - should be `contact_relationships`, also uses wrong column names (`source_profile_id`/`target_profile_id` should be `from_profile_id`/`to_profile_id`) | **HIGH** |
-| B4 | `emotional-contagion-modeler` | 196 | Uses `r.related_profile_id` which doesn't exist on `contact_relationships` (should be `to_profile_id`) | Medium |
-| B5 | `tas-com-community-detector` | 173-176 | Uses `rel.related_profile_id` which doesn't exist (should be `to_profile_id`) | Medium |
-
-**Fix**: Replace `relationships` with `contact_relationships` and correct column names.
-
----
-
-### CATEGORY C: Missing Dual-Auth Pattern (8 issues)
-
-Functions that don't properly support the intelligence-session-runner's service role key authentication.
-
-| # | Function | Lines | Issue | Severity |
-|---|----------|-------|-------|----------|
-| C1 | `tas-com-community-detector` | 34-47 | Only uses user token auth, no service role support | **HIGH** |
-| C2 | `psychoagent-cascade-predictor` | 52-65 | No auth header validation, just reads body params | **HIGH** |
-| C3 | `synthetic-memory-generator` | 42-55 | No auth header validation | **HIGH** |
-| C4 | `omniscient-orchestrator` | 27-33 | No auth header validation | **HIGH** |
-| C5 | `influence-campaign-optimizer` | 34-48 | No auth header validation | **HIGH** |
-| C6 | `predictive-doctrine-engine` | 34-48 | No auth header validation | **HIGH** |
-| C7 | `social-graph-predictor` | 34-48 | No auth header validation | **HIGH** |
-| C8 | `memetic-propagation-engine` | 41-71 | Has dual-auth but throws error instead of returning 401 | Medium |
+| A1 | `autonomous-intelligence-orchestrator` | 53-59 | Accepts `userId` from body without auth header validation | HIGH |
+| A2 | `agis-cascade-orchestrator` | 54 | Accepts `userId` from body without dual-auth pattern | HIGH |
+| A3 | `akashic-query-engine` | 27 | Accepts `userId`, `profileId` from body without auth validation | HIGH |
+| A4 | `breaking-point-calculator` | 54 | Accepts body params without auth pattern | HIGH |
+| A5 | `behavioral-future-modeler` | 127 | Missing auth header check entirely | MEDIUM |
+| A6 | `action-intelligence-engine` | 15 | No auth pattern at all | HIGH |
 
 **Fix**: Add standardized dual-auth pattern to all functions.
 
 ---
 
-### CATEGORY D: Column Name Mismatches (4 issues)
+### CATEGORY B: Incorrect Column/Field Names (4 issues)
 
 | # | Function | Lines | Issue | Severity |
 |---|----------|-------|-------|----------|
-| D1 | `social-graph-predictor` | 54 | Uses `source_profile_id`/`target_profile_id` - should be `from_profile_id`/`to_profile_id` | **HIGH** |
-| D2 | `emotional-contagion-modeler` | 82 | Queries `ai_analyses.analysis_type = 'network_centrality'` and accesses `results` instead of `result` | Medium |
-| D3 | `emotional-contagion-modeler` | 159 | Uses `results` field in upsert - should be `result` | Medium |
-| D4 | `psychoagent-cascade-predictor` | 81-82 | Orders by `created_at` for `behavioral_predictions` which might not exist | Low |
+| B1 | `betrayal-likelihood-scorer` | 144 | Uses `m.direction` but messages table has `is_from_contact` | MEDIUM |
+| B2 | `action-recommendation-engine` | 178 | Uses `personality_profiles.user_id` which should be joined through profiles | LOW |
+| B3 | `sacred-value-predictor` | 192 | Uses `c.notes` for communications but field is `content` | MEDIUM |
+| B4 | `behavioral-digital-twin` | 357-363 | Missing dual-auth pattern, only uses user token | MEDIUM |
 
-**Fix**: Correct column/field names to match actual database schema.
+**Fix**: Correct field references to match actual database schema.
 
 ---
 
-### CATEGORY E: Potential Race Conditions & Open Loops (3 issues)
+### CATEGORY C: Missing Dual-Auth Pattern (8 issues)
+
+Functions that don't support service role key authentication from the runner:
 
 | # | Function | Lines | Issue | Severity |
 |---|----------|-------|-------|----------|
-| E1 | `zero-day-anomaly-detector` | 232-245 | Loop inserts into `behavioral_anomalies` one at a time - could cause rate limiting or partial failures | Medium |
-| E2 | `intelligence-session-runner` | 708-726 | `Promise.all` with batch of 3 tasks runs in parallel without batch-level timeout | Medium |
-| E3 | `emotional-contagion-modeler` | 276-315 | Nested loops with random susceptibility checks could behave unpredictably | Low |
+| C1 | `autonomous-intelligence-orchestrator` | 46-59 | No auth at all - trusts body.userId | HIGH |
+| C2 | `agis-cascade-orchestrator` | 49-61 | No auth validation | HIGH |
+| C3 | `akashic-query-engine` | 26-47 | No auth validation | HIGH |
+| C4 | `breaking-point-calculator` | 48-61 | No auth validation | HIGH |
+| C5 | `behavioral-digital-twin` | 348-363 | User token only, no service role support | MEDIUM |
+| C6 | `behavioral-future-modeler` | 121-133 | No auth header check | MEDIUM |
+| C7 | `behavioral-economics-engine` | 375-386 | Throws error for auth, no dual-auth | MEDIUM |
+| C8 | `action-intelligence-engine` | 14-22 | No auth at all | HIGH |
 
-**Fix**: Add batch inserts and timeout guards.
+**Fix**: Add the standard dual-auth pattern.
 
 ---
 
-### CATEGORY F: Missing Query Limits (4 issues)
+### CATEGORY D: Query Issues & Missing Limits (5 issues)
 
 | # | Function | Lines | Issue | Severity |
 |---|----------|-------|-------|----------|
-| F1 | `omniscient-orchestrator` | 44-77 | Multiple queries without explicit limits on some tables | Medium |
-| F2 | `autonomous-intelligence-orchestrator` | 82-131 | Some queries have limits, but some don't consistently apply them | Low |
-| F3 | `deep-intelligence-engine` | 153-159 | Query to `messages` with join could return unbounded data | Low |
-| F4 | `mosaic-intelligence-fuser` | 89-121 | Many parallel queries - good limits but potential for heavy load | Low |
+| D1 | `autonomous-intelligence-orchestrator` | 393-396 | Query `profiles` without limit in `full_sweep` action | MEDIUM |
+| D2 | `akashic-query-engine` | 42 | Queries `contact_interaction_notes` with limit 100 but joins without proper filtering | LOW |
+| D3 | `sacred-value-predictor` | 76 | Query to `communications` uses `occurred_at` correctly but `notes` field doesn't exist | MEDIUM |
+| D4 | `counterfactual-engine` | 153-175 | While loop without safety counter in `applyIntervention` | LOW |
+| D5 | `action-recommendation-engine` | 177 | Messages query uses correct pattern but `personality_profiles` join by user_id may return wrong records | LOW |
 
-**Fix**: Add explicit `.limit()` to all queries.
+**Fix**: Add query limits, correct field names, add loop guards.
 
 ---
 
-### CATEGORY G: Type Safety Issues (5 issues)
+### CATEGORY E: Throw Pattern for Auth Errors (4 issues)
+
+Functions using `throw new Error()` instead of returning proper HTTP 401:
 
 | # | Function | Lines | Issue | Severity |
 |---|----------|-------|-------|----------|
-| G1 | `emotional-contagion-modeler` | 191 | Accesses `networkAnalysis?.results` but should be `.result` | Medium |
-| G2 | `tas-com-community-detector` | 76-79 | Accesses `.data` without null guards after Promise.all | Low |
-| G3 | `psychoagent-cascade-predictor` | 168-199 | Multiple functions access array elements without bounds checking | Low |
-| G4 | `synthetic-memory-generator` | 170-177 | Accesses `b.prediction_type` without null checks | Low |
-| G5 | `temporal-fusion-transformer` | 273-274 | Accesses `i.relationship_temperature` without null guards | Low |
+| E1 | `behavioral-economics-engine` | 376-386 | `throw new Error('No authorization header')` and `throw new Error('Unauthorized')` | MEDIUM |
+| E2 | `betrayal-likelihood-scorer` | 41-45 | Returns 401 correctly but could be improved for consistency | LOW |
+| E3 | `behavioral-fingerprint-engine` | 78 | Returns 401 correctly, good pattern | OK |
+| E4 | `behavioral-baseline-monitor` | 34-36 | Returns 401 correctly, good pattern | OK |
+
+**Fix**: Replace throw patterns with explicit HTTP 401 responses.
+
+---
+
+### CATEGORY F: Type Safety & Null Guards (5 issues)
+
+| # | Function | Lines | Issue | Severity |
+|---|----------|-------|-------|----------|
+| F1 | `sacred-value-predictor` | 192 | Accesses `c.notes` without null check - field doesn't exist anyway | MEDIUM |
+| F2 | `attachment-vulnerability-analyzer` | 501+ | Multiple regex patterns applied without null guards on messages | LOW |
+| F3 | `counterfactual-engine` | 155-175 | `queue.shift()!` assertion could fail on edge case | LOW |
+| F4 | `autonomous-intelligence-orchestrator` | 267-270 | Accesses `c.sentiment_score` without null check | LOW |
+| F5 | `action-recommendation-engine` | 201-204 | Optional chaining on finds but then accesses properties directly | LOW |
 
 **Fix**: Add proper null checks and type guards.
 
 ---
 
-### CATEGORY H: Error Response Format Inconsistency (6 issues)
+### CATEGORY G: Error Response Inconsistency (3 issues)
 
-Functions returning different error formats which can confuse client-side handling.
+| # | Function | Lines | Issue | Severity |
+|---|----------|-------|-------|----------|
+| G1 | `action-intelligence-engine` | 196-200 | Returns `{ success: false, error }` instead of standard `{ error }` | LOW |
+| G2 | `behavioral-economics-engine` | 467-470 | Returns `{ error }` only - standard pattern OK | OK |
+| G3 | `autonomous-intelligence-orchestrator` | 500-504 | Returns `{ error }` only - standard pattern OK | OK |
 
-| # | Function | Issue | Severity |
-|---|----------|-------|----------|
-| H1 | `thermal-stress-detector` | Returns `{ success: false, error }` on failure | Low |
-| H2 | `influence-campaign-optimizer` | Returns `{ error }` only | Low |
-| H3 | `predictive-doctrine-engine` | Returns `{ error }` only | Low |
-| H4 | `social-graph-predictor` | Returns `{ error }` only | Low |
-| H5 | `omniscient-orchestrator` | Returns `{ error }` only | Low |
-| H6 | Various | Mix of `success: true/false` vs just `error` key | Low |
-
-**Fix**: Standardize on `{ error: string }` for failures, `{ success: true, ...data }` for success.
+**Fix**: Standardize error responses.
 
 ---
 
 ## Implementation Plan
 
-### Phase 1: Critical Auth & Schema Fixes (HIGH Priority)
+### Phase 1: Critical Auth Fixes (HIGH Priority) - 8 functions
 
-```text
-1. tas-com-community-detector
-   - Add dual-auth pattern (lines 34-47)
-   - Replace 'relationships' with 'contact_relationships' (line 61)
-   - Fix column names: related_profile_id -> to_profile_id (lines 173-176)
+1. **autonomous-intelligence-orchestrator** (Lines 46-59)
+   - Add dual-auth pattern
+   - Validate auth header before accepting userId from body
+
+2. **agis-cascade-orchestrator** (Lines 49-61)
+   - Add dual-auth pattern
+   - Replace body param trust with auth validation
+
+3. **akashic-query-engine** (Lines 26-47)
+   - Add dual-auth pattern
+   - Validate before accepting userId/profileId
+
+4. **breaking-point-calculator** (Lines 48-61)
+   - Add dual-auth pattern
+   
+5. **action-intelligence-engine** (Lines 14-22)
+   - Add complete auth handling with dual-auth pattern
+
+6. **behavioral-digital-twin** (Lines 348-363)
+   - Add service role key detection
+   - Support runner calls
+
+7. **behavioral-future-modeler** (Lines 121-133)
+   - Add auth header validation
+
+8. **behavioral-economics-engine** (Lines 375-386)
    - Replace throw with HTTP 401 response
+   - Add dual-auth pattern
 
-2. emotional-contagion-modeler
-   - Replace 'relationships' with 'contact_relationships' (line 80)
-   - Fix column name: related_profile_id -> to_profile_id (line 196)
-   - Fix field name: results -> result (lines 82, 159)
+### Phase 2: Schema & Field Corrections (MEDIUM Priority) - 3 functions
 
-3. social-graph-predictor
-   - Add dual-auth pattern (lines 34-48)
-   - Replace 'relationships' with 'contact_relationships' (line 51-55)
-   - Fix column names: source_profile_id/target_profile_id -> from_profile_id/to_profile_id
+9. **betrayal-likelihood-scorer** (Line 144)
+   - Change `m.direction` to correct pattern (messages have `is_from_contact`)
 
-4. omniscient-orchestrator
-   - Add auth validation with dual-auth pattern (lines 27-33)
+10. **sacred-value-predictor** (Line 192)
+   - Change `c.notes` to `c.content` for communications
 
-5. psychoagent-cascade-predictor
-   - Add auth header validation with dual-auth pattern (lines 52-65)
+11. **autonomous-intelligence-orchestrator** (Line 393)
+   - Add `.limit()` to profiles query in `full_sweep`
 
-6. synthetic-memory-generator
-   - Add auth header validation with dual-auth pattern (lines 42-55)
+### Phase 3: Safety & Type Guards (LOW Priority) - 2 functions
 
-7. influence-campaign-optimizer
-   - Add auth header validation with dual-auth pattern (lines 34-48)
+12. **counterfactual-engine** (Lines 153-175)
+   - Add safety counter to while loop
 
-8. predictive-doctrine-engine
-   - Add auth header validation with dual-auth pattern (lines 34-48)
-```
-
-### Phase 2: Auth Pattern Standardization (Medium Priority)
-
-```text
-9. migration5-biometric-tracker
-   - Replace throw with HTTP 401 response (lines 52-54)
-
-10. gated-biological-fusion
-    - Replace throw with HTTP 401 response (lines 52-54)
-
-11. intelligence-session-runner
-    - Replace throw with HTTP 401 response (lines 222-225)
-
-12. memetic-propagation-engine
-    - Replace throw with HTTP 401 response (line 65)
-```
-
-### Phase 3: Type Safety & Query Improvements (Low Priority)
-
-```text
-13. zero-day-anomaly-detector
-    - Batch insert anomalies instead of one-at-a-time (lines 232-245)
-
-14. psychoagent-cascade-predictor
-    - Add null guards for behavioral data access (lines 168-199)
-
-15. temporal-fusion-transformer
-    - Add null guards for interaction data (lines 273-274)
-```
+13. **autonomous-intelligence-orchestrator** (Lines 267-270)
+   - Add null guard for `c.sentiment_score`
 
 ---
 
-## Summary
+## Summary Table
 
 | Category | Issues Found | Severity Distribution |
 |----------|-------------|----------------------|
-| Authentication | 7 | 4 High, 3 Medium |
-| Table Mismatches | 5 | 3 High, 2 Medium |
-| Missing Dual-Auth | 8 | 7 High, 1 Medium |
-| Column Mismatches | 4 | 1 High, 2 Medium, 1 Low |
-| Race Conditions | 3 | 2 Medium, 1 Low |
-| Missing Limits | 4 | 1 Medium, 3 Low |
+| Missing Auth Validation | 6 | 5 High, 1 Medium |
+| Incorrect Field Names | 4 | 2 Medium, 2 Low |
+| Missing Dual-Auth | 8 | 4 High, 4 Medium |
+| Query Issues | 5 | 2 Medium, 3 Low |
+| Throw Pattern Auth | 4 | 1 Medium, 3 OK/Low |
 | Type Safety | 5 | 1 Medium, 4 Low |
-| Error Format | 6 | All Low |
-| **TOTAL** | **42** | **15 High, 11 Medium, 16 Low** |
+| Error Response | 3 | All Low/OK |
+| **TOTAL** | **35** | **9 High, 10 Medium, 16 Low** |
 
 ---
 
 ## Files To Be Modified
 
-1. `supabase/functions/tas-com-community-detector/index.ts` - 4 fixes
-2. `supabase/functions/emotional-contagion-modeler/index.ts` - 4 fixes
-3. `supabase/functions/social-graph-predictor/index.ts` - 3 fixes
-4. `supabase/functions/omniscient-orchestrator/index.ts` - 1 fix
-5. `supabase/functions/psychoagent-cascade-predictor/index.ts` - 2 fixes
-6. `supabase/functions/synthetic-memory-generator/index.ts` - 1 fix
-7. `supabase/functions/influence-campaign-optimizer/index.ts` - 1 fix
-8. `supabase/functions/predictive-doctrine-engine/index.ts` - 1 fix
-9. `supabase/functions/migration5-biometric-tracker/index.ts` - 1 fix
-10. `supabase/functions/gated-biological-fusion/index.ts` - 1 fix
-11. `supabase/functions/intelligence-session-runner/index.ts` - 1 fix
-12. `supabase/functions/memetic-propagation-engine/index.ts` - 1 fix
-13. `supabase/functions/zero-day-anomaly-detector/index.ts` - 1 fix
-14. `supabase/functions/temporal-fusion-transformer/index.ts` - 1 fix
+1. `supabase/functions/autonomous-intelligence-orchestrator/index.ts` - Add dual-auth, fix query limit
+2. `supabase/functions/agis-cascade-orchestrator/index.ts` - Add dual-auth
+3. `supabase/functions/akashic-query-engine/index.ts` - Add dual-auth
+4. `supabase/functions/breaking-point-calculator/index.ts` - Add dual-auth
+5. `supabase/functions/action-intelligence-engine/index.ts` - Add complete auth
+6. `supabase/functions/behavioral-digital-twin/index.ts` - Add dual-auth support
+7. `supabase/functions/behavioral-future-modeler/index.ts` - Add auth validation
+8. `supabase/functions/behavioral-economics-engine/index.ts` - Fix auth pattern
+9. `supabase/functions/betrayal-likelihood-scorer/index.ts` - Fix field name
+10. `supabase/functions/sacred-value-predictor/index.ts` - Fix field name
+11. `supabase/functions/counterfactual-engine/index.ts` - Add loop guard
 
-**Total: 14 files, ~50 line modifications**
+**Total: 11 files, ~80 line modifications**
 
 ---
 
 ## Deployment Order
 
-1. **Immediate (Critical)**: Fix 8 functions with missing/broken auth patterns + table name issues
-2. **Priority (Medium)**: Fix 4 functions with throw-based auth error handling
-3. **Standard (Low)**: Apply type safety and batch improvements to remaining 2 functions
+1. **Phase 1 (Critical)**: Fix 8 functions with missing/broken auth patterns
+2. **Phase 2 (Medium)**: Fix 3 functions with schema/field mismatches  
+3. **Phase 3 (Low)**: Apply safety improvements to 2 remaining functions
 
-All fixes in each phase can be implemented in parallel. After deployment, use "Retry Failed" on the intelligence session to validate all 94 tasks complete successfully.
+After deployment, all 94+ intelligence tasks should execute without auth failures.
 
+---
+
+## Dual-Auth Pattern Template
+
+The standard pattern to be applied:
+
+```typescript
+// Handle both user tokens and service role calls
+const authHeader = req.headers.get('Authorization');
+const body = await req.json();
+
+// Normalize parameter names
+const profileId = body.profileId || body.profile_id;
+let userId = body.userId || body.user_id;
+
+// Check if service role call or user token
+const token = authHeader?.replace('Bearer ', '');
+const isServiceRoleCall = token === supabaseServiceKey;
+
+if (!isServiceRoleCall && authHeader) {
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token!);
+  if (!authError && user) {
+    userId = user.id;
+  } else if (!userId) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+if (!userId && !isServiceRoleCall) {
+  return new Response(JSON.stringify({ error: 'userId is required' }), {
+    status: 400,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+```
