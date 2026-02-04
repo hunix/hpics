@@ -1,8 +1,8 @@
 /**
- * Infrastructure Repositories - Barrel Export (v3.9.0)
+ * Infrastructure Repositories - Barrel Export (v4.0.0)
  * 
  * Concrete Supabase implementations of domain repository interfaces.
- * Analysis repositories now split into modular files in analysis/ folder.
+ * Includes new unified analysis repository for consolidated storage.
  */
 
 export { SupabaseProfileRepository } from './SupabaseProfileRepository';
@@ -22,3 +22,16 @@ export {
 // Fusion repositories (v3.9.0)
 export { SupabaseFusionRepository } from './SupabaseFusionRepository';
 export { SupabaseDigitalTwinRepository } from './SupabaseDigitalTwinRepository';
+
+// Unified repositories (v4.0.0 - Consolidation)
+export { 
+  UnifiedAnalysisRepository,
+  getUnifiedAnalysisRepository,
+  type UnifiedAnalysis,
+  type AnalysisInput,
+  type AnalysisFilters,
+  type AnalysisDomain,
+  type RiskLevel,
+  LEGACY_TYPE_MAP,
+  mapLegacyType,
+} from './UnifiedAnalysisRepository';
