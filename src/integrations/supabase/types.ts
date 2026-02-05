@@ -37091,6 +37091,82 @@ export type Database = {
           },
         ]
       }
+      unified_analysis_store: {
+        Row: {
+          analysis_domain: string
+          analysis_type: string
+          confidence_score: number | null
+          cost_cents: number | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          model_used: string | null
+          processing_time_ms: number | null
+          profile_id: string | null
+          result: Json
+          risk_level: string | null
+          source_ids: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          analysis_domain: string
+          analysis_type: string
+          confidence_score?: number | null
+          cost_cents?: number | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          model_used?: string | null
+          processing_time_ms?: number | null
+          profile_id?: string | null
+          result?: Json
+          risk_level?: string | null
+          source_ids?: string[] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          analysis_domain?: string
+          analysis_type?: string
+          confidence_score?: number | null
+          cost_cents?: number | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          model_used?: string | null
+          processing_time_ms?: number | null
+          profile_id?: string | null
+          result?: Json
+          risk_level?: string | null
+          source_ids?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unified_analysis_store_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "unified_analysis_store_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "unified_analysis_store_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       unified_control_matrix: {
         Row: {
           constraint_violations: Json | null
@@ -37141,6 +37217,82 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      unified_event_log: {
+        Row: {
+          correlation_id: string | null
+          created_at: string | null
+          event_data: Json
+          event_domain: string
+          event_type: string
+          id: string
+          ip_address: unknown
+          parent_event_id: string | null
+          profile_id: string | null
+          severity: string | null
+          source_component: string | null
+          source_function: string | null
+          trace_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          correlation_id?: string | null
+          created_at?: string | null
+          event_data?: Json
+          event_domain: string
+          event_type: string
+          id?: string
+          ip_address?: unknown
+          parent_event_id?: string | null
+          profile_id?: string | null
+          severity?: string | null
+          source_component?: string | null
+          source_function?: string | null
+          trace_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          correlation_id?: string | null
+          created_at?: string | null
+          event_data?: Json
+          event_domain?: string
+          event_type?: string
+          id?: string
+          ip_address?: unknown
+          parent_event_id?: string | null
+          profile_id?: string | null
+          severity?: string | null
+          source_component?: string | null
+          source_function?: string | null
+          trace_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unified_event_log_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "unified_event_log_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "unified_event_log_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       unified_field_control: {
         Row: {
@@ -37253,6 +37405,85 @@ export type Database = {
           },
           {
             foreignKeyName: "unified_intelligence_feed_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unified_prediction_store: {
+        Row: {
+          accuracy_score: number | null
+          actual_outcome: Json | null
+          created_at: string | null
+          expires_at: string | null
+          factors: Json | null
+          id: string
+          model_used: string | null
+          prediction: Json
+          prediction_domain: string
+          prediction_type: string
+          probability: number | null
+          profile_id: string | null
+          time_horizon_days: number | null
+          updated_at: string | null
+          user_id: string
+          validated_at: string | null
+        }
+        Insert: {
+          accuracy_score?: number | null
+          actual_outcome?: Json | null
+          created_at?: string | null
+          expires_at?: string | null
+          factors?: Json | null
+          id?: string
+          model_used?: string | null
+          prediction?: Json
+          prediction_domain: string
+          prediction_type: string
+          probability?: number | null
+          profile_id?: string | null
+          time_horizon_days?: number | null
+          updated_at?: string | null
+          user_id: string
+          validated_at?: string | null
+        }
+        Update: {
+          accuracy_score?: number | null
+          actual_outcome?: Json | null
+          created_at?: string | null
+          expires_at?: string | null
+          factors?: Json | null
+          id?: string
+          model_used?: string | null
+          prediction?: Json
+          prediction_domain?: string
+          prediction_type?: string
+          probability?: number | null
+          profile_id?: string | null
+          time_horizon_days?: number | null
+          updated_at?: string | null
+          user_id?: string
+          validated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unified_prediction_store_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "unified_prediction_store_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "unified_prediction_store_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -39534,6 +39765,13 @@ export type Database = {
           last_name: string
           mention_count: number
           profile_id: string
+        }[]
+      }
+      get_legacy_analysis_mapping: {
+        Args: { legacy_table: string }
+        Returns: {
+          analysis_type: string
+          domain: string
         }[]
       }
       get_media_folders: {

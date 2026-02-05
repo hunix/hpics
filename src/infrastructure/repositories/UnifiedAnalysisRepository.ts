@@ -76,42 +76,19 @@ export interface AnalysisFilters {
   limit?: number;
 }
 
-// Table name constant - change when table is created
+// Table name constant - unified table is now created (Phase 1 complete)
 const TABLE_NAME = 'unified_analysis_store';
-
-/**
- * Check if the unified_analysis_store table exists.
- * Returns false until Phase 1 migration is complete.
- * 
- * NOTE: This is a simple check - in production, the table existence
- * would be determined by configuration or environment variable.
- */
-async function tableExists(): Promise<boolean> {
-  // For now, return false as the table hasn't been created yet.
-  // After Phase 1 migration, this can check via a simple query or config.
-  // This prevents TypeScript errors from unknown table names.
-  return false;
-}
 
 /**
  * Repository for unified analysis operations.
  * Provides a clean interface for storing and retrieving all analysis types.
  * 
- * NOTE: Until the unified_analysis_store table is created, this will fall back
- * to using the existing ai_analyses table with type discrimination.
+ * Now uses the unified_analysis_store table created in Phase 1.
+ * Falls back to ai_analyses for legacy compatibility if needed.
  */
 export class UnifiedAnalysisRepository {
-  private useUnifiedTable = false;
-
-  constructor() {
-    // Check table existence on construction
-    tableExists().then(exists => {
-      this.useUnifiedTable = exists;
-      if (!exists) {
-        console.log('[UnifiedAnalysisRepository] Using ai_analyses fallback (unified table not yet created)');
-      }
-    });
-  }
+  // Phase 1 complete: unified table is now available
+  private useUnifiedTable = true;
 
   /**
    * Save or update an analysis result.
