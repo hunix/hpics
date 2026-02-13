@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { invokeFunction } from '@/lib/api';
 import { toast } from 'sonner';
 
 interface UseAutoAggregateOnCompletionOptions {
@@ -21,9 +21,18 @@ export function useAutoAggregateOnCompletion({
   autoAggregate = true,
   includeVoice = true
 }: UseAutoAggregateOnCompletionOptions) {
+  // Limit set size to prevent unbounded growth (keep last 20 session IDs)
   const hasAggregatedRef = useRef<Set<string>>(new Set());
   const isAggregatingRef = useRef(false);
   const isMountedRef = useRef(true);
+
+  // Clear old entries when sessionId changes to prevent memory leak
+  useEffect(() => {
+    if (hasAggregatedRef.current.size > 20) {
+      const entries = [...hasAggregatedRef.current];
+      hasAggregatedRef.current = new Set(entries.slice(-10));
+    }
+  }, [sessionId]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -48,42 +57,40 @@ export function useAutoAggregateOnCompletion({
       
       try {
         // First, aggregate media intelligence
-        const { data: aggregateResult, error: aggregateError } = await supabase.functions.invoke(
+        const { data: aggregateResult, error: aggregateError } = await invokeFunction(
           'aggregate-media-intelligence',
-          { body: { profile_id: profileId } }
+          { profile_id: profileId }
         );
 
         if (aggregateError) {
           console.error('[AutoAggregate] Media aggregation failed:', aggregateError);
         } else {
           console.log('[AutoAggregate] Media aggregation result:', aggregateResult);
-          mediaCount = aggregateResult?.extracted_count || 0;
+          mediaCount = (aggregateResult as Record<string, unknown>)?.extracted_count as number || 0;
         }
 
         // Aggregate voice intelligence if enabled
         if (includeVoice) {
-          const { data: voiceResult, error: voiceError } = await supabase.functions.invoke(
+          const { data: voiceResult, error: voiceError } = await invokeFunction(
             'aggregate-voice-intelligence',
-            { body: { profile_id: profileId } }
+            { profile_id: profileId }
           );
 
           if (voiceError) {
             console.error('[AutoAggregate] Voice aggregation failed:', voiceError);
           } else {
             console.log('[AutoAggregate] Voice aggregation result:', voiceResult);
-            voiceCount = voiceResult?.insights_count || 0;
+            voiceCount = (voiceResult as Record<string, unknown>)?.insights_count as number || 0;
           }
         }
 
         // Then, generate/update intelligence dossier
-        const { data: dossierResult, error: dossierError } = await supabase.functions.invoke(
+        const { data: dossierResult, error: dossierError } = await invokeFunction(
           'generate-intelligence-dossier',
           { 
-            body: { 
-              profile_id: profileId,
-              include_actionable: true,
-              depth: 'full'
-            } 
+            profile_id: profileId,
+            include_actionable: true,
+            depth: 'full',
           }
         );
 

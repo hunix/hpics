@@ -3,7 +3,7 @@
  * AGIS Phase 5 - Memory leak prevention and subscription management
  */
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -25,11 +25,15 @@ export function useQueryCleanup(options: CleanupOptions = {}) {
   const queryClient = useQueryClient();
   const { queryKeys = [], cancelOnUnmount = true, cleanupDelay = 0 } = options;
 
+  // Stabilize queryKeys to prevent re-running effect on every render
+  const serializedKeys = useMemo(() => JSON.stringify(queryKeys), [queryKeys]);
+
   useEffect(() => {
     return () => {
+      const keys = JSON.parse(serializedKeys) as string[][];
       const cleanup = () => {
         if (cancelOnUnmount) {
-          queryKeys.forEach(queryKey => {
+          keys.forEach(queryKey => {
             queryClient.cancelQueries({ queryKey });
           });
         }
@@ -41,7 +45,7 @@ export function useQueryCleanup(options: CleanupOptions = {}) {
         cleanup();
       }
     };
-  }, [queryClient, queryKeys, cancelOnUnmount, cleanupDelay]);
+  }, [queryClient, serializedKeys, cancelOnUnmount, cleanupDelay]);
 }
 
 /**

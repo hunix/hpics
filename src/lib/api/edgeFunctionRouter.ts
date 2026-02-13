@@ -267,6 +267,7 @@ const ROUTE_MAP: Record<string, RouterRoute> = {
   'sentiment-cascade-predictor': { router: 'fusion-router', path: '/sentiment-cascade' },
   'graph-rag-engine': { router: 'fusion-router', path: '/graph-rag' },
   'digital-twin-generator': { router: 'fusion-router', path: '/digital-twin' },
+  'digital-twin-simulator': { router: 'fusion-router', path: '/digital-twin-simulator' },
   'behavioral-digital-twin': { router: 'fusion-router', path: '/behavioral-twin' },
   'counterfactual-engine': { router: 'fusion-router', path: '/counterfactual' },
   'attention-multimodal-fuser': { router: 'fusion-router', path: '/multimodal-fuser' },
@@ -433,7 +434,8 @@ export async function invokeFunction<T = unknown>(
           ...body,
           _route: route.path,
         },
-        ...(options.signal ? {} : {}),
+        // Note: supabase.functions.invoke does not natively support AbortSignal.
+        // For cancellation, callers should use Promise.race with AbortSignal externally.
       });
 
       if (error) {

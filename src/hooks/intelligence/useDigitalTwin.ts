@@ -7,6 +7,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { invokeFunction } from '@/lib/api';
 
 export interface DigitalTwinRecord {
   id: string;
@@ -57,13 +58,11 @@ export function useDigitalTwin(profileId?: string) {
       profileId: string;
       twinType: 'cognitive' | 'behavioral' | 'social' | 'full';
     }) => {
-      // Call edge function for twin generation
-      const { data, error } = await supabase.functions.invoke('digital-twin-generator', {
-        body: {
-          userId: user!.id,
-          profileId: input.profileId,
-          twinType: input.twinType
-        }
+      // Call edge function for twin generation via adapter
+      const { data, error } = await invokeFunction('digital-twin-generator', {
+        userId: user!.id,
+        profileId: input.profileId,
+        twinType: input.twinType,
       });
 
       if (error) throw error;
@@ -80,13 +79,11 @@ export function useDigitalTwin(profileId?: string) {
       scenario: string;
       conditions?: Record<string, unknown>;
     }) => {
-      const { data, error } = await supabase.functions.invoke('digital-twin-simulator', {
-        body: {
-          userId: user!.id,
-          twinId: input.twinId,
-          scenario: input.scenario,
-          conditions: input.conditions || {}
-        }
+      const { data, error } = await invokeFunction('digital-twin-simulator', {
+        userId: user!.id,
+        twinId: input.twinId,
+        scenario: input.scenario,
+        conditions: input.conditions || {},
       });
 
       if (error) throw error;

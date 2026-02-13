@@ -20,6 +20,7 @@ export interface AIBudgetData {
   daily: BudgetStatus;
   weekly: BudgetStatus;
   monthly: BudgetStatus;
+  alertsEnabled: boolean;
   isLoading: boolean;
   refetch: () => void;
   wouldExceedBudget: (additionalCostCents: number) => BudgetWarning;
@@ -34,7 +35,7 @@ export function useAIBudget(): AIBudgetData {
       if (!user) return null;
       const { data, error } = await supabase
         .from('user_preferences')
-        .select('ai_budget_daily_limit_cents, ai_budget_weekly_limit_cents, ai_budget_monthly_limit_cents')
+        .select('ai_budget_daily_limit_cents, ai_budget_weekly_limit_cents, ai_budget_monthly_limit_cents, ai_budget_alerts_enabled')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -112,6 +113,7 @@ export function useAIBudget(): AIBudgetData {
   const daily = createStatus(usage?.dailySpent || 0, (preferences as any)?.ai_budget_daily_limit_cents);
   const weekly = createStatus(usage?.weeklySpent || 0, (preferences as any)?.ai_budget_weekly_limit_cents);
   const monthly = createStatus(usage?.monthlySpent || 0, (preferences as any)?.ai_budget_monthly_limit_cents);
+  const alertsEnabled: boolean = (preferences as any)?.ai_budget_alerts_enabled ?? true;
 
   const wouldExceedBudget = (additionalCostCents: number): BudgetWarning => {
     if (daily.budget !== null && daily.spent + additionalCostCents > daily.budget) {
@@ -130,6 +132,7 @@ export function useAIBudget(): AIBudgetData {
     daily,
     weekly,
     monthly,
+    alertsEnabled,
     isLoading: !user ? false : (prefsLoading || usageLoading),
     refetch,
     wouldExceedBudget,
