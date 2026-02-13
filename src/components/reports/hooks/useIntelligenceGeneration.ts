@@ -12,6 +12,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeFunction } from '@/lib/api/edgeFunctionRouter';
 import { toast } from 'sonner';
 import type { TaskResult } from '../sections/types';
 import { getEdgeFunctionBreaker, CircuitOpenError, getOpenEdgeFunctionBreakers, getTimeUntilReset } from '@/lib/circuitBreaker';
@@ -65,9 +66,7 @@ async function invokeWithRetry(
         const timeoutId = setTimeout(() => controller.abort(), INVOKE_TIMEOUT_MS);
         
         try {
-          const response = await supabase.functions.invoke(edgeFunction, {
-            body,
-          });
+          const response = await invokeFunction(edgeFunction, body, { signal: controller.signal });
           
           clearTimeout(timeoutId);
           
@@ -296,7 +295,7 @@ export function useIntelligenceGeneration() {
   // Initialize retry queue with invoker
   useEffect(() => {
     intelligenceRetryQueue.setInvoker(async (edgeFunction, body) => {
-      const result = await supabase.functions.invoke(edgeFunction, { body });
+      const result = await invokeFunction(edgeFunction, body);
       if (result.error) throw new Error(result.error.message);
       return { data: result.data, error: null };
     });

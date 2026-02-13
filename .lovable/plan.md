@@ -10,6 +10,9 @@
 - Phase 3 (Frontend Architecture): ✅ COMPLETE
   - 3.1 Domain-specific type modules: ✅ COMPLETE
   - 3.2 Lazy DI Container: ✅ COMPLETE
+  - 3.3 Route-level code splitting: ✅ COMPLETE (all pages use lazyWithRetry)
+  - 3.4 Barrel export cleanup: ✅ COMPLETE (warfare, renderers fixed)
+  - 3.5 Frontend invocation layer: ✅ COMPLETE (useIntelligenceGeneration wired to invokeFunction)
 - Phase 4 (Performance & Reliability): ✅ COMPLETE
   - 4.1 Router-level circuit breakers (`src/lib/api/routerCircuitBreaker.ts`): ✅ COMPLETE
   - 4.2 DB performance indexes (9 indexes on unified tables): ✅ COMPLETE

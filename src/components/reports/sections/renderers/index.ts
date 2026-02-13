@@ -4,7 +4,7 @@
  * 124 sections across 6 categories - aligned with DEFAULT_SECTIONS
  */
 
-export * from './types';
+export type { PDFContext, DossierDataResult, ExtendedDossierData, SectionRenderer, SectionRendererMap } from './types';
 
 export { coreSectionRenderers, renderExecutiveBrief, renderSourceDashboard, renderContactOverview, renderTimeline, renderPatternOfLife, renderRelationshipEcosystem, renderMediaIntel, renderVoiceIntel, renderAnomalyDetection } from './CoreSectionRenderers';
 export { intelligenceSectionRenderers, renderMICE, renderCialdini, renderPsychologicalProfile, renderTrust, renderBehavioralDNA, renderQuantumCognition, renderRelationship, renderPlaybook, renderHypnoticPatterns, renderElicitation, renderCognitiveLoad, renderDarkTetrad, renderInfluenceVectors, renderFinancialPsychology, renderSacredValues, renderDeceptionAnalysis } from './IntelligenceSectionRenderers';

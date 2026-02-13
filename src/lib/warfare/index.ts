@@ -99,14 +99,32 @@ export {
   type ExtractedInfo,
 } from './elicitationTechniques';
 
-// Re-export remaining warfare modules (types/constants only where applicable)
-// These modules export their own types - import directly for full access
-export * from './opsecVulnerabilityFramework';
-export * from './socialEngineeringPatterns';
-export * from './lawfareDefensePlaybook';
-export * from './reputationDefenseProtocols';
-export * from './familyProtectionMatrix';
-export * from './crisisResponsePlaybooks';
-export * from './behavioralAnomalyPatterns';
-export * from './economicWarfareIndicators';
-export * from './technicalCountermeasures';
+// Warfare defense modules - import directly from individual files for full access
+// These are listed here for discoverability but should be imported from their own files
+export type { OPSECVulnerability, OPSECCategory, DigitalFootprintItem, MetadataLeakage, CorrelationVector } from './opsecVulnerabilityFramework';
+export { calculateOPSECScore, OPSEC_FIVE_STEPS, DIGITAL_FOOTPRINT_CATEGORIES, METADATA_LEAKAGE_PATTERNS, COMMON_CORRELATION_ATTACKS, DATA_BROKER_OPTOUT_LIST } from './opsecVulnerabilityFramework';
+
+export type { SEAttackPattern, SECategory } from './socialEngineeringPatterns';
+export { detectSEPatterns, SE_ATTACK_PATTERNS, URGENCY_INDICATORS, AUTHORITY_INDICATORS, FEAR_INDICATORS, RECIPROCITY_INDICATORS } from './socialEngineeringPatterns';
+
+export type { LegalThreatPattern, LegalThreatCategory, CostEstimate, EvidencePreservationProtocol, CounterDocumentationItem, JurisdictionFactors } from './lawfareDefensePlaybook';
+export { generateCounterTimeline, SLAPP_INDICATORS, LEGAL_THREAT_PATTERNS, EVIDENCE_PRESERVATION_PROTOCOLS, US_JURISDICTION_ANALYSIS, EXPERT_WITNESS_NEEDS } from './lawfareDefensePlaybook';
+
+export type { ReputationThreat, ReputationThreatType, SourcePattern, NarrativeDefense, MessagingTemplate } from './reputationDefenseProtocols';
+export { BOT_NETWORK_INDICATORS, CIB_DETECTION_FRAMEWORK, REPUTATION_THREATS, NARRATIVE_DEFENSE_STRATEGIES, SENTIMENT_ALERT_THRESHOLDS, PLATFORM_ABUSE_REPORTING } from './reputationDefenseProtocols';
+
+export type { ProtectedPerson, ProtectedRelationship, AgeCategory, Vulnerability, VulnerabilityType, ProtectionProtocol, ProtocolCategory, EmergencyContact, DigitalExposure, SocialMediaPresence } from './familyProtectionMatrix';
+export { calculateFamilyRiskScore, RISK_ASSESSMENT_FACTORS, PROTECTION_PROTOCOLS, FAMILY_THREAT_SCENARIOS, AGE_APPROPRIATE_MEASURES, DIGITAL_EXPOSURE_CHECKLIST } from './familyProtectionMatrix';
+export type { RiskLevel as FamilyRiskLevel } from './familyProtectionMatrix';
+
+export type { CrisisPlaybook, CrisisCategory, PlaybookAction, StakeholderNotification, TimelinePhase } from './crisisResponsePlaybooks';
+export { OODA_LOOP, CRISIS_SEVERITY_MATRIX, CRISIS_PLAYBOOKS, ESCALATION_LEVELS, COUNTERMEASURE_TYPES } from './crisisResponsePlaybooks';
+
+export type { BehavioralBaseline, BaselineType, AnomalyDetection, SessionAnomaly, AnomalyScoreInput, BaselineBuilderConfig } from './behavioralAnomalyPatterns';
+export { calculateZScore, isAnomaly, calculateAnomalyRiskScore, determineAnomalySeverity, buildBaseline, DEFAULT_BASELINE_CONFIG, KEYSTROKE_DYNAMICS, MOUSE_MOVEMENT_PATTERNS, SESSION_PATTERNS, DEVICE_USAGE_PATTERNS, COMMUNICATION_PATTERNS, FINANCIAL_PATTERNS } from './behavioralAnomalyPatterns';
+
+export type { EconomicThreat, EconomicThreatType, AssetCategory, FinancialRedFlag, AssetProtectionStrategy, FinancialHealthIndicator } from './economicWarfareIndicators';
+export { ECONOMIC_THREATS, FINANCIAL_RED_FLAGS, ASSET_PROTECTION_STRATEGIES, PARTNER_FINANCIAL_HEALTH, INVESTMENT_SCAM_PATTERNS } from './economicWarfareIndicators';
+
+export type { TSCMSweepResult, TSCMSweepType, TSCMAnomaly, CompromiseIndicator, CompromiseCategory as TSCMCompromiseCategory, NetworkAnomaly } from './technicalCountermeasures';
+export { calculateCompromiseRiskScore, MOBILE_COMPROMISE_INDICATORS, COMPUTER_COMPROMISE_INDICATORS, CLOUD_COMPROMISE_INDICATORS, NETWORK_ANOMALY_PATTERNS, KEYLOGGER_DETECTION, SPYWARE_CATEGORIES, DEVICE_SECURITY_AUDIT, SECURE_COMMS_RECOMMENDATIONS } from './technicalCountermeasures';
