@@ -81,7 +81,7 @@ export function PushNotifications({ vapidPublicKey }: PushNotificationsProps) {
 
       if (isProductionMode) {
         // Production mode: Use real VAPID key
-        const existingSubscription = await registration.pushManager.getSubscription();
+        const existingSubscription = await (registration as any).pushManager.getSubscription();
         
         if (existingSubscription) {
           // Unsubscribe old subscription to get new one with correct VAPID key
@@ -89,7 +89,7 @@ export function PushNotifications({ vapidPublicKey }: PushNotificationsProps) {
         }
 
         const appServerKey = urlBase64ToUint8Array(vapidPublicKey!);
-        sub = await registration.pushManager.subscribe({
+        sub = await (registration as any).pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: appServerKey.buffer as ArrayBuffer
         });
@@ -148,7 +148,7 @@ export function PushNotifications({ vapidPublicKey }: PushNotificationsProps) {
 
       // Unregister from push manager
       const registration = await navigator.serviceWorker.ready;
-      const sub = await registration.pushManager.getSubscription();
+      const sub = await (registration as any).pushManager.getSubscription();
       if (sub) {
         await sub.unsubscribe();
       }

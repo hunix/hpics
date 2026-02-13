@@ -31,6 +31,15 @@ class DIContainer {
   }
 
   /**
+   * Register a service lazily - factory is only called on first resolve.
+   * Equivalent to register() with singleton lifetime but makes intent explicit.
+   */
+  registerLazy<T>(key: string, factory: ServiceFactory<T>): this {
+    this.services.set(key, { factory, lifetime: 'singleton' });
+    return this;
+  }
+
+  /**
    * Register a singleton instance directly
    */
   registerInstance<T>(key: string, instance: T): this {
