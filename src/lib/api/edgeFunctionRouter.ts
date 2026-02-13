@@ -446,12 +446,7 @@ export async function invokeFunction<T = unknown>(
     }
   }
 
-  // Fallback: direct invocation for unmigrated functions
-  console.warn(
-    `[DEPRECATION] Direct edge function invocation: "${functionName}" is not migrated to a domain router. ` +
-    `This fallback will be removed after 2026-03-15. Migrate to invokeFunction() with a router mapping.`
-  );
-  
+  // Fallback: direct invocation for unmigrated functions (legacy cleanup complete)
   try {
     const { data, error } = await supabase.functions.invoke(functionName, { body });
 
