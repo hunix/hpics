@@ -6,6 +6,7 @@
 
 export {
   invokeFunction,
+  invokeFn,
   isMigratedFunction,
   getRouterName,
   getFunctionsByRouter,

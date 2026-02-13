@@ -407,7 +407,138 @@ const ROUTE_MAP: Record<string, RouterRoute> = {
   'dark-web-monitor': { router: 'security-router', path: '/dark-web' },
   'dark2clear-deanonymization': { router: 'security-router', path: '/deanonymization' },
   'crisis-response-orchestrator': { router: 'security-router', path: '/crisis-response' },
+
+  // ═══════════════════════════════════════════
+  // MEDIA ROUTER (~10 functions)
+  // ═══════════════════════════════════════════
+  'generate-media-metadata-mosaic': { router: 'media-router', path: '/metadata-mosaic' },
+  'generate-media-metadata': { router: 'media-router', path: '/metadata' },
+  'analyze-media-deep': { router: 'media-router', path: '/deep' },
+  'analyze-communication-triangulation': { router: 'media-router', path: '/triangulation' },
+  'detect-shared-experiences': { router: 'media-router', path: '/shared-experiences' },
+  'affective-manipulation-detector': { router: 'media-router', path: '/affective-manipulation' },
+
+  // ═══════════════════════════════════════════
+  // ADDITIONAL SURVIVING STANDALONES (mapped to closest router)
+  // ═══════════════════════════════════════════
+  'trauma-exploitation-engine': { router: 'analysis-router', path: '/trauma' },
+  'temporal-fusion-transformer': { router: 'fusion-router', path: '/temporal-fusion' },
+  'unified-data-fusion': { router: 'fusion-router', path: '/unified-data' },
+  'differential-sync-engine': { router: 'utility-router', path: '/differential-sync' },
+  'thermal-intelligence': { router: 'hardware-router', path: '/thermal' },
+  'thermal-stress-detector': { router: 'analysis-router', path: '/thermal-stress' },
+  'threat-actor-profiler': { router: 'security-router', path: '/threat-actor' },
+  'vulnerability-window-detector': { router: 'analysis-router', path: '/vulnerability-window' },
+  'zero-day-anomaly-detector': { router: 'security-router', path: '/zero-day-anomaly' },
+  'voice-stress-correlator': { router: 'voice-router', path: '/stress-correlator' },
+  'tscm-intelligence': { router: 'hardware-router', path: '/tscm' },
+  'tscm-sweep-analyzer': { router: 'hardware-router', path: '/tscm-sweep' },
+  'synchronicity-engine': { router: 'agis-router', path: '/synchronicity' },
+  'synthetic-consensus-generator': { router: 'warfare-router', path: '/synthetic-consensus' },
+  'synthetic-memory-generator': { router: 'warfare-router', path: '/synthetic-memory' },
+  'tactical-negotiation-engine': { router: 'warfare-router', path: '/tactical-negotiation' },
+  'intelligence-tribunal-engine': { router: 'intelligence-router', path: '/tribunal' },
+  'trajectory-intercept-engine': { router: 'prediction-router', path: '/trajectory-intercept' },
+  'transcendent-analysis': { router: 'agis-router', path: '/transcendent' },
+  'warfare-verification-chamber': { router: 'warfare-router', path: '/verification-chamber' },
+  'calendar-pattern-analyzer': { router: 'intelligence-router', path: '/calendar-pattern' },
+  'deep-analyze-capture': { router: 'analysis-router', path: '/deep-capture' },
+  'deep-research-agent': { router: 'intelligence-router', path: '/deep-research' },
+  'generate-churn-intervention': { router: 'prediction-router', path: '/churn-intervention' },
+  'historical-analytics': { router: 'intelligence-router', path: '/historical-analytics' },
+  'perplexity-search': { router: 'enrichment-router', path: '/perplexity' },
+  'search-news': { router: 'enrichment-router', path: '/search-news' },
+  'search-tavily': { router: 'enrichment-router', path: '/search-tavily' },
+  'tas-com-community-detector': { router: 'network-router', path: '/community-detector' },
+  'track-community-evolution': { router: 'network-router', path: '/community-evolution' },
+  'train-behavior-model': { router: 'analysis-router', path: '/train-behavior' },
+  'universal-embedding-processor': { router: 'document-router', path: '/universal-embedding' },
+  'validate-observation': { router: 'intelligence-router', path: '/validate-observation' },
+  'batch-intelligence-init': { router: 'intelligence-router', path: '/batch-init' },
+  'process-bulk-queue': { router: 'intelligence-router', path: '/bulk-queue' },
+  'process-bulk-session-runner': { router: 'intelligence-router', path: '/bulk-session-runner' },
+  'process-bulk-upload': { router: 'intelligence-router', path: '/bulk-upload' },
+  'process-enrichment-queue': { router: 'enrichment-router', path: '/enrichment-queue' },
+  'process-scheduled-intelligence': { router: 'intelligence-router', path: '/scheduled-intelligence' },
+  'trigger-escalation': { router: 'utility-router', path: '/escalation' },
+  'trigger-push-notifications': { router: 'utility-router', path: '/trigger-push' },
+  'trigger-webhook': { router: 'utility-router', path: '/trigger-webhook' },
+  'update-app-version': { router: 'utility-router', path: '/app-version' },
+  'coercive-control-detector': { router: 'analysis-router', path: '/coercive-control' },
+  'economic-intelligence-engine': { router: 'intelligence-router', path: '/economic-intelligence' },
+  'economic-warfare-detector': { router: 'warfare-router', path: '/economic-warfare' },
+  'financial-intelligence-scan': { router: 'intelligence-router', path: '/financial-scan' },
+  'transcribe-audio': { router: 'voice-router', path: '/transcribe-audio' },
+  'transcribe-voice-note': { router: 'voice-router', path: '/transcribe-voice-note' },
+  'process-whatsapp-zip': { router: 'utility-router', path: '/whatsapp-zip' },
+  'relink-email-threads': { router: 'utility-router', path: '/relink-emails' },
+  'match-emails-to-contacts': { router: 'utility-router', path: '/match-emails' },
+  'sync-gmail-emails': { router: 'utility-router', path: '/sync-gmail' },
+  'sync-google-calendar': { router: 'utility-router', path: '/sync-google-calendar' },
+  'sync-outlook-calendar': { router: 'utility-router', path: '/sync-outlook-calendar' },
+  'sync-outlook-emails': { router: 'utility-router', path: '/sync-outlook-emails' },
+  'sync-location-history': { router: 'utility-router', path: '/sync-location' },
+  'sync-wearable-data': { router: 'utility-router', path: '/sync-wearable' },
+  'import-gmail-contacts': { router: 'utility-router', path: '/import-gmail-contacts' },
+  'import-mbox-emails': { router: 'utility-router', path: '/import-mbox' },
+  'import-outlook-contacts': { router: 'utility-router', path: '/import-outlook-contacts' },
+  'import-pst-emails': { router: 'utility-router', path: '/import-pst' },
+  'auto-sync-calendars': { router: 'utility-router', path: '/auto-sync-calendars' },
+  'gmail-oauth': { router: 'utility-router', path: '/gmail-oauth' },
+  'google-calendar-oauth': { router: 'utility-router', path: '/google-calendar-oauth' },
+  'outlook-oauth': { router: 'utility-router', path: '/outlook-oauth' },
+  'whatsapp-send': { router: 'utility-router', path: '/whatsapp-send' },
+  'whatsapp-webhook': { router: 'utility-router', path: '/whatsapp-webhook' },
+  'chrome-extension-bridge': { router: 'utility-router', path: '/chrome-bridge' },
+  'chrome-extension-deep-scrape': { router: 'enrichment-router', path: '/chrome-deep-scrape' },
+  'ai-chat-query': { router: 'intelligence-router', path: '/ai-chat' },
+  'migration5-biometric-tracker': { router: 'biometric-router', path: '/migration5' },
 };
+
+/**
+ * Invoke an edge function using the same signature as `supabase.functions.invoke`.
+ * Drop-in replacement: just swap `supabase.functions.invoke(name, { body })` 
+ * with `invokeFn(name, { body })`.
+ * 
+ * Routes through domain routers when available, falls back to direct invocation.
+ */
+export async function invokeFn(
+  functionName: string,
+  options: { body?: Record<string, unknown> | null; method?: string } = {}
+): Promise<{ data: unknown; error: Error | null }> {
+  const body = options.body ?? {};
+  const route = ROUTE_MAP[functionName];
+
+  if (route) {
+    try {
+      const { data, error } = await supabase.functions.invoke(route.router, {
+        body: {
+          ...(body as Record<string, unknown>),
+          _route: route.path,
+        },
+      });
+
+      if (error) {
+        return { data: null, error: error instanceof Error ? error : new Error(String(error)) };
+      }
+      return { data, error: null };
+    } catch (err) {
+      return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
+    }
+  }
+
+  // Fallback: direct invocation for unmigrated functions
+  try {
+    const { data, error } = await supabase.functions.invoke(functionName, { body: body as Record<string, unknown> });
+
+    if (error) {
+      return { data: null, error: error instanceof Error ? error : new Error(String(error)) };
+    }
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
+  }
+}
 
 /**
  * Invoke an edge function by its legacy name.
@@ -424,42 +555,8 @@ export async function invokeFunction<T = unknown>(
   body: Record<string, unknown> = {},
   options: { signal?: AbortSignal } = {}
 ): Promise<{ data: T | null; error: Error | null }> {
-  const route = ROUTE_MAP[functionName];
-
-  if (route) {
-    // Route through consolidated domain router
-    try {
-      const { data, error } = await supabase.functions.invoke(route.router, {
-        body: {
-          ...body,
-          _route: route.path,
-        },
-        // Note: supabase.functions.invoke does not natively support AbortSignal.
-        // For cancellation, callers should use Promise.race with AbortSignal externally.
-      });
-
-      if (error) {
-        return { data: null, error: error instanceof Error ? error : new Error(String(error)) };
-      }
-
-      return { data: data as T, error: null };
-    } catch (err) {
-      return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
-    }
-  }
-
-  // Fallback: direct invocation for unmigrated functions (legacy cleanup complete)
-  try {
-    const { data, error } = await supabase.functions.invoke(functionName, { body });
-
-    if (error) {
-      return { data: null, error: error instanceof Error ? error : new Error(String(error)) };
-    }
-
-    return { data: data as T, error: null };
-  } catch (err) {
-    return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
-  }
+  const result = await invokeFn(functionName, { body });
+  return { data: result.data as T | null, error: result.error };
 }
 
 /**
