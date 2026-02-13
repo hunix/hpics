@@ -189,11 +189,29 @@ export class CircuitOpenError extends Error {
   }
 }
 
-// Global circuit breaker registry
+// Global circuit breaker registry with LRU eviction
 const circuitBreakers = new Map<string, CircuitBreaker>();
+const circuitBreakerLastUsed = new Map<string, number>();
+const MAX_CIRCUIT_BREAKERS = 100;
+
+function evictStaleBreakers() {
+  if (circuitBreakers.size <= MAX_CIRCUIT_BREAKERS) return;
+  
+  // Evict oldest entries beyond the limit
+  const entries = [...circuitBreakerLastUsed.entries()]
+    .sort((a, b) => a[1] - b[1]);
+  
+  const toRemove = entries.slice(0, circuitBreakers.size - MAX_CIRCUIT_BREAKERS);
+  for (const [name] of toRemove) {
+    circuitBreakers.delete(name);
+    circuitBreakerLastUsed.delete(name);
+  }
+}
 
 export function getCircuitBreaker(name: string, config?: Partial<CircuitBreakerConfig>): CircuitBreaker {
+  circuitBreakerLastUsed.set(name, Date.now());
   if (!circuitBreakers.has(name)) {
+    evictStaleBreakers();
     circuitBreakers.set(name, new CircuitBreaker(name, config));
   }
   return circuitBreakers.get(name)!;

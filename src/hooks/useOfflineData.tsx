@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -282,12 +282,15 @@ export function useOfflineData(): UseOfflineDataReturn {
     }
   }, [isOnline, isSyncing, cacheAllData]);
 
-  // Auto-sync when coming back online
+  // Auto-sync when transitioning from offline to online (not on every pendingCount change)
+  const prevOnlineRef = useRef(isOnline);
   useEffect(() => {
-    if (isOnline && pendingCount > 0) {
+    if (isOnline && !prevOnlineRef.current && pendingCount > 0) {
       syncPendingChanges();
     }
-  }, [isOnline, pendingCount, syncPendingChanges]);
+    prevOnlineRef.current = isOnline;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOnline]);
 
 
   return {

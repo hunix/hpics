@@ -7,13 +7,17 @@ import { createModuleLogger } from '@/lib/logger';
 
 const logger = createModuleLogger('RealtimeContacts');
 
-// Debounce helper
-function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T {
+// Debounce helper with cancel support for cleanup
+function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T & { cancel: () => void } {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
-  return ((...args: unknown[]) => {
+  const debounced = ((...args: unknown[]) => {
     if (timeoutId) clearTimeout(timeoutId);
     timeoutId = setTimeout(() => fn(...args), ms);
-  }) as T;
+  }) as T & { cancel: () => void };
+  debounced.cancel = () => {
+    if (timeoutId) { clearTimeout(timeoutId); timeoutId = null; }
+  };
+  return debounced;
 }
 
 export function useRealtimeContacts(enabled = true) {
@@ -144,6 +148,8 @@ export function useRealtimeContacts(enabled = true) {
       supabase.removeChannel(communicationsChannel);
       supabase.removeChannel(eventsChannel);
       supabase.removeChannel(scoresChannel);
+      // Clean up pending debounce timer to prevent firing on unmounted component
+      debouncedToast.cancel();
     };
   }, [enabled, user, queryClient, throttledInvalidate, debouncedToast]);
 }

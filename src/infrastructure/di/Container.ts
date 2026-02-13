@@ -198,14 +198,19 @@ export function useService<T>(key: string): T {
  * React hook to resolve multiple services
  */
 export function useServices<T extends Record<string, unknown>>(keys: Record<keyof T, string>): T {
+  // Stabilize keys reference via serialization to prevent infinite re-renders
+  // when callers pass inline object literals
+  const serializedKeys = JSON.stringify(keys);
   return useMemo(() => {
     const container = getContainer();
     const services: Record<string, unknown> = {};
+    const parsedKeys = JSON.parse(serializedKeys) as Record<string, string>;
     
-    for (const [prop, key] of Object.entries(keys)) {
+    for (const [prop, key] of Object.entries(parsedKeys)) {
       services[prop] = container.resolve(key);
     }
     
     return services as T;
-  }, [keys]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serializedKeys]);
 }

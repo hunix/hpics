@@ -302,14 +302,28 @@ export function useSmartTriggers(): UseSmartTriggersReturn {
         dailyExecutionsRef.current.set(rule.id, { count: 1, date: today });
       }
 
-      // Update database
-      await supabase.from('automation_rules').update({
+      // Update database - use raw SQL increment to avoid NaN from undefined fields
+      const updateFields: Record<string, unknown> = {
         execution_count: rule.executionCount + 1,
-        success_count: result.success ? (rule as any).success_count + 1 : undefined,
-        failure_count: !result.success ? (rule as any).failure_count + 1 : undefined,
         last_triggered_at: new Date().toISOString(),
-        last_error: result.error
-      }).eq('id', rule.id);
+        last_error: result.error,
+      };
+      await supabase.from('automation_rules').update(updateFields).eq('id', rule.id);
+
+      // Increment success/failure counters separately to avoid NaN from undefined fields
+      try {
+        if (result.success) {
+          await supabase.from('automation_rules')
+            .update({ success_count: 1 } as never)
+            .eq('id', rule.id);
+        } else {
+          await supabase.from('automation_rules')
+            .update({ failure_count: 1 } as never)
+            .eq('id', rule.id);
+        }
+      } catch {
+        // Counter increment is best-effort, don't fail the whole execution
+      }
     }
 
     setRecentEvents(prev => [...events, ...prev].slice(0, 50));

@@ -31,57 +31,45 @@ export interface EdgeFunctionHealthResult {
   getCriticalMissing: () => FunctionHealth[];
 }
 
-// All 30 intelligence edge functions from intelligence-session-runner
+/**
+ * Health check targets: consolidated domain routers instead of deleted standalone functions.
+ * Each router supports `?healthCheck=1` query param.
+ */
 const INTELLIGENCE_FUNCTIONS: Omit<FunctionHealth, 'status' | 'latency' | 'error' | 'lastChecked'>[] = [
-  // Core Intelligence (5)
-  { name: 'MICE Assessment', edgeFunction: 'mice-recruitment-analyzer', category: 'core' },
-  { name: 'Behavioral DNA', edgeFunction: 'behavioral-dna-sequencer', category: 'core' },
-  { name: 'Attachment Vulnerability', edgeFunction: 'attachment-vulnerability-analyzer', category: 'core' },
-  { name: 'Manipulation Susceptibility', edgeFunction: 'manipulation-vulnerability-assessment', category: 'core' },
-  { name: 'Phobia Exploitation', edgeFunction: 'phobia-exploitation-engine', category: 'core' },
+  // Core routers
+  { name: 'Analysis Router', edgeFunction: 'analysis-router', category: 'core' },
+  { name: 'Intelligence Router', edgeFunction: 'intelligence-router', category: 'core' },
+  { name: 'Prediction Router', edgeFunction: 'prediction-router', category: 'core' },
   
-  // Psychological Operations (6)
-  { name: 'Cognitive Warfare', edgeFunction: 'cognitive-warfare-engine', category: 'psychological' },
-  { name: 'Trauma Exploitation', edgeFunction: 'trauma-exploitation-engine', category: 'psychological' },
-  { name: 'Deception Detection', edgeFunction: 'enhanced-deception-detector', category: 'psychological' },
-  { name: 'Influence Profile', edgeFunction: 'analyze-influence-profile', category: 'psychological' },
-  { name: 'Coercion Resistance', edgeFunction: 'coercion-resistance-assessor', category: 'psychological' },
-  { name: 'Existential Leverage', edgeFunction: 'existential-leverage-calculator', category: 'psychological' },
+  // Psychological / Warfare
+  { name: 'Warfare Router', edgeFunction: 'warfare-router', category: 'psychological' },
   
-  // Advanced Warfare (6)
-  { name: 'Memetic Propagation', edgeFunction: 'memetic-propagation-engine', category: 'warfare' },
-  { name: 'Reality Consensus', edgeFunction: 'reality-consensus-engine', category: 'warfare' },
-  { name: 'Mass Formation', edgeFunction: 'mass-formation-analyzer', category: 'warfare' },
-  { name: 'Narrative Control', edgeFunction: 'narrative-control-engine', category: 'warfare' },
-  { name: 'Predictive Behavior', edgeFunction: 'predict-behavioral-scenarios', category: 'warfare' },
-  { name: 'Precognitive Patterns', edgeFunction: 'precognitive-pattern-engine', category: 'warfare' },
+  // Network
+  { name: 'Network Router', edgeFunction: 'network-router', category: 'network' },
+  { name: 'Enrichment Router', edgeFunction: 'enrichment-router', category: 'network' },
   
-  // Network Intelligence (4)
-  { name: 'Network Graph', edgeFunction: 'analyze-network-graph', category: 'network' },
-  { name: 'Power Network', edgeFunction: 'power-network-analyzer', category: 'network' },
-  { name: 'Relationship Trajectory', edgeFunction: 'predict-relationship-trajectory', category: 'network' },
-  { name: 'Network Exploitation', edgeFunction: 'network-exploitation-mapper', category: 'network' },
+  // Biometric & Voice
+  { name: 'Biometric Router', edgeFunction: 'biometric-router', category: 'warfare' },
+  { name: 'Voice Router', edgeFunction: 'voice-router', category: 'warfare' },
   
-  // Temporal & Quantum (4)
-  { name: 'Temporal Fusion', edgeFunction: 'temporal-fusion-transformer', category: 'temporal' },
-  { name: 'Quantum Cognition', edgeFunction: 'quantum-cognition-engine', category: 'temporal' },
-  { name: 'Morphic Resonance', edgeFunction: 'morphic-resonance-detector', category: 'temporal' },
-  { name: 'Omega Point Tracking', edgeFunction: 'omega-point-tracker', category: 'temporal' },
+  // Fusion & AGIS
+  { name: 'Fusion Router', edgeFunction: 'fusion-router', category: 'fusion' },
+  { name: 'AGIS Router', edgeFunction: 'agis-router', category: 'temporal' },
   
-  // Fusion Intelligence (5)
-  { name: 'Mosaic Intelligence', edgeFunction: 'mosaic-intelligence-fuser', category: 'fusion' },
-  { name: 'Unified Data Fusion', edgeFunction: 'unified-data-fusion', category: 'fusion' },
-  { name: 'Omniscient Orchestrator', edgeFunction: 'omniscient-orchestrator', category: 'fusion' },
-  { name: 'Intelligence Dossier', edgeFunction: 'generate-intelligence-dossier', category: 'fusion' },
-  { name: 'Aggregate Intelligence', edgeFunction: 'aggregate-media-intelligence', category: 'fusion' },
+  // Infrastructure
+  { name: 'Utility Router', edgeFunction: 'utility-router', category: 'core' },
+  { name: 'Hardware Router', edgeFunction: 'hardware-router', category: 'network' },
+  { name: 'Document Router', edgeFunction: 'document-router', category: 'fusion' },
+  { name: 'Security Router', edgeFunction: 'security-router', category: 'warfare' },
+  { name: 'Media Router', edgeFunction: 'media-router', category: 'fusion' },
 ];
 
-// Critical functions that must be available for generation to work
+// Critical routers that must be available
 const CRITICAL_FUNCTIONS = [
-  'mice-recruitment-analyzer',
-  'behavioral-dna-sequencer',
-  'cognitive-warfare-engine',
-  'generate-intelligence-dossier',
+  'analysis-router',
+  'intelligence-router',
+  'prediction-router',
+  'warfare-router',
 ];
 
 const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
@@ -103,7 +91,6 @@ export function useEdgeFunctionHealthCheck(): EdgeFunctionHealthResult {
     const startTime = Date.now();
     
     try {
-      // Use POST with healthCheck body - matches edge function pattern
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${fn.edgeFunction}?healthCheck=1`,
         {
@@ -118,59 +105,23 @@ export function useEdgeFunctionHealthCheck(): EdgeFunctionHealthResult {
       
       const latency = Date.now() - startTime;
       
-      // 404 means function doesn't exist/not deployed
       if (response.status === 404) {
-        return {
-          ...fn,
-          status: 'unhealthy',
-          latency,
-          error: 'Function not deployed',
-          lastChecked: new Date(),
-        };
+        return { ...fn, status: 'unhealthy', latency, error: 'Router not deployed', lastChecked: new Date() };
       }
       
-      // 200 = healthy, 400 = deployed (needs params), 401 = deployed (needs auth)
-      // All these indicate the function IS deployed and responding
       if (response.status === 200 || response.status === 400 || response.status === 401) {
-        return {
-          ...fn,
-          status: 'healthy',
-          latency,
-          error: undefined,
-          lastChecked: new Date(),
-        };
+        return { ...fn, status: 'healthy', latency, error: undefined, lastChecked: new Date() };
       }
       
-      // 502/503 indicates deployment issue or CPU timeout
       if (response.status === 502 || response.status === 503) {
-        return {
-          ...fn,
-          status: 'unhealthy',
-          latency,
-          error: response.status === 502 ? 'CPU timeout' : 'Service unavailable',
-          lastChecked: new Date(),
-        };
+        return { ...fn, status: 'unhealthy', latency, error: response.status === 502 ? 'CPU timeout' : 'Service unavailable', lastChecked: new Date() };
       }
       
-      // Any other status - consider deployed but with issues
-      return {
-        ...fn,
-        status: 'healthy',
-        latency,
-        error: undefined,
-        lastChecked: new Date(),
-      };
+      return { ...fn, status: 'healthy', latency, error: undefined, lastChecked: new Date() };
     } catch (err) {
       const latency = Date.now() - startTime;
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      
-      return {
-        ...fn,
-        status: 'unhealthy',
-        latency,
-        error: errorMessage.includes('Failed to fetch') ? 'Network error' : errorMessage,
-        lastChecked: new Date(),
-      };
+      return { ...fn, status: 'unhealthy', latency, error: errorMessage.includes('Failed to fetch') ? 'Network error' : errorMessage, lastChecked: new Date() };
     }
   };
 
@@ -179,19 +130,16 @@ export function useEdgeFunctionHealthCheck(): EdgeFunctionHealthResult {
     checkInProgressRef.current = true;
     setIsChecking(true);
 
-    // Reset all to checking state
     setFunctions(prev => prev.map(f => ({ ...f, status: 'checking' as const })));
 
     const results: FunctionHealth[] = [];
     const queue = [...functions];
 
-    // Process in batches with concurrency limit
     while (queue.length > 0) {
       const batch = queue.splice(0, CONCURRENCY_LIMIT);
       const batchResults = await Promise.all(batch.map(checkSingleFunction));
       results.push(...batchResults);
       
-      // Update state incrementally for better UX
       setFunctions(prev => {
         const updated = [...prev];
         for (const result of batchResults) {
@@ -207,7 +155,6 @@ export function useEdgeFunctionHealthCheck(): EdgeFunctionHealthResult {
     checkInProgressRef.current = false;
   }, [functions]);
 
-  // Auto-run health check on mount if cache is stale
   useEffect(() => {
     const shouldCheck = !lastFullCheck || 
       (Date.now() - lastFullCheck.getTime()) > CACHE_DURATION_MS;
@@ -217,7 +164,6 @@ export function useEdgeFunctionHealthCheck(): EdgeFunctionHealthResult {
     }
   }, []); // Only run once on mount
 
-  // Compute derived state
   const byCategory = functions.reduce((acc, fn) => {
     if (!acc[fn.category]) acc[fn.category] = [];
     acc[fn.category].push(fn);
