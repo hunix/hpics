@@ -39515,6 +39515,268 @@ export type Database = {
         }
         Relationships: []
       }
+      v_audit_trail: {
+        Row: {
+          action: string | null
+          created_at: string | null
+          event_type: string | null
+          id: string | null
+          severity: string | null
+          source_component: string | null
+          source_function: string | null
+          target_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action?: never
+          created_at?: string | null
+          event_type?: string | null
+          id?: string | null
+          severity?: string | null
+          source_component?: string | null
+          source_function?: string | null
+          target_id?: never
+          user_id?: string | null
+        }
+        Update: {
+          action?: never
+          created_at?: string | null
+          event_type?: string | null
+          id?: string | null
+          severity?: string | null
+          source_component?: string | null
+          source_function?: string | null
+          target_id?: never
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      v_behavioral_predictions: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          predicted_behavior: string | null
+          prediction_type: string | null
+          probability: number | null
+          profile_id: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          predicted_behavior?: never
+          prediction_type?: never
+          probability?: number | null
+          profile_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          predicted_behavior?: never
+          prediction_type?: never
+          probability?: number | null
+          profile_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unified_prediction_store_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "unified_prediction_store_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "unified_prediction_store_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_biometric_templates: {
+        Row: {
+          biometric_type: string | null
+          confidence_score: number | null
+          created_at: string | null
+          id: string | null
+          profile_id: string | null
+          template_quality: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          biometric_type?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string | null
+          profile_id?: string | null
+          template_quality?: never
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          biometric_type?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string | null
+          profile_id?: string | null
+          template_quality?: never
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unified_analysis_store_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "unified_analysis_store_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "unified_analysis_store_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_mice_assessments: {
+        Row: {
+          confidence_score: number | null
+          created_at: string | null
+          id: string | null
+          motivation_score: string | null
+          profile_id: string | null
+          recruitment_potential: string | null
+          risk_level: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string | null
+          motivation_score?: never
+          profile_id?: string | null
+          recruitment_potential?: never
+          risk_level?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string | null
+          motivation_score?: never
+          profile_id?: string | null
+          recruitment_potential?: never
+          risk_level?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unified_analysis_store_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "unified_analysis_store_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "unified_analysis_store_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_network_analyses: {
+        Row: {
+          centrality_score: string | null
+          confidence_score: number | null
+          created_at: string | null
+          id: string | null
+          influence_rank: string | null
+          profile_id: string | null
+          risk_level: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          centrality_score?: never
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string | null
+          influence_rank?: never
+          profile_id?: string | null
+          risk_level?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          centrality_score?: never
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string | null
+          influence_rank?: never
+          profile_id?: string | null
+          risk_level?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unified_analysis_store_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "unified_analysis_store_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "unified_analysis_store_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       archive_old_messages: {
@@ -40023,6 +40285,15 @@ export type Database = {
         }
         Returns: Json
       }
+      migrate_legacy_analysis: {
+        Args: {
+          p_analysis_type: string
+          p_batch_size?: number
+          p_domain: string
+          p_source_table: string
+        }
+        Returns: number
+      }
       modes_all_completed: {
         Args: { completed_modes: string[]; requested_modes: string[] }
         Returns: boolean
@@ -40045,6 +40316,15 @@ export type Database = {
         Returns: {
           profiles_matched: number
           threads_linked: number
+        }[]
+      }
+      run_analysis_migration: {
+        Args: never
+        Returns: {
+          analysis_type: string
+          domain: string
+          rows_migrated: number
+          source_table: string
         }[]
       }
       search_contacts_v5: {
