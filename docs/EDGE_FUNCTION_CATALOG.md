@@ -1,5 +1,5 @@
 # HPICS Edge Function Catalog
-> Complete API Reference for 407+ Edge Functions
+> Complete API Reference — Consolidated Domain Router Architecture (15 Routers, 407+ Functions)
 
 ---
 

@@ -4,6 +4,7 @@ import App from "./App.tsx";
 import "./index.css";
 import { initChunkErrorHandler } from "@/lib/chunkErrorHandler";
 import { bootstrapContainer } from "@/infrastructure/di/bootstrap";
+import { installInvokeProxy } from "@/lib/api/invokeProxy";
 import { 
   APP_VERSION,
   BUILD_TIMESTAMP,
@@ -159,6 +160,9 @@ const initApp = async () => {
   if (shouldRender) {
     // Bootstrap DI container before rendering
     bootstrapContainer();
+    
+    // Install invoke proxy to route all supabase.functions.invoke() through domain routers
+    installInvokeProxy();
     
     await registerPWA();
     createRoot(document.getElementById("root")!).render(<App />);

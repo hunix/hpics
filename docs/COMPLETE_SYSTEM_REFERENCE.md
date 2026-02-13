@@ -35,7 +35,8 @@ The **Hyper-Personalized Intelligence & Contact System (HPICS)** is an enterpris
 | Metric | Count |
 |--------|-------|
 | **Database Tables** | 508+ |
-| **Edge Functions** | 407+ |
+| **Domain Routers** | 15 |
+| **Mapped Functions** | 407+ (via adapter) |
 | **Application Pages** | 75+ |
 | **React Hooks** | 100+ |
 | **UI Components** | 150+ |
@@ -1093,6 +1094,28 @@ import {
 ---
 
 # 4. Edge Function Reference
+
+## 4.0 Consolidated Router Architecture (v3.9.0)
+
+All 407+ standalone edge functions have been consolidated into **15 domain routers**. A transparent adapter layer (`src/lib/api/edgeFunctionRouter.ts`) maps legacy function names to router endpoints. An invoke proxy (`src/lib/api/invokeProxy.ts`) intercepts all `supabase.functions.invoke()` calls at runtime, routing them through the correct domain router automatically.
+
+| Router | Functions | Domain |
+|--------|-----------|--------|
+| `analysis-router` | ~55 | Behavioral, psychological, vulnerability |
+| `intelligence-router` | ~50 | Aggregation, dossiers, insights, AI agents |
+| `prediction-router` | ~30 | Churn, trajectory, Bayesian |
+| `warfare-router` | ~30 | Cognitive warfare, influence, memetics |
+| `biometric-router` | ~30 | Facial, vocal, body, gait |
+| `network-router` | ~20 | Graph, shadow networks, social |
+| `enrichment-router` | ~20 | OSINT, scraping, enrichment |
+| `fusion-router` | ~20 | Digital twins, cross-modal |
+| `agis-router` | ~15 | AGIS phases, quantum |
+| `voice-router` | ~12 | Voice analysis, deception |
+| `document-router` | ~13 | Documents, RAG, embeddings |
+| `security-router` | ~15 | Threats, red team, dark web |
+| `utility-router` | ~35 | Alerts, reports, sync, imports |
+| `hardware-router` | ~15 | Aerial, SDR, sensor, TSCM |
+| `media-router` | ~6 | Media metadata, deep analysis |
 
 ## 4.1 Function Categories Overview
 
