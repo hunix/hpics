@@ -55,10 +55,7 @@ export function installInvokeProxy() {
     return routeMapRef;
   };
 
-  // Eagerly load the router module
-  loadRouter();
-  loadRouteMap();
-
+  // Lazy-load only: router module loads on first invoke call
   supabase.functions.invoke = (async (
     functionName: string,
     options?: { body?: Record<string, unknown> | null; headers?: Record<string, string>; method?: string }

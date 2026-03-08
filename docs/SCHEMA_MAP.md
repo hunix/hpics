@@ -338,20 +338,47 @@ System configuration key-value store.
 
 ## ⚠️ Common Hallucination Traps
 
-| Wrong Name | Correct Name | Table |
-|------------|-------------|-------|
+### Table Name Aliases (Do NOT Use)
+
+| ❌ Wrong Table Name | ✅ Correct Table Name |
+|---------------------|----------------------|
+| `interactions` | `contact_interaction_notes` |
+| `notes` | `contact_interaction_notes` |
+| `observations` | `contact_observations` |
+| `relationships` | `contact_relationships` |
+| `contacts` | `profiles` |
+| `users` | `profiles` (public schema) |
+| `communications_log` | `communications` |
+| `chat_messages` | `messages` |
+| `files` | `media` |
+| `attachments` | `media` or `documents` |
+| `settings` | `platform_config` |
+
+### Column Name Aliases (Do NOT Use)
+
+| ❌ Wrong Column | ✅ Correct Column | Table |
+|----------------|-------------------|-------|
 | `file_path` | `file_url` | media |
 | `file_type` | `mime_type` | media |
 | `original_filename` | `file_name` | media |
 | `thumbnail_path` | `thumbnail_url` | media |
-| `media_type` (as column for mime) | `mime_type` | media |
 | `occupation` | `job_title` | profiles |
-| `interactions` (table) | `contact_interaction_notes` | — |
-| `notes` (table) | `contact_interaction_notes` | — |
-| `observations` (table) | `contact_observations` | — |
-| `relationships` (table) | `contact_relationships` | — |
 | `override_value` | `config_value` | platform_config |
 | `content` (for notes) | `note_text` | contact_interaction_notes |
+| `notes` (column) | `note_text` | contact_interaction_notes |
+| `date` | `observation_date` | contact_observations |
+| `created_date` | `created_at` | (all tables) |
+| `updated_date` | `updated_at` | (all tables) |
+| `timestamp` | `created_at` | (all tables) |
+| `name` | `first_name` + `last_name` | profiles |
+| `full_name` | `first_name` + `last_name` | profiles |
+| `email` | → use `contact_methods` table | profiles |
+| `phone` | → use `contact_methods` table | profiles |
+| `text` | `content` | messages |
+| `body` | `content` | messages |
+| `message` | `content` | messages |
+| `sent_date` | `sent_at` | messages |
+| `communication_date` | `occurred_at` | communications |
 
 ---
 

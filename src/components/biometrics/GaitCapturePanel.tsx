@@ -36,6 +36,8 @@ export function GaitCapturePanel({ profileId, profileName, onCapture }: GaitCapt
   const samplesRef = useRef<MotionSample[]>([]);
   const startTimeRef = useRef<number>(0);
   const intervalRef = useRef<number>();
+  const isCapturingRef = useRef(false);
+  const motionListenerRef = useRef<((e: DeviceMotionEvent) => void) | null>(null);
 
   // Check for sensor availability
   useEffect(() => {
@@ -60,8 +62,9 @@ export function GaitCapturePanel({ profileId, profileName, onCapture }: GaitCapt
     checkSensors();
   }, []);
 
+  // Stable motion handler — uses refs to avoid identity changes
   const handleMotion = useCallback((event: DeviceMotionEvent) => {
-    if (!isCapturing) return;
+    if (!isCapturingRef.current) return;
     
     const acceleration = event.accelerationIncludingGravity;
     if (!acceleration) return;
@@ -97,10 +100,10 @@ export function GaitCapturePanel({ profileId, profileName, onCapture }: GaitCapt
       Math.pow(acceleration.z || 0, 2)
     );
     
-    if (magnitude > 12) { // Threshold for step detection
+    if (magnitude > 12) {
       setStepCount(prev => prev + 1);
     }
-  }, [isCapturing]);
+  }, []); // No deps — uses refs for mutable state
 
   const startCapture = useCallback(async () => {
     // Request permission on iOS
@@ -122,6 +125,8 @@ export function GaitCapturePanel({ profileId, profileName, onCapture }: GaitCapt
     setStepCount(0);
     setDuration(0);
     setIsCapturing(true);
+    isCapturingRef.current = true;
+    motionListenerRef.current = handleMotion;
     
     window.addEventListener('devicemotion', handleMotion);
     
@@ -135,14 +140,20 @@ export function GaitCapturePanel({ profileId, profileName, onCapture }: GaitCapt
 
   const stopCapture = useCallback(() => {
     setIsCapturing(false);
-    window.removeEventListener('devicemotion', handleMotion);
+    isCapturingRef.current = false;
+    
+    // Remove using the exact same reference that was added
+    if (motionListenerRef.current) {
+      window.removeEventListener('devicemotion', motionListenerRef.current);
+      motionListenerRef.current = null;
+    }
     
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
     
     setSamples([...samplesRef.current]);
-  }, [handleMotion]);
+  }, []);
 
   const saveGaitMutation = useMutation({
     mutationFn: async (profile: GaitProfile) => {
@@ -224,15 +235,14 @@ export function GaitCapturePanel({ profileId, profileName, onCapture }: GaitCapt
     onCapture?.(profile);
   }, [onCapture, saveGaitMutation]);
 
-  // Store handleMotion in ref for stable cleanup
-  const handleMotionRef = useRef(handleMotion);
-  handleMotionRef.current = handleMotion;
-
-  // Cleanup on unmount - use ref to avoid dependency issues
+  // Cleanup on unmount — uses motionListenerRef for exact reference match
   useEffect(() => {
     return () => {
-      // Remove listener using captured function reference
-      window.removeEventListener('devicemotion', handleMotionRef.current);
+      isCapturingRef.current = false;
+      if (motionListenerRef.current) {
+        window.removeEventListener('devicemotion', motionListenerRef.current);
+        motionListenerRef.current = null;
+      }
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
