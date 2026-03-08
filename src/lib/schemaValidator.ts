@@ -51,8 +51,9 @@ const KNOWN_SCHEMAS: Record<string, string[]> = {
     'generated_at', 'created_at',
   ],
   media: [
-    'id', 'user_id', 'profile_id', 'file_path', 'file_type', 'file_size',
-    'original_filename', 'ai_metadata', 'created_at', 'updated_at',
+    'id', 'user_id', 'profile_id', 'file_url', 'mime_type', 'file_size',
+    'storage_path', 'caption', 'thumbnail_url', 'media_type', 'title',
+    'file_name', 'ai_metadata', 'ai_generation_status', 'created_at', 'updated_at',
   ],
   voice_recording_sessions: [
     'id', 'user_id', 'profile_id', 'session_type', 'duration_seconds',
