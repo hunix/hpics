@@ -192,8 +192,8 @@ export class NetworkService {
 
   // Get network summary for quick overview
   async getNetworkSummary(userId: string): Promise<NetworkSummary> {
-    const graph = await this.getNetworkGraph(userId);
-    const analysis = await this.analyzeNetwork({ userId, maxNodes: 500 });
+    const graph = await this.getNetworkGraph(userId, 500);
+    const analysis = await this.analyzeNetwork({ userId, maxNodes: 500 }, graph);
 
     const nodeMap = new Map(graph.nodes.map(n => [n.id, n]));
 

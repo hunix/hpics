@@ -105,10 +105,10 @@ export function CronJobManager() {
         title: 'Job executed',
         description: `${job.name} completed successfully`,
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: 'Job failed',
-        description: error.message,
+        description: error instanceof Error ? error.message : String(error),
         variant: 'destructive',
       });
     } finally {

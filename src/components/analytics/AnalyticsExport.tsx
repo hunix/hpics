@@ -310,8 +310,8 @@ export function AnalyticsExport() {
 
         toast({ title: 'Export complete', description: `Downloaded ${exports.length} CSV file(s)` });
       }
-    } catch (error: any) {
-      toast({ title: 'Export failed', description: error.message, variant: 'destructive' });
+    } catch (error) {
+      toast({ title: 'Export failed', description: error instanceof Error ? error.message : String(error), variant: 'destructive' });
     } finally {
       setIsExporting(false);
     }

@@ -119,8 +119,8 @@ export function GmailImportWizard() {
       toast.success(`Connected to Gmail: ${response.data.email}`);
       queryClient.invalidateQueries({ queryKey: ['gmail-config'] });
       setStep('import');
-    } catch (error: any) {
-      toast.error(`Failed to connect: ${error.message}`);
+    } catch (error) {
+      toast.error(`Failed to connect: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
 

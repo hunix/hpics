@@ -167,10 +167,11 @@ export function useFusionEnginesStatus(profileId?: string) {
     'migration5-biometric',
   ];
 
+  const service = useMemo(() => resolveFusionService(), []);
+
   return useQuery({
     queryKey: ['fusion-engines-status', profileId],
     queryFn: async () => {
-      const service = getFusionService();
       const results = await service.getFusionResults(profileId!);
       
       return allEngines.map(engine => {

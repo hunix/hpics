@@ -63,8 +63,8 @@ export function StrategyBuilderWidget({ profileId, contactName }: StrategyBuilde
       toast({ title: 'Strategy generated', description: 'Your personalized influence strategy is ready.' });
       setGoalDescription('');
       setContext('');
-    } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } catch (error) {
+      toast({ title: 'Error', description: error instanceof Error ? error.message : String(error), variant: 'destructive' });
     }
   };
 
@@ -84,8 +84,8 @@ export function StrategyBuilderWidget({ profileId, contactName }: StrategyBuilde
     try {
       await updateMutation.mutateAsync({ strategyId, updates: { status } });
       toast({ title: 'Status updated' });
-    } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } catch (error) {
+      toast({ title: 'Error', description: error instanceof Error ? error.message : String(error), variant: 'destructive' });
     }
   };
 
@@ -96,8 +96,8 @@ export function StrategyBuilderWidget({ profileId, contactName }: StrategyBuilde
           strategyId: selectedStrategy.id, 
           updates: { status: selectedStrategy.status } 
         });
-      } catch (error: any) {
-        toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      } catch (error) {
+        toast({ title: 'Error', description: error instanceof Error ? error.message : String(error), variant: 'destructive' });
       }
     }
     setSelectedStrategy(null);

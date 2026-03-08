@@ -61,7 +61,7 @@ export function bootstrapContainer(): void {
   container.register(ServiceKeys.FusionService, () => {
     const fusionRepo = container.resolve<import('@/domains/fusion/repositories/IFusionRepository').IFusionRepository>(ServiceKeys.FusionRepository);
     const twinRepo = container.resolve<import('@/domains/fusion/repositories/IFusionRepository').IDigitalTwinRepository>(ServiceKeys.DigitalTwinRepository);
-    return new (require('@/domains/fusion/services/FusionService').FusionService)(fusionRepo, twinRepo);
+    return new FusionService(fusionRepo, twinRepo);
   }, 'singleton');
   container.register(ServiceKeys.IntelligenceService, getIntelligenceService, 'singleton');
   container.register(ServiceKeys.ProfileService, () => {

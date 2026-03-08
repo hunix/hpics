@@ -144,7 +144,7 @@ export class WarfareService {
     };
 
     const saved = await this.threatRepo.save(threat);
-    this.emit(new ThreatDetected({ userId, threatId: saved.id, level, description }));
+    await this.emit(new ThreatDetected({ userId, threatId: saved.id, level, description }));
     return saved;
   }
 

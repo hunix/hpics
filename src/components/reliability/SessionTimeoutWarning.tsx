@@ -72,6 +72,4 @@ export const SessionTimeoutWarning: React.FC<SessionTimeoutWarningProps> = ({
       </AlertDialogContent>
     </AlertDialog>
   );
-});
-
-SessionTimeoutWarning.displayName = "SessionTimeoutWarning";
+};

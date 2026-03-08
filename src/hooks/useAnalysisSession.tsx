@@ -261,8 +261,9 @@ export function useAnalysisSession({
 
       queryClient.invalidateQueries({ queryKey: ['recent-analyses'] });
       return true;
-    } catch (error: any) {
+    } catch (error) {
       const duration = Date.now() - startTime;
+      const message = error instanceof Error ? error.message : String(error);
       
       // Update job as failed
       setSession(prev => {
@@ -273,7 +274,7 @@ export function useAnalysisSession({
             j.id === job.id ? { 
               ...j, 
               status: 'failed' as JobStatus,
-              errorMessage: error.message,
+              errorMessage: message,
               durationMs: duration,
             } : j
           ),
@@ -285,7 +286,7 @@ export function useAnalysisSession({
         .from('analysis_jobs')
         .update({ 
           status: 'failed',
-          error_message: error.message,
+          error_message: message,
           duration_ms: duration,
         })
         .eq('session_id', sessionIdRef.current)

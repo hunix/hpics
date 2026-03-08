@@ -174,9 +174,9 @@ export function MosaicPreview({
 
       toast({ title: 'Mosaic saved successfully' });
       fetchSavedMosaics();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to save mosaic:', error);
-      toast({ title: 'Failed to save mosaic', description: error.message, variant: 'destructive' });
+      toast({ title: 'Failed to save mosaic', description: error instanceof Error ? error.message : String(error), variant: 'destructive' });
     } finally {
       setIsSaving(false);
     }

@@ -69,8 +69,8 @@ export function RomanticIntelligencePanel({ profileId, profileName }: RomanticIn
       if (error) throw error;
       setAnalysis(data.analysis);
       toast.success('Romantic intelligence analysis complete');
-    } catch (error: any) {
-      toast.error(error.message || 'Analysis failed');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Analysis failed');
     } finally {
       setLoading(false);
     }

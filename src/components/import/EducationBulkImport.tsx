@@ -216,8 +216,8 @@ export function EducationBulkImport() {
 
           if (error) throw error;
           success++;
-        } catch (error: any) {
-          errors.push(`${record.profileName}: ${error.message || 'Unknown error'}`);
+        } catch (error) {
+          errors.push(`${record.profileName}: ${error instanceof Error ? error.message : 'Unknown error'}`);
           failed++;
         }
       }

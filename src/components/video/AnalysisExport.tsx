@@ -110,11 +110,11 @@ export function AnalysisExport({
       URL.revokeObjectURL(url);
 
       toast({ title: 'Report exported successfully' });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Export error:', error);
       toast({ 
         title: 'Export failed', 
-        description: error.message, 
+        description: error instanceof Error ? error.message : String(error), 
         variant: 'destructive' 
       });
     } finally {

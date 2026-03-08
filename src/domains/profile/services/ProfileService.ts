@@ -190,12 +190,8 @@ export class ProfileService {
   }
 
   async getProfilesByIds(profileIds: string[], userId: string): Promise<Profile[]> {
-    const profiles: Profile[] = [];
-    for (const id of profileIds) {
-      const p = await this.repository.findByIdForUser(id, userId);
-      if (p) profiles.push(p);
-    }
-    return profiles;
+    if (profileIds.length === 0) return [];
+    return this.repository.findByIds(profileIds, userId);
   }
 
   async getFavoriteProfiles(userId: string): Promise<Profile[]> {
