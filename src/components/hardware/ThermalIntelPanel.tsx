@@ -31,10 +31,10 @@ export function ThermalIntelPanel() {
               </Button>
               <Button
                 size="sm"
-                variant={isCapturing ? 'destructive' : 'default'}
-                onClick={isCapturing ? stopCapture : startCapture}
+                variant={isScanning ? 'destructive' : 'default'}
+                onClick={isScanning ? stopScanning : startScanning}
               >
-                {isCapturing ? 'Stop Capture' : 'Start Capture'}
+                {isScanning ? 'Stop Scanning' : 'Start Scanning'}
               </Button>
             </div>
           </CardTitle>
