@@ -179,7 +179,7 @@ function buildGraph(focusProfileId: string, relationships: any[], contacts: any[
       id: contact.id,
       attributes: {
         name: `${contact.first_name || ''} ${contact.last_name || ''}`.trim(),
-        company: contact.company,
+        organization: contact.organization,
         jobTitle: contact.job_title,
         city: contact.city,
         tags: contact.tags || [],
