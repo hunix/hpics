@@ -99,7 +99,7 @@ export class WarfareService {
 
   async activateCampaign(userId: string, campaignId: string): Promise<Campaign> {
     const campaign = await this.campaignRepo.activate(userId, campaignId);
-    this.emit(new CampaignActivated({ userId, campaignId }));
+    await this.emit(new CampaignActivated({ userId, campaignId }));
     return campaign;
   }
 
