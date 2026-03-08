@@ -70,7 +70,8 @@ const KNOWN_SCHEMAS: Record<string, string[]> = {
   ],
   // Additional commonly used tables
   messages: [
-    'id', 'conversation_id', 'content', 'is_from_contact', 
+    'id', 'conversation_id', 'content', 'is_from_contact',
+    'message_type', 'media_url', 'source', 'metadata',
     'sent_at', 'created_at',
   ],
   bulk_analysis_sessions: [
