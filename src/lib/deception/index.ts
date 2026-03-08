@@ -49,3 +49,31 @@ export {
   type TemporalPattern,
   type LinguisticIndicator,
 } from './cognitiveLoadAnalyzer';
+
+// SUE Analyzer
+export {
+  analyzeSUE,
+  type SUEAnalysisResult,
+  type EvidenceItem,
+  type StatementEvidencePair,
+  type CounterInterrogationIndicator,
+  type DisclosureRecommendation,
+} from './sueAnalyzer';
+
+// CBCA/RM Scorer
+export {
+  scoreCBCA,
+  type CBCAResult,
+  type CBCACriteria,
+  type RealityMonitoringCriteria,
+  type ValidityChecklist,
+} from './cbcaScorer';
+
+// Temporal Congruence Analyzer
+export {
+  analyzeTemporalCongruence,
+  type TemporalCongruenceResult,
+  type TemporalClaim,
+  type KnownEvent,
+  type TemporalInconsistency,
+} from './temporalCongruenceAnalyzer';

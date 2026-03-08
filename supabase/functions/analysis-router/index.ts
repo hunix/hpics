@@ -173,7 +173,35 @@ const analysisRoutes: Array<{ path: string; type: string; domain: string; framew
   { path: '/emotional-contagion', type: 'emotional_contagion', domain: 'psychological', framework: 'Model emotional contagion patterns: susceptibility, transmission vectors, amplification.' },
   { path: '/emotional-trajectory', type: 'emotional_trajectory', domain: 'psychological', framework: 'Track emotional trajectory over time. Predict future emotional states.' },
   { path: '/epistemic', type: 'epistemic_vulnerability', domain: 'psychological', framework: 'Scan for epistemic vulnerabilities: belief rigidity, confirmation bias, source dependence.' },
-  { path: '/forensic-statement', type: 'forensic_statement', domain: 'intelligence', framework: 'Apply forensic statement analysis: SCAN, CBCA, reality monitoring criteria.' },
+  { path: '/forensic-statement', type: 'forensic_statement', domain: 'intelligence', framework: `Apply forensic statement analysis using THREE frameworks and return structured JSON:
+    1. CBCA (Criteria-Based Content Analysis) — Score each of 19 criteria 0-2:
+       "cbca": {"1_logical_structure":0-2,"2_unstructured_production":0-2,"3_quantity_of_details":0-2,"4_contextual_embedding":0-2,"5_interactions":0-2,"6_reproduction_of_conversation":0-2,"7_unexpected_complications":0-2,"8_unusual_details":0-2,"9_superfluous_details":0-2,"10_misunderstood_details":0-2,"11_related_external_associations":0-2,"12_subjective_mental_state":0-2,"13_attribution_perpetrator_mental_state":0-2,"14_spontaneous_corrections":0-2,"15_admitting_lack_memory":0-2,"16_raising_doubts":0-2,"17_self_deprecation":0-2,"18_pardoning_perpetrator":0-2,"19_details_characteristic":0-2,"total":0-38,"credibility":"low|medium|high"}
+    2. Reality Monitoring (RM) — Score 8 criteria 0-2:
+       "rm": {"perceptual_info":0-2,"spatial_info":0-2,"temporal_info":0-2,"affective_info":0-2,"reconstructability":0-2,"realism":0-2,"cognitive_operations":0-2,"self_reference":0-2,"total":0-16,"memory_type":"experienced|fabricated|uncertain"}
+    3. SCAN (Scientific Content Analysis):
+       "scan": {"missing_pronouns":[],"tense_changes":[],"unimportant_info":[],"out_of_sequence":[],"denial_of_allegation":bool,"social_intro":bool,"overall_veracity":0-1}
+    4. Validity Checklist (11 items):
+       "validity": {"linguistic_ability":bool,"suggestibility":bool,"motive_to_report":bool,"investigation_quality":bool,"composite_validity":0-1}` },
+  { path: '/sue-analysis', type: 'sue_analysis', domain: 'intelligence', framework: `Apply Strategic Use of Evidence (SUE) framework. Analyze evidence disclosure timing and statement-evidence consistency. Return JSON:
+    "sue_analysis": {
+      "evidence_items": [{"id":"","description":"","disclosure_phase":"withheld|early|strategic|late","statement_before_disclosure":"","statement_after_disclosure":"","consistency":"consistent|inconsistent|evasive"}],
+      "consistency_score": 0-1,
+      "counter_interrogation_indicators": [{"type":"","description":"","confidence":0-1}],
+      "optimal_disclosure_sequence": [{"evidence_id":"","recommended_phase":"","rationale":""}],
+      "overall_deception_indicator": 0-1
+    }` },
+  { path: '/peace-scoring', type: 'peace_compliance', domain: 'intelligence', framework: `Score interview against PEACE model (UK College of Policing). Return JSON:
+    "peace": {
+      "planning_preparation": {"score":0-10,"objectives_clear":bool,"evidence_reviewed":bool,"interview_plan":bool},
+      "engage_explain": {"score":0-10,"rapport_established":bool,"process_explained":bool,"ground_rules_set":bool},
+      "account": {"score":0-10,"free_recall_used":bool,"open_questions_pct":0-1,"leading_questions_detected":0,"cognitive_interview_techniques":{"context_reinstatement":bool,"report_everything":bool,"reverse_order":bool,"change_perspective":bool}},
+      "closure": {"score":0-10,"summary_provided":bool,"questions_invited":bool,"next_steps_explained":bool},
+      "evaluate": {"score":0-10,"objectives_met":bool,"new_leads_identified":bool,"credibility_assessed":bool},
+      "total_score": 0-50,
+      "compliance_level": "non_compliant|partial|compliant|exemplary",
+      "coercion_indicators": [{"type":"","timestamp":"","severity":0-1}],
+      "rapport_vs_coercion_ratio": 0-1
+    }` },
   { path: '/gottman', type: 'gottman_analysis', domain: 'psychological', framework: 'Apply Gottman relationship analysis: Four Horsemen, repair attempts, positive sentiment override.' },
   { path: '/family-systems', type: 'family_systems', domain: 'psychological', framework: 'Analyze family systems: roles, boundaries, triangulation, multigenerational patterns.' },
   { path: '/family-protection', type: 'family_protection', domain: 'intelligence', framework: 'Assess family protection needs: vulnerabilities, threat vectors, security measures.' },
