@@ -363,6 +363,7 @@ System configuration key-value store.
 | `original_filename` | `file_name` | media |
 | `thumbnail_path` | `thumbnail_url` | media |
 | `occupation` | `job_title` | profiles |
+| `company` | `organization` | profiles |
 | `override_value` | `config_value` | platform_config |
 | `content` (for notes) | `note_text` | contact_interaction_notes |
 | `notes` (column) | `note_text` | contact_interaction_notes |

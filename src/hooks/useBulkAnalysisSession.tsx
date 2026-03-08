@@ -228,8 +228,9 @@ export function useBulkAnalysisSession({
       });
 
       return true;
-    } catch (error: any) {
+    } catch (error) {
       const duration = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : String(error);
       
       // Update item as failed
       setSession(prev => {
@@ -244,7 +245,7 @@ export function useBulkAnalysisSession({
                   ...i, 
                   status: 'failed' as BulkItemStatus,
                   progress: 0,
-                  errorMessage: error.message || 'Analysis failed',
+                  errorMessage: errorMessage || 'Analysis failed',
                   durationMs: duration,
                   retryCount: i.retryCount + 1,
                 }

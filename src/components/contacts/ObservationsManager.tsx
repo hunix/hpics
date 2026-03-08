@@ -159,8 +159,9 @@ export function ObservationsManager({ profileId, contactName }: ObservationsMana
 
       queryClient.invalidateQueries({ queryKey: ['contact-observations', profileId] });
       toast.success('AI validation complete');
-    } catch (error: any) {
-      toast.error('Validation failed: ' + error.message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error('Validation failed: ' + message);
     } finally {
       setIsValidating(null);
     }

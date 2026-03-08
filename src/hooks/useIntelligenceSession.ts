@@ -458,9 +458,10 @@ export function useIntelligenceSession(profileId: string): UseIntelligenceSessio
       setSession(null);
       setTasks([]);
       toast.info('Session discarded');
-    } catch (error: any) {
+    } catch (error) {
       console.error('[discardSession] Error:', error);
-      toast.error(`Failed to discard: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`Failed to discard: ${message}`);
     }
   }, [session?.id]);
 

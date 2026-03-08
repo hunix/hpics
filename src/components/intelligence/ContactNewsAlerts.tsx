@@ -293,7 +293,7 @@ export function ContactNewsAlerts({ profileId, compact = false }: ContactNewsAle
                       <Users className="h-4 w-4" />
                       <span>
                         {prediction.profiles.first_name} {prediction.profiles.last_name}
-                        {prediction.profiles.company && ` • ${prediction.profiles.company}`}
+                        {prediction.profiles.organization && ` • ${prediction.profiles.organization}`}
                       </span>
                     </div>
                   )}
