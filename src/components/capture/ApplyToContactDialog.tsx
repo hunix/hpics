@@ -60,7 +60,7 @@ interface Contact {
   first_name: string;
   last_name: string;
   email?: string;
-  company?: string;
+  organization?: string;
 }
 
 interface FieldMapping {
