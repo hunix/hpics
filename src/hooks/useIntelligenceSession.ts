@@ -349,9 +349,10 @@ export function useIntelligenceSession(profileId: string): UseIntelligenceSessio
       } else {
         toast.success(`Started ${data.totalTasks} intelligence tasks`);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('[startGeneration] Error:', error);
-      toast.error(`Failed to start: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`Failed to start: ${message}`);
     }
   }, [user?.id, profileId]);
 
