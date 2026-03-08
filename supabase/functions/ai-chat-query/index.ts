@@ -190,7 +190,7 @@ ${contextParts.join('\n')}`;
     await supabase.from('ai_usage_logs').insert({
       user_id: user.id,
       function_name: 'ai-chat-query',
-      model_name: 'google/gemini-2.5-flash',
+      model_name: 'google/gemini-3-flash-preview',
       provider: 'google',
       input_tokens: inputTokens,
       output_tokens: outputTokens,

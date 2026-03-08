@@ -459,8 +459,8 @@ function generateStrategicInsights(communities: any[], metrics: Record<string, a
     insights.push(`Top bridging node: ${topBridge.nodeName} connects ${topBridge.bridgesBetween.length} communities`);
   }
 
-  if (communities[0]?.characteristics.dominantCompany) {
-    insights.push(`Largest community associated with ${communities[0].characteristics.dominantCompany}`);
+  if (communities[0]?.characteristics.dominantOrganization) {
+    insights.push(`Largest community associated with ${communities[0].characteristics.dominantOrganization}`);
   }
 
   return insights;
