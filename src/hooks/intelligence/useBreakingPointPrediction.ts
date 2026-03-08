@@ -225,7 +225,7 @@ export function useBreakingPointPrediction(profileId?: string) {
       predictionId: string;
       vectorName: string;
       intensity: number;
-      observed效果: number;
+      observedEffect: number;
     }) => {
       if (!user?.id) throw new Error('Not authenticated');
       
