@@ -123,6 +123,8 @@ export function GaitCapturePanel({ profileId, profileName, onCapture }: GaitCapt
     setStepCount(0);
     setDuration(0);
     setIsCapturing(true);
+    isCapturingRef.current = true;
+    motionListenerRef.current = handleMotion;
     
     window.addEventListener('devicemotion', handleMotion);
     
