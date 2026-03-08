@@ -10,28 +10,12 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-// Lazy import to avoid circular dependency
-let ROUTE_MAP: Record<string, { router: string; path: string }> | null = null;
-
-async function getRouteMap() {
-  if (!ROUTE_MAP) {
-    const mod = await import('@/lib/api/edgeFunctionRouter');
-    // Build route map from the exported helpers
-    const routers = mod.getRouterNames();
-    ROUTE_MAP = {};
-    for (const router of routers) {
-      const fns = mod.getFunctionsByRouter(router);
-      for (const fn of fns) {
-        const routerName = mod.getRouterName(fn);
-        if (routerName) {
-          // We need the path too - reconstruct from invokeFn behavior
-          // Actually, let's just use invokeFn directly
-        }
-      }
-    }
-  }
-  return ROUTE_MAP;
-}
+/**
+ * Reference to the original (unproxied) `supabase.functions.invoke`.
+ * Exported so `invokeFn` in edgeFunctionRouter can bypass the proxy
+ * for domain-router calls, avoiding a redundant async hop.
+ */
+export let originalInvoke: typeof supabase.functions.invoke | null = null;
 
 /**
  * Install the invoke proxy. Call once at app startup.
@@ -40,7 +24,8 @@ async function getRouteMap() {
  * will automatically route through the domain routers when a mapping exists.
  */
 export function installInvokeProxy() {
-  const originalInvoke = supabase.functions.invoke.bind(supabase.functions);
+  const _originalInvoke = supabase.functions.invoke.bind(supabase.functions);
+  originalInvoke = _originalInvoke;
 
   // We dynamically import the router to avoid circular deps
   let invokeFnRef: typeof import('@/lib/api/edgeFunctionRouter').invokeFn | null = null;
@@ -93,6 +78,6 @@ export function installInvokeProxy() {
     }
 
     // Fallback to original for unmapped functions
-    return originalInvoke(functionName, options as never);
+    return _originalInvoke(functionName, options as never);
   }) as typeof supabase.functions.invoke;
 }

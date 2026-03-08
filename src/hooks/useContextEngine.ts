@@ -6,6 +6,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeFunction } from '@/lib/api/edgeFunctionRouter';
 import { nativeIntelligence, ContextSnapshot, ActivityState, LocationData } from '@/lib/mobile/nativeIntelligence';
 import { useBackgroundLocation } from './useBackgroundLocation';
 import { useSmartTriggers } from './useSmartTriggers';
@@ -463,16 +464,15 @@ export function useContextEngine(): UseContextEngineReturn {
     if (!user) return null;
 
     try {
-      const { data, error } = await supabase.functions.invoke('predict-context', {
-        body: { 
-          userId: user.id, 
-          profileId,
-          action: 'optimal_contact_time'
-        }
+      const { data, error } = await invokeFunction('predict-context', { 
+        userId: user.id, 
+        profileId,
+        action: 'optimal_contact_time'
       });
 
       if (error) throw error;
-      return data?.optimalTime || null;
+      const result = data as Record<string, unknown> | null;
+      return (result?.optimalTime as { time: string; reason: string }) || null;
     } catch (error) {
       console.error('Error getting optimal contact time:', error);
       return null;
@@ -487,11 +487,15 @@ export function useContextEngine(): UseContextEngineReturn {
   }, [stopMonitoring]);
 
   // Auto-refresh recommendations when context changes
+  // Use a ref to avoid re-running when getRecommendations identity changes (Issue D+J fix)
+  const getRecommendationsRef = useRef(getRecommendations);
+  getRecommendationsRef.current = getRecommendations;
+
   useEffect(() => {
     if (currentPrediction) {
-      getRecommendations();
+      getRecommendationsRef.current();
     }
-  }, [currentPrediction, getRecommendations]);
+  }, [currentPrediction]);
 
   // Computed values
   const currentContext: ContextType = isPinned && pinnedContext 

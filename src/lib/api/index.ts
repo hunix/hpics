@@ -1,7 +1,7 @@
 /**
- * API Layer - Barrel Export (v4.0.0)
+ * API Layer - Barrel Export (v4.1.0)
  * 
- * Consolidated exports for the API adapter, circuit breakers, and query config.
+ * Consolidated exports for the API adapter, circuit breakers, query config, and invoke proxy.
  */
 
 export {
@@ -12,6 +12,11 @@ export {
   getFunctionsByRouter,
   getRouterNames,
 } from './edgeFunctionRouter';
+
+export {
+  installInvokeProxy,
+  originalInvoke,
+} from './invokeProxy';
 
 export {
   getRouterBreaker,

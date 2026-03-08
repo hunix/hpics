@@ -30064,7 +30064,7 @@ export type Database = {
       }
       quantum_states: {
         Row: {
-          coherence_duration: unknown
+          coherence_duration: string | null
           collapsed_at: string | null
           collapsed_state: Json | null
           created_at: string
@@ -30079,7 +30079,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          coherence_duration?: unknown
+          coherence_duration?: string | null
           collapsed_at?: string | null
           collapsed_state?: Json | null
           created_at?: string
@@ -30094,7 +30094,7 @@ export type Database = {
           user_id: string
         }
         Update: {
-          coherence_duration?: unknown
+          coherence_duration?: string | null
           collapsed_at?: string | null
           collapsed_state?: Json | null
           created_at?: string
@@ -40133,6 +40133,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_automation_counters: {
+        Args: { p_field: string; p_rule_id: string }
+        Returns: undefined
       }
       increment_bulk_session_progress: {
         Args: {

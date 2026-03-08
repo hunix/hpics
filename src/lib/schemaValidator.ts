@@ -51,12 +51,14 @@ const KNOWN_SCHEMAS: Record<string, string[]> = {
     'generated_at', 'created_at',
   ],
   media: [
-    'id', 'user_id', 'profile_id', 'file_path', 'file_type', 'file_size',
-    'original_filename', 'ai_metadata', 'created_at', 'updated_at',
+    'id', 'user_id', 'profile_id', 'file_url', 'mime_type', 'file_size',
+    'storage_path', 'caption', 'thumbnail_url', 'media_type', 'title',
+    'file_name', 'ai_metadata', 'ai_generation_status', 'created_at', 'updated_at',
   ],
   voice_recording_sessions: [
     'id', 'user_id', 'profile_id', 'session_type', 'duration_seconds',
-    'transcript', 'analysis_result', 'created_at', 'updated_at',
+    'transcript', 'analysis_result', 'audio_url', 'status',
+    'created_at', 'updated_at',
   ],
   autonomous_campaigns: [
     'id', 'user_id', 'campaign_name', 'campaign_type', 'objective',
@@ -69,7 +71,8 @@ const KNOWN_SCHEMAS: Record<string, string[]> = {
   ],
   // Additional commonly used tables
   messages: [
-    'id', 'conversation_id', 'content', 'is_from_contact', 
+    'id', 'conversation_id', 'content', 'is_from_contact',
+    'message_type', 'media_url', 'source', 'metadata',
     'sent_at', 'created_at',
   ],
   bulk_analysis_sessions: [
@@ -94,7 +97,7 @@ const KNOWN_SCHEMAS: Record<string, string[]> = {
   ],
   contact_observations: [
     'id', 'user_id', 'profile_id', 'category', 'title', 'observation',
-    'confidence_level', 'ai_validation_status', 'ai_validation_result',
+    'observation_date', 'confidence_level', 'ai_validation_status', 'ai_validation_result',
     'ai_confidence_score', 'related_analysis_ids', 'tags', 'created_at', 'updated_at',
   ],
   behavioral_analyses: [
