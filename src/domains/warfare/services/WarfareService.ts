@@ -93,7 +93,7 @@ export class WarfareService {
     };
 
     const saved = await this.campaignRepo.save(campaign);
-    this.emit(new CampaignCreated({ userId: request.userId, campaignId: saved.id, name: saved.name, type: saved.type }));
+    await this.emit(new CampaignCreated({ userId: request.userId, campaignId: saved.id, name: saved.name, type: saved.type }));
     return saved;
   }
 
