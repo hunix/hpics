@@ -157,8 +157,9 @@ export function buildOsintQueries(profileData: any): string[] {
   if (fullName) {
     queries.push(`"${fullName}"`);
     
-    if (profileData.company) {
-      queries.push(`"${fullName}" "${profileData.company}"`);
+    const orgName = profileData.organization || profileData.company;
+    if (orgName) {
+      queries.push(`"${fullName}" "${orgName}"`);
     }
     
     if (profileData.job_title) {
