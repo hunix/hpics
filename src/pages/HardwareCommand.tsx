@@ -181,6 +181,14 @@ export default function HardwareCommand() {
                 <FileText className="h-4 w-4" />
                 Reports
               </TabsTrigger>
+              <TabsTrigger value="rf-signal" className="gap-2">
+                <Radio className="h-4 w-4" />
+                RF Intel
+              </TabsTrigger>
+              <TabsTrigger value="thermal" className="gap-2">
+                <Thermometer className="h-4 w-4" />
+                Thermal
+              </TabsTrigger>
             </TabsList>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
