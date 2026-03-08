@@ -385,9 +385,10 @@ export function useIntelligenceSession(profileId: string): UseIntelligenceSessio
 
       if (error) throw error;
       toast.info('Generation paused');
-    } catch (error: any) {
+    } catch (error) {
       console.error('[pauseGeneration] Error:', error);
-      toast.error(`Failed to pause: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`Failed to pause: ${message}`);
     }
   }, [session?.id]);
 
