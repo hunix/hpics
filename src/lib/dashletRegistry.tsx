@@ -91,6 +91,7 @@ const AIChatAssistant = lazy(() => import('@/components/ai/AIChatAssistant').the
 const UnifiedIntelligenceDashboard = lazy(() => import('@/components/intelligence/UnifiedIntelligenceDashboard').then(m => ({ default: m.UnifiedIntelligenceDashboard })));
 const CommunicationVelocityWidget = lazy(() => import('@/components/dashboard/CommunicationVelocityWidget').then(m => ({ default: m.CommunicationVelocityWidget })));
 const BehavioralAnomalyDashboard = lazy(() => import('@/components/intelligence/BehavioralAnomalyDashboard').then(m => ({ default: m.BehavioralAnomalyDashboard })));
+const ProactiveInsightsDashlet = lazy(() => import('@/components/dashboard/ProactiveInsightsDashlet').then(m => ({ default: m.ProactiveInsightsDashlet })));
 
 /**
  * Suspense loading fallback for dashlets
