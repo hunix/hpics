@@ -12,6 +12,7 @@ import { getIntelligenceService } from '@/domains/intelligence/services/Intellig
 import { getFusionFacade } from '@/application/facades/FusionFacade';
 import { getIntelligenceFacade } from '@/application/facades/IntelligenceFacade';
 import { ProfileService } from '@/domains/profile/services/ProfileService';
+import { FusionService } from '@/domains/fusion/services/FusionService';
 import { getProfileFacade } from '@/application/facades/ProfileFacade';
 import { NetworkService } from '@/domains/network/services/NetworkService';
 import { NetworkFacade } from '@/application/facades/NetworkFacade';
