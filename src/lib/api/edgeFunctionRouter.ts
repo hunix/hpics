@@ -9,6 +9,9 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
+// Cached reference to the original (unproxied) invoke, set on first invokeFn call
+let _cachedOriginalInvoke: typeof supabase.functions.invoke | null = null;
+
 /**
  * Route definition mapping a legacy function name to a domain router.
  */
