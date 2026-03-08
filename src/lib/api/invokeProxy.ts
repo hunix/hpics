@@ -78,6 +78,6 @@ export function installInvokeProxy() {
     }
 
     // Fallback to original for unmapped functions
-    return originalInvoke(functionName, options as never);
+    return _originalInvoke(functionName, options as never);
   }) as typeof supabase.functions.invoke;
 }

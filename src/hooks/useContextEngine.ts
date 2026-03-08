@@ -6,6 +6,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeFunction } from '@/lib/api/edgeFunctionRouter';
 import { nativeIntelligence, ContextSnapshot, ActivityState, LocationData } from '@/lib/mobile/nativeIntelligence';
 import { useBackgroundLocation } from './useBackgroundLocation';
 import { useSmartTriggers } from './useSmartTriggers';

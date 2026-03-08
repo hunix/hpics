@@ -57,7 +57,8 @@ const KNOWN_SCHEMAS: Record<string, string[]> = {
   ],
   voice_recording_sessions: [
     'id', 'user_id', 'profile_id', 'session_type', 'duration_seconds',
-    'transcript', 'analysis_result', 'created_at', 'updated_at',
+    'transcript', 'analysis_result', 'audio_url', 'status',
+    'created_at', 'updated_at',
   ],
   autonomous_campaigns: [
     'id', 'user_id', 'campaign_name', 'campaign_type', 'objective',

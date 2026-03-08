@@ -310,17 +310,12 @@ export function useSmartTriggers(): UseSmartTriggersReturn {
       };
       await supabase.from('automation_rules').update(updateFields).eq('id', rule.id);
 
-      // Increment success/failure counters separately to avoid NaN from undefined fields
+      // Increment success/failure counters via RPC to avoid overwrite bugs
       try {
-        if (result.success) {
-          await supabase.from('automation_rules')
-            .update({ success_count: 1 } as never)
-            .eq('id', rule.id);
-        } else {
-          await supabase.from('automation_rules')
-            .update({ failure_count: 1 } as never)
-            .eq('id', rule.id);
-        }
+        await supabase.rpc('increment_automation_counters', {
+          p_rule_id: rule.id,
+          p_field: result.success ? 'success_count' : 'failure_count',
+        });
       } catch {
         // Counter increment is best-effort, don't fail the whole execution
       }
