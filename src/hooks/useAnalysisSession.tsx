@@ -177,6 +177,7 @@ export function useAnalysisSession({
       facial: 'analyze-facial',
       body_language: 'analyze-body-language',
       vocal: 'analyze-vocal',
+      multi_party: 'multi-party-deception-detector',
     };
 
     const startTime = Date.now();
