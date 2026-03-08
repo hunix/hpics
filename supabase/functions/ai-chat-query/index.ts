@@ -11,6 +11,18 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthCheck') === '1') {
+    return new Response(JSON.stringify({ 
+      ok: true, 
+      function: 'ai-chat-query', 
+      timestamp: Date.now() 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -79,7 +91,7 @@ serve(async (req) => {
     const { data: staleContacts } = await supabase
       .from('profiles')
       .select(`
-        id, first_name, last_name, company,
+        id, first_name, last_name, organization,
         communications(occurred_at)
       `)
       .eq('user_id', user.id)
@@ -94,21 +106,21 @@ serve(async (req) => {
     }).slice(0, 5);
 
     if (needsFollowUp && needsFollowUp.length > 0) {
-      const followUpList = needsFollowUp.map(p => `${p.first_name} ${p.last_name}${p.company ? ` (${p.company})` : ''}`).join(', ');
+      const followUpList = needsFollowUp.map(p => `${p.first_name} ${p.last_name}${p.organization ? ` (${p.organization})` : ''}`).join(', ');
       contextParts.push(`Contacts needing follow-up: ${followUpList}`);
     }
 
     // Get high-value contacts (if relationship scores exist)
     const { data: topContacts } = await supabase
       .from('relationship_scores')
-      .select('profile_id, overall_score, profiles(first_name, last_name, company)')
+      .select('profile_id, overall_score, profiles(first_name, last_name, organization)')
       .eq('user_id', user.id)
       .order('overall_score', { ascending: false })
       .limit(5);
 
     if (topContacts && topContacts.length > 0) {
       const topList = topContacts.map(c => {
-        const profile = c.profiles as { first_name?: string; last_name?: string; company?: string } | null;
+        const profile = c.profiles as { first_name?: string; last_name?: string; organization?: string } | null;
         return `${profile?.first_name || ''} ${profile?.last_name || ''} (score: ${c.overall_score})`;
       }).join(', ');
       contextParts.push(`Top relationships: ${topList}`);
@@ -143,7 +155,7 @@ ${contextParts.join('\n')}`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-3-flash-preview',
         messages,
         max_tokens: 800,
         temperature: 0.7
@@ -178,7 +190,7 @@ ${contextParts.join('\n')}`;
     await supabase.from('ai_usage_logs').insert({
       user_id: user.id,
       function_name: 'ai-chat-query',
-      model_name: 'google/gemini-2.5-flash',
+      model_name: 'google/gemini-3-flash-preview',
       provider: 'google',
       input_tokens: inputTokens,
       output_tokens: outputTokens,

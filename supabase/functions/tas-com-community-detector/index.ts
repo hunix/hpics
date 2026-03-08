@@ -82,7 +82,7 @@ serve(async (req) => {
         .or(`from_profile_id.eq.${profileId},to_profile_id.eq.${profileId}`)
         .limit(200),
       supabase.from('profiles')
-        .select('id, first_name, last_name, job_title, company, city, tags')
+        .select('id, first_name, last_name, job_title, organization, city, tags')
         .eq('user_id', userId)
         .limit(200),
       supabase.from('ai_analyses')
@@ -179,7 +179,7 @@ function buildGraph(focusProfileId: string, relationships: any[], contacts: any[
       id: contact.id,
       attributes: {
         name: `${contact.first_name || ''} ${contact.last_name || ''}`.trim(),
-        company: contact.company,
+        organization: contact.organization,
         jobTitle: contact.job_title,
         city: contact.city,
         tags: contact.tags || [],
@@ -295,21 +295,21 @@ function detectCommunities(graph: Graph, contacts: any[]): any[] {
       return {
         id,
         name: node?.attributes.name || 'Unknown',
-        company: node?.attributes.company,
+        organization: node?.attributes.organization,
         role: node?.attributes.jobTitle,
       };
     });
 
     // Identify community characteristics
-    const companies = memberDetails.map(m => m.company).filter(Boolean);
-    const dominantCompany = findMostCommon(companies);
+    const organizations = memberDetails.map(m => m.organization).filter(Boolean);
+    const dominantOrganization = findMostCommon(organizations);
     
     result.push({
       id: commId,
       size: members.length,
       members: memberDetails,
       characteristics: {
-        dominantCompany,
+        dominantOrganization,
         cohesion: calculateCohesion(members, graph),
       },
     });
@@ -356,8 +356,8 @@ function calculateAttributeSimilarityGain(
   for (const memberId of commMembers) {
     const memberAttrs = graph.nodes.get(memberId)?.attributes || {};
     
-    // Company match
-    if (nodeAttrs.company && nodeAttrs.company === memberAttrs.company) {
+    // Organization match
+    if (nodeAttrs.organization && nodeAttrs.organization === memberAttrs.organization) {
       similarity += 0.3;
     }
     
@@ -459,8 +459,8 @@ function generateStrategicInsights(communities: any[], metrics: Record<string, a
     insights.push(`Top bridging node: ${topBridge.nodeName} connects ${topBridge.bridgesBetween.length} communities`);
   }
 
-  if (communities[0]?.characteristics.dominantCompany) {
-    insights.push(`Largest community associated with ${communities[0].characteristics.dominantCompany}`);
+  if (communities[0]?.characteristics.dominantOrganization) {
+    insights.push(`Largest community associated with ${communities[0].characteristics.dominantOrganization}`);
   }
 
   return insights;
