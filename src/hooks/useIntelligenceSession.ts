@@ -402,9 +402,10 @@ export function useIntelligenceSession(profileId: string): UseIntelligenceSessio
 
       if (error) throw error;
       toast.info('Generation cancelled');
-    } catch (error: any) {
+    } catch (error) {
       console.error('[cancelGeneration] Error:', error);
-      toast.error(`Failed to cancel: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`Failed to cancel: ${message}`);
     }
   }, [session?.id]);
 
