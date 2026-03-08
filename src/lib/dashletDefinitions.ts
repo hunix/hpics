@@ -361,6 +361,14 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     defaultVisible: false,
     category: 'ai',
   },
+  {
+    type: 'proactive-insights',
+    title: 'Proactive Insights',
+    description: 'AI-generated proactive intelligence suggestions',
+    icon: Lightbulb,
+    defaultVisible: false,
+    category: 'ai',
+  },
 ];
 
 export const getDefaultLayout = (): DashletConfig[] => {

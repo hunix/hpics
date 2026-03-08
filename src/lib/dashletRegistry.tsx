@@ -295,6 +295,7 @@ const dashletRenderers: Partial<Record<DashletType, DashletRenderer>> = {
   'unified-intelligence': () => withDashletSafety('unified-intelligence', <UnifiedIntelligenceDashboard />),
   'communication-velocity': () => withDashletSafety('communication-velocity', <CommunicationVelocityWidget />),
   'behavioral-anomalies': () => withDashletSafety('behavioral-anomalies', <BehavioralAnomalyDashboard />),
+  'proactive-insights': () => withDashletSafety('proactive-insights', <ProactiveInsightsDashlet />),
 };
 
 /**
