@@ -82,7 +82,7 @@ serve(async (req) => {
         .or(`from_profile_id.eq.${profileId},to_profile_id.eq.${profileId}`)
         .limit(200),
       supabase.from('profiles')
-        .select('id, first_name, last_name, job_title, company, city, tags')
+        .select('id, first_name, last_name, job_title, organization, city, tags')
         .eq('user_id', userId)
         .limit(200),
       supabase.from('ai_analyses')
