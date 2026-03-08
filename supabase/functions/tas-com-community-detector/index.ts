@@ -309,7 +309,7 @@ function detectCommunities(graph: Graph, contacts: any[]): any[] {
       size: members.length,
       members: memberDetails,
       characteristics: {
-        dominantCompany,
+        dominantOrganization,
         cohesion: calculateCohesion(members, graph),
       },
     });
