@@ -1,183 +1,95 @@
 
 
-# HPICS-HoC Integration Layer: Bridge Plan
+# Codebase Feature Audit: Disconnections, Gaps & Enhancement Opportunities
 
-## Overview
+## Scan Summary
 
-This plan creates a two-part integration between the HPICS Intelligence Platform and the HoC Republic (OpenClaw-based agentic AI civilization):
+Audited 80+ pages, 150+ hooks, 90+ edge functions, and the full navigation config. Found **3 categories** of issues: disconnected features (built but not wired), missing navigation entries, and orphaned hooks never consumed by any component.
 
-1. **HPICS Side (built here)**: A new `hoc-gateway` edge function that exposes all 400+ HPICS capabilities as a single authenticated REST API designed for tool-calling agents.
-
-2. **HoC Side (documentation + skill template)**: A complete OpenClaw skill (`hpics-intelligence`) and documentation you'll place into your HoC workspace so agents can call HPICS tools natively.
-
-## Architecture
-
-```text
-HoC Agent (OpenClaw)                         HPICS Platform (Lovable Cloud)
-+---------------------------+                +------------------------------------+
-|  OpenClaw Gateway         |                |  Supabase Edge Functions           |
-|  +---------------------+ |   HTTPS/JSON   |  +------------------------------+ |
-|  | hpics-intelligence   |----(Bearer)----->|  | hoc-gateway                  | |
-|  | skill (SKILL.md)     | |                |  |  - API key validation        | |
-|  +---------------------+ |                |  |  - Route to domain routers   | |
-|  | exec: curl/fetch     | |                |  |  - Rate limiting             | |
-|  +---------------------+ |                |  |  - Response normalization    | |
-+---------------------------+                |  +------------------------------+ |
-                                             |            |                      |
-                                             |    +-------v-------+              |
-                                             |    | Domain Routers |             |
-                                             |    | (15 Hono apps) |             |
-                                             |    +---------------+              |
-                                             +------------------------------------+
-```
-
-## What Gets Built
-
-### Part 1: `hoc-gateway` Edge Function (HPICS Side)
-
-A single edge function that acts as the external API gateway for HoC agents. It:
-
-- Authenticates via a shared API key (stored as `HOC_API_KEY` secret)
-- Accepts a uniform JSON payload: `{ "tool": "<function-name>", "params": { ... } }`
-- Routes internally to the correct domain router using the existing `ROUTE_MAP`
-- Supports `POST /hoc-gateway` for tool execution and `GET /hoc-gateway?action=list-tools` for tool discovery
-- Rate limits per-key (60 requests/minute default)
-- Returns normalized responses: `{ "success": boolean, "data": ..., "error": ..., "meta": { "duration_ms": ..., "router": ... } }`
-
-Endpoints:
-- `POST /hoc-gateway` with `{ "tool": "mice-recruitment-analyzer", "params": { "profileId": "...", "userId": "..." } }` -- executes the tool
-- `POST /hoc-gateway` with `{ "action": "list-tools" }` -- returns full tool catalog with categories
-- `POST /hoc-gateway` with `{ "action": "health" }` -- returns gateway and router health
-- `POST /hoc-gateway` with `{ "action": "list-categories" }` -- returns available categories
-
-### Part 2: Documentation File (HPICS Side)
-
-A comprehensive `docs/HOC_INTEGRATION_GUIDE.md` covering:
-
-- How to configure the `HOC_API_KEY` secret
-- How to install the skill in HoC
-- Complete tool catalog (all 400+ tools organized by domain router)
-- Request/response formats with examples
-- Rate limits and error handling
-- How to extend, maintain, and debug
-- How to build custom HoC-side wrappers
-
-### Part 3: OpenClaw Skill Template (HPICS Side, for copy to HoC)
-
-A `docs/hoc-skill-template/SKILL.md` file in AgentSkills format that:
-
-- Declares the `hpics-intelligence` skill
-- Requires `HPICS_API_KEY` and `HPICS_BASE_URL` environment variables
-- Teaches the HoC agent how to use `web_fetch` or `exec` (curl) to call the gateway
-- Lists all available tool categories and key tools
-- Includes example invocations for common workflows
-
-## Technical Details
-
-### `hoc-gateway` Edge Function Implementation
-
-```text
-supabase/functions/hoc-gateway/index.ts
-
-Flow:
-1. OPTIONS -> CORS response
-2. Parse body -> validate API key from Authorization header
-3. If action=list-tools -> return ROUTE_MAP as categorized tool list
-4. If action=health -> fan-out health checks to routers
-5. If tool=<name> -> look up in ROUTE_MAP -> invoke domain router
-6. Return normalized { success, data, error, meta }
-```
-
-Key design decisions:
-- Uses the `ROUTE_MAP` from `edgeFunctionRouter.ts` (rebuilt server-side as a const map) so tool names stay in sync
-- API key auth (not JWT) since HoC agents are external systems, not platform users
-- The `HOC_API_KEY` secret will be requested from the user
-- UserId is passed in params (trusted since this is service-to-service with API key)
-- Timeout: 120s default, configurable per-call via `params.timeout_ms`
-
-### OpenClaw Skill Format
-
-```yaml
 ---
-name: hpics-intelligence
-description: Access the HPICS Intelligence Platform for behavioral analysis, biometric processing, network intelligence, warfare simulation, predictions, and 400+ specialized AI engines.
-metadata:
-  {
-    "openclaw": {
-      "requires": { "env": ["HPICS_API_KEY", "HPICS_BASE_URL"] },
-      "primaryEnv": "HPICS_API_KEY"
-    }
-  }
+
+## Category 1: Pages Routed but Missing from Navigation (3 pages)
+
+These pages have routes in `App.tsx` but **no entry in `navigationConfig.ts`**, making them completely inaccessible to users unless they type the URL manually:
+
+| Page | Route | Purpose |
+|------|-------|---------|
+| `PlatformConfiguration` | `/platform-config` | Platform-wide config management |
+| `AgentIntelligenceConfig` | `/agent-intelligence` | AI agent workflow configuration |
+| `DatabaseMaintenance` | `/maintenance` | Database cleanup & optimization |
+
+**Fix**: Add navigation entries to `navigationConfig.ts` under the `system` category with appropriate role guards (admin-only).
+
 ---
+
+## Category 2: Orphaned Hooks — Built but Never Used in Any Component (8 hooks)
+
+These hooks exist in `src/hooks/` but have **zero imports from any `.tsx` component file**:
+
+| Hook | Purpose | Lines |
+|------|---------|-------|
+| `useProactiveInsights` | AI-generated proactive suggestions | 170 |
+| `usePsychologyAssessment` | Behavioral/psychological profiling | ~100 |
+| `useCrossContactPatterns` | Cross-contact pattern detection | 110 |
+| `useIntelligenceQueue` | Intelligence task queueing | ~80 |
+| `useInteractionContext` | Interaction context tracking | ~60 |
+| `useMeetingIntelligence` | Meeting preparation intelligence | ~100 |
+| `useRFSignalIntelligence` | RF signal analysis | ~80 |
+| `useThermalIntelligence` | Thermal imaging intelligence | ~80 |
+
+**Fix**: Wire these into their natural host pages:
+- `useProactiveInsights` → Dashboard (as a "Proactive Insights" dashlet widget)
+- `usePsychologyAssessment` → PsychologyIntelligence page
+- `useCrossContactPatterns` → ContactDetail page (patterns tab or sidebar)
+- `useMeetingIntelligence` → Calendar page (meeting prep panel)
+- `useRFSignalIntelligence` / `useThermalIntelligence` → HardwareCommand page (already has SDR/TSCM panels but missing RF & Thermal)
+
+---
+
+## Category 3: Dashboard Performance Issue
+
+**File**: `src/pages/Dashboard.tsx` (line 60)
+
+The dashboard stats query fetches **all profiles** (`select('id, is_favorite')`) to count them, hitting the 1000-row Supabase limit. Users with 1000+ contacts will see incorrect counts. Should use `{ count: 'exact', head: true }` pattern instead.
+
+**Fix**: Refactor to use count-only queries:
+```typescript
+supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_active', true)
 ```
+And a separate query for favorites count.
 
-The skill body teaches the agent to use `web_fetch` with:
-```text
-POST ${HPICS_BASE_URL}/functions/v1/hoc-gateway
-Authorization: Bearer ${HPICS_API_KEY}
-Content-Type: application/json
+---
 
-{ "tool": "<tool-name>", "params": { ... } }
-```
+## Category 4: Recommended Enhancements
 
-### Tool Catalog Structure (in list-tools response)
+### 4a. Dashboard Proactive Insights Widget
+The `useProactiveInsights` hook is fully implemented (fetches from `proactive_insights` table, supports filtering, dismissal, snoozing) but has no UI. Adding a dashlet to the Dashboard would surface AI-generated recommendations to users — high business value.
 
-```json
-{
-  "categories": {
-    "analysis": { 
-      "description": "50+ behavioral, psychological, and pattern analysis engines",
-      "tools": ["mice-recruitment-analyzer", "behavioral-dna-sequencer", ...] 
-    },
-    "intelligence": { "description": "...", "tools": [...] },
-    "prediction": { ... },
-    "warfare": { ... },
-    "biometric": { ... },
-    "network": { ... },
-    "enrichment": { ... },
-    "fusion": { ... },
-    "agis": { ... },
-    "utility": { ... },
-    "hardware": { ... },
-    "voice": { ... },
-    "document": { ... },
-    "security": { ... },
-    "media": { ... }
-  }
-}
-```
+### 4b. Meeting Prep Integration on Calendar
+`useMeetingIntelligence` generates meeting briefs with talking points and relationship context. Wiring it into the Calendar page's event detail view would complete the meeting preparation workflow.
 
-### Security Model
+### 4c. Cross-Contact Pattern Detection on Contact Detail
+`useCrossContactPatterns` detects shared behavioral patterns across contacts. Surfacing this on the ContactDetail page would help users discover hidden connections.
 
-- API key rotation: The `HOC_API_KEY` can be rotated by updating the secret
-- Rate limiting: 60 req/min per API key (tracked in-memory per edge function instance)
-- No user JWT required -- the gateway uses the service role key internally
-- UserId in params is trusted (service-to-service pattern)
-- All requests are logged to `audit_logs` table with source='hoc-gateway'
+---
 
-### Files Created
+## Implementation Plan
 
-| File | Purpose |
-|------|---------|
-| `supabase/functions/hoc-gateway/index.ts` | Gateway edge function |
-| `docs/HOC_INTEGRATION_GUIDE.md` | Complete integration documentation |
-| `docs/hoc-skill-template/SKILL.md` | OpenClaw skill file (copy to HoC) |
+### Batch 1: Add Missing Navigation Entries (1 file)
+Add 3 entries to `navigationConfig.ts` for `/platform-config`, `/agent-intelligence`, `/maintenance` under the `system` category with `requiredRole: 'admin'`.
 
-### Config Updates
+### Batch 2: Fix Dashboard Stats Performance (1 file)
+Refactor Dashboard stats query to use `{ count: 'exact', head: true }` instead of fetching all rows.
 
-| File | Change |
-|------|--------|
-| `supabase/config.toml` | NOT edited (auto-managed) |
+### Batch 3: Wire Proactive Insights to Dashboard (2 files)
+1. Create a `ProactiveInsightsDashlet` component
+2. Register it in the dashlet registry
 
-### Secret Required
+### Batch 4: Wire Orphaned Hooks to Host Pages (4 files)
+1. Add `usePsychologyAssessment` call to PsychologyIntelligence page
+2. Add `useCrossContactPatterns` panel to ContactDetail
+3. Add `useMeetingIntelligence` prep card to Calendar page
+4. Add RF Signal & Thermal panels to HardwareCommand page
 
-- `HOC_API_KEY`: A shared secret for HoC-to-HPICS authentication (will be requested from user)
-
-## Implementation Order
-
-1. Create `supabase/functions/hoc-gateway/index.ts` with the full gateway logic
-2. Create `docs/hoc-skill-template/SKILL.md` with the OpenClaw skill template  
-3. Create `docs/HOC_INTEGRATION_GUIDE.md` with comprehensive documentation
-4. Request the `HOC_API_KEY` secret from the user
-5. Deploy and test the gateway
+Total: ~8 files, ~200 lines changed across 4 batches.
 
