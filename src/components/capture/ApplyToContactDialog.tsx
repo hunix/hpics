@@ -108,13 +108,17 @@ export function ApplyToContactDialog({
   const loadContacts = async () => {
     setIsLoading(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name')
+        .select('id, first_name, last_name, organization')
+        .eq('user_id', user.id)
         .order('first_name');
 
       if (error) throw error;
-      setContacts((data || []).map(c => ({ ...c, company: undefined })) as Contact[]);
+      setContacts((data || []) as Contact[]);
     } catch (error) {
       console.error('Failed to load contacts:', error);
     } finally {
