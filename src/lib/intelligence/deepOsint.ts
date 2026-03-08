@@ -295,8 +295,8 @@ export function inferWealthIndicators(profileData: any): {
   }
   
   // Company analysis
-  if (profileData.company) {
-    // Would integrate with company database for revenue data
+  const orgName = profileData.organization || profileData.company;
+  if (orgName) {
     signals.push('Company affiliation noted');
   }
   

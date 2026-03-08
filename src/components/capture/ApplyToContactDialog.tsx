@@ -334,8 +334,8 @@ export function ApplyToContactDialog({
                   {contacts.map((contact) => (
                     <SelectItem key={contact.id} value={contact.id}>
                       {contact.first_name} {contact.last_name}
-                      {contact.company && (
-                        <span className="text-muted-foreground ml-2">({contact.company})</span>
+                      {contact.organization && (
+                        <span className="text-muted-foreground ml-2">({contact.organization})</span>
                       )}
                     </SelectItem>
                   ))}
