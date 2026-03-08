@@ -59,7 +59,8 @@ export type DashletType =
   | 'ai-chat-assistant'
   | 'unified-intelligence'
   | 'communication-velocity'
-  | 'behavioral-anomalies';
+  | 'behavioral-anomalies'
+  | 'proactive-insights';
 
 export interface DashletDefinition {
   type: DashletType;
