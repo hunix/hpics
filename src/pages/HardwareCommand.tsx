@@ -42,6 +42,8 @@ import { DeviceHealthMonitor } from '@/components/hardware/DeviceHealthMonitor';
 import { CrossDeviceCorrelationPanel } from '@/components/hardware/CrossDeviceCorrelationPanel';
 import { ReportExportPanel } from '@/components/hardware/ReportExportPanel';
 import { AlertRulesConfig } from '@/components/hardware/AlertRulesConfig';
+import { RFSignalPanel } from '@/components/hardware/RFSignalPanel';
+import { ThermalIntelPanel } from '@/components/hardware/ThermalIntelPanel';
 
 export default function HardwareCommand() {
   const navigate = useNavigate();
