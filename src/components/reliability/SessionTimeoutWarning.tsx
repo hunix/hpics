@@ -23,7 +23,7 @@ export const SessionTimeoutWarning: React.FC<SessionTimeoutWarningProps> = ({
 
   return (
     <AlertDialog open={isOpen}>
-      <AlertDialogContent ref={ref} className="max-w-md">
+      <AlertDialogContent className="max-w-md">
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
             <Clock className={cn(
