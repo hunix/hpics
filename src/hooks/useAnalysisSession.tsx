@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { calculateCostCents } from '@/lib/aiPricing';
 
-export type AnalysisType = 'behavioral' | 'facial' | 'body_language' | 'vocal';
+export type AnalysisType = 'behavioral' | 'facial' | 'body_language' | 'vocal' | 'multi_party';
 export type JobStatus = 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'skipped';
 export type SessionStatus = 'pending' | 'running' | 'paused' | 'completed' | 'failed';
 
