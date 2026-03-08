@@ -840,6 +840,36 @@ export const navigationItems: NavItem[] = [
     category: 'system',
     keywords: ['settings', 'preferences', 'config'],
   },
+  {
+    id: 'platform-config',
+    title: 'Platform Config',
+    url: '/platform-config',
+    icon: Settings,
+    description: 'Platform-wide configuration management',
+    category: 'system',
+    requiredRole: 'admin',
+    keywords: ['platform', 'config', 'configuration', 'settings', 'admin'],
+  },
+  {
+    id: 'agent-intelligence',
+    title: 'Agent Intelligence',
+    url: '/agent-intelligence',
+    icon: Cpu,
+    description: 'AI agent workflow configuration',
+    category: 'system',
+    requiredRole: 'admin',
+    keywords: ['agent', 'intelligence', 'workflow', 'ai', 'config'],
+  },
+  {
+    id: 'maintenance',
+    title: 'Database Maintenance',
+    url: '/maintenance',
+    icon: Activity,
+    description: 'Database cleanup & optimization',
+    category: 'system',
+    requiredRole: 'admin',
+    keywords: ['maintenance', 'database', 'cleanup', 'optimization'],
+  },
 ];
 
 // Group items by category

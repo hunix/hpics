@@ -166,6 +166,10 @@ export default function PsychologyIntelligence() {
                     </CardContent>
                   </Card>
                 </TabsContent>
+
+                <TabsContent value="assessments">
+                  <PsychologyAssessmentsTab profileId={selectedProfile.id} />
+                </TabsContent>
               </Tabs>
             ) : (
               <Card className="h-[500px] flex items-center justify-center">
