@@ -91,6 +91,7 @@ const AIChatAssistant = lazy(() => import('@/components/ai/AIChatAssistant').the
 const UnifiedIntelligenceDashboard = lazy(() => import('@/components/intelligence/UnifiedIntelligenceDashboard').then(m => ({ default: m.UnifiedIntelligenceDashboard })));
 const CommunicationVelocityWidget = lazy(() => import('@/components/dashboard/CommunicationVelocityWidget').then(m => ({ default: m.CommunicationVelocityWidget })));
 const BehavioralAnomalyDashboard = lazy(() => import('@/components/intelligence/BehavioralAnomalyDashboard').then(m => ({ default: m.BehavioralAnomalyDashboard })));
+const ProactiveInsightsDashlet = lazy(() => import('@/components/dashboard/ProactiveInsightsDashlet').then(m => ({ default: m.ProactiveInsightsDashlet })));
 
 /**
  * Suspense loading fallback for dashlets
@@ -294,6 +295,7 @@ const dashletRenderers: Partial<Record<DashletType, DashletRenderer>> = {
   'unified-intelligence': () => withDashletSafety('unified-intelligence', <UnifiedIntelligenceDashboard />),
   'communication-velocity': () => withDashletSafety('communication-velocity', <CommunicationVelocityWidget />),
   'behavioral-anomalies': () => withDashletSafety('behavioral-anomalies', <BehavioralAnomalyDashboard />),
+  'proactive-insights': () => withDashletSafety('proactive-insights', <ProactiveInsightsDashlet />),
 };
 
 /**

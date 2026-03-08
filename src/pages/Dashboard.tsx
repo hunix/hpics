@@ -56,9 +56,10 @@ export default function Dashboard() {
   const { data: stats } = useQuery({
     queryKey: ['dashboard-stats', user?.id],
     queryFn: async () => {
-      const [profilesRes, communicationsRes, eventsRes, birthdaysRes] = await Promise.all([
-        supabase.from('profiles').select('id, is_favorite', { count: 'exact' }).eq('is_active', true),
-        supabase.from('communications').select('id', { count: 'exact' }),
+      const [totalRes, favoritesRes, communicationsRes, eventsRes, birthdaysRes] = await Promise.all([
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_active', true),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_active', true).eq('is_favorite', true),
+        supabase.from('communications').select('*', { count: 'exact', head: true }),
         supabase.from('events').select('id, event_date').eq('is_active', true).gte('event_date', new Date().toISOString()),
         supabase.from('contact_personal_info').select('date_of_birth').not('date_of_birth', 'is', null),
       ]);
@@ -75,8 +76,8 @@ export default function Dashboard() {
       }).length;
       
       return {
-        totalContacts: profilesRes.data?.length ?? 0,
-        favoriteContacts: profilesRes.data?.filter(p => p.is_favorite).length ?? 0,
+        totalContacts: totalRes.count ?? 0,
+        favoriteContacts: favoritesRes.count ?? 0,
         totalCommunications: communicationsRes.count ?? 0,
         upcomingEvents: (eventsRes.data?.length ?? 0) + upcomingBirthdaysCount,
       };

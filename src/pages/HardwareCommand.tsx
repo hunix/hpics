@@ -42,6 +42,8 @@ import { DeviceHealthMonitor } from '@/components/hardware/DeviceHealthMonitor';
 import { CrossDeviceCorrelationPanel } from '@/components/hardware/CrossDeviceCorrelationPanel';
 import { ReportExportPanel } from '@/components/hardware/ReportExportPanel';
 import { AlertRulesConfig } from '@/components/hardware/AlertRulesConfig';
+import { RFSignalPanel } from '@/components/hardware/RFSignalPanel';
+import { ThermalIntelPanel } from '@/components/hardware/ThermalIntelPanel';
 
 export default function HardwareCommand() {
   const navigate = useNavigate();
@@ -179,6 +181,14 @@ export default function HardwareCommand() {
                 <FileText className="h-4 w-4" />
                 Reports
               </TabsTrigger>
+              <TabsTrigger value="rf-signal" className="gap-2">
+                <Radio className="h-4 w-4" />
+                RF Intel
+              </TabsTrigger>
+              <TabsTrigger value="thermal" className="gap-2">
+                <Thermometer className="h-4 w-4" />
+                Thermal
+              </TabsTrigger>
             </TabsList>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
@@ -241,6 +251,14 @@ export default function HardwareCommand() {
 
           <TabsContent value="reports">
             <ReportExportPanel />
+          </TabsContent>
+
+          <TabsContent value="rf-signal">
+            <RFSignalPanel />
+          </TabsContent>
+
+          <TabsContent value="thermal">
+            <ThermalIntelPanel />
           </TabsContent>
         </Tabs>
       </main>

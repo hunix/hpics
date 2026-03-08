@@ -14,10 +14,11 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { DarkPsychologyDashboard } from '@/components/intelligence/DarkPsychologyDashboard';
 import { InfluencePlaybookPanel } from '@/components/intelligence/InfluencePlaybookPanel';
-import { Brain, Target, Shield, Search, Users } from 'lucide-react';
+import { Brain, Target, Shield, Search, Users, Activity } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { PsychologyAssessmentsTab } from '@/components/intelligence/PsychologyAssessmentsTab';
 
 export default function PsychologyIntelligence() {
   const { user } = useAuth();
@@ -114,7 +115,7 @@ export default function PsychologyIntelligence() {
           <div className="lg:col-span-3">
             {selectedProfile ? (
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="mb-4">
+              <TabsList className="mb-4">
                   <TabsTrigger value="dark-triad" className="gap-2">
                     <Brain className="h-4 w-4" />
                     Dark Triad
@@ -126,6 +127,10 @@ export default function PsychologyIntelligence() {
                   <TabsTrigger value="resistance" className="gap-2">
                     <Shield className="h-4 w-4" />
                     Resistance Profile
+                  </TabsTrigger>
+                  <TabsTrigger value="assessments" className="gap-2">
+                    <Activity className="h-4 w-4" />
+                    Assessments
                   </TabsTrigger>
                 </TabsList>
 
@@ -160,6 +165,10 @@ export default function PsychologyIntelligence() {
                       </p>
                     </CardContent>
                   </Card>
+                </TabsContent>
+
+                <TabsContent value="assessments">
+                  <PsychologyAssessmentsTab profileId={selectedProfile.id} />
                 </TabsContent>
               </Tabs>
             ) : (

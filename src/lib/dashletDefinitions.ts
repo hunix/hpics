@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, MessageSquare, Calendar, Star, Clock, TrendingUp, BarChart3, Network, Sparkles, UserPlus, Target, Activity, Shield, Brain, ShieldCheck, Zap, Radio, AlertTriangle, PieChart, CalendarClock, UsersRound, Fingerprint, Gift, Link2, Compass, Send } from 'lucide-react';
+import { Users, MessageSquare, Calendar, Star, Clock, TrendingUp, BarChart3, Network, Sparkles, UserPlus, Target, Activity, Shield, Brain, ShieldCheck, Zap, Radio, AlertTriangle, PieChart, CalendarClock, UsersRound, Fingerprint, Gift, Link2, Compass, Send, Lightbulb } from 'lucide-react';
 
 // All available dashlet types
 export interface DashletConfig {
@@ -59,7 +59,8 @@ export type DashletType =
   | 'ai-chat-assistant'
   | 'unified-intelligence'
   | 'communication-velocity'
-  | 'behavioral-anomalies';
+  | 'behavioral-anomalies'
+  | 'proactive-insights';
 
 export interface DashletDefinition {
   type: DashletType;
@@ -357,6 +358,14 @@ export const DASHLET_DEFINITIONS: DashletDefinition[] = [
     title: 'Behavioral Anomalies',
     description: 'Detected behavioral pattern deviations',
     icon: AlertTriangle,
+    defaultVisible: false,
+    category: 'ai',
+  },
+  {
+    type: 'proactive-insights',
+    title: 'Proactive Insights',
+    description: 'AI-generated proactive intelligence suggestions',
+    icon: Lightbulb,
     defaultVisible: false,
     category: 'ai',
   },
