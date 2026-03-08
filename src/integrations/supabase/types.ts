@@ -40134,6 +40134,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_automation_counters: {
+        Args: { p_field: string; p_rule_id: string }
+        Returns: undefined
+      }
       increment_bulk_session_progress: {
         Args: {
           p_cost_cents?: number
