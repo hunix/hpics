@@ -1250,13 +1250,91 @@ function estimatePhysiologicalConfidence(data: PhysiologicalData, hasBaseline: b
 }
 
 function generateDeceptionTimeline(results: ModalityResults): DeceptionTimeline[] {
-  return [{
-    timestamp: 0,
-    content: 'Analysis start',
-    deceptionScore: 0,
-    contributingModalities: Object.keys(results).filter(k => results[k as keyof ModalityResults] !== null),
-    markers: []
-  }];
+  const timeline: DeceptionTimeline[] = [];
+  const availableModalities = Object.entries(results)
+    .filter(([, v]) => v !== null)
+    .map(([k]) => k);
+
+  if (availableModalities.length === 0) {
+    return [{ timestamp: 0, content: 'No modalities available', deceptionScore: 0, contributingModalities: [], markers: [] }];
+  }
+
+  // Collect all timestamped events across modalities
+  const events: Array<{ timestamp: number; modality: string; score: number; marker: string }> = [];
+
+  if (results.textual) {
+    results.textual.linguisticMarkers.forEach((m, i) => {
+      events.push({ timestamp: m.position[0], modality: 'textual', score: m.severity, marker: m.type });
+    });
+  }
+
+  if (results.acoustic) {
+    results.acoustic.voiceStressMarkers.forEach(m => {
+      events.push({ timestamp: m.timestamp, modality: 'acoustic', score: m.intensity, marker: m.type });
+    });
+  }
+
+  if (results.visual) {
+    results.visual.microExpressions.forEach(m => {
+      events.push({ timestamp: m.timestamp, modality: 'visual', score: m.intensity, marker: m.emotion });
+    });
+    results.visual.gazeAnalysis.gazeAversion.forEach(g => {
+      events.push({ timestamp: g.timestamp, modality: 'visual', score: 0.5, marker: `gaze_aversion_${g.direction}` });
+    });
+  }
+
+  if (results.physiological?.gsrMetrics) {
+    results.physiological.gsrMetrics.skinConductanceResponses.forEach(scr => {
+      events.push({ timestamp: scr.timestamp, modality: 'physiological', score: Math.min(1, scr.amplitude * 2), marker: 'scr_event' });
+    });
+  }
+
+  if (results.physiological?.thermalAnalysis) {
+    results.physiological.thermalAnalysis.thermalEvents.forEach(te => {
+      events.push({ timestamp: te.timestamp, modality: 'physiological', score: Math.min(1, te.temperatureChange), marker: `thermal_${te.direction}` });
+    });
+  }
+
+  // Sort by timestamp and bucket into intervals
+  events.sort((a, b) => a.timestamp - b.timestamp);
+
+  if (events.length === 0) {
+    // Generate summary entry from overall scores
+    const scores = availableModalities.map(m => results[m as keyof ModalityResults]?.deceptionProbability ?? 0);
+    const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+    return [{ timestamp: 0, content: 'Overall assessment', deceptionScore: avgScore, contributingModalities: availableModalities, markers: [] }];
+  }
+
+  // Bucket events into timeline entries by proximity (within 5 units of each other)
+  let currentBucket: typeof events = [events[0]];
+  for (let i = 1; i < events.length; i++) {
+    if (events[i].timestamp - currentBucket[0].timestamp < 5) {
+      currentBucket.push(events[i]);
+    } else {
+      const avgScore = currentBucket.reduce((a, e) => a + e.score, 0) / currentBucket.length;
+      timeline.push({
+        timestamp: currentBucket[0].timestamp,
+        content: currentBucket.map(e => e.marker).join(', '),
+        deceptionScore: avgScore,
+        contributingModalities: [...new Set(currentBucket.map(e => e.modality))],
+        markers: currentBucket.map(e => e.marker)
+      });
+      currentBucket = [events[i]];
+    }
+  }
+  // Final bucket
+  if (currentBucket.length > 0) {
+    const avgScore = currentBucket.reduce((a, e) => a + e.score, 0) / currentBucket.length;
+    timeline.push({
+      timestamp: currentBucket[0].timestamp,
+      content: currentBucket.map(e => e.marker).join(', '),
+      deceptionScore: avgScore,
+      contributingModalities: [...new Set(currentBucket.map(e => e.modality))],
+      markers: currentBucket.map(e => e.marker)
+    });
+  }
+
+  return timeline;
 }
 
 function aggregateMarkers(

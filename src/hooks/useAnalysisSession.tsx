@@ -306,12 +306,15 @@ export function useAnalysisSession({
 
   // Start or resume the session
   const start = useCallback(async () => {
-    let currentSession = session;
+    let currentSession = sessionRef.current;
     
     if (!currentSession) {
       const sessionId = await createSession();
       if (!sessionId) return;
-      currentSession = session;
+      // Read from ref which is updated synchronously via useEffect
+      // Wait a tick for state to propagate
+      await new Promise(r => setTimeout(r, 0));
+      currentSession = sessionRef.current;
     }
 
     if (!currentSession) return;
@@ -340,7 +343,8 @@ export function useAnalysisSession({
       await runJob(job);
     }
 
-    // Check if all jobs completed
+    // Check if all jobs completed — use functional updater to get fresh state
+    let finalSessionState: AnalysisSession | null = null;
     setSession(prev => {
       if (!prev) return prev;
       const allCompleted = prev.jobs.every(j => j.status === 'completed' || j.status === 'skipped');
@@ -348,16 +352,18 @@ export function useAnalysisSession({
       
       const finalStatus: SessionStatus = allCompleted ? 'completed' : (anyFailed ? 'failed' : prev.status);
       
-      return { ...prev, status: finalStatus };
+      finalSessionState = { ...prev, status: finalStatus };
+      return finalSessionState;
     });
 
-    // Update session in database
-    const updatedSession = session;
-    if (updatedSession) {
+    // Update session in database using computed final state
+    await new Promise(r => setTimeout(r, 0));
+    const updatedSession = sessionRef.current;
+    if (updatedSession && sessionIdRef.current) {
       await supabase
         .from('analysis_sessions')
         .update({ 
-          status: updatedSession.jobs.every(j => j.status === 'completed' || j.status === 'skipped') ? 'completed' : 'running',
+          status: updatedSession.status,
           completed_at: new Date().toISOString(),
           total_duration_ms: updatedSession.totalDurationMs,
           total_cost_cents: updatedSession.totalCostCents,
@@ -366,7 +372,7 @@ export function useAnalysisSession({
     }
 
     toast({ title: 'Analysis session completed' });
-  }, [session, createSession, runJob, toast]);
+  }, [createSession, runJob, toast]);
 
   // Pause the session
   const pause = useCallback(async () => {
