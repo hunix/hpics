@@ -121,9 +121,9 @@ export function IdentityDocumentsManager({ profileId }: IdentityDocumentsManager
       } else {
         toast.error('Processing failed', { description: data.error });
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Upload/parse error:', error);
-      toast.error('Failed to process document', { description: error.message });
+      toast.error('Failed to process document', { description: error instanceof Error ? error.message : String(error) });
     } finally {
       setIsUploading(false);
       setIsParsing(false);

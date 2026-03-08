@@ -89,7 +89,7 @@ export function useFusionResults(profileId?: string, engineType?: FusionEngineTy
 export function useDigitalTwin(profileId?: string) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const service = getFusionService();
+  const service = useMemo(() => resolveFusionService(), []);
 
   const updateTwin = useMutation({
     mutationFn: async (patterns: Array<{ patternType: string; frequency: number; confidence: number; contexts: string[] }>) => {
