@@ -368,9 +368,10 @@ export function useIntelligenceSession(profileId: string): UseIntelligenceSessio
 
       if (error) throw error;
       toast.success('Generation resumed');
-    } catch (error: any) {
+    } catch (error) {
       console.error('[resumeGeneration] Error:', error);
-      toast.error(`Failed to resume: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`Failed to resume: ${message}`);
     }
   }, [session?.id]);
 
