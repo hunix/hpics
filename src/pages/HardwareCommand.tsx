@@ -252,6 +252,14 @@ export default function HardwareCommand() {
           <TabsContent value="reports">
             <ReportExportPanel />
           </TabsContent>
+
+          <TabsContent value="rf-signal">
+            <RFSignalPanel />
+          </TabsContent>
+
+          <TabsContent value="thermal">
+            <ThermalIntelPanel />
+          </TabsContent>
         </Tabs>
       </main>
 
