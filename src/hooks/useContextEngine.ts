@@ -487,11 +487,15 @@ export function useContextEngine(): UseContextEngineReturn {
   }, [stopMonitoring]);
 
   // Auto-refresh recommendations when context changes
+  // Use a ref to avoid re-running when getRecommendations identity changes (Issue D+J fix)
+  const getRecommendationsRef = useRef(getRecommendations);
+  getRecommendationsRef.current = getRecommendations;
+
   useEffect(() => {
     if (currentPrediction) {
-      getRecommendations();
+      getRecommendationsRef.current();
     }
-  }, [currentPrediction, getRecommendations]);
+  }, [currentPrediction]);
 
   // Computed values
   const currentContext: ContextType = isPinned && pinnedContext 
