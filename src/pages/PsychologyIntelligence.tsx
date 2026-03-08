@@ -18,7 +18,6 @@ import { Brain, Target, Shield, Search, Users, Activity } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { usePsychologyAssessments, useLatestPsychologyAssessment } from '@/hooks/usePsychologyAssessment';
 import { PsychologyAssessmentsTab } from '@/components/intelligence/PsychologyAssessmentsTab';
 
 export default function PsychologyIntelligence() {
