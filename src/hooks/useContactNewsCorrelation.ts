@@ -30,7 +30,7 @@ interface Prediction {
   evidence: any[];
   time_horizon: string;
   created_at: string;
-  profiles?: { first_name: string; last_name: string; company: string };
+  profiles?: { first_name: string; last_name: string; organization: string };
 }
 
 interface TrackedIndustry {
