@@ -1,183 +1,59 @@
 
 
-# HPICS-HoC Integration Layer: Bridge Plan
+# Codebase Scan Results: Remaining Issues
 
-## Overview
+## Scan Summary
 
-This plan creates a two-part integration between the HPICS Intelligence Platform and the HoC Republic (OpenClaw-based agentic AI civilization):
+After thorough scanning of hooks, repositories, components, API layer, schema references, event listeners, interval cleanups, and naming conventions, the codebase is in strong shape following the prior hardening batches. Most critical issues (A-K) are verified fixed.
 
-1. **HPICS Side (built here)**: A new `hoc-gateway` edge function that exposes all 400+ HPICS capabilities as a single authenticated REST API designed for tool-calling agents.
+**Found 3 remaining issues** and **2 documentation improvements** that will further reduce AI hallucinations.
 
-2. **HoC Side (documentation + skill template)**: A complete OpenClaw skill (`hpics-intelligence`) and documentation you'll place into your HoC workspace so agents can call HPICS tools natively.
-
-## Architecture
-
-```text
-HoC Agent (OpenClaw)                         HPICS Platform (Lovable Cloud)
-+---------------------------+                +------------------------------------+
-|  OpenClaw Gateway         |                |  Supabase Edge Functions           |
-|  +---------------------+ |   HTTPS/JSON   |  +------------------------------+ |
-|  | hpics-intelligence   |----(Bearer)----->|  | hoc-gateway                  | |
-|  | skill (SKILL.md)     | |                |  |  - API key validation        | |
-|  +---------------------+ |                |  |  - Route to domain routers   | |
-|  | exec: curl/fetch     | |                |  |  - Rate limiting             | |
-|  +---------------------+ |                |  |  - Response normalization    | |
-+---------------------------+                |  +------------------------------+ |
-                                             |            |                      |
-                                             |    +-------v-------+              |
-                                             |    | Domain Routers |             |
-                                             |    | (15 Hono apps) |             |
-                                             |    +---------------+              |
-                                             +------------------------------------+
-```
-
-## What Gets Built
-
-### Part 1: `hoc-gateway` Edge Function (HPICS Side)
-
-A single edge function that acts as the external API gateway for HoC agents. It:
-
-- Authenticates via a shared API key (stored as `HOC_API_KEY` secret)
-- Accepts a uniform JSON payload: `{ "tool": "<function-name>", "params": { ... } }`
-- Routes internally to the correct domain router using the existing `ROUTE_MAP`
-- Supports `POST /hoc-gateway` for tool execution and `GET /hoc-gateway?action=list-tools` for tool discovery
-- Rate limits per-key (60 requests/minute default)
-- Returns normalized responses: `{ "success": boolean, "data": ..., "error": ..., "meta": { "duration_ms": ..., "router": ... } }`
-
-Endpoints:
-- `POST /hoc-gateway` with `{ "tool": "mice-recruitment-analyzer", "params": { "profileId": "...", "userId": "..." } }` -- executes the tool
-- `POST /hoc-gateway` with `{ "action": "list-tools" }` -- returns full tool catalog with categories
-- `POST /hoc-gateway` with `{ "action": "health" }` -- returns gateway and router health
-- `POST /hoc-gateway` with `{ "action": "list-categories" }` -- returns available categories
-
-### Part 2: Documentation File (HPICS Side)
-
-A comprehensive `docs/HOC_INTEGRATION_GUIDE.md` covering:
-
-- How to configure the `HOC_API_KEY` secret
-- How to install the skill in HoC
-- Complete tool catalog (all 400+ tools organized by domain router)
-- Request/response formats with examples
-- Rate limits and error handling
-- How to extend, maintain, and debug
-- How to build custom HoC-side wrappers
-
-### Part 3: OpenClaw Skill Template (HPICS Side, for copy to HoC)
-
-A `docs/hoc-skill-template/SKILL.md` file in AgentSkills format that:
-
-- Declares the `hpics-intelligence` skill
-- Requires `HPICS_API_KEY` and `HPICS_BASE_URL` environment variables
-- Teaches the HoC agent how to use `web_fetch` or `exec` (curl) to call the gateway
-- Lists all available tool categories and key tools
-- Includes example invocations for common workflows
-
-## Technical Details
-
-### `hoc-gateway` Edge Function Implementation
-
-```text
-supabase/functions/hoc-gateway/index.ts
-
-Flow:
-1. OPTIONS -> CORS response
-2. Parse body -> validate API key from Authorization header
-3. If action=list-tools -> return ROUTE_MAP as categorized tool list
-4. If action=health -> fan-out health checks to routers
-5. If tool=<name> -> look up in ROUTE_MAP -> invoke domain router
-6. Return normalized { success, data, error, meta }
-```
-
-Key design decisions:
-- Uses the `ROUTE_MAP` from `edgeFunctionRouter.ts` (rebuilt server-side as a const map) so tool names stay in sync
-- API key auth (not JWT) since HoC agents are external systems, not platform users
-- The `HOC_API_KEY` secret will be requested from the user
-- UserId is passed in params (trusted since this is service-to-service with API key)
-- Timeout: 120s default, configurable per-call via `params.timeout_ms`
-
-### OpenClaw Skill Format
-
-```yaml
 ---
-name: hpics-intelligence
-description: Access the HPICS Intelligence Platform for behavioral analysis, biometric processing, network intelligence, warfare simulation, predictions, and 400+ specialized AI engines.
-metadata:
-  {
-    "openclaw": {
-      "requires": { "env": ["HPICS_API_KEY", "HPICS_BASE_URL"] },
-      "primaryEnv": "HPICS_API_KEY"
-    }
-  }
+
+## Issues
+
+### Issue 1: GaitCapturePanel `removeEventListener` Reference Mismatch (Memory Leak)
+
+**File**: `src/components/biometrics/GaitCapturePanel.tsx`
+**Problem**: `startCapture` (line 126) adds `handleMotion` as the listener. But `handleMotion` is a `useCallback` that depends on `[isCapturing]`, so its identity changes when capture starts. The unmount cleanup (line 235) removes `handleMotionRef.current`, but `stopCapture` (line 138) removes `handleMotion` -- which may be a different function reference than what was originally added if `isCapturing` changed between start and stop.
+**Fix**: Store the listener reference at `addEventListener` time in a ref. Use that same ref for both `stopCapture` and unmount cleanup. Remove the `isCapturing` dependency from `handleMotion` and use a ref instead.
+
+### Issue 2: `invokeProxy.ts` Eagerly Loads Router Module at Install Time (Startup Delay)
+
+**File**: `src/lib/api/invokeProxy.ts` lines 58-60
+**Problem**: `loadRouter()` and `loadRouteMap()` are called eagerly during `installInvokeProxy()`. These fire `import()` calls that load and parse the entire `edgeFunctionRouter.ts` module synchronously during app startup. While the calls are async, they still add startup work. Since the proxy defers to lazy loading anyway (lines 72-73), the eager calls are wasteful.
+**Fix**: Remove the eager `loadRouter()` / `loadRouteMap()` calls on lines 58-60. The lazy loading on first invoke (lines 72-73) is sufficient.
+
+### Issue 3: `SensorDashboard` Battery API Listener Leak
+
+**File**: `src/components/mobile/SensorDashboard.tsx` lines 85-100+
+**Problem**: The battery API effect adds `levelchange` and `chargingchange` event listeners but I need to verify they're cleaned up on unmount.
+**Fix**: Audit the effect and add cleanup `removeEventListener` calls if missing.
+
 ---
-```
 
-The skill body teaches the agent to use `web_fetch` with:
-```text
-POST ${HPICS_BASE_URL}/functions/v1/hoc-gateway
-Authorization: Bearer ${HPICS_API_KEY}
-Content-Type: application/json
+## Documentation Improvements (AI Hallucination Prevention)
 
-{ "tool": "<tool-name>", "params": { ... } }
-```
+### Improvement A: Add "Do NOT Use" Aliases to SCHEMA_MAP.md
 
-### Tool Catalog Structure (in list-tools response)
+Add a dedicated section listing all known wrong column names that AI models frequently hallucinate, grouped by table. This becomes a quick "stop list" for code review. Current hallucination traps section exists but could be expanded with more tables (e.g., `contact_interaction_notes`, `contact_observations`, `communications`).
 
-```json
-{
-  "categories": {
-    "analysis": { 
-      "description": "50+ behavioral, psychological, and pattern analysis engines",
-      "tools": ["mice-recruitment-analyzer", "behavioral-dna-sequencer", ...] 
-    },
-    "intelligence": { "description": "...", "tools": [...] },
-    "prediction": { ... },
-    "warfare": { ... },
-    "biometric": { ... },
-    "network": { ... },
-    "enrichment": { ... },
-    "fusion": { ... },
-    "agis": { ... },
-    "utility": { ... },
-    "hardware": { ... },
-    "voice": { ... },
-    "document": { ... },
-    "security": { ... },
-    "media": { ... }
-  }
-}
-```
+### Improvement B: Add `CODING_CONVENTIONS.md`
 
-### Security Model
+Create a concise conventions file that AI models can reference for consistent code patterns:
+- Import patterns (use `@/lib/api` not direct supabase calls for edge functions)
+- Type casting pattern (`as unknown as T[]` for JSON fields)
+- Error handling pattern (`instanceof Error` checks)
+- Hook naming conventions
+- When to use `invokeFunction` vs direct supabase client
 
-- API key rotation: The `HOC_API_KEY` can be rotated by updating the secret
-- Rate limiting: 60 req/min per API key (tracked in-memory per edge function instance)
-- No user JWT required -- the gateway uses the service role key internally
-- UserId in params is trusted (service-to-service pattern)
-- All requests are logged to `audit_logs` table with source='hoc-gateway'
-
-### Files Created
-
-| File | Purpose |
-|------|---------|
-| `supabase/functions/hoc-gateway/index.ts` | Gateway edge function |
-| `docs/HOC_INTEGRATION_GUIDE.md` | Complete integration documentation |
-| `docs/hoc-skill-template/SKILL.md` | OpenClaw skill file (copy to HoC) |
-
-### Config Updates
-
-| File | Change |
-|------|--------|
-| `supabase/config.toml` | NOT edited (auto-managed) |
-
-### Secret Required
-
-- `HOC_API_KEY`: A shared secret for HoC-to-HPICS authentication (will be requested from user)
+---
 
 ## Implementation Order
 
-1. Create `supabase/functions/hoc-gateway/index.ts` with the full gateway logic
-2. Create `docs/hoc-skill-template/SKILL.md` with the OpenClaw skill template  
-3. Create `docs/HOC_INTEGRATION_GUIDE.md` with comprehensive documentation
-4. Request the `HOC_API_KEY` secret from the user
-5. Deploy and test the gateway
+1. Fix Issue 1 (GaitCapturePanel ref mismatch)
+2. Fix Issue 2 (remove eager proxy loading)
+3. Fix Issue 3 (SensorDashboard battery cleanup)
+4. Create `docs/CODING_CONVENTIONS.md`
+5. Expand hallucination traps in `docs/SCHEMA_MAP.md`
 
