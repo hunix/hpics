@@ -137,7 +137,7 @@ export function ApplyToContactDialog({
       { field: 'location', label: 'Location', contactField: 'location' },
       { field: 'email', label: 'Email', contactField: 'email' },
       { field: 'phone', label: 'Phone', contactField: 'phone' },
-      { field: 'company', label: 'Company', contactField: 'company' },
+      { field: 'company', label: 'Company', contactField: 'organization' },
       { field: 'jobTitle', label: 'Job Title', contactField: 'job_title' },
       { field: 'industry', label: 'Industry', contactField: 'industry' },
       { field: 'profileImageUrl', label: 'Profile Photo', contactField: 'avatar_url' },
