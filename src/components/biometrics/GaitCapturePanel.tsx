@@ -138,14 +138,20 @@ export function GaitCapturePanel({ profileId, profileName, onCapture }: GaitCapt
 
   const stopCapture = useCallback(() => {
     setIsCapturing(false);
-    window.removeEventListener('devicemotion', handleMotion);
+    isCapturingRef.current = false;
+    
+    // Remove using the exact same reference that was added
+    if (motionListenerRef.current) {
+      window.removeEventListener('devicemotion', motionListenerRef.current);
+      motionListenerRef.current = null;
+    }
     
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
     
     setSamples([...samplesRef.current]);
-  }, [handleMotion]);
+  }, []);
 
   const saveGaitMutation = useMutation({
     mutationFn: async (profile: GaitProfile) => {
