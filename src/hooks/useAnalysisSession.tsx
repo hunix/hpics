@@ -65,6 +65,12 @@ export function useAnalysisSession({
   const isPausedRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionIdRef = useRef<string | null>(null);
+  const sessionRef = useRef<AnalysisSession | null>(null);
+
+  // Keep sessionRef in sync
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
 
   // Timer effect
   useEffect(() => {
