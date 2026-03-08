@@ -4,11 +4,23 @@
  * React hook for accessing fusion domain functionality.
  */
 
+import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getFusionService, FusionRequest, BatchFusionRequest } from '../services/FusionService';
+import { FusionService, FusionRequest, BatchFusionRequest } from '../services/FusionService';
 import { FusionEngineType } from '../entities/FusionResult';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { getContainer, ServiceKeys } from '@/infrastructure/di/Container';
+
+function resolveFusionService(): FusionService {
+  try {
+    const service = getContainer().resolve<FusionService>(ServiceKeys.FusionService);
+    if (service) return service;
+  } catch { /* fallback */ }
+  // Lazy import to avoid circular dependency
+  const { getFusionService } = require('../services/FusionService');
+  return getFusionService();
+}
 
 /**
  * Hook for executing fusion operations
@@ -16,7 +28,7 @@ import { toast } from 'sonner';
 export function useFusionService() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const service = getFusionService();
+  const service = useMemo(() => resolveFusionService(), []);
 
   const executeFusion = useMutation({
     mutationFn: async (request: FusionRequest) => {
