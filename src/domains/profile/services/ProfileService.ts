@@ -172,6 +172,9 @@ export class ProfileService {
   }
 
   async deleteProfile(profileId: string, userId: string): Promise<void> {
+    const existing = await this.repository.findByIdForUser(profileId, userId);
+    if (!existing) throw new Error('Profile not found or access denied');
+
     await this.repository.delete(profileId);
     await this.eventBus.publish(new ProfileDeleted(profileId, userId));
   }
