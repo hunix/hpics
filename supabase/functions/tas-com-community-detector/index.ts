@@ -356,8 +356,8 @@ function calculateAttributeSimilarityGain(
   for (const memberId of commMembers) {
     const memberAttrs = graph.nodes.get(memberId)?.attributes || {};
     
-    // Company match
-    if (nodeAttrs.company && nodeAttrs.company === memberAttrs.company) {
+    // Organization match
+    if (nodeAttrs.organization && nodeAttrs.organization === memberAttrs.organization) {
       similarity += 0.3;
     }
     
