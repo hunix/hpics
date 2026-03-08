@@ -1,183 +1,56 @@
 
 
-# HPICS-HoC Integration Layer: Bridge Plan
+# Codebase Scan: Schema Mismatches, Leak Fixes & AI Legibility
 
-## Overview
+## Confirmed Issues
 
-This plan creates a two-part integration between the HPICS Intelligence Platform and the HoC Republic (OpenClaw-based agentic AI civilization):
+### Issue 1: `ai-chat-query` Edge Function — `company` Column Mismatch (Data Query Failure)
 
-1. **HPICS Side (built here)**: A new `hoc-gateway` edge function that exposes all 400+ HPICS capabilities as a single authenticated REST API designed for tool-calling agents.
+**File:** `supabase/functions/ai-chat-query/index.ts`
 
-2. **HoC Side (documentation + skill template)**: A complete OpenClaw skill (`hpics-intelligence`) and documentation you'll place into your HoC workspace so agents can call HPICS tools natively.
+Three distinct `company` mismatches:
+- **Line 82:** `select('id, first_name, last_name, company, communications(occurred_at)')` — `company` does not exist on `profiles`; should be `organization`
+- **Line 97:** `p.company` reference in follow-up list — always `undefined`
+- **Line 104:** `profiles(first_name, last_name, company)` join select — should be `organization`
+- **Line 111:** Type cast `{ company?: string }` — should be `{ organization?: string }`
 
-## Architecture
+This means the AI chat query never shows organization names in follow-up or top contact context, degrading AI response quality.
 
-```text
-HoC Agent (OpenClaw)                         HPICS Platform (Lovable Cloud)
-+---------------------------+                +------------------------------------+
-|  OpenClaw Gateway         |                |  Supabase Edge Functions           |
-|  +---------------------+ |   HTTPS/JSON   |  +------------------------------+ |
-|  | hpics-intelligence   |----(Bearer)----->|  | hoc-gateway                  | |
-|  | skill (SKILL.md)     | |                |  |  - API key validation        | |
-|  +---------------------+ |                |  |  - Route to domain routers   | |
-|  | exec: curl/fetch     | |                |  |  - Rate limiting             | |
-|  +---------------------+ |                |  |  - Response normalization    | |
-+---------------------------+                |  +------------------------------+ |
-                                             |            |                      |
-                                             |    +-------v-------+              |
-                                             |    | Domain Routers |             |
-                                             |    | (15 Hono apps) |             |
-                                             |    +---------------+              |
-                                             +------------------------------------+
-```
+### Issue 2: `tas-com-community-detector` — `company` Column Mismatch (Silent Null)
 
-## What Gets Built
+**File:** `supabase/functions/tas-com-community-detector/index.ts`
 
-### Part 1: `hoc-gateway` Edge Function (HPICS Side)
+- **Line 85:** `select('id, first_name, last_name, job_title, company, city, tags')` — `company` doesn't exist, returns null
+- **Line 182:** `company: contact.company` — always undefined
+- **Lines 298, 304, 360:** Community detection uses `company` for similarity matching — all comparisons fail because values are null
 
-A single edge function that acts as the external API gateway for HoC agents. It:
+This means company-based community clustering is entirely broken.
 
-- Authenticates via a shared API key (stored as `HOC_API_KEY` secret)
-- Accepts a uniform JSON payload: `{ "tool": "<function-name>", "params": { ... } }`
-- Routes internally to the correct domain router using the existing `ROUTE_MAP`
-- Supports `POST /hoc-gateway` for tool execution and `GET /hoc-gateway?action=list-tools` for tool discovery
-- Rate limits per-key (60 requests/minute default)
-- Returns normalized responses: `{ "success": boolean, "data": ..., "error": ..., "meta": { "duration_ms": ..., "router": ... } }`
+### Issue 3: Model Default Should Be `gemini-3-flash-preview`
 
-Endpoints:
-- `POST /hoc-gateway` with `{ "tool": "mice-recruitment-analyzer", "params": { "profileId": "...", "userId": "..." } }` -- executes the tool
-- `POST /hoc-gateway` with `{ "action": "list-tools" }` -- returns full tool catalog with categories
-- `POST /hoc-gateway` with `{ "action": "health" }` -- returns gateway and router health
-- `POST /hoc-gateway` with `{ "action": "list-categories" }` -- returns available categories
+Per the AI gateway instructions, the default model should be `google/gemini-3-flash-preview` (not `gemini-2.5-flash`). The model selector already has this as fallback (line 254 of `model-selector.ts`), but the `ai-chat-query` function hardcodes `gemini-2.5-flash` on lines 146 and 181. This is not a bug per se — 2.5-flash works — but updating to the recommended default improves response quality at similar cost.
 
-### Part 2: Documentation File (HPICS Side)
+### Issue 4: `ai-chat-query` Missing Health Check
 
-A comprehensive `docs/HOC_INTEGRATION_GUIDE.md` covering:
+Per edge function standards (custom instructions §2.4), every edge function must have a GET-based health check. `ai-chat-query` has no GET handler and no `healthCheck` query param check.
 
-- How to configure the `HOC_API_KEY` secret
-- How to install the skill in HoC
-- Complete tool catalog (all 400+ tools organized by domain router)
-- Request/response formats with examples
-- Rate limits and error handling
-- How to extend, maintain, and debug
-- How to build custom HoC-side wrappers
-
-### Part 3: OpenClaw Skill Template (HPICS Side, for copy to HoC)
-
-A `docs/hoc-skill-template/SKILL.md` file in AgentSkills format that:
-
-- Declares the `hpics-intelligence` skill
-- Requires `HPICS_API_KEY` and `HPICS_BASE_URL` environment variables
-- Teaches the HoC agent how to use `web_fetch` or `exec` (curl) to call the gateway
-- Lists all available tool categories and key tools
-- Includes example invocations for common workflows
-
-## Technical Details
-
-### `hoc-gateway` Edge Function Implementation
-
-```text
-supabase/functions/hoc-gateway/index.ts
-
-Flow:
-1. OPTIONS -> CORS response
-2. Parse body -> validate API key from Authorization header
-3. If action=list-tools -> return ROUTE_MAP as categorized tool list
-4. If action=health -> fan-out health checks to routers
-5. If tool=<name> -> look up in ROUTE_MAP -> invoke domain router
-6. Return normalized { success, data, error, meta }
-```
-
-Key design decisions:
-- Uses the `ROUTE_MAP` from `edgeFunctionRouter.ts` (rebuilt server-side as a const map) so tool names stay in sync
-- API key auth (not JWT) since HoC agents are external systems, not platform users
-- The `HOC_API_KEY` secret will be requested from the user
-- UserId is passed in params (trusted since this is service-to-service with API key)
-- Timeout: 120s default, configurable per-call via `params.timeout_ms`
-
-### OpenClaw Skill Format
-
-```yaml
 ---
-name: hpics-intelligence
-description: Access the HPICS Intelligence Platform for behavioral analysis, biometric processing, network intelligence, warfare simulation, predictions, and 400+ specialized AI engines.
-metadata:
-  {
-    "openclaw": {
-      "requires": { "env": ["HPICS_API_KEY", "HPICS_BASE_URL"] },
-      "primaryEnv": "HPICS_API_KEY"
-    }
-  }
----
-```
 
-The skill body teaches the agent to use `web_fetch` with:
-```text
-POST ${HPICS_BASE_URL}/functions/v1/hoc-gateway
-Authorization: Bearer ${HPICS_API_KEY}
-Content-Type: application/json
+## Implementation Plan
 
-{ "tool": "<tool-name>", "params": { ... } }
-```
+### Batch 1: Fix `ai-chat-query` schema + model + health check (1 file)
 
-### Tool Catalog Structure (in list-tools response)
+1. Change `company` → `organization` in select queries (lines 82, 104)
+2. Change `p.company` → `p.organization` (line 97)
+3. Change type cast `company` → `organization` (line 111)
+4. Update model to `google/gemini-3-flash-preview` (lines 146, 181)
+5. Add health check handler for GET requests at top of handler
 
-```json
-{
-  "categories": {
-    "analysis": { 
-      "description": "50+ behavioral, psychological, and pattern analysis engines",
-      "tools": ["mice-recruitment-analyzer", "behavioral-dna-sequencer", ...] 
-    },
-    "intelligence": { "description": "...", "tools": [...] },
-    "prediction": { ... },
-    "warfare": { ... },
-    "biometric": { ... },
-    "network": { ... },
-    "enrichment": { ... },
-    "fusion": { ... },
-    "agis": { ... },
-    "utility": { ... },
-    "hardware": { ... },
-    "voice": { ... },
-    "document": { ... },
-    "security": { ... },
-    "media": { ... }
-  }
-}
-```
+### Batch 2: Fix `tas-com-community-detector` schema (1 file)
 
-### Security Model
+1. Change `company` → `organization` in select (line 85)
+2. Change `company: contact.company` → `organization: contact.organization` in graph building (line 182)
+3. Update all references: `m.company` → `m.organization`, `nodeAttrs.company` → `nodeAttrs.organization`, etc. (lines 298, 304, 360)
 
-- API key rotation: The `HOC_API_KEY` can be rotated by updating the secret
-- Rate limiting: 60 req/min per API key (tracked in-memory per edge function instance)
-- No user JWT required -- the gateway uses the service role key internally
-- UserId in params is trusted (service-to-service pattern)
-- All requests are logged to `audit_logs` table with source='hoc-gateway'
-
-### Files Created
-
-| File | Purpose |
-|------|---------|
-| `supabase/functions/hoc-gateway/index.ts` | Gateway edge function |
-| `docs/HOC_INTEGRATION_GUIDE.md` | Complete integration documentation |
-| `docs/hoc-skill-template/SKILL.md` | OpenClaw skill file (copy to HoC) |
-
-### Config Updates
-
-| File | Change |
-|------|--------|
-| `supabase/config.toml` | NOT edited (auto-managed) |
-
-### Secret Required
-
-- `HOC_API_KEY`: A shared secret for HoC-to-HPICS authentication (will be requested from user)
-
-## Implementation Order
-
-1. Create `supabase/functions/hoc-gateway/index.ts` with the full gateway logic
-2. Create `docs/hoc-skill-template/SKILL.md` with the OpenClaw skill template  
-3. Create `docs/HOC_INTEGRATION_GUIDE.md` with comprehensive documentation
-4. Request the `HOC_API_KEY` secret from the user
-5. Deploy and test the gateway
+**Total: 2 files, ~20 line changes.**
 
