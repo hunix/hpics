@@ -8,9 +8,10 @@ export function ThermalIntelPanel() {
   const {
     captures,
     isLoading,
-    isCapturing,
-    startCapture,
-    stopCapture,
+    capturesWithAnomalies,
+    isScanning,
+    startScanning,
+    stopScanning,
     refetch,
   } = useThermalIntelligence();
 
