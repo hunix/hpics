@@ -211,8 +211,9 @@ export function getQuickActions(
 export function generateConversationStarters(profileData: any): string[] {
   const starters: string[] = [];
   
-  if (profileData.company) {
-    starters.push(`I saw some interesting news about ${profileData.company}. How are things going there?`);
+  const orgName = profileData.organization || profileData.company;
+  if (orgName) {
+    starters.push(`I saw some interesting news about ${orgName}. How are things going there?`);
   }
   
   if (profileData.interests && profileData.interests.length > 0) {

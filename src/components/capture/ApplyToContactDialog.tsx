@@ -60,7 +60,7 @@ interface Contact {
   first_name: string;
   last_name: string;
   email?: string;
-  company?: string;
+  organization?: string;
 }
 
 interface FieldMapping {
@@ -108,13 +108,17 @@ export function ApplyToContactDialog({
   const loadContacts = async () => {
     setIsLoading(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name')
+        .select('id, first_name, last_name, organization')
+        .eq('user_id', user.id)
         .order('first_name');
 
       if (error) throw error;
-      setContacts((data || []).map(c => ({ ...c, company: undefined })) as Contact[]);
+      setContacts((data || []) as Contact[]);
     } catch (error) {
       console.error('Failed to load contacts:', error);
     } finally {
@@ -133,7 +137,7 @@ export function ApplyToContactDialog({
       { field: 'location', label: 'Location', contactField: 'location' },
       { field: 'email', label: 'Email', contactField: 'email' },
       { field: 'phone', label: 'Phone', contactField: 'phone' },
-      { field: 'company', label: 'Company', contactField: 'company' },
+      { field: 'company', label: 'Company', contactField: 'organization' },
       { field: 'jobTitle', label: 'Job Title', contactField: 'job_title' },
       { field: 'industry', label: 'Industry', contactField: 'industry' },
       { field: 'profileImageUrl', label: 'Profile Photo', contactField: 'avatar_url' },
@@ -330,8 +334,8 @@ export function ApplyToContactDialog({
                   {contacts.map((contact) => (
                     <SelectItem key={contact.id} value={contact.id}>
                       {contact.first_name} {contact.last_name}
-                      {contact.company && (
-                        <span className="text-muted-foreground ml-2">({contact.company})</span>
+                      {contact.organization && (
+                        <span className="text-muted-foreground ml-2">({contact.organization})</span>
                       )}
                     </SelectItem>
                   ))}
