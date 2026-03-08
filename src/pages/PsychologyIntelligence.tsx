@@ -14,10 +14,11 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { DarkPsychologyDashboard } from '@/components/intelligence/DarkPsychologyDashboard';
 import { InfluencePlaybookPanel } from '@/components/intelligence/InfluencePlaybookPanel';
-import { Brain, Target, Shield, Search, Users } from 'lucide-react';
+import { Brain, Target, Shield, Search, Users, Activity } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { usePsychologyAssessments, useLatestPsychologyAssessment } from '@/hooks/usePsychologyAssessment';
 
 export default function PsychologyIntelligence() {
   const { user } = useAuth();
