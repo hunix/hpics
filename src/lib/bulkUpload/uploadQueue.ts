@@ -398,18 +398,19 @@ export class BulkUploadQueue {
       }
       
       this.config.onItemComplete?.(item);
-    } catch (error: any) {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Upload failed';
       item.retryCount++;
       
       if (item.retryCount >= this.config.maxRetries) {
         item.status = 'failed';
-        item.error = error.message || 'Upload failed';
+        item.error = message;
         await this.updateDbItemStatus(item);
         this.config.onItemFailed?.(item);
       } else {
         // Retry with delay
         item.status = 'pending';
-        item.error = `Retry ${item.retryCount}/${this.config.maxRetries}: ${error.message}`;
+        item.error = `Retry ${item.retryCount}/${this.config.maxRetries}: ${message}`;
         await this.delay(this.config.retryDelayMs * item.retryCount);
       }
     } finally {

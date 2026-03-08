@@ -172,6 +172,9 @@ export class ProfileService {
   }
 
   async deleteProfile(profileId: string, userId: string): Promise<void> {
+    const existing = await this.repository.findByIdForUser(profileId, userId);
+    if (!existing) throw new Error('Profile not found or access denied');
+
     await this.repository.delete(profileId);
     await this.eventBus.publish(new ProfileDeleted(profileId, userId));
   }
@@ -187,12 +190,8 @@ export class ProfileService {
   }
 
   async getProfilesByIds(profileIds: string[], userId: string): Promise<Profile[]> {
-    const profiles: Profile[] = [];
-    for (const id of profileIds) {
-      const p = await this.repository.findByIdForUser(id, userId);
-      if (p) profiles.push(p);
-    }
-    return profiles;
+    if (profileIds.length === 0) return [];
+    return this.repository.findByIds(profileIds, userId);
   }
 
   async getFavoriteProfiles(userId: string): Promise<Profile[]> {
@@ -254,7 +253,14 @@ export class ProfileService {
   }
 
   async changeStatus(profileId: string, userId: string, newStatus: ProfileStatus): Promise<void> {
-    await this.eventBus.publish(new ProfileStatusChanged(profileId, userId, 'active', newStatus));
+    const profile = await this.repository.findByIdForUser(profileId, userId);
+    if (!profile) throw new Error('Profile not found');
+
+    const oldStatus = profile.status;
+    const isActive = newStatus === 'active';
+    await this.repository.updateActiveStatus(profileId, userId, isActive);
+
+    await this.eventBus.publish(new ProfileStatusChanged(profileId, userId, oldStatus, newStatus));
   }
 
   async archiveProfile(profileId: string, userId: string): Promise<void> {

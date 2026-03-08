@@ -131,8 +131,8 @@ export class NetworkService {
   }
 
   // Run full network analysis
-  async analyzeNetwork(request: NetworkAnalysisRequest): Promise<NetworkAnalysis> {
-    const graph = await this.getNetworkGraph(request.userId, request.maxNodes);
+  async analyzeNetwork(request: NetworkAnalysisRequest, preloadedGraph?: NetworkGraph): Promise<NetworkAnalysis> {
+    const graph = preloadedGraph || await this.getNetworkGraph(request.userId, request.maxNodes);
     
     // Build node/link arrays for algorithms
     const nodesForAlgo = graph.nodes.map(n => ({ id: n.id }));
@@ -192,8 +192,8 @@ export class NetworkService {
 
   // Get network summary for quick overview
   async getNetworkSummary(userId: string): Promise<NetworkSummary> {
-    const graph = await this.getNetworkGraph(userId);
-    const analysis = await this.analyzeNetwork({ userId, maxNodes: 500 });
+    const graph = await this.getNetworkGraph(userId, 500);
+    const analysis = await this.analyzeNetwork({ userId, maxNodes: 500 }, graph);
 
     const nodeMap = new Map(graph.nodes.map(n => [n.id, n]));
 

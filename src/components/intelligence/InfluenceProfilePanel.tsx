@@ -28,8 +28,8 @@ export function InfluenceProfilePanel({ profileId, contactName }: InfluenceProfi
     try {
       await analyzeMutation.mutateAsync({ profileId });
       toast({ title: 'Profile analyzed', description: 'Influence profile has been updated.' });
-    } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } catch (error) {
+      toast({ title: 'Error', description: error instanceof Error ? error.message : String(error), variant: 'destructive' });
     }
   };
 

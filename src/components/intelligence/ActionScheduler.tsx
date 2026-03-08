@@ -76,8 +76,8 @@ export function ActionScheduler({ profileId, contactName }: ActionSchedulerProps
         scheduled_for: '',
         priority: 'medium',
       });
-    } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } catch (error) {
+      toast({ title: 'Error', description: error instanceof Error ? error.message : String(error), variant: 'destructive' });
     }
   };
 
@@ -93,8 +93,8 @@ export function ActionScheduler({ profileId, contactName }: ActionSchedulerProps
         },
       });
       toast({ title: 'Action completed' });
-    } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } catch (error) {
+      toast({ title: 'Error', description: error instanceof Error ? error.message : String(error), variant: 'destructive' });
     }
   };
 
@@ -102,8 +102,8 @@ export function ActionScheduler({ profileId, contactName }: ActionSchedulerProps
     try {
       await updateMutation.mutateAsync({ actionId, updates: { status: 'skipped' } });
       toast({ title: 'Action skipped' });
-    } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } catch (error) {
+      toast({ title: 'Error', description: error instanceof Error ? error.message : String(error), variant: 'destructive' });
     }
   };
 

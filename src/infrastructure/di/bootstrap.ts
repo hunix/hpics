@@ -12,6 +12,7 @@ import { getIntelligenceService } from '@/domains/intelligence/services/Intellig
 import { getFusionFacade } from '@/application/facades/FusionFacade';
 import { getIntelligenceFacade } from '@/application/facades/IntelligenceFacade';
 import { ProfileService } from '@/domains/profile/services/ProfileService';
+import { FusionService } from '@/domains/fusion/services/FusionService';
 import { getProfileFacade } from '@/application/facades/ProfileFacade';
 import { NetworkService } from '@/domains/network/services/NetworkService';
 import { NetworkFacade } from '@/application/facades/NetworkFacade';
@@ -60,7 +61,7 @@ export function bootstrapContainer(): void {
   container.register(ServiceKeys.FusionService, () => {
     const fusionRepo = container.resolve<import('@/domains/fusion/repositories/IFusionRepository').IFusionRepository>(ServiceKeys.FusionRepository);
     const twinRepo = container.resolve<import('@/domains/fusion/repositories/IFusionRepository').IDigitalTwinRepository>(ServiceKeys.DigitalTwinRepository);
-    return new (require('@/domains/fusion/services/FusionService').FusionService)(fusionRepo, twinRepo);
+    return new FusionService(fusionRepo, twinRepo);
   }, 'singleton');
   container.register(ServiceKeys.IntelligenceService, getIntelligenceService, 'singleton');
   container.register(ServiceKeys.ProfileService, () => {

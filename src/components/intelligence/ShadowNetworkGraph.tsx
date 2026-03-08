@@ -68,9 +68,9 @@ export function ShadowNetworkGraph({ userId, profileId }: ShadowNetworkGraphProp
       if (error) throw error;
       setData(result.analysis);
       toast.success('Shadow network detection complete');
-    } catch (error: any) {
+    } catch (error) {
       if (isMountedRef.current) {
-        toast.error(error.message || 'Detection failed');
+        toast.error(error instanceof Error ? error.message : 'Detection failed');
       }
     } finally {
       if (isMountedRef.current) {

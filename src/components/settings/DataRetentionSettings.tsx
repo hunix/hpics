@@ -231,8 +231,8 @@ export function DataRetentionSettings() {
           description: `Deleted: ${data.summary.totalDeleted}, Anonymized: ${data.summary.totalAnonymized}`,
         });
       }
-    } catch (error: any) {
-      toast({ title: 'Execution failed', description: error.message, variant: 'destructive' });
+    } catch (error) {
+      toast({ title: 'Execution failed', description: error instanceof Error ? error.message : String(error), variant: 'destructive' });
     } finally {
       setIsRunning(false);
     }

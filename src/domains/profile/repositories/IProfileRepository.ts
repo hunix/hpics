@@ -159,4 +159,9 @@ export interface IProfileRepository extends IUserScopedRepository<Profile, strin
    * Uses the database function find_duplicate_profile
    */
   findDuplicate(userId: string, firstName: string, lastName?: string): Promise<{ id: string; firstName: string; lastName?: string } | null>;
+
+  /**
+   * Find multiple profiles by IDs (batch query to avoid N+1)
+   */
+  findByIds(ids: string[], userId: string): Promise<Profile[]>;
 }

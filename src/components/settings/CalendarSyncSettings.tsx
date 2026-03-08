@@ -82,8 +82,8 @@ export function CalendarSyncSettings() {
 
       toast.success(`Connected Google Calendar: ${response.data.email}`);
       queryClient.invalidateQueries({ queryKey: ['google-calendar-config'] });
-    } catch (error: any) {
-      toast.error(`Failed to connect: ${error.message}`);
+    } catch (error) {
+      toast.error(`Failed to connect: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
 

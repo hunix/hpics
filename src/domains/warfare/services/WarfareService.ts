@@ -10,6 +10,7 @@ import type { Strategy } from '../entities/Strategy';
 import { calculateRiskScore } from '../entities/Threat';
 import { IWarfareRepository, ICampaignRepository, IThreatRepository, IStrategyRepository } from '../repositories/IWarfareRepository';
 import { CampaignCreated, CampaignActivated, ThreatDetected } from '../events/WarfareEvents';
+import { getEventBus, IEventBus } from '@/domains/shared/events/EventBus';
 
 export interface CampaignCreateRequest {
   userId: string;
@@ -35,24 +36,20 @@ export interface WarfareSummary {
 }
 
 export class WarfareService {
-  private eventHandlers: ((event: unknown) => void)[] = [];
+  private eventBus: IEventBus;
   private campaignRepo: ICampaignRepository;
   private threatRepo: IThreatRepository;
   private strategyRepo: IStrategyRepository;
 
   constructor(warfareRepository: IWarfareRepository) {
+    this.eventBus = getEventBus();
     this.campaignRepo = warfareRepository.campaigns;
     this.threatRepo = warfareRepository.threats;
     this.strategyRepo = warfareRepository.strategies;
   }
 
-  onEvent(handler: (event: unknown) => void): () => void {
-    this.eventHandlers.push(handler);
-    return () => { this.eventHandlers = this.eventHandlers.filter(h => h !== handler); };
-  }
-
-  private emit(event: unknown): void {
-    this.eventHandlers.forEach(handler => handler(event));
+  private async emit(event: unknown): Promise<void> {
+    await this.eventBus.publish(event as import('@/domains/shared/events/DomainEvent').DomainEvent);
   }
 
   async getCampaigns(userId: string, status?: CampaignStatus): Promise<Campaign[]> {
@@ -96,13 +93,13 @@ export class WarfareService {
     };
 
     const saved = await this.campaignRepo.save(campaign);
-    this.emit(new CampaignCreated({ userId: request.userId, campaignId: saved.id, name: saved.name, type: saved.type }));
+    await this.emit(new CampaignCreated({ userId: request.userId, campaignId: saved.id, name: saved.name, type: saved.type }));
     return saved;
   }
 
   async activateCampaign(userId: string, campaignId: string): Promise<Campaign> {
     const campaign = await this.campaignRepo.activate(userId, campaignId);
-    this.emit(new CampaignActivated({ userId, campaignId }));
+    await this.emit(new CampaignActivated({ userId, campaignId }));
     return campaign;
   }
 
@@ -147,7 +144,7 @@ export class WarfareService {
     };
 
     const saved = await this.threatRepo.save(threat);
-    this.emit(new ThreatDetected({ userId, threatId: saved.id, level, description }));
+    await this.emit(new ThreatDetected({ userId, threatId: saved.id, level, description }));
     return saved;
   }
 
