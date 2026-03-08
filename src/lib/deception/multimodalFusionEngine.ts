@@ -1089,30 +1089,139 @@ function calculateHRVMetrics(heartRate: number[], baseline?: HRVMetrics): HRVMet
 }
 
 function calculateGSRMetrics(gsr: number[]): GSRMetrics {
-  return {
-    skinConductanceLevel: gsr.length > 0 ? gsr.reduce((a, b) => a + b, 0) / gsr.length : 5,
-    skinConductanceResponses: [],
-    tonicLevel: 5,
-    phasicActivity: 0.5
-  };
+  if (gsr.length === 0) {
+    return { skinConductanceLevel: 0, skinConductanceResponses: [], tonicLevel: 0, phasicActivity: 0 };
+  }
+
+  const mean = gsr.reduce((a, b) => a + b, 0) / gsr.length;
+
+  // Tonic = slow-moving average (low-pass), Phasic = rapid fluctuations
+  const windowSize = Math.max(1, Math.floor(gsr.length / 10));
+  const tonic: number[] = [];
+  for (let i = 0; i < gsr.length; i++) {
+    const start = Math.max(0, i - windowSize);
+    const end = Math.min(gsr.length, i + windowSize + 1);
+    const slice = gsr.slice(start, end);
+    tonic.push(slice.reduce((a, b) => a + b, 0) / slice.length);
+  }
+  const tonicLevel = tonic.reduce((a, b) => a + b, 0) / tonic.length;
+
+  // Detect SCR events: phasic peaks above 0.05 µS threshold
+  const phasic = gsr.map((v, i) => v - tonic[i]);
+  const scrEvents: SCREvent[] = [];
+  const scrThreshold = 0.05;
+  let inPeak = false;
+  let peakStart = 0;
+  let peakMax = 0;
+
+  for (let i = 1; i < phasic.length; i++) {
+    if (!inPeak && phasic[i] > scrThreshold) {
+      inPeak = true;
+      peakStart = i;
+      peakMax = phasic[i];
+    } else if (inPeak) {
+      peakMax = Math.max(peakMax, phasic[i]);
+      if (phasic[i] < scrThreshold * 0.5) {
+        scrEvents.push({
+          timestamp: peakStart,
+          amplitude: peakMax,
+          riseTime: (i - peakStart) * 0.5,
+          recoveryTime: (i - peakStart) * 0.3,
+          triggerContext: `SCR at sample ${peakStart}`
+        });
+        inPeak = false;
+      }
+    }
+  }
+
+  const phasicActivity = phasic.length > 0 
+    ? phasic.reduce((a, b) => a + Math.abs(b), 0) / phasic.length 
+    : 0;
+
+  return { skinConductanceLevel: mean, skinConductanceResponses: scrEvents, tonicLevel, phasicActivity };
 }
 
 function calculateRespirationMetrics(respiration: number[]): RespirationMetrics {
-  return {
-    breathingRate: 12,
-    breathingDepth: 0.5,
-    breathingIrregularity: 0.1,
-    sighFrequency: 0.02
-  };
+  if (respiration.length === 0) {
+    return { breathingRate: 0, breathingDepth: 0, breathingIrregularity: 0, sighFrequency: 0 };
+  }
+
+  // Zero-crossing detection for breathing rate
+  const mean = respiration.reduce((a, b) => a + b, 0) / respiration.length;
+  let crossings = 0;
+  for (let i = 1; i < respiration.length; i++) {
+    if ((respiration[i - 1] - mean) * (respiration[i] - mean) < 0) crossings++;
+  }
+  // Each full breath = 2 crossings; assume 1 sample ≈ 0.1s (10Hz)
+  const durationSec = respiration.length * 0.1;
+  const breathingRate = durationSec > 0 ? (crossings / 2) / (durationSec / 60) : 12;
+
+  // Depth = standard deviation of signal
+  const variance = respiration.reduce((a, v) => a + (v - mean) ** 2, 0) / respiration.length;
+  const breathingDepth = Math.sqrt(variance);
+
+  // Irregularity = coefficient of variation of inter-breath intervals
+  const intervals: number[] = [];
+  let lastCross = -1;
+  for (let i = 1; i < respiration.length; i++) {
+    if ((respiration[i - 1] - mean) * (respiration[i] - mean) < 0 && (respiration[i] - mean) > 0) {
+      if (lastCross >= 0) intervals.push(i - lastCross);
+      lastCross = i;
+    }
+  }
+  const intervalMean = intervals.length > 0 ? intervals.reduce((a, b) => a + b, 0) / intervals.length : 1;
+  const intervalStd = intervals.length > 1 
+    ? Math.sqrt(intervals.reduce((a, v) => a + (v - intervalMean) ** 2, 0) / intervals.length) 
+    : 0;
+  const breathingIrregularity = intervalMean > 0 ? Math.min(1, intervalStd / intervalMean) : 0;
+
+  // Sigh detection: breaths with depth > 2x mean depth
+  const sighCount = intervals.filter((_, idx) => {
+    const start = idx > 0 ? intervals.slice(0, idx).reduce((a, b) => a + b, 0) : 0;
+    const breathSlice = respiration.slice(start, start + (intervals[idx] || 0));
+    const breathPeak = breathSlice.length > 0 ? Math.max(...breathSlice) - Math.min(...breathSlice) : 0;
+    return breathPeak > breathingDepth * 2;
+  }).length;
+  const sighFrequency = durationSec > 0 ? sighCount / (durationSec / 60) : 0;
+
+  return { breathingRate, breathingDepth, breathingIrregularity, sighFrequency };
 }
 
 function analyzeThermal(thermal: number[][]): ThermalAnalysis {
-  return {
-    nasalTemperature: 33,
-    periorbitalTemperature: 35,
-    temperatureAsymmetry: 0.1,
-    thermalEvents: []
+  if (thermal.length === 0 || thermal[0].length === 0) {
+    return { nasalTemperature: 0, periorbitalTemperature: 0, temperatureAsymmetry: 0, thermalEvents: [] };
+  }
+
+  // Assume thermal is a time-series of region temperatures
+  // Rows = time frames, Columns = regions [nasal, periorbital_L, periorbital_R, forehead, cheek_L, cheek_R]
+  const getColumnMean = (col: number) => {
+    const vals = thermal.map(row => row[col] ?? 0).filter(v => v > 0);
+    return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
   };
+
+  const nasalTemperature = getColumnMean(0);
+  const periL = getColumnMean(1);
+  const periR = getColumnMean(2);
+  const periorbitalTemperature = (periL + periR) / 2;
+  const temperatureAsymmetry = Math.abs(periL - periR);
+
+  // Detect thermal events: sudden changes > 0.3°C between frames
+  const thermalEvents: ThermalEvent[] = [];
+  for (let i = 1; i < thermal.length; i++) {
+    for (let col = 0; col < Math.min(thermal[i].length, 6); col++) {
+      const diff = thermal[i][col] - thermal[i - 1][col];
+      if (Math.abs(diff) > 0.3) {
+        thermalEvents.push({
+          timestamp: i,
+          region: ['nasal', 'periorbital_L', 'periorbital_R', 'forehead', 'cheek_L', 'cheek_R'][col] || `region_${col}`,
+          temperatureChange: Math.abs(diff),
+          direction: diff > 0 ? 'increase' : 'decrease'
+        });
+      }
+    }
+  }
+
+  return { nasalTemperature, periorbitalTemperature, temperatureAsymmetry, thermalEvents };
 }
 
 function estimateAutonomicArousal(
