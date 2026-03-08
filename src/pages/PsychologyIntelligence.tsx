@@ -115,7 +115,7 @@ export default function PsychologyIntelligence() {
           <div className="lg:col-span-3">
             {selectedProfile ? (
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="mb-4">
+              <TabsList className="mb-4">
                   <TabsTrigger value="dark-triad" className="gap-2">
                     <Brain className="h-4 w-4" />
                     Dark Triad
@@ -127,6 +127,10 @@ export default function PsychologyIntelligence() {
                   <TabsTrigger value="resistance" className="gap-2">
                     <Shield className="h-4 w-4" />
                     Resistance Profile
+                  </TabsTrigger>
+                  <TabsTrigger value="assessments" className="gap-2">
+                    <Activity className="h-4 w-4" />
+                    Assessments
                   </TabsTrigger>
                 </TabsList>
 
