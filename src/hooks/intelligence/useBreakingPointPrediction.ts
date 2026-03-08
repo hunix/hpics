@@ -244,7 +244,7 @@ export function useBreakingPointPrediction(profileId?: string) {
         ...(prediction.resistanceDegradationTrend || []).slice(-99),
         {
           date: new Date().toISOString(),
-          resilience: prediction.currentResilienceScore - params.intensity * params.observed效果 * 0.05,
+          resilience: prediction.currentResilienceScore - params.intensity * params.observedEffect * 0.05,
           stressLevel: params.intensity,
         },
       ];
