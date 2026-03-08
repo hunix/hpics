@@ -222,6 +222,7 @@ export function useAnalysisSession({
           mosaicUrl: analysisMode === 'mosaic' ? mosaicUrl : undefined,
           analysisType: contextType,
           useMosaic: analysisMode === 'mosaic',
+          model: job.modelKey,
         },
       });
 
