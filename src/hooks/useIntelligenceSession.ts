@@ -349,9 +349,10 @@ export function useIntelligenceSession(profileId: string): UseIntelligenceSessio
       } else {
         toast.success(`Started ${data.totalTasks} intelligence tasks`);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('[startGeneration] Error:', error);
-      toast.error(`Failed to start: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`Failed to start: ${message}`);
     }
   }, [user?.id, profileId]);
 
@@ -367,9 +368,10 @@ export function useIntelligenceSession(profileId: string): UseIntelligenceSessio
 
       if (error) throw error;
       toast.success('Generation resumed');
-    } catch (error: any) {
+    } catch (error) {
       console.error('[resumeGeneration] Error:', error);
-      toast.error(`Failed to resume: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`Failed to resume: ${message}`);
     }
   }, [session?.id]);
 
@@ -383,9 +385,10 @@ export function useIntelligenceSession(profileId: string): UseIntelligenceSessio
 
       if (error) throw error;
       toast.info('Generation paused');
-    } catch (error: any) {
+    } catch (error) {
       console.error('[pauseGeneration] Error:', error);
-      toast.error(`Failed to pause: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`Failed to pause: ${message}`);
     }
   }, [session?.id]);
 
@@ -399,9 +402,10 @@ export function useIntelligenceSession(profileId: string): UseIntelligenceSessio
 
       if (error) throw error;
       toast.info('Generation cancelled');
-    } catch (error: any) {
+    } catch (error) {
       console.error('[cancelGeneration] Error:', error);
-      toast.error(`Failed to cancel: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`Failed to cancel: ${message}`);
     }
   }, [session?.id]);
 
@@ -417,9 +421,10 @@ export function useIntelligenceSession(profileId: string): UseIntelligenceSessio
 
       if (error) throw error;
       toast.success(`Retrying ${data.tasksReset} failed tasks`);
-    } catch (error: any) {
+    } catch (error) {
       console.error('[retryFailed] Error:', error);
-      toast.error(`Failed to retry: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`Failed to retry: ${message}`);
     }
   }, [session?.id]);
 
@@ -431,9 +436,10 @@ export function useIntelligenceSession(profileId: string): UseIntelligenceSessio
 
       if (error) throw error;
       toast.info('Retrying task...');
-    } catch (error: any) {
+    } catch (error) {
       console.error('[retryTask] Error:', error);
-      toast.error(`Failed to retry task: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`Failed to retry task: ${message}`);
     }
   }, []);
 
@@ -452,9 +458,10 @@ export function useIntelligenceSession(profileId: string): UseIntelligenceSessio
       setSession(null);
       setTasks([]);
       toast.info('Session discarded');
-    } catch (error: any) {
+    } catch (error) {
       console.error('[discardSession] Error:', error);
-      toast.error(`Failed to discard: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`Failed to discard: ${message}`);
     }
   }, [session?.id]);
 
