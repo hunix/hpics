@@ -91,7 +91,7 @@ serve(async (req) => {
     const { data: staleContacts } = await supabase
       .from('profiles')
       .select(`
-        id, first_name, last_name, company,
+        id, first_name, last_name, organization,
         communications(occurred_at)
       `)
       .eq('user_id', user.id)
@@ -106,7 +106,7 @@ serve(async (req) => {
     }).slice(0, 5);
 
     if (needsFollowUp && needsFollowUp.length > 0) {
-      const followUpList = needsFollowUp.map(p => `${p.first_name} ${p.last_name}${p.company ? ` (${p.company})` : ''}`).join(', ');
+      const followUpList = needsFollowUp.map(p => `${p.first_name} ${p.last_name}${p.organization ? ` (${p.organization})` : ''}`).join(', ');
       contextParts.push(`Contacts needing follow-up: ${followUpList}`);
     }
 
