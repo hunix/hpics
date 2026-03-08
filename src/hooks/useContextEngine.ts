@@ -463,12 +463,10 @@ export function useContextEngine(): UseContextEngineReturn {
     if (!user) return null;
 
     try {
-      const { data, error } = await supabase.functions.invoke('predict-context', {
-        body: { 
-          userId: user.id, 
-          profileId,
-          action: 'optimal_contact_time'
-        }
+      const { data, error } = await invokeFunction('predict-context', { 
+        userId: user.id, 
+        profileId,
+        action: 'optimal_contact_time'
       });
 
       if (error) throw error;
