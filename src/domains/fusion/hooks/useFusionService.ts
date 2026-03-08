@@ -70,7 +70,7 @@ export function useFusionService() {
  */
 export function useFusionResults(profileId?: string, engineType?: FusionEngineType) {
   const { user } = useAuth();
-  const service = getFusionService();
+  const service = useMemo(() => resolveFusionService(), []);
 
   return useQuery({
     queryKey: ['fusion-results', profileId, engineType],
