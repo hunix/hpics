@@ -85,9 +85,9 @@ export function FortuneTrajectoryPanel({ profileId, profileName }: FortuneTrajec
       if (error) throw error;
       setData(result.analysis);
       toast.success('Fortune trajectory projection complete');
-    } catch (error: any) {
+    } catch (error) {
       if (isMountedRef.current) {
-        toast.error(error.message || 'Projection failed');
+        toast.error(error instanceof Error ? error.message : 'Projection failed');
       }
     } finally {
       if (isMountedRef.current) {

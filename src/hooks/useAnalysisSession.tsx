@@ -156,8 +156,8 @@ export function useAnalysisSession({
       setCurrentCostEstimate(jobs.reduce((sum, j) => sum + j.estimatedCostCents, 0));
 
       return sessionData.id;
-    } catch (error: any) {
-      toast({ title: 'Failed to create session', description: error.message, variant: 'destructive' });
+    } catch (error) {
+      toast({ title: 'Failed to create session', description: error instanceof Error ? error.message : 'Unknown error', variant: 'destructive' });
       return null;
     }
   }, [user, profileId, mediaId, mediaUrl, mosaicUrl, analysisMode, contextType, selectedTypes, getModelForType, estimateCost, toast]);

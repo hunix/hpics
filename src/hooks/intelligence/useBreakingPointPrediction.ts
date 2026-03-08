@@ -225,7 +225,7 @@ export function useBreakingPointPrediction(profileId?: string) {
       predictionId: string;
       vectorName: string;
       intensity: number;
-      observed效果: number;
+      observedEffect: number;
     }) => {
       if (!user?.id) throw new Error('Not authenticated');
       
@@ -244,7 +244,7 @@ export function useBreakingPointPrediction(profileId?: string) {
         ...(prediction.resistanceDegradationTrend || []).slice(-99),
         {
           date: new Date().toISOString(),
-          resilience: prediction.currentResilienceScore - params.intensity * params.observed效果 * 0.05,
+          resilience: prediction.currentResilienceScore - params.intensity * params.observedEffect * 0.05,
           stressLevel: params.intensity,
         },
       ];
@@ -266,7 +266,7 @@ export function useBreakingPointPrediction(profileId?: string) {
           pressure_vectors: updatedVectors,
           resistance_degradation_trend: newTrend,
           stress_accumulation_rate: Math.max(0.001, newStressRate),
-          current_resilience_score: Math.max(0, prediction.currentResilienceScore - params.intensity * params.observed效果 * 0.05),
+          current_resilience_score: Math.max(0, prediction.currentResilienceScore - params.intensity * params.observedEffect * 0.05),
         } as never)
         .eq('id', params.predictionId)
         .eq('user_id', user.id)
