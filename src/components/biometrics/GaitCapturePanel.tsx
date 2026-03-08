@@ -36,6 +36,8 @@ export function GaitCapturePanel({ profileId, profileName, onCapture }: GaitCapt
   const samplesRef = useRef<MotionSample[]>([]);
   const startTimeRef = useRef<number>(0);
   const intervalRef = useRef<number>();
+  const isCapturingRef = useRef(false);
+  const motionListenerRef = useRef<((e: DeviceMotionEvent) => void) | null>(null);
 
   // Check for sensor availability
   useEffect(() => {
