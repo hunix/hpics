@@ -421,9 +421,10 @@ export function useIntelligenceSession(profileId: string): UseIntelligenceSessio
 
       if (error) throw error;
       toast.success(`Retrying ${data.tasksReset} failed tasks`);
-    } catch (error: any) {
+    } catch (error) {
       console.error('[retryFailed] Error:', error);
-      toast.error(`Failed to retry: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`Failed to retry: ${message}`);
     }
   }, [session?.id]);
 
