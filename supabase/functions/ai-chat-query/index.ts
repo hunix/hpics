@@ -113,14 +113,14 @@ serve(async (req) => {
     // Get high-value contacts (if relationship scores exist)
     const { data: topContacts } = await supabase
       .from('relationship_scores')
-      .select('profile_id, overall_score, profiles(first_name, last_name, company)')
+      .select('profile_id, overall_score, profiles(first_name, last_name, organization)')
       .eq('user_id', user.id)
       .order('overall_score', { ascending: false })
       .limit(5);
 
     if (topContacts && topContacts.length > 0) {
       const topList = topContacts.map(c => {
-        const profile = c.profiles as { first_name?: string; last_name?: string; company?: string } | null;
+        const profile = c.profiles as { first_name?: string; last_name?: string; organization?: string } | null;
         return `${profile?.first_name || ''} ${profile?.last_name || ''} (score: ${c.overall_score})`;
       }).join(', ');
       contextParts.push(`Top relationships: ${topList}`);
