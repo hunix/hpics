@@ -60,8 +60,9 @@ export function GaitCapturePanel({ profileId, profileName, onCapture }: GaitCapt
     checkSensors();
   }, []);
 
+  // Stable motion handler — uses refs to avoid identity changes
   const handleMotion = useCallback((event: DeviceMotionEvent) => {
-    if (!isCapturing) return;
+    if (!isCapturingRef.current) return;
     
     const acceleration = event.accelerationIncludingGravity;
     if (!acceleration) return;
@@ -97,10 +98,10 @@ export function GaitCapturePanel({ profileId, profileName, onCapture }: GaitCapt
       Math.pow(acceleration.z || 0, 2)
     );
     
-    if (magnitude > 12) { // Threshold for step detection
+    if (magnitude > 12) {
       setStepCount(prev => prev + 1);
     }
-  }, [isCapturing]);
+  }, []); // No deps — uses refs for mutable state
 
   const startCapture = useCallback(async () => {
     // Request permission on iOS
