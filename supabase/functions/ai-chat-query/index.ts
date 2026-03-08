@@ -155,7 +155,7 @@ ${contextParts.join('\n')}`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-3-flash-preview',
         messages,
         max_tokens: 800,
         temperature: 0.7
