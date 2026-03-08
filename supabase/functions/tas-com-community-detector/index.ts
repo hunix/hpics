@@ -295,14 +295,14 @@ function detectCommunities(graph: Graph, contacts: any[]): any[] {
       return {
         id,
         name: node?.attributes.name || 'Unknown',
-        company: node?.attributes.company,
+        organization: node?.attributes.organization,
         role: node?.attributes.jobTitle,
       };
     });
 
     // Identify community characteristics
-    const companies = memberDetails.map(m => m.company).filter(Boolean);
-    const dominantCompany = findMostCommon(companies);
+    const organizations = memberDetails.map(m => m.organization).filter(Boolean);
+    const dominantOrganization = findMostCommon(organizations);
     
     result.push({
       id: commId,
