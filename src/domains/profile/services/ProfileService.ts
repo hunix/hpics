@@ -254,7 +254,14 @@ export class ProfileService {
   }
 
   async changeStatus(profileId: string, userId: string, newStatus: ProfileStatus): Promise<void> {
-    await this.eventBus.publish(new ProfileStatusChanged(profileId, userId, 'active', newStatus));
+    const profile = await this.repository.findByIdForUser(profileId, userId);
+    if (!profile) throw new Error('Profile not found');
+
+    const oldStatus = profile.status;
+    const isActive = newStatus === 'active';
+    await this.repository.updateActiveStatus(profileId, userId, isActive);
+
+    await this.eventBus.publish(new ProfileStatusChanged(profileId, userId, oldStatus, newStatus));
   }
 
   async archiveProfile(profileId: string, userId: string): Promise<void> {
