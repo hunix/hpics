@@ -471,7 +471,8 @@ export function useContextEngine(): UseContextEngineReturn {
       });
 
       if (error) throw error;
-      return (data as Record<string, unknown>)?.optimalTime || null;
+      const result = data as Record<string, unknown> | null;
+      return (result?.optimalTime as { time: string; reason: string }) || null;
     } catch (error) {
       console.error('Error getting optimal contact time:', error);
       return null;
