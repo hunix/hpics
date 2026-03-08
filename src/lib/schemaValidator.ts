@@ -95,7 +95,7 @@ const KNOWN_SCHEMAS: Record<string, string[]> = {
   ],
   contact_observations: [
     'id', 'user_id', 'profile_id', 'category', 'title', 'observation',
-    'confidence_level', 'ai_validation_status', 'ai_validation_result',
+    'observation_date', 'confidence_level', 'ai_validation_status', 'ai_validation_result',
     'ai_confidence_score', 'related_analysis_ids', 'tags', 'created_at', 'updated_at',
   ],
   behavioral_analyses: [
