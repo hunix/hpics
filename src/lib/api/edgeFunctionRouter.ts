@@ -509,15 +509,16 @@ export async function invokeFn(
   const body = options.body ?? {};
   const route = ROUTE_MAP[functionName];
 
-  // Lazy-import originalInvoke to bypass the proxy for router calls (Issue I fix)
-  let directInvoke: typeof supabase.functions.invoke | null = null;
-  try {
-    const { originalInvoke } = await import('@/lib/api/invokeProxy');
-    directInvoke = originalInvoke;
-  } catch {
-    // Fallback if proxy not installed
+  // Use cached originalInvoke to bypass the proxy for router calls
+  if (!_cachedOriginalInvoke) {
+    try {
+      const { originalInvoke } = await import('@/lib/api/invokeProxy');
+      _cachedOriginalInvoke = originalInvoke;
+    } catch {
+      // Fallback if proxy not installed
+    }
   }
-  const invoke = directInvoke ?? supabase.functions.invoke.bind(supabase.functions);
+  const invoke = _cachedOriginalInvoke ?? supabase.functions.invoke.bind(supabase.functions);
 
   if (route) {
     try {

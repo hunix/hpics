@@ -129,7 +129,7 @@ export function BreakingPointCalculator({ profileId }: BreakingPointCalculatorPr
                     predictionId: prediction.id,
                     vectorName: vector.name,
                     intensity: 0.5,
-                    'observed效果': 0.7
+                    observedEffect: 0.7
                   })}
                 >
                   Apply

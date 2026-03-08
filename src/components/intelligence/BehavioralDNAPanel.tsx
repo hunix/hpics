@@ -69,8 +69,8 @@ export function BehavioralDNAPanel({ profileId, profileName }: BehavioralDNAPane
       if (error) throw error;
       setDna(data.analysis);
       toast.success('Behavioral DNA sequencing complete');
-    } catch (error: any) {
-      toast.error(error.message || 'Sequencing failed');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Sequencing failed');
     } finally {
       setLoading(false);
     }

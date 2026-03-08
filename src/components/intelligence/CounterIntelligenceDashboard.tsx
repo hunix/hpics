@@ -73,9 +73,9 @@ export function CounterIntelligenceDashboard({ userId }: CounterIntelligenceDash
       setData(result.analysis);
       setLastScan(new Date());
       toast.success('Counter-intelligence scan complete');
-    } catch (error: any) {
+    } catch (error) {
       if (isMountedRef.current) {
-        toast.error(error.message || 'Scan failed');
+        toast.error(error instanceof Error ? error.message : 'Scan failed');
       }
     } finally {
       if (isMountedRef.current) {
