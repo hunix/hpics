@@ -24,7 +24,8 @@ export let originalInvoke: typeof supabase.functions.invoke | null = null;
  * will automatically route through the domain routers when a mapping exists.
  */
 export function installInvokeProxy() {
-  const originalInvoke = supabase.functions.invoke.bind(supabase.functions);
+  const _originalInvoke = supabase.functions.invoke.bind(supabase.functions);
+  originalInvoke = _originalInvoke;
 
   // We dynamically import the router to avoid circular deps
   let invokeFnRef: typeof import('@/lib/api/edgeFunctionRouter').invokeFn | null = null;
