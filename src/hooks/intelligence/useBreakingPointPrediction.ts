@@ -266,7 +266,7 @@ export function useBreakingPointPrediction(profileId?: string) {
           pressure_vectors: updatedVectors,
           resistance_degradation_trend: newTrend,
           stress_accumulation_rate: Math.max(0.001, newStressRate),
-          current_resilience_score: Math.max(0, prediction.currentResilienceScore - params.intensity * params.observed效果 * 0.05),
+          current_resilience_score: Math.max(0, prediction.currentResilienceScore - params.intensity * params.observedEffect * 0.05),
         } as never)
         .eq('id', params.predictionId)
         .eq('user_id', user.id)
