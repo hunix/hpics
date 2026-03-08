@@ -81,14 +81,18 @@ export function SensorDashboard() {
     };
   }, []);
 
-  // Get battery status
+  // Get battery status — cleanup stored in ref since effect is async
   useEffect(() => {
+    let batteryRef: any = null;
+    let updateFn: (() => void) | null = null;
+    
     const getBattery = async () => {
       try {
         // @ts-ignore - Battery API is not in TypeScript types
         const battery = await navigator.getBattery?.();
         if (battery) {
-          const updateBattery = () => {
+          batteryRef = battery;
+          updateFn = () => {
             setSensorData(prev => ({
               ...prev,
               battery: {
@@ -98,14 +102,9 @@ export function SensorDashboard() {
             }));
           };
           
-          updateBattery();
-          battery.addEventListener('levelchange', updateBattery);
-          battery.addEventListener('chargingchange', updateBattery);
-          
-          return () => {
-            battery.removeEventListener('levelchange', updateBattery);
-            battery.removeEventListener('chargingchange', updateBattery);
-          };
+          updateFn();
+          battery.addEventListener('levelchange', updateFn);
+          battery.addEventListener('chargingchange', updateFn);
         }
       } catch (e) {
         // Battery API not available
@@ -113,6 +112,13 @@ export function SensorDashboard() {
     };
     
     getBattery();
+    
+    return () => {
+      if (batteryRef && updateFn) {
+        batteryRef.removeEventListener('levelchange', updateFn);
+        batteryRef.removeEventListener('chargingchange', updateFn);
+      }
+    };
   }, []);
 
   // Get network info
