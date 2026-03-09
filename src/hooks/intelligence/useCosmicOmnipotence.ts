@@ -9,12 +9,10 @@ export function useCosmicOmnipotence(profileId?: string) {
   const { data: awareness, isLoading: awarenessLoading } = useQuery({
     queryKey: ['cosmic-awareness', profileId],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from('cosmic_awareness')
-        .select('*')
+        .select('id, awareness_type, insight_depth, user_id, created_at')
         .order('created_at', { ascending: false });
-      if (profileId) query = query.eq('profile_id', profileId);
-      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -26,7 +24,7 @@ export function useCosmicOmnipotence(profileId?: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('omnipotent_control')
-        .select('*')
+        .select('id, user_id, created_at')
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data;
@@ -40,11 +38,10 @@ export function useCosmicOmnipotence(profileId?: string) {
         .from('cosmic_awareness')
         .insert({
           user_id: user!.id,
-          awareness_scope: input.awareness_scope,
-          cosmic_perception_level: input.cosmic_perception_level || 1,
-          profile_id: profileId,
+          awareness_type: input.awareness_scope,
+          insight_depth: input.cosmic_perception_level || 1,
         })
-        .select()
+        .select('id, awareness_type, insight_depth, user_id, created_at')
         .single();
       if (error) throw error;
       return data;
@@ -56,12 +53,8 @@ export function useCosmicOmnipotence(profileId?: string) {
     mutationFn: async (input: { control_domain: string; power_magnitude?: number }) => {
       const { data, error } = await supabase
         .from('omnipotent_control')
-        .insert({
-          user_id: user!.id,
-          control_domain: input.control_domain,
-          power_magnitude: input.power_magnitude || 0,
-        })
-        .select()
+        .insert({ user_id: user!.id })
+        .select('id, user_id, created_at')
         .single();
       if (error) throw error;
       return data;
