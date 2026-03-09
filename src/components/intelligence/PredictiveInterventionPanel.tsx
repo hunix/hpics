@@ -84,7 +84,7 @@ export function PredictiveInterventionPanel() {
 
   const executeIntervention = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
+       const { error } = await supabase
         .from('action_recommendations')
         .update({ 
           status: 'actioned',
