@@ -1,9 +1,9 @@
 /**
- * Anomaly Detection Panel (v3.9.0)
- * Advanced behavioral and communication anomaly detection with ML-powered insights
+ * Anomaly Detection Panel (v10.0)
+ * Enhanced with Variable Temporal Transformer (VTT) anomaly detection
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,19 +14,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { 
-  AlertTriangle, 
-  Activity, 
-  TrendingDown, 
-  TrendingUp,
-  Eye,
-  CheckCircle,
-  Clock,
-  RefreshCw,
-  Zap,
-  Shield
+  AlertTriangle, Activity, TrendingDown, TrendingUp,
+  Eye, CheckCircle, Clock, RefreshCw, Zap, Shield, Brain
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { vttAnomalyDetector, type TimeSeriesPoint, type AnomalyDetectionResult } from '@/lib/ml/vttAnomalyDetector';
 
 interface Anomaly {
   id: string;
@@ -52,10 +45,7 @@ export function AnomalyDetectionPanel() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('behavioral_anomalies')
-        .select(`
-          *,
-          profiles:profile_id (first_name, last_name)
-        `)
+        .select(`*, profiles:profile_id (first_name, last_name)`)
         .order('detected_at', { ascending: false })
         .limit(100);
 
@@ -70,16 +60,41 @@ export function AnomalyDetectionPanel() {
         description: row.description || 'Anomaly detected',
         detectedAt: row.detected_at,
         confidence: row.confidence_score || 0.5,
-        status: row.status || 'new',
+        status: row.is_resolved ? 'resolved' : 'new',
         metadata: row.metadata || {},
       })) as Anomaly[];
     },
     enabled: !!user,
   });
 
+  // VTT local anomaly detection on existing data
+  const vttResults = useMemo((): AnomalyDetectionResult | null => {
+    const anomalies = anomaliesQuery.data;
+    if (!anomalies || anomalies.length < 5) return null;
+
+    try {
+      // Build time series from anomaly timestamps and confidence scores
+      const timeSeries: TimeSeriesPoint[] = anomalies
+        .filter(a => a.detectedAt)
+        .sort((a, b) => new Date(a.detectedAt).getTime() - new Date(b.detectedAt).getTime())
+        .map(a => ({
+          timestamp: new Date(a.detectedAt).getTime(),
+          value: a.confidence,
+          dimensions: {
+            severity: a.severity === 'critical' ? 1 : a.severity === 'high' ? 0.75 : a.severity === 'medium' ? 0.5 : 0.25,
+          },
+        }));
+
+      return vttAnomalyDetector.detect(timeSeries);
+    } catch (e) {
+      if (e instanceof Error) console.warn('[VTT] Detection failed:', e.message);
+      return null;
+    }
+  }, [anomaliesQuery.data]);
+
   const updateAnomalyStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-       const { error } = await supabase
+      const { error } = await supabase
         .from('behavioral_anomalies')
         .update({ is_resolved: status === 'resolved' })
         .eq('id', id);
@@ -183,17 +198,57 @@ export function AnomalyDetectionPanel() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <Button 
-              onClick={runAnomalyScan} 
-              disabled={isScanning}
-              className="w-full h-full"
-            >
+            <Button onClick={runAnomalyScan} disabled={isScanning} className="w-full h-full">
               <RefreshCw className={cn("h-4 w-4 mr-2", isScanning && "animate-spin")} />
               {isScanning ? 'Scanning...' : 'Run Scan'}
             </Button>
           </CardContent>
         </Card>
       </div>
+
+      {/* VTT Insights */}
+      {vttResults && vttResults.anomalies.length > 0 && (
+        <Card className="border-violet-500/30 bg-violet-500/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Brain className="h-4 w-4 text-violet-500" />
+              VTT Temporal Pattern Analysis
+              <Badge variant="secondary" className="text-xs">Variable Temporal Transformer</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-4 mb-3">
+              <div className="text-center">
+                <p className="text-xl font-bold text-violet-500">{vttResults.anomalies.length}</p>
+                <p className="text-xs text-muted-foreground">Temporal Anomalies</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xl font-bold">{(vttResults.overallAnomalyScore * 100).toFixed(0)}%</p>
+                <p className="text-xs text-muted-foreground">Anomaly Score</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xl font-bold">{vttResults.trendDirection}</p>
+                <p className="text-xs text-muted-foreground">Trend</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {vttResults.anomalies.slice(0, 3).map((a, i) => (
+                <div key={i} className="p-2 bg-background rounded text-sm flex items-center justify-between">
+                  <div>
+                    <Badge variant="outline" className="text-xs mr-2">{a.type}</Badge>
+                    <span className="text-muted-foreground">
+                      Score: {(a.score * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(a.timestamp).toLocaleDateString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Anomaly List */}
       <Card>
@@ -206,12 +261,8 @@ export function AnomalyDetectionPanel() {
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="mb-4">
-              <TabsTrigger value="active">
-                Active ({activeAnomalies.length})
-              </TabsTrigger>
-              <TabsTrigger value="resolved">
-                Resolved ({resolvedAnomalies.length})
-              </TabsTrigger>
+              <TabsTrigger value="active">Active ({activeAnomalies.length})</TabsTrigger>
+              <TabsTrigger value="resolved">Resolved ({resolvedAnomalies.length})</TabsTrigger>
             </TabsList>
 
             <TabsContent value="active">
@@ -220,10 +271,8 @@ export function AnomalyDetectionPanel() {
                   {activeAnomalies.length > 0 ? (
                     activeAnomalies.map(anomaly => (
                       <AnomalyCard 
-                        key={anomaly.id} 
-                        anomaly={anomaly}
-                        severityColors={severityColors}
-                        typeIcons={typeIcons}
+                        key={anomaly.id} anomaly={anomaly}
+                        severityColors={severityColors} typeIcons={typeIcons}
                         onStatusChange={(status) => updateAnomalyStatus.mutate({ id: anomaly.id, status })}
                       />
                     ))
@@ -243,10 +292,8 @@ export function AnomalyDetectionPanel() {
                   {resolvedAnomalies.length > 0 ? (
                     resolvedAnomalies.map(anomaly => (
                       <AnomalyCard 
-                        key={anomaly.id} 
-                        anomaly={anomaly}
-                        severityColors={severityColors}
-                        typeIcons={typeIcons}
+                        key={anomaly.id} anomaly={anomaly}
+                        severityColors={severityColors} typeIcons={typeIcons}
                         onStatusChange={(status) => updateAnomalyStatus.mutate({ id: anomaly.id, status })}
                       />
                     ))
@@ -277,9 +324,7 @@ function AnomalyCard({ anomaly, severityColors, typeIcons, onStatusChange }: Ano
   return (
     <div className={cn(
       "p-4 rounded-lg border",
-      anomaly.status === 'resolved' || anomaly.status === 'dismissed' 
-        ? "bg-muted/20 opacity-70" 
-        : "bg-card"
+      anomaly.status === 'resolved' || anomaly.status === 'dismissed' ? "bg-muted/20 opacity-70" : "bg-card"
     )}>
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
@@ -289,13 +334,9 @@ function AnomalyCard({ anomaly, severityColors, typeIcons, onStatusChange }: Ano
           <div>
             <div className="flex items-center gap-2">
               <span className="font-medium">{anomaly.profileName || 'Unknown Contact'}</span>
-              <Badge variant="outline" className={severityColors[anomaly.severity]}>
-                {anomaly.severity}
-              </Badge>
+              <Badge variant="outline" className={severityColors[anomaly.severity]}>{anomaly.severity}</Badge>
             </div>
-            <p className="text-sm text-muted-foreground capitalize">
-              {anomaly.anomalyType.replace(/_/g, ' ')}
-            </p>
+            <p className="text-sm text-muted-foreground capitalize">{anomaly.anomalyType.replace(/_/g, ' ')}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -303,31 +344,16 @@ function AnomalyCard({ anomaly, severityColors, typeIcons, onStatusChange }: Ano
           <span className="text-xs text-muted-foreground">{(anomaly.confidence * 100).toFixed(0)}%</span>
         </div>
       </div>
-
       <p className="text-sm mb-3">{anomaly.description}</p>
-
       <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">
-          {new Date(anomaly.detectedAt).toLocaleString()}
-        </span>
+        <span className="text-xs text-muted-foreground">{new Date(anomaly.detectedAt).toLocaleString()}</span>
         {anomaly.status !== 'resolved' && anomaly.status !== 'dismissed' && (
           <div className="flex gap-2">
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={() => onStatusChange('investigating')}
-              disabled={anomaly.status === 'investigating'}
-            >
-              <Eye className="h-3 w-3 mr-1" />
-              Investigate
+            <Button size="sm" variant="outline" onClick={() => onStatusChange('investigating')} disabled={anomaly.status === 'investigating'}>
+              <Eye className="h-3 w-3 mr-1" />Investigate
             </Button>
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={() => onStatusChange('resolved')}
-            >
-              <CheckCircle className="h-3 w-3 mr-1" />
-              Resolve
+            <Button size="sm" variant="outline" onClick={() => onStatusChange('resolved')}>
+              <CheckCircle className="h-3 w-3 mr-1" />Resolve
             </Button>
           </div>
         )}

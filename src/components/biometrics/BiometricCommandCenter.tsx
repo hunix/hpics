@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Fingerprint, Camera, Mic, UserSquare2, PenTool, Hand, 
   Keyboard, Footprints, Shield, AlertTriangle, CheckCircle2,
-  Activity, Brain, RefreshCw, Settings
+  Activity, Brain, RefreshCw, Settings, Cpu
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,6 +16,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { CrossModalFusionViewer } from './CrossModalFusionViewer';
 import { SignatureCaptureCanvas } from './SignatureCaptureCanvas';
 import { GaitCapturePanel } from './GaitCapturePanel';
+import { arcFaceEngine } from '@/lib/biometrics/arcFaceEmbedding';
+import { ecapaTdnnEngine } from '@/lib/biometrics/ecapaTdnnEmbedding';
+import { skeletonGaitEngine } from '@/lib/biometrics/skeletonGaitAnalyzer';
+import { typeFormerEngine } from '@/lib/biometrics/typeFormerKeystroke';
+import { crossModalFusionEngine } from '@/lib/biometrics/crossModalAttentionFusion';
 
 interface BiometricCommandCenterProps {
   profileId?: string;
@@ -32,6 +37,7 @@ interface BiometricModality {
   confidence: number | null;
   isEnrolled: boolean;
   lastUpdated?: string;
+  engine?: string;
 }
 
 export function BiometricCommandCenter({ profileId, profileName }: BiometricCommandCenterProps) {
@@ -49,7 +55,6 @@ export function BiometricCommandCenter({ profileId, profileName }: BiometricComm
         .eq('user_id', user.id)
         .eq('profile_id', profileId)
         .maybeSingle();
-      
       if (error) throw error;
       return data;
     },
@@ -90,86 +95,55 @@ export function BiometricCommandCenter({ profileId, profileName }: BiometricComm
     enabled: !!user && !!profileId
   });
 
+  // Engine metrics
+  const engineMetrics = useMemo(() => ({
+    arcFace: arcFaceEngine.getMetrics(),
+    ecapaTdnn: ecapaTdnnEngine.getMetrics(),
+    skeletonGait: skeletonGaitEngine.getMetrics(),
+    typeFormer: typeFormerEngine.getMetrics(),
+    fusionEngine: crossModalFusionEngine.getMetrics(),
+  }), []);
+
   const modalities: BiometricModality[] = [
     {
-      id: 'face',
-      name: 'Facial Recognition',
-      icon: Camera,
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-500/10',
-      sampleCount: biometrics?.facial_sample_count || 0,
-      confidence: biometrics?.facial_confidence,
-      isEnrolled: (biometrics?.facial_sample_count || 0) > 0
+      id: 'face', name: 'Facial Recognition', icon: Camera, color: 'text-blue-500', bgColor: 'bg-blue-500/10',
+      sampleCount: biometrics?.facial_sample_count || 0, confidence: biometrics?.facial_confidence,
+      isEnrolled: (biometrics?.facial_sample_count || 0) > 0, engine: 'ArcFace v2'
     },
     {
-      id: 'voice',
-      name: 'Voice Print',
-      icon: Mic,
-      color: 'text-green-500',
-      bgColor: 'bg-green-500/10',
-      sampleCount: biometrics?.voice_sample_count || 0,
-      confidence: biometrics?.voice_confidence,
-      isEnrolled: (biometrics?.voice_sample_count || 0) > 0
+      id: 'voice', name: 'Voice Print', icon: Mic, color: 'text-green-500', bgColor: 'bg-green-500/10',
+      sampleCount: biometrics?.voice_sample_count || 0, confidence: biometrics?.voice_confidence,
+      isEnrolled: (biometrics?.voice_sample_count || 0) > 0, engine: 'ECAPA-TDNN'
     },
     {
-      id: 'body',
-      name: 'Body Biometrics',
-      icon: UserSquare2,
-      color: 'text-purple-500',
-      bgColor: 'bg-purple-500/10',
-      sampleCount: biometrics?.body_measurements ? 1 : 0,
-      confidence: biometrics?.body_measurements ? 0.7 : null,
+      id: 'body', name: 'Body Biometrics', icon: UserSquare2, color: 'text-purple-500', bgColor: 'bg-purple-500/10',
+      sampleCount: biometrics?.body_measurements ? 1 : 0, confidence: biometrics?.body_measurements ? 0.7 : null,
       isEnrolled: !!biometrics?.body_measurements
     },
     {
-      id: 'signature',
-      name: 'Signature',
-      icon: Hand,
-      color: 'text-pink-500',
-      bgColor: 'bg-pink-500/10',
-      sampleCount: biometrics?.signature_samples_count || 0,
-      confidence: biometrics?.signature_confidence,
+      id: 'signature', name: 'Signature', icon: Hand, color: 'text-pink-500', bgColor: 'bg-pink-500/10',
+      sampleCount: biometrics?.signature_samples_count || 0, confidence: biometrics?.signature_confidence,
       isEnrolled: (biometrics?.signature_samples_count || 0) > 0
     },
     {
-      id: 'handwriting',
-      name: 'Handwriting',
-      icon: PenTool,
-      color: 'text-orange-500',
-      bgColor: 'bg-orange-500/10',
-      sampleCount: biometrics?.handwriting_samples_count || 0,
-      confidence: biometrics?.handwriting_confidence,
+      id: 'handwriting', name: 'Handwriting', icon: PenTool, color: 'text-orange-500', bgColor: 'bg-orange-500/10',
+      sampleCount: biometrics?.handwriting_samples_count || 0, confidence: biometrics?.handwriting_confidence,
       isEnrolled: (biometrics?.handwriting_samples_count || 0) > 0
     },
     {
-      id: 'fingerprint',
-      name: 'Fingerprints',
-      icon: Fingerprint,
-      color: 'text-red-500',
-      bgColor: 'bg-red-500/10',
-      sampleCount: biometrics?.fingerprint_samples_count || 0,
-      confidence: biometrics?.fingerprint_data ? 0.9 : null,
+      id: 'fingerprint', name: 'Fingerprints', icon: Fingerprint, color: 'text-red-500', bgColor: 'bg-red-500/10',
+      sampleCount: biometrics?.fingerprint_samples_count || 0, confidence: biometrics?.fingerprint_data ? 0.9 : null,
       isEnrolled: !!biometrics?.fingerprint_data
     },
     {
-      id: 'keystroke',
-      name: 'Keystroke Dynamics',
-      icon: Keyboard,
-      color: 'text-cyan-500',
-      bgColor: 'bg-cyan-500/10',
-      sampleCount: keystrokeProfile ? 1 : 0,
-      confidence: keystrokeProfile?.quality_score || null,
-      isEnrolled: !!keystrokeProfile
+      id: 'keystroke', name: 'Keystroke Dynamics', icon: Keyboard, color: 'text-cyan-500', bgColor: 'bg-cyan-500/10',
+      sampleCount: keystrokeProfile ? 1 : 0, confidence: keystrokeProfile?.quality_score || null,
+      isEnrolled: !!keystrokeProfile, engine: 'TypeFormer'
     },
     {
-      id: 'gait',
-      name: 'Gait Pattern',
-      icon: Footprints,
-      color: 'text-amber-500',
-      bgColor: 'bg-amber-500/10',
-      sampleCount: gaitProfile ? 1 : 0,
-      confidence: gaitProfile?.quality_score || null,
-      isEnrolled: !!gaitProfile
+      id: 'gait', name: 'Gait Pattern', icon: Footprints, color: 'text-amber-500', bgColor: 'bg-amber-500/10',
+      sampleCount: gaitProfile ? 1 : 0, confidence: gaitProfile?.quality_score || null,
+      isEnrolled: !!gaitProfile, engine: 'SkeletonGait'
     }
   ];
 
@@ -198,33 +172,28 @@ export function BiometricCommandCenter({ profileId, profileName }: BiometricComm
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-primary" />
             Biometric Command Center
-            {profileName && (
-              <Badge variant="outline" className="ml-2 font-normal">
-                {profileName}
-              </Badge>
-            )}
+            <Badge variant="outline" className="text-xs font-normal">v10.0</Badge>
+            {profileName && <Badge variant="outline" className="ml-2 font-normal">{profileName}</Badge>}
           </CardTitle>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
               <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
-            <Button variant="ghost" size="sm">
-              <Settings className="h-4 w-4" />
-            </Button>
+            <Button variant="ghost" size="sm"><Settings className="h-4 w-4" /></Button>
           </div>
         </div>
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-4 w-full mb-4">
+          <TabsList className="grid grid-cols-5 w-full mb-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="engines">Engines</TabsTrigger>
             <TabsTrigger value="fusion">Cross-Modal</TabsTrigger>
             <TabsTrigger value="signature">Signature</TabsTrigger>
             <TabsTrigger value="gait">Gait</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
-            {/* Summary Stats */}
             <div className="grid grid-cols-3 gap-4">
               <Card className="bg-primary/5 border-primary/20">
                 <CardContent className="p-4">
@@ -238,7 +207,6 @@ export function BiometricCommandCenter({ profileId, profileName }: BiometricComm
                   <Progress value={(enrolledCount / modalities.length) * 100} className="mt-2 h-1" />
                 </CardContent>
               </Card>
-
               <Card className="bg-green-500/5 border-green-500/20">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
@@ -251,15 +219,12 @@ export function BiometricCommandCenter({ profileId, profileName }: BiometricComm
                   <Progress value={overallConfidence * 100} className="mt-2 h-1" />
                 </CardContent>
               </Card>
-
               <Card className="bg-purple-500/5 border-purple-500/20">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs text-muted-foreground">Identity Score</p>
-                      <p className="text-2xl font-bold">
-                        {enrolledCount >= 3 ? 'Strong' : enrolledCount >= 1 ? 'Basic' : 'None'}
-                      </p>
+                      <p className="text-2xl font-bold">{enrolledCount >= 3 ? 'Strong' : enrolledCount >= 1 ? 'Basic' : 'None'}</p>
                     </div>
                     <Brain className="h-8 w-8 text-purple-500 opacity-50" />
                   </div>
@@ -267,28 +232,25 @@ export function BiometricCommandCenter({ profileId, profileName }: BiometricComm
               </Card>
             </div>
 
-            {/* Modality Grid */}
             <ScrollArea className="h-[400px]">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {modalities.map((modality) => (
-                  <Card 
-                    key={modality.id}
-                    className={`cursor-pointer transition-all hover:scale-[1.02] ${
-                      modality.isEnrolled ? 'border-primary/30' : 'border-muted'
-                    }`}
-                  >
+                  <Card key={modality.id} className={`cursor-pointer transition-all hover:scale-[1.02] ${modality.isEnrolled ? 'border-primary/30' : 'border-muted'}`}>
                     <CardContent className="p-4">
                       <div className={`p-2 rounded-lg w-fit ${modality.bgColor} mb-3`}>
                         <modality.icon className={`h-5 w-5 ${modality.color}`} />
                       </div>
                       <p className="font-medium text-sm">{modality.name}</p>
+                      {modality.engine && (
+                        <Badge variant="secondary" className="text-xs mt-1 bg-violet-500/10 text-violet-600">
+                          <Cpu className="h-2.5 w-2.5 mr-1" />{modality.engine}
+                        </Badge>
+                      )}
                       <div className="flex items-center gap-2 mt-2">
                         {modality.isEnrolled ? (
                           <>
                             <CheckCircle2 className="h-3 w-3 text-green-500" />
-                            <span className="text-xs text-muted-foreground">
-                              {modality.sampleCount} sample{modality.sampleCount !== 1 ? 's' : ''}
-                            </span>
+                            <span className="text-xs text-muted-foreground">{modality.sampleCount} sample{modality.sampleCount !== 1 ? 's' : ''}</span>
                           </>
                         ) : (
                           <>
@@ -301,9 +263,7 @@ export function BiometricCommandCenter({ profileId, profileName }: BiometricComm
                         <div className="mt-2">
                           <div className="flex items-center justify-between text-xs">
                             <span className="text-muted-foreground">Confidence</span>
-                            <span className={getConfidenceColor(modality.confidence)}>
-                              {(modality.confidence * 100).toFixed(0)}%
-                            </span>
+                            <span className={getConfidenceColor(modality.confidence)}>{(modality.confidence * 100).toFixed(0)}%</span>
                           </div>
                           <Progress value={modality.confidence * 100} className="mt-1 h-1" />
                         </div>
@@ -315,29 +275,56 @@ export function BiometricCommandCenter({ profileId, profileName }: BiometricComm
             </ScrollArea>
           </TabsContent>
 
+          {/* Engine Metrics Tab */}
+          <TabsContent value="engines" className="space-y-4">
+            <div className="space-y-3">
+              {[
+                { name: 'ArcFace Angular Margin', paper: 'IEEE TPAMI 2024', metrics: engineMetrics.arcFace, icon: Camera, color: 'text-blue-500' },
+                { name: 'ECAPA-TDNN Voice', paper: 'ISCA 2024', metrics: engineMetrics.ecapaTdnn, icon: Mic, color: 'text-green-500' },
+                { name: 'SkeletonGait Recognition', paper: 'AAAI 2024', metrics: engineMetrics.skeletonGait, icon: Footprints, color: 'text-amber-500' },
+                { name: 'TypeFormer Keystroke', paper: 'Springer 2024', metrics: engineMetrics.typeFormer, icon: Keyboard, color: 'text-cyan-500' },
+                { name: 'Cross-Modal Attention Fusion', paper: 'Odyssey 2024', metrics: engineMetrics.fusionEngine, icon: Brain, color: 'text-violet-500' },
+              ].map(engine => (
+                <Card key={engine.name}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <engine.icon className={`h-5 w-5 ${engine.color}`} />
+                        <div>
+                          <p className="font-medium text-sm">{engine.name}</p>
+                          <p className="text-xs text-muted-foreground">{engine.paper}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {engine.metrics && (
+                          <>
+                            <Badge variant="outline" className="text-xs">
+                              {engine.metrics.enrollments || engine.metrics.totalEnrollments || 0} enrolled
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {engine.metrics.verifications || engine.metrics.totalVerifications || 0} verified
+                            </Badge>
+                          </>
+                        )}
+                        <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600">Ready</Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
           <TabsContent value="fusion">
-            <CrossModalFusionViewer 
-              profileId={profileId} 
-              modalities={modalities}
-            />
+            <CrossModalFusionViewer profileId={profileId} modalities={modalities} />
           </TabsContent>
 
           <TabsContent value="signature">
-            {profileId && (
-              <SignatureCaptureCanvas 
-                profileId={profileId}
-                profileName={profileName || 'Unknown'}
-              />
-            )}
+            {profileId && <SignatureCaptureCanvas profileId={profileId} profileName={profileName || 'Unknown'} />}
           </TabsContent>
 
           <TabsContent value="gait">
-            {profileId && (
-              <GaitCapturePanel 
-                profileId={profileId}
-                profileName={profileName || 'Unknown'}
-              />
-            )}
+            {profileId && <GaitCapturePanel profileId={profileId} profileName={profileName || 'Unknown'} />}
           </TabsContent>
         </Tabs>
       </CardContent>

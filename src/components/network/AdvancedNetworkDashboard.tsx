@@ -6,12 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { 
   Share2, Users, TrendingUp, AlertTriangle, Zap, Link2, 
-  RefreshCw, Loader2, Target, ShieldCheck, Lightbulb
+  RefreshCw, Loader2, Target, ShieldCheck, Lightbulb,
+  Brain, Shield, Radio
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { 
@@ -22,11 +22,17 @@ import {
   classifyCommunityRoles,
   identifyGrowthOpportunities,
   detectClusters,
+  detectCommunitiesGATFELPA,
+  predictTrust,
+  maximizeTemporalInfluence,
   type WeakTie,
   type PredictedLink,
   type ResilienceMetrics,
   type NodeRole,
-  type GrowthOpportunity
+  type GrowthOpportunity,
+  type GatfelpaResult,
+  type TrustPrediction,
+  type TemporalInfluenceResult,
 } from '@/lib/network';
 
 interface NetworkNode {
@@ -48,7 +54,6 @@ export function AdvancedNetworkDashboard() {
   const { data: networkData, isLoading, refetch } = useQuery({
     queryKey: ['advanced-network-data', user?.id],
     queryFn: async () => {
-      // Analyze only active contacts for network intelligence
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, organization, is_favorite')
@@ -78,7 +83,7 @@ export function AdvancedNetworkDashboard() {
         weight: 1,
       }));
 
-      // Run algorithms
+      // Classic algorithms
       const clusters = detectClusters(nodes, links);
       const eigenvector = calculateEigenvectorCentrality(nodes, links);
       const weakTies = detectWeakTies(nodes, links, clusters);
@@ -86,6 +91,39 @@ export function AdvancedNetworkDashboard() {
       const resilience = analyzeNetworkResilience(nodes, links);
       const roles = classifyCommunityRoles(nodes, links, clusters);
       const opportunities = identifyGrowthOpportunities(nodes, links, clusters);
+
+      // === v10.0 Enhanced Engines ===
+      // GATFELPA Community Detection
+      let gatfelpaResult: GatfelpaResult | null = null;
+      try {
+        gatfelpaResult = detectCommunitiesGATFELPA(nodes, links);
+      } catch (e) {
+        if (e instanceof Error) console.warn('[GATFELPA] Detection failed:', e.message);
+      }
+
+      // TrustGuard Trust Predictions for top influencers
+      const trustPredictions: TrustPrediction[] = [];
+      const topInfluencerIds = Array.from(eigenvector.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 15)
+        .map(([id]) => id);
+      
+      for (const nodeId of topInfluencerIds) {
+        try {
+          const tp = predictTrust(nodes, links, nodeId);
+          trustPredictions.push(tp);
+        } catch (e) {
+          if (e instanceof Error) console.warn('[TrustGuard] Failed for', nodeId);
+        }
+      }
+
+      // TempRL-IM Influence Maximization
+      let influenceResult: TemporalInfluenceResult | null = null;
+      try {
+        influenceResult = maximizeTemporalInfluence(nodes, links, { seedBudget: 5 });
+      } catch (e) {
+        if (e instanceof Error) console.warn('[TempRL-IM] Failed:', e.message);
+      }
 
       // Get top influencers
       const influencers = Array.from(eigenvector.entries())
@@ -95,9 +133,9 @@ export function AdvancedNetworkDashboard() {
           id,
           name: nodes.find(n => n.id === id)?.name || 'Unknown',
           score,
+          trust: trustPredictions.find(t => t.nodeId === id),
         }));
 
-      // Role distribution
       const roleDistribution = roles.reduce((acc, r) => {
         acc[r.role] = (acc[r.role] || 0) + 1;
         return acc;
@@ -114,10 +152,15 @@ export function AdvancedNetworkDashboard() {
         roles,
         roleDistribution,
         opportunities,
+        // v10.0 enhanced
+        gatfelpaResult,
+        trustPredictions,
+        influenceResult,
         stats: {
           totalNodes: nodes.length,
           totalLinks: links.length,
           communities: new Set(clusters.values()).size,
+          gatfelpaCommunities: gatfelpaResult?.communities.length || 0,
           density: nodes.length > 1 ? (2 * links.length) / (nodes.length * (nodes.length - 1)) : 0,
         },
       };
@@ -137,7 +180,7 @@ export function AdvancedNetworkDashboard() {
       toast.success('Network analysis complete');
     },
     onError: (error) => {
-      toast.error(error.message);
+      if (error instanceof Error) toast.error(error.message);
     },
   });
 
@@ -170,7 +213,7 @@ export function AdvancedNetworkDashboard() {
             <Share2 className="h-6 w-6" />
             Advanced Network Analytics
           </h2>
-          <p className="text-muted-foreground">Deep ML-powered network intelligence</p>
+          <p className="text-muted-foreground">Deep ML-powered network intelligence (v10.0 Enhanced)</p>
         </div>
         <Button onClick={() => analyzeNetworkMutation.mutate()} disabled={analyzeNetworkMutation.isPending}>
           {analyzeNetworkMutation.isPending ? (
@@ -183,7 +226,7 @@ export function AdvancedNetworkDashboard() {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -221,6 +264,17 @@ export function AdvancedNetworkDashboard() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
+                <p className="text-sm text-muted-foreground">GATFELPA</p>
+                <p className="text-2xl font-bold">{networkData?.stats.gatfelpaCommunities || 0}</p>
+              </div>
+              <Brain className="h-8 w-8 text-violet-500 opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-sm text-muted-foreground">Density</p>
                 <p className="text-2xl font-bold">{((networkData?.stats.density || 0) * 100).toFixed(1)}%</p>
               </div>
@@ -242,14 +296,18 @@ export function AdvancedNetworkDashboard() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="overview">Influencers</TabsTrigger>
+          <TabsTrigger value="trust">Trust</TabsTrigger>
+          <TabsTrigger value="gatfelpa">GATFELPA</TabsTrigger>
+          <TabsTrigger value="influence">Influence</TabsTrigger>
           <TabsTrigger value="weakties">Weak Ties</TabsTrigger>
           <TabsTrigger value="predictions">Predictions</TabsTrigger>
           <TabsTrigger value="resilience">Resilience</TabsTrigger>
           <TabsTrigger value="opportunities">Growth</TabsTrigger>
         </TabsList>
 
+        {/* Influencers Tab */}
         <TabsContent value="overview" className="mt-4">
           <Card>
             <CardHeader>
@@ -257,9 +315,7 @@ export function AdvancedNetworkDashboard() {
                 <TrendingUp className="h-5 w-5" />
                 Top Influencers (Eigenvector Centrality)
               </CardTitle>
-              <CardDescription>
-                Nodes connected to other influential nodes
-              </CardDescription>
+              <CardDescription>Nodes connected to other influential nodes</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -267,7 +323,14 @@ export function AdvancedNetworkDashboard() {
                   <div key={inf.id} className="flex items-center gap-4">
                     <span className="text-lg font-bold text-muted-foreground w-6">#{idx + 1}</span>
                     <div className="flex-1">
-                      <p className="font-medium">{inf.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{inf.name}</p>
+                        {inf.trust && (
+                          <Badge variant="outline" className="text-xs">
+                            Trust: {(inf.trust.trustScore * 100).toFixed(0)}%
+                          </Badge>
+                        )}
+                      </div>
                       <Progress value={inf.score * 100} className="h-2 mt-1" />
                     </div>
                     <Badge variant="outline">{(inf.score * 100).toFixed(0)}%</Badge>
@@ -281,13 +344,215 @@ export function AdvancedNetworkDashboard() {
           </Card>
         </TabsContent>
 
+        {/* TrustGuard Tab */}
+        <TabsContent value="trust" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-emerald-500" />
+                TrustGuard GNN Trust Evaluation
+              </CardTitle>
+              <CardDescription>
+                Multi-factor trust assessment with explainable factors
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[450px]">
+                <div className="space-y-3">
+                  {networkData?.trustPredictions
+                    .sort((a, b) => b.trustScore - a.trustScore)
+                    .map((tp) => (
+                      <div key={tp.nodeId} className="p-4 border rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">
+                              {networkData.nodes.find(n => n.id === tp.nodeId)?.name || tp.nodeId}
+                            </span>
+                            <Badge variant={
+                              tp.trend === 'increasing' ? 'default' :
+                              tp.trend === 'decreasing' ? 'destructive' : 'secondary'
+                            }>
+                              {tp.trend}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-mono font-bold">
+                              {(tp.trustScore * 100).toFixed(0)}%
+                            </span>
+                            <Badge variant="outline" className="text-xs">
+                              conf: {(tp.confidence * 100).toFixed(0)}%
+                            </Badge>
+                          </div>
+                        </div>
+                        <Progress value={tp.trustScore * 100} className="h-2 mb-3" />
+                        <div className="flex flex-wrap gap-1">
+                          {tp.factors.map((f, i) => (
+                            <Badge key={i} variant="secondary" className="text-xs">
+                              {f.name}: {f.evidence}
+                            </Badge>
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">{tp.explanation}</p>
+                      </div>
+                    ))}
+                  {(!networkData?.trustPredictions || networkData.trustPredictions.length === 0) && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Shield className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                      <p>No trust predictions available</p>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* GATFELPA Tab */}
+        <TabsContent value="gatfelpa" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5 text-violet-500" />
+                GATFELPA Community Detection
+              </CardTitle>
+              <CardDescription>
+                Graph Attention + Enhanced Label Propagation (Nature Scientific Reports 2025)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {networkData?.gatfelpaResult ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4 mb-4">
+                    <div className="p-3 bg-muted/50 rounded-lg text-center">
+                      <p className="text-2xl font-bold text-violet-500">{networkData.gatfelpaResult.communities.length}</p>
+                      <p className="text-xs text-muted-foreground">Communities</p>
+                    </div>
+                    <div className="p-3 bg-muted/50 rounded-lg text-center">
+                      <p className="text-2xl font-bold">{(networkData.gatfelpaResult.modularity * 100).toFixed(1)}%</p>
+                      <p className="text-xs text-muted-foreground">Modularity</p>
+                    </div>
+                    <div className="p-3 bg-muted/50 rounded-lg text-center">
+                      <p className="text-2xl font-bold">{networkData.gatfelpaResult.iterations}</p>
+                      <p className="text-xs text-muted-foreground">Iterations</p>
+                    </div>
+                  </div>
+                  <ScrollArea className="h-[350px]">
+                    <div className="space-y-3">
+                      {networkData.gatfelpaResult.communities
+                        .sort((a, b) => b.members.length - a.members.length)
+                        .map((comm, idx) => (
+                          <div key={comm.id} className="p-3 border rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <div className="h-3 w-3 rounded-full" style={{ backgroundColor: `hsl(${idx * 47}, 70%, 55%)` }} />
+                                <span className="font-medium">Community {idx + 1}</span>
+                                <Badge variant="outline">{comm.members.length} members</Badge>
+                              </div>
+                              <span className="text-sm text-muted-foreground">
+                                Cohesion: {(comm.cohesion * 100).toFixed(0)}%
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {comm.members.slice(0, 8).map(mId => (
+                                <Badge key={mId} variant="secondary" className="text-xs">
+                                  {networkData.nodes.find(n => n.id === mId)?.name || mId.slice(0, 8)}
+                                </Badge>
+                              ))}
+                              {comm.members.length > 8 && (
+                                <Badge variant="outline" className="text-xs">
+                                  +{comm.members.length - 8} more
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Brain className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                  <p>GATFELPA requires at least 3 nodes to run</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TempRL-IM Influence Maximization Tab */}
+        <TabsContent value="influence" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Radio className="h-5 w-5 text-amber-500" />
+                TempRL-IM Influence Maximization
+              </CardTitle>
+              <CardDescription>
+                Temporal reinforcement learning for optimal influence seed selection (Nature 2026)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {networkData?.influenceResult ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4 mb-4">
+                    <div className="p-3 bg-amber-500/10 rounded-lg text-center">
+                      <p className="text-2xl font-bold text-amber-500">{networkData.influenceResult.seedSet.length}</p>
+                      <p className="text-xs text-muted-foreground">Seed Nodes</p>
+                    </div>
+                    <div className="p-3 bg-muted/50 rounded-lg text-center">
+                      <p className="text-2xl font-bold">{networkData.influenceResult.expectedSpread.toFixed(1)}</p>
+                      <p className="text-xs text-muted-foreground">Expected Spread</p>
+                    </div>
+                    <div className="p-3 bg-muted/50 rounded-lg text-center">
+                      <p className="text-2xl font-bold">{networkData.influenceResult.temporalPhases}</p>
+                      <p className="text-xs text-muted-foreground">Temporal Phases</p>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="font-medium mb-3">Optimal Seed Nodes</h4>
+                    <div className="space-y-2">
+                      {networkData.influenceResult.seedSet.map((seed, idx) => (
+                        <div key={seed.nodeId} className="p-3 border rounded-lg flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="text-lg font-bold text-amber-500">#{idx + 1}</span>
+                            <div>
+                              <p className="font-medium">
+                                {networkData.nodes.find(n => n.id === seed.nodeId)?.name || seed.nodeId}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Phase {seed.activationPhase + 1} activation
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">
+                              Marginal: {seed.marginalGain.toFixed(2)}
+                            </Badge>
+                            <Badge>
+                              Reward: {seed.expectedReward.toFixed(2)}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Radio className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                  <p>Influence maximization requires a connected network</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Weak Ties Tab (existing) */}
         <TabsContent value="weakties" className="mt-4">
           <Card>
             <CardHeader>
               <CardTitle>Valuable Weak Ties</CardTitle>
-              <CardDescription>
-                Loose connections bridging different communities
-              </CardDescription>
+              <CardDescription>Loose connections bridging different communities</CardDescription>
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[400px]">
@@ -304,9 +569,7 @@ export function AdvancedNetworkDashboard() {
                             {networkData.nodes.find(n => n.id === tie.targetId)?.name || 'Unknown'}
                           </span>
                         </div>
-                        <Badge 
-                          variant={tie.potentialValue === 'high' ? 'default' : tie.potentialValue === 'medium' ? 'secondary' : 'outline'}
-                        >
+                        <Badge variant={tie.potentialValue === 'high' ? 'default' : tie.potentialValue === 'medium' ? 'secondary' : 'outline'}>
                           {tie.potentialValue} value
                         </Badge>
                       </div>
@@ -322,13 +585,12 @@ export function AdvancedNetworkDashboard() {
           </Card>
         </TabsContent>
 
+        {/* Predictions Tab (existing) */}
         <TabsContent value="predictions" className="mt-4">
           <Card>
             <CardHeader>
               <CardTitle>Predicted Connections</CardTitle>
-              <CardDescription>
-                Likely future connections based on network structure
-              </CardDescription>
+              <CardDescription>Likely future connections based on network structure</CardDescription>
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[400px]">
@@ -345,12 +607,8 @@ export function AdvancedNetworkDashboard() {
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">
-                          {pred.commonNeighbors} mutual
-                        </span>
-                        <Badge variant="outline">
-                          {(pred.score * 10).toFixed(1)} score
-                        </Badge>
+                        <span className="text-sm text-muted-foreground">{pred.commonNeighbors} mutual</span>
+                        <Badge variant="outline">{(pred.score * 10).toFixed(1)} score</Badge>
                       </div>
                     </div>
                   ))}
@@ -360,6 +618,7 @@ export function AdvancedNetworkDashboard() {
           </Card>
         </TabsContent>
 
+        {/* Resilience Tab (existing) */}
         <TabsContent value="resilience" className="mt-4">
           <Card>
             <CardHeader>
@@ -380,7 +639,6 @@ export function AdvancedNetworkDashboard() {
                   <p className="text-2xl font-bold">{(networkData?.resilience?.averageConnectivity || 0).toFixed(1)}</p>
                 </div>
               </div>
-
               <div>
                 <h4 className="font-medium mb-3 flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 text-amber-500" />
@@ -395,7 +653,7 @@ export function AdvancedNetworkDashboard() {
                     </div>
                   ))}
                   {(!networkData?.resilience?.criticalNodes || networkData.resilience.criticalNodes.length === 0) && (
-                    <p className="text-sm text-muted-foreground">No critical nodes detected - network is well connected</p>
+                    <p className="text-sm text-muted-foreground">No critical nodes detected</p>
                   )}
                 </div>
               </div>
@@ -403,6 +661,7 @@ export function AdvancedNetworkDashboard() {
           </Card>
         </TabsContent>
 
+        {/* Growth Tab (existing) */}
         <TabsContent value="opportunities" className="mt-4">
           <Card>
             <CardHeader>
@@ -410,9 +669,7 @@ export function AdvancedNetworkDashboard() {
                 <Lightbulb className="h-5 w-5 text-amber-500" />
                 Growth Opportunities
               </CardTitle>
-              <CardDescription>
-                Strategic actions to strengthen your network
-              </CardDescription>
+              <CardDescription>Strategic actions to strengthen your network</CardDescription>
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[400px]">

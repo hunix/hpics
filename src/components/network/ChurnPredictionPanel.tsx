@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -8,8 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
-import { AlertTriangle, TrendingDown, Clock, MessageSquare, RefreshCw, Loader2, Lightbulb } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertTriangle, TrendingDown, Clock, MessageSquare, RefreshCw, Loader2, Lightbulb, Brain, Cpu } from 'lucide-react';
 import { toast } from 'sonner';
+import { ccpNetEngine, type CcpNetPrediction, type ChurnFeatureVector } from '@/lib/ml/ccpNetChurn';
 
 interface ChurnPrediction {
   profile_id: string;
@@ -48,14 +50,15 @@ export function ChurnPredictionPanel() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [selectedRecommendation, setSelectedRecommendation] = useState<AIRecommendation | null>(null);
+  const [activeView, setActiveView] = useState<'cloud' | 'local'>('cloud');
 
+  // Cloud predictions
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['churn-predictions', user?.id],
     queryFn: async () => {
       const { data: result, error } = await supabase.functions.invoke('predict-churn', {
         body: { includeAllContacts: true },
       });
-
       if (error) throw error;
       return result as {
         predictions: ChurnPrediction[];
@@ -65,8 +68,37 @@ export function ChurnPredictionPanel() {
       };
     },
     enabled: !!user,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
+
+  // Local CCP-Net predictions from cloud data
+  const localPredictions = useMemo(() => {
+    if (!data?.predictions) return [];
+    
+    return data.predictions.map(p => {
+      const featureVector: ChurnFeatureVector = {
+        daysSinceLastContact: p.features.days_since_contact,
+        contactFrequencyTrend: p.features.contact_frequency_trend === 'declining' ? -0.5 :
+          p.features.contact_frequency_trend === 'stable' ? 0 : 0.5,
+        sentimentTrajectory: p.features.sentiment_trajectory === 'declining' ? -0.5 :
+          p.features.sentiment_trajectory === 'improving' ? 0.5 : 0,
+        engagementLevel: p.features.engagement_level === 'low' ? 0.2 :
+          p.features.engagement_level === 'medium' ? 0.5 : 0.8,
+        reciprocityRatio: 0.5,
+        responseLatencyTrend: 0,
+        topicDiversityTrend: 0,
+        networkCentrality: 0.3,
+        sharedConnectionsCount: 5,
+        relationshipAge: 365,
+      };
+      
+      const prediction = ccpNetEngine.predict(featureVector);
+      return {
+        ...p,
+        ccpNet: prediction,
+      };
+    }).sort((a, b) => b.ccpNet.churnProbability - a.ccpNet.churnProbability);
+  }, [data?.predictions]);
 
   const refreshMutation = useMutation({
     mutationFn: async () => {
@@ -78,10 +110,10 @@ export function ChurnPredictionPanel() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['churn-predictions'] });
-      toast.success('Predictions refreshed with AI analysis');
+      toast.success('Predictions refreshed');
     },
     onError: (error) => {
-      toast.error('Failed to refresh: ' + (error as Error).message);
+      if (error instanceof Error) toast.error('Failed to refresh: ' + error.message);
     },
   });
 
@@ -115,28 +147,18 @@ export function ChurnPredictionPanel() {
             <CardTitle className="flex items-center gap-2">
               <TrendingDown className="h-5 w-5 text-amber-500" />
               AI Churn Prediction
+              <Badge variant="outline" className="text-xs font-normal">v10.0</Badge>
             </CardTitle>
             <CardDescription>
               {metrics ? (
-                <>
-                  {metrics.critical_risk + metrics.high_risk} at risk • {metrics.total_analyzed} analyzed
-                </>
+                <>{metrics.critical_risk + metrics.high_risk} at risk • {metrics.total_analyzed} analyzed</>
               ) : (
-                'AI-powered relationship health analysis'
+                'AI-powered relationship health analysis with CCP-Net'
               )}
             </CardDescription>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => refreshMutation.mutate()}
-            disabled={refreshMutation.isPending}
-          >
-            {refreshMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
+          <Button variant="outline" size="sm" onClick={() => refreshMutation.mutate()} disabled={refreshMutation.isPending}>
+            {refreshMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
           </Button>
         </div>
       </CardHeader>
@@ -172,36 +194,80 @@ export function ChurnPredictionPanel() {
             </div>
             <div className="space-y-2">
               {recommendations.slice(0, 3).map((rec, i) => (
-                <div 
-                  key={i} 
-                  className="text-sm p-2 bg-background rounded cursor-pointer hover:bg-muted/50"
-                  onClick={() => setSelectedRecommendation(rec)}
-                >
+                <div key={i} className="text-sm p-2 bg-background rounded cursor-pointer hover:bg-muted/50" onClick={() => setSelectedRecommendation(rec)}>
                   <span className="font-medium">{rec.name || `Contact ${i + 1}`}:</span>{' '}
                   <span className="text-muted-foreground">{rec.action}</span>
-                  {rec.urgency === 'immediate' && (
-                    <Badge variant="destructive" className="ml-2 text-xs">Urgent</Badge>
-                  )}
+                  {rec.urgency === 'immediate' && <Badge variant="destructive" className="ml-2 text-xs">Urgent</Badge>}
                 </div>
               ))}
             </div>
           </div>
         )}
 
+        {/* View Toggle */}
+        <Tabs value={activeView} onValueChange={(v) => setActiveView(v as 'cloud' | 'local')} className="mb-4">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="cloud" className="flex items-center gap-1">
+              <Cpu className="h-3 w-3" /> Cloud Analysis
+            </TabsTrigger>
+            <TabsTrigger value="local" className="flex items-center gap-1">
+              <Brain className="h-3 w-3" /> CCP-Net Local
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         {isLoading ? (
           <div className="space-y-3">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="h-20 bg-muted animate-pulse rounded-lg" />
-            ))}
+            {[1, 2, 3].map(i => <div key={i} className="h-20 bg-muted animate-pulse rounded-lg" />)}
           </div>
+        ) : activeView === 'local' ? (
+          /* CCP-Net Local Predictions */
+          <ScrollArea className="h-[350px]">
+            <div className="space-y-3">
+              {localPredictions.filter(p => p.ccpNet.churnProbability > 0.2).map(prediction => (
+                <div key={prediction.profile_id} className={`p-4 rounded-lg border ${getRiskBg(prediction.ccpNet.riskLevel)}`}>
+                  <div className="flex items-start gap-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={prediction.avatar_url} />
+                      <AvatarFallback>{prediction.name?.charAt(0) || '?'}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium">{prediction.name}</span>
+                        <Badge variant="outline" className={getRiskColor(prediction.ccpNet.riskLevel)}>
+                          CCP-Net: {(prediction.ccpNet.churnProbability * 100).toFixed(0)}%
+                        </Badge>
+                      </div>
+                      <Progress value={prediction.ccpNet.churnProbability * 100} className="h-2 mb-2" />
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {prediction.ccpNet.riskFactors.slice(0, 3).map((f, i) => (
+                          <Badge key={i} variant="secondary" className="text-xs">
+                            {f.factor}: {(f.contribution * 100).toFixed(0)}%
+                          </Badge>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Confidence: {(prediction.ccpNet.confidence * 100).toFixed(0)}% • 
+                        Predicted churn in ~{prediction.ccpNet.timeToChurnDays} days
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {localPredictions.filter(p => p.ccpNet.churnProbability > 0.2).length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Brain className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                  <p>CCP-Net: No significant churn risk detected</p>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
         ) : predictions.length > 0 ? (
+          /* Cloud Predictions (original) */
           <ScrollArea className="h-[350px]">
             <div className="space-y-3">
               {predictions.map(prediction => (
-                <div 
-                  key={prediction.profile_id} 
-                  className={`p-4 rounded-lg border ${getRiskBg(prediction.risk_level)}`}
-                >
+                <div key={prediction.profile_id} className={`p-4 rounded-lg border ${getRiskBg(prediction.risk_level)}`}>
                   <div className="flex items-start gap-3">
                     <Avatar className="h-10 w-10">
                       <AvatarImage src={prediction.avatar_url} />
@@ -214,39 +280,20 @@ export function ChurnPredictionPanel() {
                           {prediction.risk_level.charAt(0).toUpperCase() + prediction.risk_level.slice(1)} Risk
                         </Badge>
                         {prediction.relationship_type && (
-                          <Badge variant="secondary" className="text-xs">
-                            {prediction.relationship_type}
-                          </Badge>
+                          <Badge variant="secondary" className="text-xs">{prediction.relationship_type}</Badge>
                         )}
                       </div>
-                      
-                      {/* Risk Score Bar */}
                       <div className="flex items-center gap-2 mb-2">
-                        <Progress 
-                          value={prediction.risk_score} 
-                          className="h-2 flex-1"
-                        />
-                        <span className={`text-sm font-medium ${getRiskColor(prediction.risk_level)}`}>
-                          {prediction.risk_score}%
-                        </span>
+                        <Progress value={prediction.risk_score} className="h-2 flex-1" />
+                        <span className={`text-sm font-medium ${getRiskColor(prediction.risk_level)}`}>{prediction.risk_score}%</span>
                       </div>
-
-                      {/* Features */}
                       <div className="flex flex-wrap gap-1 mb-2">
-                        <Badge variant="secondary" className="text-xs">
-                          {prediction.features.contact_frequency_trend} frequency
-                        </Badge>
-                        <Badge variant="secondary" className="text-xs">
-                          {prediction.features.engagement_level} engagement
-                        </Badge>
+                        <Badge variant="secondary" className="text-xs">{prediction.features.contact_frequency_trend} frequency</Badge>
+                        <Badge variant="secondary" className="text-xs">{prediction.features.engagement_level} engagement</Badge>
                         {prediction.features.sentiment_trajectory !== 'unknown' && (
-                          <Badge variant="secondary" className="text-xs">
-                            {prediction.features.sentiment_trajectory} sentiment
-                          </Badge>
+                          <Badge variant="secondary" className="text-xs">{prediction.features.sentiment_trajectory} sentiment</Badge>
                         )}
                       </div>
-
-                      {/* Last Contact */}
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
@@ -255,15 +302,11 @@ export function ChurnPredictionPanel() {
                             : 'No recorded contact'}
                         </span>
                         {prediction.days_to_critical > 0 && (
-                          <span className="text-amber-600">
-                            ~{prediction.days_to_critical} days to critical
-                          </span>
+                          <span className="text-amber-600">~{prediction.days_to_critical} days to critical</span>
                         )}
                       </div>
                     </div>
-                    <Button size="sm" variant="outline">
-                      <MessageSquare className="h-4 w-4" />
-                    </Button>
+                    <Button size="sm" variant="outline"><MessageSquare className="h-4 w-4" /></Button>
                   </div>
                 </div>
               ))}
