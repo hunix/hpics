@@ -258,7 +258,7 @@ function AGISPhaseHealthGrid() {
     queryKey: ['agis-global-health', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-      const { data } = await (supabase as any)
+      const { data } = await supabase
         .from('agis_global_state')
         .select('*')
         .eq('user_id', user.id)
