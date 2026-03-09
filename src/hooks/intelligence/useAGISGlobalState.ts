@@ -152,12 +152,10 @@ export function useAGISGlobalState() {
     mutationFn: async () => {
       if (!user?.id) throw new Error('No user');
 
-      // Aggregate data from all phase tables
-      const [r1, r2, r3] = await Promise.all([
-        supabase.from('autonomous_campaigns').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_active', true),
-        supabase.from('influence_cascades').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('status', 'active'),
-        supabase.from('reality_frameworks').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_active', true),
-      ]);
+      // Aggregate data from all phase tables (use separate awaits to avoid deep type inference)
+      const r1 = await supabase.from('autonomous_campaigns').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_active', true);
+      const r2 = await supabase.from('agis_cascade_events').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('outcome_status', 'in_progress');
+      const r3 = await supabase.from('agis_cascade_rules').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_active', true);
       const campaignsCount = r1.count;
       const cascadesCount = r2.count;
       const frameworksCount = r3.count;
