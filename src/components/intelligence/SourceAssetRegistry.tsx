@@ -72,13 +72,13 @@ export function SourceAssetRegistry() {
       
        const { data, error } = await supabase
         .from("source_asset_registry")
-        .select("id, asset_type, original_id, content_hash, analysis_count, is_deleted, deleted_at, created_at, profile_id")
+        .select("id, asset_type, asset_id, content_hash, analysis_count, deleted_at, created_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(100);
       
       if (error) throw error;
-      return (data || []) as SourceAsset[];
+      return (data || []) as unknown as SourceAsset[];
     },
     enabled: !!user?.id,
   });

@@ -472,7 +472,7 @@ export class BulkUploadQueue {
     if (table === 'documents') {
        const { data, error } = await supabase
         .from('documents')
-        .insert({
+        .insert([{
           user_id: this.userId!,
           profile_id: this.profileId,
           title: item.filename,
@@ -480,7 +480,7 @@ export class BulkUploadQueue {
           file_url: urlData.publicUrl,
           storage_path: storagePath,
           file_size: item.fileSize,
-        })
+        }])
         .select('id')
         .single();
       

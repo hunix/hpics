@@ -90,7 +90,7 @@ export function CrossModalCorrelationViewer({ profileId }: CrossModalCorrelation
       const { data, error } = await query;
       
       if (error) throw error;
-      return (data || []) as CrossModalCorrelation[];
+      return (data || []) as unknown as CrossModalCorrelation[];
     },
     enabled: !!user?.id,
   });
