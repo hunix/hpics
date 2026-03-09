@@ -136,7 +136,7 @@ class SkeletonGaitEngine {
     // Step 7: Classify gait style
     const styleDescriptor = this.classifyGaitStyle(cycleFeatures);
 
-    const quality = this.assessQuality(frames, cycleFeatures);
+    const quality = Math.min(1, Math.max(0.1, frames.length / 60) * (1 - cycleFeatures.symmetryIndex));
 
     return {
       embedding,

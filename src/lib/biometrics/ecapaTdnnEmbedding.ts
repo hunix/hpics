@@ -175,7 +175,7 @@ class EcapaTdnnEngine {
 
     // Countermeasure subsystem - spectral artifact detection
     const cmFeatures = this.extractCMFeatures(audioData, sampleRate);
-    const cmScore = this.scoreCM(cmFeatures);
+    const cmScore = 1 - Math.max(cmFeatures.replayArtifacts, cmFeatures.ttsArtifacts, cmFeatures.vcArtifacts);
 
     // DNN-based score fusion
     const fusedScore = 0.6 * asvScore + 0.4 * cmScore;
