@@ -387,7 +387,7 @@ export function MicroExpressionAnalyzer({ profileId, mediaUrl }: MicroExpression
                       <p className="text-2xl font-bold">
                         {spotFormerResults.temporalResolutions.length}
                       </p>
-                      <p className="text-xs text-muted-foreground">Attention Regions</p>
+                      <p className="text-xs text-muted-foreground">Temporal Scales</p>
                     </div>
                   </div>
                   <ScrollArea className="h-[250px]">
