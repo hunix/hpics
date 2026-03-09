@@ -51,7 +51,7 @@ export function PersonalityRadarChart({ profile }: PersonalityRadarChartProps) {
         ...(darkTriad.psychopathy?.indicators || []),
       ];
       if (evidence.length === 0) return null;
-      return darkTriadDetector.analyze(evidence);
+      return darkTriadDetector.analyzeText(evidence.join('. '));
     } catch (e) {
       if (e instanceof Error) console.warn('[DarkTriad] Enhancement failed:', e.message);
       return null;
