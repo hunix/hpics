@@ -458,7 +458,7 @@ export function useBulkUploadSession() {
         throw new Error('Session has expired and cannot be resumed');
       }
 
-      const { data: items, error: itemsError } = await (supabase as any)
+      const { data: items, error: itemsError } = await supabase
         .from('bulk_upload_items')
         .select('*')
         .eq('session_id', sessionId)

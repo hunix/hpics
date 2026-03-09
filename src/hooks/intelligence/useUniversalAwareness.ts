@@ -71,7 +71,7 @@ export function useUniversalAwareness(profileId?: string) {
 
   const updateOmniscience = useMutation({
     mutationFn: async ({ id, omniscientIndex }: { id: string; omniscientIndex: number }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('universal_awareness')
         .update({ omniscient_index: omniscientIndex, updated_at: new Date().toISOString() })
         .eq('id', id)
