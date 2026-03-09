@@ -200,7 +200,7 @@ export function useBulkUploadSession() {
         sort_order: i,
       }));
 
-      const { data: dbItems } = await (supabase as any)
+      const { data: dbItems } = await supabase
         .from('bulk_upload_items')
         .insert(itemInserts)
         .select('id, sort_order');
