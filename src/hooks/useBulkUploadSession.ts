@@ -309,7 +309,7 @@ export function useBulkUploadSession() {
   const pause = useCallback(() => {
     queueRef.current?.pause();
     if (session?.id) {
-      (supabase as any)
+      supabase
         .from('bulk_upload_sessions')
         .update({ 
           status: 'paused',
