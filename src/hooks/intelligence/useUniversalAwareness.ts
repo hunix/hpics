@@ -52,7 +52,7 @@ export function useUniversalAwareness(profileId?: string) {
 
   const expandAwareness = useMutation({
     mutationFn: async (input: { awarenessType: string; dimensionalScope?: Record<string, unknown>; perceptionDepth?: number }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('universal_awareness')
         .insert({
           user_id: user!.id,
