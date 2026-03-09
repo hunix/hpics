@@ -140,7 +140,7 @@ const ANALYSIS_TYPE_ALIASES: Record<string, string[]> = {
   
   // v8.0 Phase 3 - Biometric & Network Sections
   pupillometry: ['pupillometry', 'pupillometry_analysis'],
-  thermalStress: ['thermal_stress', 'thermal_stress_detection'],
+  thermalStress: ['thermal_stress', 'thermal_stress_detection', 'thermal_stress_analysis'],
   attentionMultimodal: ['attention_multimodal', 'attention_multimodal_fusion'],
   keystrokeDynamics: ['keystroke_dynamics', 'keystroke_dynamics_analysis'],
   sheafNeural: ['sheaf_neural', 'sheaf_neural_influence'],

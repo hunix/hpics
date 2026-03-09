@@ -10,13 +10,28 @@ import type { Context } from 'https://deno.land/x/hono@v3.12.0/mod.ts';
 
 const app = createRouter('voice-router');
 
+// Analysis type normalization mapping
+const VALID_ANALYSIS_TYPES: Record<string, string> = {
+  'recording': 'voice_recording',
+  'analysis_runner': 'voice_analysis',
+  'batch': 'voice_batch',
+  'comprehensive': 'voice_comprehensive',
+  'deception': 'linguistic_deception',
+  'stress': 'linguistic_stress',
+  'stylometric': 'stylometric',
+  'fingerprinter': 'stylometric_fingerprint',
+  'audio_burst': 'audio_burst',
+  'multi_party_deception': 'multi_party_deception',
+  'multimodal_deception': 'multimodal_deception',
+};
+
 function createVoiceHandler(analysisType: string, prompt: string) {
   return withHandler(async (c: Context) => {
     const { userId, profileId, supabase, body } = getRouterContext(c);
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) return c.json({ error: 'AI not configured' }, 500);
 
-    const model = (body.model as string) || 'google/gemini-2.5-flash';
+    const model = (body.model as string) || 'google/gemini-3-flash-preview';
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
@@ -40,14 +55,17 @@ function createVoiceHandler(analysisType: string, prompt: string) {
     let analysis: Record<string, unknown>;
     try { const m = content.match(/\{[\s\S]*\}/); analysis = m ? JSON.parse(m[0]) : { raw: content }; } catch { analysis = { raw: content }; }
 
+    // Normalize analysis type
+    const normalizedType = VALID_ANALYSIS_TYPES[analysisType] || analysisType;
+
     if (profileId) {
       await supabase.from('ai_analyses').upsert({
-        user_id: userId, profile_id: profileId, analysis_type: analysisType,
+        user_id: userId, profile_id: profileId, analysis_type: normalizedType,
         result: analysis, generated_at: new Date().toISOString(),
       }, { onConflict: 'profile_id,analysis_type' });
     }
 
-    return c.json({ success: true, profileId, analysisType, analysis, timestamp: new Date().toISOString() });
+    return c.json({ success: true, profileId, analysisType: normalizedType, analysis, timestamp: new Date().toISOString() });
   });
 }
 

@@ -10,6 +10,35 @@ import type { Context } from 'https://deno.land/x/hono@v3.12.0/mod.ts';
 
 const app = createRouter('warfare-router');
 
+// Analysis type normalization mapping
+const VALID_ANALYSIS_TYPES: Record<string, string> = {
+  'cognitive': 'cognitive_warfare',
+  'cognitive_planner': 'cognitive_warfare_plan',
+  'cognitive_iw': 'cognitive_iw_detection',
+  'cognitive_effect': 'cognitive_effect',
+  'cognitive_defense': 'cognitive_defense',
+  'memetic': 'memetic_propagation',
+  'narrative': 'narrative_control',
+  'semantic': 'semantic_warfare',
+  'identity_destabilization': 'identity_destabilization',
+  'cult_tactics': 'cult_tactics',
+  'draco_deception': 'draco_deception',
+  'reflexive_control': 'reflexive_control',
+  'influence_campaign': 'influence_campaign',
+  'influence_orchestrator': 'influence_orchestration',
+  'influence_propagation': 'influence_propagation',
+  'computational_persuasion': 'computational_persuasion',
+  'counter_narrative': 'counter_narrative',
+  'counter_intelligence': 'counter_intelligence',
+  'subliminal': 'subliminal_messaging',
+  'mass_formation': 'mass_formation',
+  'memory_reconsolidation': 'memory_reconsolidation',
+  'memory_anchor': 'memory_anchor',
+  'premem_belief': 'premem_belief',
+  'proportional_response': 'proportional_response',
+  'reputation_defense': 'reputation_defense',
+};
+
 function createWarfareHandler(analysisType: string, prompt: string) {
   return withHandler(async (c: Context) => {
     const { userId, profileId, supabase, body } = getRouterContext(c);
@@ -20,7 +49,7 @@ function createWarfareHandler(analysisType: string, prompt: string) {
       ? await supabase.from('profiles').select('*').eq('id', profileId).single()
       : { data: null };
 
-    const model = (body.model as string) || 'google/gemini-2.5-flash';
+    const model = (body.model as string) || 'google/gemini-3-flash-preview';
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
@@ -47,14 +76,17 @@ function createWarfareHandler(analysisType: string, prompt: string) {
       analysis = m ? JSON.parse(m[0]) : { raw: content };
     } catch { analysis = { raw: content }; }
 
+    // Normalize analysis type
+    const normalizedType = VALID_ANALYSIS_TYPES[analysisType] || analysisType;
+
     if (profileId) {
       await supabase.from('ai_analyses').upsert({
-        user_id: userId, profile_id: profileId, analysis_type: analysisType,
+        user_id: userId, profile_id: profileId, analysis_type: normalizedType,
         result: analysis, generated_at: new Date().toISOString(),
       }, { onConflict: 'profile_id,analysis_type' });
     }
 
-    return c.json({ success: true, profileId, analysisType, analysis, timestamp: new Date().toISOString() });
+    return c.json({ success: true, profileId, analysisType: normalizedType, analysis, timestamp: new Date().toISOString() });
   });
 }
 

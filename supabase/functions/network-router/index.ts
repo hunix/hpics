@@ -10,13 +10,34 @@ import type { Context } from 'https://deno.land/x/hono@v3.12.0/mod.ts';
 
 const app = createRouter('network-router');
 
+// Analysis type normalization mapping
+const VALID_ANALYSIS_TYPES: Record<string, string> = {
+  'graph': 'network_graph',
+  'deep': 'network_deep',
+  'intelligence': 'network_intelligence',
+  'community': 'community_detection',
+  'power': 'power_network',
+  'exploitation': 'network_exploitation',
+  'resilience': 'network_resilience',
+  'brokerage': 'network_brokerage',
+  'cascade': 'network_cascade',
+  'influence_propagation': 'influence_propagation',
+  'social_graph': 'social_graph',
+  'shadow_networks': 'shadow_networks',
+  'shadow_analyzer': 'shadow_analysis',
+  'link_predictor': 'link_prediction',
+  'sheaf_influence': 'sheaf_influence',
+  'relationship_scores': 'relationship_scores',
+  'link_identities': 'identity_linking',
+};
+
 function createNetworkHandler(analysisType: string, prompt: string) {
   return withHandler(async (c: Context) => {
     const { userId, profileId, supabase, body } = getRouterContext(c);
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) return c.json({ error: 'AI not configured' }, 500);
 
-    const model = (body.model as string) || 'google/gemini-2.5-flash';
+    const model = (body.model as string) || 'google/gemini-3-flash-preview';
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
@@ -40,14 +61,17 @@ function createNetworkHandler(analysisType: string, prompt: string) {
     let analysis: Record<string, unknown>;
     try { const m = content.match(/\{[\s\S]*\}/); analysis = m ? JSON.parse(m[0]) : { raw: content }; } catch { analysis = { raw: content }; }
 
+    // Normalize analysis type
+    const normalizedType = VALID_ANALYSIS_TYPES[analysisType] || analysisType;
+
     if (profileId) {
       await supabase.from('ai_analyses').upsert({
-        user_id: userId, profile_id: profileId, analysis_type: analysisType,
+        user_id: userId, profile_id: profileId, analysis_type: normalizedType,
         result: analysis, generated_at: new Date().toISOString(),
       }, { onConflict: 'profile_id,analysis_type' });
     }
 
-    return c.json({ success: true, profileId, analysisType, analysis, timestamp: new Date().toISOString() });
+    return c.json({ success: true, profileId, analysisType: normalizedType, analysis, timestamp: new Date().toISOString() });
   });
 }
 

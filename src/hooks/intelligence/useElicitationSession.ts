@@ -41,6 +41,14 @@ export function useElicitationSession(profileId?: string) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
 
   // Fetch all sessions for a profile
   const { data: sessions, isLoading } = useQuery({

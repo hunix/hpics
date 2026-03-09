@@ -10,6 +10,58 @@ import type { Context } from 'https://deno.land/x/hono@v3.12.0/mod.ts';
 
 const app = createRouter('intelligence-router');
 
+// Analysis type normalization mapping
+const VALID_ANALYSIS_TYPES: Record<string, string> = {
+  'behavioral': 'behavioral_dna',
+  'psychological': 'personality',
+  'mice': 'mice_recruitment',
+  'dossier': 'dossier',
+  'intelligence_dossier': 'intelligence_dossier',
+  'executive_summary': 'executive_summary',
+  'media_aggregation': 'media_aggregation',
+  'voice_aggregation': 'voice_aggregation',
+  'contact_aggregation': 'contact_aggregation',
+  'social_aggregation': 'social_aggregation',
+  'bulk_aggregation': 'bulk_aggregation',
+  'deep_intelligence': 'deep_intelligence',
+  'session_runner': 'session_runner',
+  'mosaic_fusion': 'mosaic_fusion',
+  'cross_modal_synthesis': 'cross_modal_synthesis',
+  'cross_modal_synthesis_v2': 'cross_modal_synthesis_v2',
+  'cross_reference': 'cross_reference',
+  'cross_contact_correlation': 'cross_contact_correlation',
+  'cross_domain': 'cross_domain',
+  'deep_correlation': 'deep_correlation',
+  'cross_patterns': 'cross_patterns',
+  'cross_contact_patterns': 'cross_contact_patterns',
+  'anomaly_detection': 'anomaly_detection',
+  'communication_anomalies': 'communication_anomalies',
+  'interest_detection': 'interest_detection',
+  'life_milestones': 'life_milestones',
+  'relationship_lifecycle': 'relationship_lifecycle',
+  'influence_opportunities': 'influence_opportunities',
+  'proactive_insights': 'proactive_insights',
+  'insight_prioritization': 'insight_prioritization',
+  'save_insight': 'save_insight',
+  'comprehensive_scan': 'comprehensive_scan',
+  'analysis_orchestration': 'analysis_orchestration',
+  'action_intelligence': 'action_intelligence',
+  'action_recommendation': 'action_recommendation',
+  'ai_agent': 'ai_agent',
+  'ai_agent_v2': 'ai_agent_v2',
+  'news_correlation': 'news_correlation',
+  'relationship_inference': 'relationship_inference',
+  'social_context': 'social_context',
+  'followup_suggestions': 'followup_suggestions',
+  'gift_suggestions': 'gift_suggestions',
+  'introduction_suggestions': 'introduction_suggestions',
+  'meeting_time': 'meeting_time',
+  'missing_data': 'missing_data',
+  'network_growth': 'network_growth',
+  'outreach_timing': 'outreach_timing',
+  'group_suggestions': 'group_suggestions',
+};
+
 function createIntelHandler(analysisType: string, promptTemplate: string) {
   return withHandler(async (c: Context) => {
     const { userId, profileId, supabase, body } = getRouterContext(c);
@@ -20,7 +72,7 @@ function createIntelHandler(analysisType: string, promptTemplate: string) {
       ? await supabase.from('profiles').select('*').eq('id', profileId).single()
       : { data: null };
 
-    const model = (body.model as string) || 'google/gemini-2.5-flash';
+    const model = (body.model as string) || 'google/gemini-3-flash-preview';
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -48,14 +100,17 @@ function createIntelHandler(analysisType: string, promptTemplate: string) {
       analysis = m ? JSON.parse(m[0]) : { raw: content };
     } catch { analysis = { raw: content }; }
 
+    // Normalize analysis type
+    const normalizedType = VALID_ANALYSIS_TYPES[analysisType] || analysisType;
+
     if (profileId) {
       await supabase.from('ai_analyses').upsert({
-        user_id: userId, profile_id: profileId, analysis_type: analysisType,
+        user_id: userId, profile_id: profileId, analysis_type: normalizedType,
         result: analysis, generated_at: new Date().toISOString(),
       }, { onConflict: 'profile_id,analysis_type' });
     }
 
-    return c.json({ success: true, profileId, analysisType, analysis, timestamp: new Date().toISOString() });
+    return c.json({ success: true, profileId, analysisType: normalizedType, analysis, timestamp: new Date().toISOString() });
   });
 }
 

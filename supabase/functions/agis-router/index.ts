@@ -10,13 +10,41 @@ import type { Context } from 'https://deno.land/x/hono@v3.12.0/mod.ts';
 
 const app = createRouter('agis-router');
 
+// Analysis type normalization mapping
+const VALID_ANALYSIS_TYPES: Record<string, string> = {
+  'api': 'agis_api',
+  'cascade': 'agis_cascade',
+  'genesis': 'genesis',
+  'omniscient': 'omniscient',
+  'cosmic': 'cosmic_supremacy',
+  'quantum_cognition': 'quantum_cognition',
+  'quantum_decision': 'quantum_decision',
+  'morphic_resonance': 'morphic_resonance',
+  'omega_point': 'omega_point',
+  'akashic': 'akashic_query',
+  'autonomous_orchestrator': 'autonomous_orchestration',
+  'campaign_executor': 'campaign_execution',
+  'campaign_evolution': 'campaign_evolution',
+  'dependency': 'dependency_orchestration',
+  'reality_consensus': 'reality_consensus',
+  'collective_unconscious': 'collective_unconscious',
+  'egregore': 'egregore',
+  'psychic_resonance': 'psychic_resonance',
+  'memory_crystallization': 'memory_crystallization',
+  'sentient_intent': 'sentient_intent',
+  'geospatial_supremacy': 'geospatial_supremacy',
+  'hypergame_solver': 'hypergame_solver',
+  'hypergame_theory': 'hypergame_theory',
+  'iio_attribution': 'iio_attribution',
+};
+
 function createAGISHandler(analysisType: string, prompt: string) {
   return withHandler(async (c: Context) => {
     const { userId, profileId, supabase, body } = getRouterContext(c);
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) return c.json({ error: 'AI not configured' }, 500);
 
-    const model = (body.model as string) || 'google/gemini-2.5-flash';
+    const model = (body.model as string) || 'google/gemini-3-flash-preview';
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
@@ -40,14 +68,17 @@ function createAGISHandler(analysisType: string, prompt: string) {
     let analysis: Record<string, unknown>;
     try { const m = content.match(/\{[\s\S]*\}/); analysis = m ? JSON.parse(m[0]) : { raw: content }; } catch { analysis = { raw: content }; }
 
+    // Normalize analysis type
+    const normalizedType = VALID_ANALYSIS_TYPES[analysisType] || analysisType;
+
     if (profileId) {
       await supabase.from('ai_analyses').upsert({
-        user_id: userId, profile_id: profileId, analysis_type: analysisType,
+        user_id: userId, profile_id: profileId, analysis_type: normalizedType,
         result: analysis, generated_at: new Date().toISOString(),
       }, { onConflict: 'profile_id,analysis_type' });
     }
 
-    return c.json({ success: true, profileId, analysisType, analysis, timestamp: new Date().toISOString() });
+    return c.json({ success: true, profileId, analysisType: normalizedType, analysis, timestamp: new Date().toISOString() });
   });
 }
 
