@@ -189,13 +189,13 @@ export function PersonalityRadarChart({ profile }: PersonalityRadarChartProps) {
             )}
             <Badge 
               variant={
-                (dtAnalysis?.overallThreatLevel || darkTriad?.overall_risk_level) === 'low' ? 'outline' :
-                (dtAnalysis?.overallThreatLevel || darkTriad?.overall_risk_level) === 'moderate' ? 'secondary' :
+                (dtAnalysis?.riskLevel || darkTriad?.overall_risk_level) === 'low' ? 'outline' :
+                (dtAnalysis?.riskLevel || darkTriad?.overall_risk_level) === 'moderate' ? 'secondary' :
                 'destructive'
               }
               className="text-xs"
             >
-              {dtAnalysis?.overallThreatLevel || darkTriad?.overall_risk_level || 'unknown'} risk
+              {dtAnalysis?.riskLevel || darkTriad?.overall_risk_level || 'unknown'} risk
             </Badge>
           </div>
           <div className="space-y-2 p-3 bg-muted/30 rounded-lg">
