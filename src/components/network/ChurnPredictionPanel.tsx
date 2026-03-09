@@ -233,7 +233,7 @@ export function ChurnPredictionPanel() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-medium">{prediction.name}</span>
-                        <Badge variant="outline" className={getRiskColor(prediction.ccpNet.riskLevel)}>
+                        <Badge variant="outline" className={getRiskColor(prediction.ccpNet.churnProbability > 0.7 ? 'critical' : prediction.ccpNet.churnProbability > 0.5 ? 'high' : prediction.ccpNet.churnProbability > 0.3 ? 'medium' : 'low')}>
                           CCP-Net: {(prediction.ccpNet.churnProbability * 100).toFixed(0)}%
                         </Badge>
                       </div>
