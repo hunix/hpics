@@ -9,7 +9,10 @@ export function useCosmicOmnipotence(profileId?: string) {
   const { data: awareness, isLoading: awarenessLoading } = useQuery({
     queryKey: ['cosmic-awareness', profileId],
     queryFn: async () => {
-      let query = (supabase as any).from('cosmic_awareness').select('*').order('created_at', { ascending: false });
+      let query = supabase
+        .from('cosmic_awareness')
+        .select('*')
+        .order('created_at', { ascending: false });
       if (profileId) query = query.eq('profile_id', profileId);
       const { data, error } = await query;
       if (error) throw error;
@@ -21,7 +24,10 @@ export function useCosmicOmnipotence(profileId?: string) {
   const { data: control, isLoading: controlLoading } = useQuery({
     queryKey: ['omnipotent-control'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from('omnipotent_control').select('*').order('created_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('omnipotent_control')
+        .select('*')
+        .order('created_at', { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -30,12 +36,16 @@ export function useCosmicOmnipotence(profileId?: string) {
 
   const expandAwareness = useMutation({
     mutationFn: async (input: { awareness_scope: string; cosmic_perception_level?: number }) => {
-      const { data, error } = await (supabase as any).from('cosmic_awareness').insert({
-        user_id: user!.id,
-        awareness_scope: input.awareness_scope,
-        cosmic_perception_level: input.cosmic_perception_level || 1,
-        profile_id: profileId,
-      } as never).select().single();
+      const { data, error } = await supabase
+        .from('cosmic_awareness')
+        .insert({
+          user_id: user!.id,
+          awareness_scope: input.awareness_scope,
+          cosmic_perception_level: input.cosmic_perception_level || 1,
+          profile_id: profileId,
+        })
+        .select()
+        .single();
       if (error) throw error;
       return data;
     },
@@ -44,11 +54,15 @@ export function useCosmicOmnipotence(profileId?: string) {
 
   const establishControl = useMutation({
     mutationFn: async (input: { control_domain: string; power_magnitude?: number }) => {
-      const { data, error } = await (supabase as any).from('omnipotent_control').insert({
-        user_id: user!.id,
-        control_domain: input.control_domain,
-        power_magnitude: input.power_magnitude || 0,
-      } as never).select().single();
+      const { data, error } = await supabase
+        .from('omnipotent_control')
+        .insert({
+          user_id: user!.id,
+          control_domain: input.control_domain,
+          power_magnitude: input.power_magnitude || 0,
+        })
+        .select()
+        .single();
       if (error) throw error;
       return data;
     },
