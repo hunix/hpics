@@ -443,7 +443,7 @@ export function useBulkUploadSession() {
 
     try {
       // Fetch session and items
-      const { data: sessionData, error: sessionError } = await (supabase as any)
+      const { data: sessionData, error: sessionError } = await supabase
         .from('bulk_upload_sessions')
         .select('*, profiles(first_name, last_name)')
         .eq('id', sessionId)
