@@ -130,7 +130,7 @@ export function MicroExpressionAnalyzer({ profileId, mediaUrl }: MicroExpression
       </div>
 
       {/* SpotFormer Deception Alert */}
-      {spotFormerResults && spotFormerResults.microExpressions.length > 0 && (
+      {spotFormerResults && spotFormerResults.spots.length > 0 && (
         <Card className="border-cyan-500/50 bg-cyan-500/5">
           <CardContent className="py-4">
             <div className="flex items-center gap-3 mb-3">
