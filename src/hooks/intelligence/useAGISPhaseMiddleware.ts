@@ -4,6 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getPhaseStatus, getPhaseName } from '@/lib/agis/phaseConfig';
+import type {
+  AGISAnalyticsInsert,
+  AGISGlobalStateUpdate,
+  AGISPhaseSynergyInsert,
+  AGISPhaseSynergyUpdate,
+  AGISCascadeEventInsert,
+  AGISCascadeRuleUpdate,
+} from '@/types/database-helpers';
 
 interface PhaseOperationParams {
   phase: number;
@@ -36,21 +44,22 @@ export function useAGISPhaseMiddleware() {
     mutationFn: async ({ phase, operationType, success, duration, metadata }: PhaseOperationParams) => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      // Record to agis_analytics
+      const insertData: AGISAnalyticsInsert = {
+        user_id: user.id,
+        phase,
+        metric_type: operationType,
+        metric_value: success ? 1 : 0,
+        metric_metadata: {
+          success,
+          duration_ms: duration,
+          recorded_at: new Date().toISOString(),
+          ...metadata,
+        },
+      };
+
       const { error: analyticsError } = await supabase
         .from('agis_analytics')
-        .insert({
-          user_id: user.id,
-          phase,
-          metric_type: operationType,
-          metric_value: success ? 1 : 0,
-          metric_metadata: {
-            success,
-            duration_ms: duration,
-            recorded_at: new Date().toISOString(),
-            ...metadata,
-          },
-        } as never);
+        .insert(insertData);
 
       if (analyticsError) throw analyticsError;
 
@@ -68,7 +77,6 @@ export function useAGISPhaseMiddleware() {
 
   // Update phase health in global state
   const updatePhaseHealth = async (userId: string, phase: number, healthDelta: number) => {
-    // Get current global state
     const { data: currentState } = await supabase
       .from('agis_global_state')
       .select('phase_health_scores')
@@ -77,7 +85,7 @@ export function useAGISPhaseMiddleware() {
 
     if (!currentState) return;
 
-    const healthScores = (currentState.phase_health_scores as Record<string, { health: number; activeOperations: number }>) || {};
+    const healthScores = (currentState.phase_health_scores as unknown as Record<string, { health: number; activeOperations: number }>) || {};
     const phaseKey = phase.toString();
     const currentHealth = healthScores[phaseKey]?.health ?? 100;
     const newHealth = Math.max(0, Math.min(100, currentHealth + healthDelta));
@@ -96,12 +104,14 @@ export function useAGISPhaseMiddleware() {
       },
     };
 
+    const updateData: AGISGlobalStateUpdate = {
+      phase_health_scores: updatedScores,
+      updated_at: new Date().toISOString(),
+    };
+
     await supabase
       .from('agis_global_state')
-      .update({
-        phase_health_scores: updatedScores,
-        updated_at: new Date().toISOString(),
-      } as never)
+      .update(updateData)
       .eq('user_id', userId);
   };
 
@@ -110,11 +120,9 @@ export function useAGISPhaseMiddleware() {
     mutationFn: async ({ sourcePhase, targetPhase, interactionType, success }: CrossPhaseInteractionParams) => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      // Ensure phase_a < phase_b for consistency
       const phaseA = Math.min(sourcePhase, targetPhase);
       const phaseB = Math.max(sourcePhase, targetPhase);
 
-      // Check if synergy record exists
       const { data: existing } = await supabase
         .from('agis_phase_synergies')
         .select('*')
@@ -124,38 +132,40 @@ export function useAGISPhaseMiddleware() {
         .maybeSingle();
 
       if (existing) {
-        // Update existing synergy
         const newInteractionCount = (existing.interaction_count ?? 0) + 1;
-        const newSuccessfulCascades = success 
-          ? (existing.successful_cascades ?? 0) + 1 
+        const newSuccessfulCascades = success
+          ? (existing.successful_cascades ?? 0) + 1
           : (existing.successful_cascades ?? 0);
         const newSynergyScore = (newSuccessfulCascades / newInteractionCount) * 100;
 
+        const updateData: AGISPhaseSynergyUpdate = {
+          interaction_count: newInteractionCount,
+          successful_cascades: newSuccessfulCascades,
+          synergy_score: newSynergyScore,
+          synergy_type: interactionType,
+          last_interaction_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
         await supabase
           .from('agis_phase_synergies')
-          .update({
-            interaction_count: newInteractionCount,
-            successful_cascades: newSuccessfulCascades,
-            synergy_score: newSynergyScore,
-            synergy_type: interactionType,
-            last_interaction_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          } as never)
+          .update(updateData)
           .eq('id', existing.id);
       } else {
-        // Create new synergy record
+        const insertData: AGISPhaseSynergyInsert = {
+          user_id: user.id,
+          phase_a: phaseA,
+          phase_b: phaseB,
+          synergy_type: interactionType,
+          synergy_score: success ? 100 : 0,
+          interaction_count: 1,
+          successful_cascades: success ? 1 : 0,
+          last_interaction_at: new Date().toISOString(),
+        };
+
         await supabase
           .from('agis_phase_synergies')
-          .insert({
-            user_id: user.id,
-            phase_a: phaseA,
-            phase_b: phaseB,
-            synergy_type: interactionType,
-            synergy_score: success ? 100 : 0,
-            interaction_count: 1,
-            successful_cascades: success ? 1 : 0,
-            last_interaction_at: new Date().toISOString(),
-          } as never);
+          .insert(insertData);
       }
 
       return { sourcePhase, targetPhase, success };
@@ -170,19 +180,20 @@ export function useAGISPhaseMiddleware() {
     mutationFn: async ({ triggerPhase, eventType, sourceId, affectedPhases }: CascadeTriggerParams) => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      // Create cascade event
+      const insertData: AGISCascadeEventInsert = {
+        user_id: user.id,
+        trigger_phase: triggerPhase,
+        trigger_event_type: eventType,
+        trigger_source_id: sourceId,
+        affected_phases: affectedPhases ?? [],
+        started_at: new Date().toISOString(),
+        outcome_status: 'in_progress',
+        cascade_path: [{ phase: triggerPhase, timestamp: new Date().toISOString() }],
+      };
+
       const { data: cascadeEvent, error } = await supabase
         .from('agis_cascade_events')
-        .insert({
-          user_id: user.id,
-          trigger_phase: triggerPhase,
-          trigger_event_type: eventType,
-          trigger_source_id: sourceId,
-          affected_phases: affectedPhases ?? [],
-          started_at: new Date().toISOString(),
-          outcome_status: 'in_progress',
-          cascade_path: [{ phase: triggerPhase, timestamp: new Date().toISOString() }],
-        } as never)
+        .insert(insertData)
         .select()
         .single();
 
@@ -197,22 +208,21 @@ export function useAGISPhaseMiddleware() {
         .eq('is_active', true);
 
       if (rules && rules.length > 0) {
-        // Queue cascade actions (in production, this would trigger edge function)
         for (const rule of rules) {
-          // Check cooldown
           if (rule.last_triggered_at) {
             const lastTriggered = new Date(rule.last_triggered_at);
             const cooldownMs = (rule.cooldown_minutes ?? 5) * 60 * 1000;
             if (Date.now() - lastTriggered.getTime() < cooldownMs) continue;
           }
 
-          // Update rule trigger count
+          const ruleUpdate: AGISCascadeRuleUpdate = {
+            trigger_count: (rule.trigger_count ?? 0) + 1,
+            last_triggered_at: new Date().toISOString(),
+          };
+
           await supabase
             .from('agis_cascade_rules')
-            .update({
-              trigger_count: (rule.trigger_count ?? 0) + 1,
-              last_triggered_at: new Date().toISOString(),
-            } as never)
+            .update(ruleUpdate)
             .eq('id', rule.id);
         }
       }

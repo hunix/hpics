@@ -359,14 +359,20 @@ export type AddictionProtocol = Tables['addiction_protocols']['Row'];
 export type AddictionProtocolInsert = Tables['addiction_protocols']['Insert'];
 
 // ============================================
-// AGIS System types (v3.7.0)
+// AGIS System types (v3.7.0 + v3.8.0 Insert/Update)
 // ============================================
 export type AGISGlobalState = Tables['agis_global_state']['Row'];
+export type AGISGlobalStateUpdate = Tables['agis_global_state']['Update'];
 export type AGISCascadeEvent = Tables['agis_cascade_events']['Row'];
+export type AGISCascadeEventInsert = Tables['agis_cascade_events']['Insert'];
 export type AGISAnalytics = Tables['agis_analytics']['Row'];
+export type AGISAnalyticsInsert = Tables['agis_analytics']['Insert'];
 export type AGISObjectiveTracking = Tables['agis_objective_tracking']['Row'];
 export type AGISPhaseSynergy = Tables['agis_phase_synergies']['Row'];
+export type AGISPhaseSynergyInsert = Tables['agis_phase_synergies']['Insert'];
+export type AGISPhaseSynergyUpdate = Tables['agis_phase_synergies']['Update'];
 export type AGISCascadeRule = Tables['agis_cascade_rules']['Row'];
+export type AGISCascadeRuleUpdate = Tables['agis_cascade_rules']['Update'];
 
 // ============================================
 // New Warfare Enhancement types (v5.0)

@@ -1,47 +1,183 @@
 
-# Codebase Hardening & Hallucination-Elimination Plan
 
-Based on your preferences, we will execute a **Full Codebase Sweep** with **Strict Lint Gates**, **Standardized Invocations**, and **Auto-generated Documentation**. 
+# HPICS-HoC Integration Layer: Bridge Plan
 
-Here is the comprehensive plan to eliminate AI hallucinations, fix technical debt, and ensure enterprise-grade reliability across the entire platform.
+## Overview
 
+This plan creates a two-part integration between the HPICS Intelligence Platform and the HoC Republic (OpenClaw-based agentic AI civilization):
+
+1. **HPICS Side (built here)**: A new `hoc-gateway` edge function that exposes all 400+ HPICS capabilities as a single authenticated REST API designed for tool-calling agents.
+
+2. **HoC Side (documentation + skill template)**: A complete OpenClaw skill (`hpics-intelligence`) and documentation you'll place into your HoC workspace so agents can call HPICS tools natively.
+
+## Architecture
+
+```text
+HoC Agent (OpenClaw)                         HPICS Platform (Lovable Cloud)
++---------------------------+                +------------------------------------+
+|  OpenClaw Gateway         |                |  Supabase Edge Functions           |
+|  +---------------------+ |   HTTPS/JSON   |  +------------------------------+ |
+|  | hpics-intelligence   |----(Bearer)----->|  | hoc-gateway                  | |
+|  | skill (SKILL.md)     | |                |  |  - API key validation        | |
+|  +---------------------+ |                |  |  - Route to domain routers   | |
+|  | exec: curl/fetch     | |                |  |  - Rate limiting             | |
+|  +---------------------+ |                |  |  - Response normalization    | |
++---------------------------+                |  +------------------------------+ |
+                                             |            |                      |
+                                             |    +-------v-------+              |
+                                             |    | Domain Routers |             |
+                                             |    | (15 Hono apps) |             |
+                                             |    +---------------+              |
+                                             +------------------------------------+
+```
+
+## What Gets Built
+
+### Part 1: `hoc-gateway` Edge Function (HPICS Side)
+
+A single edge function that acts as the external API gateway for HoC agents. It:
+
+- Authenticates via a shared API key (stored as `HOC_API_KEY` secret)
+- Accepts a uniform JSON payload: `{ "tool": "<function-name>", "params": { ... } }`
+- Routes internally to the correct domain router using the existing `ROUTE_MAP`
+- Supports `POST /hoc-gateway` for tool execution and `GET /hoc-gateway?action=list-tools` for tool discovery
+- Rate limits per-key (60 requests/minute default)
+- Returns normalized responses: `{ "success": boolean, "data": ..., "error": ..., "meta": { "duration_ms": ..., "router": ... } }`
+
+Endpoints:
+- `POST /hoc-gateway` with `{ "tool": "mice-recruitment-analyzer", "params": { "profileId": "...", "userId": "..." } }` -- executes the tool
+- `POST /hoc-gateway` with `{ "action": "list-tools" }` -- returns full tool catalog with categories
+- `POST /hoc-gateway` with `{ "action": "health" }` -- returns gateway and router health
+- `POST /hoc-gateway` with `{ "action": "list-categories" }` -- returns available categories
+
+### Part 2: Documentation File (HPICS Side)
+
+A comprehensive `docs/HOC_INTEGRATION_GUIDE.md` covering:
+
+- How to configure the `HOC_API_KEY` secret
+- How to install the skill in HoC
+- Complete tool catalog (all 400+ tools organized by domain router)
+- Request/response formats with examples
+- Rate limits and error handling
+- How to extend, maintain, and debug
+- How to build custom HoC-side wrappers
+
+### Part 3: OpenClaw Skill Template (HPICS Side, for copy to HoC)
+
+A `docs/hoc-skill-template/SKILL.md` file in AgentSkills format that:
+
+- Declares the `hpics-intelligence` skill
+- Requires `HPICS_API_KEY` and `HPICS_BASE_URL` environment variables
+- Teaches the HoC agent how to use `web_fetch` or `exec` (curl) to call the gateway
+- Lists all available tool categories and key tools
+- Includes example invocations for common workflows
+
+## Technical Details
+
+### `hoc-gateway` Edge Function Implementation
+
+```text
+supabase/functions/hoc-gateway/index.ts
+
+Flow:
+1. OPTIONS -> CORS response
+2. Parse body -> validate API key from Authorization header
+3. If action=list-tools -> return ROUTE_MAP as categorized tool list
+4. If action=health -> fan-out health checks to routers
+5. If tool=<name> -> look up in ROUTE_MAP -> invoke domain router
+6. Return normalized { success, data, error, meta }
+```
+
+Key design decisions:
+- Uses the `ROUTE_MAP` from `edgeFunctionRouter.ts` (rebuilt server-side as a const map) so tool names stay in sync
+- API key auth (not JWT) since HoC agents are external systems, not platform users
+- The `HOC_API_KEY` secret will be requested from the user
+- UserId is passed in params (trusted since this is service-to-service with API key)
+- Timeout: 120s default, configurable per-call via `params.timeout_ms`
+
+### OpenClaw Skill Format
+
+```yaml
 ---
-
-## 1. Auto-Generated Schema Documentation (Single Source of Truth)
-To completely prevent the AI (and developers) from hallucinating database columns (e.g., `company` instead of `organization`), we will automate the documentation generation.
-- **Script Creation**: Build a Node.js/Vite script (`scripts/generate-schema-docs.ts`) that directly parses `src/integrations/supabase/types.ts` and outputs a pristine, authoritative Markdown document.
-- **Continuous Sync**: This ensures that `docs/SCHEMA_MAP.md` and `docs/DATABASE_SCHEMA.md` are dynamically generated, meaning they can never drift out of sync with the actual live database schema. 
-- **Legacy Cleanup**: Mark the manually written versions as deprecated and point all AI prompts to the auto-generated file.
-
-## 2. Strict Lint Gates (Compile-Time Enforcement)
-We will update `eslint.config.js` to rigidly enforce architectural constraints using `@typescript-eslint/eslint-plugin` and `no-restricted-syntax`/`no-restricted-imports`:
-- **Block Legacy Types Import**: Forbid `import type ... from '@/integrations/supabase/types'` entirely, enforcing `@/types/database-helpers` to drastically improve IDE performance.
-- **Block Direct Function Calls**: Forbid `supabase.functions.invoke(...)`. All calls must use `invokeFunction(...)` from `@/lib/api`.
-- **Block Unsafe Casts**: Warn/Error on the `(supabase as any)` pattern, enforcing proper typing.
-- **Exception Whitelists**: Only the low-level adapter files (`invokeProxy.ts`, `database-helpers.ts`) will be permitted to bypass these rules via inline `eslint-disable`.
-
-## 3. Full Codebase Invocation Standardization
-With the proxy installed, leaving raw `invoke` calls is brittle and bypasses the type-safe routing adapter.
-- **Global Find & Replace**: Migrate all ~1,915 instances of `supabase.functions.invoke('function-name')` across 244 files to use the standardized `invokeFunction('function-name')` adapter.
-- **Auth Preservation**: We will safely handle the exceptions (such as service-role calls or calls with custom authorization headers) by keeping them on `supabase.functions.invoke`, properly documented.
-
-## 4. Total Schema Normalization (The `company` vs `organization` bug)
-The database uses `organization`, but legacy code heavily references `company`, causing silent data loss during imports and AI processing.
-- **Data Capture & Import**: Update `BulkUploadDialog`, `ContactImport.tsx`, and `LinkedInCsvParser` to map data strictly to `organization`.
-- **OSINT & Intelligence Tools**: Update `deepOsint.ts`, `actionIntelligence.ts`, and background scrapers to use `profileData.organization`.
-- **UI Components**: Update all components (e.g., `CaptureCard`, grids, detail pages) to render and save `organization`.
-
-## 5. Memory Leak & Race Condition Remediation
-We identified hundreds of instances of potential memory leaks across timers, subscriptions, and event listeners. We will implement structural fixes:
-- **Realtime Channels**: Audit all 588 `.subscribe()` instances. Ensure that `supabase.removeChannel(channel)` is correctly invoked in the exact `useEffect` cleanup block where the subscription was created.
-- **Intervals & Timeouts**: Audit all 365 `setInterval` uses (such as in `AdaptiveVoiceRecorder`, `SystemHealthMonitor`). We will strictly enforce the `timerRef.current = setInterval(...)` pattern with a rigorous `clearInterval(timerRef.current)` on component unmount.
-- **DOM Event Listeners**: Ensure all 301 `window.addEventListener` / `document.addEventListener` calls are cleanly matched with `removeEventListener` using stable handler references.
-
-## 6. Type Safety & `any` Elimination
-- We discovered over 500 instances of `(supabase as any).from(...)` (e.g., in `SupabaseDigitalTwinRepository.ts` and `AnomalyDetectionPanel`).
-- **Fix**: We will inject the correct generated table types into `database-helpers.ts` (Phase 5/6 tables) so the Supabase client can be used with perfect type safety, eliminating the need for `any` casting and preventing future query hallucinations.
-
+name: hpics-intelligence
+description: Access the HPICS Intelligence Platform for behavioral analysis, biometric processing, network intelligence, warfare simulation, predictions, and 400+ specialized AI engines.
+metadata:
+  {
+    "openclaw": {
+      "requires": { "env": ["HPICS_API_KEY", "HPICS_BASE_URL"] },
+      "primaryEnv": "HPICS_API_KEY"
+    }
+  }
 ---
+```
 
-**Next Steps**: 
-Once approved, we will switch to execution mode and apply these changes systematically across the codebase, prioritizing the auto-doc generation and strict lint rules first, followed by the mass refactoring.
+The skill body teaches the agent to use `web_fetch` with:
+```text
+POST ${HPICS_BASE_URL}/functions/v1/hoc-gateway
+Authorization: Bearer ${HPICS_API_KEY}
+Content-Type: application/json
+
+{ "tool": "<tool-name>", "params": { ... } }
+```
+
+### Tool Catalog Structure (in list-tools response)
+
+```json
+{
+  "categories": {
+    "analysis": { 
+      "description": "50+ behavioral, psychological, and pattern analysis engines",
+      "tools": ["mice-recruitment-analyzer", "behavioral-dna-sequencer", ...] 
+    },
+    "intelligence": { "description": "...", "tools": [...] },
+    "prediction": { ... },
+    "warfare": { ... },
+    "biometric": { ... },
+    "network": { ... },
+    "enrichment": { ... },
+    "fusion": { ... },
+    "agis": { ... },
+    "utility": { ... },
+    "hardware": { ... },
+    "voice": { ... },
+    "document": { ... },
+    "security": { ... },
+    "media": { ... }
+  }
+}
+```
+
+### Security Model
+
+- API key rotation: The `HOC_API_KEY` can be rotated by updating the secret
+- Rate limiting: 60 req/min per API key (tracked in-memory per edge function instance)
+- No user JWT required -- the gateway uses the service role key internally
+- UserId in params is trusted (service-to-service pattern)
+- All requests are logged to `audit_logs` table with source='hoc-gateway'
+
+### Files Created
+
+| File | Purpose |
+|------|---------|
+| `supabase/functions/hoc-gateway/index.ts` | Gateway edge function |
+| `docs/HOC_INTEGRATION_GUIDE.md` | Complete integration documentation |
+| `docs/hoc-skill-template/SKILL.md` | OpenClaw skill file (copy to HoC) |
+
+### Config Updates
+
+| File | Change |
+|------|--------|
+| `supabase/config.toml` | NOT edited (auto-managed) |
+
+### Secret Required
+
+- `HOC_API_KEY`: A shared secret for HoC-to-HPICS authentication (will be requested from user)
+
+## Implementation Order
+
+1. Create `supabase/functions/hoc-gateway/index.ts` with the full gateway logic
+2. Create `docs/hoc-skill-template/SKILL.md` with the OpenClaw skill template  
+3. Create `docs/HOC_INTEGRATION_GUIDE.md` with comprehensive documentation
+4. Request the `HOC_API_KEY` secret from the user
+5. Deploy and test the gateway
+
