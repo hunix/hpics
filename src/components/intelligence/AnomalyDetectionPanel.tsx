@@ -79,9 +79,9 @@ export function AnomalyDetectionPanel() {
 
   const updateAnomalyStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase
+       const { error } = await supabase
         .from('behavioral_anomalies')
-        .update({ status, updated_at: new Date().toISOString() })
+        .update({ is_resolved: status === 'resolved' })
         .eq('id', id);
       if (error) throw error;
     },

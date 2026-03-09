@@ -96,8 +96,8 @@ export function NetworkGraphMLPanel() {
       // Fetch group memberships
       const { data: memberships } = await supabase
         .from('contact_group_members')
-        .select('group_id, profile_id')
-        .eq('user_id', user!.id);
+        .select('group_id, profile_id') as { data: any };
+
 
       // Fetch network metrics if available
       // Network metrics table doesn't exist - derive from relationships
