@@ -385,7 +385,7 @@ export function MicroExpressionAnalyzer({ profileId, mediaUrl }: MicroExpression
                     </div>
                     <div className="p-3 bg-muted/50 rounded-lg text-center">
                       <p className="text-2xl font-bold">
-                        {spotFormerResults.attentionMap.length}
+                        {spotFormerResults.temporalResolutions.length}
                       </p>
                       <p className="text-xs text-muted-foreground">Attention Regions</p>
                     </div>
