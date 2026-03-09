@@ -23,26 +23,26 @@ export function useMetaDimensionalSynthesis(profileId?: string) {
   const { data: synthesis, isLoading } = useQuery({
     queryKey: ['meta-dimensional-synthesis', profileId],
     queryFn: async () => {
-      let query = (supabase as any)
+      let query = supabase
         .from('meta_dimensional_synthesis')
         .select('*')
         .order('created_at', { ascending: false });
-      
+
       if (profileId) query = query.eq('profile_id', profileId);
-      
+
       const { data, error } = await query;
       if (error) throw error;
-      
-      return (data || []).map((row: any): MetaDimensionalSynthesis => ({
+
+      return (data || []).map((row): MetaDimensionalSynthesis => ({
         id: row.id,
         userId: row.user_id,
-        profileId: row.profile_id,
-        synthesisType: row.synthesis_type,
-        dimensionalLayers: row.dimensional_layers || 1,
+        profileId: row.profile_id ?? undefined,
+        synthesisType: row.synthesis_type ?? '',
+        dimensionalLayers: row.dimensional_layers ?? 1,
         synthesisCoherence: Number(row.synthesis_coherence) || 0,
-        crossDimensionalMap: row.cross_dimensional_map || {},
-        synthesisOutcomes: row.synthesis_outcomes || {},
-        temporalBinding: row.temporal_binding || {},
+        crossDimensionalMap: (row.cross_dimensional_map as Record<string, unknown>) ?? {},
+        synthesisOutcomes: (row.synthesis_outcomes as Record<string, unknown>) ?? {},
+        temporalBinding: (row.temporal_binding as Record<string, unknown>) ?? {},
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       }));
@@ -52,7 +52,7 @@ export function useMetaDimensionalSynthesis(profileId?: string) {
 
   const createSynthesis = useMutation({
     mutationFn: async (input: { synthesisType: string; dimensionalLayers?: number }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('meta_dimensional_synthesis')
         .insert({
           user_id: user!.id,
@@ -70,7 +70,7 @@ export function useMetaDimensionalSynthesis(profileId?: string) {
 
   const updateCoherence = useMutation({
     mutationFn: async ({ id, coherence }: { id: string; coherence: number }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('meta_dimensional_synthesis')
         .update({ synthesis_coherence: coherence, updated_at: new Date().toISOString() })
         .eq('id', id)

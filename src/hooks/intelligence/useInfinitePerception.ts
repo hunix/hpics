@@ -22,25 +22,25 @@ export function useInfinitePerception(profileId?: string) {
   const { data: perceptions, isLoading } = useQuery({
     queryKey: ['infinite-perception', profileId],
     queryFn: async () => {
-      let query = (supabase as any)
+      let query = supabase
         .from('infinite_perception')
         .select('*')
         .order('created_at', { ascending: false });
-      
+
       if (profileId) query = query.eq('profile_id', profileId);
-      
+
       const { data, error } = await query;
       if (error) throw error;
-      
-      return (data || []).map((row: any): InfinitePerception => ({
+
+      return (data || []).map((row): InfinitePerception => ({
         id: row.id,
         userId: row.user_id,
-        profileId: row.profile_id,
-        perceptionMode: row.perception_mode,
-        sensoryDimensions: row.sensory_dimensions || 3,
+        profileId: row.profile_id ?? undefined,
+        perceptionMode: row.perception_mode ?? '',
+        sensoryDimensions: row.sensory_dimensions ?? 3,
         perceptionIntensity: Number(row.perception_intensity) || 0,
-        extrasensoryMap: row.extrasensory_map || {},
-        perceptionHistory: row.perception_history || [],
+        extrasensoryMap: (row.extrasensory_map as Record<string, unknown>) ?? {},
+        perceptionHistory: (row.perception_history as unknown[]) ?? [],
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       }));
@@ -50,7 +50,7 @@ export function useInfinitePerception(profileId?: string) {
 
   const expandPerception = useMutation({
     mutationFn: async (input: { perceptionMode: string; sensoryDimensions?: number }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('infinite_perception')
         .insert({
           user_id: user!.id,
@@ -68,7 +68,7 @@ export function useInfinitePerception(profileId?: string) {
 
   const intensify = useMutation({
     mutationFn: async ({ id, intensity }: { id: string; intensity: number }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('infinite_perception')
         .update({ perception_intensity: intensity, updated_at: new Date().toISOString() })
         .eq('id', id)
