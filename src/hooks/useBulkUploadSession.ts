@@ -337,7 +337,7 @@ export function useBulkUploadSession() {
   const cancel = useCallback(() => {
     queueRef.current?.cancel();
     if (session?.id) {
-      (supabase as any)
+      supabase
         .from('bulk_upload_sessions')
         .update({ 
           status: 'cancelled',
