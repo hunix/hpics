@@ -322,7 +322,7 @@ export function useBulkUploadSession() {
 
   const resume = useCallback(async () => {
     if (session?.id) {
-      await (supabase as any)
+      await supabase
         .from('bulk_upload_sessions')
         .update({ 
           status: 'uploading',
