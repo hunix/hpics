@@ -23,7 +23,7 @@ export function useUniversalAwareness(profileId?: string) {
   const { data: awareness, isLoading } = useQuery({
     queryKey: ['universal-awareness', profileId],
     queryFn: async () => {
-      let query = (supabase as any)
+      let query = supabase
         .from('universal_awareness')
         .select('*')
         .order('created_at', { ascending: false });
