@@ -76,20 +76,19 @@ export function ChurnPredictionPanel() {
     if (!data?.predictions) return [];
     
     return data.predictions.map(p => {
+      const contactFreqVal = p.features.contact_frequency_trend === 'declining' ? -0.5 :
+        p.features.contact_frequency_trend === 'stable' ? 0 : 0.5;
+      const sentimentVal = p.features.sentiment_trajectory === 'declining' ? -0.5 :
+        p.features.sentiment_trajectory === 'improving' ? 0.5 : 0;
+      const engagementVal = p.features.engagement_level === 'low' ? 0.2 :
+        p.features.engagement_level === 'medium' ? 0.5 : 0.8;
       const featureVector: ChurnFeatureVector = {
-        daysSinceLastContact: p.features.days_since_contact,
-        contactFrequencyTrend: p.features.contact_frequency_trend === 'declining' ? -0.5 :
-          p.features.contact_frequency_trend === 'stable' ? 0 : 0.5,
-        sentimentTrajectory: p.features.sentiment_trajectory === 'declining' ? -0.5 :
-          p.features.sentiment_trajectory === 'improving' ? 0.5 : 0,
-        engagementLevel: p.features.engagement_level === 'low' ? 0.2 :
-          p.features.engagement_level === 'medium' ? 0.5 : 0.8,
-        reciprocityRatio: 0.5,
-        responseLatencyTrend: 0,
-        topicDiversityTrend: 0,
-        networkCentrality: 0.3,
-        sharedConnectionsCount: 5,
-        relationshipAge: 365,
+        contactFrequency: [engagementVal, engagementVal * 0.9, engagementVal * 0.8],
+        sentimentTrend: [sentimentVal + 0.5, sentimentVal + 0.4, sentimentVal + 0.3],
+        responseLatency: [0.3, 0.35, 0.4],
+        initiationRatio: [contactFreqVal + 0.5, contactFreqVal + 0.4, contactFreqVal + 0.3],
+        topicDiversity: [0.5, 0.45, 0.4],
+        emotionalIntensity: [0.5, 0.5, 0.5],
       };
       
       const prediction = ccpNetEngine.predict(featureVector);
