@@ -328,10 +328,10 @@ export class FusionService {
           user.id,
           (existing.twin_state as any)?.version || 1,
           (existing.behavioral_parameters as unknown as any[]) || [],
-          (existing.simulation_results as unknown as any[]) || [],
-          existing.accuracy_score ? { accuracy: existing.accuracy_score } : undefined,
+          (existing.simulation_history as unknown as any[]) || [],
+          existing.calibration_accuracy ? { calibrationScore: existing.calibration_accuracy, predictionCount: 0, correctPredictions: 0, lastCalibrated: existing.last_calibration_at || new Date().toISOString() } : undefined,
           (existing.twin_state as any) || {},
-          existing.status === 'active'
+          existing.is_active ?? true
         )
       : new DigitalTwin(
           crypto.randomUUID(),
@@ -349,12 +349,11 @@ export class FusionService {
         id: twin.id,
         profile_id: twin.profileId,
         user_id: twin.userId,
-        twin_type: 'behavioral',
         behavioral_parameters: twin.behaviorPatterns as unknown as import('@/integrations/supabase/types').Json,
-        simulation_results: twin.simulationHistory as unknown as import('@/integrations/supabase/types').Json,
-        twin_state: twin.modelState as unknown as import('@/integrations/supabase/types').Json,
-        accuracy_score: twin.metrics?.accuracy || null,
-        status: twin.isActive ? 'active' : 'inactive',
+        simulation_history: twin.simulationHistory as unknown as import('@/integrations/supabase/types').Json,
+        twin_state: { ...twin.modelState, version: twin.twinVersion } as unknown as import('@/integrations/supabase/types').Json,
+        calibration_accuracy: twin.metrics?.calibrationScore || null,
+        is_active: twin.isActive,
         updated_at: new Date().toISOString(),
       }]);
 
