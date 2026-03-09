@@ -34,7 +34,7 @@ export function PersonalityRadarChart({ profile }: PersonalityRadarChartProps) {
       ].filter(Boolean).join('. ');
       
       if (!textSignals) return null;
-      return oceanAiEngine.analyzeText(textSignals);
+      return oceanAiEngine.assessFromText(textSignals);
     } catch (e) {
       if (e instanceof Error) console.warn('[OCEAN-AI] Enhancement failed:', e.message);
       return null;
