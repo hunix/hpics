@@ -88,7 +88,7 @@ export function NetworkGraphMLPanel() {
         .eq('user_id', user!.id);
 
       // Fetch groups
-      const { data: groups } = await (supabase as any)
+      const { data: groups } = await supabase
         .from('contact_groups')
         .select('id, name')
         .eq('user_id', user!.id);
