@@ -153,15 +153,14 @@ export function useAGISGlobalState() {
       if (!user?.id) throw new Error('No user');
 
       // Aggregate data from all phase tables
-      const [
-        { count: campaignsCount },
-        { count: cascadesCount },
-        { count: frameworksCount },
-      ] = await Promise.all([
-        supabase.from('autonomous_campaigns').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_active', true),
-        supabase.from('influence_cascades').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('status', 'active'),
-        supabase.from('reality_frameworks').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_active', true),
+      const [r1, r2, r3] = await Promise.all([
+        supabase.from('autonomous_campaigns').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_active', true),
+        supabase.from('influence_cascades').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('status', 'active'),
+        supabase.from('reality_frameworks').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_active', true),
       ]);
+      const campaignsCount = r1.count;
+      const cascadesCount = r2.count;
+      const frameworksCount = r3.count;
 
       const totalOps = (campaignsCount || 0) + (cascadesCount || 0) + (frameworksCount || 0);
 

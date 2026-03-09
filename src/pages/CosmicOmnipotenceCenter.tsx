@@ -12,7 +12,7 @@ export default function CosmicOmnipotenceCenter() {
   const [activeTab, setActiveTab] = useState('awareness');
   const { awareness, control, isLoading, expandAwareness, establishControl } = useCosmicOmnipotence();
 
-  const totalPerception = awareness?.reduce((sum, a) => sum + (Number(a.cosmic_perception_level) || 0), 0) || 0;
+  const totalPerception = awareness?.reduce((sum, a) => sum + (Number(a.insight_depth) || 0), 0) || 0;
 
   return (
     <AppLayout>
@@ -76,10 +76,10 @@ export default function CosmicOmnipotenceCenter() {
                   <div className="grid gap-4">{awareness?.map((a) => (
                     <div key={a.id} className="p-4 rounded-lg border border-indigo-500/30 bg-indigo-950/20">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium capitalize">{String(a.awareness_scope)} Scope</span>
-                        <Badge variant="outline">Level: {String(a.cosmic_perception_level)}</Badge>
+                        <span className="font-medium capitalize">{String(a.awareness_type)} Type</span>
+                        <Badge variant="outline">Depth: {String(a.insight_depth)}</Badge>
                       </div>
-                      <Progress value={Number(a.cosmic_perception_level) * 10} className="h-2" />
+                      <Progress value={Number(a.insight_depth) * 10} className="h-2" />
                     </div>
                   ))}</div>
                 )}

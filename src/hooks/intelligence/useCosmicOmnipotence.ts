@@ -24,7 +24,7 @@ export function useCosmicOmnipotence(profileId?: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('omnipotent_control')
-        .select('id, user_id, created_at')
+        .select('id, control_domain, power_magnitude, user_id, created_at')
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data;

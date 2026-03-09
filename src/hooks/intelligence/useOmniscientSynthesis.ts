@@ -56,7 +56,7 @@ export function useOmniscientSynthesis(profileId?: string) {
         .insert({
           user_id: user!.id,
           synthesis_pattern: input.synthesisPattern,
-          knowledge_domains: (input.knowledgeDomains || []) as unknown as Json,
+          knowledge_domains: (input.knowledgeDomains || []) as unknown as Json[],
           profile_id: profileId,
         })
         .select()
