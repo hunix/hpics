@@ -243,11 +243,11 @@ export function MicroExpressionAnalyzer({ profileId, mediaUrl }: MicroExpression
                     <Badge variant="secondary" className="text-xs">26+ emotions</Badge>
                   </div>
                   <div className="space-y-1">
-                    {granularEmotions.topEmotions.slice(0, 6).map((emo, idx) => (
+                    {granularEmotions.topPredictions.slice(0, 6).map((emo, idx) => (
                       <div key={idx} className="flex items-center gap-2">
                         <span className="text-xs capitalize w-20 truncate">{emo.emotion}</span>
-                        <Progress value={emo.confidence * 100} className="flex-1 h-1.5" />
-                        <span className="text-xs text-muted-foreground w-8">{Math.round(emo.confidence * 100)}%</span>
+                        <Progress value={emo.probability * 100} className="flex-1 h-1.5" />
+                        <span className="text-xs text-muted-foreground w-8">{Math.round(emo.probability * 100)}%</span>
                       </div>
                     ))}
                   </div>
