@@ -142,7 +142,7 @@ export function useAGISAnalytics() {
           phase,
           metric_type: metricType,
           metric_value: metricValue,
-          metric_metadata: metadata || {},
+          metric_metadata: (metadata || {}) as unknown as Json,
         });
 
       if (error) throw error;
