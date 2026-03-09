@@ -103,6 +103,8 @@ const EnhancementSuite = lazyWithRetry(() => import("./pages/EnhancementSuite"))
 const MemoryExplorer = lazyWithRetry(() => import("./pages/MemoryExplorer"));
 const AgentConsole = lazyWithRetry(() => import("./pages/AgentConsole"));
 const IntelligenceFeed = lazyWithRetry(() => import("./pages/IntelligenceFeed"));
+const BiometricStudio = lazyWithRetry(() => import("./pages/BiometricStudio"));
+const AutonomyDashboard = lazyWithRetry(() => import("./pages/AutonomyDashboard"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -226,8 +228,12 @@ const App = () => (
                           <Route path="/memory-explorer" element={<MemoryExplorer />} />
                            <Route path="/agent-console" element={<AgentConsole />} />
                            <Route path="/intelligence-feed" element={<IntelligenceFeed />} />
+                           <Route path="/biometric-studio" element={<BiometricStudio />} />
+                           <Route path="/autonomy" element={<AutonomyDashboard />} />
                            <Route path="/agent-console" element={<AgentConsole />} />
                            <Route path="/intelligence-feed" element={<IntelligenceFeed />} />
+                           <Route path="/biometric-studio" element={<BiometricStudio />} />
+                           <Route path="/autonomy" element={<AutonomyDashboard />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                       </Suspense>
