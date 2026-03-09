@@ -170,7 +170,7 @@ export class UnifiedAnalysisRepository {
   ): Promise<UnifiedAnalysis | null> {
     try {
       if (this.useUnifiedTable) {
-        const { data, error } = await (supabase as any)
+         const { data, error } = await supabase
           .from(TABLE_NAME)
           .select('*')
           .eq('user_id', userId)
