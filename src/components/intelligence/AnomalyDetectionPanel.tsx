@@ -50,7 +50,7 @@ export function AnomalyDetectionPanel() {
   const anomaliesQuery = useQuery({
     queryKey: ['anomalies', user?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('behavioral_anomalies')
         .select(`
           *,
