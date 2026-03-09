@@ -227,7 +227,7 @@ export function AnomalyDetectionPanel() {
                 <p className="text-xs text-muted-foreground">Anomaly Score</p>
               </div>
               <div className="text-center">
-                <p className="text-xl font-bold">{vttResults.trendDirection}</p>
+                <p className="text-xl font-bold">{vttResults.overallAnomalyScore > 0.5 ? '↑' : vttResults.overallAnomalyScore > 0.2 ? '→' : '↓'}</p>
                 <p className="text-xs text-muted-foreground">Trend</p>
               </div>
             </div>
