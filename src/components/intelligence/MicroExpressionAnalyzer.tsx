@@ -379,7 +379,7 @@ export function MicroExpressionAnalyzer({ profileId, mediaUrl }: MicroExpression
                     </div>
                     <div className="p-3 bg-muted/50 rounded-lg text-center">
                       <p className="text-2xl font-bold">
-                        {spotFormerResults.deceptionAnalysis ? (spotFormerResults.deceptionAnalysis.confidence * 100).toFixed(0) : 0}%
+                        {spotFormerResults.deceptionIndicators ? (spotFormerResults.deceptionIndicators.overallDeceptionProbability * 100).toFixed(0) : 0}%
                       </p>
                       <p className="text-xs text-muted-foreground">Deception Confidence</p>
                     </div>
