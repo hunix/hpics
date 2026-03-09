@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import type { Json } from '@/types/database-helpers';
 
 export interface RealityComprehension {
   id: string;
@@ -22,25 +23,25 @@ export function useRealityComprehension(profileId?: string) {
   const { data: comprehensions, isLoading } = useQuery({
     queryKey: ['reality-comprehension', profileId],
     queryFn: async () => {
-      let query = (supabase as any)
+      let query = supabase
         .from('reality_comprehension')
         .select('*')
         .order('created_at', { ascending: false });
-      
+
       if (profileId) query = query.eq('profile_id', profileId);
-      
+
       const { data, error } = await query;
       if (error) throw error;
-      
-      return (data || []).map((row: any): RealityComprehension => ({
+
+      return (data || []).map((row): RealityComprehension => ({
         id: row.id,
         userId: row.user_id,
-        profileId: row.profile_id,
-        comprehensionScope: row.comprehension_scope,
-        realityLayers: row.reality_layers || 1,
+        profileId: row.profile_id ?? undefined,
+        comprehensionScope: row.comprehension_scope ?? '',
+        realityLayers: row.reality_layers ?? 1,
         comprehensionIndex: Number(row.comprehension_index) || 0,
-        frameworkModel: row.framework_model || {},
-        paradoxResolution: row.paradox_resolution || {},
+        frameworkModel: (row.framework_model as Record<string, unknown>) ?? {},
+        paradoxResolution: (row.paradox_resolution as Record<string, unknown>) ?? {},
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       }));
@@ -50,7 +51,7 @@ export function useRealityComprehension(profileId?: string) {
 
   const expandComprehension = useMutation({
     mutationFn: async (input: { comprehensionScope: string; realityLayers?: number }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('reality_comprehension')
         .insert({
           user_id: user!.id,
@@ -68,9 +69,9 @@ export function useRealityComprehension(profileId?: string) {
 
   const resolveParadox = useMutation({
     mutationFn: async ({ id, paradox }: { id: string; paradox: Record<string, unknown> }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('reality_comprehension')
-        .update({ paradox_resolution: paradox, updated_at: new Date().toISOString() })
+        .update({ paradox_resolution: paradox as unknown as Json, updated_at: new Date().toISOString() })
         .eq('id', id)
         .select()
         .single();

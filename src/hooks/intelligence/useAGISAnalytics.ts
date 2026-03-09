@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import type { Json, TableInsert } from '@/types/database-helpers';
 
 export interface AnalyticsMetric {
   id: string;
@@ -56,7 +57,7 @@ const PHASE_NAMES: Record<number, string> = {
   15: 'Eternal Supremacy',
   16: 'Absolute Totality',
   17: 'Ultimate Omega',
-  18: 'Unified Supremacy'
+  18: 'Unified Supremacy',
 };
 
 export function useAGISAnalytics() {
@@ -68,26 +69,26 @@ export function useAGISAnalytics() {
     queryKey: ['agis-analytics', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      
-      const { data, error } = await (supabase as any)
+
+      const { data, error } = await supabase
         .from('agis_analytics')
         .select('*')
         .eq('user_id', user.id)
         .order('recorded_at', { ascending: false })
         .limit(500);
-      
+
       if (error) throw error;
-      
-      return (data || []).map((row: any) => ({
+
+      return (data || []).map((row): AnalyticsMetric => ({
         id: row.id,
         phase: row.phase,
         metricType: row.metric_type,
         metricValue: Number(row.metric_value) || 0,
-        metricMetadata: row.metric_metadata || {},
-        recordedAt: row.recorded_at
-      })) as AnalyticsMetric[];
+        metricMetadata: (row.metric_metadata as Record<string, unknown>) ?? {},
+        recordedAt: row.recorded_at ?? '',
+      }));
     },
-    enabled: !!user?.id
+    enabled: !!user?.id,
   });
 
   // Fetch objective tracking
@@ -95,33 +96,33 @@ export function useAGISAnalytics() {
     queryKey: ['agis-objectives', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      
-      const { data, error } = await (supabase as any)
+
+      const { data, error } = await supabase
         .from('agis_objective_tracking')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
-      
-      return (data || []).map((row: any) => ({
+
+      return (data || []).map((row): ObjectiveTracking => ({
         id: row.id,
         profileId: row.profile_id,
         objectiveName: row.objective_name,
-        objectiveType: row.objective_type,
+        objectiveType: row.objective_type ?? '',
         startingPhase: row.starting_phase,
         currentPhase: row.current_phase,
-        phaseProgression: row.phase_progression || [],
+        phaseProgression: (row.phase_progression as ObjectiveTracking['phaseProgression']) ?? [],
         completionPercentage: Number(row.completion_percentage) || 0,
-        targetOutcome: row.target_outcome || {},
-        achievedOutcomes: row.achieved_outcomes || [],
-        blockers: row.blockers || [],
-        isActive: row.is_active,
-        createdAt: row.created_at,
-        completedAt: row.completed_at
-      })) as ObjectiveTracking[];
+        targetOutcome: (row.target_outcome as Record<string, unknown>) ?? {},
+        achievedOutcomes: (row.achieved_outcomes as ObjectiveTracking['achievedOutcomes']) ?? [],
+        blockers: (row.blockers as ObjectiveTracking['blockers']) ?? [],
+        isActive: row.is_active ?? true,
+        createdAt: row.created_at ?? '',
+        completedAt: row.completed_at,
+      }));
     },
-    enabled: !!user?.id
+    enabled: !!user?.id,
   });
 
   // Record analytics metric
@@ -133,22 +134,22 @@ export function useAGISAnalytics() {
       metadata?: Record<string, unknown>;
     }) => {
       if (!user?.id) throw new Error('No user');
-      
-      const { error } = await (supabase as any)
+
+      const { error } = await supabase
         .from('agis_analytics')
         .insert({
           user_id: user.id,
           phase,
           metric_type: metricType,
           metric_value: metricValue,
-          metric_metadata: metadata || {}
+          metric_metadata: (metadata || {}) as unknown as Json,
         });
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agis-analytics'] });
-    }
+    },
   });
 
   // Create objective
@@ -161,29 +162,31 @@ export function useAGISAnalytics() {
       targetOutcome?: Record<string, unknown>;
     }) => {
       if (!user?.id) throw new Error('No user');
-      
-      const { data, error } = await (supabase as any)
+
+      const insertData: TableInsert<'agis_objective_tracking'> = {
+        user_id: user.id,
+        profile_id: objective.profileId || null,
+        objective_name: objective.objectiveName,
+        objective_type: objective.objectiveType,
+        starting_phase: objective.startingPhase,
+        current_phase: objective.startingPhase,
+        phase_progression: [{ phase: objective.startingPhase, enteredAt: new Date().toISOString() }] as unknown as Json,
+        target_outcome: (objective.targetOutcome || {}) as unknown as Json,
+        is_active: true,
+      };
+
+      const { data, error } = await supabase
         .from('agis_objective_tracking')
-        .insert({
-          user_id: user.id,
-          profile_id: objective.profileId || null,
-          objective_name: objective.objectiveName,
-          objective_type: objective.objectiveType,
-          starting_phase: objective.startingPhase,
-          current_phase: objective.startingPhase,
-          phase_progression: [{ phase: objective.startingPhase, enteredAt: new Date().toISOString() }],
-          target_outcome: objective.targetOutcome || {},
-          is_active: true
-        })
+        .insert([insertData])
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agis-objectives'] });
-    }
+    },
   });
 
   // Update objective progress
@@ -196,9 +199,9 @@ export function useAGISAnalytics() {
     }) => {
       const objective = objectives?.find(o => o.id === objectiveId);
       if (!objective) throw new Error('Objective not found');
-      
-      const updates: Record<string, any> = { updated_at: new Date().toISOString() };
-      
+
+      const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+
       if (newPhase !== undefined && newPhase !== objective.currentPhase) {
         const progression = [...objective.phaseProgression];
         if (progression.length > 0) {
@@ -208,7 +211,7 @@ export function useAGISAnalytics() {
         updates.current_phase = newPhase;
         updates.phase_progression = progression;
       }
-      
+
       if (completionPercentage !== undefined) {
         updates.completion_percentage = completionPercentage;
         if (completionPercentage >= 100) {
@@ -216,57 +219,57 @@ export function useAGISAnalytics() {
           updates.completed_at = new Date().toISOString();
         }
       }
-      
+
       if (achievedOutcome) {
         updates.achieved_outcomes = [
           ...objective.achievedOutcomes,
-          { outcome: achievedOutcome, achievedAt: new Date().toISOString() }
+          { outcome: achievedOutcome, achievedAt: new Date().toISOString() },
         ];
       }
-      
-      const { error } = await (supabase as any)
+
+      const { error } = await supabase
         .from('agis_objective_tracking')
         .update(updates)
         .eq('id', objectiveId);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agis-objectives'] });
-    }
+    },
   });
 
   // Compute phase performance from metrics
   const phasePerformance = useMemo((): PhasePerformance[] => {
     if (!metrics) return [];
-    
+
     const phaseMap = new Map<number, { ops: number; successes: number; durations: number[]; lastAt: string | null }>();
-    
+
     metrics.forEach(m => {
       const existing = phaseMap.get(m.phase) || { ops: 0, successes: 0, durations: [], lastAt: null };
-      
+
       if (m.metricType === 'operation_completed') {
         existing.ops++;
         if (m.metricMetadata.success) existing.successes++;
         if (typeof m.metricMetadata.duration === 'number') existing.durations.push(m.metricMetadata.duration);
       }
-      
+
       if (!existing.lastAt || m.recordedAt > existing.lastAt) {
         existing.lastAt = m.recordedAt;
       }
-      
+
       phaseMap.set(m.phase, existing);
     });
-    
+
     return Array.from(phaseMap.entries()).map(([phase, data]) => ({
       phase,
       name: PHASE_NAMES[phase] || `Phase ${phase}`,
       operationsCount: data.ops,
       successRate: data.ops > 0 ? (data.successes / data.ops) * 100 : 0,
-      avgDuration: data.durations.length > 0 
-        ? data.durations.reduce((a, b) => a + b, 0) / data.durations.length 
+      avgDuration: data.durations.length > 0
+        ? data.durations.reduce((a, b) => a + b, 0) / data.durations.length
         : 0,
-      lastActivity: data.lastAt
+      lastActivity: data.lastAt,
     })).sort((a, b) => a.phase - b.phase);
   }, [metrics]);
 
@@ -274,10 +277,10 @@ export function useAGISAnalytics() {
     totalMetrics: metrics?.length || 0,
     activeObjectives: objectives?.filter(o => o.isActive).length || 0,
     completedObjectives: objectives?.filter(o => !o.isActive && o.completedAt).length || 0,
-    avgCompletion: objectives?.length 
+    avgCompletion: objectives?.length
       ? objectives.reduce((sum, o) => sum + o.completionPercentage, 0) / objectives.length
       : 0,
-    phasesWithActivity: phasePerformance.filter(p => p.operationsCount > 0).length
+    phasesWithActivity: phasePerformance.filter(p => p.operationsCount > 0).length,
   }), [metrics, objectives, phasePerformance]);
 
   return {
@@ -289,6 +292,6 @@ export function useAGISAnalytics() {
     phaseNames: PHASE_NAMES,
     recordMetric,
     createObjective,
-    updateObjectiveProgress
+    updateObjectiveProgress,
   };
 }
