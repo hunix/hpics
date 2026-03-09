@@ -329,7 +329,7 @@ export class FusionService {
           (existing.twin_state as any)?.version || 1,
           (existing.behavioral_parameters as unknown as any[]) || [],
           (existing.simulation_history as unknown as any[]) || [],
-          existing.calibration_accuracy ? { calibrationScore: existing.calibration_accuracy, predictionCount: 0, correctPredictions: 0, lastCalibrated: existing.last_calibration_at || new Date().toISOString() } : undefined,
+          existing.calibration_accuracy ? { accuracy: existing.calibration_accuracy, calibrationScore: existing.calibration_accuracy, predictionCount: 0, correctPredictions: 0, lastCalibrated: existing.last_calibration_at || new Date().toISOString() } : undefined,
           (existing.twin_state as any) || {},
           existing.is_active ?? true
         )
