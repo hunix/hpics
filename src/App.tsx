@@ -100,6 +100,9 @@ const AgentIntelligenceConfig = lazyWithRetry(() => import("./pages/AgentIntelli
 const DatabaseMaintenance = lazyWithRetry(() => import("./pages/DatabaseMaintenance"));
 const DataCollectionGuide = lazyWithRetry(() => import("./pages/DataCollectionGuide"));
 const EnhancementSuite = lazyWithRetry(() => import("./pages/EnhancementSuite"));
+const MemoryExplorer = lazyWithRetry(() => import("./pages/MemoryExplorer"));
+const AgentConsole = lazyWithRetry(() => import("./pages/AgentConsole"));
+const IntelligenceFeed = lazyWithRetry(() => import("./pages/IntelligenceFeed"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -220,6 +223,11 @@ const App = () => (
                           <Route path="/agent-intelligence" element={<AgentIntelligenceConfig />} />
                           <Route path="/maintenance" element={<DatabaseMaintenance />} />
                           <Route path="/enhancement-suite" element={<EnhancementSuite />} />
+                          <Route path="/memory-explorer" element={<MemoryExplorer />} />
+                           <Route path="/agent-console" element={<AgentConsole />} />
+                           <Route path="/intelligence-feed" element={<IntelligenceFeed />} />
+                           <Route path="/agent-console" element={<AgentConsole />} />
+                           <Route path="/intelligence-feed" element={<IntelligenceFeed />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                       </Suspense>
