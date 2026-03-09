@@ -326,12 +326,12 @@ export class FusionService {
           existing.id,
           profileId,
           user.id,
-          existing.twin_version,
-          existing.behavior_patterns || [],
-          existing.simulation_history || [],
-          existing.metrics,
-          existing.model_state || {},
-          existing.is_active
+          (existing.twin_state as any)?.version || 1,
+          (existing.behavioral_parameters as unknown as any[]) || [],
+          (existing.simulation_results as unknown as any[]) || [],
+          existing.accuracy_score ? { accuracy: existing.accuracy_score } : undefined,
+          (existing.twin_state as any) || {},
+          existing.status === 'active'
         )
       : new DigitalTwin(
           crypto.randomUUID(),
