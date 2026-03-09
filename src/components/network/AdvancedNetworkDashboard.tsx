@@ -511,7 +511,7 @@ export function AdvancedNetworkDashboard() {
                   <div>
                     <h4 className="font-medium mb-3">Optimal Seed Nodes</h4>
                     <div className="space-y-2">
-                      {networkData.influenceResult.seedSet.map((seed, idx) => (
+                      {networkData.influenceResult.optimalTiming.map((seed, idx) => (
                         <div key={seed.nodeId} className="p-3 border rounded-lg flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <span className="text-lg font-bold text-amber-500">#{idx + 1}</span>
@@ -520,18 +520,13 @@ export function AdvancedNetworkDashboard() {
                                 {networkData.nodes.find(n => n.id === seed.nodeId)?.name || seed.nodeId}
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                Phase {seed.activationPhase + 1} activation
+                                Activate at step {seed.activateAt.toFixed(0)}
                               </p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline">
-                              Marginal: {seed.marginalGain.toFixed(2)}
-                            </Badge>
-                            <Badge>
-                              Reward: {seed.expectedReward.toFixed(2)}
-                            </Badge>
-                          </div>
+                          <Badge variant="outline">
+                            Seed #{idx + 1}
+                          </Badge>
                         </div>
                       ))}
                     </div>
