@@ -224,7 +224,7 @@ export function ChurnPredictionPanel() {
           <ScrollArea className="h-[350px]">
             <div className="space-y-3">
               {localPredictions.filter(p => p.ccpNet.churnProbability > 0.2).map(prediction => (
-                <div key={prediction.profile_id} className={`p-4 rounded-lg border ${getRiskBg(prediction.ccpNet.riskLevel)}`}>
+                <div key={prediction.profile_id} className={`p-4 rounded-lg border ${getRiskBg(prediction.ccpNet.churnProbability > 0.7 ? 'critical' : prediction.ccpNet.churnProbability > 0.5 ? 'high' : prediction.ccpNet.churnProbability > 0.3 ? 'medium' : 'low')}`}>
                   <div className="flex items-start gap-3">
                     <Avatar className="h-10 w-10">
                       <AvatarImage src={prediction.avatar_url} />
