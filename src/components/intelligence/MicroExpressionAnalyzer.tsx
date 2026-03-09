@@ -52,7 +52,11 @@ export function MicroExpressionAnalyzer({ profileId, mediaUrl }: MicroExpression
           mouthRegion: 0.4,
         },
       }));
-      return spotFormerEngine.analyze(frames);
+      return spotFormerEngine.analyzeFrameSequence(frames.map(f => ({
+        landmarks: [[f.facialRegions.upperFace, f.facialRegions.lowerFace, f.facialRegions.eyeRegion, f.facialRegions.mouthRegion]],
+        timestamp: f.timestamp,
+        features: [f.flowMagnitude, f.flowDirection],
+      })), 30);
     } catch (e) {
       if (e instanceof Error) console.warn('[SpotFormer] Analysis failed:', e.message);
       return null;
