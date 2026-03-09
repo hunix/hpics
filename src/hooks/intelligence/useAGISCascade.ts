@@ -198,21 +198,23 @@ export function useAGISCascade() {
     mutationFn: async (rule: Omit<CascadeRule, 'id' | 'lastTriggeredAt' | 'triggerCount' | 'createdAt'>) => {
       if (!user?.id) throw new Error('No user');
 
+      const insertData: TableInsert<'agis_cascade_rules'> = {
+        user_id: user.id,
+        rule_name: rule.ruleName,
+        source_phase: rule.sourcePhase,
+        source_table: rule.sourceTable,
+        trigger_condition: rule.triggerCondition as unknown as Json,
+        target_phase: rule.targetPhase,
+        target_action: rule.targetAction,
+        action_params: rule.actionParams as unknown as Json,
+        is_active: rule.isActive,
+        priority: rule.priority,
+        cooldown_minutes: rule.cooldownMinutes,
+      };
+
       const { data, error } = await supabase
         .from('agis_cascade_rules')
-        .insert({
-          user_id: user.id,
-          rule_name: rule.ruleName,
-          source_phase: rule.sourcePhase,
-          source_table: rule.sourceTable,
-          trigger_condition: rule.triggerCondition,
-          target_phase: rule.targetPhase,
-          target_action: rule.targetAction,
-          action_params: rule.actionParams,
-          is_active: rule.isActive,
-          priority: rule.priority,
-          cooldown_minutes: rule.cooldownMinutes,
-        })
+        .insert([insertData])
         .select()
         .single();
 

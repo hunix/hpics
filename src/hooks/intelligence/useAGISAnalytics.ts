@@ -163,19 +163,21 @@ export function useAGISAnalytics() {
     }) => {
       if (!user?.id) throw new Error('No user');
 
+      const insertData: TableInsert<'agis_objective_tracking'> = {
+        user_id: user.id,
+        profile_id: objective.profileId || null,
+        objective_name: objective.objectiveName,
+        objective_type: objective.objectiveType,
+        starting_phase: objective.startingPhase,
+        current_phase: objective.startingPhase,
+        phase_progression: [{ phase: objective.startingPhase, enteredAt: new Date().toISOString() }] as unknown as Json,
+        target_outcome: (objective.targetOutcome || {}) as unknown as Json,
+        is_active: true,
+      };
+
       const { data, error } = await supabase
         .from('agis_objective_tracking')
-        .insert({
-          user_id: user.id,
-          profile_id: objective.profileId || null,
-          objective_name: objective.objectiveName,
-          objective_type: objective.objectiveType,
-          starting_phase: objective.startingPhase,
-          current_phase: objective.startingPhase,
-          phase_progression: [{ phase: objective.startingPhase, enteredAt: new Date().toISOString() }],
-          target_outcome: objective.targetOutcome || {},
-          is_active: true,
-        })
+        .insert([insertData])
         .select()
         .single();
 
