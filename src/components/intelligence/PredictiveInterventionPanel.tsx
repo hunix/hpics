@@ -101,7 +101,7 @@ export function PredictiveInterventionPanel() {
 
   const scheduleIntervention = useMutation({
     mutationFn: async ({ id, scheduledFor }: { id: string; scheduledFor: string }) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('action_recommendations')
         .update({ 
           status: 'scheduled',

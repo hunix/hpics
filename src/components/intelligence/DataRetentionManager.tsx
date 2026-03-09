@@ -115,7 +115,7 @@ export function DataRetentionManager() {
 
   const cancelDeletionMutation = useMutation({
     mutationFn: async (requestId: string) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("deletion_requests")
         .update({ status: "cancelled" })
         .eq("id", requestId);

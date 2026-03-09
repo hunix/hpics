@@ -100,10 +100,8 @@ export function NetworkGraphMLPanel() {
         .eq('user_id', user!.id);
 
       // Fetch network metrics if available
-      const { data: metrics } = await (supabase as any)
-        .from('network_metrics')
-        .select('*')
-        .eq('user_id', user!.id);
+      // Network metrics table doesn't exist - derive from relationships
+      const metrics: any[] = [];
 
       return processNetworkData(profiles || [], relationships || [], groups || [], memberships || [], metrics || []);
     },

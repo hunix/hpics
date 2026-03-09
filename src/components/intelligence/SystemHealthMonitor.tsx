@@ -57,7 +57,7 @@ export function SystemHealthMonitor() {
         .limit(500);
 
       // Fetch session stats
-      const { data: sessions } = await (supabase as any)
+      const { data: sessions } = await supabase
         .from('intelligence_sessions')
         .select('status, created_at, completed_at')
         .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
