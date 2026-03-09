@@ -215,7 +215,7 @@ export class UnifiedAnalysisRepository {
   ): Promise<UnifiedAnalysis[]> {
     try {
       if (this.useUnifiedTable) {
-        let query = (supabase as any)
+        let query = supabase
           .from(TABLE_NAME)
           .select('*')
           .eq('user_id', userId)
