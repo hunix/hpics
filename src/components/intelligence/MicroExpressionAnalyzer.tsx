@@ -138,7 +138,7 @@ export function MicroExpressionAnalyzer({ profileId, mediaUrl }: MicroExpression
               <div>
                 <p className="font-medium text-cyan-600 dark:text-cyan-400">SpotFormer Micro-Expression Detection (AAAI 2024)</p>
                 <p className="text-sm text-muted-foreground">
-                  {spotFormerResults.microExpressions.length} micro-expressions spotted
+                  {spotFormerResults.spots.length} micro-expressions spotted
                 </p>
               </div>
               {spotFormerResults.deceptionAnalysis && (
