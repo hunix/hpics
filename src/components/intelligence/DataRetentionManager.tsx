@@ -86,7 +86,7 @@ export function DataRetentionManager() {
     mutationFn: async ({ targetType, targetId, reason }: { targetType: string; targetId: string; reason: string }) => {
       if (!user?.id) throw new Error("Not authenticated");
       
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("deletion_requests")
         .insert({
           user_id: user.id,
