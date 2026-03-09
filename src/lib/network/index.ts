@@ -1,106 +1,46 @@
 /**
- * Network Analysis Module - Unified exports
- * Consolidates all network algorithms into a single optimized module
+ * Network Analysis Module - Unified exports (v10.0 Enhanced)
  * 
  * IMPORTANT: Uses explicit named exports for IDE performance optimization.
- * Heavy algorithms are still available but imported when needed.
  */
 
-// Core types from types.ts
-export type {
-  NetworkNode,
-  NetworkLink,
-  AdjacencyList,
-  CentralityMap,
-  ClusterMap,
-  HierarchicalCluster,
-  StructuralHole,
-  WeakTie,
-  PredictedLink,
-  ResilienceMetrics,
-  InfluenceFlow,
-  InfluencePropagationResult,
-  PropagationWave,
-  CommunityRole,
-  NodeRole,
-  CommunitySnapshot,
-  CommunityTransition,
-  CommunityHealthMetrics,
-  CommunityEvolution,
-  TemporalNetworkMetrics,
-  SleepingConnection,
-  TrajectoryPrediction,
-  SeasonalPattern,
-  GrowthOpportunity,
-  StrategicConnection,
-  ConnectionRecommendation,
-  NetworkMetrics,
-} from './types';
-
+// Core types
+export type { NetworkNode, NetworkLink, AdjacencyList, CentralityMap, ClusterMap, HierarchicalCluster, StructuralHole, WeakTie, PredictedLink, ResilienceMetrics, InfluenceFlow, InfluencePropagationResult, PropagationWave, CommunityRole, NodeRole, CommunitySnapshot, CommunityTransition, CommunityHealthMetrics, CommunityEvolution, TemporalNetworkMetrics, SleepingConnection, TrajectoryPrediction, SeasonalPattern, GrowthOpportunity, StrategicConnection, ConnectionRecommendation, NetworkMetrics } from './types';
 export { CLUSTER_COLORS, getClusterColor } from './types';
 
-// Re-export visualization types with correct names
-export type {
-  VisualizationNode,
-  VisualizationLink,
-  NetworkVisualizationData,
-  ColorMode,
-} from './types/visualization';
-
+// Visualization types
+export type { VisualizationNode, VisualizationLink, NetworkVisualizationData, ColorMode } from './types/visualization';
 export { RELATIONSHIP_COLORS, RELATIONSHIP_TYPES } from './types/visualization';
 
-// Re-export utilities
-export { 
-  buildAdjacencyList, 
-  jaccardSimilarity, 
-  normalizeMap, 
-  bfsReachable, 
-  getConnectedComponents, 
-  getNodeWeight, 
-  getShortestPath 
-} from './utils';
+// Utilities
+export { buildAdjacencyList, jaccardSimilarity, normalizeMap, bfsReachable, getConnectedComponents, getNodeWeight, getShortestPath } from './utils';
 
-// Re-export centrality algorithms
-export { 
-  calculatePageRank, 
-  calculateClosenessCentrality, 
-  calculateBetweennessCentrality, 
-  calculateEigenvectorCentrality 
-} from './centrality';
+// Centrality algorithms
+export { calculatePageRank, calculateClosenessCentrality, calculateBetweennessCentrality, calculateEigenvectorCentrality } from './centrality';
 
-// Re-export clustering algorithms
-export { 
-  detectClusters, 
-  detectCommunitiesLabelPropagation, 
-  detectHierarchicalClusters, 
-  detectStructuralHoles 
-} from './clustering';
+// Clustering algorithms
+export { detectClusters, detectCommunitiesLabelPropagation, detectHierarchicalClusters, detectStructuralHoles } from './clustering';
 
-// Re-export influence algorithms
-export { 
-  calculateInfluencePropagation, 
-  simulateInfluencePropagation, 
-  traceInfluenceFlow 
-} from './influence';
+// Influence algorithms
+export { calculateInfluencePropagation, simulateInfluencePropagation, traceInfluenceFlow } from './influence';
 
-// Re-export resilience and prediction algorithms
-export { 
-  analyzeNetworkResilience, 
-  detectWeakTies, 
-  predictLinks, 
-  classifyCommunityRoles, 
-  identifyGrowthOpportunities,
-  recommendStrategicConnections,
-  calculateNetworkDensity,
-  calculateNetworkMetrics
-} from './resilience';
+// Resilience and prediction
+export { analyzeNetworkResilience, detectWeakTies, predictLinks, classifyCommunityRoles, identifyGrowthOpportunities, recommendStrategicConnections, calculateNetworkDensity, calculateNetworkMetrics } from './resilience';
 
-// Re-export temporal algorithms
-export { 
-  analyzeTemporalNetwork, 
-  analyzeCommunityEvolution 
-} from './temporal';
+// Temporal algorithms
+export { analyzeTemporalNetwork, analyzeCommunityEvolution } from './temporal';
 
-// Backward compatibility exports - maps to original function names
+// Backward compatibility
 export { detectClusters as louvainClusters } from './clustering';
 export { calculatePageRank as pageRank } from './centrality';
+
+// === v10.0 Enhanced Engines ===
+
+// GATFELPA Community Detection (Nature Scientific Reports 2025)
+export { detectCommunitiesGATFELPA, type GatfelpaConfig, type GatfelpaCommunity, type GatfelpaResult } from './gatfelpa';
+
+// TrustGuard GNN Trust Prediction (arxiv 2023)
+export { predictTrust, type TrustPrediction, type TrustFactor } from './trustPrediction';
+
+// TempRL-IM Temporal Influence Maximization (Nature 2026)
+export { maximizeTemporalInfluence, type TemporalInfluenceResult } from './temporalInfluence';
