@@ -72,7 +72,8 @@ export function MicroExpressionAnalyzer({ profileId, mediaUrl }: MicroExpression
         confidence: r.detectedEmotions?.[0]?.confidence || 0,
         timestamp: r.timestampMs || 0,
       }));
-      return transformerEmotionEngine.analyzeSequence(emotionSignals);
+      const textSignal = emotionSignals.map(s => s.emotion).join(' ');
+      return transformerEmotionEngine.analyzeText(textSignal);
     } catch (e) {
       if (e instanceof Error) console.warn('[TransformerEmotion] Failed:', e.message);
       return null;
