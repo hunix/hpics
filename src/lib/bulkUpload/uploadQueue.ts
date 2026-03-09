@@ -476,7 +476,7 @@ export class BulkUploadQueue {
           user_id: this.userId!,
           profile_id: this.profileId,
           title: item.filename,
-          document_type: 'general',
+          document_type: 'other',
           file_url: urlData.publicUrl,
           storage_path: storagePath,
           file_size: item.fileSize,
