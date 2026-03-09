@@ -67,7 +67,7 @@ export function useAGISGlobalState() {
 
       return {
         id: data.id,
-        phaseHealthScores: (data.phase_health_scores as Record<string, PhaseHealthScore>) ?? {},
+        phaseHealthScores: (data.phase_health_scores as unknown as Record<string, PhaseHealthScore>) ?? {},
         crossPhaseCorrelations: (data.cross_phase_correlations as Record<string, number>) ?? {},
         activeObjectives: (data.active_objectives as AGISGlobalState['activeObjectives']) ?? [],
         systemReadinessScore: Number(data.system_readiness_score) || 0,
