@@ -50,7 +50,7 @@ export function PredictiveInterventionPanel() {
   const interventionsQuery = useQuery({
     queryKey: ['interventions', user?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('action_recommendations')
         .select(`
           *,
