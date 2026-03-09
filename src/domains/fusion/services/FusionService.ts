@@ -343,20 +343,20 @@ export class FusionService {
     patterns.forEach(pattern => twin.addBehaviorPattern(pattern));
 
     // Save to database
-    const { error } = await (supabase as any)
-      .from('behavioral_twins')
-      .upsert({
+    const { error } = await supabase
+      .from('digital_twins')
+      .upsert([{
         id: twin.id,
         profile_id: twin.profileId,
         user_id: twin.userId,
-        twin_version: twin.twinVersion,
-        behavior_patterns: twin.behaviorPatterns,
-        simulation_history: twin.simulationHistory,
-        metrics: twin.metrics,
-        model_state: twin.modelState,
-        is_active: twin.isActive,
+        twin_type: 'behavioral',
+        behavioral_parameters: twin.behaviorPatterns as unknown as import('@/integrations/supabase/types').Json,
+        simulation_results: twin.simulationHistory as unknown as import('@/integrations/supabase/types').Json,
+        twin_state: twin.modelState as unknown as import('@/integrations/supabase/types').Json,
+        accuracy_score: twin.metrics?.accuracy || null,
+        status: twin.isActive ? 'active' : 'inactive',
         updated_at: new Date().toISOString(),
-      });
+      }]);
 
     if (error) {
       console.error('[FusionService] Failed to update digital twin:', error);
