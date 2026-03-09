@@ -168,7 +168,7 @@ export function useBulkUploadSession() {
       const resumableUntil = new Date();
       resumableUntil.setHours(resumableUntil.getHours() + 24);
 
-      const { data: dbSession, error } = await (supabase as any)
+      const { data: dbSession, error } = await supabase
         .from('bulk_upload_sessions')
         .insert({
           user_id: userIdRef.current,
