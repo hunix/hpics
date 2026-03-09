@@ -68,7 +68,7 @@ export function DataRetentionManager() {
     queryFn: async () => {
       if (!user?.id) return [];
       
-      const { data, error } = await (supabase as any)
+       const { data, error } = await supabase
         .from("source_asset_registry")
         .select("id, asset_type, analysis_count, is_deleted, created_at")
         .eq("user_id", user.id)
