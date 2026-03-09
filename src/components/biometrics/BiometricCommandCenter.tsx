@@ -299,10 +299,7 @@ export function BiometricCommandCenter({ profileId, profileName }: BiometricComm
                         {engine.metrics && (
                           <>
                             <Badge variant="outline" className="text-xs">
-                              {engine.metrics.enrollments || engine.metrics.totalEnrollments || 0} enrolled
-                            </Badge>
-                            <Badge variant="outline" className="text-xs">
-                              {engine.metrics.verifications || engine.metrics.totalVerifications || 0} verified
+                              {(engine.metrics as Record<string, unknown>).accuracy ? `${((engine.metrics as Record<string, number>).accuracy * 100).toFixed(1)}% acc` : 'Active'}
                             </Badge>
                           </>
                         )}

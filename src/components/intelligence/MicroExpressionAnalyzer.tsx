@@ -399,7 +399,7 @@ export function MicroExpressionAnalyzer({ profileId, mediaUrl }: MicroExpression
                             <span className="text-sm">{(me.confidence * 100).toFixed(0)}% confidence</span>
                           </div>
                           <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            <span>Start: {me.startFrame}ms</span>
+                            <span>Onset: {me.onset}</span>
                             <span>Duration: {me.durationMs}ms</span>
                             <span>Intensity: {(me.intensity * 100).toFixed(0)}%</span>
                           </div>
