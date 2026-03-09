@@ -53,8 +53,8 @@ export function useCosmicOmnipotence(profileId?: string) {
     mutationFn: async (input: { control_domain: string; power_magnitude?: number }) => {
       const { data, error } = await supabase
         .from('omnipotent_control')
-        .insert({ user_id: user!.id })
-        .select('id, user_id, created_at')
+        .insert({ user_id: user!.id, control_domain: input.control_domain, power_magnitude: input.power_magnitude || 0 })
+        .select('id, control_domain, power_magnitude, user_id, created_at')
         .single();
       if (error) throw error;
       return data;
