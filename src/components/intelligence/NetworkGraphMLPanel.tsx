@@ -82,28 +82,26 @@ export function NetworkGraphMLPanel() {
         .eq('is_active', true);
 
       // Fetch relationships
-      const { data: relationships } = await (supabase as any)
+      const { data: relationships } = await supabase
         .from('contact_relationships')
         .select('*')
         .eq('user_id', user!.id);
 
       // Fetch groups
-      const { data: groups } = await (supabase as any)
+      const { data: groups } = await supabase
         .from('contact_groups')
         .select('id, name')
         .eq('user_id', user!.id);
 
       // Fetch group memberships
-      const { data: memberships } = await (supabase as any)
-        .from('group_members')
-        .select('group_id, profile_id')
-        .eq('user_id', user!.id);
+      const { data: memberships } = await supabase
+        .from('contact_group_members')
+        .select('group_id, profile_id') as { data: any };
+
 
       // Fetch network metrics if available
-      const { data: metrics } = await (supabase as any)
-        .from('network_metrics')
-        .select('*')
-        .eq('user_id', user!.id);
+      // Network metrics table doesn't exist - derive from relationships
+      const metrics: any[] = [];
 
       return processNetworkData(profiles || [], relationships || [], groups || [], memberships || [], metrics || []);
     },

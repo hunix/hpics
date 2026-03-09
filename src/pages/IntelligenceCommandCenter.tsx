@@ -101,7 +101,7 @@ export default function IntelligenceCommandCenter() {
     queryFn: async () => {
       if (!user?.id) return [] as Array<{ component: string; status: string | null; last_heartbeat: string | null; metrics: unknown }>;
       
-      const { data, error } = await (supabase as any)
+       const { data, error } = await (supabase as any)
         .from("system_health")
         .select("component, status, last_heartbeat")
         .eq("user_id", user.id);

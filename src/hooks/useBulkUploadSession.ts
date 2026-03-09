@@ -168,7 +168,7 @@ export function useBulkUploadSession() {
       const resumableUntil = new Date();
       resumableUntil.setHours(resumableUntil.getHours() + 24);
 
-      const { data: dbSession, error } = await (supabase as any)
+      const { data: dbSession, error } = await supabase
         .from('bulk_upload_sessions')
         .insert({
           user_id: userIdRef.current,
@@ -200,7 +200,7 @@ export function useBulkUploadSession() {
         sort_order: i,
       }));
 
-      const { data: dbItems } = await (supabase as any)
+      const { data: dbItems } = await supabase
         .from('bulk_upload_items')
         .insert(itemInserts)
         .select('id, sort_order');
@@ -294,7 +294,7 @@ export function useBulkUploadSession() {
     if (!queueRef.current || !session) return;
     setIsProcessing(true);
     setSession(prev => prev ? { ...prev, startedAt: new Date() } : null);
-    await (supabase as any)
+    await supabase
       .from('bulk_upload_sessions')
       .update({ 
         status: 'uploading', 
@@ -309,7 +309,7 @@ export function useBulkUploadSession() {
   const pause = useCallback(() => {
     queueRef.current?.pause();
     if (session?.id) {
-      (supabase as any)
+      supabase
         .from('bulk_upload_sessions')
         .update({ 
           status: 'paused',
@@ -322,7 +322,7 @@ export function useBulkUploadSession() {
 
   const resume = useCallback(async () => {
     if (session?.id) {
-      await (supabase as any)
+      await supabase
         .from('bulk_upload_sessions')
         .update({ 
           status: 'uploading',
@@ -337,7 +337,7 @@ export function useBulkUploadSession() {
   const cancel = useCallback(() => {
     queueRef.current?.cancel();
     if (session?.id) {
-      (supabase as any)
+      supabase
         .from('bulk_upload_sessions')
         .update({ 
           status: 'cancelled',
@@ -378,7 +378,7 @@ export function useBulkUploadSession() {
   }): Promise<BulkUploadHistorySession[]> => {
     if (!userIdRef.current) return [];
 
-    let query = (supabase as any)
+    let query = supabase
       .from('bulk_upload_sessions')
       .select(`
         id,
@@ -443,7 +443,7 @@ export function useBulkUploadSession() {
 
     try {
       // Fetch session and items
-      const { data: sessionData, error: sessionError } = await (supabase as any)
+      const { data: sessionData, error: sessionError } = await supabase
         .from('bulk_upload_sessions')
         .select('*, profiles(first_name, last_name)')
         .eq('id', sessionId)
@@ -458,7 +458,7 @@ export function useBulkUploadSession() {
         throw new Error('Session has expired and cannot be resumed');
       }
 
-      const { data: items, error: itemsError } = await (supabase as any)
+      const { data: items, error: itemsError } = await supabase
         .from('bulk_upload_items')
         .select('*')
         .eq('session_id', sessionId)

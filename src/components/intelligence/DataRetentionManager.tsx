@@ -51,14 +51,21 @@ export function DataRetentionManager() {
     queryFn: async () => {
       if (!user?.id) return [];
       
-      const { data, error } = await (supabase as any)
+       const { data, error } = await supabase
         .from("deletion_requests")
-        .select("id, deletion_scope, status, requested_at, processed_at, reason")
+        .select("id, deletion_scope, status, requested_at, executed_at, scope_parameters")
         .eq("user_id", user.id)
         .order("requested_at", { ascending: false });
       
       if (error) throw error;
-      return (data || []) as DeletionRequest[];
+      return (data || []).map((d: any) => ({
+        id: d.id,
+        deletion_scope: d.deletion_scope,
+        status: d.status,
+        requested_at: d.requested_at,
+        processed_at: d.executed_at,
+        reason: (d.scope_parameters as any)?.reason || '',
+      })) as DeletionRequest[];
     },
     enabled: !!user?.id,
   });
@@ -68,11 +75,11 @@ export function DataRetentionManager() {
     queryFn: async () => {
       if (!user?.id) return [];
       
-      const { data, error } = await (supabase as any)
+       const { data, error } = await supabase
         .from("source_asset_registry")
-        .select("id, asset_type, analysis_count, is_deleted, created_at")
+        .select("id, asset_type, analysis_count, deleted_at, created_at")
         .eq("user_id", user.id)
-        .eq("is_deleted", false)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(50);
       
@@ -86,14 +93,14 @@ export function DataRetentionManager() {
     mutationFn: async ({ targetType, targetId, reason }: { targetType: string; targetId: string; reason: string }) => {
       if (!user?.id) throw new Error("Not authenticated");
       
-      const { data, error } = await (supabase as any)
+       const { data, error } = await supabase
         .from("deletion_requests")
-        .insert({
+        .insert([{
           user_id: user.id,
           deletion_scope: targetType,
-          reason,
+          scope_parameters: { reason } as unknown as import('@/types/database-helpers').Json,
           status: "pending",
-        })
+        }])
         .select()
         .single();
       
@@ -115,7 +122,7 @@ export function DataRetentionManager() {
 
   const cancelDeletionMutation = useMutation({
     mutationFn: async (requestId: string) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("deletion_requests")
         .update({ status: "cancelled" })
         .eq("id", requestId);

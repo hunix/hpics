@@ -258,7 +258,7 @@ function AGISPhaseHealthGrid() {
     queryKey: ['agis-global-health', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-      const { data } = await (supabase as any)
+      const { data } = await supabase
         .from('agis_global_state')
         .select('*')
         .eq('user_id', user.id)
@@ -367,7 +367,7 @@ function SystemMetricsOverview() {
       const [logsResult, cacheResult, analyticsResult] = await Promise.all([
         supabase.from('ai_usage_logs').select('*', { count: 'exact', head: true }),
         supabase.from('ai_request_cache').select('*', { count: 'exact', head: true }),
-        (supabase as any).from('agis_analytics').select('*', { count: 'exact', head: true }),
+        supabase.from('agis_analytics').select('*', { count: 'exact', head: true }),
       ]);
       
       return {

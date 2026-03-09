@@ -88,7 +88,7 @@ export function CostAnalyticsDashboard() {
   const { data: anomalies } = useQuery({
     queryKey: ['cost-anomalies', user?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+       const { data, error } = await (supabase as any)
         .from('cost_anomaly_alerts')
         .select('*')
         .eq('user_id', user!.id)

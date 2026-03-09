@@ -451,7 +451,7 @@ export class BulkUploadQueue {
     if (table === 'media') {
       const mediaType = getMediaType(item.category);
       
-      const { data, error } = await (supabase as any)
+       const { data, error } = await supabase
         .from('media')
         .insert({
           user_id: this.userId!,
@@ -470,17 +470,17 @@ export class BulkUploadQueue {
     }
     
     if (table === 'documents') {
-      const { data, error } = await (supabase as any)
+       const { data, error } = await supabase
         .from('documents')
-        .insert({
+        .insert([{
           user_id: this.userId!,
           profile_id: this.profileId,
           title: item.filename,
-          document_type: 'general',
+          document_type: 'other',
           file_url: urlData.publicUrl,
           storage_path: storagePath,
           file_size: item.fileSize,
-        })
+        }])
         .select('id')
         .single();
       
@@ -489,7 +489,7 @@ export class BulkUploadQueue {
     }
     
     if (table === 'meeting_recordings') {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('meeting_recordings')
         .insert({
           user_id: this.userId!,

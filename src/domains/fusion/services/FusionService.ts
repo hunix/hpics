@@ -315,8 +315,8 @@ export class FusionService {
     }
 
     // Fallback: Direct Supabase query
-    const { data: existing } = await (supabase as any)
-      .from('behavioral_twins')
+    const { data: existing } = await supabase
+      .from('digital_twins')
       .select('*')
       .eq('profile_id', profileId)
       .single();
@@ -326,12 +326,12 @@ export class FusionService {
           existing.id,
           profileId,
           user.id,
-          existing.twin_version,
-          existing.behavior_patterns || [],
-          existing.simulation_history || [],
-          existing.metrics,
-          existing.model_state || {},
-          existing.is_active
+          (existing.twin_state as any)?.version || 1,
+          (existing.behavioral_parameters as unknown as any[]) || [],
+          (existing.simulation_history as unknown as any[]) || [],
+          existing.calibration_accuracy ? { accuracy: existing.calibration_accuracy, calibrationScore: existing.calibration_accuracy, predictionCount: 0, correctPredictions: 0, lastCalibrated: new Date(existing.last_calibration_at || Date.now()) } : undefined,
+          (existing.twin_state as any) || {},
+          existing.is_active ?? true
         )
       : new DigitalTwin(
           crypto.randomUUID(),
@@ -343,20 +343,19 @@ export class FusionService {
     patterns.forEach(pattern => twin.addBehaviorPattern(pattern));
 
     // Save to database
-    const { error } = await (supabase as any)
-      .from('behavioral_twins')
-      .upsert({
+    const { error } = await supabase
+      .from('digital_twins')
+      .upsert([{
         id: twin.id,
         profile_id: twin.profileId,
         user_id: twin.userId,
-        twin_version: twin.twinVersion,
-        behavior_patterns: twin.behaviorPatterns,
-        simulation_history: twin.simulationHistory,
-        metrics: twin.metrics,
-        model_state: twin.modelState,
+        behavioral_parameters: twin.behaviorPatterns as unknown as import('@/integrations/supabase/types').Json,
+        simulation_history: twin.simulationHistory as unknown as import('@/integrations/supabase/types').Json,
+        twin_state: { ...twin.modelState, version: twin.twinVersion } as unknown as import('@/integrations/supabase/types').Json,
+        calibration_accuracy: twin.metrics?.calibrationScore || null,
         is_active: twin.isActive,
         updated_at: new Date().toISOString(),
-      });
+      }]);
 
     if (error) {
       console.error('[FusionService] Failed to update digital twin:', error);

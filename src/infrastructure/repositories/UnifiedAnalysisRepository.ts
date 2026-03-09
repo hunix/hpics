@@ -77,7 +77,7 @@ export interface AnalysisFilters {
 }
 
 // Table name constant - unified table is now created (Phase 1 complete)
-const TABLE_NAME = 'unified_analysis_store';
+const TABLE_NAME = 'unified_analysis_store' as const;
 
 /**
  * Repository for unified analysis operations.
@@ -98,21 +98,21 @@ export class UnifiedAnalysisRepository {
     try {
       if (this.useUnifiedTable) {
         // Use new unified table (after Phase 1 migration)
-        const { data, error } = await (supabase as any)
+         const { data, error } = await supabase
           .from(TABLE_NAME)
-          .upsert({
+           .upsert([{
             user_id: input.userId,
             profile_id: input.profileId || null,
             analysis_domain: input.domain,
             analysis_type: input.type,
-            result: input.result,
+            result: input.result as unknown as import('@/integrations/supabase/types').Json,
             confidence_score: input.confidence || null,
             risk_level: input.riskLevel || null,
             source_ids: input.sourceIds || [],
             model_used: input.modelUsed || null,
             processing_time_ms: input.processingTimeMs || null,
             expires_at: input.expiresAt || null,
-          }, { 
+          }], { 
             onConflict: 'user_id,profile_id,analysis_type',
             ignoreDuplicates: false 
           })
@@ -170,7 +170,7 @@ export class UnifiedAnalysisRepository {
   ): Promise<UnifiedAnalysis | null> {
     try {
       if (this.useUnifiedTable) {
-        const { data, error } = await (supabase as any)
+         const { data, error } = await supabase
           .from(TABLE_NAME)
           .select('*')
           .eq('user_id', userId)
@@ -215,7 +215,7 @@ export class UnifiedAnalysisRepository {
   ): Promise<UnifiedAnalysis[]> {
     try {
       if (this.useUnifiedTable) {
-        let query = (supabase as any)
+        let query = supabase
           .from(TABLE_NAME)
           .select('*')
           .eq('user_id', userId)
@@ -283,7 +283,7 @@ export class UnifiedAnalysisRepository {
   ): Promise<UnifiedAnalysis[]> {
     try {
       if (this.useUnifiedTable) {
-        const { data, error } = await (supabase as any)
+         const { data, error } = await supabase
           .from(TABLE_NAME)
           .select('*')
           .eq('user_id', userId)

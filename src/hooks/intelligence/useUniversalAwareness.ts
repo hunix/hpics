@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import type { Json } from '@/types/database-helpers';
 
 export interface UniversalAwareness {
   id: string;
@@ -23,7 +24,7 @@ export function useUniversalAwareness(profileId?: string) {
   const { data: awareness, isLoading } = useQuery({
     queryKey: ['universal-awareness', profileId],
     queryFn: async () => {
-      let query = (supabase as any)
+      let query = supabase
         .from('universal_awareness')
         .select('*')
         .order('created_at', { ascending: false });
@@ -52,15 +53,15 @@ export function useUniversalAwareness(profileId?: string) {
 
   const expandAwareness = useMutation({
     mutationFn: async (input: { awarenessType: string; dimensionalScope?: Record<string, unknown>; perceptionDepth?: number }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('universal_awareness')
-        .insert({
+        .insert([{
           user_id: user!.id,
           awareness_type: input.awarenessType,
-          dimensional_scope: input.dimensionalScope || {},
+          dimensional_scope: (input.dimensionalScope || {}) as unknown as Json,
           perception_depth: input.perceptionDepth || 1,
           profile_id: profileId,
-        })
+        }])
         .select()
         .single();
       if (error) throw error;
@@ -71,7 +72,7 @@ export function useUniversalAwareness(profileId?: string) {
 
   const updateOmniscience = useMutation({
     mutationFn: async ({ id, omniscientIndex }: { id: string; omniscientIndex: number }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('universal_awareness')
         .update({ omniscient_index: omniscientIndex, updated_at: new Date().toISOString() })
         .eq('id', id)
