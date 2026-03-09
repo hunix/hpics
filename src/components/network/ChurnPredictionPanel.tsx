@@ -241,7 +241,7 @@ export function ChurnPredictionPanel() {
                       <div className="flex flex-wrap gap-1 mb-2">
                         {prediction.ccpNet.riskFactors.slice(0, 3).map((f, i) => (
                           <Badge key={i} variant="secondary" className="text-xs">
-                            {f.factor}: {(f.contribution * 100).toFixed(0)}%
+                            {f.factor}: {(f.impact * 100).toFixed(0)}%
                           </Badge>
                         ))}
                       </div>
