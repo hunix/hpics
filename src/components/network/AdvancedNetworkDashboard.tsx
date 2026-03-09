@@ -120,7 +120,7 @@ export function AdvancedNetworkDashboard() {
       // TempRL-IM Influence Maximization
       let influenceResult: TemporalInfluenceResult | null = null;
       try {
-        influenceResult = maximizeTemporalInfluence(nodes, links, { seedBudget: 5 });
+        influenceResult = maximizeTemporalInfluence(nodes, links, 5, 10);
       } catch (e) {
         if (e instanceof Error) console.warn('[TempRL-IM] Failed:', e.message);
       }
