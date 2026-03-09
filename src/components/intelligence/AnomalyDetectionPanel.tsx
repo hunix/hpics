@@ -79,8 +79,8 @@ export function AnomalyDetectionPanel() {
         .sort((a, b) => new Date(a.detectedAt).getTime() - new Date(b.detectedAt).getTime())
         .map(a => ({
           timestamp: new Date(a.detectedAt).getTime(),
-          value: a.confidence,
-          dimensions: {
+          values: {
+            confidence: a.confidence,
             severity: a.severity === 'critical' ? 1 : a.severity === 'high' ? 0.75 : a.severity === 'medium' ? 0.5 : 0.25,
           },
         }));
