@@ -141,9 +141,9 @@ export function MicroExpressionAnalyzer({ profileId, mediaUrl }: MicroExpression
                   {spotFormerResults.spots.length} micro-expressions spotted
                 </p>
               </div>
-              {spotFormerResults.deceptionAnalysis && (
-                <Badge variant={spotFormerResults.deceptionAnalysis.isDeceptive ? 'destructive' : 'default'} className="ml-auto">
-                  {spotFormerResults.deceptionAnalysis.isDeceptive ? 'Deception Detected' : 'Consistent'}
+              {spotFormerResults.deceptionIndicators && (
+                <Badge variant={spotFormerResults.deceptionIndicators.overallDeceptionProbability > 0.5 ? 'destructive' : 'default'} className="ml-auto">
+                  {spotFormerResults.deceptionIndicators.overallDeceptionProbability > 0.5 ? 'Deception Detected' : 'Consistent'}
                 </Badge>
               )}
             </div>
