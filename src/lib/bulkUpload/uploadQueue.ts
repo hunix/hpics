@@ -451,7 +451,7 @@ export class BulkUploadQueue {
     if (table === 'media') {
       const mediaType = getMediaType(item.category);
       
-      const { data, error } = await (supabase as any)
+       const { data, error } = await supabase
         .from('media')
         .insert({
           user_id: this.userId!,
