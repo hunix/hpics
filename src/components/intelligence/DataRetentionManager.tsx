@@ -81,7 +81,7 @@ export function DataRetentionManager() {
         .eq("user_id", user.id)
         .eq("is_deleted", false)
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(50) as { data: any; error: any };
       
       if (error) throw error;
       return data || [];
