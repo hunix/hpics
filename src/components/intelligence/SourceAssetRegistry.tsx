@@ -88,7 +88,7 @@ export function SourceAssetRegistry() {
     queryFn: async () => {
       if (!user?.id) return {};
       
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("analysis_events")
         .select("source_registry_id")
         .eq("user_id", user.id)

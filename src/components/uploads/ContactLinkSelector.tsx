@@ -82,7 +82,7 @@ export function ContactLinkSelector({
     queryFn: async () => {
       if (!selectedContactId) return null;
       
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, avatar_url')
         .eq('id', selectedContactId)

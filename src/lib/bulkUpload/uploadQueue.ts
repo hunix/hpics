@@ -489,7 +489,7 @@ export class BulkUploadQueue {
     }
     
     if (table === 'meeting_recordings') {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('meeting_recordings')
         .insert({
           user_id: this.userId!,

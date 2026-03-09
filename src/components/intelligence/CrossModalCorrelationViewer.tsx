@@ -76,7 +76,7 @@ export function CrossModalCorrelationViewer({ profileId }: CrossModalCorrelation
     queryFn: async () => {
       if (!user?.id) return [];
       
-      let query = (supabase as any)
+      let query = supabase
         .from("cross_modal_correlations")
         .select("*")
         .eq("user_id", user.id)
