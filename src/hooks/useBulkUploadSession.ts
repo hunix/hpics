@@ -378,7 +378,7 @@ export function useBulkUploadSession() {
   }): Promise<BulkUploadHistorySession[]> => {
     if (!userIdRef.current) return [];
 
-    let query = (supabase as any)
+    let query = supabase
       .from('bulk_upload_sessions')
       .select(`
         id,
