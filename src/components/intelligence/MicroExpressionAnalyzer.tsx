@@ -148,7 +148,7 @@ export function MicroExpressionAnalyzer({ profileId, mediaUrl }: MicroExpression
               )}
             </div>
             <div className="grid grid-cols-3 gap-3">
-              {spotFormerResults.microExpressions.slice(0, 3).map((me, i) => (
+              {spotFormerResults.spots.slice(0, 3).map((me, i) => (
                 <div key={i} className="p-2 bg-background rounded-lg text-sm">
                   <div className="flex items-center gap-1 mb-1">
                     <Sparkles className="h-3 w-3 text-cyan-500" />
