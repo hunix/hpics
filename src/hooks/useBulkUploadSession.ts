@@ -294,7 +294,7 @@ export function useBulkUploadSession() {
     if (!queueRef.current || !session) return;
     setIsProcessing(true);
     setSession(prev => prev ? { ...prev, startedAt: new Date() } : null);
-    await (supabase as any)
+    await supabase
       .from('bulk_upload_sessions')
       .update({ 
         status: 'uploading', 
