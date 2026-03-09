@@ -100,19 +100,19 @@ export class UnifiedAnalysisRepository {
         // Use new unified table (after Phase 1 migration)
          const { data, error } = await supabase
           .from(TABLE_NAME)
-          .upsert({
+           .upsert([{
             user_id: input.userId,
             profile_id: input.profileId || null,
             analysis_domain: input.domain,
             analysis_type: input.type,
-            result: input.result,
+            result: input.result as unknown as import('@/integrations/supabase/types').Json,
             confidence_score: input.confidence || null,
             risk_level: input.riskLevel || null,
             source_ids: input.sourceIds || [],
             model_used: input.modelUsed || null,
             processing_time_ms: input.processingTimeMs || null,
             expires_at: input.expiresAt || null,
-          }, { 
+          }], { 
             onConflict: 'user_id,profile_id,analysis_type',
             ignoreDuplicates: false 
           })
