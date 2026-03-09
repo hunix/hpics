@@ -374,7 +374,7 @@ export function MicroExpressionAnalyzer({ profileId, mediaUrl }: MicroExpression
                 <div className="space-y-4">
                   <div className="grid grid-cols-3 gap-4">
                     <div className="p-3 bg-muted/50 rounded-lg text-center">
-                      <p className="text-2xl font-bold text-cyan-500">{spotFormerResults.microExpressions.length}</p>
+                      <p className="text-2xl font-bold text-cyan-500">{spotFormerResults.spots.length}</p>
                       <p className="text-xs text-muted-foreground">Micro-Expressions</p>
                     </div>
                     <div className="p-3 bg-muted/50 rounded-lg text-center">
