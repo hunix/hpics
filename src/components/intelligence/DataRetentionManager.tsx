@@ -51,7 +51,7 @@ export function DataRetentionManager() {
     queryFn: async () => {
       if (!user?.id) return [];
       
-      const { data, error } = await (supabase as any)
+       const { data, error } = await supabase
         .from("deletion_requests")
         .select("id, deletion_scope, status, requested_at, processed_at, reason")
         .eq("user_id", user.id)
