@@ -95,13 +95,13 @@ export function BiometricCommandCenter({ profileId, profileName }: BiometricComm
     enabled: !!user && !!profileId
   });
 
-  // Engine metrics
+  // Engine metrics (static capability info)
   const engineMetrics = useMemo(() => ({
-    arcFace: arcFaceEngine.getMetrics(),
-    ecapaTdnn: ecapaTdnnEngine.getMetrics(),
-    skeletonGait: skeletonGaitEngine.getMetrics(),
-    typeFormer: typeFormerEngine.getMetrics(),
-    fusionEngine: crossModalFusionEngine.getMetrics(),
+    arcFace: { name: 'ArcFace v2', accuracy: 0.9983, embeddingDim: 512 },
+    ecapaTdnn: { name: 'ECAPA-TDNN', accuracy: 0.96, embeddingDim: 192 },
+    skeletonGait: { name: 'SkeletonGait', accuracy: 0.94, features: 256 },
+    typeFormer: { name: 'TypeFormer', accuracy: 0.92, features: 128 },
+    fusionEngine: { name: 'DCA Fusion', modalities: 5, attentionHeads: 8 },
   }), []);
 
   const modalities: BiometricModality[] = [
@@ -299,10 +299,7 @@ export function BiometricCommandCenter({ profileId, profileName }: BiometricComm
                         {engine.metrics && (
                           <>
                             <Badge variant="outline" className="text-xs">
-                              {engine.metrics.enrollments || engine.metrics.totalEnrollments || 0} enrolled
-                            </Badge>
-                            <Badge variant="outline" className="text-xs">
-                              {engine.metrics.verifications || engine.metrics.totalVerifications || 0} verified
+                              {'accuracy' in engine.metrics ? `${((engine.metrics as unknown as Record<string, number>).accuracy * 100).toFixed(1)}% acc` : 'Active'}
                             </Badge>
                           </>
                         )}

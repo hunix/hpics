@@ -76,20 +76,19 @@ export function ChurnPredictionPanel() {
     if (!data?.predictions) return [];
     
     return data.predictions.map(p => {
+      const contactFreqVal = p.features.contact_frequency_trend === 'declining' ? -0.5 :
+        p.features.contact_frequency_trend === 'stable' ? 0 : 0.5;
+      const sentimentVal = p.features.sentiment_trajectory === 'declining' ? -0.5 :
+        p.features.sentiment_trajectory === 'improving' ? 0.5 : 0;
+      const engagementVal = p.features.engagement_level === 'low' ? 0.2 :
+        p.features.engagement_level === 'medium' ? 0.5 : 0.8;
       const featureVector: ChurnFeatureVector = {
-        daysSinceLastContact: p.features.days_since_contact,
-        contactFrequencyTrend: p.features.contact_frequency_trend === 'declining' ? -0.5 :
-          p.features.contact_frequency_trend === 'stable' ? 0 : 0.5,
-        sentimentTrajectory: p.features.sentiment_trajectory === 'declining' ? -0.5 :
-          p.features.sentiment_trajectory === 'improving' ? 0.5 : 0,
-        engagementLevel: p.features.engagement_level === 'low' ? 0.2 :
-          p.features.engagement_level === 'medium' ? 0.5 : 0.8,
-        reciprocityRatio: 0.5,
-        responseLatencyTrend: 0,
-        topicDiversityTrend: 0,
-        networkCentrality: 0.3,
-        sharedConnectionsCount: 5,
-        relationshipAge: 365,
+        contactFrequency: [engagementVal, engagementVal * 0.9, engagementVal * 0.8],
+        sentimentTrend: [sentimentVal + 0.5, sentimentVal + 0.4, sentimentVal + 0.3],
+        responseLatency: [0.3, 0.35, 0.4],
+        initiationRatio: [contactFreqVal + 0.5, contactFreqVal + 0.4, contactFreqVal + 0.3],
+        topicDiversity: [0.5, 0.45, 0.4],
+        emotionalIntensity: [0.5, 0.5, 0.5],
       };
       
       const prediction = ccpNetEngine.predict(featureVector);
@@ -225,7 +224,7 @@ export function ChurnPredictionPanel() {
           <ScrollArea className="h-[350px]">
             <div className="space-y-3">
               {localPredictions.filter(p => p.ccpNet.churnProbability > 0.2).map(prediction => (
-                <div key={prediction.profile_id} className={`p-4 rounded-lg border ${getRiskBg(prediction.ccpNet.riskLevel)}`}>
+                <div key={prediction.profile_id} className={`p-4 rounded-lg border ${getRiskBg(prediction.ccpNet.churnProbability > 0.7 ? 'critical' : prediction.ccpNet.churnProbability > 0.5 ? 'high' : prediction.ccpNet.churnProbability > 0.3 ? 'medium' : 'low')}`}>
                   <div className="flex items-start gap-3">
                     <Avatar className="h-10 w-10">
                       <AvatarImage src={prediction.avatar_url} />
@@ -234,7 +233,7 @@ export function ChurnPredictionPanel() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-medium">{prediction.name}</span>
-                        <Badge variant="outline" className={getRiskColor(prediction.ccpNet.riskLevel)}>
+                        <Badge variant="outline" className={getRiskColor(prediction.ccpNet.churnProbability > 0.7 ? 'critical' : prediction.ccpNet.churnProbability > 0.5 ? 'high' : prediction.ccpNet.churnProbability > 0.3 ? 'medium' : 'low')}>
                           CCP-Net: {(prediction.ccpNet.churnProbability * 100).toFixed(0)}%
                         </Badge>
                       </div>
@@ -242,13 +241,13 @@ export function ChurnPredictionPanel() {
                       <div className="flex flex-wrap gap-1 mb-2">
                         {prediction.ccpNet.riskFactors.slice(0, 3).map((f, i) => (
                           <Badge key={i} variant="secondary" className="text-xs">
-                            {f.factor}: {(f.contribution * 100).toFixed(0)}%
+                            {f.factor}: {(f.impact * 100).toFixed(0)}%
                           </Badge>
                         ))}
                       </div>
                       <p className="text-xs text-muted-foreground">
                         Confidence: {(prediction.ccpNet.confidence * 100).toFixed(0)}% • 
-                        Predicted churn in ~{prediction.ccpNet.timeToChurnDays} days
+                        Predicted churn in ~{prediction.ccpNet.timeToChurn} days
                       </p>
                     </div>
                   </div>

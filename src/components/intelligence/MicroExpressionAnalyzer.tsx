@@ -52,7 +52,11 @@ export function MicroExpressionAnalyzer({ profileId, mediaUrl }: MicroExpression
           mouthRegion: 0.4,
         },
       }));
-      return spotFormerEngine.analyze(frames);
+      return spotFormerEngine.analyzeFrameSequence(frames.map(f => ({
+        landmarks: [[f.facialRegions.upperFace, f.facialRegions.lowerFace, f.facialRegions.eyeRegion, f.facialRegions.mouthRegion]],
+        timestamp: f.timestamp,
+        features: [f.flowMagnitude, f.flowDirection],
+      })), 30);
     } catch (e) {
       if (e instanceof Error) console.warn('[SpotFormer] Analysis failed:', e.message);
       return null;
@@ -68,7 +72,8 @@ export function MicroExpressionAnalyzer({ profileId, mediaUrl }: MicroExpression
         confidence: r.detectedEmotions?.[0]?.confidence || 0,
         timestamp: r.timestampMs || 0,
       }));
-      return transformerEmotionEngine.analyzeSequence(emotionSignals);
+      const textSignal = emotionSignals.map(s => s.emotion).join(' ');
+      return transformerEmotionEngine.analyzeText(textSignal);
     } catch (e) {
       if (e instanceof Error) console.warn('[TransformerEmotion] Failed:', e.message);
       return null;
@@ -125,7 +130,7 @@ export function MicroExpressionAnalyzer({ profileId, mediaUrl }: MicroExpression
       </div>
 
       {/* SpotFormer Deception Alert */}
-      {spotFormerResults && spotFormerResults.microExpressions.length > 0 && (
+      {spotFormerResults && spotFormerResults.spots.length > 0 && (
         <Card className="border-cyan-500/50 bg-cyan-500/5">
           <CardContent className="py-4">
             <div className="flex items-center gap-3 mb-3">
@@ -133,17 +138,17 @@ export function MicroExpressionAnalyzer({ profileId, mediaUrl }: MicroExpression
               <div>
                 <p className="font-medium text-cyan-600 dark:text-cyan-400">SpotFormer Micro-Expression Detection (AAAI 2024)</p>
                 <p className="text-sm text-muted-foreground">
-                  {spotFormerResults.microExpressions.length} micro-expressions spotted
+                  {spotFormerResults.spots.length} micro-expressions spotted
                 </p>
               </div>
-              {spotFormerResults.deceptionAnalysis && (
-                <Badge variant={spotFormerResults.deceptionAnalysis.isDeceptive ? 'destructive' : 'default'} className="ml-auto">
-                  {spotFormerResults.deceptionAnalysis.isDeceptive ? 'Deception Detected' : 'Consistent'}
+              {spotFormerResults.deceptionIndicators && (
+                <Badge variant={spotFormerResults.deceptionIndicators.overallDeceptionProbability > 0.5 ? 'destructive' : 'default'} className="ml-auto">
+                  {spotFormerResults.deceptionIndicators.overallDeceptionProbability > 0.5 ? 'Deception Detected' : 'Consistent'}
                 </Badge>
               )}
             </div>
             <div className="grid grid-cols-3 gap-3">
-              {spotFormerResults.microExpressions.slice(0, 3).map((me, i) => (
+              {spotFormerResults.spots.slice(0, 3).map((me, i) => (
                 <div key={i} className="p-2 bg-background rounded-lg text-sm">
                   <div className="flex items-center gap-1 mb-1">
                     <Sparkles className="h-3 w-3 text-cyan-500" />
@@ -238,11 +243,11 @@ export function MicroExpressionAnalyzer({ profileId, mediaUrl }: MicroExpression
                     <Badge variant="secondary" className="text-xs">26+ emotions</Badge>
                   </div>
                   <div className="space-y-1">
-                    {granularEmotions.topEmotions.slice(0, 6).map((emo, idx) => (
+                    {granularEmotions.topPredictions.slice(0, 6).map((emo, idx) => (
                       <div key={idx} className="flex items-center gap-2">
                         <span className="text-xs capitalize w-20 truncate">{emo.emotion}</span>
-                        <Progress value={emo.confidence * 100} className="flex-1 h-1.5" />
-                        <span className="text-xs text-muted-foreground w-8">{Math.round(emo.confidence * 100)}%</span>
+                        <Progress value={emo.probability * 100} className="flex-1 h-1.5" />
+                        <span className="text-xs text-muted-foreground w-8">{Math.round(emo.probability * 100)}%</span>
                       </div>
                     ))}
                   </div>
@@ -369,32 +374,32 @@ export function MicroExpressionAnalyzer({ profileId, mediaUrl }: MicroExpression
                 <div className="space-y-4">
                   <div className="grid grid-cols-3 gap-4">
                     <div className="p-3 bg-muted/50 rounded-lg text-center">
-                      <p className="text-2xl font-bold text-cyan-500">{spotFormerResults.microExpressions.length}</p>
+                      <p className="text-2xl font-bold text-cyan-500">{spotFormerResults.spots.length}</p>
                       <p className="text-xs text-muted-foreground">Micro-Expressions</p>
                     </div>
                     <div className="p-3 bg-muted/50 rounded-lg text-center">
                       <p className="text-2xl font-bold">
-                        {spotFormerResults.deceptionAnalysis ? (spotFormerResults.deceptionAnalysis.confidence * 100).toFixed(0) : 0}%
+                        {spotFormerResults.deceptionIndicators ? (spotFormerResults.deceptionIndicators.overallDeceptionProbability * 100).toFixed(0) : 0}%
                       </p>
                       <p className="text-xs text-muted-foreground">Deception Confidence</p>
                     </div>
                     <div className="p-3 bg-muted/50 rounded-lg text-center">
                       <p className="text-2xl font-bold">
-                        {spotFormerResults.attentionMap.length}
+                        {spotFormerResults.temporalResolutions.length}
                       </p>
-                      <p className="text-xs text-muted-foreground">Attention Regions</p>
+                      <p className="text-xs text-muted-foreground">Temporal Scales</p>
                     </div>
                   </div>
                   <ScrollArea className="h-[250px]">
                     <div className="space-y-3">
-                      {spotFormerResults.microExpressions.map((me, i) => (
+                      {spotFormerResults.spots.map((me, i) => (
                         <div key={i} className="p-3 border rounded-lg">
                           <div className="flex items-center justify-between mb-1">
                             <Badge variant="outline" className="capitalize">{me.emotion}</Badge>
                             <span className="text-sm">{(me.confidence * 100).toFixed(0)}% confidence</span>
                           </div>
                           <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            <span>Start: {me.startFrame}ms</span>
+                            <span>Onset: {me.onset}</span>
                             <span>Duration: {me.durationMs}ms</span>
                             <span>Intensity: {(me.intensity * 100).toFixed(0)}%</span>
                           </div>

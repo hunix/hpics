@@ -34,7 +34,7 @@ export function PersonalityRadarChart({ profile }: PersonalityRadarChartProps) {
       ].filter(Boolean).join('. ');
       
       if (!textSignals) return null;
-      return oceanAiEngine.analyzeText(textSignals);
+      return oceanAiEngine.assessFromText(textSignals);
     } catch (e) {
       if (e instanceof Error) console.warn('[OCEAN-AI] Enhancement failed:', e.message);
       return null;
@@ -51,7 +51,7 @@ export function PersonalityRadarChart({ profile }: PersonalityRadarChartProps) {
         ...(darkTriad.psychopathy?.indicators || []),
       ];
       if (evidence.length === 0) return null;
-      return darkTriadDetector.analyze(evidence);
+      return darkTriadDetector.analyzeText(evidence.join('. '));
     } catch (e) {
       if (e instanceof Error) console.warn('[DarkTriad] Enhancement failed:', e.message);
       return null;
@@ -189,13 +189,13 @@ export function PersonalityRadarChart({ profile }: PersonalityRadarChartProps) {
             )}
             <Badge 
               variant={
-                (dtAnalysis?.overallThreatLevel || darkTriad?.overall_risk_level) === 'low' ? 'outline' :
-                (dtAnalysis?.overallThreatLevel || darkTriad?.overall_risk_level) === 'moderate' ? 'secondary' :
+                (dtAnalysis?.riskLevel || darkTriad?.overall_risk_level) === 'low' ? 'outline' :
+                (dtAnalysis?.riskLevel || darkTriad?.overall_risk_level) === 'moderate' ? 'secondary' :
                 'destructive'
               }
               className="text-xs"
             >
-              {dtAnalysis?.overallThreatLevel || darkTriad?.overall_risk_level || 'unknown'} risk
+              {dtAnalysis?.riskLevel || darkTriad?.overall_risk_level || 'unknown'} risk
             </Badge>
           </div>
           <div className="space-y-2 p-3 bg-muted/30 rounded-lg">
@@ -226,8 +226,8 @@ export function PersonalityRadarChart({ profile }: PersonalityRadarChartProps) {
               <div className="mt-2 pt-2 border-t">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium">Manipulation Risk</span>
-                  <Badge variant={dtAnalysis.manipulationRisk > 60 ? 'destructive' : 'outline'} className="text-xs">
-                    {dtAnalysis.manipulationRisk.toFixed(0)}%
+                  <Badge variant={dtAnalysis.scores.overall > 0.6 ? 'destructive' : 'outline'} className="text-xs">
+                    {(dtAnalysis.scores.overall * 100).toFixed(0)}%
                   </Badge>
                 </div>
               </div>

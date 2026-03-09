@@ -79,8 +79,8 @@ export function AnomalyDetectionPanel() {
         .sort((a, b) => new Date(a.detectedAt).getTime() - new Date(b.detectedAt).getTime())
         .map(a => ({
           timestamp: new Date(a.detectedAt).getTime(),
-          value: a.confidence,
-          dimensions: {
+          values: {
+            confidence: a.confidence,
             severity: a.severity === 'critical' ? 1 : a.severity === 'high' ? 0.75 : a.severity === 'medium' ? 0.5 : 0.25,
           },
         }));
@@ -227,7 +227,7 @@ export function AnomalyDetectionPanel() {
                 <p className="text-xs text-muted-foreground">Anomaly Score</p>
               </div>
               <div className="text-center">
-                <p className="text-xl font-bold">{vttResults.trendDirection}</p>
+                <p className="text-xl font-bold">{vttResults.overallAnomalyScore > 0.5 ? '↑' : vttResults.overallAnomalyScore > 0.2 ? '→' : '↓'}</p>
                 <p className="text-xs text-muted-foreground">Trend</p>
               </div>
             </div>
@@ -241,7 +241,7 @@ export function AnomalyDetectionPanel() {
                     </span>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {new Date(a.timestamp).toLocaleDateString()}
+                    {new Date(a.startTimestamp).toLocaleDateString()}
                   </span>
                 </div>
               ))}
