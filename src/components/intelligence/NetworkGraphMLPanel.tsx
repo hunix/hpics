@@ -82,7 +82,7 @@ export function NetworkGraphMLPanel() {
         .eq('is_active', true);
 
       // Fetch relationships
-      const { data: relationships } = await (supabase as any)
+      const { data: relationships } = await supabase
         .from('contact_relationships')
         .select('*')
         .eq('user_id', user!.id);
