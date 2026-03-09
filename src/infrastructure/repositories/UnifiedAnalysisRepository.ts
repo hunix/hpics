@@ -77,7 +77,7 @@ export interface AnalysisFilters {
 }
 
 // Table name constant - unified table is now created (Phase 1 complete)
-const TABLE_NAME = 'unified_analysis_store';
+const TABLE_NAME = 'unified_analysis_store' as const;
 
 /**
  * Repository for unified analysis operations.
