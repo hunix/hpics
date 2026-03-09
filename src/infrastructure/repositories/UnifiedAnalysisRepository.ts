@@ -98,7 +98,7 @@ export class UnifiedAnalysisRepository {
     try {
       if (this.useUnifiedTable) {
         // Use new unified table (after Phase 1 migration)
-        const { data, error } = await (supabase as any)
+         const { data, error } = await supabase
           .from(TABLE_NAME)
           .upsert({
             user_id: input.userId,
