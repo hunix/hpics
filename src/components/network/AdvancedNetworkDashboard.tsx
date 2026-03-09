@@ -496,16 +496,16 @@ export function AdvancedNetworkDashboard() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-3 gap-4 mb-4">
                     <div className="p-3 bg-amber-500/10 rounded-lg text-center">
-                      <p className="text-2xl font-bold text-amber-500">{networkData.influenceResult.seedSet.length}</p>
+                      <p className="text-2xl font-bold text-amber-500">{networkData.influenceResult.seeds.length}</p>
                       <p className="text-xs text-muted-foreground">Seed Nodes</p>
                     </div>
                     <div className="p-3 bg-muted/50 rounded-lg text-center">
-                      <p className="text-2xl font-bold">{networkData.influenceResult.expectedSpread.toFixed(1)}</p>
-                      <p className="text-xs text-muted-foreground">Expected Spread</p>
+                      <p className="text-2xl font-bold">{(networkData.influenceResult.expectedReach * 100).toFixed(1)}%</p>
+                      <p className="text-xs text-muted-foreground">Expected Reach</p>
                     </div>
                     <div className="p-3 bg-muted/50 rounded-lg text-center">
-                      <p className="text-2xl font-bold">{networkData.influenceResult.temporalPhases}</p>
-                      <p className="text-xs text-muted-foreground">Temporal Phases</p>
+                      <p className="text-2xl font-bold">{networkData.influenceResult.optimalTiming.length}</p>
+                      <p className="text-xs text-muted-foreground">Timing Phases</p>
                     </div>
                   </div>
                   <div>
