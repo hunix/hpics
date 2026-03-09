@@ -54,13 +54,13 @@ export function useUniversalAwareness(profileId?: string) {
     mutationFn: async (input: { awarenessType: string; dimensionalScope?: Record<string, unknown>; perceptionDepth?: number }) => {
       const { data, error } = await supabase
         .from('universal_awareness')
-        .insert({
+        .insert([{
           user_id: user!.id,
           awareness_type: input.awarenessType,
-          dimensional_scope: input.dimensionalScope || {},
+          dimensional_scope: (input.dimensionalScope || {}) as unknown as Json,
           perception_depth: input.perceptionDepth || 1,
           profile_id: profileId,
-        })
+        }])
         .select()
         .single();
       if (error) throw error;
