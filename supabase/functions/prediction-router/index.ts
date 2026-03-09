@@ -10,6 +10,35 @@ import type { Context } from 'https://deno.land/x/hono@v3.12.0/mod.ts';
 
 const app = createRouter('prediction-router');
 
+// Analysis type normalization mapping
+const VALID_ANALYSIS_TYPES: Record<string, string> = {
+  'churn': 'churn_prediction',
+  'predict_churn': 'churn',
+  'predict_churn_enhanced': 'churn_enhanced',
+  'behavioral_scenarios': 'behavioral_scenarios',
+  'relationship_trajectory': 'relationship_trajectory',
+  'contact_needs': 'contact_needs',
+  'contact_preferences': 'contact_preferences',
+  'context': 'context_prediction',
+  'risks': 'risk_prediction',
+  'life_sequence': 'life_sequence',
+  'fortune_trajectory': 'fortune_trajectory',
+  'cascade': 'cascade_prediction',
+  'cascade_virality': 'cascade_virality',
+  'collective_behavior': 'collective_behavior',
+  'bayesian_intent': 'bayesian_intent',
+  'bayesian_intention': 'bayesian_intention',
+  'mdp_behavior': 'mdp_behavior',
+  'precognitive': 'precognitive_pattern',
+  'calibration': 'prediction_calibration',
+  'doctrine': 'predictive_doctrine',
+  'opportunity': 'opportunity_prediction',
+  'trajectory': 'trajectory_prediction',
+  'psychoagent_cascade': 'psychoagent_cascade',
+  'investment': 'investment_opportunity',
+  'future_timeline': 'future_timeline',
+};
+
 function createPredictionHandler(predictionType: string, domain: string, prompt: string) {
   return withHandler(async (c: Context) => {
     const { userId, profileId, supabase, body } = getRouterContext(c);
@@ -20,7 +49,7 @@ function createPredictionHandler(predictionType: string, domain: string, prompt:
       ? await supabase.from('profiles').select('*').eq('id', profileId).single()
       : { data: null };
 
-    const model = (body.model as string) || 'google/gemini-2.5-flash';
+    const model = (body.model as string) || 'google/gemini-3-flash-preview';
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
@@ -47,20 +76,23 @@ function createPredictionHandler(predictionType: string, domain: string, prompt:
       prediction = m ? JSON.parse(m[0]) : { raw: content };
     } catch { prediction = { raw: content }; }
 
+    // Normalize analysis type
+    const normalizedType = VALID_ANALYSIS_TYPES[predictionType] || predictionType;
+
     if (profileId) {
       await supabase.from('ai_analyses').upsert({
-        user_id: userId, profile_id: profileId, analysis_type: predictionType,
+        user_id: userId, profile_id: profileId, analysis_type: normalizedType,
         result: prediction, generated_at: new Date().toISOString(),
       }, { onConflict: 'profile_id,analysis_type' });
 
       await supabase.from('unified_prediction_store').upsert({
         user_id: userId, profile_id: profileId,
-        prediction_domain: domain, prediction_type: predictionType,
+        prediction_domain: domain, prediction_type: normalizedType,
         prediction, probability: (prediction.probability as number) || null,
       }, { onConflict: 'user_id,profile_id,prediction_type' }).catch(() => {});
     }
 
-    return c.json({ success: true, profileId, predictionType, prediction, timestamp: new Date().toISOString() });
+    return c.json({ success: true, profileId, predictionType: normalizedType, prediction, timestamp: new Date().toISOString() });
   });
 }
 

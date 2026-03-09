@@ -10,6 +10,24 @@ import type { Context } from 'https://deno.land/x/hono@v3.12.0/mod.ts';
 
 const app = createRouter('security-router');
 
+// Analysis type normalization mapping
+const VALID_ANALYSIS_TYPES: Record<string, string> = {
+  'threat': 'threat_assessment',
+  'trust': 'trust_assessment',
+  'monitor': 'security_monitoring',
+  'threat_analyzer': 'threat_analysis',
+  'opsec': 'opsec_vulnerability',
+  'active_defense': 'active_defense',
+  'adversary': 'adversary_profile',
+  'red_team': 'red_team',
+  'adversary_simulator': 'adversary_simulation',
+  'lawfare': 'lawfare_defense',
+  'forgery': 'forgery_detection',
+  'dark_web': 'dark_web_monitoring',
+  'deanonymization': 'deanonymization',
+  'crisis_response': 'crisis_response',
+};
+
 function createSecurityHandler(analysisType: string, prompt: string) {
   return withHandler(async (c: Context) => {
     const { userId, profileId, supabase, body } = getRouterContext(c);
@@ -20,7 +38,7 @@ function createSecurityHandler(analysisType: string, prompt: string) {
       ? await supabase.from('profiles').select('*').eq('id', profileId).single()
       : { data: null };
 
-    const model = (body.model as string) || 'google/gemini-2.5-flash';
+    const model = (body.model as string) || 'google/gemini-3-flash-preview';
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
@@ -44,14 +62,17 @@ function createSecurityHandler(analysisType: string, prompt: string) {
     let analysis: Record<string, unknown>;
     try { const m = content.match(/\{[\s\S]*\}/); analysis = m ? JSON.parse(m[0]) : { raw: content }; } catch { analysis = { raw: content }; }
 
+    // Normalize analysis type
+    const normalizedType = VALID_ANALYSIS_TYPES[analysisType] || analysisType;
+
     if (profileId) {
       await supabase.from('ai_analyses').upsert({
-        user_id: userId, profile_id: profileId, analysis_type: analysisType,
+        user_id: userId, profile_id: profileId, analysis_type: normalizedType,
         result: analysis, generated_at: new Date().toISOString(),
       }, { onConflict: 'profile_id,analysis_type' });
     }
 
-    return c.json({ success: true, profileId, analysisType, analysis, timestamp: new Date().toISOString() });
+    return c.json({ success: true, profileId, analysisType: normalizedType, analysis, timestamp: new Date().toISOString() });
   });
 }
 

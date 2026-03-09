@@ -10,13 +10,47 @@ import type { Context } from 'https://deno.land/x/hono@v3.12.0/mod.ts';
 
 const app = createRouter('biometric-router');
 
+// Analysis type normalization mapping
+const VALID_ANALYSIS_TYPES: Record<string, string> = {
+  'face_extract': 'facial_biometrics',
+  'face_multiview': 'facial_multiview',
+  'voice_extract': 'voice_biometrics',
+  'voice_advanced': 'voice_advanced',
+  'body_extract': 'body_biometrics',
+  'handwriting': 'handwriting_biometrics',
+  'signature': 'signature_biometrics',
+  'analyze_facial': 'facial_analysis',
+  'analyze_vocal': 'vocal_analysis',
+  'body_language': 'body_language',
+  'gait': 'gait_analysis',
+  'keystroke': 'keystroke_dynamics',
+  'match': 'biometric_match',
+  'mosaic_match': 'mosaic_biometric_match',
+  'cross_identify': 'cross_identification',
+  'local_match': 'local_biometric_match',
+  'behavioral_fusion': 'biometric_behavioral_fusion',
+  'gated_fusion': 'gated_biological_fusion',
+  'gaze': 'gaze_pattern',
+  'pupillometry': 'pupillometry',
+  'microexpression': 'microexpression',
+  'microexpression_timeline': 'microexpression_timeline',
+  'facial_embedding': 'facial_embedding',
+  'enroll_faces': 'face_enrollment',
+  'face_scan_job': 'face_scan',
+  'face_regions': 'face_regions',
+  'realtime_face': 'realtime_face_recognition',
+  'learn_patterns': 'biometric_learning',
+  'deepfake': 'deepfake_detection',
+  'subvocalization': 'subvocalization',
+};
+
 function createBiometricHandler(analysisType: string, prompt: string) {
   return withHandler(async (c: Context) => {
     const { userId, profileId, supabase, body } = getRouterContext(c);
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) return c.json({ error: 'AI not configured' }, 500);
 
-    const model = (body.model as string) || 'google/gemini-2.5-flash';
+    const model = (body.model as string) || 'google/gemini-3-flash-preview';
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
@@ -43,14 +77,17 @@ function createBiometricHandler(analysisType: string, prompt: string) {
       analysis = m ? JSON.parse(m[0]) : { raw: content };
     } catch { analysis = { raw: content }; }
 
+    // Normalize analysis type
+    const normalizedType = VALID_ANALYSIS_TYPES[analysisType] || analysisType;
+
     if (profileId) {
       await supabase.from('ai_analyses').upsert({
-        user_id: userId, profile_id: profileId, analysis_type: analysisType,
+        user_id: userId, profile_id: profileId, analysis_type: normalizedType,
         result: analysis, generated_at: new Date().toISOString(),
       }, { onConflict: 'profile_id,analysis_type' });
     }
 
-    return c.json({ success: true, profileId, analysisType, analysis, timestamp: new Date().toISOString() });
+    return c.json({ success: true, profileId, analysisType: normalizedType, analysis, timestamp: new Date().toISOString() });
   });
 }
 
