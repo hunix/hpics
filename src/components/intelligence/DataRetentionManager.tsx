@@ -53,12 +53,19 @@ export function DataRetentionManager() {
       
        const { data, error } = await supabase
         .from("deletion_requests")
-        .select("id, deletion_scope, status, requested_at, processed_at, reason")
+        .select("id, deletion_scope, status, requested_at, executed_at, scope_parameters")
         .eq("user_id", user.id)
         .order("requested_at", { ascending: false });
       
       if (error) throw error;
-      return (data || []) as DeletionRequest[];
+      return (data || []).map((d: any) => ({
+        id: d.id,
+        deletion_scope: d.deletion_scope,
+        status: d.status,
+        requested_at: d.requested_at,
+        processed_at: d.executed_at,
+        reason: (d.scope_parameters as any)?.reason || '',
+      })) as DeletionRequest[];
     },
     enabled: !!user?.id,
   });
