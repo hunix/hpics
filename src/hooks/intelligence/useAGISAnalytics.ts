@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import type { Json } from '@/types/database-helpers';
+import type { Json, TableInsert } from '@/types/database-helpers';
 
 export interface AnalyticsMetric {
   id: string;

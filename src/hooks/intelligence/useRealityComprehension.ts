@@ -71,7 +71,7 @@ export function useRealityComprehension(profileId?: string) {
     mutationFn: async ({ id, paradox }: { id: string; paradox: Record<string, unknown> }) => {
       const { data, error } = await supabase
         .from('reality_comprehension')
-        .update({ paradox_resolution: paradox, updated_at: new Date().toISOString() })
+        .update({ paradox_resolution: paradox as unknown as Json, updated_at: new Date().toISOString() })
         .eq('id', id)
         .select()
         .single();
