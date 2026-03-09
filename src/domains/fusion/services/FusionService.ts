@@ -315,8 +315,8 @@ export class FusionService {
     }
 
     // Fallback: Direct Supabase query
-    const { data: existing } = await (supabase as any)
-      .from('behavioral_twins')
+    const { data: existing } = await supabase
+      .from('digital_twins')
       .select('*')
       .eq('profile_id', profileId)
       .single();
