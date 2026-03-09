@@ -392,7 +392,7 @@ export function MicroExpressionAnalyzer({ profileId, mediaUrl }: MicroExpression
                   </div>
                   <ScrollArea className="h-[250px]">
                     <div className="space-y-3">
-                      {spotFormerResults.microExpressions.map((me, i) => (
+                      {spotFormerResults.spots.map((me, i) => (
                         <div key={i} className="p-3 border rounded-lg">
                           <div className="flex items-center justify-between mb-1">
                             <Badge variant="outline" className="capitalize">{me.emotion}</Badge>

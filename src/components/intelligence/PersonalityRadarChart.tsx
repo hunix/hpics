@@ -226,8 +226,8 @@ export function PersonalityRadarChart({ profile }: PersonalityRadarChartProps) {
               <div className="mt-2 pt-2 border-t">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium">Manipulation Risk</span>
-                  <Badge variant={dtAnalysis.manipulationRisk > 60 ? 'destructive' : 'outline'} className="text-xs">
-                    {dtAnalysis.manipulationRisk.toFixed(0)}%
+                  <Badge variant={dtAnalysis.scores.overall > 0.6 ? 'destructive' : 'outline'} className="text-xs">
+                    {(dtAnalysis.scores.overall * 100).toFixed(0)}%
                   </Badge>
                 </div>
               </div>

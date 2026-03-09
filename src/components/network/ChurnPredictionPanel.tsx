@@ -247,7 +247,7 @@ export function ChurnPredictionPanel() {
                       </div>
                       <p className="text-xs text-muted-foreground">
                         Confidence: {(prediction.ccpNet.confidence * 100).toFixed(0)}% • 
-                        Predicted churn in ~{prediction.ccpNet.timeToChurnDays} days
+                        Predicted churn in ~{prediction.ccpNet.timeToChurn} days
                       </p>
                     </div>
                   </div>

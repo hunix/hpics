@@ -241,7 +241,7 @@ export function AnomalyDetectionPanel() {
                     </span>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {new Date(a.timestamp).toLocaleDateString()}
+                    {new Date(a.startTimestamp).toLocaleDateString()}
                   </span>
                 </div>
               ))}
