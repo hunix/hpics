@@ -49,7 +49,32 @@ serve(async (req) => {
 
     // POST request = incoming message or status update
     if (req.method === 'POST') {
-      const body = await req.json();
+      const rawBody = await req.text();
+
+      // Verify Meta webhook signature (X-Hub-Signature-256)
+      const appSecret = Deno.env.get('WHATSAPP_APP_SECRET');
+      if (appSecret) {
+        const signature = req.headers.get('X-Hub-Signature-256');
+        if (!signature) {
+          console.error('Missing X-Hub-Signature-256 header');
+          return new Response('Forbidden', { status: 403 });
+        }
+        const key = await crypto.subtle.importKey(
+          'raw',
+          new TextEncoder().encode(appSecret),
+          { name: 'HMAC', hash: 'SHA-256' },
+          false,
+          ['sign']
+        );
+        const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(rawBody));
+        const expected = 'sha256=' + Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+        if (signature !== expected) {
+          console.error('Invalid webhook signature');
+          return new Response('Forbidden', { status: 403 });
+        }
+      }
+
+      const body = JSON.parse(rawBody);
       console.log('Webhook received:', JSON.stringify(body, null, 2));
 
       const entry = body.entry?.[0];

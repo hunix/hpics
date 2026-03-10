@@ -94,17 +94,37 @@ serve(async (req) => {
     }
 
     // 2. Process Payload
-    const body = await req.json();
-    
+    const rawBody = await req.text();
+    let body: any;
+    try {
+      body = JSON.parse(rawBody);
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    // Use service role since webhooks are unauthenticated by user token
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     let processedCount = 0;
 
     if (provider === "msgraph" && body.value && Array.isArray(body.value)) {
-      // Microsoft Graph sends arrays of notifications
+      // Verify MS Graph clientState secret if configured
+      const webhookSecret = Deno.env.get("MSGRAPH_WEBHOOK_CLIENT_STATE");
+      if (webhookSecret) {
+        const clientStatesValid = body.value.every(
+          (n: any) => n.clientState === webhookSecret
+        );
+        if (!clientStatesValid) {
+          console.error("[Webhook] Invalid clientState in MS Graph notification");
+          return new Response(JSON.stringify({ error: "Forbidden" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       for (const notification of body.value) {
         if (notification.resourceData) {
           await processEmail(supabase, notification.resourceData);
