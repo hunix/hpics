@@ -4431,6 +4431,82 @@ export type Database = {
           },
         ]
       }
+      biometric_embeddings: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          embedding_vector: Json | null
+          enrolled_at: string
+          id: string
+          is_active: boolean | null
+          metadata: Json | null
+          modality: string
+          profile_id: string | null
+          quality_score: number | null
+          source_id: string | null
+          source_type: string | null
+          update_count: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          embedding_vector?: Json | null
+          enrolled_at?: string
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          modality?: string
+          profile_id?: string | null
+          quality_score?: number | null
+          source_id?: string | null
+          source_type?: string | null
+          update_count?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          embedding_vector?: Json | null
+          enrolled_at?: string
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          modality?: string
+          profile_id?: string | null
+          quality_score?: number | null
+          source_id?: string | null
+          source_type?: string | null
+          update_count?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "biometric_embeddings_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "biometric_embeddings_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "biometric_embeddings_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       biometric_enrollment_sessions: {
         Row: {
           aggregate_signature: Json | null
@@ -21193,6 +21269,155 @@ export type Database = {
         }
         Relationships: []
       }
+      intelligence_contradictions: {
+        Row: {
+          conflict_score: number | null
+          conflicting_fact: string | null
+          contradiction_type: string
+          created_at: string
+          existing_fact: string | null
+          id: string
+          profile_id: string | null
+          resolution_notes: string | null
+          resolution_status: string
+          resolved_at: string | null
+          source_a_id: string | null
+          source_b_id: string | null
+          user_id: string
+        }
+        Insert: {
+          conflict_score?: number | null
+          conflicting_fact?: string | null
+          contradiction_type?: string
+          created_at?: string
+          existing_fact?: string | null
+          id?: string
+          profile_id?: string | null
+          resolution_notes?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          source_a_id?: string | null
+          source_b_id?: string | null
+          user_id: string
+        }
+        Update: {
+          conflict_score?: number | null
+          conflicting_fact?: string | null
+          contradiction_type?: string
+          created_at?: string
+          existing_fact?: string | null
+          id?: string
+          profile_id?: string | null
+          resolution_notes?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          source_a_id?: string | null
+          source_b_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intelligence_contradictions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "intelligence_contradictions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "intelligence_contradictions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intelligence_convergence: {
+        Row: {
+          behavioral_patterns: number | null
+          communication_analysis: number | null
+          computed_at: string
+          created_at: string
+          data_sources_count: number | null
+          family_network: number | null
+          financial_depth: number | null
+          id: string
+          last_updated_dimensions: Json | null
+          overall_score: number | null
+          predictive_accuracy: number | null
+          profile_id: string | null
+          psychological_profile: number | null
+          social_dynamics: number | null
+          user_id: string
+          vulnerability_mapping: number | null
+        }
+        Insert: {
+          behavioral_patterns?: number | null
+          communication_analysis?: number | null
+          computed_at?: string
+          created_at?: string
+          data_sources_count?: number | null
+          family_network?: number | null
+          financial_depth?: number | null
+          id?: string
+          last_updated_dimensions?: Json | null
+          overall_score?: number | null
+          predictive_accuracy?: number | null
+          profile_id?: string | null
+          psychological_profile?: number | null
+          social_dynamics?: number | null
+          user_id: string
+          vulnerability_mapping?: number | null
+        }
+        Update: {
+          behavioral_patterns?: number | null
+          communication_analysis?: number | null
+          computed_at?: string
+          created_at?: string
+          data_sources_count?: number | null
+          family_network?: number | null
+          financial_depth?: number | null
+          id?: string
+          last_updated_dimensions?: Json | null
+          overall_score?: number | null
+          predictive_accuracy?: number | null
+          profile_id?: string | null
+          psychological_profile?: number | null
+          social_dynamics?: number | null
+          user_id?: string
+          vulnerability_mapping?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intelligence_convergence_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "intelligence_convergence_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "intelligence_convergence_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       intelligence_fusion_events: {
         Row: {
           confidence_score: number | null
@@ -32463,6 +32688,70 @@ export type Database = {
           },
           {
             foreignKeyName: "self_perpetuation_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      semantic_memory_facts: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          evidence_count: number | null
+          fact_category: string
+          fact_statement: string
+          id: string
+          last_confirmed_at: string | null
+          profile_id: string | null
+          source_ids: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          evidence_count?: number | null
+          fact_category?: string
+          fact_statement: string
+          id?: string
+          last_confirmed_at?: string | null
+          profile_id?: string | null
+          source_ids?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          evidence_count?: number | null
+          fact_category?: string
+          fact_statement?: string
+          id?: string
+          last_confirmed_at?: string | null
+          profile_id?: string | null
+          source_ids?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "semantic_memory_facts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "semantic_memory_facts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "semantic_memory_facts_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
