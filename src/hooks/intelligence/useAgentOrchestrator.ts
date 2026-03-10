@@ -319,7 +319,7 @@ export function useMarkBriefingRead() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (briefingId: string) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("intelligence_briefings")
         .update({ read_at: new Date().toISOString() })
         .eq("id", briefingId);
