@@ -233,7 +233,7 @@ export function useIntelligenceReports(profileId: string | undefined) {
   return useQuery<IntelligenceReport[]>({
     queryKey: ["intelligence-reports", profileId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("intelligence_reports")
         .select("*")
         .eq("profile_id", profileId!)
