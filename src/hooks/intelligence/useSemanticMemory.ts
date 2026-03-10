@@ -298,7 +298,7 @@ export function useSemanticFacts(profileId: string | undefined) {
         .eq("profile_id", profileId!)
         .order("confidence", { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as unknown as SemanticFact[];
     },
     enabled: !!profileId,
     staleTime: 1000 * 60 * 10,
