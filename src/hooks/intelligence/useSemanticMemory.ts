@@ -345,8 +345,8 @@ export function useMemoryExplorer(profileId: string | undefined) {
   return {
     semanticFacts: (semanticFacts.data ?? []) as SemanticFact[],
     episodicEvents: (episodicTimeline.data?.events ?? []) as EpisodicEvent[],
-    convergenceScore: convergenceScore.data as { overall: number; dimensions: Record<string, number> } | undefined,
-    behavioralState: (behavioralState.data?.state ?? null) as Record<string, unknown> | null,
+    convergenceScore: convergenceScore.data as any,
+    behavioralState: (behavioralState.data?.state ?? null) as any,
     contradictions: (contradictions.data ?? []) as Record<string, unknown>[],
     isLoading,
     refetch: () => {
