@@ -343,11 +343,11 @@ export function useMemoryExplorer(profileId: string | undefined) {
     behavioralState.isLoading;
 
   return {
-    semanticFacts: semanticFacts.data ?? [],
-    episodicEvents: episodicTimeline.data?.events ?? [],
-    convergenceScore: convergenceScore.data,
-    behavioralState: behavioralState.data?.state ?? null,
-    contradictions: contradictions.data ?? [],
+    semanticFacts: (semanticFacts.data ?? []) as SemanticFact[],
+    episodicEvents: (episodicTimeline.data?.events ?? []) as EpisodicEvent[],
+    convergenceScore: convergenceScore.data as { overall: number; dimensions: Record<string, number> } | undefined,
+    behavioralState: (behavioralState.data?.state ?? null) as Record<string, unknown> | null,
+    contradictions: (contradictions.data ?? []) as Record<string, unknown>[],
     isLoading,
     refetch: () => {
       semanticFacts.refetch();
