@@ -276,7 +276,7 @@ export function useVulnerabilityWindows(profileId: string | undefined) {
   return useQuery<VulnerabilityWindow[]>({
     queryKey: ["vulnerability-windows", profileId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("vulnerability_window_predictions")
         .select("*")
         .eq("profile_id", profileId!)
