@@ -248,8 +248,8 @@ export default function MemoryExplorer() {
                   {Object.entries(convergenceScore.dimensions).map(([key, val]) => (
                     <div key={key} className="space-y-1">
                       <div className="text-xs text-slate-400">{dimensionLabels[key] ?? key}</div>
-                      <Progress value={val} className="h-2" />
-                      <div className="text-xs font-mono text-white">{Math.round(val)}%</div>
+                      <Progress value={val as number} className="h-2" />
+                      <div className="text-xs font-mono text-white">{Math.round(val as number)}%</div>
                     </div>
                   ))}
                 </div>

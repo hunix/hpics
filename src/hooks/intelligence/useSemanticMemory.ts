@@ -292,13 +292,13 @@ export function useSemanticFacts(profileId: string | undefined) {
   return useQuery<SemanticFact[]>({
     queryKey: ["semantic-facts", profileId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("semantic_memory_facts")
         .select("id, fact_category, fact_statement, confidence, evidence_count, last_confirmed_at, created_at")
         .eq("profile_id", profileId!)
         .order("confidence", { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as unknown as SemanticFact[];
     },
     enabled: !!profileId,
     staleTime: 1000 * 60 * 10,
@@ -309,17 +309,17 @@ export function useSemanticFacts(profileId: string | undefined) {
  * Fetch unresolved contradictions for a contact.
  */
 export function useContradictions(profileId: string | undefined) {
-  return useQuery({
+  return useQuery<Record<string, unknown>[]>({
     queryKey: ["contradictions", profileId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("intelligence_contradictions")
         .select("*")
         .eq("profile_id", profileId!)
         .eq("resolution_status", "unresolved")
         .order("conflict_score", { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as Record<string, unknown>[];
     },
     enabled: !!profileId,
     staleTime: 1000 * 60 * 5,
@@ -343,11 +343,11 @@ export function useMemoryExplorer(profileId: string | undefined) {
     behavioralState.isLoading;
 
   return {
-    semanticFacts: semanticFacts.data ?? [],
-    episodicEvents: episodicTimeline.data?.events ?? [],
-    convergenceScore: convergenceScore.data,
-    behavioralState: behavioralState.data?.state ?? null,
-    contradictions: contradictions.data ?? [],
+    semanticFacts: (semanticFacts.data ?? []) as SemanticFact[],
+    episodicEvents: (episodicTimeline.data?.events ?? []) as EpisodicEvent[],
+    convergenceScore: convergenceScore.data as any,
+    behavioralState: (behavioralState.data?.state ?? null) as any,
+    contradictions: (contradictions.data ?? []) as Record<string, unknown>[],
     isLoading,
     refetch: () => {
       semanticFacts.refetch();

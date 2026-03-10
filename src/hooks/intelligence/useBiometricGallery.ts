@@ -180,7 +180,7 @@ export function useContactBiometrics(profileId: string | undefined) {
   return useQuery<BiometricEmbedding[]>({
     queryKey: ["biometric-gallery", profileId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("biometric_embeddings")
         .select("id, profile_id, modality, quality_score, confidence, source_type, enrolled_at, update_count, is_active")
         .eq("profile_id", profileId!)

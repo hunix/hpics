@@ -190,7 +190,7 @@ export function useAgentSessions(profileId: string | undefined) {
   return useQuery<AgentSession[]>({
     queryKey: ["agent-sessions", profileId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("agent_sessions")
         .select("*")
         .eq("profile_id", profileId!)
@@ -211,7 +211,7 @@ export function useAgentSession(sessionId: string | undefined) {
   return useQuery<AgentSession>({
     queryKey: ["agent-session", sessionId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("agent_sessions")
         .select("*")
         .eq("id", sessionId!)
@@ -233,7 +233,7 @@ export function useIntelligenceReports(profileId: string | undefined) {
   return useQuery<IntelligenceReport[]>({
     queryKey: ["intelligence-reports", profileId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("intelligence_reports")
         .select("*")
         .eq("profile_id", profileId!)
@@ -255,7 +255,7 @@ export function useReasoningChains(profileId: string | undefined) {
   return useQuery<ReasoningChain[]>({
     queryKey: ["reasoning-chains", profileId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("intelligence_reasoning_chains")
         .select("*")
         .eq("profile_id", profileId!)
@@ -276,7 +276,7 @@ export function useVulnerabilityWindows(profileId: string | undefined) {
   return useQuery<VulnerabilityWindow[]>({
     queryKey: ["vulnerability-windows", profileId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("vulnerability_window_predictions")
         .select("*")
         .eq("profile_id", profileId!)
@@ -300,7 +300,7 @@ export function useDailyBriefing() {
     queryKey: ["daily-briefing"],
     queryFn: async () => {
       const today = new Date().toISOString().split("T")[0];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("intelligence_briefings")
         .select("*")
         .eq("briefing_date", today)
@@ -319,7 +319,7 @@ export function useMarkBriefingRead() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (briefingId: string) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("intelligence_briefings")
         .update({ read_at: new Date().toISOString() })
         .eq("id", briefingId);
