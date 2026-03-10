@@ -300,7 +300,7 @@ export function useDailyBriefing() {
     queryKey: ["daily-briefing"],
     queryFn: async () => {
       const today = new Date().toISOString().split("T")[0];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("intelligence_briefings")
         .select("*")
         .eq("briefing_date", today)
