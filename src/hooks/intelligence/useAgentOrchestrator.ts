@@ -255,7 +255,7 @@ export function useReasoningChains(profileId: string | undefined) {
   return useQuery<ReasoningChain[]>({
     queryKey: ["reasoning-chains", profileId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("intelligence_reasoning_chains")
         .select("*")
         .eq("profile_id", profileId!)
