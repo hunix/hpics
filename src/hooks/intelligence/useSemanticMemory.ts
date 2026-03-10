@@ -309,7 +309,7 @@ export function useSemanticFacts(profileId: string | undefined) {
  * Fetch unresolved contradictions for a contact.
  */
 export function useContradictions(profileId: string | undefined) {
-  return useQuery({
+  return useQuery<Record<string, unknown>[]>({
     queryKey: ["contradictions", profileId],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
@@ -319,7 +319,7 @@ export function useContradictions(profileId: string | undefined) {
         .eq("resolution_status", "unresolved")
         .order("conflict_score", { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as Record<string, unknown>[];
     },
     enabled: !!profileId,
     staleTime: 1000 * 60 * 5,
