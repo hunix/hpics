@@ -292,7 +292,7 @@ export function useSemanticFacts(profileId: string | undefined) {
   return useQuery<SemanticFact[]>({
     queryKey: ["semantic-facts", profileId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("semantic_memory_facts")
         .select("id, fact_category, fact_statement, confidence, evidence_count, last_confirmed_at, created_at")
         .eq("profile_id", profileId!)
