@@ -211,7 +211,7 @@ export function useAgentSession(sessionId: string | undefined) {
   return useQuery<AgentSession>({
     queryKey: ["agent-session", sessionId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("agent_sessions")
         .select("*")
         .eq("id", sessionId!)
