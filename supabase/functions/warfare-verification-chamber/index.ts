@@ -59,10 +59,35 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Authenticate: validate JWT or service role key
+    const authHeader = req.headers.get('Authorization');
+    const token = authHeader?.replace('Bearer ', '');
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const isServiceRole = token === supabaseServiceKey;
+    let userId: string | undefined;
+
     // Parse request with normalization
     const body = await req.json() as VerificationRequest;
-    const userId = body.userId || body.user_id;
     const profileId = body.profileId || body.profile_id;
+
+    if (isServiceRole) {
+      // Service-to-service call: trust userId from body
+      userId = body.userId || body.user_id;
+    } else {
+      // User JWT: validate and extract userId
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      userId = user.id;
+    }
     const campaignId = body.campaignId || body.campaign_id;
     const chamberType = body.chamberType || body.chamber_type || 'warfare_campaign';
     const campaignData = body.campaignData || body.campaign_data || {};

@@ -63,10 +63,33 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Authenticate: validate JWT or service role key
+    const authHeader = req.headers.get('Authorization');
+    const token = authHeader?.replace('Bearer ', '');
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const isServiceRole = token === supabaseServiceKey;
+    let userId: string | undefined;
+
     // Parse request with field normalization
     const body = await req.json() as TribunalRequest;
-    const userId = body.userId || body.user_id;
     const profileId = body.profileId || body.profile_id;
+
+    if (isServiceRole) {
+      userId = body.userId || body.user_id;
+    } else {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      userId = user.id;
+    }
     const tribunalType = body.tribunalType || body.tribunal_type || 'threat_assessment';
     const subjectData = body.subjectData || body.subject_data || {};
     const contextData = body.contextData || body.context_data || {};
