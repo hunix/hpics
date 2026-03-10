@@ -147,7 +147,7 @@ export function useConvergence(profileId: string | undefined) {
   return useQuery<IntelligenceConvergence | null>({
     queryKey: ["convergence", profileId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("intelligence_convergence")
         .select("*")
         .eq("profile_id", profileId!)

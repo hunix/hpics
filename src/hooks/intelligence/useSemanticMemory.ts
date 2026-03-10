@@ -312,7 +312,7 @@ export function useContradictions(profileId: string | undefined) {
   return useQuery({
     queryKey: ["contradictions", profileId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("intelligence_contradictions")
         .select("*")
         .eq("profile_id", profileId!)
