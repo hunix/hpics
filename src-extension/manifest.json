@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "PICS Omni-Extractor (Dev)",
+  "version": "1.0.0",
+  "description": "Zero-friction ambient data collection for the PICS Intelligence Engine.",
+  "permissions": [
+    "debugger",
+    "declarativeNetRequest",
+    "storage",
+    "tabs",
+    "webNavigation",
+    "cookies"
+  ],
+  "host_permissions": [
+    "*://*.linkedin.com/*",
+    "*://*.twitter.com/*",
+    "*://*.x.com/*",
+    "*://web.whatsapp.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://web.whatsapp.com/*"],
+      "js": ["content/whatsapp-heist.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup/index.html",
+    "default_title": "PICS Omni-Extractor"
+  }
+}

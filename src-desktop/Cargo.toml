@@ -1,0 +1,21 @@
+[package]
+name = "pics-omni-desktop"
+version = "1.0.0"
+edition = "2021"
+description = "PICS Lightweight Desktop Ghost Agent for local database interception"
+
+[dependencies]
+# File watching
+notify = "6.1.1"
+# Async runtime for network
+tokio = { version = "1.36", features = ["full"] }
+# HTTP client for streaming to PICS Edge Functions
+reqwest = { version = "0.11", features = ["json"] }
+# JSON serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+# SQLite database interaction
+rusqlite = { version = "0.31.0", features = ["bundled"] }
+# Logging
+log = "0.4"
+env_logger = "0.11"
