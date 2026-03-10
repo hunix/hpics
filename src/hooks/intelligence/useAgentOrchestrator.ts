@@ -190,7 +190,7 @@ export function useAgentSessions(profileId: string | undefined) {
   return useQuery<AgentSession[]>({
     queryKey: ["agent-sessions", profileId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("agent_sessions")
         .select("*")
         .eq("profile_id", profileId!)
