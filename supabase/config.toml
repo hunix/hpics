@@ -835,3 +835,27 @@ verify_jwt = false
 
 [functions.predictive-doctrine-engine]
 verify_jwt = false
+
+[functions.cross-modal-synthesis]
+verify_jwt = false
+
+[functions.generate-hardware-report]
+verify_jwt = false
+
+[functions.aerial-intelligence]
+verify_jwt = false
+
+[functions.identify-speakers]
+verify_jwt = false
+
+[functions.detect-communication-anomalies]
+verify_jwt = false
+
+[functions.detect-cross-contact-patterns]
+verify_jwt = false
+
+[functions.sensor-network]
+verify_jwt = false
+
+[functions.sdr-intelligence]
+verify_jwt = false
