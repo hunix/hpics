@@ -1457,6 +1457,73 @@ export type Database = {
           },
         ]
       }
+      agent_workflow_runs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          profile_id: string | null
+          results: Json
+          started_at: string
+          status: string
+          steps: Json
+          total_duration_ms: number | null
+          user_id: string
+          workflow_command: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          profile_id?: string | null
+          results?: Json
+          started_at?: string
+          status?: string
+          steps?: Json
+          total_duration_ms?: number | null
+          user_id: string
+          workflow_command: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          profile_id?: string | null
+          results?: Json
+          started_at?: string
+          status?: string
+          steps?: Json
+          total_duration_ms?: number | null
+          user_id?: string
+          workflow_command?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_workflow_runs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "agent_workflow_runs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "contact_storage_stats_mv"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "agent_workflow_runs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_workflows: {
         Row: {
           backtrack_enabled: boolean
