@@ -2926,6 +2926,47 @@ export type Database = {
           },
         ]
       }
+      api_usage_logs: {
+        Row: {
+          client_id: string | null
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          response_time_ms: number | null
+          status_code: number | null
+          tool_called: string | null
+          user_id: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          response_time_ms?: number | null
+          status_code?: number | null
+          tool_called?: string | null
+          user_id: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          response_time_ms?: number | null
+          status_code?: number | null
+          tool_called?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_usage_logs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "hpics_api_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_settings: {
         Row: {
           created_at: string | null
@@ -19306,6 +19347,51 @@ export type Database = {
           profile_name?: string
           tripwires?: Json | null
           updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      hpics_api_clients: {
+        Row: {
+          api_key_hash: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          permissions: string[] | null
+          rate_limit_rpm: number | null
+          revoked_at: string | null
+          total_requests: number | null
+          user_id: string
+        }
+        Insert: {
+          api_key_hash: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          permissions?: string[] | null
+          rate_limit_rpm?: number | null
+          revoked_at?: string | null
+          total_requests?: number | null
+          user_id: string
+        }
+        Update: {
+          api_key_hash?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          permissions?: string[] | null
+          rate_limit_rpm?: number | null
+          revoked_at?: string | null
+          total_requests?: number | null
           user_id?: string
         }
         Relationships: []
