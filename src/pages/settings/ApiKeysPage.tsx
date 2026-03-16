@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { checkApiKeys, saveApiKeys } from '@/lib/vault';
 import { API_KEY_SECTIONS, getSecretKeyNames } from '@/lib/integrations/api-keys-registry';
 import { KeySection } from '@/components/settings/KeySection';
+import { InboundApiKeys } from '@/components/settings/InboundApiKeys';
 import type { VaultSaveResult } from '@/lib/vault';
 
 export default function ApiKeysPage() {
