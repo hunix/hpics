@@ -332,6 +332,8 @@ export default function Settings() {
             </TabsContent>
           </Tabs>
         );
+      case 'api-keys':
+        return <Suspense fallback={<div className="space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-64 w-full" /></div>}><ApiKeysPage /></Suspense>;
       case 'teams':
         return <WorkspaceSettings />;
       case 'ai-models':
