@@ -54,6 +54,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     label: 'Integrations',
     sections: [
       { id: 'integrations', label: 'All Integrations', icon: Link2, badge: 'New' },
+      { id: 'api-keys', label: 'API Keys & Vault', icon: Settings2 },
     ],
   },
   {

@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/hooks/use-toast';
 import { Moon, Sun, Bell, Mail, Loader2, Smartphone, RefreshCw, Trash2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { APP_VERSION, BUILD_TIMESTAMP, forceAppUpdate, clearAllCaches } from '@/lib/appVersion';
 import { SettingsLayout } from '@/components/settings/SettingsLayout';
 import { AnalyticsExport } from '@/components/analytics/AnalyticsExport';
@@ -43,6 +44,9 @@ import { AccountStorageConsumption } from '@/components/analytics/AccountStorage
 import { IntegrationHealthDashboard } from '@/components/settings/IntegrationHealthDashboard';
 import { RealTimeSecurityDashboard } from '@/components/security/RealTimeSecurityDashboard';
 import { PlatformConfigSettings } from '@/components/settings/PlatformConfigSettings';
+import { lazy, Suspense } from 'react';
+
+const ApiKeysPage = lazy(() => import('@/pages/settings/ApiKeysPage'));
 
 export default function Settings() {
   const { user } = useAuth();
@@ -329,6 +333,8 @@ export default function Settings() {
             </TabsContent>
           </Tabs>
         );
+      case 'api-keys':
+        return <Suspense fallback={<div className="space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-64 w-full" /></div>}><ApiKeysPage /></Suspense>;
       case 'teams':
         return <WorkspaceSettings />;
       case 'ai-models':
