@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/hooks/use-toast';
 import { Moon, Sun, Bell, Mail, Loader2, Smartphone, RefreshCw, Trash2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { APP_VERSION, BUILD_TIMESTAMP, forceAppUpdate, clearAllCaches } from '@/lib/appVersion';
 import { SettingsLayout } from '@/components/settings/SettingsLayout';
 import { AnalyticsExport } from '@/components/analytics/AnalyticsExport';
