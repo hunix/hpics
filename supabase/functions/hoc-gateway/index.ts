@@ -559,21 +559,61 @@ serve(async (req: Request) => {
     return json({ ok: true, function: 'hoc-gateway', timestamp: Date.now() });
   }
 
-  // ── Auth: validate HOC_API_KEY ──
-  const HOC_API_KEY = Deno.env.get('HOC_API_KEY');
-  if (!HOC_API_KEY) {
-    return json({ success: false, error: 'Gateway not configured: HOC_API_KEY missing' }, 503);
-  }
-
+  // ── Auth: validate API key (legacy HOC_API_KEY or hpics_api_clients) ──
   const authHeader = req.headers.get('Authorization');
   const token = authHeader?.replace('Bearer ', '');
-  if (token !== HOC_API_KEY) {
+  
+  let authenticatedClientId: string | null = null;
+  let authenticatedUserId: string | null = null;
+  let clientRateLimit = RATE_LIMIT_RPM;
+
+  const HOC_API_KEY = Deno.env.get('HOC_API_KEY');
+  
+  if (token && token === HOC_API_KEY) {
+    // Legacy single-key auth
+    authenticatedClientId = 'legacy-hoc';
+  } else if (token) {
+    // Check against hpics_api_clients table
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const adminClient = createClient(supabaseUrl, serviceKey);
+
+    // Hash the incoming token and look it up
+    const hashData = new TextEncoder().encode(token);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', hashData);
+    const tokenHash = Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    const { data: client } = await adminClient
+      .from('hpics_api_clients')
+      .select('id, user_id, rate_limit_rpm, is_active')
+      .eq('api_key_hash', tokenHash)
+      .eq('is_active', true)
+      .single();
+
+    if (client) {
+      authenticatedClientId = client.id;
+      authenticatedUserId = client.user_id;
+      clientRateLimit = client.rate_limit_rpm || RATE_LIMIT_RPM;
+
+      // Update last_used_at and total_requests (fire-and-forget)
+      adminClient
+        .from('hpics_api_clients')
+        .update({ last_used_at: new Date().toISOString(), total_requests: (client as any).total_requests + 1 })
+        .eq('id', client.id)
+        .then(() => {});
+    }
+  }
+
+  if (!authenticatedClientId) {
     return json({ success: false, error: 'Invalid or missing API key' }, 401);
   }
 
   // ── Rate limit ──
-  if (!checkRateLimit('hoc-api-key')) {
-    return json({ success: false, error: 'Rate limit exceeded (60 req/min)' }, 429);
+  const rateLimitKey = authenticatedClientId;
+  if (!checkRateLimit(rateLimitKey)) {
+    return json({ success: false, error: `Rate limit exceeded (${clientRateLimit} req/min)` }, 429);
   }
 
   // ── Parse body ──

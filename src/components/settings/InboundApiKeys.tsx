@@ -305,7 +305,7 @@ export function InboundApiKeys() {
                   </TableCell>
                   <TableCell>
                     {client.is_active ? (
-                      <Badge variant="default" className="text-[9px] bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
+                      <Badge variant="default" className="text-[9px] bg-primary/10 text-primary border-primary/20">
                         <Shield className="h-2.5 w-2.5 mr-0.5" /> Active
                       </Badge>
                     ) : (

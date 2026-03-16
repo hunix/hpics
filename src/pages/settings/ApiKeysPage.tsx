@@ -166,6 +166,17 @@ export default function ApiKeysPage() {
         </Alert>
       )}
 
+      {/* Inbound Access (Gateway + Client Keys) */}
+      <div className="space-y-1">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Inbound Access</h2>
+        <InboundApiKeys />
+      </div>
+
+      {/* Outbound Credentials */}
+      <div className="space-y-1">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mt-6">Outbound Credentials</h2>
+      </div>
+
       {/* Sections */}
       <div className="space-y-3">
         {API_KEY_SECTIONS.map((section) => (
