@@ -1,183 +1,204 @@
 
 
-# HPICS-HoC Integration Layer: Bridge Plan
+## Plan: Production-Grade API Keys & Integrations Management Page
 
-## Overview
+### Current State Assessment
 
-This plan creates a two-part integration between the HPICS Intelligence Platform and the HoC Republic (OpenClaw-based agentic AI civilization):
+The project already has a solid integration management system:
+- `src/lib/integrations/registry.ts` — master registry with 8 categories and ~18 integrations
+- `src/components/settings/UnifiedIntegrationSettings.tsx` — existing UI with collapsible cards, secret status checks, save flow
+- `supabase/functions/utility-router` — routes for `save-secret` and `check-secrets` (but these are generic stubs that don't actually interact with Vault)
+- No Supabase Vault (`vault.secrets`) integration exists yet — secrets are saved via edge function invocation but there's no actual Vault RPC
 
-1. **HPICS Side (built here)**: A new `hoc-gateway` edge function that exposes all 400+ HPICS capabilities as a single authenticated REST API designed for tool-calling agents.
+The request asks to build a comprehensive API Keys page with 7 new integration categories (LLM Providers, HPICS Bridge, Supabase Data Layer, OSINT, Voice/Biometric, Communications, Hardware Intelligence) with Vault-backed persistence, readback verification, and connection testing.
 
-2. **HoC Side (documentation + skill template)**: A complete OpenClaw skill (`hpics-intelligence`) and documentation you'll place into your HoC workspace so agents can call HPICS tools natively.
+### Architecture Decisions
 
-## Architecture
+1. **Vault Storage**: Create `store_api_key` and `get_api_key` SECURITY DEFINER functions operating on `vault.secrets`. These require the `pgsodium` extension (already available in Supabase). Secrets are scoped per-user via a naming convention: `{user_id}:{secret_name}`.
 
-```text
-HoC Agent (OpenClaw)                         HPICS Platform (Lovable Cloud)
-+---------------------------+                +------------------------------------+
-|  OpenClaw Gateway         |                |  Supabase Edge Functions           |
-|  +---------------------+ |   HTTPS/JSON   |  +------------------------------+ |
-|  | hpics-intelligence   |----(Bearer)----->|  | hoc-gateway                  | |
-|  | skill (SKILL.md)     | |                |  |  - API key validation        | |
-|  +---------------------+ |                |  |  - Route to domain routers   | |
-|  | exec: curl/fetch     | |                |  |  - Rate limiting             | |
-|  +---------------------+ |                |  |  - Response normalization    | |
-+---------------------------+                |  +------------------------------+ |
-                                             |            |                      |
-                                             |    +-------v-------+              |
-                                             |    | Domain Routers |             |
-                                             |    | (15 Hono apps) |             |
-                                             |    +---------------+              |
-                                             +------------------------------------+
+2. **Don't replace existing system**: The existing `UnifiedIntegrationSettings` handles connectors and OSINT. The new page will be a dedicated `/settings` section (`api-keys`) that extends the existing `SettingsNavigation` with the 7 HPICS-specific categories and Vault-backed storage.
+
+3. **Edge Function for connection testing**: Create a dedicated `test-api-key` edge function that performs lightweight validation calls per provider.
+
+### Implementation Plan
+
+#### 1. Database Migration — Vault RPC Functions
+
+Create migration with:
+
+```sql
+-- Enable pgsodium if not already enabled
+CREATE EXTENSION IF NOT EXISTS pgsodium;
+
+-- Store API key in vault (upsert pattern, scoped to user)
+CREATE OR REPLACE FUNCTION public.store_api_key(p_name text, p_value text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_secret_name text;
+  v_existing_id uuid;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+  v_secret_name := v_user_id::text || ':' || p_name;
+  
+  SELECT id INTO v_existing_id
+  FROM vault.secrets
+  WHERE name = v_secret_name;
+  
+  IF v_existing_id IS NOT NULL THEN
+    UPDATE vault.secrets SET secret = p_value, updated_at = now()
+    WHERE id = v_existing_id;
+  ELSE
+    INSERT INTO vault.secrets (name, secret)
+    VALUES (v_secret_name, p_value);
+  END IF;
+END;
+$$;
+
+-- Read API key from vault (returns decrypted value, user-scoped)
+CREATE OR REPLACE FUNCTION public.get_api_key(p_name text)
+RETURNS text
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_result text;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+  
+  SELECT decrypted_secret INTO v_result
+  FROM vault.decrypted_secrets
+  WHERE name = v_user_id::text || ':' || p_name;
+  
+  RETURN v_result;
+END;
+$$;
+
+-- Check which keys exist (returns name->boolean map)
+CREATE OR REPLACE FUNCTION public.check_api_keys(p_names text[])
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_result jsonb := '{}'::jsonb;
+  v_name text;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+  
+  FOREACH v_name IN ARRAY p_names LOOP
+    v_result := v_result || jsonb_build_object(
+      v_name,
+      EXISTS(SELECT 1 FROM vault.secrets WHERE name = v_user_id::text || ':' || v_name)
+    );
+  END LOOP;
+  
+  RETURN v_result;
+END;
+$$;
+
+-- Delete an API key
+CREATE OR REPLACE FUNCTION public.delete_api_key(p_name text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+  DELETE FROM vault.secrets WHERE name = auth.uid()::text || ':' || p_name;
+END;
+$$;
 ```
 
-## What Gets Built
+#### 2. `src/lib/vault.ts` — Vault Read/Write Helpers
 
-### Part 1: `hoc-gateway` Edge Function (HPICS Side)
+TypeScript helper module wrapping the RPC calls with readback verification:
 
-A single edge function that acts as the external API gateway for HoC agents. It:
+- `saveApiKey(name, value)` — calls `store_api_key`, then `get_api_key` for readback verification
+- `getApiKey(name)` — calls `get_api_key`
+- `checkApiKeys(names[])` — calls `check_api_keys`, returns `Record<string, boolean>`
+- `deleteApiKey(name)` — calls `delete_api_key`
+- `saveApiKeys(entries[])` — batch save with readback verification, returns per-key success/failure
 
-- Authenticates via a shared API key (stored as `HOC_API_KEY` secret)
-- Accepts a uniform JSON payload: `{ "tool": "<function-name>", "params": { ... } }`
-- Routes internally to the correct domain router using the existing `ROUTE_MAP`
-- Supports `POST /hoc-gateway` for tool execution and `GET /hoc-gateway?action=list-tools` for tool discovery
-- Rate limits per-key (60 requests/minute default)
-- Returns normalized responses: `{ "success": boolean, "data": ..., "error": ..., "meta": { "duration_ms": ..., "router": ... } }`
+#### 3. `src/lib/integrations/api-keys-registry.ts` — 7-Section Key Definitions
 
-Endpoints:
-- `POST /hoc-gateway` with `{ "tool": "mice-recruitment-analyzer", "params": { "profileId": "...", "userId": "..." } }` -- executes the tool
-- `POST /hoc-gateway` with `{ "action": "list-tools" }` -- returns full tool catalog with categories
-- `POST /hoc-gateway` with `{ "action": "health" }` -- returns gateway and router health
-- `POST /hoc-gateway` with `{ "action": "list-categories" }` -- returns available categories
+Define all 7 sections with their keys, including:
+- `envVar`, `label`, `howToGet` (instructions), `portalUrl`, `isUrl` flag, `isSecret` flag
+- Model selector definitions (for LLM providers with dropdown options)
+- `testable` flag per key for connection testing
 
-### Part 2: Documentation File (HPICS Side)
+Categories: `llm-providers`, `hpics-bridge`, `supabase-layer`, `osint-enrichment`, `voice-biometric`, `communications`, `hardware-intel`
 
-A comprehensive `docs/HOC_INTEGRATION_GUIDE.md` covering:
+#### 4. `src/pages/settings/ApiKeysPage.tsx` — Main Page
 
-- How to configure the `HOC_API_KEY` secret
-- How to install the skill in HoC
-- Complete tool catalog (all 400+ tools organized by domain router)
-- Request/response formats with examples
-- Rate limits and error handling
-- How to extend, maintain, and debug
-- How to build custom HoC-side wrappers
+- Status overview grid at top (icon + name + green/red/grey dot per integration)
+- "Save All" button in header (visible when any key is dirty)
+- 7 tabbed sections
+- Uses `useQuery` to load key status via `checkApiKeys` on mount
+- Dirty state tracking via `useReducer` or `useState` map
+- Post-save verification alert (green/red)
 
-### Part 3: OpenClaw Skill Template (HPICS Side, for copy to HoC)
+#### 5. `src/components/settings/KeySection.tsx` — Collapsible Section
 
-A `docs/hoc-skill-template/SKILL.md` file in AgentSkills format that:
+- Collapsible header with section icon, title, "3/7 set" badge, "2 unsaved" amber badge
+- "Save Section" button (appears only when section has dirty keys)
+- Maps over keys to render `KeyInput` components
 
-- Declares the `hpics-intelligence` skill
-- Requires `HPICS_API_KEY` and `HPICS_BASE_URL` environment variables
-- Teaches the HoC agent how to use `web_fetch` or `exec` (curl) to call the gateway
-- Lists all available tool categories and key tools
-- Includes example invocations for common workflows
+#### 6. `src/components/settings/KeyInput.tsx` — Individual Key Input
 
-## Technical Details
+- Password input with eye toggle (text input for `isUrl` keys)
+- "Saved" (green) / "Unsaved" (amber) badge
+- Expandable "How to generate" instructions
+- "Get key →" external link
+- "Test" button (where `testable: true`)
+- Model selector dropdown (for LLM providers)
+- Skeleton loading state
 
-### `hoc-gateway` Edge Function Implementation
+#### 7. Edge Function: `test-api-key/index.ts`
 
-```text
-supabase/functions/hoc-gateway/index.ts
+Lightweight provider validation:
+- **Anthropic**: `POST /v1/messages` with tiny prompt
+- **OpenAI**: `GET /v1/models`
+- **Gemini**: `GET /v1beta/models?key=...`
+- **Groq**: `GET /openai/v1/models`
+- **ElevenLabs**: `GET /v1/user`
+- **PDL**: `GET /v5/person/enrich?email=test`
+- **HuggingFace**: `GET /api/whoami-v2`
+- **Deepgram**: `GET /v1/projects`
+- Returns `{ success, message, responseTime }`
 
-Flow:
-1. OPTIONS -> CORS response
-2. Parse body -> validate API key from Authorization header
-3. If action=list-tools -> return ROUTE_MAP as categorized tool list
-4. If action=health -> fan-out health checks to routers
-5. If tool=<name> -> look up in ROUTE_MAP -> invoke domain router
-6. Return normalized { success, data, error, meta }
-```
+#### 8. Wire Into Settings Navigation
 
-Key design decisions:
-- Uses the `ROUTE_MAP` from `edgeFunctionRouter.ts` (rebuilt server-side as a const map) so tool names stay in sync
-- API key auth (not JWT) since HoC agents are external systems, not platform users
-- The `HOC_API_KEY` secret will be requested from the user
-- UserId is passed in params (trusted since this is service-to-service with API key)
-- Timeout: 120s default, configurable per-call via `params.timeout_ms`
+Add `api-keys` section to `SettingsNavigation.tsx` under the "Integrations" group, and add the route case to `Settings.tsx`.
 
-### OpenClaw Skill Format
+### Files to Create/Modify
 
-```yaml
----
-name: hpics-intelligence
-description: Access the HPICS Intelligence Platform for behavioral analysis, biometric processing, network intelligence, warfare simulation, predictions, and 400+ specialized AI engines.
-metadata:
-  {
-    "openclaw": {
-      "requires": { "env": ["HPICS_API_KEY", "HPICS_BASE_URL"] },
-      "primaryEnv": "HPICS_API_KEY"
-    }
-  }
----
-```
-
-The skill body teaches the agent to use `web_fetch` with:
-```text
-POST ${HPICS_BASE_URL}/functions/v1/hoc-gateway
-Authorization: Bearer ${HPICS_API_KEY}
-Content-Type: application/json
-
-{ "tool": "<tool-name>", "params": { ... } }
-```
-
-### Tool Catalog Structure (in list-tools response)
-
-```json
-{
-  "categories": {
-    "analysis": { 
-      "description": "50+ behavioral, psychological, and pattern analysis engines",
-      "tools": ["mice-recruitment-analyzer", "behavioral-dna-sequencer", ...] 
-    },
-    "intelligence": { "description": "...", "tools": [...] },
-    "prediction": { ... },
-    "warfare": { ... },
-    "biometric": { ... },
-    "network": { ... },
-    "enrichment": { ... },
-    "fusion": { ... },
-    "agis": { ... },
-    "utility": { ... },
-    "hardware": { ... },
-    "voice": { ... },
-    "document": { ... },
-    "security": { ... },
-    "media": { ... }
-  }
-}
-```
-
-### Security Model
-
-- API key rotation: The `HOC_API_KEY` can be rotated by updating the secret
-- Rate limiting: 60 req/min per API key (tracked in-memory per edge function instance)
-- No user JWT required -- the gateway uses the service role key internally
-- UserId in params is trusted (service-to-service pattern)
-- All requests are logged to `audit_logs` table with source='hoc-gateway'
-
-### Files Created
-
-| File | Purpose |
-|------|---------|
-| `supabase/functions/hoc-gateway/index.ts` | Gateway edge function |
-| `docs/HOC_INTEGRATION_GUIDE.md` | Complete integration documentation |
-| `docs/hoc-skill-template/SKILL.md` | OpenClaw skill file (copy to HoC) |
-
-### Config Updates
-
-| File | Change |
+| File | Action |
 |------|--------|
-| `supabase/config.toml` | NOT edited (auto-managed) |
-
-### Secret Required
-
-- `HOC_API_KEY`: A shared secret for HoC-to-HPICS authentication (will be requested from user)
-
-## Implementation Order
-
-1. Create `supabase/functions/hoc-gateway/index.ts` with the full gateway logic
-2. Create `docs/hoc-skill-template/SKILL.md` with the OpenClaw skill template  
-3. Create `docs/HOC_INTEGRATION_GUIDE.md` with comprehensive documentation
-4. Request the `HOC_API_KEY` secret from the user
-5. Deploy and test the gateway
+| `supabase/migrations/xxx_vault_api_key_functions.sql` | Create — Vault RPC functions |
+| `src/lib/vault.ts` | Create — Vault helpers with readback verification |
+| `src/lib/integrations/api-keys-registry.ts` | Create — 7-section key definitions (~60 keys) |
+| `src/pages/settings/ApiKeysPage.tsx` | Create — Main page with status grid, tabs, save-all |
+| `src/components/settings/KeySection.tsx` | Create — Collapsible section component |
+| `src/components/settings/KeyInput.tsx` | Create — Individual key input with show/hide, instructions |
+| `supabase/functions/test-api-key/index.ts` | Create — Connection test edge function |
+| `src/components/settings/SettingsNavigation.tsx` | Modify — Add `api-keys` to Integrations group |
+| `src/pages/Settings.tsx` | Modify — Add `api-keys` case to `renderContent` |
 
