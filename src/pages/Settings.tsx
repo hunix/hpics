@@ -43,6 +43,9 @@ import { AccountStorageConsumption } from '@/components/analytics/AccountStorage
 import { IntegrationHealthDashboard } from '@/components/settings/IntegrationHealthDashboard';
 import { RealTimeSecurityDashboard } from '@/components/security/RealTimeSecurityDashboard';
 import { PlatformConfigSettings } from '@/components/settings/PlatformConfigSettings';
+import { lazy, Suspense } from 'react';
+
+const ApiKeysPage = lazy(() => import('@/pages/settings/ApiKeysPage'));
 
 export default function Settings() {
   const { user } = useAuth();
