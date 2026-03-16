@@ -40453,6 +40453,7 @@ export type Database = {
         Args: { thread_updates: Json }
         Returns: undefined
       }
+      check_api_keys: { Args: { p_names: string[] }; Returns: Json }
       check_workspace_membership: {
         Args: { uid: string; ws_id: string }
         Returns: boolean
@@ -40506,6 +40507,7 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      delete_api_key: { Args: { p_name: string }; Returns: undefined }
       find_connection_path: {
         Args: {
           p_max_depth?: number
@@ -40550,6 +40552,7 @@ export type Database = {
           usage_percentage: number
         }[]
       }
+      get_api_key: { Args: { p_name: string }; Returns: string }
       get_contact_counts: {
         Args: { p_user_id: string }
         Returns: {
@@ -41055,6 +41058,10 @@ export type Database = {
           profile_id: string
           sent_at: string
         }[]
+      }
+      store_api_key: {
+        Args: { p_name: string; p_value: string }
+        Returns: undefined
       }
       toggle_contact_active_status: {
         Args: { p_is_active: boolean; p_profile_id: string }
