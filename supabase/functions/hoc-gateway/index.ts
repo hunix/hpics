@@ -486,6 +486,14 @@ const ROUTE_MAP: Record<string, Route> = {
   'analyze-communication-triangulation': { router: 'media-router', path: '/triangulation' },
   'detect-shared-experiences': { router: 'media-router', path: '/shared-experiences' },
   'affective-manipulation-detector': { router: 'media-router', path: '/affective-manipulation' },
+
+  // WORKFLOWS (autonomous multi-step)
+  'agent-workflow': { router: 'agent-workflow', path: '/' },
+  'workflow-full-intelligence': { router: 'agent-workflow', path: '/' },
+  'workflow-generate-dossier': { router: 'agent-workflow', path: '/' },
+  'workflow-track-contact': { router: 'agent-workflow', path: '/' },
+  'workflow-counter-intel': { router: 'agent-workflow', path: '/' },
+  'workflow-quick-profile': { router: 'agent-workflow', path: '/' },
 };
 
 // ─── Category Catalog ───────────────────────────────────────────────────────
