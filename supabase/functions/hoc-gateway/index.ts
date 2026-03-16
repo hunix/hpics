@@ -691,6 +691,50 @@ serve(async (req: Request) => {
     });
   }
 
+  // ── Action: resolve-contact ──
+  if (action === 'resolve-contact') {
+    const query = params.query as string || body.query as string;
+    const userId = (params.userId || params.user_id || body.userId || body.user_id) as string;
+    if (!query || !userId) return json({ success: false, error: 'Missing query or userId' }, 400);
+
+    // Forward to agent-workflow function
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const resp = await fetch(`${supabaseUrl}/functions/v1/agent-workflow`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}` },
+      body: JSON.stringify({ action: 'resolve-contact', query, userId }),
+    });
+    const data = await resp.json();
+    return json(data, resp.status);
+  }
+
+  // ── Action: list-workflows ──
+  if (action === 'list-workflows') {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const resp = await fetch(`${supabaseUrl}/functions/v1/agent-workflow`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}` },
+      body: JSON.stringify({ action: 'list-workflows' }),
+    });
+    const data = await resp.json();
+    return json(data, resp.status);
+  }
+
+  // ── Action: run-workflow ──
+  if (action === 'run-workflow') {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const resp = await fetch(`${supabaseUrl}/functions/v1/agent-workflow`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}` },
+      body: JSON.stringify(body),
+    });
+    const data = await resp.json();
+    return json(data, resp.status);
+  }
+
   // ── Tool execution ──
   if (!tool) {
     return json({
