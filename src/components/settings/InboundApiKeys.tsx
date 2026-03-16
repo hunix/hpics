@@ -61,16 +61,15 @@ export function InboundApiKeys() {
   const [copied, setCopied] = useState<string | null>(null);
   const [usageClientId, setUsageClientId] = useState<string | null>(null);
 
-  // Fetch clients
+  // Fetch clients via edge function to avoid types.ts issues
   const { data: clients, isLoading } = useQuery({
     queryKey: ['hpics-api-clients', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('hpics_api_clients')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.functions.invoke('manage-api-clients', {
+        body: { action: 'list' },
+      });
       if (error) throw error;
-      return (data as unknown as ApiClient[]) || [];
+      return (data?.data as ApiClient[]) || [];
     },
     enabled: !!user,
   });
