@@ -742,6 +742,20 @@ serve(async (req: Request) => {
     // Fire-and-forget audit log
     logAudit(supabase, tool, routerBody.userId as string, durationMs, success);
 
+    // Fire-and-forget usage log for tracked clients
+    if (authenticatedClientId && authenticatedClientId !== 'legacy-hoc' && authenticatedUserId) {
+      const adminUrl = Deno.env.get('SUPABASE_URL')!;
+      const adminKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const adminClient = createClient(adminUrl, adminKey);
+      adminClient.from('api_usage_logs').insert({
+        client_id: authenticatedClientId,
+        user_id: authenticatedUserId,
+        tool_called: tool,
+        status_code: resp.status,
+        response_time_ms: durationMs,
+      }).then(() => {});
+    }
+
     return json({
       success,
       data: success ? data : undefined,
