@@ -494,6 +494,14 @@ const ROUTE_MAP: Record<string, Route> = {
   'workflow-track-contact': { router: 'agent-workflow', path: '/' },
   'workflow-counter-intel': { router: 'agent-workflow', path: '/' },
   'workflow-quick-profile': { router: 'agent-workflow', path: '/' },
+
+  // TIER 2: ADVANCED REASONING (2026 research-based)
+  'agentic-rag': { router: 'agentic-rag', path: '/' },
+  'graph-reasoning': { router: 'graph-reasoning', path: '/' },
+  'intelligence-verification': { router: 'intelligence-verification', path: '/' },
+  'workflow-verified-dossier': { router: 'agent-workflow', path: '/' },
+  'workflow-deep-research': { router: 'agent-workflow', path: '/' },
+  'workflow-adversarial-assessment': { router: 'agent-workflow', path: '/' },
 };
 
 // ─── Category Catalog ───────────────────────────────────────────────────────
