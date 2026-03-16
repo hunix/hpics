@@ -52,9 +52,19 @@ POST { "action": "run-workflow", "command": "generate-dossier", "profileId": "uu
 POST { "action": "list-workflows" }
 ```
 
-### Tier 2 (Future)
-- Agentic RAG with iterative retrieval
-- Graph-of-Thought reasoning for dossiers
-- Constitutional AI verification pipeline
+### Tier 2: ✅ Complete — 2026 Research Techniques
+
+#### Built:
+1. **Agentic RAG** (`supabase/functions/agentic-rag/index.ts`) — Multi-step iterative retrieval with query decomposition, self-critique, gap detection, and re-retrieval loops. Based on Stanford/Google 2026 patterns.
+2. **Graph-of-Thought Reasoning** (`supabase/functions/graph-reasoning/index.ts`) — DAG-based parallel hypothesis generation, evidence evaluation, cross-critique, and convergence synthesis. 4 modes: hypothesis-exploration, dossier-reasoning, threat-assessment, relationship-mapping.
+3. **Intelligence Verification Pipeline** (`supabase/functions/intelligence-verification/index.ts`) — Constitutional AI + Red Team adversarial checks + Cross-source consistency + Confidence calibration. All run in parallel for speed.
+4. **3 New Advanced Workflows** added to agent-workflow orchestrator:
+   - `verified-dossier` — enrich → analyze → graph-reasoning → dossier → verification
+   - `deep-research` — enrich → agentic-rag → graph-reasoning → synthesis → verification
+   - `adversarial-assessment` — opsec + threat + deception → graph-threats → redteam → verification
+5. **Gateway updated** — New tools and `reasoning` category added to ROUTE_MAP
+
+### Tier 3 (Future)
 - Multimodal unified fusion via Gemini 2.5 Pro 1M context
-- Adversarial robustness testing in dossier pipeline
+- Real-time adversarial robustness testing in production
+- Agentic memory consolidation with episodic/semantic separation

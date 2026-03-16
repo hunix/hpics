@@ -75,6 +75,31 @@ const WORKFLOWS: Record<string, WorkflowStep[]> = {
     { step: 'profile', tool: 'analyze-profile', dependsOn: ['enrich'] },
     { step: 'summary', tool: 'generate-executive-summary', dependsOn: ['profile'] },
   ],
+
+  // ─── Tier 2: Advanced 2026 Research Workflows ──────────────────────────────
+  'verified-dossier': [
+    { step: 'enrich', tool: 'auto-enrich-contact', dependsOn: [] },
+    { step: 'behavioral', tool: 'analyze-behavioral', dependsOn: ['enrich'] },
+    { step: 'psychological', tool: 'deep-psychological-analysis', dependsOn: ['enrich'] },
+    { step: 'graph-reasoning', tool: 'graph-reasoning', dependsOn: ['behavioral', 'psychological'], extraParams: { mode: 'dossier-reasoning' } },
+    { step: 'dossier', tool: 'generate-intelligence-dossier', dependsOn: ['graph-reasoning'] },
+    { step: 'verification', tool: 'intelligence-verification', dependsOn: ['dossier'] },
+  ],
+  'deep-research': [
+    { step: 'enrich', tool: 'auto-enrich-contact', dependsOn: [] },
+    { step: 'agentic-rag', tool: 'agentic-rag', dependsOn: ['enrich'], extraParams: { maxIterations: 3, sourceTypes: ['document', 'observation', 'analysis', 'communication'] } },
+    { step: 'graph-reasoning', tool: 'graph-reasoning', dependsOn: ['agentic-rag'], extraParams: { mode: 'hypothesis-exploration', hypothesisCount: 4 } },
+    { step: 'synthesis', tool: 'generate-executive-summary', dependsOn: ['graph-reasoning'] },
+    { step: 'verification', tool: 'intelligence-verification', dependsOn: ['synthesis'] },
+  ],
+  'adversarial-assessment': [
+    { step: 'opsec', tool: 'opsec-vulnerability-analyzer', dependsOn: [] },
+    { step: 'threat', tool: 'threat-landscape-analyzer', dependsOn: [] },
+    { step: 'deception', tool: 'enhanced-deception-detector', dependsOn: [] },
+    { step: 'graph-threats', tool: 'graph-reasoning', dependsOn: ['opsec', 'threat'], extraParams: { mode: 'threat-assessment', hypothesisCount: 3 } },
+    { step: 'redteam', tool: 'automated-red-team-engine', dependsOn: ['graph-threats', 'deception'] },
+    { step: 'verification', tool: 'intelligence-verification', dependsOn: ['redteam'] },
+  ],
 };
 
 // ─── Contact Resolution ─────────────────────────────────────────────────────
