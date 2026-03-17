@@ -1,70 +1,97 @@
 
 # HPICS-HoC Strategic Enhancement Plan — IMPLEMENTED
 
-## Status: ✅ Tier 1 Complete
+## Status: ✅ Tier 1, 2, 3 Complete
 
 ### What Was Built
 
-#### 1. Agent Workflow Orchestrator (`supabase/functions/agent-workflow/index.ts`)
-- DAG-based multi-step workflow executor
-- 5 predefined workflows: `full-intelligence`, `generate-dossier`, `track-contact`, `counter-intel-scan`, `quick-profile`
-- Parallel step execution with dependency ordering
-- Contact resolution by name/email/phone (no UUID needed)
-- Workflow run tracking in `agent_workflow_runs` table
-- Accessible via gateway: `{ "action": "run-workflow", "command": "full-intelligence", "contact": "John Smith", "userId": "..." }`
+#### Tier 1: ✅ Complete — Autonomous Tool Chaining & Real API Integration
 
-#### 2. External API Integration Layer (`supabase/functions/_shared/external-api.ts`)
-- Real API calls to: PDL, Hunter.io, Proxycurl (LinkedIn), Tavily, Brave Search
-- Vault-based API key retrieval per user
-- Graceful AI fallback when keys not configured
-- Multi-source OSINT aggregation
+1. **Agent Workflow Orchestrator** (`supabase/functions/agent-workflow/index.ts`)
+   - DAG-based multi-step workflow executor
+   - 9 predefined workflows including vulnerability-defense
+   - Parallel step execution with dependency ordering
+   - Contact resolution by name/email/phone
 
-#### 3. Updated Enrichment Router (`supabase/functions/enrichment-router/index.ts` v5.0.0)
-- `/auto-enrich`, `/enrich` → tries PDL + Hunter + Proxycurl in parallel, falls back to AI
-- `/hunter` → real Hunter.io API with AI fallback
-- `/pdl` → real PDL API with AI fallback
-- `/linkedin` → real Proxycurl API with AI fallback
-- `/osint`, `/deep-osint` → Tavily + Brave web search with AI fallback
-- `/digital-footprint`, `/web-mentions` → multi-source web search with AI fallback
-- AI-only routes preserved for social scraping, Instagram, Threads, Diffbot
+2. **External API Integration Layer** (`supabase/functions/_shared/external-api.ts`)
+   - Real API calls to: PDL, Hunter.io, Proxycurl, Tavily, Brave Search
+   - Vault-based API key retrieval per user
+   - Graceful AI fallback when keys not configured
 
-#### 4. Updated HoC Gateway (`supabase/functions/hoc-gateway/index.ts`)
-- New actions: `resolve-contact`, `list-workflows`, `run-workflow`
-- Workflow tool routes added to ROUTE_MAP
-- `workflows` category added to tool catalog
+3. **Updated Enrichment Router** (v5.0.0)
+   - Real external API calls with AI fallback
 
-#### 5. Database Migration
-- `agent_workflow_runs` table with RLS, indexes
+4. **Updated HoC Gateway**
+   - 400+ tool routes across 17 categories
+   - SHA-256 hashed API key auth, rate limiting, audit logging
 
-### How HoC Agents Use It
+#### Tier 2: ✅ Complete — 2026 Research Techniques
+
+1. **Agentic RAG** — Multi-step iterative retrieval with query decomposition
+2. **Graph-of-Thought Reasoning** — DAG-based parallel hypothesis exploration
+3. **Intelligence Verification Pipeline** — Constitutional AI + Red Team + Cross-source
+4. **3 Advanced Workflows** — verified-dossier, deep-research, adversarial-assessment
+
+#### Tier 3: ✅ Complete — Architecture Audit + Vulnerability Defense System
+
+##### Architecture Fixes:
+- **OPSEC Analyzer**: Replaced stub with real analysis (reads profiles, contact methods, social accounts, communication patterns, calculates actual vulnerability scores)
+- **Gateway ROUTE_MAP**: Added vulnerability category with 7 new tools
+- **Workflow DAG**: Added `vulnerability-defense` pipeline
+
+##### New Vulnerability Defense System:
+
+1. **Vulnerability Intelligence** (`supabase/functions/vulnerability-intelligence/index.ts`)
+   - Real CVE feed aggregation from NVD API v2.0 and CISA KEV
+   - Platform-specific queries (WhatsApp, Facebook, Instagram, Chrome, iOS, Android)
+   - CVSS scoring, severity filtering, exploitation status tracking
+   - Auto-caching in `vulnerability_intel` table with 24h TTL
+   - Deduplication and priority sorting
+
+2. **Red Team Executor** (`supabase/functions/red-team-executor/index.ts`)
+   - Fetches real CVE details from NVD before AI analysis
+   - AI-generated attack scenarios with MITRE ATT&CK technique mapping
+   - Defense plans with specific patches, config changes, monitoring rules
+   - Exploit chain visualization (kill chain phases)
+   - Executable patch checklists for verification
+   - Tracked in `red_team_scenarios` table
+
+3. **Device Security Scanner** (`supabase/functions/device-security-scanner/index.ts`)
+   - CPE identifier generation from device specs
+   - NVD/CISA cross-referencing for matching CVEs
+   - AI-powered security assessment (risk scoring, 2FA analysis, hardening)
+   - Auto-registration of devices in `device_inventory` table
+   - Prioritized vulnerability reports with exact patch actions
+
+4. **Database Tables** (with RLS + indexes):
+   - `vulnerability_intel` — Cached CVE data with severity/exploitation status
+   - `red_team_scenarios` — Attack/defense scenarios with execution tracking
+   - `device_inventory` — Device registry with scan results
+
+5. **Vulnerability Defense Workflow** — Autonomous DAG:
+   ```
+   vuln-scan → device-scan (optional) → threat-assessment → red-team → opsec-check → verification
+   ```
+
+### How Agents Use It
 
 ```json
-// Resolve a contact by name
-POST { "action": "resolve-contact", "query": "John Smith", "userId": "..." }
+// Scan for platform vulnerabilities
+POST { "tool": "vulnerability-scan", "params": { "platforms": ["whatsapp", "instagram", "chrome"], "userId": "..." } }
 
-// Run full intelligence pipeline
-POST { "action": "run-workflow", "command": "full-intelligence", "contact": "John Smith", "userId": "..." }
+// Generate red team scenario for specific CVE
+POST { "tool": "red-team-scenario", "params": { "cveId": "CVE-2025-55177", "targetPlatform": "WhatsApp on iPhone", "userId": "..." } }
 
-// Generate dossier
-POST { "action": "run-workflow", "command": "generate-dossier", "profileId": "uuid", "userId": "..." }
+// Scan a specific device
+POST { "tool": "device-security-scan", "params": { "device": { "osName": "iOS", "osVersion": "18.3", "installedApps": [{"name": "WhatsApp"}, {"name": "Chrome"}] }, "userId": "..." } }
 
-// List available workflows
-POST { "action": "list-workflows" }
+// Run full vulnerability defense pipeline
+POST { "action": "run-workflow", "command": "vulnerability-defense", "params": { "platforms": ["whatsapp", "chrome"], "userId": "..." } }
 ```
 
-### Tier 2: ✅ Complete — 2026 Research Techniques
-
-#### Built:
-1. **Agentic RAG** (`supabase/functions/agentic-rag/index.ts`) — Multi-step iterative retrieval with query decomposition, self-critique, gap detection, and re-retrieval loops. Based on Stanford/Google 2026 patterns.
-2. **Graph-of-Thought Reasoning** (`supabase/functions/graph-reasoning/index.ts`) — DAG-based parallel hypothesis generation, evidence evaluation, cross-critique, and convergence synthesis. 4 modes: hypothesis-exploration, dossier-reasoning, threat-assessment, relationship-mapping.
-3. **Intelligence Verification Pipeline** (`supabase/functions/intelligence-verification/index.ts`) — Constitutional AI + Red Team adversarial checks + Cross-source consistency + Confidence calibration. All run in parallel for speed.
-4. **3 New Advanced Workflows** added to agent-workflow orchestrator:
-   - `verified-dossier` — enrich → analyze → graph-reasoning → dossier → verification
-   - `deep-research` — enrich → agentic-rag → graph-reasoning → synthesis → verification
-   - `adversarial-assessment` — opsec + threat + deception → graph-threats → redteam → verification
-5. **Gateway updated** — New tools and `reasoning` category added to ROUTE_MAP
-
-### Tier 3 (Future)
+### Tier 4 (Future)
 - Multimodal unified fusion via Gemini 2.5 Pro 1M context
 - Real-time adversarial robustness testing in production
 - Agentic memory consolidation with episodic/semantic separation
+- Scheduled vulnerability scanning (pg_cron daily scans)
+- VulnCheck API integration for PoC exploit maturity data
