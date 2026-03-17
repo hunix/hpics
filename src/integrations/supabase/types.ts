@@ -14521,6 +14521,72 @@ export type Database = {
           },
         ]
       }
+      device_inventory: {
+        Row: {
+          accounts: Json | null
+          cpe_identifiers: Json | null
+          created_at: string | null
+          critical_count: number | null
+          device_name: string
+          device_type: string
+          id: string
+          installed_apps: Json | null
+          last_scanned_at: string | null
+          manufacturer: string | null
+          model: string | null
+          os_name: string | null
+          os_version: string | null
+          risk_level: string | null
+          scan_results: Json | null
+          security_config: Json | null
+          updated_at: string | null
+          user_id: string
+          vulnerability_count: number | null
+        }
+        Insert: {
+          accounts?: Json | null
+          cpe_identifiers?: Json | null
+          created_at?: string | null
+          critical_count?: number | null
+          device_name: string
+          device_type: string
+          id?: string
+          installed_apps?: Json | null
+          last_scanned_at?: string | null
+          manufacturer?: string | null
+          model?: string | null
+          os_name?: string | null
+          os_version?: string | null
+          risk_level?: string | null
+          scan_results?: Json | null
+          security_config?: Json | null
+          updated_at?: string | null
+          user_id: string
+          vulnerability_count?: number | null
+        }
+        Update: {
+          accounts?: Json | null
+          cpe_identifiers?: Json | null
+          created_at?: string | null
+          critical_count?: number | null
+          device_name?: string
+          device_type?: string
+          id?: string
+          installed_apps?: Json | null
+          last_scanned_at?: string | null
+          manufacturer?: string | null
+          model?: string | null
+          os_name?: string | null
+          os_version?: string | null
+          risk_level?: string | null
+          scan_results?: Json | null
+          security_config?: Json | null
+          updated_at?: string | null
+          user_id?: string
+          vulnerability_count?: number | null
+        }
+        Relationships: []
+      }
       device_presence: {
         Row: {
           created_at: string
@@ -31327,6 +31393,69 @@ export type Database = {
         }
         Relationships: []
       }
+      red_team_scenarios: {
+        Row: {
+          agent_assigned: string | null
+          attack_scenario: Json
+          completed_at: string | null
+          created_at: string | null
+          cve_id: string | null
+          defense_plan: Json
+          execution_notes: Json | null
+          exploit_chain: Json | null
+          id: string
+          patch_checklist: Json | null
+          prerequisites: Json | null
+          priority: string | null
+          status: string | null
+          target_device_id: string | null
+          target_platform: string
+          updated_at: string | null
+          user_id: string
+          verification_result: Json | null
+        }
+        Insert: {
+          agent_assigned?: string | null
+          attack_scenario?: Json
+          completed_at?: string | null
+          created_at?: string | null
+          cve_id?: string | null
+          defense_plan?: Json
+          execution_notes?: Json | null
+          exploit_chain?: Json | null
+          id?: string
+          patch_checklist?: Json | null
+          prerequisites?: Json | null
+          priority?: string | null
+          status?: string | null
+          target_device_id?: string | null
+          target_platform: string
+          updated_at?: string | null
+          user_id: string
+          verification_result?: Json | null
+        }
+        Update: {
+          agent_assigned?: string | null
+          attack_scenario?: Json
+          completed_at?: string | null
+          created_at?: string | null
+          cve_id?: string | null
+          defense_plan?: Json
+          execution_notes?: Json | null
+          exploit_chain?: Json | null
+          id?: string
+          patch_checklist?: Json | null
+          prerequisites?: Json | null
+          priority?: string | null
+          status?: string | null
+          target_device_id?: string | null
+          target_platform?: string
+          updated_at?: string | null
+          user_id?: string
+          verification_result?: Json | null
+        }
+        Relationships: []
+      }
       reflect_agent_config: {
         Row: {
           created_at: string | null
@@ -39570,6 +39699,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      vulnerability_intel: {
+        Row: {
+          affected_versions: Json | null
+          attack_complexity: string | null
+          attack_vector: string | null
+          cve_id: string
+          cvss_score: number | null
+          description: string | null
+          epss_score: number | null
+          exploit_references: Json | null
+          fetched_at: string | null
+          id: string
+          is_exploited_in_wild: boolean | null
+          platform: string | null
+          remediation: string | null
+          severity: string | null
+          source: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          affected_versions?: Json | null
+          attack_complexity?: string | null
+          attack_vector?: string | null
+          cve_id: string
+          cvss_score?: number | null
+          description?: string | null
+          epss_score?: number | null
+          exploit_references?: Json | null
+          fetched_at?: string | null
+          id?: string
+          is_exploited_in_wild?: boolean | null
+          platform?: string | null
+          remediation?: string | null
+          severity?: string | null
+          source?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          affected_versions?: Json | null
+          attack_complexity?: string | null
+          attack_vector?: string | null
+          cve_id?: string
+          cvss_score?: number | null
+          description?: string | null
+          epss_score?: number | null
+          exploit_references?: Json | null
+          fetched_at?: string | null
+          id?: string
+          is_exploited_in_wild?: boolean | null
+          platform?: string | null
+          remediation?: string | null
+          severity?: string | null
+          source?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       vulnerability_window_predictions: {
         Row: {
