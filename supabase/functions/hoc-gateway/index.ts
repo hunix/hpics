@@ -502,6 +502,15 @@ const ROUTE_MAP: Record<string, Route> = {
   'workflow-verified-dossier': { router: 'agent-workflow', path: '/' },
   'workflow-deep-research': { router: 'agent-workflow', path: '/' },
   'workflow-adversarial-assessment': { router: 'agent-workflow', path: '/' },
+
+  // TIER 3: VULNERABILITY DEFENSE SYSTEM
+  'vulnerability-scan': { router: 'vulnerability-intelligence', path: '/' },
+  'vulnerability-intelligence': { router: 'vulnerability-intelligence', path: '/' },
+  'red-team-scenario': { router: 'red-team-executor', path: '/' },
+  'red-team-executor': { router: 'red-team-executor', path: '/' },
+  'device-security-scan': { router: 'device-security-scanner', path: '/' },
+  'device-security-scanner': { router: 'device-security-scanner', path: '/' },
+  'workflow-vulnerability-defense': { router: 'agent-workflow', path: '/' },
 };
 
 // ─── Category Catalog ───────────────────────────────────────────────────────
