@@ -502,6 +502,15 @@ const ROUTE_MAP: Record<string, Route> = {
   'workflow-verified-dossier': { router: 'agent-workflow', path: '/' },
   'workflow-deep-research': { router: 'agent-workflow', path: '/' },
   'workflow-adversarial-assessment': { router: 'agent-workflow', path: '/' },
+
+  // TIER 3: VULNERABILITY DEFENSE SYSTEM
+  'vulnerability-scan': { router: 'vulnerability-intelligence', path: '/' },
+  'vulnerability-intelligence': { router: 'vulnerability-intelligence', path: '/' },
+  'red-team-scenario': { router: 'red-team-executor', path: '/' },
+  'red-team-executor': { router: 'red-team-executor', path: '/' },
+  'device-security-scan': { router: 'device-security-scanner', path: '/' },
+  'device-security-scanner': { router: 'device-security-scanner', path: '/' },
+  'workflow-vulnerability-defense': { router: 'agent-workflow', path: '/' },
 };
 
 // ─── Category Catalog ───────────────────────────────────────────────────────
@@ -521,8 +530,9 @@ const CATEGORIES: Record<string, { description: string; router: string }> = {
   document: { description: '14+ document analysis, embedding, RAG query, and entity extraction tools', router: 'document-router' },
   security: { description: '16+ threat assessment, red teaming, OPSEC, and crisis response tools', router: 'security-router' },
   media: { description: '6+ media metadata, triangulation, and affective analysis tools', router: 'media-router' },
-  workflows: { description: '8 autonomous multi-step workflow commands (full-intelligence, dossier, track, counter-intel, quick-profile, verified-dossier, deep-research, adversarial-assessment)', router: 'agent-workflow' },
+  workflows: { description: '9 autonomous multi-step workflow commands (full-intelligence, dossier, track, counter-intel, quick-profile, verified-dossier, deep-research, adversarial-assessment, vulnerability-defense)', router: 'agent-workflow' },
   reasoning: { description: '3 advanced reasoning engines: agentic RAG (iterative retrieval), graph-of-thought (parallel hypothesis exploration), intelligence verification (constitutional AI + red team)', router: 'graph-reasoning' },
+  vulnerability: { description: '7 vulnerability defense tools: CVE feed aggregation (NVD, CISA KEV), red team scenario generation, device security scanning, autonomous vulnerability defense workflow', router: 'vulnerability-intelligence' },
 };
 
 function buildToolCatalog() {

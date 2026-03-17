@@ -100,6 +100,16 @@ const WORKFLOWS: Record<string, WorkflowStep[]> = {
     { step: 'redteam', tool: 'automated-red-team-engine', dependsOn: ['graph-threats', 'deception'] },
     { step: 'verification', tool: 'intelligence-verification', dependsOn: ['redteam'] },
   ],
+
+  // ─── Tier 3: Autonomous Vulnerability Defense ──────────────────────────
+  'vulnerability-defense': [
+    { step: 'vuln-scan', tool: 'vulnerability-intelligence', dependsOn: [], extraParams: { minSeverity: 'HIGH', forceRefresh: true } },
+    { step: 'device-scan', tool: 'device-security-scanner', dependsOn: [], optional: true },
+    { step: 'threat-assessment', tool: 'assess-threat', dependsOn: ['vuln-scan'] },
+    { step: 'red-team', tool: 'red-team-executor', dependsOn: ['vuln-scan', 'threat-assessment'] },
+    { step: 'opsec-check', tool: 'opsec-vulnerability-analyzer', dependsOn: ['vuln-scan'], optional: true },
+    { step: 'verification', tool: 'intelligence-verification', dependsOn: ['red-team'] },
+  ],
 };
 
 // ─── Contact Resolution ─────────────────────────────────────────────────────
