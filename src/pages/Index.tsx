@@ -28,13 +28,13 @@ const Index = forwardRef<HTMLDivElement>(function Index(_props, ref) {
         <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary">
           <Users className="h-10 w-10 text-primary-foreground" />
         </div>
-        <h1 className="text-4xl font-bold tracking-tight">PICS</h1>
+        <h1 className="text-4xl font-bold tracking-tight">HPICS</h1>
         <p className="text-xl text-muted-foreground">
-          Personal Intelligence CRM System
+          Hyper-Personal Intelligence CRM System
         </p>
         <p className="text-muted-foreground">
-          Build deeper relationships with AI-powered insights. Track interactions, 
-          remember important details, and never miss a meaningful connection.
+          Enterprise-grade intelligence platform with 400+ AI tools, 22 AGIS phases, 
+          autonomous workflows, and HoC Republic integration.
         </p>
         <Button size="lg" onClick={() => navigate('/auth')}>
           Get Started

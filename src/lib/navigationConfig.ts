@@ -870,6 +870,16 @@ export const navigationItems: NavItem[] = [
     requiredRole: 'admin',
     keywords: ['maintenance', 'database', 'cleanup', 'optimization'],
   },
+  {
+    id: 'hoc-integration',
+    title: 'HoC Integration',
+    url: '/hoc-integration',
+    icon: Zap,
+    description: 'HoC Republic gateway setup & API key management',
+    badge: 'new',
+    category: 'system',
+    keywords: ['hoc', 'republic', 'integration', 'gateway', 'api', 'connect'],
+  },
 ];
 
 // Group items by category

@@ -105,6 +105,7 @@ const AgentConsole = lazyWithRetry(() => import("./pages/AgentConsole"));
 const IntelligenceFeed = lazyWithRetry(() => import("./pages/IntelligenceFeed"));
 const BiometricStudio = lazyWithRetry(() => import("./pages/BiometricStudio"));
 const AutonomyDashboard = lazyWithRetry(() => import("./pages/AutonomyDashboard"));
+const HocIntegration = lazyWithRetry(() => import("./pages/HocIntegration"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
