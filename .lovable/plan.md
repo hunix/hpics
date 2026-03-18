@@ -1,97 +1,60 @@
 
-# HPICS-HoC Strategic Enhancement Plan — IMPLEMENTED
 
-## Status: ✅ Tier 1, 2, 3 Complete
+## What You're Seeing & What's Missing
 
-### What Was Built
+### Current State
 
-#### Tier 1: ✅ Complete — Autonomous Tool Chaining & Real API Integration
+You're on the landing page (`/`) which shows a basic "PICS" splash screen with a "Get Started" button. All the HoC integration, API key management, and gateway configuration already exist but are buried inside **Settings → API Keys & Vault → Inbound Access** section. The user needs to:
+1. Log in
+2. Navigate to Settings
+3. Click "API Keys & Vault" in the sidebar
+4. Scroll to the "Inbound Access" section
 
-1. **Agent Workflow Orchestrator** (`supabase/functions/agent-workflow/index.ts`)
-   - DAG-based multi-step workflow executor
-   - 9 predefined workflows including vulnerability-defense
-   - Parallel step execution with dependency ordering
-   - Contact resolution by name/email/phone
+This is not discoverable enough. Additionally, there's no dedicated **HoC Integration page** that consolidates everything an HoC agent needs: gateway URL, API key generation, available tools/workflows, connection status, and setup instructions.
 
-2. **External API Integration Layer** (`supabase/functions/_shared/external-api.ts`)
-   - Real API calls to: PDL, Hunter.io, Proxycurl, Tavily, Brave Search
-   - Vault-based API key retrieval per user
-   - Graceful AI fallback when keys not configured
+### What Needs to Be Built
 
-3. **Updated Enrichment Router** (v5.0.0)
-   - Real external API calls with AI fallback
+#### 1. Dedicated HoC Integration Hub Page (`/hoc-integration`)
 
-4. **Updated HoC Gateway**
-   - 400+ tool routes across 17 categories
-   - SHA-256 hashed API key auth, rate limiting, audit logging
+A new page accessible from the sidebar under the "System" category that provides a single-page setup guide for connecting HoC Republic to HPICS. It will display:
 
-#### Tier 2: ✅ Complete — 2026 Research Techniques
+- **Gateway Endpoint URL** (copy-to-clipboard): `https://yibszncvwmefwamayfty.supabase.co/functions/v1/hoc-gateway`
+- **API Key Generation** — reuse the existing `InboundApiKeys` component or a streamlined version
+- **Connection Requirements Checklist**: 
+  - Gateway URL
+  - API Key (Bearer token)
+  - Available actions: `run-workflow`, `resolve-contact`, `list-workflows`, plus all 400+ individual tools
+- **Available Workflows** — display the 8 autonomous workflows (full-intelligence, generate-dossier, track-contact, counter-intel-scan, quick-profile, verified-dossier, deep-research, adversarial-assessment, vulnerability-defense)
+- **Tool Categories** — list all 15 categories with tool counts
+- **Live Connection Test** — button that calls `?healthCheck=1` on the gateway and shows status
+- **Code Examples** — curl/JS snippets for common operations
 
-1. **Agentic RAG** — Multi-step iterative retrieval with query decomposition
-2. **Graph-of-Thought Reasoning** — DAG-based parallel hypothesis exploration
-3. **Intelligence Verification Pipeline** — Constitutional AI + Red Team + Cross-source
-4. **3 Advanced Workflows** — verified-dossier, deep-research, adversarial-assessment
+#### 2. Add to Navigation
 
-#### Tier 3: ✅ Complete — Architecture Audit + Vulnerability Defense System
+Add "HoC Integration" to `navigationConfig.ts` under `system` category and add the route to `App.tsx`.
 
-##### Architecture Fixes:
-- **OPSEC Analyzer**: Replaced stub with real analysis (reads profiles, contact methods, social accounts, communication patterns, calculates actual vulnerability scores)
-- **Gateway ROUTE_MAP**: Added vulnerability category with 7 new tools
-- **Workflow DAG**: Added `vulnerability-defense` pipeline
+#### 3. Improve Landing Page
 
-##### New Vulnerability Defense System:
+Update the Index page to show "HPICS" instead of "PICS" and include a brief mention of the platform's capabilities.
 
-1. **Vulnerability Intelligence** (`supabase/functions/vulnerability-intelligence/index.ts`)
-   - Real CVE feed aggregation from NVD API v2.0 and CISA KEV
-   - Platform-specific queries (WhatsApp, Facebook, Instagram, Chrome, iOS, Android)
-   - CVSS scoring, severity filtering, exploitation status tracking
-   - Auto-caching in `vulnerability_intel` table with 24h TTL
-   - Deduplication and priority sorting
+### Files to Create
 
-2. **Red Team Executor** (`supabase/functions/red-team-executor/index.ts`)
-   - Fetches real CVE details from NVD before AI analysis
-   - AI-generated attack scenarios with MITRE ATT&CK technique mapping
-   - Defense plans with specific patches, config changes, monitoring rules
-   - Exploit chain visualization (kill chain phases)
-   - Executable patch checklists for verification
-   - Tracked in `red_team_scenarios` table
+| File | Purpose |
+|------|---------|
+| `src/pages/HocIntegration.tsx` | Dedicated HoC integration hub with setup guide, gateway URL, key generation, workflow listing, and connection testing |
 
-3. **Device Security Scanner** (`supabase/functions/device-security-scanner/index.ts`)
-   - CPE identifier generation from device specs
-   - NVD/CISA cross-referencing for matching CVEs
-   - AI-powered security assessment (risk scoring, 2FA analysis, hardening)
-   - Auto-registration of devices in `device_inventory` table
-   - Prioritized vulnerability reports with exact patch actions
+### Files to Modify
 
-4. **Database Tables** (with RLS + indexes):
-   - `vulnerability_intel` — Cached CVE data with severity/exploitation status
-   - `red_team_scenarios` — Attack/defense scenarios with execution tracking
-   - `device_inventory` — Device registry with scan results
+| File | Change |
+|------|--------|
+| `src/lib/navigationConfig.ts` | Add HoC Integration nav item under system category |
+| `src/App.tsx` | Add `/hoc-integration` route |
+| `src/pages/Index.tsx` | Update branding from "PICS" to "HPICS" |
 
-5. **Vulnerability Defense Workflow** — Autonomous DAG:
-   ```
-   vuln-scan → device-scan (optional) → threat-assessment → red-team → opsec-check → verification
-   ```
+### Technical Details
 
-### How Agents Use It
+- The HoC Integration page will import and reuse the existing `InboundApiKeys` component for key management
+- Gateway health check will use `fetch()` to `hoc-gateway?healthCheck=1`
+- Workflow and tool category data will be hardcoded from the known `ROUTE_MAP` in `hoc-gateway/index.ts` (15 categories, 400+ tools, 9 workflows)
+- Connection test will verify both gateway reachability and API key validity
 
-```json
-// Scan for platform vulnerabilities
-POST { "tool": "vulnerability-scan", "params": { "platforms": ["whatsapp", "instagram", "chrome"], "userId": "..." } }
-
-// Generate red team scenario for specific CVE
-POST { "tool": "red-team-scenario", "params": { "cveId": "CVE-2025-55177", "targetPlatform": "WhatsApp on iPhone", "userId": "..." } }
-
-// Scan a specific device
-POST { "tool": "device-security-scan", "params": { "device": { "osName": "iOS", "osVersion": "18.3", "installedApps": [{"name": "WhatsApp"}, {"name": "Chrome"}] }, "userId": "..." } }
-
-// Run full vulnerability defense pipeline
-POST { "action": "run-workflow", "command": "vulnerability-defense", "params": { "platforms": ["whatsapp", "chrome"], "userId": "..." } }
-```
-
-### Tier 4 (Future)
-- Multimodal unified fusion via Gemini 2.5 Pro 1M context
-- Real-time adversarial robustness testing in production
-- Agentic memory consolidation with episodic/semantic separation
-- Scheduled vulnerability scanning (pg_cron daily scans)
-- VulnCheck API integration for PoC exploit maturity data
