@@ -105,6 +105,7 @@ const AgentConsole = lazyWithRetry(() => import("./pages/AgentConsole"));
 const IntelligenceFeed = lazyWithRetry(() => import("./pages/IntelligenceFeed"));
 const BiometricStudio = lazyWithRetry(() => import("./pages/BiometricStudio"));
 const AutonomyDashboard = lazyWithRetry(() => import("./pages/AutonomyDashboard"));
+const HocIntegration = lazyWithRetry(() => import("./pages/HocIntegration"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -234,6 +235,7 @@ const App = () => (
                            <Route path="/intelligence-feed" element={<IntelligenceFeed />} />
                            <Route path="/biometric-studio" element={<BiometricStudio />} />
                            <Route path="/autonomy" element={<AutonomyDashboard />} />
+                           <Route path="/hoc-integration" element={<HocIntegration />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                       </Suspense>
