@@ -143,7 +143,7 @@ const result = await response.json();`;
               variant="outline"
               onClick={() => copyToClipboard(GATEWAY_URL, 'Gateway URL')}
             >
-              {copied === 'Gateway URL' ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+              {copied === 'Gateway URL' ? <CheckCircle2 className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
             </Button>
           </div>
 
@@ -290,7 +290,7 @@ const result = await response.json();`;
                   className="absolute top-1 right-1 h-7 w-7"
                   onClick={() => copyToClipboard(curlExample, 'cURL')}
                 >
-                  {copied === 'cURL' ? <CheckCircle2 className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                  {copied === 'cURL' ? <CheckCircle2 className="h-3 w-3 text-primary" /> : <Copy className="h-3 w-3" />}
                 </Button>
               </div>
             </CollapsibleContent>
@@ -311,7 +311,7 @@ const result = await response.json();`;
                   className="absolute top-1 right-1 h-7 w-7"
                   onClick={() => copyToClipboard(jsExample, 'JS')}
                 >
-                  {copied === 'JS' ? <CheckCircle2 className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                  {copied === 'JS' ? <CheckCircle2 className="h-3 w-3 text-primary" /> : <Copy className="h-3 w-3" />}
                 </Button>
               </div>
             </CollapsibleContent>
