@@ -158,7 +158,7 @@ const result = await response.json();`;
               Test Connection
             </Button>
             {healthStatus === 'ok' && (
-              <span className="text-sm text-emerald-500 flex items-center gap-1">
+              <span className="text-sm text-primary flex items-center gap-1">
                 <CheckCircle2 className="h-3 w-3" /> {healthMessage}
               </span>
             )}
