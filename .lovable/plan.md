@@ -1,97 +1,110 @@
+## HPICS Architecture & Codebase Audit (May 2026)
 
-# HPICS-HoC Strategic Enhancement Plan — IMPLEMENTED
+Snapshot of the system as it stands today, what's drifted since the last touch, and a prioritized plan to bring it back to spec.
 
-## Status: ✅ Tier 1, 2, 3 Complete
+---
 
-### What Was Built
+### Inventory
 
-#### Tier 1: ✅ Complete — Autonomous Tool Chaining & Real API Integration
+| Layer | Count |
+|---|---|
+| DB tables (public) | **610** |
+| DB migrations | 226 |
+| Edge functions | **126** (15 domain routers + ~111 standalone) |
+| Frontend routes | 92 |
+| Pages | 89 |
+| Hooks | 127 |
+| Domain TS files (DDD) | 46 |
+| NPM dependencies | 81 |
+| App version | v3.9.54 |
 
-1. **Agent Workflow Orchestrator** (`supabase/functions/agent-workflow/index.ts`)
-   - DAG-based multi-step workflow executor
-   - 9 predefined workflows including vulnerability-defense
-   - Parallel step execution with dependency ordering
-   - Contact resolution by name/email/phone
+---
 
-2. **External API Integration Layer** (`supabase/functions/_shared/external-api.ts`)
-   - Real API calls to: PDL, Hunter.io, Proxycurl, Tavily, Brave Search
-   - Vault-based API key retrieval per user
-   - Graceful AI fallback when keys not configured
+### Critical Findings
 
-3. **Updated Enrichment Router** (v5.0.0)
-   - Real external API calls with AI fallback
+#### 1. Architecture drift — invocation proxy bypassed at scale
+- **247 files / 388 call-sites** still call `supabase.functions.invoke(...)` directly instead of the mandated `invokeFunction()` adapter from `@/lib/api`.
+- The "lint enforcement gate" memorialised in project memory (`no-restricted-syntax`) is **not actually present** in `eslint.config.js` — `grep` finds no rule. The gate was documented but never wired.
+- Result: routing/circuit-breaker/health metrics bypassed for the majority of calls. The global invoke proxy in `main.tsx` partially mitigates this, but only for functions present in `ROUTE_MAP`.
 
-4. **Updated HoC Gateway**
-   - 400+ tool routes across 17 categories
-   - SHA-256 hashed API key auth, rate limiting, audit logging
+#### 2. Edge function sprawl — consolidation incomplete
+- Memory says "~350 standalone functions deleted, modular monolith complete." Reality: **111 standalone functions remain** alongside the 15 routers (e.g. `agent-workflow`, `agentic-rag`, `deep-research-agent`, `vulnerability-intelligence`, `red-team-executor`, `device-security-scanner`, 50+ `suggest-*`/`sync-*`/`process-*`/`transcribe-*`/`import-*`).
+- Many of these belong inside an existing router (intelligence, utility, hardware, voice, security). Grace period for cleanup expired **2026-03-15** per memory.
 
-#### Tier 2: ✅ Complete — 2026 Research Techniques
+#### 3. Database security warnings — 190 issues from Supabase linter
+Aggregate breakdown of the 190 WARN findings:
+- **~180** `SECURITY DEFINER` functions executable by `anon` and/or `authenticated` (lint codes 0028/0029) — privilege escalation risk surface.
+- **2** Public storage buckets allow listing (lint 0025).
+- **1+** RLS policies using `USING (true)` on write operations (lint 0024).
+- **1** Function with mutable `search_path` (lint 0011).
+- **Several** SECURITY DEFINER functions that should be SECURITY INVOKER.
 
-1. **Agentic RAG** — Multi-step iterative retrieval with query decomposition
-2. **Graph-of-Thought Reasoning** — DAG-based parallel hypothesis exploration
-3. **Intelligence Verification Pipeline** — Constitutional AI + Red Team + Cross-source
-4. **3 Advanced Workflows** — verified-dossier, deep-research, adversarial-assessment
+#### 4. Type safety regressions
+- **502** `: any` annotations in `src/`. Convention requires explicit types or `unknown`.
+- **692** `console.log/warn/error` calls in `src/` (should use `@/lib/logger`).
+- **559** matches for `mock | stub | placeholder` strings — most are likely UI placeholder props, but a sweep is needed to confirm none are live data fakes.
 
-#### Tier 3: ✅ Complete — Architecture Audit + Vulnerability Defense System
+#### 5. Deprecated hooks still imported
+- `useEnhancedContacts`, `useNetworkData`, `useUnifiedIntelligence`, `useIntelligenceFusion` are marked `@deprecated` but still exported and imported across pages. Contacts/Network DDD migration is incomplete.
 
-##### Architecture Fixes:
-- **OPSEC Analyzer**: Replaced stub with real analysis (reads profiles, contact methods, social accounts, communication patterns, calculates actual vulnerability scores)
-- **Gateway ROUTE_MAP**: Added vulnerability category with 7 new tools
-- **Workflow DAG**: Added `vulnerability-defense` pipeline
+#### 6. Workflow orchestrator & vulnerability-defense pipeline
+- `agent-workflow`, `red-team-executor`, `vulnerability-intelligence`, `device-security-scanner` exist as standalone functions outside any router and outside the `ROUTE_MAP`, so the invoke proxy can't route them and the circuit-breaker can't observe them.
+- `hoc-gateway` ROUTE_MAP needs verification it still references all 9 workflows post-additions.
 
-##### New Vulnerability Defense System:
+#### 7. Misc
+- 6 files with `@deprecated` annotations — sweep & remove or migrate.
+- Latest migration is from 2026-03-17; nothing since. Schema is stable but linter findings have piled up.
+- App version v3.9.54 — `FORCE_CLEAR_VERSIONS` should be reviewed.
 
-1. **Vulnerability Intelligence** (`supabase/functions/vulnerability-intelligence/index.ts`)
-   - Real CVE feed aggregation from NVD API v2.0 and CISA KEV
-   - Platform-specific queries (WhatsApp, Facebook, Instagram, Chrome, iOS, Android)
-   - CVSS scoring, severity filtering, exploitation status tracking
-   - Auto-caching in `vulnerability_intel` table with 24h TTL
-   - Deduplication and priority sorting
+---
 
-2. **Red Team Executor** (`supabase/functions/red-team-executor/index.ts`)
-   - Fetches real CVE details from NVD before AI analysis
-   - AI-generated attack scenarios with MITRE ATT&CK technique mapping
-   - Defense plans with specific patches, config changes, monitoring rules
-   - Exploit chain visualization (kill chain phases)
-   - Executable patch checklists for verification
-   - Tracked in `red_team_scenarios` table
+### Remediation Plan (4 phases)
 
-3. **Device Security Scanner** (`supabase/functions/device-security-scanner/index.ts`)
-   - CPE identifier generation from device specs
-   - NVD/CISA cross-referencing for matching CVEs
-   - AI-powered security assessment (risk scoring, 2FA analysis, hardening)
-   - Auto-registration of devices in `device_inventory` table
-   - Prioritized vulnerability reports with exact patch actions
+#### Phase 1 — Security hardening (highest priority)
+1. **Lock down SECURITY DEFINER functions**: audit all flagged functions. For each, either `REVOKE EXECUTE FROM anon, authenticated`, switch to `SECURITY INVOKER`, or document it as intentionally public in security memory. Target: clear all 180 lint 0028/0029 warnings.
+2. **Fix mutable `search_path`** on the one flagged function (set `SET search_path = public`).
+3. **Tighten public buckets**: scope SELECT policies on the two public buckets to specific prefixes/owners.
+4. **Replace `USING (true)` write policies** with proper auth checks.
+5. Re-run linter; document any intentionally public surface in `update_memory`.
 
-4. **Database Tables** (with RLS + indexes):
-   - `vulnerability_intel` — Cached CVE data with severity/exploitation status
-   - `red_team_scenarios` — Attack/defense scenarios with execution tracking
-   - `device_inventory` — Device registry with scan results
+#### Phase 2 — Architecture re-alignment
+1. **Wire the lint gate**: add `no-restricted-syntax` rule blocking `supabase.functions.invoke(` outside `src/lib/api/` and `src/main.tsx`. Add `no-restricted-imports` for `@/integrations/supabase/types` (also missing).
+2. **Migrate the 247 violator files** to `invokeFunction()`. Use a codemod / `sd` for the mechanical rewrites, then hand-fix the ~30 cases that pass custom headers.
+3. **Fold remaining standalone functions into routers**:
+   - `intelligence-router`: agent-workflow, agentic-rag, deep-research-agent, intelligence-verification, graph-reasoning, transcendent-analysis, generate-proactive-insights, summarize-conversation, comprehensive-contact-scan, all `suggest-*`.
+   - `security-router`: vulnerability-intelligence, red-team-executor, device-security-scanner, opsec-vulnerability-analyzer, threat-actor-profiler, tscm-*, zero-day-anomaly-detector.
+   - `hardware-router`: thermal-*, sdr-intelligence, sensor-network, aerial-intelligence, generate-hardware-report.
+   - `voice-router`: transcribe-audio, transcribe-voice-note, identify-speakers, voice-stress-correlator.
+   - `utility-router`: trigger-*, webhook-receiver, test-integration, test-api-key, validate-observation.
+   - Keep standalone only: OAuth callbacks (`gmail-oauth`, `outlook-oauth`, `google-calendar-oauth`), sync jobs that need `verify_jwt = false` and dedicated config, webhook receivers (`whatsapp-webhook`, `chrome-extension-bridge`).
+4. **Update `ROUTE_MAP`** so the invoke proxy can transparently route every migrated tool.
+5. **Update `hoc-gateway` ROUTE_MAP** to expose all 9 autonomous workflows + new vulnerability tools to external HoC agents.
 
-5. **Vulnerability Defense Workflow** — Autonomous DAG:
-   ```
-   vuln-scan → device-scan (optional) → threat-assessment → red-team → opsec-check → verification
-   ```
+#### Phase 3 — DDD completion & code quality
+1. Finish migrating off `useEnhancedContacts`, `useNetworkData`, `useUnifiedIntelligence`, `useIntelligenceFusion`. Then delete them.
+2. Replace 692 `console.*` calls in `src/` with `@/lib/logger` (already exists). Add an ESLint `no-console` rule scoped to `src/`.
+3. Sweep 502 `: any` annotations — replace with proper types or `unknown` + narrowing. Add `@typescript-eslint/no-explicit-any` as `warn`.
+4. Audit the 559 `mock|stub|placeholder` matches; remove any that are still serving live data instead of UI placeholders.
 
-### How Agents Use It
+#### Phase 4 — Operational polish
+1. Bump `APP_VERSION` to **v4.0.0** to reflect the consolidation; add to `FORCE_CLEAR_VERSIONS`.
+2. Refresh `.lovable/plan.md` and `docs/COMPLETE_SYSTEM_REFERENCE.md` with the corrected counts (126 functions, 610 tables).
+3. Add a short `docs/AUDIT_2026-05.md` capturing this audit and what was fixed.
+4. Re-run `supabase--linter` and dependency scan; confirm green.
 
-```json
-// Scan for platform vulnerabilities
-POST { "tool": "vulnerability-scan", "params": { "platforms": ["whatsapp", "instagram", "chrome"], "userId": "..." } }
+---
 
-// Generate red team scenario for specific CVE
-POST { "tool": "red-team-scenario", "params": { "cveId": "CVE-2025-55177", "targetPlatform": "WhatsApp on iPhone", "userId": "..." } }
+### Technical Notes
+- All migrations will use `supabase--migration` (one per phase to keep diffs reviewable).
+- Frontend invocation rewrite is mechanical and safe: `supabase.functions.invoke(name, { body })` → `invokeFunction(name, { body })`; the `headers`-passing exceptions stay as-is.
+- Router consolidation can be staged: each function moved becomes a route in its target router; the standalone directory is then deleted in the same PR. The global invoke proxy means no frontend changes are required for migrated functions, only `ROUTE_MAP` updates.
+- Security definer audit will produce a CSV of `(function_name, is_definer, callers, action)` before any GRANT/REVOKE statements are written.
 
-// Scan a specific device
-POST { "tool": "device-security-scan", "params": { "device": { "osName": "iOS", "osVersion": "18.3", "installedApps": [{"name": "WhatsApp"}, {"name": "Chrome"}] }, "userId": "..." } }
+---
 
-// Run full vulnerability defense pipeline
-POST { "action": "run-workflow", "command": "vulnerability-defense", "params": { "platforms": ["whatsapp", "chrome"], "userId": "..." } }
-```
+### Out of scope (flag only)
+- Local-AI infrastructure (`src/lib/localAI/`) — not exercised in production paths; needs a separate review.
+- Capacitor / Electron / Chrome extension wrappers — independent build targets.
+- 124-section dossier renderer correctness — assumed correct per v3.9.53 fix.
 
-### Tier 4 (Future)
-- Multimodal unified fusion via Gemini 2.5 Pro 1M context
-- Real-time adversarial robustness testing in production
-- Agentic memory consolidation with episodic/semantic separation
-- Scheduled vulnerability scanning (pg_cron daily scans)
-- VulnCheck API integration for PoC exploit maturity data
+Approve and I'll start with Phase 1 (security hardening) since that's the highest-risk surface.
