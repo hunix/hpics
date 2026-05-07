@@ -21,6 +21,37 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@/integrations/supabase/types",
+              message:
+                "Import from '@/types/database-helpers' instead — the monolithic types file kills IDE performance.",
+            },
+          ],
+        },
+      ],
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "CallExpression[callee.object.property.name='functions'][callee.property.name='invoke']",
+          message:
+            "Use invokeFunction() from '@/lib/api' instead of supabase.functions.invoke(). The adapter handles routing, circuit-breaking, and health metrics. Pass custom headers via the adapter's options.",
+        },
+      ],
+    },
+  },
+  {
+    // Adapter and bootstrap files are allowed to call supabase.functions.invoke directly.
+    files: [
+      "src/lib/api/**/*.{ts,tsx}",
+      "src/main.tsx",
+    ],
+    rules: {
+      "no-restricted-syntax": "off",
     },
   },
 );
