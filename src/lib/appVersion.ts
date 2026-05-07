@@ -2,6 +2,13 @@
  * Application Version Management
  * Used for cache busting and version tracking
  * 
+ * v3.9.55: Architecture & Security Audit (May 2026)
+ *          - Locked down 90+ SECURITY DEFINER functions: REVOKE PUBLIC/anon, GRANT authenticated only for non-trigger fns
+ *          - Fixed mutable search_path on update_updated_at_column
+ *          - Tightened service-role write policies on audit/detection/media tables
+ *          - face-crops storage bucket now owner-scoped (was public)
+ *          - Wired ESLint gates: no-restricted-imports for monolithic types, no-restricted-syntax for direct supabase.functions.invoke
+ *          - Linter: 190 → 95 warnings (remaining are intentional authenticated RPC surface, documented in security memory)
  * v3.9.54: Voice Intelligence Pipeline & Task Runner Sync
  *          - Fixed voiceIntel section to pull from voice_insights table (791 analyzed records)
  *          - Added voice_intelligence_aggregate to section data sources
@@ -73,7 +80,7 @@
  * v3.9.0: DDD Barrel Export Compliance - IDE performance optimization
  * v3.8.9: Schema Remediation - Fixed 13 edge functions with contact_observations column mismatches
  */
-export const APP_VERSION = '3.9.54';
+export const APP_VERSION = '3.9.55';
 export const BUILD_TIMESTAMP = new Date().toISOString();
 
 // Versions that require forced cache clear when upgrading FROM (never include current version!)
