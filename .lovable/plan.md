@@ -1,110 +1,76 @@
-## HPICS Architecture & Codebase Audit (May 2026)
+## HPICS v3.9.55 → v4.0.0 — Full Audit & Modernization Plan
 
-Snapshot of the system as it stands today, what's drifted since the last touch, and a prioritized plan to bring it back to spec.
+### Current state (measured today)
 
----
+| Area | Metric | Status |
+|---|---|---|
+| App version | 3.9.55 | Stale (last touched May 2026) |
+| DB migrations | 228 | OK |
+| DB tables | 610 | OK |
+| Edge functions | 126 total (15 routers + 109 standalone + _shared) | Sprawl |
+| Supabase linter | 95 warnings (down from 190) | Mid-cleanup |
+| Direct `supabase.functions.invoke` calls | **252 files** still bypass `invokeFunction()` adapter | Lint gate exists, code not migrated |
+| `console.*` call sites | 262 | Should use `@/lib/logger` |
+| `: any` annotations | 673 | Type-safety gap |
+| Deprecated hooks in use | 2 files | Almost done |
+| AI model refs (frontend) | Pinned to gemini-2.5-*, gemini-3-pro-preview, gpt-5/5.2 | **Outdated** — new gemini-3-flash-preview, 3.1-pro-preview, 3.5-flash, gpt-5.4/5.5 available |
 
-### Inventory
+### Findings by severity
 
-| Layer | Count |
-|---|---|
-| DB tables (public) | **610** |
-| DB migrations | 226 |
-| Edge functions | **126** (15 domain routers + ~111 standalone) |
-| Frontend routes | 92 |
-| Pages | 89 |
-| Hooks | 127 |
-| Domain TS files (DDD) | 46 |
-| NPM dependencies | 81 |
-| App version | v3.9.54 |
+**Critical (must fix)**
+1. **Lint gate is bypassed at scale** — `eslint.config.js` blocks `supabase.functions.invoke()`, but 252 files still call it directly. Build presumably still passes because the invoke proxy (`installInvokeProxy`) silently routes mapped functions and the lint rule is `error` but probably not blocking CI. Result: circuit-breaker / router metrics miss most traffic.
+2. **95 Supabase linter warnings** remaining: 1× permissive RLS (`USING(true)` on a write policy), 1× public-bucket-listing, ~90× authenticated `SECURITY DEFINER` callable. Needs explicit accept-or-revoke per function.
+3. **AI model registry is stale** — `AIModelSelector`, `ModelEfficiencyComparison`, `BulkMetadataGenerator`, etc. don't expose: `google/gemini-3-flash-preview`, `google/gemini-3.1-pro-preview`, `google/gemini-3.5-flash`, `google/gemini-3.1-flash-lite-preview`, `openai/gpt-5.4`, `openai/gpt-5.4-mini`, `openai/gpt-5.5`, `openai/gpt-5.5-pro`. Pricing table + default model selection also need a refresh.
 
----
+**High**
+4. **109 standalone edge functions** still outside the 15 routers. Key offenders that should be folded in: `agent-workflow`, `autonomy-engine`, `deep-research-agent`, `device-security-scanner`, `red-team-executor`, `vulnerability-intelligence`, `vulnerability-window-detector`, `opsec-vulnerability-analyzer`, `agentic-rag`, `agis-orchestrator`, `cross-modal-synthesis`, `future-timeline-engine`, plus ~20 `analyze-*`, `detect-*`, `generate-*`, `auto-sync-*`. None of these appear in `ROUTE_MAP`, so the invoke proxy can't route them and the router circuit-breakers can't observe them.
+5. **2 deprecated-hook holdouts** — finish the migration so `useEnhancedContacts`, `useNetworkData`, `useUnifiedIntelligence`, `useIntelligenceFusion` can be physically deleted.
 
-### Critical Findings
+**Medium**
+6. **673 `: any`** — focus on hooks, API adapters, and `src/lib/intelligence/` first.
+7. **262 `console.*`** — replace with `@/lib/logger` so production logs are leveled and shippable.
+8. **HoC gateway alignment** — confirm `ROUTE_MAP` advertises every workflow the HoC Integration page documents (the page lists 9 workflows and 15 categories — re-verify after router consolidation).
 
-#### 1. Architecture drift — invocation proxy bypassed at scale
-- **247 files / 388 call-sites** still call `supabase.functions.invoke(...)` directly instead of the mandated `invokeFunction()` adapter from `@/lib/api`.
-- The "lint enforcement gate" memorialised in project memory (`no-restricted-syntax`) is **not actually present** in `eslint.config.js` — `grep` finds no rule. The gate was documented but never wired.
-- Result: routing/circuit-breaker/health metrics bypassed for the majority of calls. The global invoke proxy in `main.tsx` partially mitigates this, but only for functions present in `ROUTE_MAP`.
+### Proposed phased plan
 
-#### 2. Edge function sprawl — consolidation incomplete
-- Memory says "~350 standalone functions deleted, modular monolith complete." Reality: **111 standalone functions remain** alongside the 15 routers (e.g. `agent-workflow`, `agentic-rag`, `deep-research-agent`, `vulnerability-intelligence`, `red-team-executor`, `device-security-scanner`, 50+ `suggest-*`/`sync-*`/`process-*`/`transcribe-*`/`import-*`).
-- Many of these belong inside an existing router (intelligence, utility, hardware, voice, security). Grace period for cleanup expired **2026-03-15** per memory.
+**Phase A — AI model refresh (small, high-value, ship first)**
+- Add the 8 new models (gemini-3-flash-preview, 3.1-pro-preview, 3.5-flash, 3.1-flash-lite-preview, gpt-5.4, 5.4-mini, 5.5, 5.5-pro) to `AIModelSelector`, `ModelEfficiencyComparison`, `BulkMetadataGenerator`, `FaceScanJobCreator`, `MediaIntelligenceDashboard`, `aiPricing.ts`.
+- Update default model in router handlers from `gemini-2.5-flash` → `gemini-3-flash-preview` (already the project standard per memory).
+- Update `useAIModelPreference` default + add a "What's new" tooltip.
 
-#### 3. Database security warnings — 190 issues from Supabase linter
-Aggregate breakdown of the 190 WARN findings:
-- **~180** `SECURITY DEFINER` functions executable by `anon` and/or `authenticated` (lint codes 0028/0029) — privilege escalation risk surface.
-- **2** Public storage buckets allow listing (lint 0025).
-- **1+** RLS policies using `USING (true)` on write operations (lint 0024).
-- **1** Function with mutable `search_path` (lint 0011).
-- **Several** SECURITY DEFINER functions that should be SECURITY INVOKER.
+**Phase B — Invocation adapter migration (codemod)**
+- Write a codemod script that rewrites `supabase.functions.invoke(name, { body })` → `invokeFunction(name, body)` across the 252 files (preserves `headers` overrides by falling back to original invoke).
+- Promote the existing `no-restricted-syntax` lint rule from `error` to a CI-blocking gate and add a smoke build.
 
-#### 4. Type safety regressions
-- **502** `: any` annotations in `src/`. Convention requires explicit types or `unknown`.
-- **692** `console.log/warn/error` calls in `src/` (should use `@/lib/logger`).
-- **559** matches for `mock | stub | placeholder` strings — most are likely UI placeholder props, but a sweep is needed to confirm none are live data fakes.
+**Phase C — Edge-function consolidation**
+- Move the 12 high-traffic standalone functions (workflow, autonomy, red-team, vulnerability suite, deep-research, agis-orchestrator) into `warfare-router`, `intelligence-router`, `security-router`, `agis-router`.
+- Update `ROUTE_MAP` and `hoc-gateway` workflow registry.
+- Delete the migrated standalone folders (keep one release as deprecation shim if needed).
 
-#### 5. Deprecated hooks still imported
-- `useEnhancedContacts`, `useNetworkData`, `useUnifiedIntelligence`, `useIntelligenceFusion` are marked `@deprecated` but still exported and imported across pages. Contacts/Network DDD migration is incomplete.
+**Phase D — Security closeout**
+- For each of the ~90 remaining `SECURITY DEFINER` warnings: revoke from `authenticated` where it's an internal RPC, or document acceptance in `security--update_memory`.
+- Fix the last permissive-RLS write policy and the public-bucket listing.
+- Re-run `supabase--linter` until warnings reflect only intentional surface.
 
-#### 6. Workflow orchestrator & vulnerability-defense pipeline
-- `agent-workflow`, `red-team-executor`, `vulnerability-intelligence`, `device-security-scanner` exist as standalone functions outside any router and outside the `ROUTE_MAP`, so the invoke proxy can't route them and the circuit-breaker can't observe them.
-- `hoc-gateway` ROUTE_MAP needs verification it still references all 9 workflows post-additions.
+**Phase E — Code-quality sweep**
+- Replace 262 `console.*` with `@/lib/logger`.
+- Type 673 `: any` (target the top 50 hotspot files; leave generated/3p alone).
+- Delete the 4 deprecated hook files after final 2 call-sites are migrated.
 
-#### 7. Misc
-- 6 files with `@deprecated` annotations — sweep & remove or migrate.
-- Latest migration is from 2026-03-17; nothing since. Schema is stable but linter findings have piled up.
-- App version v3.9.54 — `FORCE_CLEAR_VERSIONS` should be reviewed.
+**Phase F — Release**
+- Bump `APP_VERSION` to `4.0.0`, add to `FORCE_CLEAR_VERSIONS`.
+- Update `docs/QUICK_REFERENCE_CARD.md`, `README.md`, and HoC Integration page.
+- Add audit record migration.
 
----
+### Technical details
 
-### Remediation Plan (4 phases)
+- Codemod approach: `ts-morph` script under `scripts/`; matches `CallExpression` where `callee` is `supabase.functions.invoke`. Skips files inside `src/lib/api/**` and `src/main.tsx` (already exempted in `eslint.config.js`).
+- Router consolidation pattern: each migrated function becomes `app.post('/<slug>', withHandler(...))` in the target router, identical to existing `voice-router` / `utility-router` shape.
+- Model registry lives in `src/components/ai/AIModelSelector.tsx` + `src/lib/aiPricing.ts`; one source of truth refactor optional.
+- Linter sweep uses `supabase--migration` for each batched `REVOKE EXECUTE` block.
 
-#### Phase 1 — Security hardening (highest priority)
-1. **Lock down SECURITY DEFINER functions**: audit all flagged functions. For each, either `REVOKE EXECUTE FROM anon, authenticated`, switch to `SECURITY INVOKER`, or document it as intentionally public in security memory. Target: clear all 180 lint 0028/0029 warnings.
-2. **Fix mutable `search_path`** on the one flagged function (set `SET search_path = public`).
-3. **Tighten public buckets**: scope SELECT policies on the two public buckets to specific prefixes/owners.
-4. **Replace `USING (true)` write policies** with proper auth checks.
-5. Re-run linter; document any intentionally public surface in `update_memory`.
+### Suggested execution order
 
-#### Phase 2 — Architecture re-alignment
-1. **Wire the lint gate**: add `no-restricted-syntax` rule blocking `supabase.functions.invoke(` outside `src/lib/api/` and `src/main.tsx`. Add `no-restricted-imports` for `@/integrations/supabase/types` (also missing).
-2. **Migrate the 247 violator files** to `invokeFunction()`. Use a codemod / `sd` for the mechanical rewrites, then hand-fix the ~30 cases that pass custom headers.
-3. **Fold remaining standalone functions into routers**:
-   - `intelligence-router`: agent-workflow, agentic-rag, deep-research-agent, intelligence-verification, graph-reasoning, transcendent-analysis, generate-proactive-insights, summarize-conversation, comprehensive-contact-scan, all `suggest-*`.
-   - `security-router`: vulnerability-intelligence, red-team-executor, device-security-scanner, opsec-vulnerability-analyzer, threat-actor-profiler, tscm-*, zero-day-anomaly-detector.
-   - `hardware-router`: thermal-*, sdr-intelligence, sensor-network, aerial-intelligence, generate-hardware-report.
-   - `voice-router`: transcribe-audio, transcribe-voice-note, identify-speakers, voice-stress-correlator.
-   - `utility-router`: trigger-*, webhook-receiver, test-integration, test-api-key, validate-observation.
-   - Keep standalone only: OAuth callbacks (`gmail-oauth`, `outlook-oauth`, `google-calendar-oauth`), sync jobs that need `verify_jwt = false` and dedicated config, webhook receivers (`whatsapp-webhook`, `chrome-extension-bridge`).
-4. **Update `ROUTE_MAP`** so the invoke proxy can transparently route every migrated tool.
-5. **Update `hoc-gateway` ROUTE_MAP** to expose all 9 autonomous workflows + new vulnerability tools to external HoC agents.
+Start with **Phase A** (1 PR, ~6 files, immediate user-visible win) and **Phase D** (security finishes what was already started). Then **Phase B** codemod unblocks **Phase C** consolidation. **Phase E + F** ship together as v4.0.0.
 
-#### Phase 3 — DDD completion & code quality
-1. Finish migrating off `useEnhancedContacts`, `useNetworkData`, `useUnifiedIntelligence`, `useIntelligenceFusion`. Then delete them.
-2. Replace 692 `console.*` calls in `src/` with `@/lib/logger` (already exists). Add an ESLint `no-console` rule scoped to `src/`.
-3. Sweep 502 `: any` annotations — replace with proper types or `unknown` + narrowing. Add `@typescript-eslint/no-explicit-any` as `warn`.
-4. Audit the 559 `mock|stub|placeholder` matches; remove any that are still serving live data instead of UI placeholders.
-
-#### Phase 4 — Operational polish
-1. Bump `APP_VERSION` to **v4.0.0** to reflect the consolidation; add to `FORCE_CLEAR_VERSIONS`.
-2. Refresh `.lovable/plan.md` and `docs/COMPLETE_SYSTEM_REFERENCE.md` with the corrected counts (126 functions, 610 tables).
-3. Add a short `docs/AUDIT_2026-05.md` capturing this audit and what was fixed.
-4. Re-run `supabase--linter` and dependency scan; confirm green.
-
----
-
-### Technical Notes
-- All migrations will use `supabase--migration` (one per phase to keep diffs reviewable).
-- Frontend invocation rewrite is mechanical and safe: `supabase.functions.invoke(name, { body })` → `invokeFunction(name, { body })`; the `headers`-passing exceptions stay as-is.
-- Router consolidation can be staged: each function moved becomes a route in its target router; the standalone directory is then deleted in the same PR. The global invoke proxy means no frontend changes are required for migrated functions, only `ROUTE_MAP` updates.
-- Security definer audit will produce a CSV of `(function_name, is_definer, callers, action)` before any GRANT/REVOKE statements are written.
-
----
-
-### Out of scope (flag only)
-- Local-AI infrastructure (`src/lib/localAI/`) — not exercised in production paths; needs a separate review.
-- Capacitor / Electron / Chrome extension wrappers — independent build targets.
-- 124-section dossier renderer correctness — assumed correct per v3.9.53 fix.
-
-Approve and I'll start with Phase 1 (security hardening) since that's the highest-risk surface.
+Confirm and I'll begin with Phase A (AI model refresh) unless you want a different starting point.
