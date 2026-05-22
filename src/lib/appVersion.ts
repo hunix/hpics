@@ -2,6 +2,11 @@
  * Application Version Management
  * Used for cache busting and version tracking
  * 
+ * v3.9.56: AI Model Registry Refresh (May 2026)
+ *          - Added 11 new models across AIModelSelector, BulkMetadataGenerator, ModelEfficiencyComparison, aiPricing
+ *          - New Google: gemini-3-flash-preview (default), gemini-3.1-pro-preview, gemini-3.5-flash, gemini-3.1-flash-lite-preview, gemini-3.1-flash-image-preview
+ *          - New OpenAI: gpt-5.4, gpt-5.4-mini, gpt-5.4-nano, gpt-5.4-pro, gpt-5.5, gpt-5.5-pro
+ *          - Default standardized to google/gemini-3-flash-preview; tiers rebalanced (speed→3.1-flash-lite, balanced→3-flash, quality→3.1-pro/gpt-5.5, extreme→gpt-5.5-pro)
  * v3.9.55: Architecture & Security Audit (May 2026)
  *          - Locked down 90+ SECURITY DEFINER functions: REVOKE PUBLIC/anon, GRANT authenticated only for non-trigger fns
  *          - Fixed mutable search_path on update_updated_at_column
@@ -80,11 +85,11 @@
  * v3.9.0: DDD Barrel Export Compliance - IDE performance optimization
  * v3.8.9: Schema Remediation - Fixed 13 edge functions with contact_observations column mismatches
  */
-export const APP_VERSION = '3.9.55';
+export const APP_VERSION = '3.9.56';
 export const BUILD_TIMESTAMP = new Date().toISOString();
 
 // Versions that require forced cache clear when upgrading FROM (never include current version!)
-export const FORCE_CLEAR_VERSIONS = ['3.9.53', '3.9.52', '3.9.51', '3.9.50', '3.9.38', '3.9.35', '3.9.34', '3.9.20', '3.9.19', '3.9.18', '3.9.17', '3.9.16', '3.9.15', '3.9.14', '3.9.13', '3.9.12', '3.9.11', '3.9.10', '3.9.9', '3.9.8', '3.9.7', '3.9.6', '3.9.5', '3.9.4', '3.9.3', '3.9.2', '3.9.1', '3.9.0', '3.8.9', '3.8.8', '3.8.7', '3.8.6', '3.8.5', '3.8.4', '3.8.3', '3.8.2', '3.8.1', '3.8.0', '3.7.7', '3.7.6', '3.7.5', '3.7.4', '3.7.3', '3.7.2', '3.7.1', '3.7.0', '3.6.1', '3.6.0', '3.5.0'];
+export const FORCE_CLEAR_VERSIONS = ['3.9.55', '3.9.54', '3.9.53', '3.9.52', '3.9.51', '3.9.50', '3.9.38', '3.9.35', '3.9.34', '3.9.20', '3.9.19', '3.9.18', '3.9.17', '3.9.16', '3.9.15', '3.9.14', '3.9.13', '3.9.12', '3.9.11', '3.9.10', '3.9.9', '3.9.8', '3.9.7', '3.9.6', '3.9.5', '3.9.4', '3.9.3', '3.9.2', '3.9.1', '3.9.0', '3.8.9', '3.8.8', '3.8.7', '3.8.6', '3.8.5', '3.8.4', '3.8.3', '3.8.2', '3.8.1', '3.8.0', '3.7.7', '3.7.6', '3.7.5', '3.7.4', '3.7.3', '3.7.2', '3.7.1', '3.7.0', '3.6.1', '3.6.0', '3.5.0'];
 
 // Cache key for tracking chunk errors
 const CHUNK_ERROR_KEY = 'chunk_error_count';
