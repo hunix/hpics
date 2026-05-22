@@ -178,7 +178,7 @@ export function DocumentIntelligencePanel({ profileId }: DocumentIntelligencePan
                           </span>
                           {doc.document_subtype && (
                             <Badge variant="outline" className="text-xs">
-                              {doc.document_subtype}
+                              {String(doc.document_subtype)}
                             </Badge>
                           )}
                           <Badge 
@@ -220,7 +220,7 @@ export function DocumentIntelligencePanel({ profileId }: DocumentIntelligencePan
                             <span className="text-xs text-muted-foreground">Suggested:</span>
                             <span className="text-sm font-medium">{doc.suggested_profile.full_name}</span>
                             <Badge variant="outline" className="text-xs">
-                              {Math.round((doc.match_confidence || 0) * 100)}%
+                              {Math.round((Number(doc.match_confidence) || 0) * 100)}%
                             </Badge>
                             <Button
                               size="sm"
@@ -351,12 +351,12 @@ export function DocumentIntelligencePanel({ profileId }: DocumentIntelligencePan
                                 {doc.document_subtype && (
                                   <div>
                                     <label className="text-xs text-muted-foreground">Subtype</label>
-                                    <p className="font-medium">{doc.document_subtype}</p>
+                                    <p className="font-medium">{String(doc.document_subtype)}</p>
                                   </div>
                                 )}
                                 <div>
                                   <label className="text-xs text-muted-foreground">Confidence</label>
-                                  <p className="font-medium">{Math.round((doc.match_confidence || 0) * 100)}%</p>
+                                  <p className="font-medium">{Math.round((Number(doc.match_confidence) || 0) * 100)}%</p>
                                 </div>
                                 <div>
                                   <label className="text-xs text-muted-foreground">Status</label>
