@@ -3,6 +3,14 @@
  * Used for cache busting and version tracking
  * 
  * v3.9.56: AI Model Registry Refresh (May 2026)
+ * v4.0.0: Audit & Hardening Release (May 2026)
+ *          - DB Security: dropped 31 over-broad "Service role" RLS policies; restricted to TO service_role only
+ *          - SECURITY DEFINER lockdown: REVOKE EXECUTE from PUBLIC/anon/authenticated on 95 functions; re-granted on ~50 client-facing
+ *          - Edge function audit: 109 standalone functions verified for CORS/OPTIONS/Auth/ErrH (100/100/99/94%)
+ *          - Added healthCheck=1 endpoint to 25 AI/analytical functions
+ *          - Hardened webhook-receiver error path with instanceof Error guard
+ *          - Batch 2 (invoke codemod) skipped: installInvokeProxy() already routes 252 sites through circuit breakers
+ *          - Batch 3 (router consolidation) deferred: standalone functions hold bespoke logic that doesn't fit the generic factory
  *          - Added 11 new models across AIModelSelector, BulkMetadataGenerator, ModelEfficiencyComparison, aiPricing
  *          - New Google: gemini-3-flash-preview (default), gemini-3.1-pro-preview, gemini-3.5-flash, gemini-3.1-flash-lite-preview, gemini-3.1-flash-image-preview
  *          - New OpenAI: gpt-5.4, gpt-5.4-mini, gpt-5.4-nano, gpt-5.4-pro, gpt-5.5, gpt-5.5-pro
