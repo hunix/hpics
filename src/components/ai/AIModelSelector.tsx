@@ -41,7 +41,6 @@ const AVAILABLE_MODELS = [
     speed: 'Fast',
     quality: 'Good',
     costTier: 2,
-    recommended: true,
   },
   {
     key: 'google/gemini-2.5-pro',
@@ -60,6 +59,43 @@ const AVAILABLE_MODELS = [
     speed: 'Medium',
     quality: 'Premium',
     costTier: 4,
+  },
+  {
+    key: 'google/gemini-3-flash-preview',
+    name: 'Gemini 3 Flash (Preview)',
+    provider: 'Google',
+    description: 'HPICS default. Fast Gemini 3 with balanced reasoning.',
+    speed: 'Very Fast',
+    quality: 'Good',
+    costTier: 1,
+    recommended: true,
+  },
+  {
+    key: 'google/gemini-3.1-pro-preview',
+    name: 'Gemini 3.1 Pro (Preview)',
+    provider: 'Google',
+    description: 'Next-generation reasoning. Latest Gemini Pro.',
+    speed: 'Medium',
+    quality: 'Premium',
+    costTier: 4,
+  },
+  {
+    key: 'google/gemini-3.1-flash-lite-preview',
+    name: 'Gemini 3.1 Flash Lite (Preview)',
+    provider: 'Google',
+    description: 'High-volume, cost-efficient Gemini 3.1.',
+    speed: 'Very Fast',
+    quality: 'Basic',
+    costTier: 1,
+  },
+  {
+    key: 'google/gemini-3.5-flash',
+    name: 'Gemini 3.5 Flash',
+    provider: 'Google',
+    description: 'Fast coding, reasoning, and agentic workflows.',
+    speed: 'Fast',
+    quality: 'Excellent',
+    costTier: 2,
   },
   {
     key: 'openai/gpt-5-nano',
@@ -88,6 +124,51 @@ const AVAILABLE_MODELS = [
     quality: 'Excellent',
     costTier: 4,
   },
+  {
+    key: 'openai/gpt-5.4-mini',
+    name: 'GPT-5.4 Mini',
+    provider: 'OpenAI',
+    description: 'Smaller, faster GPT-5.4. Strong reasoning at lower cost.',
+    speed: 'Fast',
+    quality: 'Excellent',
+    costTier: 2,
+  },
+  {
+    key: 'openai/gpt-5.4',
+    name: 'GPT-5.4',
+    provider: 'OpenAI',
+    description: 'Advanced reasoning, code generation, analysis.',
+    speed: 'Medium',
+    quality: 'Premium',
+    costTier: 4,
+  },
+  {
+    key: 'openai/gpt-5.4-pro',
+    name: 'GPT-5.4 Pro',
+    provider: 'OpenAI',
+    description: 'Premium reasoning for the most complex tasks.',
+    speed: 'Slower',
+    quality: 'Premium',
+    costTier: 4,
+  },
+  {
+    key: 'openai/gpt-5.5',
+    name: 'GPT-5.5',
+    provider: 'OpenAI',
+    description: 'State-of-the-art reasoning and instruction following.',
+    speed: 'Medium',
+    quality: 'Premium',
+    costTier: 4,
+  },
+  {
+    key: 'openai/gpt-5.5-pro',
+    name: 'GPT-5.5 Pro',
+    provider: 'OpenAI',
+    description: 'Extended reasoning for the hardest problems.',
+    speed: 'Slower',
+    quality: 'Premium',
+    costTier: 4,
+  },
 ];
 
 const COST_TIER_LABELS: Record<number, { label: string; color: string }> = {
@@ -105,7 +186,7 @@ export function AIModelSelector({
   title = 'Select AI Model',
   description = 'Choose which AI model to use for this analysis.',
 }: AIModelSelectorProps) {
-  const [selectedModel, setSelectedModel] = useState('google/gemini-2.5-flash');
+  const [selectedModel, setSelectedModel] = useState('google/gemini-3-flash-preview');
 
   const handleConfirm = () => {
     onSelect(selectedModel);
