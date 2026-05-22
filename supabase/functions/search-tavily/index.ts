@@ -23,6 +23,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check
+  const __url = new URL(req.url);
+  if (__url.searchParams.get("healthCheck") === "1") {
+    return new Response(JSON.stringify({ ok: true, function: "search-tavily", timestamp: Date.now() }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {

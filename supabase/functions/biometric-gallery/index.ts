@@ -374,6 +374,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check
+  const __url = new URL(req.url);
+  if (__url.searchParams.get("healthCheck") === "1") {
+    return new Response(JSON.stringify({ ok: true, function: "biometric-gallery", timestamp: Date.now() }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
   const timer = startTimer();
 
   try {
