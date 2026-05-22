@@ -8,7 +8,35 @@ export interface ModelPricing {
 }
 
 export const AI_MODEL_PRICING: Record<string, ModelPricing> = {
-  // ============ GEMINI 3 FAMILY (PRIMARY - v5.3) ============
+  // ============ GEMINI 3.x FAMILY (PRIMARY - v4.0.0) ============
+  'google/gemini-3.1-pro-preview': {
+    provider: 'google',
+    model: 'google/gemini-3.1-pro-preview',
+    inputPer1M: 1.75,
+    outputPer1M: 14.00,
+    displayName: 'Gemini 3.1 Pro',
+  },
+  'google/gemini-3.1-flash-lite-preview': {
+    provider: 'google',
+    model: 'google/gemini-3.1-flash-lite-preview',
+    inputPer1M: 0.02,
+    outputPer1M: 0.08,
+    displayName: 'Gemini 3.1 Flash Lite',
+  },
+  'google/gemini-3.5-flash': {
+    provider: 'google',
+    model: 'google/gemini-3.5-flash',
+    inputPer1M: 0.15,
+    outputPer1M: 0.60,
+    displayName: 'Gemini 3.5 Flash',
+  },
+  'google/gemini-3.1-flash-image-preview': {
+    provider: 'google',
+    model: 'google/gemini-3.1-flash-image-preview',
+    inputPer1M: 0.30,
+    outputPer1M: 1.20,
+    displayName: 'Gemini 3.1 Flash Image (Nano Banana 2)',
+  },
   'google/gemini-3-pro-preview': {
     provider: 'google',
     model: 'google/gemini-3-pro-preview',
@@ -83,6 +111,55 @@ export const AI_MODEL_PRICING: Record<string, ModelPricing> = {
     outputPer1M: 0.40,
     displayName: 'GPT-5 Nano',
   },
+  'openai/gpt-5.2': {
+    provider: 'openai',
+    model: 'openai/gpt-5.2',
+    inputPer1M: 5.00,
+    outputPer1M: 15.00,
+    displayName: 'GPT-5.2',
+  },
+  'openai/gpt-5.4': {
+    provider: 'openai',
+    model: 'openai/gpt-5.4',
+    inputPer1M: 6.00,
+    outputPer1M: 18.00,
+    displayName: 'GPT-5.4',
+  },
+  'openai/gpt-5.4-mini': {
+    provider: 'openai',
+    model: 'openai/gpt-5.4-mini',
+    inputPer1M: 0.50,
+    outputPer1M: 2.00,
+    displayName: 'GPT-5.4 Mini',
+  },
+  'openai/gpt-5.4-nano': {
+    provider: 'openai',
+    model: 'openai/gpt-5.4-nano',
+    inputPer1M: 0.12,
+    outputPer1M: 0.50,
+    displayName: 'GPT-5.4 Nano',
+  },
+  'openai/gpt-5.4-pro': {
+    provider: 'openai',
+    model: 'openai/gpt-5.4-pro',
+    inputPer1M: 10.00,
+    outputPer1M: 30.00,
+    displayName: 'GPT-5.4 Pro',
+  },
+  'openai/gpt-5.5': {
+    provider: 'openai',
+    model: 'openai/gpt-5.5',
+    inputPer1M: 7.00,
+    outputPer1M: 21.00,
+    displayName: 'GPT-5.5',
+  },
+  'openai/gpt-5.5-pro': {
+    provider: 'openai',
+    model: 'openai/gpt-5.5-pro',
+    inputPer1M: 12.00,
+    outputPer1M: 36.00,
+    displayName: 'GPT-5.5 Pro',
+  },
   'gpt-4o': {
     provider: 'openai',
     model: 'gpt-4o',
@@ -135,7 +212,7 @@ export function calculateCostCents(
   inputTokens: number,
   outputTokens: number = 0
 ): number {
-  const pricing = AI_MODEL_PRICING[modelKey] || AI_MODEL_PRICING['google/gemini-2.5-flash'];
+  const pricing = AI_MODEL_PRICING[modelKey] || AI_MODEL_PRICING['google/gemini-3-flash-preview'];
   const inputCost = (inputTokens / 1_000_000) * pricing.inputPer1M;
   const outputCost = (outputTokens / 1_000_000) * pricing.outputPer1M;
   return Math.ceil((inputCost + outputCost) * 100); // Convert to cents
@@ -181,10 +258,10 @@ export const MODEL_TIERS: ModelTier[] = [
   {
     id: 'speed',
     name: 'Speed',
-    description: 'Fastest responses with Gemini 3 Flash. Best for simple tasks.',
+    description: 'Fastest responses with Gemini 3.1 Flash Lite. Best for simple tasks.',
     models: {
-      google: 'google/gemini-3-flash-preview',
-      openai: 'openai/gpt-5-nano',
+      google: 'google/gemini-3.1-flash-lite-preview',
+      openai: 'openai/gpt-5.4-nano',
     },
     costMultiplier: 0.25,
     qualityScore: 7,
@@ -193,10 +270,10 @@ export const MODEL_TIERS: ModelTier[] = [
   {
     id: 'balanced',
     name: 'Balanced',
-    description: 'Gemini 3 Flash with extended tokens. Recommended for most tasks.',
+    description: 'Gemini 3 Flash. HPICS default — recommended for most tasks.',
     models: {
       google: 'google/gemini-3-flash-preview',
-      openai: 'openai/gpt-5-mini',
+      openai: 'openai/gpt-5.4-mini',
     },
     costMultiplier: 1,
     qualityScore: 8,
@@ -205,10 +282,10 @@ export const MODEL_TIERS: ModelTier[] = [
   {
     id: 'quality',
     name: 'Quality',
-    description: 'Gemini 3 Pro for complex reasoning and deep analysis.',
+    description: 'Gemini 3.1 Pro / GPT-5.5 for complex reasoning and deep analysis.',
     models: {
-      google: 'google/gemini-3-pro-preview',
-      openai: 'openai/gpt-5',
+      google: 'google/gemini-3.1-pro-preview',
+      openai: 'openai/gpt-5.5',
     },
     costMultiplier: 4,
     qualityScore: 10,
@@ -217,10 +294,10 @@ export const MODEL_TIERS: ModelTier[] = [
   {
     id: 'nextgen',
     name: 'Extreme',
-    description: 'Gemini 3 Pro with maximum token capacity for fusion tasks.',
+    description: 'Gemini 3.1 Pro + GPT-5.5 Pro. Maximum capacity for fusion tasks.',
     models: {
-      google: 'google/gemini-3-pro-preview',
-      openai: 'openai/gpt-5',
+      google: 'google/gemini-3.1-pro-preview',
+      openai: 'openai/gpt-5.5-pro',
     },
     costMultiplier: 5,
     qualityScore: 10,

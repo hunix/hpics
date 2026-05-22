@@ -25,7 +25,7 @@ export function useAIModelPreference(analysisType: string) {
 
   // Get the preferred model or fall back to default
   const analysisConfig = getAnalysisTypeByKey(analysisType);
-  const defaultModel = analysisConfig?.defaultModel || 'google/gemini-2.5-flash';
+  const defaultModel = analysisConfig?.defaultModel || 'google/gemini-3-flash-preview';
   
   return preference || defaultModel;
 }

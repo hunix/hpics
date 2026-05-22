@@ -31,13 +31,22 @@ interface OptimizationSuggestion {
 const MODEL_TIERS: Record<string, { tier: 'premium' | 'standard' | 'economy', costFactor: number }> = {
   'google/gemini-2.5-pro': { tier: 'premium', costFactor: 1.0 },
   'google/gemini-3-pro-preview': { tier: 'premium', costFactor: 1.0 },
+  'google/gemini-3.1-pro-preview': { tier: 'premium', costFactor: 1.1 },
   'openai/gpt-5': { tier: 'premium', costFactor: 1.2 },
   'openai/gpt-5.2': { tier: 'premium', costFactor: 1.3 },
+  'openai/gpt-5.4': { tier: 'premium', costFactor: 1.4 },
+  'openai/gpt-5.4-pro': { tier: 'premium', costFactor: 1.8 },
+  'openai/gpt-5.5': { tier: 'premium', costFactor: 1.5 },
+  'openai/gpt-5.5-pro': { tier: 'premium', costFactor: 2.0 },
   'google/gemini-2.5-flash': { tier: 'standard', costFactor: 0.5 },
   'google/gemini-3-flash-preview': { tier: 'standard', costFactor: 0.5 },
+  'google/gemini-3.5-flash': { tier: 'standard', costFactor: 0.6 },
   'openai/gpt-5-mini': { tier: 'standard', costFactor: 0.4 },
+  'openai/gpt-5.4-mini': { tier: 'standard', costFactor: 0.45 },
   'google/gemini-2.5-flash-lite': { tier: 'economy', costFactor: 0.2 },
+  'google/gemini-3.1-flash-lite-preview': { tier: 'economy', costFactor: 0.2 },
   'openai/gpt-5-nano': { tier: 'economy', costFactor: 0.15 },
+  'openai/gpt-5.4-nano': { tier: 'economy', costFactor: 0.18 },
 };
 
 export function ModelEfficiencyComparison() {
@@ -109,7 +118,7 @@ export function ModelEfficiencyComparison() {
           const savings = Math.round(stat.total_cost_cents * 0.5); // Estimate 50% savings
           suggestions.push({
             current_model: stat.model,
-            suggested_model: stat.model.includes('gemini') ? 'google/gemini-2.5-flash' : 'openai/gpt-5-mini',
+            suggested_model: stat.model.includes('gemini') ? 'google/gemini-3-flash-preview' : 'openai/gpt-5.4-mini',
             potential_savings_cents: savings,
             affected_calls: stat.total_calls,
             reason: 'Low token usage suggests simpler tasks that could use a faster, cheaper model',

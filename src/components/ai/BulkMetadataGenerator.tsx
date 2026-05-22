@@ -23,16 +23,20 @@ interface BulkMetadataGeneratorProps {
 
 const MODEL_OPTIONS = [
   { value: 'google/gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite (Fastest)', costPer1K: 0.019, tier: 'quick' },
-  { value: 'google/gemini-2.5-flash', label: 'Gemini 2.5 Flash (Recommended)', costPer1K: 0.075, tier: 'standard' },
+  { value: 'google/gemini-3.1-flash-lite-preview', label: 'Gemini 3.1 Flash Lite (Preview)', costPer1K: 0.02, tier: 'quick' },
+  { value: 'google/gemini-2.5-flash', label: 'Gemini 2.5 Flash', costPer1K: 0.075, tier: 'standard' },
+  { value: 'google/gemini-3-flash-preview', label: 'Gemini 3 Flash (Recommended)', costPer1K: 0.10, tier: 'standard' },
+  { value: 'google/gemini-3.5-flash', label: 'Gemini 3.5 Flash', costPer1K: 0.15, tier: 'standard' },
   { value: 'google/gemini-2.5-pro', label: 'Gemini 2.5 Pro (High Quality)', costPer1K: 1.25, tier: 'deep' },
-  { value: 'google/gemini-3-pro-preview', label: 'Gemini 3 Pro (Best Quality)', costPer1K: 1.5, tier: 'maximum' },
+  { value: 'google/gemini-3-pro-preview', label: 'Gemini 3 Pro (Preview)', costPer1K: 1.5, tier: 'deep' },
+  { value: 'google/gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (Best Quality)', costPer1K: 1.75, tier: 'maximum' },
 ];
 
 const ANALYSIS_TIERS = [
-  { value: 'quick', label: 'Quick Scan', description: 'Basic metadata + tags', modelDefault: 'google/gemini-2.5-flash-lite', costMultiplier: 0.3 },
-  { value: 'standard', label: 'Standard', description: 'Full analysis schema', modelDefault: 'google/gemini-2.5-flash', costMultiplier: 1.0 },
+  { value: 'quick', label: 'Quick Scan', description: 'Basic metadata + tags', modelDefault: 'google/gemini-3.1-flash-lite-preview', costMultiplier: 0.3 },
+  { value: 'standard', label: 'Standard', description: 'Full analysis schema', modelDefault: 'google/gemini-3-flash-preview', costMultiplier: 1.0 },
   { value: 'deep', label: 'Deep Intelligence', description: 'All modes + cross-reference', modelDefault: 'google/gemini-2.5-pro', costMultiplier: 2.5 },
-  { value: 'maximum', label: 'Maximum Intelligence', description: 'Gemini 3 Pro + aggregation', modelDefault: 'google/gemini-3-pro-preview', costMultiplier: 4.0 },
+  { value: 'maximum', label: 'Maximum Intelligence', description: 'Gemini 3.1 Pro + aggregation', modelDefault: 'google/gemini-3.1-pro-preview', costMultiplier: 4.0 },
 ];
 
 // Estimated tokens per file type (enhanced metadata uses more output tokens)
@@ -53,7 +57,7 @@ export function BulkMetadataGenerator({ profileId, contactName, onProcessingChan
 
   const [useMosaicMode, setUseMosaicMode] = useState(false); // Default to OFF
   const [selectedTier, setSelectedTier] = useState('standard');
-  const [selectedModel, setSelectedModel] = useState('google/gemini-2.5-flash');
+  const [selectedModel, setSelectedModel] = useState('google/gemini-3-flash-preview');
   const [includeImages, setIncludeImages] = useState(true);
   const [includeAudio, setIncludeAudio] = useState(true);
   const [includeVideos, setIncludeVideos] = useState(true);
