@@ -260,7 +260,7 @@ export function estimateIncomeFromJob(
  */
 export function estimateWealthTier(data: ContactFinancialData): FinancialIntelligenceResult {
   const evidenceSources: EvidenceSource[] = [];
-  let tierScores: Record<WealthTier, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  const tierScores: Record<WealthTier, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
   
   // 1. Income-based estimation
   const incomeEstimate = estimateIncomeFromJob(

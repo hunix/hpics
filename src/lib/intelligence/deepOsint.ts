@@ -192,27 +192,27 @@ export function extractSocialHandles(profileData: any): Record<string, string> {
   const handles: Record<string, string> = {};
   
   if (profileData.linkedin_url) {
-    const match = profileData.linkedin_url.match(/linkedin\.com\/in\/([^\/\?]+)/);
+    const match = profileData.linkedin_url.match(/linkedin\.com\/in\/([^/?]+)/);
     if (match) handles.linkedin = match[1];
   }
   
   if (profileData.twitter_url) {
-    const match = profileData.twitter_url.match(/(?:twitter|x)\.com\/([^\/\?]+)/);
+    const match = profileData.twitter_url.match(/(?:twitter|x)\.com\/([^/?]+)/);
     if (match) handles.twitter = match[1];
   }
   
   if (profileData.instagram_url) {
-    const match = profileData.instagram_url.match(/instagram\.com\/([^\/\?]+)/);
+    const match = profileData.instagram_url.match(/instagram\.com\/([^/?]+)/);
     if (match) handles.instagram = match[1];
   }
   
   if (profileData.facebook_url) {
-    const match = profileData.facebook_url.match(/facebook\.com\/([^\/\?]+)/);
+    const match = profileData.facebook_url.match(/facebook\.com\/([^/?]+)/);
     if (match) handles.facebook = match[1];
   }
   
   if (profileData.github_url) {
-    const match = profileData.github_url.match(/github\.com\/([^\/\?]+)/);
+    const match = profileData.github_url.match(/github\.com\/([^/?]+)/);
     if (match) handles.github = match[1];
   }
   

@@ -320,7 +320,7 @@ class LocalSentimentAnalyzer {
     }
 
     // Date patterns
-    const dates = text.match(/\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b/g);
+    const dates = text.match(/\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b/g);
     if (dates) {
       dates.forEach(d => entities.push({ text: d, type: 'date' }));
     }

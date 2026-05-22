@@ -23,7 +23,7 @@ export function WhatsAppQuickAction({
 
   const handleClick = () => {
     // Clean phone number
-    let cleanNumber = phoneNumber.replace(/[\s\-\(\)]/g, '');
+    let cleanNumber = phoneNumber.replace(/[\s\-()]/g, '');
     if (!cleanNumber.startsWith('+')) {
       cleanNumber = '+' + cleanNumber;
     }

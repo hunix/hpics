@@ -97,7 +97,9 @@ function MobileMediaCapture({
   const triggerHaptic = async () => {
     try {
       await Haptics.impact({ style: ImpactStyle.Medium });
-    } catch {}
+    } catch {
+      // Haptics might fail if unsupported by the platform/browser
+    }
   };
 
   const startCamera = useCallback(async () => {

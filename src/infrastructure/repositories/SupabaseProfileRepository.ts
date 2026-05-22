@@ -109,7 +109,7 @@ export class SupabaseProfileRepository implements IProfileRepository {
   async searchProfiles(userId: string, options: ProfileQueryOptions, spec?: QuerySpec<Profile>): Promise<PaginatedResult<Profile>> {
     const page = spec?.pagination?.page || 0;
     const pageSize = spec?.pagination?.pageSize || 50;
-    const { data, error } = await (this.supabase.rpc as Function)('search_contacts_v5', {
+    const { data, error } = await (this.supabase.rpc as any)('search_contacts_v5', {
       p_user_id: userId,
       p_search_query: options.searchTerm || null,
       p_relationship_type: options.relationshipType || null,
@@ -135,7 +135,7 @@ export class SupabaseProfileRepository implements IProfileRepository {
     limit: number,
     offset: number
   ): Promise<{ contacts: EnhancedContactRow[]; totalCount: number }> {
-    const { data, error } = await (this.supabase.rpc as Function)('search_contacts_v5', {
+    const { data, error } = await (this.supabase.rpc as any)('search_contacts_v5', {
       p_user_id: userId,
       p_search_query: options.searchTerm || null,
       p_relationship_type: options.relationshipType || null,

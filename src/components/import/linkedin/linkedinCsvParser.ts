@@ -150,12 +150,12 @@ function looksLikeData(value: string): boolean {
   if (/^https?:\/\//.test(trimmed) || /linkedin\.com/.test(trimmed)) return true;
   
   // Date patterns (various formats)
-  if (/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}$/.test(trimmed)) return true;
-  if (/^\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}$/.test(trimmed)) return true;
+  if (/^\d{1,2}[/-]\d{1,2}[/-]\d{2,4}$/.test(trimmed)) return true;
+  if (/^\d{4}[/-]\d{1,2}[/-]\d{1,2}$/.test(trimmed)) return true;
   if (/^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(trimmed)) return true;
   
   // Phone number patterns
-  if (/^[\+\d\(\)\-\s]{7,}$/.test(trimmed)) return true;
+  if (/^[+\d()\s-]{7,}$/.test(trimmed)) return true;
   
   return false;
 }

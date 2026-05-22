@@ -121,7 +121,7 @@ export function useNativeContacts(): UseNativeContactsReturn {
     };
 
     try {
-      let deviceContacts: PhoneContact[] = [];
+      const deviceContacts: PhoneContact[] = [];
 
       // Check if running on native platform
       if (Capacitor.isNativePlatform()) {

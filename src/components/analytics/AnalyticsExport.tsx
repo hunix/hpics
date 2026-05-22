@@ -102,7 +102,7 @@ export function AnalyticsExport() {
         let headers: string[] = [];
 
         switch (metric) {
-          case 'contacts':
+          case 'contacts': {
             const { data: contacts } = await supabase
               .from('profiles')
               .select('first_name, last_name, nickname, organization, job_title, relationship_type, tags, last_contact_date, is_favorite, created_at')
@@ -112,8 +112,9 @@ export function AnalyticsExport() {
             data = contacts || [];
             headers = ['first_name', 'last_name', 'nickname', 'organization', 'job_title', 'relationship_type', 'tags', 'last_contact_date', 'is_favorite', 'created_at'];
             break;
+          }
 
-          case 'personal_info':
+          case 'personal_info': {
             const { data: personalInfo } = await supabase
               .from('contact_personal_info')
               .select('profile_id, date_of_birth, gender, blood_group, rh_type, allergies, place_of_birth, father_name, mother_name, nationality, main_residence_city, main_residence_country, smoking_preference, favorite_color')
@@ -121,8 +122,9 @@ export function AnalyticsExport() {
             data = personalInfo || [];
             headers = ['profile_id', 'date_of_birth', 'gender', 'blood_group', 'rh_type', 'allergies', 'place_of_birth', 'father_name', 'mother_name', 'nationality', 'main_residence_city', 'main_residence_country', 'smoking_preference', 'favorite_color'];
             break;
+          }
 
-          case 'languages':
+          case 'languages': {
             const { data: languages } = await supabase
               .from('contact_languages')
               .select('profile_id, language_name, proficiency_level, is_native')
@@ -130,8 +132,9 @@ export function AnalyticsExport() {
             data = languages || [];
             headers = ['profile_id', 'language_name', 'proficiency_level', 'is_native'];
             break;
+          }
 
-          case 'devices':
+          case 'devices': {
             const { data: devices } = await supabase
               .from('contact_devices')
               .select('profile_id, device_type, brand, model, os, is_current, notes')
@@ -139,8 +142,9 @@ export function AnalyticsExport() {
             data = devices || [];
             headers = ['profile_id', 'device_type', 'brand', 'model', 'os', 'is_current', 'notes'];
             break;
+          }
 
-          case 'vehicles':
+          case 'vehicles': {
             const { data: vehicles } = await supabase
               .from('contact_vehicles')
               .select('profile_id, vehicle_type, make, model, year, color, license_plate, is_current')
@@ -148,8 +152,9 @@ export function AnalyticsExport() {
             data = vehicles || [];
             headers = ['profile_id', 'vehicle_type', 'make', 'model', 'year', 'color', 'license_plate', 'is_current'];
             break;
+          }
 
-          case 'properties':
+          case 'properties': {
             const { data: properties } = await supabase
               .from('contact_properties')
               .select('profile_id, property_type, address, city, country, area_sqm, estimated_value, is_primary_residence, purchase_date')
@@ -157,8 +162,9 @@ export function AnalyticsExport() {
             data = properties || [];
             headers = ['profile_id', 'property_type', 'address', 'city', 'country', 'area_sqm', 'estimated_value', 'is_primary_residence', 'purchase_date'];
             break;
+          }
 
-          case 'residences':
+          case 'residences': {
             const { data: residences } = await supabase
               .from('contact_residences')
               .select('profile_id, country, city, address, residence_type, start_date, end_date, is_current')
@@ -166,8 +172,9 @@ export function AnalyticsExport() {
             data = residences || [];
             headers = ['profile_id', 'country', 'city', 'address', 'residence_type', 'start_date', 'end_date', 'is_current'];
             break;
+          }
 
-          case 'travel_history':
+          case 'travel_history': {
             const { data: travel } = await supabase
               .from('contact_travel_history')
               .select('profile_id, destination_country, destination_city, travel_date, return_date, purpose, notes')
@@ -175,8 +182,9 @@ export function AnalyticsExport() {
             data = travel || [];
             headers = ['profile_id', 'destination_country', 'destination_city', 'travel_date', 'return_date', 'purpose', 'notes'];
             break;
+          }
 
-          case 'identity_documents':
+          case 'identity_documents': {
             const { data: idDocs } = await supabase
               .from('contact_identity_documents')
               .select('profile_id, document_type, document_number, issuing_country, issue_date, expiry_date')
@@ -184,8 +192,9 @@ export function AnalyticsExport() {
             data = idDocs || [];
             headers = ['profile_id', 'document_type', 'document_number', 'issuing_country', 'issue_date', 'expiry_date'];
             break;
+          }
 
-          case 'education':
+          case 'education': {
             const { data: education } = await supabase
               .from('education')
               .select('profile_id, institution_name, degree_type, field_of_study, start_date, end_date, grade_or_gpa, is_current')
@@ -193,8 +202,9 @@ export function AnalyticsExport() {
             data = education || [];
             headers = ['profile_id', 'institution_name', 'degree_type', 'field_of_study', 'start_date', 'end_date', 'grade_or_gpa', 'is_current'];
             break;
+          }
 
-          case 'skills':
+          case 'skills': {
             const { data: skills } = await supabase
               .from('contact_skills')
               .select('profile_id, skill_name, proficiency_level, endorsement_count')
@@ -202,8 +212,9 @@ export function AnalyticsExport() {
             data = skills || [];
             headers = ['profile_id', 'skill_name', 'proficiency_level', 'endorsement_count'];
             break;
+          }
 
-          case 'interests':
+          case 'interests': {
             const { data: interests } = await supabase
               .from('contact_interests')
               .select('profile_id, name, interest_type, notes, source, confidence_score')
@@ -211,8 +222,9 @@ export function AnalyticsExport() {
             data = interests || [];
             headers = ['profile_id', 'name', 'interest_type', 'notes', 'source', 'confidence_score'];
             break;
+          }
 
-          case 'communications':
+          case 'communications': {
             const { data: comms } = await supabase
               .from('communications')
               .select('channel, direction, subject, content, occurred_at, sentiment_score, duration_minutes')
@@ -223,8 +235,9 @@ export function AnalyticsExport() {
             data = comms || [];
             headers = ['channel', 'direction', 'subject', 'content', 'occurred_at', 'sentiment_score', 'duration_minutes'];
             break;
+          }
 
-          case 'events':
+          case 'events': {
             const { data: events } = await supabase
               .from('events')
               .select('title, description, event_type, event_date, reminder_frequency, is_active')
@@ -235,8 +248,9 @@ export function AnalyticsExport() {
             data = events || [];
             headers = ['title', 'description', 'event_type', 'event_date', 'reminder_frequency', 'is_active'];
             break;
+          }
 
-          case 'relationship_trends':
+          case 'relationship_trends': {
             const { data: trends } = await supabase
               .from('relationship_trends')
               .select('profile_id, health_score, communication_count, sentiment_avg, recorded_at')
@@ -247,8 +261,9 @@ export function AnalyticsExport() {
             data = trends || [];
             headers = ['profile_id', 'health_score', 'communication_count', 'sentiment_avg', 'recorded_at'];
             break;
+          }
 
-          case 'shared_experiences':
+          case 'shared_experiences': {
             const { data: experiences } = await supabase
               .from('shared_experiences')
               .select('title, description, experience_type, experience_date, location, sentiment, tags')
@@ -259,8 +274,9 @@ export function AnalyticsExport() {
             data = experiences || [];
             headers = ['title', 'description', 'experience_type', 'experience_date', 'location', 'sentiment', 'tags'];
             break;
+          }
 
-          case 'gift_ideas':
+          case 'gift_ideas': {
             const { data: gifts } = await supabase
               .from('gift_ideas')
               .select('title, description, category, price_range, occasion, is_given, given_date, url')
@@ -270,6 +286,7 @@ export function AnalyticsExport() {
             data = gifts || [];
             headers = ['title', 'description', 'category', 'price_range', 'occasion', 'is_given', 'given_date', 'url'];
             break;
+          }
         }
 
         const csv = convertToCSV(data, headers);

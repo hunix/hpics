@@ -769,7 +769,7 @@ export function useVoiceBulkAnalysis(profileId?: string) {
         console.log(`[VoiceBulkAnalysis] Loading Whisper model: ${whisperModel}`);
         
         // Track download timing for speed calculation
-        let downloadStartTime = performance.now();
+        const downloadStartTime = performance.now();
         let lastProgress = 0;
         let lastTime = downloadStartTime;
         

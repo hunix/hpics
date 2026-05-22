@@ -88,7 +88,7 @@ export function SensorDashboard() {
     
     const getBattery = async () => {
       try {
-        // @ts-ignore - Battery API is not in TypeScript types
+        // @ts-expect-error - Battery API is not in TypeScript types
         const battery = await navigator.getBattery?.();
         if (battery) {
           batteryRef = battery;
@@ -124,7 +124,7 @@ export function SensorDashboard() {
   // Get network info
   useEffect(() => {
     const updateConnection = () => {
-      // @ts-ignore - Network Information API
+      // @ts-expect-error - Network Information API
       const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
       if (conn) {
         setSensorData(prev => ({
@@ -139,7 +139,7 @@ export function SensorDashboard() {
 
     updateConnection();
     
-    // @ts-ignore
+    // @ts-expect-error - Connection type is not standard in navigator
     const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
     if (conn) {
       conn.addEventListener('change', updateConnection);

@@ -357,7 +357,7 @@ export function usePersistentBulkSession({
           throw new Error('Not authenticated');
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         const sessionData: any = {
           user_id: user.id, // Explicitly set user_id to fix RLS
           name: options?.name || `Bulk Analysis - ${new Date().toLocaleDateString()}`,

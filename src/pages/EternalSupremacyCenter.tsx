@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Clock, Shield, Infinity, Zap } from 'lucide-react';
+import { Clock, Shield, Infinity as InfinityIcon, Zap } from 'lucide-react';
 import { useEternalSupremacy } from '@/hooks/intelligence/useEternalSupremacy';
 import { AppLayout } from '@/components/AppLayout';
 
@@ -47,7 +47,7 @@ export default function EternalSupremacyCenter() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div><p className="text-sm text-muted-foreground">Influence Chains</p><p className="text-2xl font-bold text-teal-400">{influence?.length || 0}</p></div>
-                <Infinity className="h-8 w-8 text-teal-500" />
+                <InfinityIcon className="h-8 w-8 text-teal-500" />
               </div>
             </CardContent>
           </Card>
@@ -91,7 +91,7 @@ export default function EternalSupremacyCenter() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Immortal Influence</CardTitle>
                 <Button onClick={() => createInfluence.mutate({ influence_type: 'legacy', permanence_score: 75 })} className="bg-teal-600 hover:bg-teal-700">
-                  <Infinity className="h-4 w-4 mr-2" />Create Influence
+                  <InfinityIcon className="h-4 w-4 mr-2" />Create Influence
                 </Button>
               </CardHeader>
               <CardContent>

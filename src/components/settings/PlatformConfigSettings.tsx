@@ -82,7 +82,7 @@ function ConfigItemEditor({
           />
         );
 
-      case 'percentage':
+      case 'percentage': {
         const percentValue = typeof localValue === 'number' ? localValue : 0;
         return (
           <div className="flex items-center gap-4 flex-1">
@@ -99,6 +99,7 @@ function ConfigItemEditor({
             </span>
           </div>
         );
+      }
 
       case 'number':
         return (

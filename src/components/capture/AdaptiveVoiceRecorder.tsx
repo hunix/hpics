@@ -102,7 +102,9 @@ function MobileVoiceRecorder({
   const triggerHaptic = async (style: ImpactStyle = ImpactStyle.Medium) => {
     try {
       await Haptics.impact({ style });
-    } catch {}
+    } catch {
+      // Haptics might fail if unsupported by the platform/browser
+    }
   };
 
   const updateAudioLevels = useCallback(() => {

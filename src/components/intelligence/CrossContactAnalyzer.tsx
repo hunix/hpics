@@ -128,7 +128,9 @@ export function CrossContactAnalyzer({ className }: CrossContactAnalyzerProps) {
             const parsed = JSON.parse(jsonStr);
             const content = parsed.choices?.[0]?.delta?.content;
             if (content) fullContent += content;
-          } catch {}
+          } catch {
+            // Ignore JSON parsing errors for incomplete or malformed chunks
+          }
         }
       }
 

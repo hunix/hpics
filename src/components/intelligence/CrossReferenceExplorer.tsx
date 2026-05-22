@@ -37,13 +37,13 @@ export function CrossReferenceExplorer({ profileId }: CrossReferenceExplorerProp
   const [searchValue, setSearchValue] = useState('');
   const [searchType, setSearchType] = useState<'phone' | 'email' | 'name'>('phone');
 
-  const { data: links, isLoading: linksLoading } = profileId 
-    ? useProfileLinks(profileId) 
-    : { data: [], isLoading: false };
+  const linksQuery = useProfileLinks(profileId || '');
+  const links = linksQuery.data || [];
+  const linksLoading = linksQuery.isLoading;
   
-  const { data: crossRefs, isLoading: refsLoading } = profileId 
-    ? useProfileCrossRefs(profileId) 
-    : { data: [], isLoading: false };
+  const crossRefsQuery = useProfileCrossRefs(profileId || '');
+  const crossRefs = crossRefsQuery.data || [];
+  const refsLoading = crossRefsQuery.isLoading;
 
   const getTypeIcon = (type: string) => {
     switch (type) {

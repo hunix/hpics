@@ -87,6 +87,11 @@ export function FloatingQuickActions({
     }
   }
 
+  // Auto-collapse when route changes
+  useEffect(() => {
+    setIsExpanded(false);
+  }, [location.pathname]);
+
   // Don't render if no actions
   if (actions.length === 0) return null;
 
@@ -100,11 +105,6 @@ export function FloatingQuickActions({
     setIsExpanded(false);
     action.onClick?.();
   };
-
-  // Auto-collapse when route changes
-  useEffect(() => {
-    setIsExpanded(false);
-  }, [location.pathname]);
 
   return (
     <div className={cn(

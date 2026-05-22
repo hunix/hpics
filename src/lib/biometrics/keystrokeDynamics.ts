@@ -208,7 +208,7 @@ class KeystrokeDynamicsAnalyzer {
     const backspaceRatio = backspaces.length / this.keyPresses.length;
 
     // Correction speed (time after backspace)
-    let correctionTimes: number[] = [];
+    const correctionTimes: number[] = [];
     for (let i = 0; i < this.keyPresses.length - 1; i++) {
       if (this.keyPresses[i].key === 'Backspace' && this.keyPresses[i + 1].flightTime) {
         correctionTimes.push(this.keyPresses[i + 1].flightTime);

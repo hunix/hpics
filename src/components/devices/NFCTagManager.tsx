@@ -136,7 +136,7 @@ export function NFCTagManager({ className, onTagTapped }: NFCTagManagerProps) {
 
     setIsScanning(true);
     try {
-      // @ts-ignore - NDEFReader is not in TypeScript types
+      // @ts-expect-error - NDEFReader is not in TypeScript types
       const ndef = new NDEFReader();
       ndefReaderRef.current = ndef;
       await ndef.scan();

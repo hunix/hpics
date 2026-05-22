@@ -162,7 +162,7 @@ export function useClearanceGate() {
           case 'full':
             masked[rule.field as keyof T] = '[CLASSIFIED]' as T[keyof T];
             break;
-          case 'partial':
+          case 'partial': {
             const value = masked[rule.field];
             if (typeof value === 'string' && value.length > 4) {
               masked[rule.field as keyof T] = `${value.slice(0, 2)}${'*'.repeat(value.length - 4)}${value.slice(-2)}` as T[keyof T];
@@ -172,7 +172,8 @@ export function useClearanceGate() {
               masked[rule.field as keyof T] = '[REDACTED]' as T[keyof T];
             }
             break;
-          case 'hash':
+          }
+          case 'hash': {
             const hashValue = masked[rule.field];
             if (typeof hashValue === 'string') {
               masked[rule.field as keyof T] = `***${hashValue.slice(-4)}` as T[keyof T];
@@ -180,6 +181,7 @@ export function useClearanceGate() {
               masked[rule.field as keyof T] = '****' as T[keyof T];
             }
             break;
+          }
           case 'redact':
             masked[rule.field as keyof T] = '[REDACTED - INSUFFICIENT CLEARANCE]' as T[keyof T];
             break;

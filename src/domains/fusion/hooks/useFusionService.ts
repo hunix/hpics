@@ -6,7 +6,7 @@
 
 import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FusionService, FusionRequest, BatchFusionRequest } from '../services/FusionService';
+import { FusionService, FusionRequest, BatchFusionRequest, getFusionService } from '../services/FusionService';
 import { FusionEngineType } from '../entities/FusionResult';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -17,8 +17,6 @@ function resolveFusionService(): FusionService {
     const service = getContainer().resolve<FusionService>(ServiceKeys.FusionService);
     if (service) return service;
   } catch { /* fallback */ }
-  // Lazy import to avoid circular dependency
-  const { getFusionService } = require('../services/FusionService');
   return getFusionService();
 }
 

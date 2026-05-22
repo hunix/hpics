@@ -63,15 +63,6 @@ export function CaptureRecoveryBanner({ className, compact = false }: CaptureRec
     storageQuota,
   } = useOfflineCapture();
 
-  if (!showRecoveryBanner) {
-    return null;
-  }
-
-  const totalPending = pendingCaptures.length;
-  const totalFailed = failedCaptures.length;
-  const totalIncomplete = incompleteCaptures.length;
-  const isUploading = uploadProgress.size > 0;
-
   // Calculate overall upload progress
   const overallProgress = React.useMemo(() => {
     if (uploadProgress.size === 0) return 0;
@@ -81,6 +72,15 @@ export function CaptureRecoveryBanner({ className, compact = false }: CaptureRec
     });
     return total / uploadProgress.size;
   }, [uploadProgress]);
+
+  if (!showRecoveryBanner) {
+    return null;
+  }
+
+  const totalPending = pendingCaptures.length;
+  const totalFailed = failedCaptures.length;
+  const totalIncomplete = incompleteCaptures.length;
+  const isUploading = uploadProgress.size > 0;
 
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 B';

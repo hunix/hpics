@@ -211,7 +211,7 @@ class LocalAudioAnalyzer {
 
     let transcription: TranscriptionResult | null = null;
     let sentiment: SentimentResult | null = null;
-    let speakers: DiarizationResult | null = null;
+    const speakers: DiarizationResult | null = null;
 
     // Step 1: Transcription (default on)
     if (options.transcribe !== false) {

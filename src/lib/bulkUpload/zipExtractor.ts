@@ -233,7 +233,7 @@ export async function previewZipContents(
   
   let totalFiles = 0;
   let supportedFiles = 0;
-  let totalSize = 0;
+  const totalSize = 0;
   const byCategory: Record<FileCategory, number> = {
     image: 0,
     video: 0,

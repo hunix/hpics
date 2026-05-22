@@ -152,11 +152,11 @@ function looksLikeData(value: string): boolean {
   if (/^https?:\/\//.test(trimmed)) return true;
   
   // Phone number patterns (7+ digits with optional formatting)
-  if (/^[\+\d\(\)\-\s\.]{7,}$/.test(trimmed)) return true;
+  if (/^[+\d()\s.-]{7,}$/.test(trimmed)) return true;
   
   // Date patterns
-  if (/^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}$/.test(trimmed)) return true;
-  if (/^\d{4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,2}$/.test(trimmed)) return true;
+  if (/^\d{1,2}[/\-.]\d{1,2}[/\-.]\d{2,4}$/.test(trimmed)) return true;
+  if (/^\d{4}[/\-.]\d{1,2}[/\-.]\d{1,2}$/.test(trimmed)) return true;
   
   return false;
 }

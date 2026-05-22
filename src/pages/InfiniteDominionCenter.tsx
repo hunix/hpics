@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  Infinity, Eye, Layers, Zap, Target, Network, Brain, 
+  Infinity as InfinityIcon, Eye, Layers, Zap, Target, Network, Brain, 
   Crown, Activity, Shield, BarChart3, AlertTriangle, 
   CheckCircle, Clock, Cpu, TrendingUp
 } from 'lucide-react';
@@ -440,7 +440,7 @@ const InfiniteDominionCenter: React.FC = () => {
             </p>
           </div>
           <Badge variant="outline" className="text-lg px-4 py-2 border-violet-500/50">
-            <Infinity className="w-4 h-4 mr-2" />
+            <InfinityIcon className="w-4 h-4 mr-2" />
             Phase 9
           </Badge>
         </div>

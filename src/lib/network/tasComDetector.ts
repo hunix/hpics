@@ -319,7 +319,7 @@ export class TASComDetector {
     const nodeIds = this.graph.nodes.map(n => n.id);
     
     // Initialize each node in its own community
-    let communities = new Map<string, string>();
+    const communities = new Map<string, string>();
     nodeIds.forEach(id => communities.set(id, id));
     
     let improved = true;
@@ -387,7 +387,7 @@ export class TASComDetector {
     });
     
     const refined = new Map<string, string>();
-    let orphans: string[] = [];
+    const orphans: string[] = [];
     
     // Filter small communities
     communityNodes.forEach((nodes, comm) => {

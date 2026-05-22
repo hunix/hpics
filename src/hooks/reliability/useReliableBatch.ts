@@ -309,7 +309,7 @@ export function useReliableBatch<T>({
         }));
         return;
 
-      case 'skip_similar':
+      case 'skip_similar': {
         const pattern = getErrorPattern(item, error);
         setState(prev => {
           const newItems = [...prev.items];
@@ -326,6 +326,7 @@ export function useReliableBatch<T>({
           return newState;
         });
         break;
+      }
     }
 
     // Continue processing

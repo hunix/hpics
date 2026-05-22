@@ -151,7 +151,7 @@ export function useAISelfHeal<T, C extends Record<string, unknown> = Record<stri
         }
         break;
 
-      case 'change_model':
+      case 'change_model': {
         // Cycle through fallback models
         currentModelIndexRef.current = (currentModelIndexRef.current + 1) % fallbackModels.length;
         const newModel = fallbackModels[currentModelIndexRef.current];
@@ -160,6 +160,7 @@ export function useAISelfHeal<T, C extends Record<string, unknown> = Record<stri
         }
         healingContext.currentModel = newModel;
         break;
+      }
 
       case 'reduce_context':
         // Reduce context size if applicable
@@ -240,7 +241,7 @@ export function useAISelfHeal<T, C extends Record<string, unknown> = Record<stri
     currentModelIndexRef.current = 0;
 
     let context = initialContext;
-    let healingContext: HealingContext = {
+    const healingContext: HealingContext = {
       taskDescription,
       attemptHistory: [],
       originalModel: 'model' in context ? String(context.model) : undefined,

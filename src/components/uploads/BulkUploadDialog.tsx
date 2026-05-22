@@ -147,7 +147,7 @@ export function BulkUploadDialog({
       }
 
       // Filter based on defaultFileFilter
-      let supportedFiles = filesToUpload.filter(file => {
+      const supportedFiles = filesToUpload.filter(file => {
         if (file.name.startsWith('.') || file.name.startsWith('__MACOSX')) {
           return false;
         }

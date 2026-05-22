@@ -284,7 +284,7 @@ export function UploadSourceSelector({
         ref={folderInputRef}
         type="file"
         multiple
-        // @ts-ignore - webkitdirectory is not in React types
+        // @ts-expect-error - webkitdirectory is not in React types
         webkitdirectory=""
         directory=""
         className="hidden"

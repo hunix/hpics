@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Brain, Sparkles, Atom, Globe, Infinity, Eye, Zap, Target, Waves, Network, Crown, CircleDot, Play, Loader2 } from 'lucide-react';
+import { Brain, Sparkles, Atom, Globe, Infinity as InfinityIcon, Eye, Zap, Target, Waves, Network, Crown, CircleDot, Play, Loader2 } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { useTranscendentAnalysis } from '@/hooks/useTranscendentAnalysis';
 
@@ -31,7 +31,7 @@ const MODULE_TABS = [
   { id: 'precognitive', label: 'Precognitive', icon: Eye },
   { id: 'egregore', label: 'Egregore', icon: Globe },
   { id: 'mass', label: 'Mass Formation', icon: Network },
-  { id: 'akashic', label: 'Akashic', icon: Infinity },
+  { id: 'akashic', label: 'Akashic', icon: InfinityIcon },
   { id: 'psychic', label: 'Psychic', icon: Zap },
   { id: 'consensus', label: 'Consensus', icon: Target },
   { id: 'karmic', label: 'Karmic', icon: CircleDot },
@@ -271,7 +271,7 @@ export default function TranscendentConsciousnessCenter() {
 
           <TabsContent value="akashic">
             <Card>
-              <CardHeader><CardTitle className="flex items-center gap-2"><Infinity className="h-5 w-5 text-amber-500" />Akashic Records</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="flex items-center gap-2"><InfinityIcon className="h-5 w-5 text-amber-500" />Akashic Records</CardTitle></CardHeader>
               <CardContent>
                 {akashicRecords.implicitKnowledge?.length === 0 ? <p className="text-center py-8 text-muted-foreground">No records queried.</p> :
                   <div className="grid gap-3">{akashicRecords.implicitKnowledge?.slice(0, 8).map(k => (

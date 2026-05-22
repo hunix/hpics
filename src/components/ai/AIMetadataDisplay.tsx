@@ -73,9 +73,10 @@ function KeyValue({ label, value }: { label: string; value: any }) {
 }
 
 function TagList({ tags, max = 10 }: { tags: string[]; max?: number }) {
+  const [showAll, setShowAll] = useState(false);
+
   if (!tags?.length) return null;
   
-  const [showAll, setShowAll] = useState(false);
   const displayTags = showAll ? tags : tags.slice(0, max);
   
   return (

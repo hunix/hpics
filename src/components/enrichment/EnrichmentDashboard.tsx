@@ -153,7 +153,7 @@ export function EnrichmentDashboard({ profileId, onEnrichmentComplete }: Enrichm
     if (!profile) return ENRICHMENT_SOURCES;
 
     return ENRICHMENT_SOURCES.map(source => {
-      let isAvailable = source.isAvailable; // Connectors are always available
+      const isAvailable = source.isAvailable; // Connectors are always available
 
       // Check if required data is present - use type assertion for extended profile fields
       const profileAny = profile as any;

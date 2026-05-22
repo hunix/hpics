@@ -188,7 +188,7 @@ export function useSmartTriggers(): UseSmartTriggersReturn {
           });
           return { success: true };
 
-        case 'capture_context':
+        case 'capture_context': {
           const snapshot = await nativeIntelligence.captureContextSnapshot();
           if (user) {
             await supabase.from('context_snapshots').insert({
@@ -199,6 +199,7 @@ export function useSmartTriggers(): UseSmartTriggersReturn {
             });
           }
           return { success: true, result: snapshot };
+        }
 
         case 'start_recording':
           // Trigger recording start

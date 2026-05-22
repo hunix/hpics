@@ -94,7 +94,7 @@ export function extractMediaReference(messageContent: string): MediaReference | 
 
 export function cleanMessageContent(content: string): string {
   // Remove media attachment indicators
-  let cleaned = content
+  const cleaned = content
     .replace(/\(file attached\)/gi, '')
     .replace(/<attached:\s*[^>]+>/gi, '')
     .replace(/(IMG|VID|PTT|AUD|DOC|STK)-\d{8}-WA\d{4,}\.[a-z0-9]+/gi, '')

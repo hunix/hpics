@@ -19,7 +19,7 @@ import {
   Loader2,
   DollarSign,
 } from 'lucide-react';
-import { useFaceScanJob, FaceScanJob } from '@/hooks/useFaceScanJob';
+import { useFaceScanJob, useFaceScanJobs, FaceScanJob } from '@/hooks/useFaceScanJob';
 import { formatDistanceToNow } from 'date-fns';
 
 interface FaceScanJobMonitorProps {
@@ -321,7 +321,6 @@ interface FaceScanJobListProps {
 }
 
 export function FaceScanJobList({ onSelectJob }: FaceScanJobListProps) {
-  const { useFaceScanJobs } = require('@/hooks/useFaceScanJob');
   const { data: jobs, isLoading } = useFaceScanJobs({ limit: 20 });
 
   if (isLoading) {

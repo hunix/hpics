@@ -145,7 +145,7 @@ export function RAGPoweredAgent({
       let assistantContent = '';
       const assistantId = `assistant-${Date.now()}`;
       let sources: RAGSource[] = [];
-      let toolsUsed: string[] = [];
+      const toolsUsed: string[] = [];
 
       // Add empty assistant message
       setMessages(prev => [...prev, {

@@ -206,10 +206,10 @@ export async function deepScrapeByUrl(
  * Extract username from Instagram or Threads URL
  */
 export function extractUsername(url: string): string | null {
-  const instagramMatch = url.match(/instagram\.com\/([^\/\?]+)/);
+  const instagramMatch = url.match(/instagram\.com\/([^/?]+)/);
   if (instagramMatch) return instagramMatch[1];
 
-  const threadsMatch = url.match(/threads\.net\/@?([^\/\?]+)/);
+  const threadsMatch = url.match(/threads\.net\/@?([^/?]+)/);
   if (threadsMatch) return threadsMatch[1];
 
   return null;

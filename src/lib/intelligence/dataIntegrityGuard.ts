@@ -391,7 +391,7 @@ export function detectDuplicates(
   const candidates: DuplicateCandidate[] = [];
 
   for (const record of existingRecords) {
-    let matchedFields: string[] = [];
+    const matchedFields: string[] = [];
     let totalWeight = 0;
     let matchWeight = 0;
 

@@ -1,6 +1,6 @@
 // AGIS Phase Configuration - Single Source of Truth
 import { 
-  Brain, Shield, Target, Eye, Zap, Sparkles, Atom, Infinity,
+  Brain, Shield, Target, Eye, Zap, Sparkles, Atom, Infinity as InfinityIcon,
   Crown, Globe, Star, Sun, Moon, Flame, Diamond, Orbit, Waves, CircleDot,
   Network, Scan, Dna
 } from 'lucide-react';
@@ -121,7 +121,7 @@ export const PHASE_CONFIGS: Record<number, PhaseConfig> = {
     name: 'Absolute Convergence',
     shortName: 'Convergence',
     description: 'Reality synthesis and consciousness integration',
-    icon: Infinity,
+    icon: InfinityIcon,
     color: 'hsl(320 70% 50%)',
     bgColor: 'hsl(320 70% 50% / 0.1)',
     borderColor: 'hsl(320 70% 50% / 0.3)',

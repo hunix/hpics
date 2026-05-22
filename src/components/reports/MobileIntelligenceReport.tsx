@@ -298,7 +298,7 @@ function ReportSectionContent({ sectionId, data, profileName, compact }: ReportS
         </div>
       );
 
-    case 'personality':
+    case 'personality': {
       const psych = data.psychological;
       if (!psych) return <p className="text-muted-foreground text-sm">Run psychological analysis to populate</p>;
       return (
@@ -314,8 +314,9 @@ function ReportSectionContent({ sectionId, data, profileName, compact }: ReportS
           )}
         </div>
       );
+    }
 
-    case 'trust':
+    case 'trust': {
       const trust = data.trust;
       if (!trust) return <p className="text-muted-foreground text-sm">No trust assessment available</p>;
       return (
@@ -335,8 +336,9 @@ function ReportSectionContent({ sectionId, data, profileName, compact }: ReportS
           )}
         </div>
       );
+    }
 
-    case 'influence':
+    case 'influence': {
       const influence = data.influence;
       if (!influence) return <p className="text-muted-foreground text-sm">No influence profile available</p>;
       return (
@@ -361,8 +363,9 @@ function ReportSectionContent({ sectionId, data, profileName, compact }: ReportS
           </div>
         </div>
       );
+    }
 
-    case 'preferences':
+    case 'preferences': {
       const prefs = data.preferences?.slice(0, compact ? 4 : 10);
       if (!prefs?.length) return <p className="text-muted-foreground text-sm">No preferences predicted yet</p>;
       return (
@@ -380,6 +383,7 @@ function ReportSectionContent({ sectionId, data, profileName, compact }: ReportS
           ))}
         </div>
       );
+    }
 
     case 'network':
       return (
@@ -389,7 +393,7 @@ function ReportSectionContent({ sectionId, data, profileName, compact }: ReportS
         </p>
       );
 
-    case 'relationship':
+    case 'relationship': {
       const rel = data.relationship;
       if (!rel) return <p className="text-muted-foreground text-sm">No relationship score available</p>;
       return (
@@ -405,8 +409,9 @@ function ReportSectionContent({ sectionId, data, profileName, compact }: ReportS
           </Badge>
         </div>
       );
+    }
 
-    case 'risks':
+    case 'risks': {
       const preds = data.predictions?.filter((p: any) => p.prediction_type === 'churn' || p.prediction_type === 'risk');
       if (!preds?.length) return <p className="text-muted-foreground text-sm">No risk predictions available</p>;
       return (
@@ -423,6 +428,7 @@ function ReportSectionContent({ sectionId, data, profileName, compact }: ReportS
           ))}
         </div>
       );
+    }
 
     default:
       return null;

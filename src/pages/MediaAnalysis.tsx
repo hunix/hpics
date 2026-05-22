@@ -65,7 +65,7 @@ export default function MediaAnalysis() {
   const [selectedModes, setSelectedModes] = useState<string[]>([]);
   const [context, setContext] = useState<Partial<AnalysisContext>>({ purpose: 'personal', relationship: 'direct_contact' });
   const [depth, setDepth] = useState<'quick' | 'standard' | 'deep'>('standard');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const [analysisResults, setAnalysisResults] = useState<any>(null);
   
   // Bulk mode state

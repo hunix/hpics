@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Project cache and report files
+.npm-cache/
+eslint_report.json

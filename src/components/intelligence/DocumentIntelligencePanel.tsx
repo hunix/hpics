@@ -104,7 +104,7 @@ export function DocumentIntelligencePanel({ profileId }: DocumentIntelligencePan
       const suggestedProfileIds = [...new Set(data?.map(d => d.suggested_profile_id).filter(Boolean) || [])];
       const allProfileIds = [...new Set([...profileIds, ...suggestedProfileIds])];
       
-      let profilesMap: Record<string, { id: string; first_name: string; last_name: string; avatar_url: string; full_name: string }> = {};
+      const profilesMap: Record<string, { id: string; first_name: string; last_name: string; avatar_url: string; full_name: string }> = {};
       
       if (allProfileIds.length > 0) {
         const { data: profilesData } = await supabase

@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  Globe, Eye, Infinity, Atom, Zap, Target, 
+  Globe, Eye, Infinity as InfinityIcon, Atom, Zap, Target, 
   Layers, Crown, Sparkles, Activity 
 } from 'lucide-react';
 import { useOmniversalSovereignty } from '@/hooks/intelligence/useOmniversalSovereignty';
@@ -70,7 +70,7 @@ const OmniversalSovereigntyCenter: React.FC = () => {
           <Card className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-500/30">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                <Infinity className="h-5 w-5 text-blue-500" />
+                <InfinityIcon className="h-5 w-5 text-blue-500" />
                 <span className="text-sm font-medium">Eternity Index</span>
               </div>
               <div className="text-2xl font-bold">{metrics.eternityIndex.toFixed(1)}%</div>
@@ -135,7 +135,7 @@ const OmniversalSovereigntyCenter: React.FC = () => {
               Awareness
             </TabsTrigger>
             <TabsTrigger value="influence" className="flex items-center gap-2">
-              <Infinity className="h-4 w-4" />
+              <InfinityIcon className="h-4 w-4" />
               Eternal Influence
             </TabsTrigger>
             <TabsTrigger value="synthesis" className="flex items-center gap-2">
@@ -241,7 +241,7 @@ const OmniversalSovereigntyCenter: React.FC = () => {
               <CardContent>
                 {influence.influences.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
-                    <Infinity className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <InfinityIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>No eternal influences established</p>
                   </div>
                 ) : (

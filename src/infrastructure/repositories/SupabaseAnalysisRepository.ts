@@ -61,7 +61,7 @@ export class SupabaseAnalysisRepository implements IAnalysisRepository {
     const pageSize = spec?.pagination?.pageSize || 50;
     const offset = page * pageSize;
 
-    let query = supabase
+    const query = supabase
       .from('analysis_events')
       .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
@@ -90,7 +90,7 @@ export class SupabaseAnalysisRepository implements IAnalysisRepository {
     const pageSize = spec?.pagination?.pageSize || 50;
     const offset = page * pageSize;
 
-    let query = supabase
+    const query = supabase
       .from('analysis_events')
       .select('*', { count: 'exact' })
       .eq('user_id', userId)
@@ -315,7 +315,7 @@ export class SupabaseDossierRepository implements IDossierRepository {
     const pageSize = spec?.pagination?.pageSize || 50;
     const offset = page * pageSize;
 
-    let query = supabase
+    const query = supabase
       .from('dossiers')
       .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
@@ -344,7 +344,7 @@ export class SupabaseDossierRepository implements IDossierRepository {
     const pageSize = spec?.pagination?.pageSize || 50;
     const offset = page * pageSize;
 
-    let query = supabase
+    const query = supabase
       .from('dossiers')
       .select('*', { count: 'exact' })
       .eq('user_id', userId)
@@ -557,7 +557,7 @@ export class SupabaseInsightRepository implements IInsightRepository {
     const pageSize = spec?.pagination?.pageSize || 50;
     const offset = page * pageSize;
 
-    let query = supabase
+    const query = supabase
       .from('action_recommendations')
       .select('*', { count: 'exact' })
       .order('priority_score', { ascending: false })
@@ -586,7 +586,7 @@ export class SupabaseInsightRepository implements IInsightRepository {
     const pageSize = spec?.pagination?.pageSize || 50;
     const offset = page * pageSize;
 
-    let query = supabase
+    const query = supabase
       .from('action_recommendations')
       .select('*', { count: 'exact' })
       .eq('user_id', userId)

@@ -165,7 +165,7 @@ export function ContactAIAgent({ profileId, contactName, className, defaultExpan
 
       // Process any remaining buffer
       if (buffer.trim()) {
-        for (let raw of buffer.split('\n')) {
+        for (const raw of buffer.split('\n')) {
           if (!raw || raw.startsWith(':') || !raw.startsWith('data: ')) continue;
           const jsonStr = raw.slice(6).trim();
           if (jsonStr === '[DONE]') continue;
@@ -175,7 +175,9 @@ export function ContactAIAgent({ profileId, contactName, className, defaultExpan
             if (content) {
               assistantContent += content;
             }
-          } catch {}
+          } catch {
+            // Ignore JSON parsing errors for incomplete/malformed chunks
+          }
         }
         // Final update
         setMessages(prev => 

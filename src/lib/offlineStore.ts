@@ -474,7 +474,7 @@ export async function getSyncStatus(): Promise<{
 
 // ===== BACKGROUND SYNC REGISTRATION =====
 export async function registerBackgroundSync(tag: string = 'sync-mutations'): Promise<boolean> {
-  if ('serviceWorker' in navigator && 'sync' in (window as any).ServiceWorkerRegistration?.prototype) {
+  if ('serviceWorker' in navigator && typeof ServiceWorkerRegistration !== 'undefined' && 'sync' in ServiceWorkerRegistration.prototype) {
     try {
       const registration = await navigator.serviceWorker.ready;
       await (registration as any).sync.register(tag);

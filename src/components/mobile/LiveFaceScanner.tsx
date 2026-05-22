@@ -90,7 +90,9 @@ export function LiveFaceScanner({ className, onFaceDetected, onProfileMatch, ful
   const triggerHaptic = async (style: ImpactStyle = ImpactStyle.Medium) => {
     try {
       await Haptics.impact({ style });
-    } catch {}
+    } catch {
+      // Haptics might fail if unsupported by the platform/browser
+    }
   };
 
   const loadEnrolledDescriptors = async () => {

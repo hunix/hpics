@@ -58,8 +58,8 @@ export function TelegramImport() {
       // Try parsing as text format (from Telegram Desktop)
       const lines = jsonText.split('\n');
       let currentDate: Date | null = null;
-      let currentSender = '';
-      let currentMessage = '';
+      const currentSender = '';
+      const currentMessage = '';
 
       for (const line of lines) {
         // Date header format: "DD.MM.YYYY" or similar

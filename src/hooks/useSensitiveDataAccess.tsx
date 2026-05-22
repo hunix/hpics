@@ -136,9 +136,10 @@ export function useSensitiveDataAccess() {
       if (!value) return '';
       
       switch (type) {
-        case 'email':
+        case 'email': {
           const [local, domain] = value.split('@');
           return `${local.slice(0, 2)}***@${domain}`;
+        }
         case 'phone':
           return `***-***-${value.slice(-4)}`;
         case 'account':

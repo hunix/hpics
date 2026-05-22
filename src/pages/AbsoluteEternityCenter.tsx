@@ -11,7 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  Infinity, Clock, Zap, Target, Shield, Sparkles, 
+  Infinity as InfinityIcon, Clock, Zap, Target, Shield, Sparkles, 
   Activity, TrendingUp, Orbit, Lock, Layers
 } from 'lucide-react';
 import { useAbsoluteEternity } from '@/hooks/intelligence/useAbsoluteEternity';
@@ -56,7 +56,7 @@ export default function AbsoluteEternityCenter() {
     { 
       title: 'Eternity Quotient', 
       value: eternityMetrics.eternityQuotient.toFixed(2), 
-      icon: Infinity,
+      icon: InfinityIcon,
       color: 'text-rose-500',
       bgColor: 'bg-rose-500/10',
     },
@@ -69,7 +69,7 @@ export default function AbsoluteEternityCenter() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-3">
-              <Infinity className="h-8 w-8 text-primary" />
+              <InfinityIcon className="h-8 w-8 text-primary" />
               Absolute Eternity
             </h1>
             <p className="text-muted-foreground mt-1">

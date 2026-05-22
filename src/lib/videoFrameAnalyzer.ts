@@ -76,7 +76,7 @@ export async function extractKeyFrames(
     video.playsInline = true;
 
     const frames: ExtractedFrame[] = [];
-    let lastExtractedTime = -1;
+    const lastExtractedTime = -1;
     const frameInterval = 1 / targetFPS;
 
     const handleLoadedMetadata = () => {

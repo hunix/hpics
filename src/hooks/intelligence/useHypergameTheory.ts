@@ -49,7 +49,7 @@ export function useHypergameTheory(profileIds?: string[]) {
   const { data: cachedAnalyses, isLoading: analysesLoading } = useQuery({
     queryKey: ['hypergame-analyses', profileIds],
     queryFn: async () => {
-      let query = supabase
+      const query = supabase
         .from('ai_analyses')
         .select('*')
         .eq('analysis_type', 'hypergame')
