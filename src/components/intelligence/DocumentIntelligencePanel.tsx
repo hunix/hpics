@@ -1,8 +1,13 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
+import {
+  useExtractedDocuments,
+  useProfilesForDocumentLinking,
+  useDocumentTypeCounts,
+  useLinkDocumentToProfile,
+  useAcceptDocumentSuggestion,
+  useIgnoreDocument,
+  type ExtractedDocument,
+} from '@/hooks/intelligence/useDocumentIntelligence';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -51,185 +56,22 @@ interface DocumentIntelligencePanelProps {
 }
 
 export function DocumentIntelligencePanel({ profileId }: DocumentIntelligencePanelProps) {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDoc, setSelectedDoc] = useState<any>(null);
+  const [selectedDoc, setSelectedDoc] = useState<ExtractedDocument | null>(null);
 
-  // Type for extracted contact info
-  interface ExtractedContactInfo {
-    names?: string[];
-    phone_numbers?: string[];
-    emails?: string[];
-    urls?: string[];
-    addresses?: string[];
-  }
-
-  // Fetch extracted documents
-  const { data: documents, isLoading } = useQuery({
-    queryKey: ['extracted-documents', profileId, selectedType, selectedStatus, searchQuery],
-    queryFn: async () => {
-      let query = supabase
-        .from('extracted_documents')
-        .select(`*`)
-        .eq('user_id', user!.id)
-        .order('created_at', { ascending: false })
-        .limit(100);
-
-      if (profileId) {
-        query = query.eq('profile_id', profileId);
-      }
-
-      if (selectedType !== 'all') {
-        query = query.eq('document_type', selectedType);
-      }
-
-      if (selectedStatus !== 'all') {
-        query = query.eq('linked_status', selectedStatus);
-      }
-
-      if (searchQuery) {
-        query = query.ilike('raw_text', `%${searchQuery}%`);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      
-      // Fetch linked profiles separately
-      const profileIds = [...new Set(data?.map(d => d.profile_id).filter(Boolean) || [])];
-      const suggestedProfileIds = [...new Set(data?.map(d => d.suggested_profile_id).filter(Boolean) || [])];
-      const allProfileIds = [...new Set([...profileIds, ...suggestedProfileIds])];
-      
-      const profilesMap: Record<string, { id: string; first_name: string; last_name: string; avatar_url: string; full_name: string }> = {};
-      
-      if (allProfileIds.length > 0) {
-        const { data: profilesData } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name, avatar_url')
-          .in('id', allProfileIds);
-        
-        profilesData?.forEach(p => {
-          profilesMap[p.id] = {
-            ...p,
-            full_name: `${p.first_name || ''} ${p.last_name || ''}`.trim()
-          };
-        });
-      }
-      
-      // Transform to include full_name on profiles
-      return (data || []).map(doc => ({
-        ...doc,
-        extracted_contact: doc.extracted_contact_info as ExtractedContactInfo | null,
-        linked_profile_data: doc.profile_id ? profilesMap[doc.profile_id] || null : null,
-        suggested_profile: doc.suggested_profile_id ? profilesMap[doc.suggested_profile_id] ? {
-          id: profilesMap[doc.suggested_profile_id].id,
-          full_name: profilesMap[doc.suggested_profile_id].full_name
-        } : null : null
-      }));
-    },
-    enabled: !!user,
+  const { data: documents, isLoading } = useExtractedDocuments({
+    profileId,
+    type: selectedType,
+    status: selectedStatus,
+    search: searchQuery,
   });
-
-  // Fetch profiles for linking - active contacts, favorites first, then recent
-  const { data: profiles } = useQuery({
-    queryKey: ['profiles-for-doc-linking', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, avatar_url, is_favorite, updated_at')
-        .eq('user_id', user!.id)
-        .eq('is_active', true)
-        .order('is_favorite', { ascending: false })
-        .order('updated_at', { ascending: false, nullsFirst: false })
-        .order('first_name')
-        .limit(200);
-      if (error) throw error;
-      return (data || []).map(p => ({ ...p, full_name: `${p.first_name || ''} ${p.last_name || ''}`.trim() }));
-    },
-    enabled: !!user,
-  });
-
-  // Fetch document type counts
-  const { data: typeCounts } = useQuery({
-    queryKey: ['extracted-documents-counts', profileId],
-    queryFn: async () => {
-      let query = supabase
-        .from('extracted_documents')
-        .select('document_type')
-        .eq('user_id', user!.id);
-
-      if (profileId) {
-        query = query.eq('profile_id', profileId);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-
-      const counts: Record<string, number> = {};
-      data?.forEach(doc => {
-        counts[doc.document_type] = (counts[doc.document_type] || 0) + 1;
-      });
-      return counts;
-    },
-    enabled: !!user,
-  });
-
-  // Link document to profile
-  const linkMutation = useMutation({
-    mutationFn: async ({ docId, profileId }: { docId: string; profileId: string }) => {
-      const { error } = await supabase
-        .from('extracted_documents')
-        .update({
-          profile_id: profileId,
-          linked_status: 'manually_linked',
-          linked_at: new Date().toISOString(),
-        })
-        .eq('id', docId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['extracted-documents'] });
-      toast({ title: 'Document linked to contact' });
-    },
-  });
-
-  // Accept suggested profile
-  const acceptSuggestionMutation = useMutation({
-    mutationFn: async ({ docId, profileId }: { docId: string; profileId: string }) => {
-      const { error } = await supabase
-        .from('extracted_documents')
-        .update({
-          profile_id: profileId,
-          linked_status: 'auto_linked',
-          linked_at: new Date().toISOString(),
-        })
-        .eq('id', docId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['extracted-documents'] });
-      toast({ title: 'Suggestion accepted' });
-    },
-  });
-
-  // Ignore document
-  const ignoreMutation = useMutation({
-    mutationFn: async (docId: string) => {
-      const { error } = await supabase
-        .from('extracted_documents')
-        .update({ linked_status: 'ignored' })
-        .eq('id', docId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['extracted-documents'] });
-      toast({ title: 'Document ignored' });
-    },
-  });
+  const { data: profiles } = useProfilesForDocumentLinking();
+  const { data: typeCounts } = useDocumentTypeCounts(profileId);
+  const linkMutation = useLinkDocumentToProfile();
+  const acceptSuggestionMutation = useAcceptDocumentSuggestion();
+  const ignoreMutation = useIgnoreDocument();
 
   const pendingCount = documents?.filter(d => d.linked_status === 'pending').length || 0;
   const linkedCount = documents?.filter(d => d.linked_status !== 'pending' && d.linked_status !== 'ignored').length || 0;

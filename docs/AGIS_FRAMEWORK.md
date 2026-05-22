@@ -1,6 +1,10 @@
 # AGIS Framework Documentation
 
 > Absolute General Intelligence System - 22-Phase Intelligence Framework
+>
+> ⚠️ **Aspirational document.** Many phases below describe target capabilities,
+> not shipped code. Cross-check against `git grep` / `supabase/functions/` /
+> `src/` before relying on any section as ground truth.
 
 ---
 

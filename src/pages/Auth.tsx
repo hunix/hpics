@@ -15,6 +15,12 @@ const authSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
+const SIGNUP_ALLOWLIST = (import.meta.env.VITE_SIGNUP_ALLOWLIST ?? '')
+  .split(',')
+  .map((e: string) => e.trim().toLowerCase())
+  .filter(Boolean);
+const SIGNUP_ENABLED = SIGNUP_ALLOWLIST.length > 0;
+
 export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -65,6 +71,15 @@ export default function Auth() {
     e.preventDefault();
     if (!validateInput()) return;
 
+    if (!SIGNUP_ENABLED || !SIGNUP_ALLOWLIST.includes(email.trim().toLowerCase())) {
+      toast({
+        title: 'Sign up disabled',
+        description: 'This deployment does not accept new accounts.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsLoading(true);
     const { error } = await signUp(email, password);
     setIsLoading(false);
@@ -102,9 +117,9 @@ export default function Auth() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className={`grid w-full ${SIGNUP_ENABLED ? 'grid-cols-2' : 'grid-cols-1'}`}>
               <TabsTrigger value="signin">Sign In</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              {SIGNUP_ENABLED && <TabsTrigger value="signup">Sign Up</TabsTrigger>}
             </TabsList>
             <TabsContent value="signin">
               <form onSubmit={handleSignIn} className="space-y-4 mt-4">
@@ -136,7 +151,7 @@ export default function Auth() {
                 </Button>
               </form>
             </TabsContent>
-            <TabsContent value="signup">
+            {SIGNUP_ENABLED && <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4 mt-4">
                 <div className="space-y-2">
                   <Label htmlFor="signup-email">Email</Label>
@@ -165,7 +180,7 @@ export default function Auth() {
                   Create Account
                 </Button>
               </form>
-            </TabsContent>
+            </TabsContent>}
           </Tabs>
         </CardContent>
       </Card>

@@ -12,7 +12,7 @@ import { callAI, parseAIJson, selectModel } from '../_shared/ai-client.ts';
 import { withSpan, startTraceSession, endTraceSession } from '../_shared/observability.ts';
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  "Access-Control-Allow-Origin": (Deno.env.get("CORS_ALLOWED_ORIGIN") ?? "*"),
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 

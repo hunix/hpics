@@ -20,7 +20,7 @@ import { getRAGContext, type RAGContext, type Citation } from '../_shared/rag-he
 import { callLovableAI } from '../_shared/ai-client.ts';
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  "Access-Control-Allow-Origin": (Deno.env.get("CORS_ALLOWED_ORIGIN") ?? "*"),
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };

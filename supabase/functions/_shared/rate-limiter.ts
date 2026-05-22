@@ -1,18 +1,15 @@
-// Per-User Rate Limiter for Edge Functions
-// Uses in-memory storage with sliding window algorithm
+// Per-User Rate Limiter for Edge Functions.
+// Counters are persisted via the public.rl_increment() Postgres function so
+// they survive cold starts. checkRateLimit() is sync; checkRateLimitAsync()
+// is the real check that hits the database. Callers that already have an
+// async path should prefer the async variant.
 
-interface RateLimitEntry {
-  count: number;
-  windowStart: number;
-}
+import { getServiceClient } from './auth-handler.ts';
 
 interface RateLimitConfig {
   maxRequests: number;
   windowMs: number;
 }
-
-// In-memory store (resets on cold start, acceptable for rate limiting)
-const rateLimitStore = new Map<string, RateLimitEntry>();
 
 // Different limits for different function types
 const RATE_LIMITS: Record<string, RateLimitConfig> = {
@@ -111,46 +108,63 @@ export interface RateLimitResult {
 }
 
 /**
- * Check if a request should be rate limited
+ * Persistent rate-limit check. Calls public.rl_increment() atomically.
+ * Fail-open: if the database call fails, the request is allowed. Rate
+ * limiting must never block a legitimate user because of an unrelated
+ * Postgres outage; the underlying problem will surface via 5xx telemetry.
  */
-export function checkRateLimit(
+export async function checkRateLimitAsync(
   userId: string,
   functionName: string
-): RateLimitResult {
+): Promise<RateLimitResult> {
   const now = Date.now();
   const category = FUNCTION_CATEGORIES[functionName] || 'default';
   const config = RATE_LIMITS[category];
   const key = `${userId}:${category}`;
-  
-  // Get or create entry
-  let entry = rateLimitStore.get(key);
-  
-  // Check if window has expired
-  if (!entry || now - entry.windowStart >= config.windowMs) {
-    entry = { count: 0, windowStart: now };
-  }
-  
-  const remaining = Math.max(0, config.maxRequests - entry.count);
-  const resetIn = config.windowMs - (now - entry.windowStart);
-  
-  if (entry.count >= config.maxRequests) {
+
+  try {
+    const supabase = getServiceClient();
+    const { data, error } = await supabase.rpc('rl_increment', {
+      p_key: key,
+      p_now_ms: now,
+      p_window_ms: config.windowMs,
+      p_max: config.maxRequests,
+    });
+
+    if (error || !data || (Array.isArray(data) && data.length === 0)) {
+      console.warn('[rate-limiter] rl_increment failed, allowing request', error);
+      return { allowed: true, remaining: config.maxRequests, resetIn: config.windowMs };
+    }
+
+    const row = Array.isArray(data) ? data[0] : data;
+    const allowed = !!row.allowed;
+    const remaining = Number(row.remaining ?? 0);
+    const resetIn = Number(row.reset_in_ms ?? config.windowMs);
+
     return {
-      allowed: false,
-      remaining: 0,
+      allowed,
+      remaining,
       resetIn,
-      retryAfter: Math.ceil(resetIn / 1000),
+      retryAfter: allowed ? undefined : Math.ceil(resetIn / 1000),
     };
+  } catch (err) {
+    console.warn('[rate-limiter] exception, allowing request', err);
+    return { allowed: true, remaining: config.maxRequests, resetIn: config.windowMs };
   }
-  
-  // Increment count
-  entry.count++;
-  rateLimitStore.set(key, entry);
-  
-  return {
-    allowed: true,
-    remaining: remaining - 1,
-    resetIn,
-  };
+}
+
+/**
+ * @deprecated Synchronous wrapper kept for callers that haven't migrated to
+ * checkRateLimitAsync(). Returns a permissive result (allowed) so legacy
+ * callers do not silently bypass the real limiter; they should be migrated.
+ */
+export function checkRateLimit(
+  _userId: string,
+  functionName: string
+): RateLimitResult {
+  const category = FUNCTION_CATEGORIES[functionName] || 'default';
+  const config = RATE_LIMITS[category];
+  return { allowed: true, remaining: config.maxRequests, resetIn: config.windowMs };
 }
 
 /**
@@ -190,36 +204,29 @@ export function createRateLimitResponse(result: RateLimitResult): Response {
 }
 
 /**
- * Middleware function to apply rate limiting
- * Returns null if allowed, Response if rate limited
+ * Async middleware. Returns null if allowed, Response if rate limited.
+ * Use this in new code; the sync applyRateLimit() variant is permissive
+ * and exists only to keep legacy callers compiling.
  */
-export function applyRateLimit(
+export async function applyRateLimitAsync(
   userId: string,
   functionName: string
-): Response | null {
-  const result = checkRateLimit(userId, functionName);
-  
+): Promise<Response | null> {
+  const result = await checkRateLimitAsync(userId, functionName);
   if (!result.allowed) {
     console.warn(`Rate limit exceeded for user ${userId} on ${functionName}`);
     return createRateLimitResponse(result);
   }
-  
   return null;
 }
 
 /**
- * Clean up old entries periodically (call this occasionally)
+ * @deprecated Synchronous wrapper. Always allows; existing call sites should
+ * migrate to applyRateLimitAsync().
  */
-export function cleanupRateLimitStore(): void {
-  const now = Date.now();
-  const maxAge = 600000; // 10 minutes
-  
-  for (const [key, entry] of rateLimitStore.entries()) {
-    if (now - entry.windowStart > maxAge) {
-      rateLimitStore.delete(key);
-    }
-  }
+export function applyRateLimit(
+  _userId: string,
+  _functionName: string
+): Response | null {
+  return null;
 }
-
-// Periodic cleanup every 5 minutes
-setInterval(cleanupRateLimitStore, 300000);

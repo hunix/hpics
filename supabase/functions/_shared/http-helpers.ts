@@ -8,12 +8,28 @@
  */
 
 /**
+ * Allowed CORS origin. Set CORS_ALLOWED_ORIGIN in the function environment
+ * (e.g. https://hpics.example.com). Falls back to '*' only when unset, so
+ * unconfigured deployments fail open with a logged warning rather than
+ * silently locking out the frontend.
+ */
+const ALLOWED_ORIGIN = (() => {
+  const v = Deno.env.get('CORS_ALLOWED_ORIGIN');
+  if (!v || v.trim() === '') {
+    console.warn('[http-helpers] CORS_ALLOWED_ORIGIN not set; defaulting to "*"');
+    return '*';
+  }
+  return v.trim();
+})();
+
+/**
  * Standard CORS headers for all edge function responses.
  * Supports Supabase client headers and standard auth patterns.
  */
 export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Vary': 'Origin',
 };
 
 /**

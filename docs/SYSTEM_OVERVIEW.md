@@ -1,7 +1,12 @@
 # HPICS System Overview
 
-> **Hyper-Personalized Intelligence & Contact System**  
+> **Hyper-Personalized Intelligence & Contact System**
 > Version 1.0 | Enterprise-Grade Strategic Intelligence Platform
+>
+> ⚠️ **Aspirational document.** Treats some target features as if shipped.
+> The actual codebase is a React + Supabase OSINT/CRM with biometric capture
+> and edge-function-backed AI flows. Verify any specific claim (table counts,
+> phase coverage, biometric modalities) against the code before quoting.
 
 ---
 

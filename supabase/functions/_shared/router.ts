@@ -83,29 +83,33 @@ export function createRouter(
     return c.json({ router: routerName, status: 'ready' });
   });
 
-  // Auth middleware for POST/PUT/DELETE
+  // Auth middleware — required on every method except OPTIONS preflight
+  // and the documented unauthenticated health endpoints.
   if (requireAuth) {
     app.use('*', async (c, next) => {
-      // Skip auth for GET requests and health checks
-      if (c.req.method === 'GET' || c.req.method === 'OPTIONS') {
+      if (c.req.method === 'OPTIONS') {
+        return next();
+      }
+      const path = c.req.path;
+      if (path === '/health' || (path === '/' && c.req.query('healthCheck') === '1')) {
         return next();
       }
 
       try {
-        const body = await c.req.json().catch(() => ({}));
-        
-        // Check for health check in body
-        if (body.healthCheck === true) {
+        const body = c.req.method === 'GET'
+          ? {}
+          : await c.req.json().catch(() => ({}));
+
+        if (body && (body as Record<string, unknown>).healthCheck === true) {
           return c.json({ ok: true, router: routerName, timestamp: Date.now() });
         }
 
         const auth = await validateAuth(c.req.raw, body);
 
-        if (auth.error) {
-          return c.json({ error: auth.error }, 401);
+        if (auth.error || !auth.userId) {
+          return c.json({ error: auth.error || 'Unauthorized' }, 401);
         }
 
-        // Attach to context
         c.set('auth', auth);
         c.set('body', body);
         c.set('params', normalizeParams(body));

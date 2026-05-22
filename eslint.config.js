@@ -65,5 +65,35 @@ export default tseslint.config(
       "no-restricted-imports": "off",
     },
   },
+  {
+    // Components and pages should consume data via hooks or facades, not the
+    // raw Supabase client. Tracked as a warning so the existing 347 legacy
+    // call sites surface in CI without breaking the build; new code should
+    // not add to the count. Migrate by extracting the query into a hook in
+    // src/hooks/ or src/domains/<domain>/hooks/.
+    files: [
+      "src/components/**/*.{ts,tsx}",
+      "src/pages/**/*.{ts,tsx}",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "warn",
+        {
+          paths: [
+            {
+              name: "@/integrations/supabase/client",
+              message:
+                "Components and pages must not import the Supabase client directly. Use a hook in src/hooks/ or a domain hook in src/domains/<domain>/hooks/. See docs/CODING_CONVENTIONS.md.",
+            },
+            {
+              name: "@/integrations/supabase/types",
+              message:
+                "Import from '@/types/database-helpers' instead — the monolithic types file kills IDE performance.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 );
 
