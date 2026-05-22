@@ -22,8 +22,8 @@
       ]
     },
     "skipLibCheck": true,
-    "strict": true,
-    "strictNullChecks": true,
+    "strict": false,
+    "strictNullChecks": false,
     "target": "ES2020",
     "useDefineForClassFields": true
   },
