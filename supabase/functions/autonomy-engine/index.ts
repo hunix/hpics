@@ -424,6 +424,12 @@ async function getDashboardStats(supabase: ReturnType<typeof createClient>, user
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // Health check
+  const __url = new URL(req.url);
+  if (__url.searchParams.get("healthCheck") === "1") {
+    return new Response(JSON.stringify({ ok: true, function: "autonomy-engine", timestamp: Date.now() }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
   const timer = startTimer();
 
   try {
