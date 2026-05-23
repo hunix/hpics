@@ -71,7 +71,7 @@ export function DailyBriefingWidget() {
           priority,
           profiles:profile_id (id, first_name, last_name)
         `)
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .in('status', ['pending', 'reminded'])
         .lte('scheduled_for', nextWeek.toISOString())
         .order('scheduled_for', { ascending: true })
@@ -104,7 +104,7 @@ export function DailyBriefingWidget() {
           event_date,
           profiles:profile_id (id, first_name, last_name)
         `)
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .eq('event_type', 'birthday')
         .gte('event_date', today.toISOString())
         .lte('event_date', nextWeek.toISOString());
@@ -129,7 +129,7 @@ export function DailyBriefingWidget() {
       const { data: atRiskProfiles } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, last_contact_date')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .eq('is_active', true)
         .eq('is_favorite', true)
         .or(`last_contact_date.is.null,last_contact_date.lt.${addDays(today, -30).toISOString()}`)

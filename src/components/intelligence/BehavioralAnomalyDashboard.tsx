@@ -290,9 +290,9 @@ export function BehavioralAnomalyDashboard() {
                 </div>
               )}
 
-              {(selectedAnomaly.expected_value || selectedAnomaly.actual_value) && (
+              {Boolean(selectedAnomaly.expected_value || selectedAnomaly.actual_value) && (
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  {selectedAnomaly.expected_value && (
+                  {Boolean(selectedAnomaly.expected_value) && (
                     <div>
                       <p className="text-muted-foreground">Expected</p>
                       <p className="font-mono text-xs">
@@ -300,7 +300,7 @@ export function BehavioralAnomalyDashboard() {
                       </p>
                     </div>
                   )}
-                  {selectedAnomaly.actual_value && (
+                  {Boolean(selectedAnomaly.actual_value) && (
                     <div>
                       <p className="text-muted-foreground">Actual</p>
                       <p className="font-mono text-xs">

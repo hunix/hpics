@@ -15,10 +15,10 @@ import { formatDistanceToNow } from 'date-fns';
 
 interface VoiceSignature {
   id: string;
-  profile_id: string;
-  quality_score: number;
-  sample_duration_seconds: number;
-  created_at: string;
+  profile_id: string | null;
+  quality_score: number | null;
+  sample_duration_seconds: number | null;
+  created_at: string | null;
   profile_name?: string;
   avatar_url?: string | null;
 }
@@ -63,7 +63,7 @@ export function VoiceSignaturePanel({ profileId, className }: VoiceSignaturePane
       if (error) throw error;
 
       // Fetch profile names separately
-      const profileIds = [...new Set((data || []).map(s => s.profile_id))];
+      const profileIds = [...new Set((data || []).map(s => s.profile_id).filter((v): v is string => v !== null))];
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, avatar_url')
@@ -72,7 +72,7 @@ export function VoiceSignaturePanel({ profileId, className }: VoiceSignaturePane
       const profileMap = new Map((profiles || []).map(p => [p.id, p]));
 
       const enrichedSignatures: VoiceSignature[] = (data || []).map(s => {
-        const profile = profileMap.get(s.profile_id);
+        const profile = s.profile_id ? profileMap.get(s.profile_id) : undefined;
         const profileName = profile 
           ? [profile.first_name, profile.last_name].filter(Boolean).join(' ') 
           : undefined;

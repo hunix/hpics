@@ -164,9 +164,9 @@ export function UnifiedDossierGenerator({ profileId, profileName = 'Target' }: U
       // Betrayal Prediction
       if (selectedSections.includes('betrayal_prediction') && betrayalPrediction) {
         addSection('Betrayal Risk Analysis');
-        addText(`Defection Probability: ${(betrayalPrediction.defection_probability * 100).toFixed(0)}%`);
-        addText(`Trust Score: ${(betrayalPrediction.trust_score * 100).toFixed(0)}%`);
-        addText(`Relationship Stress: ${(betrayalPrediction.relationship_stress_score * 100).toFixed(0)}%`);
+        addText(`Defection Probability: ${((betrayalPrediction.defection_probability ?? 0) * 100).toFixed(0)}%`);
+        addText(`Trust Score: ${((betrayalPrediction.trust_score ?? 0) * 100).toFixed(0)}%`);
+        addText(`Relationship Stress: ${((betrayalPrediction.relationship_stress_score ?? 0) * 100).toFixed(0)}%`);
         if (betrayalPrediction.defection_timeline) {
           addText(`Estimated Timeline: ${betrayalPrediction.defection_timeline}`);
         }

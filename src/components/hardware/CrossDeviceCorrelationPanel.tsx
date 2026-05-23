@@ -49,9 +49,10 @@ export function CrossDeviceCorrelationPanel() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const filteredCorrelations = typeFilter === 'all' 
-    ? correlations 
-    : correlations.filter(c => c.correlation_type === typeFilter);
+  const correlationsList = correlations ?? [];
+  const filteredCorrelations = typeFilter === 'all'
+    ? correlationsList
+    : correlationsList.filter(c => c.correlation_type === typeFilter);
 
   const getStrengthColor = (strength: number) => {
     if (strength >= 0.8) return 'text-green-500';

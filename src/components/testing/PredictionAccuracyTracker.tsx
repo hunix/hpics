@@ -60,7 +60,7 @@ export function PredictionAccuracyTracker() {
       // Calculate churn accuracy
       const verifiedChurn = (churnPredictions || []).filter(p => p.outcome_verified);
       const correctChurn = verifiedChurn.filter(p => {
-        const predicted = p.predicted_churn_probability > 0.5;
+        const predicted = (p.predicted_churn_probability ?? 0) > 0.5;
         const actual = p.actual_outcome === 'churned';
         return predicted === actual;
       });
@@ -130,9 +130,9 @@ export function PredictionAccuracyTracker() {
           id: p.id,
           type: 'Churn Risk',
           profileId: p.profile_id,
-          predicted: p.predicted_churn_probability > 0.5 ? 'High Risk' : 'Low Risk',
+          predicted: (p.predicted_churn_probability ?? 0) > 0.5 ? 'High Risk' : 'Low Risk',
           actual: p.actual_outcome || 'Unknown',
-          correct: (p.predicted_churn_probability > 0.5) === (p.actual_outcome === 'churned'),
+          correct: ((p.predicted_churn_probability ?? 0) > 0.5) === (p.actual_outcome === 'churned'),
           date: p.prediction_date,
         }));
 

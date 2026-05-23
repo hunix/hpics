@@ -82,7 +82,7 @@ export function MediaIntelligenceGallery() {
       const { data } = await supabase
         .from('media')
         .select('id, file_url, storage_path, mime_type, ai_metadata, profile_id, created_at')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .order('created_at', { ascending: false })
         .limit(200);
       
@@ -103,7 +103,7 @@ export function MediaIntelligenceGallery() {
       const { data } = await supabase
         .from('face_regions')
         .select('id, media_id, profile_id, cropped_thumbnail_url, status')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .order('created_at', { ascending: false });
       
       return (data || []) as FaceRegion[];
@@ -118,7 +118,7 @@ export function MediaIntelligenceGallery() {
       const { data } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, avatar_url')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .eq('is_active', true)
         .order('first_name');
       
