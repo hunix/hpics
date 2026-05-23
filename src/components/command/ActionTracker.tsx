@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Zap, CheckCircle2, Clock, XCircle, ArrowRight, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';

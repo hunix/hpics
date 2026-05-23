@@ -9,7 +9,6 @@ import {
   Shield, Key, FileText, User, Eye, AlertTriangle, 
   Plus, Trash2, CheckCircle, XCircle, Clock
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';

@@ -10,7 +10,6 @@ import {
   Crosshair, RefreshCw, Zap, Shield, Target, AlertTriangle, 
   Play, Eye, Brain, Swords, Clock, Activity
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useMutation } from '@tanstack/react-query';
 import { invokeFunction } from '@/lib/api';
