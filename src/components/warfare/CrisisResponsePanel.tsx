@@ -6,7 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { AlertTriangle, Siren, CheckCircle, Clock, ArrowRight, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { invokeFunction } from '@/lib/api';
 
 interface CrisisEvent {

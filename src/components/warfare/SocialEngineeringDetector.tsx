@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { UserX, AlertTriangle, Shield, Search, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { invokeFunction } from '@/lib/api';
 
 interface AnalysisResult {

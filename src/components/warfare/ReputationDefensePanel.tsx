@@ -7,7 +7,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Eye, TrendingDown, Shield, AlertCircle, MessageSquare, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { invokeFunction } from '@/lib/api';
 
 interface ReputationIncident {

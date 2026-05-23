@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Activity, AlertTriangle, TrendingUp, RefreshCw, BarChart3 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { invokeFunction } from '@/lib/api';
 
 interface Baseline {

@@ -4,9 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Keyboard, Eye, EyeOff, CheckCircle2, Activity } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useKeystrokeProfiles } from '@/hooks/biometrics/useKeystrokeProfiles';
 import { keystrokeDynamicsAnalyzer } from '@/lib/biometrics/keystrokeDynamics';
 import type { KeyEvent, KeystrokeProfile, KeystrokeComparison, KeystrokeFeatures } from '@/lib/biometrics/keystrokeDynamics';
 
@@ -44,7 +42,6 @@ export function KeystrokeMonitor({
   onMismatch,
   showVisualFeedback = true
 }: KeystrokeMonitorProps) {
-  const { user } = useAuth();
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [matchResult, setMatchResult] = useState<KeystrokeComparison | null>(null);
   const [lastActivityTime, setLastActivityTime] = useState<number | null>(null);
@@ -52,17 +49,7 @@ export function KeystrokeMonitor({
   
   const analyzerRef = useRef(new KeystrokeAnalyzerInstance());
 
-  const { data: profiles } = useQuery({
-    queryKey: ['keystroke-profiles', user?.id, profileId],
-    queryFn: async () => {
-      if (!user) return [];
-      let query = supabase.from('keystroke_profiles').select('*').eq('user_id', user.id);
-      if (profileId) query = query.eq('profile_id', profileId);
-      const { data } = await query.order('created_at', { ascending: false });
-      return data || [];
-    },
-    enabled: !!user
-  });
+  const { data: profiles } = useKeystrokeProfiles(profileId);
 
   const handleKeyEvent = useCallback((e: KeyboardEvent, type: 'keydown' | 'keyup') => {
     if (!isMonitoring) return;
