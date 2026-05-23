@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/components/AppLayout';
+import {
+  useContactsForAnalysis,
+  useContactVideos,
+  useRecentAnalysisFanout,
+  type MediaFileRow,
+} from '@/hooks/analysis/useVideoAnalysisData';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -35,13 +40,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 
-interface MediaFile {
-  id: string;
-  file_url: string;
-  caption: string | null;
-  mime_type: string | null;
-  created_at: string;
-}
+type MediaFile = MediaFileRow;
 
 export default function VideoAnalysis() {
   const { user } = useAuth();
@@ -79,53 +78,9 @@ export default function VideoAnalysis() {
     setAnalysisMode('video');
   }, [selectedVideo]);
 
-  const { data: contacts } = useQuery({
-    queryKey: ['contacts-for-analysis', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, organization, job_title')
-        .order('first_name');
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user,
-  });
-
-  // Fetch videos from the selected contact's media library
-  const { data: contactVideos, isLoading: isLoadingVideos } = useQuery({
-    queryKey: ['contact-videos', selectedContact],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('media')
-        .select('id, file_url, caption, mime_type, created_at')
-        .eq('profile_id', selectedContact)
-        .or('mime_type.ilike.video/%,mime_type.ilike.audio/%')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data as MediaFile[];
-    },
-    enabled: !!selectedContact,
-  });
-
-  const { data: recentAnalyses } = useQuery({
-    queryKey: ['recent-analyses', user?.id],
-    queryFn: async () => {
-      const [behavioral, facial, bodyLanguage, vocal] = await Promise.all([
-        supabase.from('behavioral_analyses').select('*, profiles(first_name, last_name)').order('created_at', { ascending: false }).limit(5),
-        supabase.from('facial_analyses').select('*, profiles(first_name, last_name)').order('created_at', { ascending: false }).limit(5),
-        supabase.from('body_language_analyses').select('*, profiles(first_name, last_name)').order('created_at', { ascending: false }).limit(5),
-        supabase.from('vocal_analyses').select('*, profiles(first_name, last_name)').order('created_at', { ascending: false }).limit(5),
-      ]);
-      return {
-        behavioral: behavioral.data || [],
-        facial: facial.data || [],
-        bodyLanguage: bodyLanguage.data || [],
-        vocal: vocal.data || [],
-      };
-    },
-    enabled: !!user,
-  });
+  const { data: contacts } = useContactsForAnalysis();
+  const { data: contactVideos, isLoading: isLoadingVideos } = useContactVideos(selectedContact);
+  const { data: recentAnalyses } = useRecentAnalysisFanout();
 
   const selectedVideoInfo = contactVideos?.find(v => v.id === selectedVideo);
   const selectedContactInfo = contacts?.find(c => c.id === selectedContact);

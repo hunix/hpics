@@ -1,7 +1,12 @@
 import { useState, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/components/AppLayout';
+import {
+  usePaginatedDocuments,
+  useIdentityDocuments,
+  useDeleteDocument,
+  type DocumentWithProfile,
+} from '@/hooks/documents/useDocumentsPage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +16,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Plus, FileText, File, ExternalLink, Trash2, Search, CreditCard, AlertTriangle, Loader2, Grid3X3, List, LayoutGrid, Upload } from 'lucide-react';
 import { BulkUploadDialog } from '@/components/uploads/BulkUploadDialog';
-import { useAuth } from '@/hooks/useAuth';
 import { format, differenceInDays } from 'date-fns';
 import { DocumentUpload } from '@/components/uploads/DocumentUpload';
 import { DocumentRAGSearch } from '@/components/documents/DocumentRAGSearch';
@@ -23,14 +27,9 @@ import { useFileViewPreferences, type MainViewMode } from '@/hooks/useFileViewPr
 import { ContactFolderCard } from '@/components/files/ContactFolderCard';
 import { FolderBreadcrumb } from '@/components/files/FolderBreadcrumb';
 import { FilePagination } from '@/components/contacts/FilePagination';
-import type { Document as BaseDocument } from '@/types/database-helpers';
-
-type Document = BaseDocument & {
-  profiles: { first_name: string; last_name: string | null } | null;
-};
+type Document = DocumentWithProfile;
 
 export default function Documents() {
-  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -66,67 +65,23 @@ export default function Documents() {
     );
   }, [folders, folderSearchQuery]);
 
-  // Fetch paginated documents for selected contact
-  const { data: paginatedDocs, isLoading: docsLoading } = useQuery({
-    queryKey: ['documents-paginated', user?.id, selectedContactId, searchQuery, typeFilter, sortBy, currentPage, itemsPerPage],
-    queryFn: async () => {
-      let query = supabase
-        .from('documents')
-        .select('*, profiles(first_name, last_name)', { count: 'exact' });
-      
-      if (selectedContactId) {
-        query = query.eq('profile_id', selectedContactId);
-      }
-      
-      if (searchQuery) {
-        query = query.ilike('title', `%${searchQuery}%`);
-      }
-      
-      if (typeFilter !== 'all') {
-        query = query.eq('document_type', typeFilter as 'resume' | 'contract' | 'presentation' | 'notes' | 'article' | 'other');
-      }
-      
-      // Sorting
-      const ascending = sortBy === 'oldest' || sortBy === 'name-asc';
-      const column = sortBy.startsWith('name') ? 'title' : 'created_at';
-      query = query.order(column, { ascending });
-      
-      // Pagination
-      const from = (currentPage - 1) * itemsPerPage;
-      const to = from + itemsPerPage - 1;
-      query = query.range(from, to);
-
-      const { data, error, count } = await query;
-      if (error) throw error;
-      return { items: data as Document[], totalCount: count || 0 };
-    },
-    enabled: !!user && (selectedContactId !== null || viewMode !== 'folders'),
+  const { data: paginatedDocs, isLoading: docsLoading } = usePaginatedDocuments({
+    selectedContactId,
+    searchQuery,
+    typeFilter,
+    sortBy,
+    currentPage,
+    itemsPerPage,
+    enabled: selectedContactId !== null || viewMode !== 'folders',
   });
 
-  const { data: identityDocs } = useQuery({
-    queryKey: ['all-identity-documents', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('contact_identity_documents')
-        .select('*, profiles(first_name, last_name)')
-        .order('expiry_date', { ascending: true });
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user,
-  });
+  const { data: identityDocs } = useIdentityDocuments();
 
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('documents').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['documents-paginated'] });
-      queryClient.invalidateQueries({ queryKey: ['document-folders'] });
-      toast({ title: 'Document deleted' });
-    },
-  });
+  const deleteHook = useDeleteDocument();
+  const deleteMutation = {
+    mutate: (id: string) =>
+      deleteHook.mutate(id, { onSuccess: () => toast({ title: 'Document deleted' }) }),
+  };
 
   const handleOpenDocument = async (doc: Document) => {
     setOpeningDocId(doc.id);

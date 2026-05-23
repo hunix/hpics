@@ -1,7 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  useAllContactsForAnalysis,
+  useRecentMediaAnalyses,
+  checkBulkSessionStatus,
+  cancelBulkSession,
+} from "@/hooks/analysis/useMediaAnalysisData";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ContactPicker } from "@/components/contacts/ContactPicker";
@@ -131,13 +136,8 @@ export default function MediaAnalysis() {
           console.log('[MediaAnalysis] Found existing session:', existingSession.id, 'status:', existingSession.status);
           
           // Double-check session actually exists and isn't stale/cancelled in DB
-          const { data: freshCheck, error: fetchError } = await supabase
-            .from('bulk_analysis_sessions')
-            .select('status, completed_at')
-            .eq('id', existingSession.id)
-            .single();
-          
-          if (fetchError || !freshCheck) {
+          const freshCheck = await checkBulkSessionStatus(existingSession.id);
+          if (!freshCheck) {
             console.log('[MediaAnalysis] Session not found in DB, ignoring');
             return;
           }
@@ -179,56 +179,8 @@ export default function MediaAnalysis() {
       )
     : null;
 
-  // Fetch ALL contacts with pagination
-  const { data: contacts } = useQuery({
-    queryKey: ['contacts-for-analysis-all'],
-    queryFn: async () => {
-      const allContacts: { id: string; first_name: string; last_name: string | null; avatar_url: string | null }[] = [];
-      let from = 0;
-      const pageSize = 1000;
-      let hasMore = true;
-
-      while (hasMore) {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name, avatar_url')
-          .order('first_name')
-          .range(from, from + pageSize - 1);
-        
-        if (error) throw error;
-        
-        if (data && data.length > 0) {
-          allContacts.push(...data);
-          from += pageSize;
-          hasMore = data.length === pageSize;
-        } else {
-          hasMore = false;
-        }
-      }
-      
-      return allContacts;
-    },
-  });
-
-  // Fetch recent analyses
-  const { data: recentAnalyses } = useQuery({
-    queryKey: ['recent-media-analyses', selectedContact],
-    queryFn: async () => {
-      let query = supabase
-        .from('media_analyses')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(10);
-      
-      if (selectedContact) {
-        query = query.eq('profile_id', selectedContact);
-      }
-      
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
-    },
-  });
+  const { data: contacts } = useAllContactsForAnalysis();
+  const { data: recentAnalyses } = useRecentMediaAnalyses(selectedContact);
 
   // Single analysis mutation
   const analysisMutation = useMutation({
@@ -236,9 +188,6 @@ export default function MediaAnalysis() {
       if (!selectedMedia || selectedModes.length === 0) {
         throw new Error('Please select media and analysis modes');
       }
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
 
       const response = await invokeFunction('analyze-media-deep', {
           media_id: mediaType !== 'document' ? selectedMedia.id : null,
@@ -393,10 +342,7 @@ export default function MediaAnalysis() {
 
   const handleRecoveryDiscard = async () => {
     if (recoveredSession) {
-      await supabase
-        .from('bulk_analysis_sessions')
-        .update({ status: 'cancelled', completed_at: new Date().toISOString() })
-        .eq('id', recoveredSession.id);
+      await cancelBulkSession(recoveredSession.id);
       setRecoveredSession(null);
     }
   };

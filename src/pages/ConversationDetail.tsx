@@ -1,7 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  useContactProfile,
+  useConversation,
+  useConversationMessages,
+  useConversationMedia,
+  type MessageRow,
+} from '@/hooks/conversations/useConversationDetail';
+import { useAddMessage } from '@/hooks/conversations/useAddMessage';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -100,100 +107,22 @@ export default function ConversationDetail() {
   
   const parentRef = useRef<HTMLDivElement>(null);
 
-  // Fetch profile
-  const { data: profile } = useQuery({
-    queryKey: ['profile', contactId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name')
-        .eq('id', contactId!)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!contactId,
-  });
+  const { data: profile } = useContactProfile(contactId);
+  const { data: conversation } = useConversation(conversationId);
 
-  // Fetch conversation
-  const { data: conversation } = useQuery({
-    queryKey: ['conversation', conversationId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('conversations')
-        .select('*')
-        .eq('id', conversationId!)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!conversationId,
-  });
-
-  // Infinite query for messages - latest first, paginated
   const {
     data: messagesData,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
     isLoading: isLoadingMessages,
-  } = useInfiniteQuery({
-    queryKey: ['conversation-messages', conversationId],
-    queryFn: async ({ pageParam }) => {
-      const limit = pageParam ? BATCH_SIZE : INITIAL_LOAD; // First page is smaller
-      let query = supabase
-        .from('messages')
-        .select('id, content, is_from_contact, sent_at, media_id, media_filename, media_type, media:media_id(id, file_url, mime_type, storage_path)')
-        .eq('conversation_id', conversationId!)
-        .order('sent_at', { ascending: false })
-        .limit(limit);
-
-      if (pageParam) {
-        query = query.lt('sent_at', pageParam);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return (data || []) as unknown as Message[];
-    },
-    getNextPageParam: (lastPage, allPages) => {
-      // Stop if we got less than expected (first page uses INITIAL_LOAD, rest use BATCH_SIZE)
-      const expectedSize = allPages.length === 1 ? INITIAL_LOAD : BATCH_SIZE;
-      if (lastPage.length < expectedSize) return undefined;
-      return lastPage[lastPage.length - 1]?.sent_at;
-    },
-    initialPageParam: null as string | null,
-    enabled: !!conversationId,
-  });
+  } = useConversationMessages(conversationId, INITIAL_LOAD, BATCH_SIZE);
 
   // Flatten and reverse messages for display (oldest at top for chat view)
   const messages = messagesData?.pages.flatMap(page => page).reverse() || [];
 
   // Fetch conversation media
-  const { data: mediaItems } = useQuery({
-    queryKey: ['conversation-media', conversationId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('sent_at, content, media_filename, media:media_id(id, file_url, mime_type, storage_path)')
-        .eq('conversation_id', conversationId!)
-        .not('media_id', 'is', null)
-        .order('sent_at', { ascending: false });
-      if (error) throw error;
-      return data
-        .filter(m => m.media)
-        .map(m => ({
-          id: (m.media as any).id,
-          file_url: (m.media as any).file_url,
-          mime_type: (m.media as any).mime_type,
-          storage_path: (m.media as any).storage_path,
-          sent_at: m.sent_at,
-          message_content: m.content,
-          media_filename: m.media_filename,
-        })) as MediaItem[];
-    },
-    enabled: !!conversationId,
-  });
+  const { data: mediaItems } = useConversationMedia(conversationId);
 
   // Virtualizer
   const virtualizer = useVirtualizer({
@@ -277,34 +206,16 @@ export default function ConversationDetail() {
   }, [searchResults, currentSearchIndex, virtualizer]);
 
   // Add message mutation
-  const addMessageMutation = useMutation({
-    mutationFn: async ({ content, isFromContact }: { content: string; isFromContact: boolean }) => {
-      const { error } = await supabase.from('messages').insert({
-        conversation_id: conversationId!,
-        user_id: user!.id,
-        content,
-        is_from_contact: isFromContact,
-        sent_at: new Date().toISOString(),
-      });
-      if (error) throw error;
-
-      await supabase
-        .from('conversations')
-        .update({ 
-          last_message_at: new Date().toISOString(),
-          message_count: (conversation?.message_count || 0) + 1
-        })
-        .eq('id', conversationId!);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversation-messages', conversationId] });
-      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
-      setNewMessage('');
-    },
-    onError: (error: any) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    },
-  });
+  const addMessage = useAddMessage(conversationId, conversation?.message_count ?? 0);
+  const addMessageMutation = {
+    isPending: addMessage.isPending,
+    mutate: (input: { content: string; isFromContact: boolean }) =>
+      addMessage.mutate(input, {
+        onSuccess: () => setNewMessage(''),
+        onError: (error: Error) =>
+          toast({ title: 'Error', description: error.message, variant: 'destructive' }),
+      }),
+  };
 
   const profileName = profile ? `${profile.first_name} ${profile.last_name || ''}`.trim() : 'Contact';
   const PlatformIcon = conversation ? platformIcons[conversation.platform] || MessageCircle : MessageCircle;
@@ -330,7 +241,7 @@ export default function ConversationDetail() {
   };
 
   // Media type icon helper
-  const getMediaIcon = (mediaType: string) => {
+  const getMediaIcon = (mediaType: string | null) => {
     if (mediaType?.startsWith('image')) return Image;
     if (mediaType?.startsWith('video')) return Play;
     if (mediaType?.startsWith('audio')) return Mic;

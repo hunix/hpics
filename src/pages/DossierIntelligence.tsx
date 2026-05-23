@@ -27,8 +27,7 @@ import {
   Activity,
   BarChart3
 } from 'lucide-react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { formatDistanceToNow, format } from 'date-fns';
 import { PDFDossierGenerator } from '@/components/reports/PDFDossierGenerator';
@@ -36,7 +35,7 @@ import { DossierBrowser } from '@/components/intelligence/DossierBrowser';
 import { DossierExporter } from '@/components/intelligence/DossierExporter';
 import { ErrorBoundaryWithRecovery } from '@/components/ErrorBoundaryWithRecovery';
 import { APP_VERSION, BUILD_TIMESTAMP } from '@/lib/appVersion';
-import { useDossierStats } from '@/hooks/dossier/useDossierStats';
+import { useDossierStats, useDossierList } from '@/hooks/dossier/useDossierStats';
 
 // Build stamp for debugging
 const BUILD_STAMP = `v${APP_VERSION} @ ${BUILD_TIMESTAMP.slice(0, 16)}`;
@@ -60,22 +59,7 @@ export default function DossierIntelligence() {
   }, []);
 
   // Fetch all dossiers
-  const { data: dossiers = [], isLoading: dossiersLoading, refetch: refetchDossiers } = useQuery({
-    queryKey: ['all-dossiers-page'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
-
-      const { data, error } = await supabase
-        .from('dossiers')
-        .select('*, profiles(id, first_name, last_name, organization, job_title)')
-        .order('generated_at', { ascending: false })
-        .limit(100);
-
-      if (error) throw error;
-      return data || [];
-    },
-  });
+  const { data: dossiers = [], isLoading: dossiersLoading, refetch: refetchDossiers } = useDossierList();
 
   // Use modular stats hook
   const { data: stats } = useDossierStats();
