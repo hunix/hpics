@@ -51,8 +51,8 @@ interface IdentityLink {
   platforms: string[];
   usernames: Array<{ platform: string; username: string }>;
   confidence: number;
-  profileId?: string;
-  createdAt: string;
+  profileId?: string | null;
+  createdAt: string | null;
 }
 
 interface PlatformConnectionManagerProps {

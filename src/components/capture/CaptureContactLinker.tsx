@@ -333,7 +333,7 @@ function ContactItem({
       )}
     >
       <Avatar className="h-7 w-7">
-        <AvatarImage src={contact.avatar_url} />
+        <AvatarImage src={contact.avatar_url ?? undefined} />
         <AvatarFallback className="text-[10px]">
           {contact.first_name?.[0]}{contact.last_name?.[0]}
         </AvatarFallback>

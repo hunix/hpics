@@ -23,12 +23,12 @@ import { invokeFunction } from '@/lib/api';
 interface ExtensionSession {
   id: string;
   platform: string;
-  profile_url: string;
-  pages_captured: number;
-  posts_captured: number;
-  comments_captured: number;
-  status: string;
-  created_at: string;
+  profile_url: string | null;
+  pages_captured: number | null;
+  posts_captured: number | null;
+  comments_captured: number | null;
+  status: string | null;
+  created_at: string | null;
 }
 
 interface ChromeExtensionPanelProps {
