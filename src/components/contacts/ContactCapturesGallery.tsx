@@ -156,14 +156,14 @@ export function ContactCapturesGallery({
           .from('media')
           .delete()
           .eq('id', media.id)
-          .eq('user_id', user?.id);
+          .eq('user_id', user?.id ?? '');
         if (error) throw error;
       } else if (media.source === 'voice_notes') {
         const { error } = await supabase
           .from('voice_notes')
           .delete()
           .eq('id', media.id)
-          .eq('user_id', user?.id);
+          .eq('user_id', user?.id ?? '');
         if (error) throw error;
       }
     },
@@ -184,14 +184,14 @@ export function ContactCapturesGallery({
           .from('media')
           .update({ profile_id: null })
           .eq('id', media.id)
-          .eq('user_id', user?.id);
+          .eq('user_id', user?.id ?? '');
         if (error) throw error;
       } else if (media.source === 'voice_notes') {
         const { error } = await supabase
           .from('voice_notes')
           .update({ profile_id: null })
           .eq('id', media.id)
-          .eq('user_id', user?.id);
+          .eq('user_id', user?.id ?? '');
         if (error) throw error;
       }
     },

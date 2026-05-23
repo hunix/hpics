@@ -30,13 +30,14 @@ const ruleTypeConfig = {
 
 export function AlertRulesConfig() {
   const {
-    rules,
+    rules: rawRules,
     isLoading,
     createRule,
     toggleRule,
     deleteRule,
     isProcessing
   } = useAlertRules();
+  const rules = rawRules ?? [];
 
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newRule, setNewRule] = useState({

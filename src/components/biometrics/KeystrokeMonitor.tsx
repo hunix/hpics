@@ -96,10 +96,10 @@ export function KeystrokeMonitor({
           features,
           keyPresses: [],
           featureVector: storedProfile.feature_vector as number[],
-          sampleText: storedProfile.sample_text,
-          totalCharacters: storedProfile.total_characters,
-          totalDuration: storedProfile.total_duration_ms,
-          qualityScore: storedProfile.quality_score
+          sampleText: storedProfile.sample_text ?? '',
+          totalCharacters: storedProfile.total_characters ?? 0,
+          totalDuration: storedProfile.total_duration_ms ?? 0,
+          qualityScore: storedProfile.quality_score ?? 0
         };
         const comparison = analyzerRef.current.compareProfiles(currentProfile, reconstructedProfile);
         setMatchResult(comparison);

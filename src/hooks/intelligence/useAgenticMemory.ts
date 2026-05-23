@@ -125,7 +125,7 @@ export function useProfileMemories(profileId: string | null | undefined, options
       let query = supabase
         .from('agentic_memory')
         .select('*')
-        .eq('profile_id', profileId)
+        .eq('profile_id', profileId!)
         .order('confidence_score', { ascending: false });
 
       if (options?.tier) {
@@ -152,7 +152,7 @@ export function useMemoryWithLinks(memoryId: string | undefined) {
     queryKey: memoryKeys.links(memoryId || ''),
     queryFn: async () => {
       const [memoryResult, linksResult] = await Promise.all([
-        supabase.from('agentic_memory').select('*').eq('id', memoryId).single(),
+        supabase.from('agentic_memory').select('*').eq('id', memoryId!).single(),
         supabase.from('memory_links').select('*').or(`source_memory_id.eq.${memoryId},target_memory_id.eq.${memoryId}`),
       ]);
 
@@ -160,7 +160,7 @@ export function useMemoryWithLinks(memoryId: string | undefined) {
 
       // Fetch linked memories
       const linkedIds = new Set<string>();
-      linksResult.data?.forEach((link: MemoryLink) => {
+      (linksResult.data ?? []).forEach((link) => {
         linkedIds.add(link.source_memory_id);
         linkedIds.add(link.target_memory_id);
       });
@@ -228,7 +228,7 @@ export function useMemoryGraph(profileId: string | null | undefined) {
 
       const memoryIds = new Set(memoriesResult.data?.map(m => m.id) || []);
       const relevantLinks = (linksResult.data || []).filter(
-        (link: MemoryLink) => memoryIds.has(link.source_memory_id) || memoryIds.has(link.target_memory_id)
+        (link) => memoryIds.has(link.source_memory_id) || memoryIds.has(link.target_memory_id)
       );
 
       return {

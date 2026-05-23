@@ -73,7 +73,7 @@ function MICE({ data }: { data: ExtendedDossierData }) {
         columns={4} 
       />
       
-      {primaryVuln && (
+      {Boolean(primaryVuln) && (
         <DataBox variant="danger" title="Primary Vulnerability">
           <p className="font-medium">{humanizeValue(primaryVuln)}</p>
           {recruitmentLikelihood != null && (
@@ -84,10 +84,10 @@ function MICE({ data }: { data: ExtendedDossierData }) {
         </DataBox>
       )}
 
-      {optimalApproach.approach && (
+      {Boolean(optimalApproach.approach) && (
         <DataBox variant="warning" title="Optimal Approach">
           <p className="font-medium">{humanizeValue(optimalApproach.approach)}</p>
-          {optimalApproach.initialPitch && (
+          {Boolean(optimalApproach.initialPitch) && (
             <p className="text-sm text-muted-foreground mt-1">{String(optimalApproach.initialPitch)}</p>
           )}
         </DataBox>
@@ -238,7 +238,7 @@ function Influence({ data }: { data: ExtendedDossierData }) {
         </>
       )}
       
-      {inf.primary_channel && (
+      {Boolean(inf.primary_channel) && (
         <DataBox variant="info" title="Primary Channel">
           <p>{String(inf.primary_channel)}</p>
         </DataBox>

@@ -108,9 +108,9 @@ export function useDocumentIntegrity() {
         .eq('document_id', documentId)
         .maybeSingle();
 
-      const storedHash = error ? null : data?.hash;
+      const storedHash: string | null = error ? null : (data?.hash ?? null);
       const isValid = storedHash !== null && hashesMatch(storedHash, computedHash);
-      
+
       const result: IntegrityResult = {
         isValid,
         storedHash,
@@ -159,9 +159,9 @@ export function useDocumentIntegrity() {
     return {
       id: data.id,
       documentId: data.document_id,
-      hash: data.hash,
-      algorithm: data.algorithm,
-      createdAt: data.created_at,
+      hash: data.hash ?? '',
+      algorithm: data.algorithm ?? '',
+      createdAt: data.created_at ?? '',
       createdBy: user.id,
       fileSize: data.file_size || undefined,
       fileName: metadata?.fileName || undefined,

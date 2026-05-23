@@ -15,7 +15,7 @@ import {
   Brain, Sparkles, MessageSquare, Clock
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useIdentityDestabilization } from '@/hooks/intelligence/useIdentityDestabilization';
+import { useIdentityDestabilization, type DestabilizationTechnique, type GaslightingScript } from '@/hooks/intelligence/useIdentityDestabilization';
 
 interface IdentityDestabilizationPanelProps {
   profileId: string;
@@ -43,13 +43,22 @@ export function IdentityDestabilizationPanel({ profileId }: IdentityDestabilizat
     identityCoherence: 0.40,
   };
 
-  const gaslightingTechniques = techniques?.length > 0 ? techniques : [
-    { id: '1', name: 'Memory Contradiction', isActive: true, effectiveness: 78, description: 'Contradicting stated memories with false alternatives', category: 'memory' as const, deploymentCount: 5 },
-    { id: '2', name: 'Reality Reframing', isActive: true, effectiveness: 65, description: 'Reinterpreting events to question perception', category: 'perception' as const, deploymentCount: 3 },
-    { id: '3', name: 'Perception Invalidation', isActive: true, effectiveness: 72, description: 'Dismissing sensory experiences as imagination', category: 'perception' as const, deploymentCount: 4 },
-    { id: '4', name: 'Emotional Minimization', isActive: false, effectiveness: 0, description: 'Reducing significance of emotional responses', category: 'emotional' as const, deploymentCount: 0 },
-    { id: '5', name: 'Consensus Manufacturing', isActive: true, effectiveness: 80, description: 'Creating false social agreement against target', category: 'social' as const, deploymentCount: 6 },
-  ];
+  // Display shape augments the hook's type with an `isActive` boolean
+  // derived from deploymentCount, used purely for UI styling.
+  type DisplayTechnique = DestabilizationTechnique & { isActive: boolean };
+  const toDisplay = (t: DestabilizationTechnique): DisplayTechnique => ({
+    ...t,
+    isActive: t.deploymentCount > 0,
+  });
+  const gaslightingTechniques: DisplayTechnique[] = (techniques && techniques.length > 0)
+    ? techniques.map(toDisplay)
+    : [
+        { id: '1', name: 'Memory Contradiction',      isActive: true,  effectiveness: 78, description: 'Contradicting stated memories with false alternatives', category: 'memory_manipulation',  deploymentCount: 5 },
+        { id: '2', name: 'Reality Reframing',         isActive: true,  effectiveness: 65, description: 'Reinterpreting events to question perception',          category: 'reality_distortion',   deploymentCount: 3 },
+        { id: '3', name: 'Perception Invalidation',   isActive: true,  effectiveness: 72, description: 'Dismissing sensory experiences as imagination',         category: 'perception_alteration', deploymentCount: 4 },
+        { id: '4', name: 'Emotional Minimization',    isActive: false, effectiveness: 0,  description: 'Reducing significance of emotional responses',           category: 'gaslighting',          deploymentCount: 0 },
+        { id: '5', name: 'Consensus Manufacturing',   isActive: true,  effectiveness: 80, description: 'Creating false social agreement against target',         category: 'gaslighting',          deploymentCount: 6 },
+      ];
 
   const getStabilityLevel = (score: number) => {
     if (score <= 0.2) return { label: 'Destabilized', color: 'text-red-500' };
@@ -194,11 +203,14 @@ export function IdentityDestabilizationPanel({ profileId }: IdentityDestabilizat
                 </h4>
                 
                 <div className="space-y-3 text-sm">
-                  {(gaslightingScripts?.length > 0 ? gaslightingScripts.slice(0, 3) : [
-                    { id: '1', type: 'Memory Contradiction', script: "That's not what happened. I remember it clearly - you were the one who said..." },
-                    { id: '2', type: 'Reality Reframing', script: "I think you're reading too much into this. It wasn't as serious as you're making it..." },
-                    { id: '3', type: 'Perception Invalidation', script: "You're being too sensitive. No one else noticed anything wrong..." },
-                  ]).map((script) => (
+                  {((gaslightingScripts && gaslightingScripts.length > 0)
+                    ? gaslightingScripts.slice(0, 3).map(s => ({ id: s.id, type: s.trigger, script: s.script }))
+                    : [
+                        { id: '1', type: 'Memory Contradiction',    script: "That's not what happened. I remember it clearly - you were the one who said..." },
+                        { id: '2', type: 'Reality Reframing',       script: "I think you're reading too much into this. It wasn't as serious as you're making it..." },
+                        { id: '3', type: 'Perception Invalidation', script: "You're being too sensitive. No one else noticed anything wrong..." },
+                      ]
+                  ).map((script) => (
                     <div key={script.id} className="p-3 rounded bg-background/50">
                       <div className="text-xs text-muted-foreground mb-1">{script.type}</div>
                       <div className="italic text-muted-foreground">
