@@ -1,26 +1,22 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Cake, Users, Bell, Phone, RefreshCw, Cloud, Loader2 } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, subMonths, addWeeks, subWeeks, parseISO, setYear, getYear } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, subMonths, addWeeks, subWeeks } from 'date-fns';
 import { invokeFunction } from '@/lib/api';
-
-type CalendarEvent = {
-  id: string;
-  title: string;
-  date: Date;
-  type: 'birthday' | 'anniversary' | 'meeting' | 'follow_up' | 'milestone' | 'other' | 'synced';
-  contactName?: string;
-  contactId?: string;
-  source?: 'local' | 'google' | 'outlook';
-};
+import {
+  useGoogleCalendarConfig,
+  useOutlookToken,
+  useCalendarLocalEvents,
+  useCalendarSyncedEvents,
+  useCalendarBirthdays,
+  type CalendarEvent,
+} from '@/hooks/calendar/useCalendarEvents';
 
 const eventTypeColors: Record<string, string> = {
   birthday: 'bg-pink-500',
@@ -43,111 +39,15 @@ const eventTypeIcons: Record<string, React.ReactNode> = {
 };
 
 export default function Calendar() {
-  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<'month' | 'week'>('month');
 
-  // Check calendar sync status
-  const { data: googleConfig } = useQuery({
-    queryKey: ['google-calendar-config'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('google_calendar_config')
-        .select('*')
-        .maybeSingle();
-      return data;
-    },
-    enabled: !!user,
-  });
-
-  const { data: outlookToken } = useQuery({
-    queryKey: ['outlook-token'],
-    queryFn: async () => {
-      // Check if outlook is configured by looking at the oauth tokens table
-      const { data } = await supabase
-        .from('oauth_tokens')
-        .select('*')
-        .eq('provider', 'outlook')
-        .maybeSingle();
-      return data;
-    },
-    enabled: !!user,
-  });
-
-  // Fetch events from events table
-  const { data: dbEvents = [] } = useQuery({
-    queryKey: ['calendar-events', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('events')
-        .select('id, title, event_type, event_date, profile_id, profiles(first_name, last_name)')
-        .eq('is_active', true);
-      
-      return (data ?? []).map((event: any) => ({
-        id: event.id,
-        title: event.title,
-        date: parseISO(event.event_date),
-        type: event.event_type as CalendarEvent['type'],
-        contactName: event.profiles ? `${event.profiles.first_name} ${event.profiles.last_name || ''}`.trim() : undefined,
-        contactId: event.profile_id,
-        source: 'local' as const,
-      }));
-    },
-    enabled: !!user,
-  });
-
-  // Fetch synced calendar events
-  const { data: syncedEvents = [] } = useQuery({
-    queryKey: ['synced-calendar-events', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('synced_calendar_events')
-        .select('*, profiles(first_name, last_name)');
-      
-      return (data ?? []).map((event: any) => ({
-        id: event.id,
-        title: event.title,
-        date: parseISO(event.start_time),
-        type: 'synced' as CalendarEvent['type'],
-        contactName: event.profiles ? `${event.profiles.first_name} ${event.profiles.last_name || ''}`.trim() : undefined,
-        contactId: event.matched_profile_id,
-        source: event.source as 'google' | 'outlook',
-      }));
-    },
-    enabled: !!user,
-  });
-
-  // Fetch birthdays from contact_personal_info
-  const { data: birthdays = [] } = useQuery({
-    queryKey: ['calendar-birthdays', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('contact_personal_info')
-        .select('id, date_of_birth, profile_id, profiles(first_name, last_name)')
-        .not('date_of_birth', 'is', null);
-      
-      const currentYear = getYear(new Date());
-      
-      return (data ?? []).map((info: any) => {
-        const dob = parseISO(info.date_of_birth);
-        const birthdayThisYear = setYear(dob, currentYear);
-        const contactName = info.profiles ? `${info.profiles.first_name} ${info.profiles.last_name || ''}`.trim() : 'Unknown';
-        const age = currentYear - getYear(dob);
-        
-        return {
-          id: `birthday-${info.id}`,
-          title: `🎂 ${contactName}'s Birthday (${age})`,
-          date: birthdayThisYear,
-          type: 'birthday' as CalendarEvent['type'],
-          contactName,
-          contactId: info.profile_id,
-          source: 'local' as const,
-        };
-      });
-    },
-    enabled: !!user,
-  });
+  const { data: googleConfig } = useGoogleCalendarConfig();
+  const { data: outlookToken } = useOutlookToken();
+  const { data: dbEvents = [] } = useCalendarLocalEvents();
+  const { data: syncedEvents = [] } = useCalendarSyncedEvents();
+  const { data: birthdays = [] } = useCalendarBirthdays();
 
   // Sync mutations
   const syncGoogleMutation = useMutation({

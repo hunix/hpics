@@ -36,7 +36,7 @@ import { DossierBrowser } from '@/components/intelligence/DossierBrowser';
 import { DossierExporter } from '@/components/intelligence/DossierExporter';
 import { ErrorBoundaryWithRecovery } from '@/components/ErrorBoundaryWithRecovery';
 import { APP_VERSION, BUILD_TIMESTAMP } from '@/lib/appVersion';
-import { useDossierStats } from './hooks/useDossierStats';
+import { useDossierStats } from '@/hooks/dossier/useDossierStats';
 
 // Build stamp for debugging
 const BUILD_STAMP = `v${APP_VERSION} @ ${BUILD_TIMESTAMP.slice(0, 16)}`;

@@ -4,12 +4,10 @@
  */
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/AppLayout';
 import { Users, MessageSquare, Calendar, Star } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { formatDistanceToNow, parseISO, setYear, getYear, isBefore, addYears } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
+import { useDashboardStats, useRecentContacts, useUpcomingEventsForDashboard } from '@/hooks/dashboard/useDashboardData';
 import { DndContext, closestCenter, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
 import { useDashboardLayout } from '@/hooks/useDashboardLayout';
@@ -39,7 +37,6 @@ const getGridColsClass = (cols: number): string => {
 };
 
 export default function Dashboard() {
-  const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const { layout, gridColumns, isLoading: isLoadingLayout, reorderDashlets, toggleDashletVisibility } = useDashboardLayout();
   const { deviceType } = useDeviceDetection();
@@ -53,111 +50,9 @@ export default function Dashboard() {
     })
   );
 
-  const { data: stats } = useQuery({
-    queryKey: ['dashboard-stats', user?.id],
-    queryFn: async () => {
-      const [totalRes, favoritesRes, communicationsRes, eventsRes, birthdaysRes] = await Promise.all([
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_active', true),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_active', true).eq('is_favorite', true),
-        supabase.from('communications').select('*', { count: 'exact', head: true }),
-        supabase.from('events').select('id, event_date').eq('is_active', true).gte('event_date', new Date().toISOString()),
-        supabase.from('contact_personal_info').select('date_of_birth').not('date_of_birth', 'is', null),
-      ]);
-
-      const now = new Date();
-      const currentYear = getYear(now);
-      const upcomingBirthdaysCount = (birthdaysRes.data ?? []).filter((row: any) => {
-        const dob = parseISO(row.date_of_birth);
-        let nextBirthday = setYear(dob, currentYear);
-        if (isBefore(nextBirthday, now)) {
-          nextBirthday = addYears(nextBirthday, 1);
-        }
-        return nextBirthday >= now;
-      }).length;
-      
-      return {
-        totalContacts: totalRes.count ?? 0,
-        favoriteContacts: favoritesRes.count ?? 0,
-        totalCommunications: communicationsRes.count ?? 0,
-        upcomingEvents: (eventsRes.data?.length ?? 0) + upcomingBirthdaysCount,
-      };
-    },
-    enabled: !!user,
-  });
-
-  const { data: recentContacts } = useQuery({
-    queryKey: ['recent-contacts', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, avatar_url, relationship_type, last_contact_date')
-        .eq('is_active', true)
-        .order('updated_at', { ascending: false })
-        .limit(5);
-      return data ?? [];
-    },
-    enabled: !!user,
-  });
-
-  const { data: upcomingEvents } = useQuery({
-    queryKey: ['upcoming-events', user?.id],
-    queryFn: async () => {
-      const now = new Date();
-      const currentYear = getYear(now);
-
-      const [eventsRes, birthdaysRes] = await Promise.all([
-        supabase
-          .from('events')
-          .select('id, title, event_type, event_date, profiles(first_name, last_name)')
-          .eq('is_active', true)
-          .gte('event_date', now.toISOString())
-          .order('event_date', { ascending: true }),
-        supabase
-          .from('contact_personal_info')
-          .select('id, date_of_birth, profile_id, profiles!inner(first_name, last_name, is_active)')
-          .eq('profiles.is_active', true)
-          .not('date_of_birth', 'is', null),
-      ]);
-
-      const events = (eventsRes.data ?? []).map((e: any) => ({
-        id: e.id,
-        title: e.title,
-        type: e.event_type,
-        date: new Date(e.event_date),
-        contactName: e.profiles ? `${e.profiles.first_name} ${e.profiles.last_name || ''}`.trim() : undefined,
-      }));
-
-      const birthdays = (birthdaysRes.data ?? []).map((info: any) => {
-        const dob = parseISO(info.date_of_birth);
-        let nextBirthday = setYear(dob, currentYear);
-        if (isBefore(nextBirthday, now)) {
-          nextBirthday = addYears(nextBirthday, 1);
-        }
-        const contactName = info.profiles ? `${info.profiles.first_name} ${info.profiles.last_name || ''}`.trim() : 'Unknown';
-        const age = getYear(nextBirthday) - getYear(dob);
-
-        return {
-          id: `birthday-${info.id}`,
-          title: `${contactName}'s Birthday (${age})`,
-          type: 'birthday',
-          date: nextBirthday,
-          contactName,
-        };
-      });
-
-      return [...events, ...birthdays]
-        .filter((x) => x.date >= now)
-        .sort((a, b) => a.date.getTime() - b.date.getTime())
-        .slice(0, 5)
-        .map((x) => ({
-          id: x.id,
-          title: x.title,
-          event_type: x.type,
-          event_date: x.date.toISOString(),
-        }));
-    },
-    enabled: !!user,
-  });
+  const { data: stats } = useDashboardStats();
+  const { data: recentContacts } = useRecentContacts(5);
+  const { data: upcomingEvents } = useUpcomingEventsForDashboard(5);
 
   // Build stat cards data
   const statCards: DashboardStat[] = [
