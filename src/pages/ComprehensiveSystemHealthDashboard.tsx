@@ -269,7 +269,7 @@ function AGISPhaseHealthGrid() {
     refetchInterval: 30000,
   });
 
-  const phaseHealthScores = globalState?.phase_health_scores || {};
+  const phaseHealthScores: Record<string, any> = (globalState?.phase_health_scores as Record<string, any>) || {};
   
   // Calculate overall system health
   const overallHealth = useMemo(() => {

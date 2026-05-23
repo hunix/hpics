@@ -483,7 +483,7 @@ export function NetworkResiliencePanel() {
                     >
                       <div className="flex items-center justify-between mb-1">
                         <span className="font-medium text-sm">
-                          {getNodeName(rec.targetId)}
+                          {getNodeName(rec.targetId ?? '')}
                         </span>
                         <div className="flex gap-1">
                           {rec.bridgesCommunities && (
@@ -496,9 +496,9 @@ export function NetworkResiliencePanel() {
                       </div>
                       <p className="text-xs text-muted-foreground">{rec.reason}</p>
                       <div className="flex items-center gap-2 mt-1 text-xs">
-                        <span>ROI: <strong>{rec.networkROI.toFixed(1)}</strong></span>
+                        <span>ROI: <strong>{(rec.networkROI ?? 0).toFixed(1)}</strong></span>
                         <span>•</span>
-                        <span>Score: <strong>{rec.score.toFixed(2)}</strong></span>
+                        <span>Score: <strong>{(rec.score ?? 0).toFixed(2)}</strong></span>
                       </div>
                     </div>
                   ))}

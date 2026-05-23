@@ -128,12 +128,12 @@ export default function CapabilitiesExplorer() {
     }
   }, [navigate]);
 
-  const handleCaptureComplete = useCallback((url: string, type: string) => {
-    toast.success(`${type === 'photo' ? 'Photo' : 'Video'} captured successfully!`);
+  const handleCaptureComplete = useCallback((_mediaUrl?: string, mediaType?: 'photo' | 'video') => {
+    toast.success(`${mediaType === 'photo' ? 'Photo' : 'Video'} captured successfully!`);
     setActiveDialog(null);
   }, []);
 
-  const handleRecordingComplete = useCallback((url: string) => {
+  const handleRecordingComplete = useCallback((_audioUrl?: string, _transcription?: string) => {
     toast.success('Voice recording saved!');
     setActiveDialog(null);
   }, []);

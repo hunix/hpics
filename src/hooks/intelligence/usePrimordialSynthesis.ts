@@ -19,7 +19,7 @@ export interface PrimordialSynthesis {
   synthesisMastery: number;
   stabilityCoefficient: number;
   synthesisStatus: string;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface FundamentalForce {

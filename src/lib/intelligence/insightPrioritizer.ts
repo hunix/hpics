@@ -11,8 +11,8 @@ export interface Insight {
   content: any;
   source: string;
   confidence: number;
-  createdAt: string;
-  profileId?: string;
+  createdAt: string | null;
+  profileId?: string | null;
   metadata?: Record<string, any>;
 }
 
@@ -252,7 +252,7 @@ export async function getContactInsightsPrioritized(
     metadata: {
       keyInsights: event.key_insights,
       tags: event.tags,
-      actionable: event.key_insights?.length > 0
+      actionable: (event.key_insights?.length ?? 0) > 0
     }
   }));
 
@@ -297,7 +297,7 @@ export async function getNetworkInsightsPrioritized(
     metadata: {
       keyInsights: event.key_insights,
       tags: event.tags,
-      actionable: event.key_insights?.length > 0
+      actionable: (event.key_insights?.length ?? 0) > 0
     }
   }));
 
