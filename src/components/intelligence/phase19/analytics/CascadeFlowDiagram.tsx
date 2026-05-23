@@ -14,7 +14,7 @@ interface CascadeFlowDiagramProps {
 export function CascadeFlowDiagram({ cascadeEvents, className }: CascadeFlowDiagramProps) {
   const recentCascades = useMemo(() => {
     return cascadeEvents
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime())
       .slice(0, 10);
   }, [cascadeEvents]);
 
@@ -95,7 +95,7 @@ export function CascadeFlowDiagram({ cascadeEvents, className }: CascadeFlowDiag
                     </span>
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {cascade.triggerEventType} • {formatDistanceToNow(new Date(cascade.createdAt), { addSuffix: true })}
+                    {cascade.triggerEventType} • {formatDistanceToNow(new Date(cascade.createdAt ?? Date.now()), { addSuffix: true })}
                   </div>
                 </div>
 

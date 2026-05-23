@@ -135,12 +135,12 @@ export function BiometricBatchScan() {
         try {
           if (item.type === 'face') {
             // Get signed URL if needed
-            let imageUrl = item.file_url;
+            let imageUrl: string | null = item.file_url;
             if (item.storage_path && !imageUrl) {
               const { data: urlData } = await supabase.storage
                 .from('media')
                 .createSignedUrl(item.storage_path, 3600);
-              imageUrl = urlData?.signedUrl;
+              imageUrl = urlData?.signedUrl ?? null;
             }
 
             if (imageUrl && item.profile_id) {
@@ -156,12 +156,12 @@ export function BiometricBatchScan() {
             }
           } else {
             // Voice processing - use file_url for audio
-            let audioUrl = item.file_url;
+            let audioUrl: string | null = item.file_url;
             if (item.storage_path && !audioUrl) {
               const { data: urlData } = await supabase.storage
                 .from('media')
                 .createSignedUrl(item.storage_path, 3600);
-              audioUrl = urlData?.signedUrl;
+              audioUrl = urlData?.signedUrl ?? null;
             }
 
             if (audioUrl && item.profile_id) {

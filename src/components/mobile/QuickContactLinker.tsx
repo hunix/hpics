@@ -22,7 +22,7 @@ interface Contact {
   last_name: string | null;
   avatar_url: string | null;
   organization: string | null;
-  is_favorite: boolean;
+  is_favorite: boolean | null;
 }
 
 interface QuickContactLinkerProps {

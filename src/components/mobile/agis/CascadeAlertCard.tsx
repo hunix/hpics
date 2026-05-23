@@ -34,7 +34,7 @@ export function CascadeAlertCard({
   const alertEvents = cascadeEvents
     .filter(e => e.outcomeStatus === 'pending' || 
       (e.outcomeStatus === 'completed' && 
-        new Date(e.createdAt).getTime() > Date.now() - 30 * 60 * 1000)) // Last 30 min
+        new Date(e.createdAt ?? 0).getTime() > Date.now() - 30 * 60 * 1000)) // Last 30 min
     .slice(0, maxAlerts);
 
   const getStatusIcon = (status: string | null) => {
@@ -103,7 +103,7 @@ export function CascadeAlertCard({
                   {event.triggerEventType}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {formatDistanceToNow(new Date(event.createdAt), { addSuffix: true })}
+                  {formatDistanceToNow(new Date(event.createdAt ?? Date.now()), { addSuffix: true })}
                 </div>
               </div>
 
