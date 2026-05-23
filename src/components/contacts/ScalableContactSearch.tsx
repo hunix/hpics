@@ -109,8 +109,8 @@ export function ScalableContactSearch({
       
       const { data, error } = await supabase.rpc('get_contacts_for_selection', {
         p_user_id: user.id,
-        p_search_query: debouncedSearch || null,
-        p_recent_ids: recentIds.length > 0 ? recentIds : null,
+        p_search_query: debouncedSearch || undefined,
+        p_recent_ids: recentIds.length > 0 ? recentIds : undefined,
         p_limit: maxResults,
       });
       

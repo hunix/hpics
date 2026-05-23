@@ -124,7 +124,7 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
           p_user_id: user!.id,
           p_profile_id: profileId,
           p_search_query: searchQuery.trim() || undefined,
-          p_media_type: typeFilter,
+          p_media_type: typeFilter ?? undefined,
           p_sort_by: sortField,
           p_sort_order: sortDirection,
           p_limit: batchSize,
