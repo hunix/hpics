@@ -34,7 +34,7 @@ export function BudgetAlertPanel() {
       const { data, error } = await supabase
         .from('user_preferences')
         .select('ai_budget_daily_limit_cents, ai_budget_weekly_limit_cents, ai_budget_monthly_limit_cents, ai_budget_alert_threshold, ai_budget_enforce_limits')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .single();
       
       if (error && error.code !== 'PGRST116') throw error;

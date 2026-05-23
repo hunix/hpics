@@ -134,7 +134,7 @@ export function LocationManager({ profileId, profileName, location, onBack }: Lo
           .from('contact_locations')
           .update({ is_current: false })
           .eq('profile_id', profileId)
-          .eq('user_id', user?.id)
+          .eq('user_id', user?.id ?? '')
           .neq('id', location?.id || '');
       }
     },

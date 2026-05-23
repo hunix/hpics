@@ -300,7 +300,7 @@ export function useWorkflowExecutions(options?: {
       let query = (supabase
         .from('agent_workflow_executions' as any)
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .order('created_at', { ascending: false })
         .limit(options?.limit || 50)) as any;
 
@@ -353,7 +353,7 @@ export function useWorkflowExecutions(options?: {
           updated_at: new Date().toISOString()
         })
         .eq('id', executionId)
-        .eq('user_id', user?.id)) as any;
+        .eq('user_id', user?.id ?? '')) as any;
 
       if (error) throw error;
     },

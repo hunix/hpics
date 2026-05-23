@@ -72,7 +72,7 @@ export function LocationIntelligencePanel({ profileId, profileName }: LocationIn
         .from('contact_locations')
         .select('*')
         .eq('profile_id', profileId)
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .order('is_current', { ascending: false })
         .order('last_seen_at', { ascending: false, nullsFirst: false });
 

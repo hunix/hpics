@@ -75,7 +75,7 @@ export function AICostDashboard() {
       const { data: userPrefs } = await supabase
         .from('user_preferences')
         .select('ai_budget_daily_limit_cents, ai_budget_weekly_limit_cents, ai_budget_monthly_limit_cents')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .single();
 
       const allLogs = logs || [];

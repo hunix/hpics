@@ -84,7 +84,7 @@ export function MilestoneTimeline({ profileId, showHeader = true, maxItems = 20 
           created_at,
           profiles:profile_id (first_name, last_name)
         `)
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .eq('activity_type', 'milestone_detected')
         .order('created_at', { ascending: false })
         .limit(maxItems);

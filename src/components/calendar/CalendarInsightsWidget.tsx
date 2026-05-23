@@ -73,7 +73,7 @@ export function CalendarInsightsWidget() {
           matched_profile_id,
           profiles:matched_profile_id (first_name, last_name)
         `)
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .gte('start_time', start.toISOString())
         .lte('start_time', end.toISOString())
         .order('start_time', { ascending: true });
@@ -90,7 +90,7 @@ export function CalendarInsightsWidget() {
       const { data, error } = await supabase
         .from('ai_analyses')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .eq('analysis_type', 'meeting_prep')
         .order('generated_at', { ascending: false })
         .limit(20);
