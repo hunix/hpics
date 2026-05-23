@@ -1,6 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAccountStorageSummary } from '@/hooks/analytics/useAccountStorage';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -14,19 +12,6 @@ import { cn } from '@/lib/utils';
 interface AccountStorageConsumptionProps {
   className?: string;
   compact?: boolean;
-}
-
-interface StorageSummary {
-  total_bytes: number;
-  media_bytes: number;
-  document_bytes: number;
-  recording_bytes: number;
-  message_count: number;
-  contact_count: number;
-  ai_tokens_used: number;
-  ai_cost_cents: number;
-  storage_quota_bytes: number;
-  usage_percentage: number;
 }
 
 function formatBytes(bytes: number): string {
@@ -44,19 +29,7 @@ function formatNumber(num: number): string {
 }
 
 export function AccountStorageConsumption({ className, compact = false }: AccountStorageConsumptionProps) {
-  const { user } = useAuth();
-
-  const { data: storageData, isLoading } = useQuery({
-    queryKey: ['account-storage-summary', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_account_storage_summary', {
-        p_user_id: user!.id
-      });
-      if (error) throw error;
-      return data?.[0] as StorageSummary | null;
-    },
-    enabled: !!user,
-  });
+  const { data: storageData, isLoading } = useAccountStorageSummary();
 
   if (isLoading) {
     return (

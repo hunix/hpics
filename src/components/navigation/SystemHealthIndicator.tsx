@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Activity, CheckCircle, AlertTriangle, XCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
+import { pingDatabase } from '@/hooks/system/useSystemMetrics';
 import {
   Tooltip,
   TooltipContent,
@@ -22,18 +22,10 @@ export function SystemHealthIndicator({ compact = false }: SystemHealthIndicator
   useEffect(() => {
     const checkHealth = async () => {
       try {
-        // Simple health check - ping the database
-        const startTime = Date.now();
-        const { error } = await supabase.from('profiles').select('count').limit(1);
-        const latency = Date.now() - startTime;
-        
-        if (error) {
-          setStatus('error');
-        } else if (latency > 2000) {
-          setStatus('degraded');
-        } else {
-          setStatus('healthy');
-        }
+        const { ok, latencyMs } = await pingDatabase();
+        if (!ok) setStatus('error');
+        else if (latencyMs > 2000) setStatus('degraded');
+        else setStatus('healthy');
         setLastCheck(new Date());
       } catch {
         setStatus('error');

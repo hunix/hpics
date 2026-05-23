@@ -1,8 +1,6 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useCreateEvent } from '@/hooks/events/useCreateEvent';
 import {
   Dialog,
   DialogContent,
@@ -32,9 +30,7 @@ const eventTypes = ['birthday', 'anniversary', 'milestone', 'meeting', 'follow_u
 const reminderFrequencies = ['once', 'daily', 'weekly', 'monthly', 'yearly'] as const;
 
 export function EventDialog({ open, onOpenChange }: EventDialogProps) {
-  const { user } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState({
     profile_id: '',
@@ -46,39 +42,20 @@ export function EventDialog({ open, onOpenChange }: EventDialogProps) {
     reminder_days_before: '7',
   });
 
-  const mutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      const { error } = await supabase.from('events').insert({
-        user_id: user!.id,
-        profile_id: data.profile_id || null,
-        event_type: data.event_type,
-        title: data.title,
-        description: data.description || null,
-        event_date: data.event_date,
-        reminder_frequency: data.reminder_frequency,
-        reminder_days_before: parseInt(data.reminder_days_before) || 0,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['events'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['upcoming-events'] });
-      toast({
-        title: 'Event created',
-        description: 'Your event has been added.',
-      });
-      onOpenChange(false);
-      resetForm();
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-  });
+  const createHook = useCreateEvent();
+  const mutation = {
+    isPending: createHook.isPending,
+    mutate: (data: typeof formData) =>
+      createHook.mutate(data, {
+        onSuccess: () => {
+          toast({ title: 'Event created', description: 'Your event has been added.' });
+          onOpenChange(false);
+          resetForm();
+        },
+        onError: (error: Error) =>
+          toast({ title: 'Error', description: error.message, variant: 'destructive' }),
+      }),
+  };
 
   const resetForm = () => {
     setFormData({

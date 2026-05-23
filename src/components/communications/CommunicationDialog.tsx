@@ -1,8 +1,6 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useCreateCommunication } from '@/hooks/communications/useCreateCommunication';
 import {
   Dialog,
   DialogContent,
@@ -32,9 +30,7 @@ const channels = ['email', 'phone', 'video_call', 'in_person', 'message', 'socia
 const directions = ['inbound', 'outbound'] as const;
 
 export function CommunicationDialog({ open, onOpenChange }: CommunicationDialogProps) {
-  const { user } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState({
     profile_id: '',
@@ -46,39 +42,28 @@ export function CommunicationDialog({ open, onOpenChange }: CommunicationDialogP
     occurred_at: new Date().toISOString().slice(0, 16),
   });
 
-  const mutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      const { error } = await supabase.from('communications').insert({
-        user_id: user!.id,
-        profile_id: data.profile_id,
-        channel: data.channel,
-        direction: data.direction,
-        subject: data.subject || null,
-        content: data.content || null,
-        duration_minutes: data.duration_minutes ? parseInt(data.duration_minutes) : null,
-        occurred_at: data.occurred_at,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['communications'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['contact-communications'] });
-      toast({
-        title: 'Communication logged',
-        description: 'Your interaction has been recorded.',
-      });
-      onOpenChange(false);
-      resetForm();
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-  });
+  const createHook = useCreateCommunication();
+  const mutation = {
+    isPending: createHook.isPending,
+    mutate: (data: typeof formData) =>
+      createHook.mutate(data, {
+        onSuccess: () => {
+          toast({
+            title: 'Communication logged',
+            description: 'Your interaction has been recorded.',
+          });
+          onOpenChange(false);
+          resetForm();
+        },
+        onError: (error: Error) => {
+          toast({
+            title: 'Error',
+            description: error.message,
+            variant: 'destructive',
+          });
+        },
+      }),
+  };
 
   const resetForm = () => {
     setFormData({
