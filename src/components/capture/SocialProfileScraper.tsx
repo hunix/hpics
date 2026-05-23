@@ -4,6 +4,7 @@ import {
   Facebook, ExternalLink, Youtube, Github, BookOpen, Camera, Hash,
   Users, Sparkles, Zap, ChevronDown
 } from 'lucide-react';
+import { invokeFunction } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -192,27 +193,25 @@ export function SocialProfileScraper({ profileId, onComplete }: SocialProfileScr
       if (scrapeDepth === 'deep' && (detectedPlatform === 'instagram' || detectedPlatform === 'threads')) {
         const functionName = detectedPlatform === 'instagram' ? 'scrape-instagram-deep' : 'scrape-threads-deep';
         
-        const { data, error: fnError } = await supabase.functions.invoke(functionName, {
-          body: {
-            url: profileUrl,
-            profileId,
-            options: {
-              useFirecrawl: true,
-              includeScreenshot: false,
-              maxPosts: 50,
-              extractBranding: false,
-            },
+        const { data, error: fnError } = await invokeFunction(functionName, {
+          url: profileUrl,
+          profileId,
+          options: {
+            useFirecrawl: true,
+            includeScreenshot: false,
+            maxPosts: 50,
+            extractBranding: false,
           },
         });
 
         if (fnError) throw fnError;
 
-        if (!data.success) {
-          throw new Error(data.error || 'Deep scrape failed');
+        if (!data?.success) {
+          throw new Error(data?.error || 'Deep scrape failed');
         }
 
         // Transform deep scrape result to standard format
-        const profile = data.profile || {};
+        const profile = data?.profile || {};
         const transformedResult: ScrapeResult = {
           platform: detectedPlatform,
           username: profile.username || profile.handle || '',
@@ -272,16 +271,14 @@ export function SocialProfileScraper({ profileId, onComplete }: SocialProfileScr
         }
       } else {
         // Standard scraping for other platforms or non-deep modes
-        const { data, error: fnError } = await supabase.functions.invoke('scrape-social-profile', {
-          body: {
+        const { data, error: fnError } = await invokeFunction('scrape-social-profile', {
             profileUrl,
             profileId,
             scrapeDepth,
             includeRecentPosts: scrapeDepth !== 'quick',
             maxPosts: scrapeDepth === 'deep' ? 20 : 5,
             runDeepAnalysis: scrapeDepth === 'deep',
-          },
-        });
+          });
 
         if (fnError) throw fnError;
 

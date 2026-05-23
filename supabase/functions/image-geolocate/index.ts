@@ -69,6 +69,48 @@ function extractExifGps(media: Record<string, unknown> | undefined): { lat: numb
   return { lat, lng };
 }
 
+/**
+ * Robust JSON extraction from LLM output. Handles:
+ *   - clean JSON ("{...}")
+ *   - JSON in a fenced code block ("```json\n{...}\n```")
+ *   - JSON preceded/followed by prose
+ *   - trailing commas (best-effort)
+ * Returns `{}` on irrecoverable input rather than throwing — callers fall
+ * back to default fields.
+ */
+function parseModelJson(raw: string): Record<string, unknown> {
+  if (!raw) return {};
+  // Strip code fences
+  let s = raw.trim();
+  s = s.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+
+  // Fast path: clean JSON
+  try { return JSON.parse(s); } catch { /* fall through */ }
+
+  // Find a balanced-brace substring starting at the first '{'.
+  const start = s.indexOf('{');
+  if (start < 0) return {};
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = start; i < s.length; i++) {
+    const ch = s[i];
+    if (escape) { escape = false; continue; }
+    if (ch === '\\') { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === '{') depth++;
+    else if (ch === '}') {
+      depth--;
+      if (depth === 0) {
+        const candidate = s.slice(start, i + 1).replace(/,(\s*[}\]])/g, '$1'); // trim trailing commas
+        try { return JSON.parse(candidate); } catch { return {}; }
+      }
+    }
+  }
+  return {};
+}
+
 const VISION_PROMPT = `You are a geolocation expert (think GeoGuessr world champion).
 Inspect the image and produce a best-guess location plus up to 3 alternatives.
 Use cues like: language on signs, road markings, license plate format and color,
@@ -98,9 +140,13 @@ async function callVisionModel(imageUrl: string, model: string): Promise<GeolocR
   const res = await fetch(`${AI_BASE_URL}/chat/completions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    // 30s ceiling so a stuck model can't pin the function until Deno's
+    // hard timeout. AbortSignal.timeout aborts the underlying connection.
+    signal: AbortSignal.timeout(30_000),
     body: JSON.stringify({
       model,
       temperature: 0.2,
+      response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: VISION_PROMPT },
         { role: 'user', content: [
@@ -112,9 +158,12 @@ async function callVisionModel(imageUrl: string, model: string): Promise<GeolocR
   });
   if (!res.ok) throw new Error(`vision model error ${res.status}: ${await res.text()}`);
   const data = await res.json() as { choices: Array<{ message: { content: string } }> };
-  const raw = data.choices?.[0]?.message?.content ?? '{}';
-  const match = raw.match(/\{[\s\S]*\}/);
-  const parsed = match ? JSON.parse(match[0]) : { best_guess: null, alternatives: [] };
+  const raw = (data.choices?.[0]?.message?.content ?? '').trim();
+  const parsed = parseModelJson(raw) as {
+    best_guess?: { label?: string; country?: string | null; city?: string | null;
+                   lat?: number; lng?: number; confidence?: number; reasoning?: string | null };
+    alternatives?: Array<{ label?: string; lat?: number | null; lng?: number | null; confidence?: number }>;
+  };
   return {
     label:      parsed.best_guess?.label ?? 'unknown',
     country:    parsed.best_guess?.country ?? null,
@@ -123,7 +172,7 @@ async function callVisionModel(imageUrl: string, model: string): Promise<GeolocR
     lng:        typeof parsed.best_guess?.lng === 'number' ? parsed.best_guess.lng : null,
     confidence: typeof parsed.best_guess?.confidence === 'number' ? parsed.best_guess.confidence : 0.3,
     reasoning:  parsed.best_guess?.reasoning ?? null,
-    alternatives: Array.isArray(parsed.alternatives) ? parsed.alternatives.slice(0, 5) : [],
+    alternatives: (Array.isArray(parsed.alternatives) ? parsed.alternatives.slice(0, 5) : []) as GeolocResult['alternatives'],
   };
 }
 

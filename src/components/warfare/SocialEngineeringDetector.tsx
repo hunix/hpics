@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { UserX, AlertTriangle, Shield, Search, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeFunction } from '@/lib/api';
 
 interface AnalysisResult {
   isSocialEngineering: boolean;
@@ -34,13 +35,11 @@ export function SocialEngineeringDetector() {
 
     setIsAnalyzing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('social-engineering-detector', {
-        body: {
+      const { data, error } = await invokeFunction('social-engineering-detector', {
           messageContent,
           senderInfo: senderInfo ? { identifier: senderInfo } : undefined,
           context: { channel: 'email' }
-        }
-      });
+        });
 
       if (error) throw error;
 

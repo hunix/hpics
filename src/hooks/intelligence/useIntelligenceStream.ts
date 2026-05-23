@@ -12,6 +12,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { invokeFunction } from '@/lib/api';
 
 // ─────────────────────────────────────────────── Types ────────────────────────
 
@@ -78,14 +79,14 @@ export interface ThreatAssessment {
 // ─────────────────────────────────────────────── Helpers ──────────────────────
 
 async function invokeStream(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke("stream-processor", { body });
+  const { data, error } = await invokeFunction("stream-processor", body);
   if (error) throw new Error(error.message);
   if (data?.error) throw new Error(data.error);
   return data;
 }
 
 async function invokeOSINT(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke("osint-collector", { body });
+  const { data, error } = await invokeFunction("osint-collector", body);
   if (error) throw new Error(error.message);
   if (data?.error) throw new Error(data.error);
   return data;

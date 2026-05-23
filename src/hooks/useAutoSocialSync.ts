@@ -12,6 +12,7 @@ import {
   type SyncCursor,
   type SyncSourceType 
 } from '@/lib/sync/differentialSync';
+import { invokeFunction } from '@/lib/api';
 
 export interface SyncSchedule {
   platform: SyncSourceType;
@@ -102,8 +103,7 @@ export function useAutoSocialSync(config: Partial<AutoSyncConfig> = {}) {
       await setSyncStatus(cursor.id, 'syncing');
 
       // Call the differential sync edge function
-      const { data, error } = await supabase.functions.invoke('differential-sync-engine', {
-        body: {
+      const { data, error } = await invokeFunction('differential-sync-engine', {
           platform,
           identifier,
           profileId,
@@ -111,8 +111,7 @@ export function useAutoSocialSync(config: Partial<AutoSyncConfig> = {}) {
             lastItemTimestamp: cursor.last_item_timestamp,
             lastItemId: cursor.last_item_id,
           },
-        },
-      });
+        });
 
       if (error) {
         throw error;

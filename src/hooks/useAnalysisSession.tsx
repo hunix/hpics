@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeFunction } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
@@ -215,15 +216,13 @@ export function useAnalysisSession({
         return false;
       }
 
-      const response = await supabase.functions.invoke(endpoints[job.type], {
-        body: {
-          profileId,
-          videoUrl: analysisMode === 'video' ? mediaUrl : undefined,
-          mosaicUrl: analysisMode === 'mosaic' ? mosaicUrl : undefined,
-          analysisType: contextType,
-          useMosaic: analysisMode === 'mosaic',
-          model: job.modelKey,
-        },
+      const response = await invokeFunction(endpoints[job.type], {
+        profileId,
+        videoUrl: analysisMode === 'video' ? mediaUrl : undefined,
+        mosaicUrl: analysisMode === 'mosaic' ? mosaicUrl : undefined,
+        analysisType: contextType,
+        useMosaic: analysisMode === 'mosaic',
+        model: job.modelKey,
       });
 
       const duration = Date.now() - startTime;

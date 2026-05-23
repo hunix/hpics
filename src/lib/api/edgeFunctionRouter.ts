@@ -507,9 +507,10 @@ const ROUTE_MAP: Record<string, RouterRoute> = {
  */
 export async function invokeFn(
   functionName: string,
-  options: { body?: Record<string, unknown> | null; method?: string } = {}
+  options: { body?: Record<string, unknown> | null; method?: string; headers?: Record<string, string> } = {}
 ): Promise<{ data: unknown; error: Error | null }> {
   const body = options.body ?? {};
+  const headers = options.headers;
   const route = ROUTE_MAP[functionName];
 
   // Use cached originalInvoke to bypass the proxy for router calls
@@ -530,6 +531,7 @@ export async function invokeFn(
           ...(body as Record<string, unknown>),
           _route: route.path,
         },
+        ...(headers ? { headers } : {}),
       });
 
       if (error) {
@@ -543,7 +545,10 @@ export async function invokeFn(
 
   // Fallback: direct invocation for unmigrated functions
   try {
-    const { data, error } = await invoke(functionName, { body: body as Record<string, unknown> });
+    const { data, error } = await invoke(functionName, {
+      body: body as Record<string, unknown>,
+      ...(headers ? { headers } : {}),
+    });
 
     if (error) {
       return { data: null, error: error instanceof Error ? error : new Error(String(error)) };
@@ -567,14 +572,15 @@ export async function invokeFn(
 // The default `any` matches the legacy `supabase.functions.invoke` shape so
 // the rest of the codebase (which assumes `data` is `any`) keeps compiling.
 // Pass an explicit type parameter to opt into stricter narrowing.
+// `headers` is forwarded to the underlying invocation so that callers
+// migrating off supabase.functions.invoke({ body, headers }) keep working.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function invokeFunction<T = any>(
   functionName: string,
   body: Record<string, unknown> = {},
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  options: { signal?: AbortSignal } = {}
+  options: { signal?: AbortSignal; headers?: Record<string, string> } = {},
 ): Promise<{ data: T | null; error: Error | null }> {
-  const result = await invokeFn(functionName, { body });
+  const result = await invokeFn(functionName, { body, headers: options.headers });
   return { data: result.data as T | null, error: result.error };
 }
 

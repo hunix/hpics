@@ -20,6 +20,7 @@ import {
   Phone,
   Mail
 } from "lucide-react";
+import { invokeFunction } from '@/lib/api';
 import { toast } from "sonner";
 import { format, differenceInDays } from "date-fns";
 
@@ -120,16 +121,14 @@ export function RelationshipAutopilotWidget() {
   const generateDraftMutation = useMutation({
     mutationFn: async (contact: ChurnRiskContact) => {
       setGeneratingFor(contact.id);
-      const { data, error } = await supabase.functions.invoke('generate-outreach-draft', {
-        body: { 
+      const { data, error } = await invokeFunction('generate-outreach-draft', { 
           profileId: contact.id,
           context: {
             daysSinceContact: contact.days_since_contact,
             riskLevel: contact.risk_level,
             channel: contact.preferred_channel
           }
-        }
-      });
+        });
       if (error) throw error;
       return { contactId: contact.id, draft: data.draft };
     },

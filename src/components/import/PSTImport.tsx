@@ -24,6 +24,7 @@ import {
   Timer,
   Sparkles
 } from 'lucide-react';
+import { invokeFunction } from '@/lib/api';
 import { parseOutlookCSV, parseEMLFile, parseEMLZip, batchEmails, ParsedEmail } from '@/lib/pstParser';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AutoEmailAnalyzer } from './AutoEmailAnalyzer';
@@ -184,15 +185,13 @@ export function PSTImport() {
         // Fire off all requests in the chunk simultaneously
         const results = await Promise.all(
           chunk.map(batch => 
-            supabase.functions.invoke('import-pst-emails', {
-              body: {
+            invokeFunction('import-pst-emails', {
                 emails: batch,
                 options: {
                   skipDuplicates: options.skipDuplicates,
                   createUnmatchedThreads: options.createUnmatchedThreads,
                 },
-              },
-            })
+              })
           )
         );
         

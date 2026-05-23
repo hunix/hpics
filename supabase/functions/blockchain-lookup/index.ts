@@ -82,19 +82,7 @@ async function ethTxLookup(txHash: string) {
   return { chain: 'eth' as const, tx_hash: txHash, raw: r.result ?? null };
 }
 
-// ─── ENS resolver via eth_call on the ENS Registry+Resolver ─────────────────
-// Hashes the name → namehash → resolver() → addr(). Implemented locally so we
-// don't need an ENS-specific SDK.
-
-function keccak256Hex(input: Uint8Array | string): string {
-  // Lightweight: use the built-in WebCrypto's SHA-3 256 via subtle? No,
-  // WebCrypto doesn't expose keccak. Fall back to a deterministic xxHash on
-  // string form — this is for telemetry only; actual ENS resolution below uses
-  // the public name → address gateway as a simpler short-circuit.
-  return '0x' + Array.from(typeof input === 'string' ? new TextEncoder().encode(input) : input)
-    .map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 64);
-}
-
+// ─── ENS resolver via a public name → address gateway ──────────────────────
 async function ensResolveViaGateway(name: string): Promise<string | null> {
   // Public ENS gateway: api.ensideas.com/ens/resolve/<name>
   try {

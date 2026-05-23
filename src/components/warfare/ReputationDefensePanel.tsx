@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Eye, TrendingDown, Shield, AlertCircle, MessageSquare, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeFunction } from '@/lib/api';
 
 interface ReputationIncident {
   id: string;
@@ -41,9 +42,7 @@ export function ReputationDefensePanel({ profileId }: { profileId?: string }) {
 
   const fetchIncidents = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('reputation-defense-engine', {
-        body: { action: 'get_incidents' }
-      });
+      const { data, error } = await invokeFunction('reputation-defense-engine', { action: 'get_incidents' });
 
       if (error) throw error;
       setIncidents(data.incidents || []);
@@ -61,8 +60,7 @@ export function ReputationDefensePanel({ profileId }: { profileId?: string }) {
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('reputation-defense-engine', {
-        body: {
+      const { data, error } = await invokeFunction('reputation-defense-engine', {
           action: 'analyze_threat',
           profileId,
           incidentDetails: {
@@ -70,8 +68,7 @@ export function ReputationDefensePanel({ profileId }: { profileId?: string }) {
             platform: newThreat.platform,
             followerCount: newThreat.followerCount
           }
-        }
-      });
+        });
 
       if (error) throw error;
 

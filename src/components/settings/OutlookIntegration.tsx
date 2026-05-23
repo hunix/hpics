@@ -16,6 +16,7 @@ import {
   ChevronDown, ChevronRight, ExternalLink, Copy, AlertCircle,
   Settings2, Trash2
 } from 'lucide-react';
+import { invokeFunction } from '@/lib/api';
 import { format } from 'date-fns';
 
 export function OutlookIntegration() {
@@ -117,9 +118,7 @@ export function OutlookIntegration() {
   const deleteConfigMutation = useMutation({
     mutationFn: async () => {
       // First disconnect OAuth
-      await supabase.functions.invoke('outlook-oauth', {
-        body: { action: 'revoke', clientId: config?.client_id, tenantId: config?.tenant_id, redirectUri: config?.redirect_uri },
-      });
+      await invokeFunction('outlook-oauth', { action: 'revoke', clientId: config?.client_id, tenantId: config?.tenant_id, redirectUri: config?.redirect_uri });
 
       // Delete config
       await supabase
@@ -214,15 +213,13 @@ export function OutlookIntegration() {
     },
     onSuccess: async (code) => {
       // Exchange code for tokens
-      const { error } = await supabase.functions.invoke('outlook-oauth', {
-        body: {
+      const { error } = await invokeFunction('outlook-oauth', {
           action: 'exchange',
           code,
           clientId: config!.client_id,
           tenantId: config!.tenant_id,
           redirectUri: config!.redirect_uri || `${window.location.origin}/settings`,
-        },
-      });
+        });
 
       if (error) throw error;
 
@@ -238,9 +235,7 @@ export function OutlookIntegration() {
   // Sync mutation
   const syncMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('sync-outlook-emails', {
-        body: { daysBack: config?.sync_days_back || 90 },
-      });
+      const { data, error } = await invokeFunction('sync-outlook-emails', { daysBack: config?.sync_days_back || 90 });
       if (error) throw error;
       return data;
     },

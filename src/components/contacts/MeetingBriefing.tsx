@@ -16,6 +16,7 @@ import {
   Clock,
   Printer
 } from 'lucide-react';
+import { invokeFunction } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useAIConfirmationContext } from '@/contexts/AIConfirmationContext';
 import { useAIModelPreference } from '@/hooks/useAIModelPreference';
@@ -75,12 +76,9 @@ export function MeetingBriefing({ profileId, contactName }: MeetingBriefingProps
     const startTime = Date.now();
     
     try {
-      const { data, error } = await supabase.functions.invoke('generate-briefing', {
-        body: { profileId },
-        headers: {
+      const { data, error } = await invokeFunction('generate-briefing', { profileId }, { headers: {
           Authorization: `Bearer ${session?.access_token}`,
-        },
-      });
+        } });
 
       const responseTime = Date.now() - startTime;
 

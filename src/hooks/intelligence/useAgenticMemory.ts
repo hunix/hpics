@@ -6,6 +6,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 // Types
 type MemoryTier = 'core' | 'episodic' | 'semantic' | 'procedural' | 'resource';
@@ -269,8 +270,7 @@ export function useIngestMemory() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase.functions.invoke('memory-crystallization-engine', {
-        body: {
+      const { data, error } = await invokeFunction('memory-crystallization-engine', {
           userId: user.id,
           profileId: request.profileId,
           operation: 'ingest',
@@ -283,8 +283,7 @@ export function useIngestMemory() {
             sourceType: request.sourceType,
             sourceId: request.sourceId,
           },
-        },
-      });
+        });
 
       if (error) throw error;
       return data;
@@ -316,8 +315,7 @@ export function useQueryMemories() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase.functions.invoke('memory-crystallization-engine', {
-        body: {
+      const { data, error } = await invokeFunction('memory-crystallization-engine', {
           userId: user.id,
           profileId: request.profileId,
           operation: 'query',
@@ -325,8 +323,7 @@ export function useQueryMemories() {
             queryText: request.queryText,
             limit: request.limit || 20,
           },
-        },
-      });
+        });
 
       if (error) throw error;
       return data;
@@ -345,13 +342,11 @@ export function useTriggerDecay() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase.functions.invoke('memory-crystallization-engine', {
-        body: {
+      const { data, error } = await invokeFunction('memory-crystallization-engine', {
           userId: user.id,
           operation: 'decay',
           payload: {},
-        },
-      });
+        });
 
       if (error) throw error;
       return data;
@@ -381,14 +376,12 @@ export function useReconsolidateMemories() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase.functions.invoke('memory-crystallization-engine', {
-        body: {
+      const { data, error } = await invokeFunction('memory-crystallization-engine', {
           userId: user.id,
           profileId,
           operation: 'reconsolidate',
           payload: { memoryIds },
-        },
-      });
+        });
 
       if (error) throw error;
       return data;

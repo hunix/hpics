@@ -13,6 +13,7 @@ import { useAIConfirmationContext } from '@/contexts/AIConfirmationContext';
 import { useAIModelPreference } from '@/hooks/useAIModelPreference';
 import { calculateCostCents } from '@/lib/aiPricing';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface GiftSuggestion {
   title: string;
@@ -136,12 +137,9 @@ export function GiftSuggestions({ profileId, contactName }: GiftSuggestionsProps
     const startTime = Date.now();
     
     try {
-      const { data, error } = await supabase.functions.invoke('suggest-gifts', {
-        body: { profileId, occasion, priceRange: priceFilter },
-        headers: {
+      const { data, error } = await invokeFunction('suggest-gifts', { profileId, occasion, priceRange: priceFilter }, { headers: {
           Authorization: `Bearer ${session?.access_token}`,
-        },
-      });
+        } });
 
       const responseTime = Date.now() - startTime;
 

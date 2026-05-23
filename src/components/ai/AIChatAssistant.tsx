@@ -16,6 +16,7 @@ import {
   Maximize2,
   Minimize2
 } from "lucide-react";
+import { invokeFunction } from '@/lib/api';
 import { cn } from "@/lib/utils";
 
 interface Message {
@@ -52,15 +53,13 @@ export function AIChatAssistant({ className, defaultExpanded = true }: AIChatAss
 
   const chatMutation = useMutation({
     mutationFn: async (userMessage: string) => {
-      const { data, error } = await supabase.functions.invoke('ai-chat-query', {
-        body: { 
+      const { data, error } = await invokeFunction('ai-chat-query', { 
           message: userMessage,
           conversationHistory: messages.slice(-10).map(m => ({
             role: m.role,
             content: m.content
           }))
-        }
-      });
+        });
       if (error) throw error;
       return data.response;
     },

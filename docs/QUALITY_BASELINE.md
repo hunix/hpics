@@ -3,13 +3,15 @@
 Snapshot of strict-TypeScript and ESLint counts. Use this file as a ratchet:
 any future PR should reduce the totals, never raise them.
 
-| Metric                  | Pre-Slice-15 | Slice 20 | Slice 25      |
-| ---                     | ---:         | ---:     | ---:          |
-| Strict-TS errors        | 421          | 380      | **325**       |
-| ESLint errors           | 1            | 0        | **0**         |
-| ESLint warnings         | 924          | (n/a)    | **618**       |
-| God-components migrated | 1 of 5       | 5 of 5   | 5 of 5        |
-| Pages off direct Supabase | n/a        | n/a      | 5 (24 to go)  |
+| Metric                  | Pre-Slice-15 | Slice 20 | Slice 25 | M-batch  |
+| ---                     | ---:         | ---:     | ---:     | ---:     |
+| Strict-TS errors        | 421          | 380      | 325      | **278**  |
+| ESLint errors           | 1            | 0        | 0        | **0**    |
+| ESLint warnings         | 924          | (n/a)    | 618      | **537**  |
+| `no-restricted-syntax` (legacy invoke) | n/a | n/a | 388 | **8** |
+| `no-restricted-imports` (direct client) | n/a | n/a | 383 | **373** |
+| God-components migrated | 1 of 5       | 5 of 5   | 5 of 5   | 5 of 5   |
+| Pages off direct Supabase | n/a        | n/a      | 6 of 30  | **8 of 30** |
 Re-measure with:
 
 ```sh

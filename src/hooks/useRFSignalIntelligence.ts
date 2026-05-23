@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import type { RFSignalCapture, SignalType } from '@/types/hardware';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface CaptureSignalParams {
   signal_type: SignalType;
@@ -56,10 +57,7 @@ export function useRFSignalIntelligence() {
     queryFn: async () => {
       if (!session?.access_token) return [];
 
-      const { data, error } = await supabase.functions.invoke('rf-signal-intelligence', {
-        body: { action: 'get_captures', limit: 100 },
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      const { data, error } = await invokeFunction('rf-signal-intelligence', { action: 'get_captures', limit: 100 }, { headers: { Authorization: `Bearer ${session.access_token}` } });
 
       if (error) throw error;
       return data.captures as RFSignalCapture[];
@@ -74,10 +72,7 @@ export function useRFSignalIntelligence() {
     queryFn: async () => {
       if (!session?.access_token) return null;
 
-      const { data, error } = await supabase.functions.invoke('rf-signal-intelligence', {
-        body: { action: 'get_threat_summary' },
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      const { data, error } = await invokeFunction('rf-signal-intelligence', { action: 'get_threat_summary' }, { headers: { Authorization: `Bearer ${session.access_token}` } });
 
       if (error) throw error;
       return data.summary as ThreatSummary;
@@ -91,10 +86,7 @@ export function useRFSignalIntelligence() {
     mutationFn: async (params: CaptureSignalParams): Promise<{ capture_id: string; analysis: AnalysisResult }> => {
       if (!session?.access_token) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase.functions.invoke('rf-signal-intelligence', {
-        body: { action: 'capture_signal', capture: params },
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      const { data, error } = await invokeFunction('rf-signal-intelligence', { action: 'capture_signal', capture: params }, { headers: { Authorization: `Bearer ${session.access_token}` } });
 
       if (error) throw error;
       return data;
@@ -126,10 +118,7 @@ export function useRFSignalIntelligence() {
     if (!session?.access_token) return null;
 
     try {
-      const { data, error } = await supabase.functions.invoke('rf-signal-intelligence', {
-        body: { action: 'analyze_signal', capture: params },
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      const { data, error } = await invokeFunction('rf-signal-intelligence', { action: 'analyze_signal', capture: params }, { headers: { Authorization: `Bearer ${session.access_token}` } });
 
       if (error) throw error;
       return data.analysis;

@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import type { ThermalCapture } from '@/types/hardware';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface ThermalSignature {
   type: 'person' | 'vehicle' | 'electronic_device' | 'animal' | 'heat_source' | 'unknown';
@@ -64,10 +65,7 @@ export function useThermalIntelligence() {
     queryFn: async () => {
       if (!session?.access_token) return [];
 
-      const { data, error } = await supabase.functions.invoke('thermal-intelligence', {
-        body: { action: 'get_captures', limit: 100 },
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      const { data, error } = await invokeFunction('thermal-intelligence', { action: 'get_captures', limit: 100 }, { headers: { Authorization: `Bearer ${session.access_token}` } });
 
       if (error) throw error;
       return data.captures as ThermalCapture[];
@@ -85,10 +83,7 @@ export function useThermalIntelligence() {
     queryFn: async () => {
       if (!session?.access_token) return [];
 
-      const { data, error } = await supabase.functions.invoke('thermal-intelligence', {
-        body: { action: 'get_occupancy_timeline', hours: 24 },
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      const { data, error } = await invokeFunction('thermal-intelligence', { action: 'get_occupancy_timeline', hours: 24 }, { headers: { Authorization: `Bearer ${session.access_token}` } });
 
       if (error) throw error;
       return data.timeline as OccupancyDataPoint[];
@@ -102,10 +97,7 @@ export function useThermalIntelligence() {
     mutationFn: async (params: CaptureThermalParams): Promise<{ capture_id: string; analysis: ThermalAnalysis }> => {
       if (!session?.access_token) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase.functions.invoke('thermal-intelligence', {
-        body: { action: 'capture_thermal', capture: params },
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      const { data, error } = await invokeFunction('thermal-intelligence', { action: 'capture_thermal', capture: params }, { headers: { Authorization: `Bearer ${session.access_token}` } });
 
       if (error) throw error;
       return data;
@@ -139,10 +131,7 @@ export function useThermalIntelligence() {
     if (!session?.access_token) return null;
 
     try {
-      const { data, error } = await supabase.functions.invoke('thermal-intelligence', {
-        body: { action: 'analyze_thermal', capture: params },
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      const { data, error } = await invokeFunction('thermal-intelligence', { action: 'analyze_thermal', capture: params }, { headers: { Authorization: `Bearer ${session.access_token}` } });
 
       if (error) throw error;
       return data.analysis;

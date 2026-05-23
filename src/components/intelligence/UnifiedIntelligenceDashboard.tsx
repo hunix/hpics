@@ -18,6 +18,7 @@ import {
   Clock,
   Sparkles
 } from "lucide-react";
+import { invokeFunction } from '@/lib/api';
 import { toast } from "sonner";
 
 interface ProactiveInsight {
@@ -41,9 +42,7 @@ export function UnifiedIntelligenceDashboard() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return null;
 
-      const response = await supabase.functions.invoke('generate-proactive-insights', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      const response = await invokeFunction('generate-proactive-insights', {}, { headers: { Authorization: `Bearer ${session.access_token}` } });
 
       if (response.error) throw response.error;
       return response.data;
@@ -57,10 +56,7 @@ export function UnifiedIntelligenceDashboard() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return null;
 
-      const response = await supabase.functions.invoke('detect-communication-anomalies', {
-        body: { timeframeDays: 30 },
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      const response = await invokeFunction('detect-communication-anomalies', { timeframeDays: 30 }, { headers: { Authorization: `Bearer ${session.access_token}` } });
 
       if (response.error) throw response.error;
       return response.data;
@@ -105,9 +101,7 @@ export function UnifiedIntelligenceDashboard() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      await supabase.functions.invoke('generate-proactive-insights', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      await invokeFunction('generate-proactive-insights', {}, { headers: { Authorization: `Bearer ${session.access_token}` } });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proactive-insights'] });

@@ -13,6 +13,7 @@ import {
   Mail
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export function OutlookContactsImport() {
   const queryClient = useQueryClient();
@@ -79,7 +80,7 @@ export function OutlookContactsImport() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const response = await supabase.functions.invoke('import-outlook-contacts', {});
+      const response = await invokeFunction('import-outlook-contacts');
 
       if (response.error) {
         throw new Error(response.error.message);

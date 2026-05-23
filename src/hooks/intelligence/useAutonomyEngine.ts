@@ -8,6 +8,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { invokeFunction } from '@/lib/api';
 
 // ─────────────────────────────────────────────── Types ────────────────────────
 
@@ -65,7 +66,7 @@ export interface DashboardStats {
 // ─────────────────────────────────────────────── Helper ───────────────────────
 
 async function invokeAutonomy(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke("autonomy-engine", { body });
+  const { data, error } = await invokeFunction("autonomy-engine", body);
   if (error) throw new Error(error.message);
   if (data?.error) throw new Error(data.error);
   return data;

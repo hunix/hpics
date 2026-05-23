@@ -11,6 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { TrendingUp, TrendingDown, Minus, AlertTriangle, Sparkles, RefreshCw, ChevronRight, Target } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface TrajectoryPrediction {
   profileId: string;
@@ -46,9 +47,7 @@ export function RelationshipForecastWidget() {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session?.access_token) throw new Error('Not authenticated');
 
-      const response = await supabase.functions.invoke('predict-relationship-trajectory', {
-        headers: { Authorization: `Bearer ${session.session.access_token}` },
-      });
+      const response = await invokeFunction('predict-relationship-trajectory', {}, { headers: { Authorization: `Bearer ${session.session.access_token}` } });
 
       if (response.error) throw response.error;
       return response.data as { predictions: TrajectoryPrediction[] };

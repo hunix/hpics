@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { AlertTriangle, Siren, CheckCircle, Clock, ArrowRight, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeFunction } from '@/lib/api';
 
 interface CrisisEvent {
   id: string;
@@ -38,9 +39,7 @@ export function CrisisResponsePanel() {
 
   const fetchActiveEvents = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('crisis-response-orchestrator', {
-        body: { action: 'get_status' }
-      });
+      const { data, error } = await invokeFunction('crisis-response-orchestrator', { action: 'get_status' });
 
       if (error) throw error;
       setActiveEvents(data.activeEvents || []);
@@ -57,14 +56,12 @@ export function CrisisResponsePanel() {
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('crisis-response-orchestrator', {
-        body: {
+      const { data, error } = await invokeFunction('crisis-response-orchestrator', {
           action: 'initiate',
           crisisType: newCrisis.type,
           severity: newCrisis.severity,
           details: { assessment: newCrisis.assessment }
-        }
-      });
+        });
 
       if (error) throw error;
 
@@ -87,13 +84,11 @@ export function CrisisResponsePanel() {
 
   const resolveCrisis = async (eventId: string) => {
     try {
-      await supabase.functions.invoke('crisis-response-orchestrator', {
-        body: {
+      await invokeFunction('crisis-response-orchestrator', {
           action: 'resolve',
           eventId,
           details: { summary: 'Resolved via dashboard' }
-        }
-      });
+        });
 
       setActiveEvents(prev => prev.filter(e => e.id !== eventId));
       toast({ title: 'Crisis Resolved', description: 'Event has been marked as resolved' });

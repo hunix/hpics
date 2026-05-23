@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,44 +7,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Plus, Calendar, Cake, Heart, Star, Bell, Clock, Trash2
 } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
 import { EventDialog } from '@/components/events/EventDialog';
 import { format, formatDistanceToNow, isPast } from 'date-fns';
-import type { Event as BaseEvent } from '@/types/database-helpers';
-
-type Event = BaseEvent & {
-  profiles: { first_name: string; last_name: string | null } | null;
-};
+import { useEventsList, useDeleteEvent, type EventWithProfile as Event } from '@/hooks/events/useEventsList';
 
 export default function Events() {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-
-  const { data: events, isLoading } = useQuery({
-    queryKey: ['events', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*, profiles(first_name, last_name)')
-        .eq('is_active', true)
-        .order('event_date', { ascending: true });
-      if (error) throw error;
-      return data as Event[];
-    },
-    enabled: !!user,
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('events').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['events'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-    },
-  });
+  const { data: events, isLoading } = useEventsList();
+  const deleteMutation = useDeleteEvent();
 
   const getEventIcon = (type: string) => {
     switch (type) {

@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Heart, AlertTriangle, TrendingUp, TrendingDown, RefreshCw, Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface RiskData {
   networkHealth: {
@@ -41,11 +42,9 @@ export function RelationshipHealthWidget() {
   const { data: riskData, refetch, isLoading } = useQuery<RiskData>({
     queryKey: ['relationship-risks', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('predict-risks', {
-        headers: {
+      const { data, error } = await invokeFunction('predict-risks', {}, { headers: {
           Authorization: `Bearer ${session?.access_token}`,
-        },
-      });
+        } });
       if (error) throw error;
       return data;
     },

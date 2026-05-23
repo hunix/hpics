@@ -13,6 +13,7 @@ import {
   Trash2,
   AlertCircle
 } from 'lucide-react';
+import { invokeFunction } from '@/lib/api';
 import { toast } from 'sonner';
 
 export function CalendarSyncSettings() {
@@ -70,13 +71,11 @@ export function CalendarSyncSettings() {
   const handleGoogleCallback = async (code: string) => {
     try {
       // Exchange code for tokens using server-side secrets
-      const response = await supabase.functions.invoke('google-calendar-oauth', {
-        body: {
+      const response = await invokeFunction('google-calendar-oauth', {
           action: 'exchange',
           code,
           redirectUri,
-        },
-      });
+        });
 
       if (response.error) throw new Error(response.error.message);
 
@@ -90,12 +89,10 @@ export function CalendarSyncSettings() {
   const connectGoogleMutation = useMutation({
     mutationFn: async () => {
       // Get auth URL using server-side credentials
-      const response = await supabase.functions.invoke('google-calendar-oauth', {
-        body: {
+      const response = await invokeFunction('google-calendar-oauth', {
           action: 'get_auth_url',
           redirectUri,
-        },
-      });
+        });
 
       if (response.error) throw new Error(response.error.message);
       
@@ -108,7 +105,7 @@ export function CalendarSyncSettings() {
 
   const syncGoogleMutation = useMutation({
     mutationFn: async () => {
-      const response = await supabase.functions.invoke('sync-google-calendar', {});
+      const response = await invokeFunction('sync-google-calendar');
       if (response.error) throw new Error(response.error.message);
       return response.data;
     },
@@ -124,7 +121,7 @@ export function CalendarSyncSettings() {
 
   const syncOutlookMutation = useMutation({
     mutationFn: async () => {
-      const response = await supabase.functions.invoke('sync-outlook-calendar', {});
+      const response = await invokeFunction('sync-outlook-calendar');
       if (response.error) throw new Error(response.error.message);
       return response.data;
     },
@@ -139,9 +136,7 @@ export function CalendarSyncSettings() {
 
   const disconnectGoogleMutation = useMutation({
     mutationFn: async () => {
-      const response = await supabase.functions.invoke('google-calendar-oauth', {
-        body: { action: 'revoke' },
-      });
+      const response = await invokeFunction('google-calendar-oauth', { action: 'revoke' });
       if (response.error) throw new Error(response.error.message);
     },
     onSuccess: () => {

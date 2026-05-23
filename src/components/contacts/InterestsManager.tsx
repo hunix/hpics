@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { invokeFunction } from '@/lib/api';
 import { Heart, Loader2, Sparkles, Plus, X, Brain, Pencil } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAIConfirmationContext } from '@/contexts/AIConfirmationContext';
@@ -188,12 +189,9 @@ export function InterestsManager({ profileId, contactName }: InterestsManagerPro
     const startTime = Date.now();
     
     try {
-      const { data, error } = await supabase.functions.invoke('detect-interests', {
-        body: { profileId },
-        headers: {
+      const { data, error } = await invokeFunction('detect-interests', { profileId }, { headers: {
           Authorization: `Bearer ${session?.access_token}`,
-        },
-      });
+        } });
 
       const responseTime = Date.now() - startTime;
 

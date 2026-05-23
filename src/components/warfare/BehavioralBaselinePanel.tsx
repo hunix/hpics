@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Activity, AlertTriangle, TrendingUp, RefreshCw, BarChart3 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeFunction } from '@/lib/api';
 
 interface Baseline {
   id: string;
@@ -40,9 +41,7 @@ export function BehavioralBaselinePanel({ profileId }: { profileId?: string }) {
 
   const fetchBaselines = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('behavioral-baseline-monitor', {
-        body: { action: 'get_baselines' }
-      });
+      const { data, error } = await invokeFunction('behavioral-baseline-monitor', { action: 'get_baselines' });
 
       if (error) throw error;
       setBaselines(data.baselines || []);
@@ -59,9 +58,7 @@ export function BehavioralBaselinePanel({ profileId }: { profileId?: string }) {
 
     setIsEstablishing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('behavioral-baseline-monitor', {
-        body: { action: 'establish_baseline', profileId }
-      });
+      const { data, error } = await invokeFunction('behavioral-baseline-monitor', { action: 'establish_baseline', profileId });
 
       if (error) throw error;
 
@@ -87,8 +84,7 @@ export function BehavioralBaselinePanel({ profileId }: { profileId?: string }) {
     setIsDetecting(true);
     try {
       // Simulate behavioral data for detection
-      const { data, error } = await supabase.functions.invoke('behavioral-baseline-monitor', {
-        body: {
+      const { data, error } = await invokeFunction('behavioral-baseline-monitor', {
           action: 'detect_anomalies',
           profileId,
           behavioralData: {
@@ -96,8 +92,7 @@ export function BehavioralBaselinePanel({ profileId }: { profileId?: string }) {
             sentiment: -0.2,
             responseTime: 48
           }
-        }
-      });
+        });
 
       if (error) throw error;
 

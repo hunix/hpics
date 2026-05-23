@@ -3,6 +3,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export interface CrossContactPattern {
   id: string;
@@ -77,7 +78,7 @@ export function useCrossContactPatterns(profileId?: string) {
     if (!user?.id) return false;
 
     try {
-      const { error } = await supabase.functions.invoke('detect-cross-patterns', {});
+      const { error } = await invokeFunction('detect-cross-patterns');
       if (error) throw error;
       
       toast.success('Pattern detection completed');

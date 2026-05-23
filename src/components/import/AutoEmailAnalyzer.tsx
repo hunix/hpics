@@ -17,6 +17,7 @@ import {
   Play,
   SkipForward
 } from 'lucide-react';
+import { invokeFunction } from '@/lib/api';
 import { toast } from 'sonner';
 
 interface AutoEmailAnalyzerProps {
@@ -78,10 +79,7 @@ export function AutoEmailAnalyzer({
             continue;
           }
 
-          const response = await supabase.functions.invoke('analyze-email-insights', {
-            body: { profileId, analyzeAll: true },
-            headers: { Authorization: `Bearer ${session.session.access_token}` },
-          });
+          const response = await invokeFunction('analyze-email-insights', { profileId, analyzeAll: true }, { headers: { Authorization: `Bearer ${session.session.access_token}` } });
 
           if (response.error) {
             results.push({ profileId, success: false, insightsCount: 0 });

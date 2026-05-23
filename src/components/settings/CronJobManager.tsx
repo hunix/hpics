@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeFunction } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -99,7 +100,7 @@ export function CronJobManager() {
   const runJobNow = async (job: Omit<CronJob, 'enabled'>) => {
     setRunningJobs(prev => new Set(prev).add(job.id));
     try {
-      const { error } = await supabase.functions.invoke(job.functionName);
+      const { error } = await invokeFunction(job.functionName);
       if (error) throw error;
       toast({
         title: 'Job executed',

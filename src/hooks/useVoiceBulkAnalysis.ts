@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { localAudioAnalyzer, localWhisperTranscriber, type BatchAnalysisProgress, type LanguageDetectionResult } from '@/lib/ml';
 import { type WhisperModel, isLanguageSupported, getLanguageDisplay } from '@/lib/ml/localWhisperTranscriber';
 import { useAuth } from '@/hooks/useAuth';
+import { invokeFunction } from '@/lib/api';
 
 export interface VoiceRecording {
   id: string;
@@ -359,9 +360,7 @@ export function useVoiceBulkAnalysis(profileId?: string) {
       // Mark session as backend processing
       setSession(prev => prev ? { ...prev, isBackendProcessing: true } : null);
 
-      const { error } = await supabase.functions.invoke('process-voice-analysis-runner', {
-        body: { sessionId: session.dbSessionId, action: 'continue' }
-      });
+      const { error } = await invokeFunction('process-voice-analysis-runner', { sessionId: session.dbSessionId, action: 'continue' });
 
       if (error) throw error;
 
@@ -378,9 +377,7 @@ export function useVoiceBulkAnalysis(profileId?: string) {
     if (!interruptedSession) return;
 
     try {
-      const { error } = await supabase.functions.invoke('process-voice-analysis-runner', {
-        body: { sessionId: interruptedSession.id, action: 'continue' }
-      });
+      const { error } = await invokeFunction('process-voice-analysis-runner', { sessionId: interruptedSession.id, action: 'continue' });
 
       if (error) throw error;
 
@@ -1008,8 +1005,7 @@ export function useVoiceBulkAnalysis(profileId?: string) {
           
           // Optional: send to cloud for deep psychological analysis
           if (analysisOptions.vocalPsychology || analysisOptions.contentIntelligence) {
-            const { data, error } = await supabase.functions.invoke('analyze-voice-comprehensive', {
-              body: {
+            const { data, error } = await invokeFunction('analyze-voice-comprehensive', {
                 audioUrl: recording.audio_url,
                 sourceType: 'voice_recording',
                 sourceId: recording.id,
@@ -1021,8 +1017,7 @@ export function useVoiceBulkAnalysis(profileId?: string) {
                   extractContentIntelligence: analysisOptions.contentIntelligence,
                   extractBiometrics: analysisOptions.voiceBiometrics,
                 },
-              },
-            });
+              });
             
             if (error) {
               console.warn('[VoiceBulkAnalysis] Cloud enhancement failed:', error);
@@ -1058,8 +1053,7 @@ export function useVoiceBulkAnalysis(profileId?: string) {
           const sourceType = recording.source === 'media' ? 'media' : 'voice_recording';
           console.log(`[VoiceBulkAnalysis] Cloud processing ${recording.id} with sourceType: ${sourceType}`);
           
-          const cloudPromise = supabase.functions.invoke('analyze-voice-comprehensive', {
-            body: {
+          const cloudPromise = invokeFunction('analyze-voice-comprehensive', {
               audioUrl: recording.audio_url,
               sourceType,
               sourceId: recording.id,
@@ -1071,8 +1065,7 @@ export function useVoiceBulkAnalysis(profileId?: string) {
                 contentIntelligence: analysisOptions.contentIntelligence,
                 voiceBiometrics: analysisOptions.voiceBiometrics,
               },
-            },
-          });
+            });
 
           const { data, error } = await withTimeout(cloudPromise, CLOUD_TIMEOUT_MS, recording.title || 'Audio file');
 

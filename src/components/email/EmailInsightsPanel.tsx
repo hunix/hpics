@@ -22,6 +22,7 @@ import {
   Target,
   Clock
 } from 'lucide-react';
+import { invokeFunction } from '@/lib/api';
 import { toast } from 'sonner';
 
 interface EmailInsight {
@@ -64,10 +65,7 @@ export function EmailInsightsPanel({ profileId, contactName }: EmailInsightsPane
       const { data: session } = await supabase.auth.getSession();
       if (!session.session?.access_token) throw new Error('Not authenticated');
 
-      const response = await supabase.functions.invoke('analyze-email-insights', {
-        body: { profileId },
-        headers: { Authorization: `Bearer ${session.session.access_token}` },
-      });
+      const response = await invokeFunction('analyze-email-insights', { profileId }, { headers: { Authorization: `Bearer ${session.session.access_token}` } });
 
       if (response.error) throw response.error;
       return response.data as { insights: EmailInsight[] };
@@ -81,10 +79,7 @@ export function EmailInsightsPanel({ profileId, contactName }: EmailInsightsPane
       const { data: session } = await supabase.auth.getSession();
       if (!session.session?.access_token) throw new Error('Not authenticated');
 
-      const response = await supabase.functions.invoke('analyze-email-insights', {
-        body: { profileId, analyzeAll: true },
-        headers: { Authorization: `Bearer ${session.session.access_token}` },
-      });
+      const response = await invokeFunction('analyze-email-insights', { profileId, analyzeAll: true }, { headers: { Authorization: `Bearer ${session.session.access_token}` } });
 
       if (response.error) throw response.error;
       return response.data;

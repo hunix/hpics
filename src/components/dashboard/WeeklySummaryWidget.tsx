@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { BarChart3, RefreshCw, Sparkles, TrendingUp, MessageSquare, Users } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface WeeklySummaryData {
   weekStart: string;
@@ -39,11 +40,9 @@ export function WeeklySummaryWidget() {
   const { data: summary, refetch, isLoading } = useQuery<WeeklySummaryData>({
     queryKey: ['weekly-summary', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('generate-weekly-summary', {
-        headers: {
+      const { data, error } = await invokeFunction('generate-weekly-summary', {}, { headers: {
           Authorization: `Bearer ${session?.access_token}`,
-        },
-      });
+        } });
       if (error) throw error;
       return data;
     },

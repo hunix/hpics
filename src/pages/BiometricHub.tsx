@@ -24,9 +24,7 @@ import {
   Shield,
   TrendingUp
 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useBiometricEnrollmentStats } from '@/hooks/biometrics/useBiometricEnrollmentStats';
 
 const MODALITIES = [
   { id: 'face', label: 'Face', icon: Camera, color: 'text-blue-500' },
@@ -38,41 +36,8 @@ const MODALITIES = [
 ];
 
 export default function BiometricHub() {
-  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
-
-  // Fetch enrollment stats
-  const { data: enrollmentStats } = useQuery({
-    queryKey: ['biometric-enrollment-stats', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      const { data, error } = await supabase
-        .from('biometric_enrollment_sessions')
-        .select('session_type, status')
-        .eq('user_id', user.id);
-      if (error) throw error;
-      
-      const stats: Record<string, { total: number; completed: number }> = {};
-      MODALITIES.forEach(m => {
-        stats[m.id] = { total: 0, completed: 0 };
-      });
-      
-      data?.forEach(session => {
-        const type = session.session_type?.toLowerCase() || '';
-        MODALITIES.forEach(m => {
-          if (type.includes(m.id)) {
-            stats[m.id].total++;
-            if (session.status === 'completed') {
-              stats[m.id].completed++;
-            }
-          }
-        });
-      });
-      
-      return stats;
-    },
-    enabled: !!user?.id,
-  });
+  const { data: enrollmentStats } = useBiometricEnrollmentStats(MODALITIES.map(m => m.id));
 
   const overallProgress = enrollmentStats 
     ? Math.round(

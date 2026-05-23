@@ -9,6 +9,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export interface ContactEmailStats {
   profileId: string;
@@ -155,9 +156,7 @@ export function useBulkEmailAnalysis() {
         throw new Error('Not authenticated');
       }
 
-      const response = await supabase.functions.invoke('relink-email-threads', {
-        headers: { Authorization: `Bearer ${session.session.access_token}` },
-      });
+      const response = await invokeFunction('relink-email-threads', {}, { headers: { Authorization: `Bearer ${session.session.access_token}` } });
 
       if (response.error) {
         throw new Error(response.error.message);
@@ -197,10 +196,7 @@ export function useBulkEmailAnalysis() {
         return { success: false, insightsCount: 0, error: 'Not authenticated' };
       }
 
-      const response = await supabase.functions.invoke('analyze-email-insights', {
-        body: { profileId, analyzeAll: true },
-        headers: { Authorization: `Bearer ${session.session.access_token}` },
-      });
+      const response = await invokeFunction('analyze-email-insights', { profileId, analyzeAll: true }, { headers: { Authorization: `Bearer ${session.session.access_token}` } });
 
       if (response.error) {
         return { success: false, insightsCount: 0, error: response.error.message };

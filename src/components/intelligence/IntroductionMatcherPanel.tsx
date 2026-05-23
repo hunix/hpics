@@ -11,6 +11,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Users, RefreshCw, Sparkles, ChevronDown, Link2, Copy, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface IntroductionSuggestion {
   contact1Id: string;
@@ -34,9 +35,7 @@ export function IntroductionMatcherPanel() {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session?.access_token) throw new Error('Not authenticated');
 
-      const response = await supabase.functions.invoke('suggest-introductions', {
-        headers: { Authorization: `Bearer ${session.session.access_token}` },
-      });
+      const response = await invokeFunction('suggest-introductions', {}, { headers: { Authorization: `Bearer ${session.session.access_token}` } });
 
       if (response.error) throw response.error;
       return response.data as { introductions: IntroductionSuggestion[] };

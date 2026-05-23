@@ -60,7 +60,26 @@ async function invokeEdgeFunction(name: string, body: unknown, ctx: ToolCtx): Pr
     body: JSON.stringify(body),
   });
   const text = await res.text();
-  try { return JSON.parse(text); } catch { return { raw: text, status: res.status }; }
+  // Surface explicit auth / authorization failures so the agent can react.
+  // Previously these were silently swallowed and logged as `tool_threw`,
+  // masking misconfigured downstreams.
+  if (res.status === 401 || res.status === 403) {
+    return {
+      error: 'downstream_auth_failed',
+      status: res.status,
+      function: name,
+      detail: text.slice(0, 500),
+    };
+  }
+  let parsed: unknown;
+  try { parsed = JSON.parse(text); } catch { parsed = { raw: text, status: res.status }; }
+  // Even on 2xx, propagate non-OK statuses so the model sees the failure.
+  if (!res.ok && typeof parsed === 'object' && parsed !== null && !('error' in parsed)) {
+    (parsed as Record<string, unknown>).error = `downstream_${res.status}`;
+    (parsed as Record<string, unknown>).status = res.status;
+    (parsed as Record<string, unknown>).function = name;
+  }
+  return parsed;
 }
 
 const TOOLS: ToolSpec[] = [

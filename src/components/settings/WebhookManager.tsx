@@ -17,6 +17,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { invokeFunction } from '@/lib/api';
 import { 
   Webhook, 
   Plus, 
@@ -135,9 +136,7 @@ export function WebhookManager() {
 
   const testMutation = useMutation({
     mutationFn: async (webhookId: string) => {
-      const response = await supabase.functions.invoke('trigger-webhook', {
-        body: { webhookId, eventType: 'test', data: { test: true, timestamp: new Date().toISOString() } },
-      });
+      const response = await invokeFunction('trigger-webhook', { webhookId, eventType: 'test', data: { test: true, timestamp: new Date().toISOString() } });
       
       if (response.error) throw new Error(response.error.message);
       return response.data;

@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useCallback } from 'react';
+import { invokeFunction } from '@/lib/api';
 
 export type ReportType = 'daily_summary' | 'device_inventory' | 'threat_analysis' | 'mission_report' | 'full_export';
 export type ReportFormat = 'pdf' | 'csv' | 'json';
@@ -69,8 +70,7 @@ export function useReportGeneration() {
   // Generate report mutation
   const generateReport = useMutation({
     mutationFn: async (params: GenerateReportParams) => {
-      const { data, error } = await supabase.functions.invoke('generate-hardware-report', {
-        body: {
+      const { data, error } = await invokeFunction('generate-hardware-report', {
           report_type: params.reportType,
           format: params.format || 'json',
           report_name: params.reportName,
@@ -80,8 +80,7 @@ export function useReportGeneration() {
             device_ids: params.deviceIds,
             mission_id: params.missionId,
           },
-        },
-      });
+        });
 
       if (error) throw error;
       return data;
@@ -99,13 +98,9 @@ export function useReportGeneration() {
 
   // Check report status
   const checkReportStatus = useCallback(async (reportId: string) => {
-    const { data, error } = await supabase.functions.invoke('generate-hardware-report', {
-      method: 'GET',
-      body: null,
-      headers: {
+    const { data, error } = await invokeFunction('generate-hardware-report', null, { headers: {
         'Content-Type': 'application/json',
-      },
-    });
+      } });
 
     // Fallback to direct query since GET with path params may not work
     const { data: report, error: queryError } = await supabase

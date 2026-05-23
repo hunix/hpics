@@ -11,6 +11,7 @@ import {
   type ImageInput,
   type MosaicCanvas
 } from '@/lib/biometricMosaic';
+import { invokeFunction } from '@/lib/api';
 import { bulkRequestQueue } from '@/lib/requestQueue';
 
 export interface MosaicScanProgress {
@@ -182,8 +183,7 @@ export function useMosaicBiometricScan() {
         try {
           // Queue the request to avoid rate limits
           const result = await bulkRequestQueue.enqueue(async () => {
-            const { data, error } = await supabase.functions.invoke('mosaic-biometric-match', {
-              body: {
+            const { data, error } = await invokeFunction('mosaic-biometric-match', {
                 mosaicDataUrl: mosaic.dataUrl,
                 cellMap: mosaic.cellMap,
                 gridCols: mosaic.gridCols,
@@ -194,8 +194,7 @@ export function useMosaicBiometricScan() {
                   confirmThreshold,
                   extractEmbeddings: true
                 }
-              }
-            });
+              });
 
             if (error) throw error;
             return data;

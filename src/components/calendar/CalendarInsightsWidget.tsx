@@ -17,6 +17,7 @@ import {
   Sparkles,
   AlertCircle
 } from 'lucide-react';
+import { invokeFunction } from '@/lib/api';
 import { format, isToday, isTomorrow, addDays, startOfDay, endOfDay } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -113,10 +114,7 @@ export function CalendarInsightsWidget() {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session?.access_token) throw new Error('Not authenticated');
 
-      const response = await supabase.functions.invoke('generate-meeting-prep', {
-        body: { eventId },
-        headers: { Authorization: `Bearer ${session.session.access_token}` },
-      });
+      const response = await invokeFunction('generate-meeting-prep', { eventId }, { headers: { Authorization: `Bearer ${session.session.access_token}` } });
 
       if (response.error) throw response.error;
       return response.data;
@@ -135,9 +133,7 @@ export function CalendarInsightsWidget() {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session?.access_token) throw new Error('Not authenticated');
 
-      const response = await supabase.functions.invoke('sync-google-calendar', {
-        headers: { Authorization: `Bearer ${session.session.access_token}` },
-      });
+      const response = await invokeFunction('sync-google-calendar', {}, { headers: { Authorization: `Bearer ${session.session.access_token}` } });
 
       if (response.error) throw response.error;
       return response.data;

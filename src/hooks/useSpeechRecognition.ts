@@ -8,6 +8,7 @@ import { Capacitor } from '@capacitor/core';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface TranscriptSegment {
   id: string;
@@ -284,8 +285,7 @@ export function useSpeechRecognition(
 
     try {
       // Call edge function for speaker diarization
-      const { data, error } = await supabase.functions.invoke('identify-speakers', {
-        body: {
+      const { data, error } = await invokeFunction('identify-speakers', {
           sessionId: sessionIdRef.current,
           segments: segments.map(s => ({
             id: s.id,
@@ -294,8 +294,7 @@ export function useSpeechRecognition(
             endTime: s.endTime
           })),
           userId: user.id
-        }
-      });
+        });
 
       if (error) throw error;
 

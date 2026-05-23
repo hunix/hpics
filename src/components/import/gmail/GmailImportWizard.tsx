@@ -17,6 +17,7 @@ import {
   AlertCircle,
   RotateCcw
 } from 'lucide-react';
+import { invokeFunction } from '@/lib/api';
 import { toast } from 'sonner';
 
 interface GmailDraftData {
@@ -104,13 +105,11 @@ export function GmailImportWizard() {
       }
 
       // Exchange code for tokens using server-side secrets
-      const response = await supabase.functions.invoke('gmail-oauth', {
-        body: {
+      const response = await invokeFunction('gmail-oauth', {
           action: 'exchange',
           code,
           redirectUri,
-        },
-      });
+        });
 
       if (response.error) {
         throw new Error(response.error.message);
@@ -130,12 +129,10 @@ export function GmailImportWizard() {
       if (!session) throw new Error('Not authenticated');
 
       // Get auth URL using server-side credentials
-      const response = await supabase.functions.invoke('gmail-oauth', {
-        body: {
+      const response = await invokeFunction('gmail-oauth', {
           action: 'get_auth_url',
           redirectUri,
-        },
-      });
+        });
 
       if (response.error) {
         throw new Error(response.error.message);
@@ -154,7 +151,7 @@ export function GmailImportWizard() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const response = await supabase.functions.invoke('import-gmail-contacts', {});
+      const response = await invokeFunction('import-gmail-contacts');
 
       if (response.error) {
         throw new Error(response.error.message);
@@ -178,9 +175,7 @@ export function GmailImportWizard() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const response = await supabase.functions.invoke('gmail-oauth', {
-        body: { action: 'revoke' },
-      });
+      const response = await invokeFunction('gmail-oauth', { action: 'revoke' });
 
       if (response.error) {
         throw new Error(response.error.message);

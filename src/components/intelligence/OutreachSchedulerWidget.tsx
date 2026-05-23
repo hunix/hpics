@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { Clock, Calendar, Phone, Mail, MessageSquare, Sparkles, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface BestDay {
   day: string;
@@ -64,10 +65,7 @@ export function OutreachSchedulerWidget({ profileId, profileName }: OutreachSche
       const { data: session } = await supabase.auth.getSession();
       if (!session.session?.access_token) throw new Error('Not authenticated');
 
-      const response = await supabase.functions.invoke('suggest-outreach-timing', {
-        headers: { Authorization: `Bearer ${session.session.access_token}` },
-        body: { profileId },
-      });
+      const response = await invokeFunction('suggest-outreach-timing', { profileId }, { headers: { Authorization: `Bearer ${session.session.access_token}` } });
 
       if (response.error) throw response.error;
       return response.data as OutreachTiming;

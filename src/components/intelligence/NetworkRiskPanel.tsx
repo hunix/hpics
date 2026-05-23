@@ -12,6 +12,7 @@ import { AlertTriangle, Shield, RefreshCw, Clock, MessageSquare, Phone, Mail } f
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+import { invokeFunction } from '@/lib/api';
 
 interface AtRiskRelationship {
   profileId: string;
@@ -67,9 +68,7 @@ export function NetworkRiskPanel() {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session?.access_token) throw new Error('Not authenticated');
 
-      const response = await supabase.functions.invoke('predict-risks', {
-        headers: { Authorization: `Bearer ${session.session.access_token}` },
-      });
+      const response = await invokeFunction('predict-risks', {}, { headers: { Authorization: `Bearer ${session.session.access_token}` } });
 
       if (response.error) throw response.error;
       return response.data as {
