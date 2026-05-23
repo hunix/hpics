@@ -1,103 +1,12 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle, Phone, Mail, MessageCircle, Clock } from 'lucide-react';
-import { differenceInDays, format } from 'date-fns';
-
-interface DecayContact {
-  id: string;
-  name: string;
-  relationshipType: string;
-  lastContactDate: Date | null;
-  decayDays: number;
-  isFavorite: boolean;
-  email?: string;
-  phone?: string;
-}
+import { useDecayContacts } from '@/hooks/dashboard/useDecayContacts';
 
 export function DecayAlertWidget() {
-  const { user } = useAuth();
-
-  const { data: decayContacts, isLoading } = useQuery({
-    queryKey: ['decay-contacts', user?.id],
-    queryFn: async () => {
-      // Fetch active profiles with contact methods
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select(`
-          id, first_name, last_name, relationship_type, is_favorite, last_contact_date,
-          contact_methods(contact_type, value, is_primary)
-        `)
-        .eq('user_id', user!.id)
-        .eq('is_active', true);
-
-      if (!profiles) return [];
-
-      // Fetch latest communications per profile
-      const { data: comms } = await supabase
-        .from('communications')
-        .select('profile_id, occurred_at')
-        .eq('user_id', user!.id)
-        .order('occurred_at', { ascending: false });
-
-      // Fetch latest messages per profile
-      const { data: msgs } = await supabase
-        .from('messages')
-        .select('sent_at, conversations!inner(profile_id)')
-        .eq('user_id', user!.id)
-        .order('sent_at', { ascending: false });
-
-      const now = new Date();
-      const contacts: DecayContact[] = [];
-
-      for (const profile of profiles) {
-        // Find last contact date from communications
-        const lastComm = comms?.find(c => c.profile_id === profile.id);
-        const lastMsg = msgs?.find(m => (m.conversations as any)?.profile_id === profile.id);
-
-        const dates = [
-          lastComm?.occurred_at ? new Date(lastComm.occurred_at) : null,
-          lastMsg?.sent_at ? new Date(lastMsg.sent_at) : null,
-          profile.last_contact_date ? new Date(profile.last_contact_date) : null,
-        ].filter(Boolean) as Date[];
-
-        const lastContactDate = dates.length > 0 ? new Date(Math.max(...dates.map(d => d.getTime()))) : null;
-        const decayDays = lastContactDate ? differenceInDays(now, lastContactDate) : 999;
-
-        // Only include if decay is significant (>30 days for favorites, >60 for others)
-        const threshold = profile.is_favorite ? 30 : 60;
-        if (decayDays >= threshold) {
-          const contactMethods = profile.contact_methods || [];
-          const primaryEmail = contactMethods.find((m: any) => m.contact_type === 'email' && m.is_primary)?.value 
-            || contactMethods.find((m: any) => m.contact_type === 'email')?.value;
-          const primaryPhone = contactMethods.find((m: any) => m.contact_type === 'phone' && m.is_primary)?.value 
-            || contactMethods.find((m: any) => m.contact_type === 'phone')?.value;
-
-          contacts.push({
-            id: profile.id,
-            name: `${profile.first_name} ${profile.last_name || ''}`.trim(),
-            relationshipType: profile.relationship_type || 'other',
-            lastContactDate,
-            decayDays,
-            isFavorite: profile.is_favorite || false,
-            email: primaryEmail,
-            phone: primaryPhone,
-          });
-        }
-      }
-
-      // Sort by favorites first, then by decay days
-      return contacts.sort((a, b) => {
-        if (a.isFavorite !== b.isFavorite) return a.isFavorite ? -1 : 1;
-        return b.decayDays - a.decayDays;
-      }).slice(0, 5);
-    },
-    enabled: !!user,
-  });
+  const { data: decayContacts, isLoading } = useDecayContacts();
 
   const handleEmail = (email: string, name: string) => {
     window.location.href = `mailto:${email}?subject=Hey ${name.split(' ')[0]}!`;

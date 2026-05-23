@@ -12,30 +12,13 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { useBiometricStats, usePendingMatches } from '@/hooks/useBiometricMatching';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useTotalActiveContactsCount } from '@/hooks/contacts/useTotalContactsCount';
 import { Link } from 'react-router-dom';
 
 export function BiometricStatusWidget() {
-  const { user } = useAuth();
   const { data: stats, isLoading: loadingStats } = useBiometricStats();
   const { data: pendingMatches = [], isLoading: loadingPending } = usePendingMatches();
-
-  // Get total contact count
-  const { data: totalContacts = 0 } = useQuery({
-    queryKey: ['total-contacts-count', user?.id],
-    queryFn: async () => {
-      if (!user) return 0;
-      const { count } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('is_active', true);
-      return count || 0;
-    },
-    enabled: !!user
-  });
+  const { data: totalContacts = 0 } = useTotalActiveContactsCount();
 
   if (loadingStats || loadingPending) {
     return (

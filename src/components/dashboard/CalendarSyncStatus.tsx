@@ -1,6 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useCalendarSyncStatus } from '@/hooks/calendar/useCalendarSyncStatus';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,57 +8,8 @@ import { formatDistanceToNow, addMinutes, format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 
 export function CalendarSyncStatus() {
-  const { user } = useAuth();
   const navigate = useNavigate();
-
-  const { data: syncStatus, isLoading } = useQuery({
-    queryKey: ['calendar-sync-status', user?.id],
-    queryFn: async () => {
-      // Fetch Google Calendar config
-      const { data: googleConfig } = await supabase
-        .from('google_calendar_config' as any)
-        .select('updated_at, auto_sync_enabled, sync_interval_minutes, calendar_ids')
-        .eq('user_id', user!.id)
-        .maybeSingle() as any;
-
-      // Fetch Outlook config
-      const { data: outlookConfig } = await supabase
-        .from('oauth_tokens' as any)
-        .select('updated_at, auto_sync_enabled, sync_interval_minutes')
-        .eq('user_id', user!.id)
-        .eq('provider', 'outlook')
-        .maybeSingle() as any;
-
-      const connectedCalendars = [];
-      
-      if (googleConfig) {
-        connectedCalendars.push({
-          provider: 'Google Calendar',
-          lastSync: googleConfig.updated_at,
-          autoSync: googleConfig.auto_sync_enabled ?? true,
-          interval: googleConfig.sync_interval_minutes || 60,
-          calendarCount: googleConfig.calendar_ids?.length || 1,
-        });
-      }
-
-      if (outlookConfig) {
-        connectedCalendars.push({
-          provider: 'Outlook Calendar',
-          lastSync: outlookConfig.updated_at,
-          autoSync: outlookConfig.auto_sync_enabled ?? true,
-          interval: outlookConfig.sync_interval_minutes || 60,
-          calendarCount: 1,
-        });
-      }
-
-      return {
-        calendars: connectedCalendars,
-        totalConnected: connectedCalendars.length,
-      };
-    },
-    enabled: !!user,
-    refetchInterval: 60000, // Refresh every minute
-  });
+  const { data: syncStatus, isLoading } = useCalendarSyncStatus();
 
   if (isLoading) {
     return (

@@ -1,51 +1,12 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
-interface GroupWithCount {
-  id: string;
-  name: string;
-  description: string | null;
-  color: string | null;
-  memberCount: number;
-}
+import { useContactGroupsWithCounts } from '@/hooks/contacts/useContactGroupsWithCounts';
 
 export function ContactGroupsWidget() {
-  const { user } = useAuth();
-
-  const { data: groups, isLoading } = useQuery({
-    queryKey: ['contact-groups-with-counts', user?.id],
-    queryFn: async () => {
-      const { data: groupsData, error: groupsError } = await supabase
-        .from('contact_groups')
-        .select('*')
-        .order('name');
-      
-      if (groupsError) throw groupsError;
-
-      const { data: membersData, error: membersError } = await supabase
-        .from('contact_group_members')
-        .select('group_id');
-      
-      if (membersError) throw membersError;
-
-      const counts = membersData.reduce((acc, m) => {
-        acc[m.group_id] = (acc[m.group_id] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-      return groupsData.map(g => ({
-        ...g,
-        memberCount: counts[g.id] || 0,
-      })) as GroupWithCount[];
-    },
-    enabled: !!user,
-  });
+  const { data: groups, isLoading } = useContactGroupsWithCounts();
 
   if (isLoading) {
     return (
