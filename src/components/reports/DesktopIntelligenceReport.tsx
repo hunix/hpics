@@ -344,7 +344,7 @@ export function DesktopIntelligenceReport({
               {(reportData?.preferences?.length ?? 0) > 0 ? (
                 <ScrollArea className="h-[200px]">
                   <div className="space-y-2">
-                    {reportData.preferences.slice(0, 10).map((pref: any) => (
+                    {reportData!.preferences!.slice(0, 10).map((pref: any) => (
                       <div
                         key={pref.id}
                         className="flex items-start justify-between gap-2 p-2 rounded-lg hover:bg-muted/50"
@@ -426,7 +426,7 @@ export function DesktopIntelligenceReport({
             <CardContent>
               {(reportData?.predictions?.length ?? 0) > 0 ? (
                 <div className="space-y-2">
-                  {reportData.predictions.slice(0, 5).map((pred: any) => (
+                  {reportData!.predictions!.slice(0, 5).map((pred: any) => (
                     <div
                       key={pred.id}
                       className={cn(
@@ -469,7 +469,7 @@ export function DesktopIntelligenceReport({
               {(reportData?.behavioralAnalyses?.length ?? 0) > 0 ? (
                 <ScrollArea className="h-[150px]">
                   <div className="space-y-2">
-                    {reportData.behavioralAnalyses.slice(0, 5).map((analysis: any, idx: number) => (
+                    {reportData!.behavioralAnalyses!.slice(0, 5).map((analysis: any, idx: number) => (
                       <div key={idx} className="text-sm border-l-2 border-primary/30 pl-2">
                         <p className="line-clamp-2">{analysis.result?.summary || 'Behavioral analysis'}</p>
                         <p className="text-xs text-muted-foreground mt-1">

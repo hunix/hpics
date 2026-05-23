@@ -415,11 +415,11 @@ export default function SocialIntelligenceDashboard() {
                         </div>
                         <p className="text-sm text-muted-foreground">
                           {job.scrape_type} • {job.items_scraped || 0} items
-                          {job.cost_cents > 0 && ` • $${(job.cost_cents / 100).toFixed(3)}`}
+                          {(job.cost_cents ?? 0) > 0 && ` • $${((job.cost_cents ?? 0) / 100).toFixed(3)}`}
                         </p>
                       </div>
                       <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
+                        {formatDistanceToNow(new Date(job.created_at ?? Date.now()), { addSuffix: true })}
                       </span>
                     </div>
                   ))}

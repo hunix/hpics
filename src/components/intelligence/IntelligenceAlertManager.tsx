@@ -193,7 +193,7 @@ export function IntelligenceAlertManager() {
                       <Label>Days Silent Threshold</Label>
                       <Input
                         type="number"
-                        value={newRule.conditions.days_silent || 14}
+                        value={(newRule.conditions.days_silent as number | undefined) || 14}
                         onChange={e => updateConditions('days_silent', parseInt(e.target.value))}
                       />
                     </div>
@@ -203,7 +203,7 @@ export function IntelligenceAlertManager() {
                       <Label>Sentiment Drop Threshold (%)</Label>
                       <Input
                         type="number"
-                        value={newRule.conditions.sentiment_drop || 30}
+                        value={(newRule.conditions.sentiment_drop as number | undefined) || 30}
                         onChange={e => updateConditions('sentiment_drop', parseInt(e.target.value))}
                       />
                     </div>
@@ -212,7 +212,7 @@ export function IntelligenceAlertManager() {
                     <div className="space-y-2">
                       <Label>Keywords (comma-separated)</Label>
                       <Input
-                        value={(newRule.conditions.keywords || []).join(', ')}
+                        value={((newRule.conditions.keywords as string[] | undefined) || []).join(', ')}
                         onChange={e => updateConditions('keywords', e.target.value.split(',').map(k => k.trim()))}
                         placeholder="urgent, lawsuit, problem"
                       />

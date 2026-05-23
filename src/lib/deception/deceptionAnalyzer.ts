@@ -398,9 +398,9 @@ export function analyzeVocalDeception(
   
   // Establish baseline if not provided
   const effectiveBaseline = baseline || {
-    avgPitch: vocalData.pitchData?.reduce((a, b) => a + b.value, 0) / (vocalData.pitchData?.length || 1) || 150,
-    avgSpeechRate: vocalData.speechRate?.reduce((a, b) => a + b.wordsPerMinute, 0) / (vocalData.speechRate?.length || 1) || 130,
-    avgPauseLength: vocalData.pauses?.reduce((a, b) => a + b.duration, 0) / (vocalData.pauses?.length || 1) || 400
+    avgPitch:       (vocalData.pitchData?.reduce((a, b) => a + b.value, 0) ?? 0) / (vocalData.pitchData?.length || 1) || 150,
+    avgSpeechRate:  (vocalData.speechRate?.reduce((a, b) => a + b.wordsPerMinute, 0) ?? 0) / (vocalData.speechRate?.length || 1) || 130,
+    avgPauseLength: (vocalData.pauses?.reduce((a, b) => a + b.duration, 0) ?? 0) / (vocalData.pauses?.length || 1) || 400,
   };
   
   // Analyze pitch variations

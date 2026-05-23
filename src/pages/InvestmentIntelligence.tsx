@@ -169,9 +169,9 @@ export default function InvestmentIntelligence() {
           <StatCard
             title="Market Sentiment"
             value={((dashboardData?.stats.overallSentiment || 0) * 100).toFixed(0)}
-            subtitle={dashboardData?.stats.overallSentiment > 0 ? 'Bullish' : 'Bearish'}
-            icon={dashboardData?.stats.overallSentiment > 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-            color={dashboardData?.stats.overallSentiment > 0 ? 'emerald' : 'rose'}
+            subtitle={(dashboardData?.stats.overallSentiment ?? 0) > 0 ? 'Bullish' : 'Bearish'}
+            icon={(dashboardData?.stats.overallSentiment ?? 0) > 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+            color={(dashboardData?.stats.overallSentiment ?? 0) > 0 ? 'emerald' : 'rose'}
             isLoading={isDashboardLoading}
           />
           <StatCard
