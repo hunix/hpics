@@ -39,7 +39,7 @@ function PsychologicalProfile({ data }: { data: ExtendedDossierData }) {
         </>
       )}
       
-      {attachment.primary_style && (
+      {Boolean(attachment.primary_style) && (
         <DataBox variant="info" title="Attachment Style">
           <KeyValueRow label="Primary Style" value={String(attachment.primary_style)} variant="bold" />
           <KeyValueRow label="Anxiety Score" value={`${attachment.anxiety_score || 0}%`} />
@@ -98,7 +98,7 @@ function Relationship({ data }: { data: ExtendedDossierData }) {
         { label: 'Trajectory', value: String(rel.trajectory || 'Stable') },
       ]} columns={3} />
       
-      {rel.recommendations && (
+      {Boolean(rel.recommendations) && (
         <>
           <SectionSubheader>Recommendations</SectionSubheader>
           <InsightList items={rel.recommendations as string[]} />

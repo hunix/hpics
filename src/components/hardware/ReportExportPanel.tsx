@@ -46,12 +46,13 @@ const statusConfig = {
 
 export function ReportExportPanel() {
   const {
-    reports,
+    reports: rawReports,
     isLoading,
     generateReport,
     isGenerating,
     downloadReport
   } = useReportGeneration();
+  const reports = rawReports ?? [];
 
   const [reportType, setReportType] = useState<string>('daily_summary');
   const [reportFormat, setReportFormat] = useState<'pdf' | 'csv' | 'json'>('pdf');
