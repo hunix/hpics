@@ -26,6 +26,11 @@ const AI_BASE_URL  = 'https://ai.gateway.lovable.dev/v1';
 const DEFAULT_MODEL = 'google/gemini-2.5-pro';
 const MAX_STEPS_DEFAULT = 10;
 const MAX_STEPS_HARD    = 25;
+const MAX_GOAL_LENGTH   = 5_000;
+// Hard ceiling per run, regardless of step budget. Beyond this we mark the
+// run failed so the UI stops polling — paired with the agent_runs_reap_stale
+// pg_cron job for defense in depth.
+const RUN_HARD_TIMEOUT_MS = 5 * 60 * 1000;
 
 // ─── Tool registry ──────────────────────────────────────────────────────────
 
@@ -425,6 +430,9 @@ serve(async (req: Request) => {
     const auth = await validateAuth(req, body as Record<string, unknown>);
     if (auth.error || !auth.userId) return errorResponse(auth.error || 'Unauthorized', 401);
     if (!body.goal || typeof body.goal !== 'string') return errorResponse('goal is required', 400);
+    if (body.goal.length > MAX_GOAL_LENGTH) {
+      return errorResponse(`goal too long (max ${MAX_GOAL_LENGTH} chars)`, 413);
+    }
 
     const authHeader = req.headers.get('Authorization') || '';
     const model = body.model || DEFAULT_MODEL;
@@ -433,14 +441,34 @@ serve(async (req: Request) => {
     const runId = await createRun(supabase, auth.userId, body.goal, body.profileId ?? null, model);
     const ctx: ToolCtx = { userId: auth.userId, supabase, authHeader, supabaseUrl };
 
-    // Fire and forget the loop; client polls /:runId.
+    // Fire-and-forget loop with a hard in-process timeout and a try/finally
+    // that ALWAYS finalizes the run. Paired with the agent_runs_reap_stale
+    // pg_cron job (phase10 migration) for the case where Deno kills the
+    // function before the IIFE can resolve.
     (async () => {
+      let finalized = false;
+      const finalize = async (status: 'completed' | 'failed', answer: string | null, steps: number) => {
+        if (finalized) return;
+        finalized = true;
+        await finalizeRun(supabase, runId, status, answer, steps);
+      };
       try {
-        const result = await runAgentLoop({ ctx, runId, goal: body.goal!, profileId: body.profileId ?? null, model, maxSteps });
-        await finalizeRun(supabase, runId, result.status, result.finalAnswer, result.stepCount);
+        const loopPromise = runAgentLoop({
+          ctx, runId, goal: body.goal!, profileId: body.profileId ?? null, model, maxSteps,
+        });
+        const timeoutPromise = new Promise<{ status: 'failed'; finalAnswer: string; stepCount: number }>((resolve) =>
+          setTimeout(() => resolve({ status: 'failed', finalAnswer: 'Run exceeded hard timeout', stepCount: 0 }), RUN_HARD_TIMEOUT_MS),
+        );
+        const result = await Promise.race([loopPromise, timeoutPromise]);
+        await finalize(result.status, result.finalAnswer, result.stepCount);
       } catch (err) {
         console.error('[intel-agent] loop crashed', err);
-        await finalizeRun(supabase, runId, 'failed', err instanceof Error ? err.message : 'unknown error', 0);
+        await finalize('failed', err instanceof Error ? err.message : 'unknown error', 0);
+      } finally {
+        // Last-resort safety net in case both branches above somehow skipped.
+        if (!finalized) {
+          await finalizeRun(supabase, runId, 'failed', 'Run terminated without final state', 0).catch(() => {});
+        }
       }
     })();
 

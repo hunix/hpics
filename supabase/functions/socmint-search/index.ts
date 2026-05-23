@@ -20,6 +20,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import { jsonResponse, errorResponse, optionsResponse, healthCheckResponse } from '../_shared/http-helpers.ts';
 import { validateAuth } from '../_shared/auth-handler.ts';
+import { assertSafeUrlResolved, SSRFError } from '../_shared/safe-fetch.ts';
 
 interface Hit {
   source: 'reddit' | 'github' | 'mastodon' | 'bluesky' | 'youtube' | 'rss';
@@ -209,6 +210,18 @@ async function searchRSS(query: string, limit: number, userId: string): Promise<
 
   for (const feed of feeds) {
     try {
+      // Defense in depth: even though feed URLs should have been validated at
+      // insert time, re-check here in case the row was inserted via a path
+      // that skipped validation.
+      try {
+        await assertSafeUrlResolved(feed.url);
+      } catch (err) {
+        if (err instanceof SSRFError) {
+          console.warn('[socmint-search] skipping blocked feed', feed.url);
+          continue;
+        }
+        throw err;
+      }
       const xmlRes = await fetch(feed.url, { headers: { 'User-Agent': UA } });
       if (!xmlRes.ok) continue;
       const xml = await xmlRes.text();

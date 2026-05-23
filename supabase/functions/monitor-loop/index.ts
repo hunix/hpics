@@ -25,6 +25,12 @@ import { jsonResponse, errorResponse, optionsResponse, healthCheckResponse } fro
 import { validateAuth } from '../_shared/auth-handler.ts';
 
 const STAGE_TIMEOUT_MS = 25_000;
+// Cap fan-out per user per tick to bound external-API spend and avoid a
+// situation where a user with hundreds of watch terms drowns the cron.
+const MAX_TERMS_PER_TICK   = 5;
+const MAX_BREACH_PER_TICK  = 25;
+// Process terms in batches rather than firing all in parallel.
+const TERM_BATCH_SIZE      = 3;
 
 async function withTimeout<T>(label: string, p: Promise<T>): Promise<T | { error: string }> {
   return Promise.race([
@@ -67,27 +73,46 @@ async function runForUser(opts: {
   const stages: Record<string, unknown> = {};
 
   // Pull terms once and share between news + socmint stages.
+  // Cap so a user with 100 watch terms can't drown the cron.
   const { data: termRows } = await supabase
     .from('intel_watch_terms')
     .select('term, profile_id')
     .eq('user_id', userId)
     .eq('enabled', true)
-    .limit(20);
+    .limit(MAX_TERMS_PER_TICK);
   const terms = (termRows ?? []) as Array<{ term: string; profile_id: string | null }>;
+
+  // Helper: process a list of async-producing functions in small batches so
+  // parallelism is bounded.
+  async function bounded<T>(items: T[], batchSize: number, fn: (item: T) => Promise<unknown>): Promise<unknown[]> {
+    const out: unknown[] = [];
+    for (let i = 0; i < items.length; i += batchSize) {
+      const slice = items.slice(i, i + batchSize);
+      const results = await Promise.allSettled(slice.map(fn));
+      for (const r of results) {
+        out.push(r.status === 'fulfilled' ? r.value : { error: String(r.reason) });
+      }
+    }
+    return out;
+  }
 
   if (news) {
     stages.news = await withTimeout('news',
-      Promise.all(terms.map(t => invokeFn(supabaseUrl, serviceKey, 'search-news', { query: t.term, userId, persistAlerts: true })))
+      bounded(terms, TERM_BATCH_SIZE, (t) =>
+        invokeFn(supabaseUrl, serviceKey, 'search-news', { query: t.term, userId, persistAlerts: true }),
+      ),
     );
   }
 
-  // SOCMINT (Reddit/GitHub/Mastodon)
+  // SOCMINT (Reddit / GitHub / Mastodon / Bluesky / YouTube / RSS)
   stages.socmint = await withTimeout('socmint',
-    Promise.all(terms.map(t => invokeFn(supabaseUrl, serviceKey, 'socmint-search', {
-      query: t.term,
-      profileId: t.profile_id,
-      limit: 25,
-    }))),
+    bounded(terms, TERM_BATCH_SIZE, (t) =>
+      invokeFn(supabaseUrl, serviceKey, 'socmint-search', {
+        query: t.term,
+        profileId: t.profile_id,
+        limit: 25,
+      }),
+    ),
   );
 
   if (telegram) {
@@ -104,7 +129,7 @@ async function runForUser(opts: {
       .select('value, profile_id')
       .eq('contact_type', 'email')
       .gte('updated_at', since)
-      .limit(50);
+      .limit(MAX_BREACH_PER_TICK);
     const checks = (methods ?? []).map(m =>
       invokeFn(supabaseUrl, serviceKey, 'breach-monitor', { email: m.value, profileId: m.profile_id, userId }),
     );

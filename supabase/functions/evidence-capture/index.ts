@@ -25,6 +25,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import { jsonResponse, errorResponse, optionsResponse, healthCheckResponse } from '../_shared/http-helpers.ts';
 import { validateAuth } from '../_shared/auth-handler.ts';
+import { assertSafeUrlResolved, SSRFError } from '../_shared/safe-fetch.ts';
 
 const EVIDENCE_BUCKET = 'evidence';
 
@@ -42,20 +43,40 @@ interface FetchResult {
   htmlSha256: string;
 }
 
+const MAX_REDIRECTS = 5;
+
+// Manual redirect chasing so each hop is SSRF-validated. fetch()'s automatic
+// redirect-follow would let a public domain bounce us into 169.254.169.254.
 async function fetchPage(url: string): Promise<FetchResult> {
-  const res = await fetch(url, {
-    redirect: 'follow',
-    headers: {
-      'User-Agent': 'hpics-evidence-capture/1.0 (preservation; investigator)',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    },
-  });
+  let currentUrl = url;
+  let res: Response | null = null;
+  const reqHeaders: HeadersInit = {
+    'User-Agent': 'hpics-evidence-capture/1.0 (preservation; investigator)',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  };
+
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    await assertSafeUrlResolved(currentUrl);
+    res = await fetch(currentUrl, { redirect: 'manual', headers: reqHeaders });
+    if (res.status >= 300 && res.status < 400) {
+      const loc = res.headers.get('location');
+      if (!loc) break;
+      currentUrl = new URL(loc, currentUrl).toString();
+      if (hop === MAX_REDIRECTS) {
+        throw new Error('too many redirects');
+      }
+      continue;
+    }
+    break;
+  }
+  if (!res) throw new Error('no response');
+
   const html = await res.text();
   const headers: Record<string, string> = {};
   res.headers.forEach((v, k) => { headers[k] = v; });
   return {
     status: res.status,
-    finalUrl: res.url,
+    finalUrl: currentUrl,
     headers,
     html,
     htmlSha256: await sha256(html),
@@ -137,11 +158,15 @@ serve(async (req: Request) => {
   if (auth.error || !auth.userId) return errorResponse(auth.error || 'Unauthorized', 401);
   if (!body.url) return errorResponse('url is required', 400);
 
-  let parsed: URL;
-  try { parsed = new URL(body.url); }
-  catch { return errorResponse('invalid url', 400); }
-  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    return errorResponse('only http(s) urls are accepted', 400);
+  // SSRF guard: reject loopback / link-local / RFC1918 / cloud-metadata
+  // before we hand the URL to fetch().
+  try {
+    await assertSafeUrlResolved(body.url);
+  } catch (err) {
+    if (err instanceof SSRFError) {
+      return errorResponse('Blocked URL', 400);
+    }
+    return errorResponse('invalid url', 400);
   }
 
   const captureId = crypto.randomUUID();

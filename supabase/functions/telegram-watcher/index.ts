@@ -75,10 +75,12 @@ serve(async (req: Request) => {
   const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase    = createClient(supabaseUrl, serviceKey);
 
-  // Pull configured channels (limited to caller).
+  // Pull configured channels (limited to caller). We read `version` so the
+  // per-channel offset write can use optimistic concurrency control —
+  // concurrent invocations cannot clobber each other.
   const { data: channels } = await supabase
     .from('telegram_watch_channels')
-    .select('id, channel_chat_id, channel_username, last_update_id, enabled')
+    .select('id, channel_chat_id, channel_username, last_update_id, version, enabled')
     .eq('user_id', auth.userId)
     .eq('enabled', true);
 
@@ -146,12 +148,32 @@ serve(async (req: Request) => {
       );
     }
 
-    // Advance per-channel offset.
+    // Advance per-channel offset with optimistic concurrency: only succeed
+    // if our cached `version` is still the current one. Concurrent watchers
+    // therefore can't clobber each other; the later writer just sees no row
+    // matched and skips.
     if (u.update_id > Number(channel.last_update_id ?? 0)) {
-      await supabase.from('telegram_watch_channels')
-        .update({ last_update_id: u.update_id, last_polled_at: new Date().toISOString() })
-        .eq('id', channel.id);
-      channel.last_update_id = u.update_id;
+      const currentVersion = Number(channel.version ?? 0);
+      const { data: updated, error: updErr } = await supabase
+        .from('telegram_watch_channels')
+        .update({
+          last_update_id: u.update_id,
+          last_polled_at: new Date().toISOString(),
+          version: currentVersion + 1,
+        })
+        .eq('id', channel.id)
+        .eq('version', currentVersion)
+        .select('id, version')
+        .maybeSingle();
+      if (!updErr && updated) {
+        channel.last_update_id = u.update_id;
+        channel.version = updated.version;
+      } else {
+        // A concurrent invocation already advanced this channel; bail out and
+        // let the next tick re-fetch from the server-side cursor.
+        console.warn('[telegram-watcher] CAS lost for channel', channel.id);
+        break;
+      }
     }
   }
 
