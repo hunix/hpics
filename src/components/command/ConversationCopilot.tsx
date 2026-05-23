@@ -79,10 +79,11 @@ export function ConversationCopilot() {
   const saveFeedback = useMutation({
     mutationFn: async ({ suggestionId, isPositive }: { suggestionId: string; isPositive: boolean }) => {
       // Store feedback in app_settings as a simple key-value store
+      if (!user?.id) throw new Error('not authenticated');
       const { error } = await supabase
         .from('app_settings')
         .upsert({
-          user_id: user?.id,
+          user_id: user.id,
           setting_key: `copilot_feedback_${suggestionId}`,
           setting_value: isPositive ? 'positive' : 'negative',
           metadata: { 

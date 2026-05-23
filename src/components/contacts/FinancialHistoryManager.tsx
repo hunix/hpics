@@ -104,12 +104,13 @@ export function FinancialHistoryManager({ profileId }: FinancialHistoryManagerPr
           .eq('id', editingTransaction.id);
         if (error) throw error;
       } else {
+        if (!user?.id) throw new Error('not authenticated');
         const { error } = await supabase
           .from('contact_financial_history')
           .insert({
             ...payload,
             profile_id: profileId,
-            user_id: user?.id,
+            user_id: user.id,
           });
         if (error) throw error;
       }

@@ -437,9 +437,9 @@ export function ChromeExtensionPanel({ className }: ChromeExtensionPanelProps) {
                           </p>
                         </div>
                         <div className="text-right shrink-0">
-                          {getStatusBadge(session.status)}
+                          {getStatusBadge(session.status ?? '')}
                           <p className="text-[10px] text-muted-foreground mt-0.5">
-                            {formatDistanceToNow(new Date(session.created_at), { addSuffix: true })}
+                            {formatDistanceToNow(new Date(session.created_at ?? Date.now()), { addSuffix: true })}
                           </p>
                         </div>
                       </div>

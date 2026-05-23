@@ -159,7 +159,7 @@ export function ConversationsManager({ profileId, profileName }: ConversationsMa
                       <Badge variant="outline" className="text-xs py-0">
                         {convo.message_count?.toLocaleString()} messages
                       </Badge>
-                      <span>{formatDistanceToNow(new Date(convo.last_message_at), { addSuffix: true })}</span>
+                      <span>{formatDistanceToNow(new Date(convo.last_message_at ?? Date.now()), { addSuffix: true })}</span>
                     </div>
                   </div>
                 </div>

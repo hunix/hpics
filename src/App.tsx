@@ -16,8 +16,10 @@ import { lazyWithRetry } from "@/lib/chunkErrorHandler";
 import { SessionTimeoutProvider } from "@/components/providers/SessionTimeoutProvider";
 import { DIProvider } from "@/infrastructure/di/DIContext";
 
-// ALL pages lazy-loaded for optimal initial bundle size
-const Index = lazyWithRetry(() => import("./pages/Index"));
+// ALL pages lazy-loaded for optimal initial bundle size.
+// Index uses forwardRef so its default export doesn't match the
+// `ComponentType<unknown>` generic on lazyWithRetry; cast at the import.
+const Index = lazyWithRetry(() => import("./pages/Index") as unknown as Promise<{ default: React.ComponentType<unknown> }>);
 const Auth = lazyWithRetry(() => import("./pages/Auth"));
 const Dashboard = lazyWithRetry(() => import("./pages/Dashboard"));
 const Contacts = lazyWithRetry(() => import("./pages/Contacts"));

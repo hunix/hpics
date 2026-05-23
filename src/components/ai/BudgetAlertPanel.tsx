@@ -91,10 +91,11 @@ export function BudgetAlertPanel() {
   // Update settings mutation
   const updateSettings = useMutation({
     mutationFn: async (newSettings: BudgetSettings) => {
+      if (!user?.id) throw new Error('not authenticated');
       const { error } = await supabase
         .from('user_preferences')
         .upsert({
-          user_id: user?.id,
+          user_id: user.id,
           ai_budget_daily_limit_cents: newSettings.daily_limit_cents,
           ai_budget_weekly_limit_cents: newSettings.weekly_limit_cents,
           ai_budget_monthly_limit_cents: newSettings.monthly_limit_cents,

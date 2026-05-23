@@ -82,12 +82,13 @@ export function BankAccountsManager({ profileId }: BankAccountsManagerProps) {
           .eq('id', editingAccount.id);
         if (error) throw error;
       } else {
+        if (!user?.id) throw new Error('not authenticated');
         const { error } = await supabase
           .from('contact_bank_accounts')
           .insert({
             ...data,
             profile_id: profileId,
-            user_id: user?.id,
+            user_id: user.id,
           });
         if (error) throw error;
       }
