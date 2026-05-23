@@ -9,9 +9,13 @@ import { Separator } from '@/components/ui/separator';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { invokeFunction } from '@/lib/api';
+import {
+  loadWearableSyncSettings,
+  saveWearableSyncSettings,
+  loadLastWearableSync,
+} from '@/hooks/devices/useWearableSync';
 
 interface WearableDevice {
   id: string;
@@ -62,15 +66,8 @@ export function WearableSyncSettings({ className }: WearableSyncSettingsProps) {
 
   const loadSettings = async () => {
     try {
-      const { data, error } = await supabase
-        .from('app_settings')
-        .select('setting_value')
-        .eq('setting_key', 'wearable_sync_settings')
-        .single();
-
-      if (data?.setting_value) {
-        setSettings(JSON.parse(data.setting_value));
-      }
+      const loaded = await loadWearableSyncSettings<SyncSettings>();
+      if (loaded) setSettings(loaded);
     } catch (error) {
       console.error('Failed to load settings:', error);
     }
@@ -109,33 +106,16 @@ export function WearableSyncSettings({ className }: WearableSyncSettingsProps) {
 
   const loadLastSync = async () => {
     try {
-      const { data, error } = await supabase
-        .from('device_sync_log')
-        .select('synced_at')
-        .in('device_type', ['galaxy_watch_ultra', 'galaxy_watch_7', 'apple_watch'])
-        .order('synced_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (data) {
-        setLastSyncTime(data.synced_at);
-      }
-    } catch (error) {
+      const lastSync = await loadLastWearableSync();
+      if (lastSync) setLastSyncTime(lastSync);
+    } catch {
       // No sync history yet
     }
   };
 
   const saveSettings = async (newSettings: SyncSettings) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      await supabase.from('app_settings').upsert({
-        user_id: user.id,
-        setting_key: 'wearable_sync_settings',
-        setting_value: JSON.stringify(newSettings),
-      });
-
+      await saveWearableSyncSettings(newSettings);
       setSettings(newSettings);
       toast({
         title: 'Settings Saved',

@@ -9,24 +9,17 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { invokeFunction } from '@/lib/api';
+import {
+  fetchNFCTags,
+  fetchAllProfilesMinimal,
+  insertNFCTag,
+  deleteNFCTag as deleteNFCTagRow,
+  type NFCTagRow,
+} from '@/hooks/devices/useNFCTags';
 
-interface NFCTag {
-  id: string;
-  tag_id: string;
-  contact_id: string | null;
-  tag_label: string;
-  created_at: string;
-  contact?: {
-    id: string;
-    first_name: string;
-    last_name: string;
-  };
-  tap_count?: number;
-  last_tapped?: string;
-}
+type NFCTag = NFCTagRow;
 
 interface NFCTagManagerProps {
   className?: string;
@@ -57,23 +50,7 @@ export function NFCTagManager({ className, onTagTapped }: NFCTagManagerProps) {
   const loadTags = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('nfc_tags')
-        .select(`
-          *,
-          profiles:contact_id (id, first_name, last_name)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Transform data
-      const transformedTags = (data || []).map((tag: any) => ({
-        ...tag,
-        contact: tag.profiles,
-      }));
-
-      setTags(transformedTags);
+      setTags(await fetchNFCTags());
     } catch (error) {
       console.error('Failed to load NFC tags:', error);
       toast({
@@ -88,13 +65,7 @@ export function NFCTagManager({ className, onTagTapped }: NFCTagManagerProps) {
 
   const loadContacts = async () => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name')
-        .order('first_name');
-
-      if (error) throw error;
-      setContacts(data || []);
+      setContacts(await fetchAllProfilesMinimal());
     } catch (error) {
       console.error('Failed to load contacts:', error);
     }
@@ -202,18 +173,11 @@ export function NFCTagManager({ className, onTagTapped }: NFCTagManagerProps) {
 
     try {
       const tagId = scannedTagId || `manual-${Date.now()}`;
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      const { error } = await supabase.from('nfc_tags').insert({
-        user_id: user.id,
-        tag_id: tagId,
-        tag_label: newTag.label,
-        contact_id: newTag.contactId || null,
+      await insertNFCTag({
+        tagId,
+        tagLabel: newTag.label,
+        contactId: newTag.contactId || null,
       });
-
-      if (error) throw error;
 
       toast({
         title: 'Tag Saved',
@@ -236,12 +200,7 @@ export function NFCTagManager({ className, onTagTapped }: NFCTagManagerProps) {
 
   const deleteTag = async (tagId: string) => {
     try {
-      const { error } = await supabase
-        .from('nfc_tags')
-        .delete()
-        .eq('id', tagId);
-
-      if (error) throw error;
+      await deleteNFCTagRow(tagId);
 
       toast({
         title: 'Tag Deleted',
