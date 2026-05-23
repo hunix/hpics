@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  useCommandCenterJobStats,
+  useCommandCenterRecentEvents,
+  useCommandCenterSystemHealth,
+  useCommandCenterAggregates,
+} from "@/hooks/intelligence/useCommandCenterData";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -34,103 +39,16 @@ import { DataRetentionManager } from "@/components/intelligence/DataRetentionMan
 import { SourceAssetRegistry } from "@/components/intelligence/SourceAssetRegistry";
 import { CrossModalCorrelationViewer } from "@/components/intelligence/CrossModalCorrelationViewer";
 
-interface JobStats {
-  total: number;
-  pending: number;
-  processing: number;
-  completed: number;
-  failed: number;
-}
-
 export default function IntelligenceCommandCenter() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [selectedTab, setSelectedTab] = useState("overview");
   const [isAutoRefresh, setIsAutoRefresh] = useState(true);
 
-  // Fetch job statistics
-  const { data: jobStats, isLoading: jobsLoading } = useQuery({
-    queryKey: ["intelligence-jobs-stats", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      
-      const { data, error } = await supabase
-        .from("orchestrator_jobs")
-        .select("status")
-        .eq("user_id", user.id);
-      
-      if (error) throw error;
-      
-      const stats: JobStats = {
-        total: data?.length || 0,
-        pending: data?.filter(j => j.status === "registered" || j.status === "queued").length || 0,
-        processing: data?.filter(j => j.status === "processing").length || 0,
-        completed: data?.filter(j => j.status === "completed").length || 0,
-        failed: data?.filter(j => j.status === "failed").length || 0,
-      };
-      
-      return stats;
-    },
-    enabled: !!user?.id,
-    refetchInterval: isAutoRefresh ? 5000 : false,
-  });
-
-  // Fetch recent events
-  const { data: recentEvents, isLoading: eventsLoading } = useQuery({
-    queryKey: ["intelligence-recent-events", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      
-      const { data, error } = await supabase
-        .from("analysis_events")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(50);
-      
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!user?.id,
-    refetchInterval: isAutoRefresh ? 5000 : false,
-  });
-
-  // Fetch system health
-  const { data: systemHealth, isLoading: healthLoading } = useQuery({
-    queryKey: ["intelligence-system-health", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [] as Array<{ component: string; status: string | null; last_heartbeat: string | null; metrics: unknown }>;
-      
-       const { data, error } = await (supabase as any)
-        .from("system_health")
-        .select("component, status, last_heartbeat")
-        .eq("user_id", user.id);
-      
-      if (error) throw error;
-      return ((data || []) as any[]).map((d: any) => ({ ...d, metrics: null }));
-    },
-    enabled: !!user?.id,
-    refetchInterval: isAutoRefresh ? 10000 : false,
-  });
-
-  // Fetch aggregates summary
-  const { data: aggregates, isLoading: aggregatesLoading } = useQuery({
-    queryKey: ["intelligence-aggregates", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      
-      const { data, error } = await supabase
-        .from("analysis_aggregates")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("updated_at", { ascending: false })
-        .limit(20);
-      
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!user?.id,
-  });
+  const { data: jobStats, isLoading: jobsLoading } = useCommandCenterJobStats(isAutoRefresh);
+  const { data: recentEvents, isLoading: eventsLoading } = useCommandCenterRecentEvents(isAutoRefresh);
+  const { data: systemHealth, isLoading: healthLoading } = useCommandCenterSystemHealth(isAutoRefresh);
+  const { data: aggregates, isLoading: aggregatesLoading } = useCommandCenterAggregates();
 
   const getStatusColor = (status: string) => {
     switch (status) {

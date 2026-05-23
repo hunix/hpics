@@ -5,9 +5,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useProfilesForGuide } from '@/hooks/profiles/useProfilesForGuide';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,21 +37,7 @@ export default function DataCollectionGuide() {
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
 
   // Fetch user's profiles for selection - uses auth context to avoid race condition
-  const { data: profiles, isLoading: profilesLoading, error: profilesError } = useQuery({
-    queryKey: ['profiles-for-guide', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, avatar_url, organization')
-        .eq('user_id', user!.id)
-        .eq('is_active', true)
-        .order('first_name')
-        .limit(200);
-      
-      return data || [];
-    },
-    enabled: !authLoading && !!user?.id,
-  });
+  const { data: profiles, isLoading: profilesLoading, error: profilesError } = useProfilesForGuide(200);
 
   // Fetch data collection status for selected profile
   const { data: collectionStatus, isLoading: statusLoading } = useDataCollectionStatus(selectedProfileId);

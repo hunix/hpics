@@ -7,9 +7,13 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { useQuery } from '@tanstack/react-query';
+import {
+  pingDatabase,
+  useSystemAggregateMetrics,
+  useEdgeFunctionHealthLogs,
+  useAGISGlobalHealth,
+  useRecentSystemActivity,
+} from '@/hooks/system/useSystemMetrics';
 import { 
   Activity, CheckCircle2, XCircle, AlertTriangle, RefreshCw, Database, 
   Cpu, Globe, Zap, Clock, TrendingUp, Server, Shield, Heart,
@@ -84,20 +88,13 @@ function DatabaseStatus() {
 
   const checkDatabase = async () => {
     setDbStatus('checking');
-    const start = performance.now();
     try {
-      const { error } = await supabase.from('platform_config').select('config_key').limit(1);
-      const elapsed = performance.now() - start;
-      setLatency(Math.round(elapsed));
+      const { ok, latencyMs } = await pingDatabase();
+      setLatency(latencyMs);
       setLastCheck(new Date());
-      
-      if (error) {
-        setDbStatus('error');
-      } else if (elapsed > 500) {
-        setDbStatus('degraded');
-      } else {
-        setDbStatus('healthy');
-      }
+      if (!ok) setDbStatus('error');
+      else if (latencyMs > 500) setDbStatus('degraded');
+      else setDbStatus('healthy');
     } catch {
       setDbStatus('error');
       setLatency(null);
@@ -151,21 +148,7 @@ function DatabaseStatus() {
 
 // Edge Function Status Component
 function EdgeFunctionStatus() {
-  const { user } = useAuth();
-
-  const { data: functionLogs, isLoading, refetch } = useQuery({
-    queryKey: ['edge-function-health', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('ai_usage_logs')
-        .select('function_name, status, created_at, response_time_ms, error_message')
-        .order('created_at', { ascending: false })
-        .limit(200);
-      return data ?? [];
-    },
-    enabled: !!user,
-    refetchInterval: 60000,
-  });
+  const { data: functionLogs, isLoading, refetch } = useEdgeFunctionHealthLogs();
 
   const functionStats = useMemo(() => {
     if (!functionLogs) return {};
@@ -252,22 +235,7 @@ function EdgeFunctionStatus() {
 
 // AGIS Phase Health Grid
 function AGISPhaseHealthGrid() {
-  const { user } = useAuth();
-
-  const { data: globalState, isLoading } = useQuery({
-    queryKey: ['agis-global-health', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      const { data } = await supabase
-        .from('agis_global_state')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      return data;
-    },
-    enabled: !!user?.id,
-    refetchInterval: 30000,
-  });
+  const { data: globalState, isLoading } = useAGISGlobalHealth();
 
   const phaseHealthScores: Record<string, any> = (globalState?.phase_health_scores as Record<string, any>) || {};
   
@@ -359,25 +327,7 @@ function AGISPhaseHealthGrid() {
 
 // System Metrics Overview
 function SystemMetricsOverview() {
-  const { user } = useAuth();
-
-  const { data: metrics } = useQuery({
-    queryKey: ['system-metrics', user?.id],
-    queryFn: async () => {
-      const [logsResult, cacheResult, analyticsResult] = await Promise.all([
-        supabase.from('ai_usage_logs').select('*', { count: 'exact', head: true }),
-        supabase.from('ai_request_cache').select('*', { count: 'exact', head: true }),
-        supabase.from('agis_analytics').select('*', { count: 'exact', head: true }),
-      ]);
-      
-      return {
-        totalAICalls: logsResult.count || 0,
-        cacheEntries: cacheResult.count || 0,
-        analyticsEvents: analyticsResult.count || 0,
-      };
-    },
-    enabled: !!user,
-  });
+  const { data: metrics } = useSystemAggregateMetrics();
 
   const metricCards = [
     { 
@@ -427,21 +377,7 @@ function SystemMetricsOverview() {
 
 // Recent Activity Feed
 function RecentActivityFeed() {
-  const { user } = useAuth();
-
-  const { data: recentActivity } = useQuery({
-    queryKey: ['recent-system-activity', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('ai_usage_logs')
-        .select('function_name, status, created_at, response_time_ms')
-        .order('created_at', { ascending: false })
-        .limit(10);
-      return data ?? [];
-    },
-    enabled: !!user,
-    refetchInterval: 10000,
-  });
+  const { data: recentActivity } = useRecentSystemActivity(10);
 
   return (
     <Card>

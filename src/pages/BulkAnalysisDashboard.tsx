@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
+import {
+  useBulkAnalysisSessions,
+  useDeleteBulkSession,
+  type BulkSession,
+} from "@/hooks/bulk/useBulkAnalysisSessions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,27 +31,6 @@ import { formatCost } from "@/lib/bulkAnalysisPrioritization";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
-interface BulkSession {
-  id: string;
-  name: string | null;
-  status: string;
-  scope_type: string;
-  profile_ids: string[] | null;
-  media_types: string[] | null;
-  analysis_modes: string[] | null;
-  total_items: number;
-  completed_items: number;
-  failed_items: number;
-  skipped_items: number;
-  current_cost_cents: number;
-  max_cost_cents: number | null;
-  created_at: string;
-  started_at: string | null;
-  completed_at: string | null;
-  scheduled_for: string | null;
-  aggregation_result: Record<string, unknown> | null;
-}
-
 const statusColors: Record<string, string> = {
   pending: "bg-muted text-muted-foreground",
   queued: "bg-blue-500/10 text-blue-500",
@@ -60,23 +42,10 @@ const statusColors: Record<string, string> = {
 };
 
 export default function BulkAnalysisDashboard() {
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("all");
 
-  // Fetch all sessions
-  const { data: sessions, isLoading } = useQuery({
-    queryKey: ["bulk-analysis-sessions"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("bulk_analysis_sessions")
-        .select("*")
-        .order("created_at", { ascending: false });
-      
-      if (error) throw error;
-      return data as BulkSession[];
-    },
-  });
+  const { data: sessions, isLoading } = useBulkAnalysisSessions();
 
   // Aggregate stats
   const stats = sessions ? {
@@ -88,23 +57,14 @@ export default function BulkAnalysisDashboard() {
     completedItems: sessions.reduce((sum, s) => sum + (s.completed_items || 0), 0),
   } : null;
 
-  // Delete session mutation
-  const deleteMutation = useMutation({
-    mutationFn: async (sessionId: string) => {
-      const { error } = await supabase
-        .from("bulk_analysis_sessions")
-        .delete()
-        .eq("id", sessionId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bulk-analysis-sessions"] });
-      toast.success("Session deleted");
-    },
-    onError: (error) => {
-      toast.error(`Failed to delete: ${error.message}`);
-    },
-  });
+  const deleteHook = useDeleteBulkSession();
+  const deleteMutation = {
+    mutate: (sessionId: string) =>
+      deleteHook.mutate(sessionId, {
+        onSuccess: () => toast.success("Session deleted"),
+        onError: (error: Error) => toast.error(`Failed to delete: ${error.message}`),
+      }),
+  };
 
   // Resume session
   const handleResume = (sessionId: string) => {
