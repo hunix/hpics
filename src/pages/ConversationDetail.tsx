@@ -107,7 +107,7 @@ export default function ConversationDetail() {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, first_name, last_name')
-        .eq('id', contactId)
+        .eq('id', contactId!)
         .single();
       if (error) throw error;
       return data;
@@ -122,7 +122,7 @@ export default function ConversationDetail() {
       const { data, error } = await supabase
         .from('conversations')
         .select('*')
-        .eq('id', conversationId)
+        .eq('id', conversationId!)
         .single();
       if (error) throw error;
       return data;

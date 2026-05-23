@@ -145,7 +145,7 @@ export function useSOP(sopId: string | undefined) {
       const { data, error } = await supabase
         .from('procedural_memory')
         .select('*')
-        .eq('id', sopId)
+        .eq('id', sopId!)
         .single();
 
       if (error) throw error;
@@ -214,7 +214,7 @@ export function useProfileReflections(profileId: string | undefined) {
       const { data, error } = await supabase
         .from('task_reflections')
         .select('*')
-        .eq('profile_id', profileId)
+        .eq('profile_id', profileId!)
         .order('created_at', { ascending: false });
 
       if (error) throw error;

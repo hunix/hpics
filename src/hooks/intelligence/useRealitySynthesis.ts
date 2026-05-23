@@ -40,7 +40,7 @@ export function useRealitySynthesis() {
       const { data, error } = await supabase
         .from('reality_synthesis')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -67,7 +67,7 @@ export function useRealitySynthesis() {
       const { data, error } = await supabase
         .from('omniscient_awareness')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .order('last_scan_at', { ascending: false });
       
       if (error) throw error;
