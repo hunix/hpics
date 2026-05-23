@@ -144,7 +144,7 @@ export function useProfileVerdicts(profileId: string | undefined) {
       const { data, error } = await supabase
         .from('tribunal_verdicts')
         .select('*')
-        .eq('profile_id', profileId)
+        .eq('profile_id', profileId!)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -164,7 +164,7 @@ export function useDeliberationSession(sessionId: string | undefined) {
       const { data, error } = await supabase
         .from('agent_deliberations')
         .select('*')
-        .eq('deliberation_session_id', sessionId)
+        .eq('deliberation_session_id', sessionId!)
         .order('round_number')
         .order('created_at');
 

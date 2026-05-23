@@ -154,7 +154,7 @@ export function SystemHealthPanel({ health, isLoading }: SystemHealthPanelProps)
                   {Boolean(componentHealth?.metrics) && typeof componentHealth?.metrics === 'object' && !Array.isArray(componentHealth.metrics) && (
                     <div className="mt-2 pt-2 border-t border-border/50">
                       <div className="grid grid-cols-2 gap-2 text-xs">
-                        {Object.entries(componentHealth.metrics).slice(0, 4).map(([key, value]) => (
+                        {Object.entries(componentHealth.metrics as Record<string, unknown>).slice(0, 4).map(([key, value]) => (
                           <div key={key} className="flex justify-between">
                             <span className="text-muted-foreground capitalize">
                               {key.replace(/_/g, " ")}:

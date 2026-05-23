@@ -122,12 +122,13 @@ export function useCreateAlertRule() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: CreateAlertRuleInput) => {
+      if (!user?.id) throw new Error('Not authenticated');
       const { error } = await supabase.from('intelligence_alert_rules').insert({
-        user_id: user!.id,
+        user_id: user.id,
         name: input.name,
         rule_type: input.rule_type,
         severity: input.severity,
-        conditions: input.conditions,
+        conditions: input.conditions as never,
       });
       if (error) throw error;
     },

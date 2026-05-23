@@ -65,7 +65,7 @@ export interface CounterOperation {
   currentPhase: string;
   phaseProgress: number;
   successMetrics: Record<string, unknown>;
-  outcome?: string;
+  outcome?: string | null;
   outcomeDetails: Record<string, unknown>;
   isActive: boolean;
 }
@@ -136,7 +136,7 @@ export function useCounterIntelligence(profileId?: string | null) {
         timeline: d.timeline as Record<string, unknown>,
         counterMeasures: d.counter_measures as Record<string, unknown>,
         isOngoing: d.is_ongoing || false,
-        detectedAt: new Date(d.detected_at),
+        detectedAt: new Date(d.detected_at ?? Date.now()),
         resolvedAt: d.resolved_at ? new Date(d.resolved_at) : undefined,
       }));
     },

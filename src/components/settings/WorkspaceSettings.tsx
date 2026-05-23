@@ -110,15 +110,15 @@ export function WorkspaceSettings() {
   const inviteMutation = useMutation({
     mutationFn: async () => {
       if (!selectedWorkspace) throw new Error('No workspace selected');
+      if (!user?.id) throw new Error('Not authenticated');
 
-      // For now, we'll create the member record - in production you'd send an email
       const { error } = await supabase
         .from('workspace_members')
         .insert({
           workspace_id: selectedWorkspace,
-          user_id: user?.id, // This would be the invited user's ID after they accept
+          user_id: user.id,
           role: inviteRole,
-          invited_by: user?.id,
+          invited_by: user.id,
         });
 
       if (error) throw error;

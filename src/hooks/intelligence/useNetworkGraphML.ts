@@ -47,9 +47,8 @@ export interface NetworkGraphData {
 }
 
 interface RelationshipRow {
-  source_profile_id: string;
-  target_profile_id: string;
-  relationship_strength?: number | null;
+  from_profile_id: string;
+  to_profile_id: string;
   relationship_type?: string | null;
 }
 
@@ -65,7 +64,7 @@ interface ProfileRow {
   id: string;
   first_name: string | null;
   last_name: string | null;
-  employer: string | null;
+  organization: string | null;
   job_title: string | null;
   is_active: boolean | null;
 }
@@ -87,7 +86,7 @@ function processNetworkData(
   const nodes: NetworkNode[] = profiles.map((p) => {
     const metric = metrics.find((m) => m.profile_id === p.id);
     const connectionCount = relationships.filter(
-      (r) => r.source_profile_id === p.id || r.target_profile_id === p.id,
+      (r) => r.from_profile_id === p.id || r.to_profile_id === p.id,
     ).length;
     const centrality = metric?.centrality_score ?? Math.min(connectionCount / 10, 1);
     return {
@@ -103,9 +102,9 @@ function processNetworkData(
   });
 
   const edges: NetworkEdge[] = relationships.map((r) => ({
-    source: r.source_profile_id,
-    target: r.target_profile_id,
-    weight: r.relationship_strength ?? 1,
+    source: r.from_profile_id,
+    target: r.to_profile_id,
+    weight: 1,
     type: r.relationship_type === 'inferred' ? 'inferred' : 'professional',
   }));
 
@@ -156,7 +155,7 @@ export function useNetworkGraphML() {
       const [profilesRes, relationshipsRes, groupsRes, membershipsRes] = await Promise.all([
         supabase
           .from('profiles')
-          .select('id, first_name, last_name, employer, job_title, is_active')
+          .select('id, first_name, last_name, organization, job_title, is_active')
           .eq('user_id', user!.id)
           .eq('is_active', true),
         supabase

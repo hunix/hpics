@@ -236,7 +236,7 @@ export function EntityMentionsPanel({ profileId, className }: EntityMentionsPane
                         <div className="flex items-center gap-2 mt-2 text-[10px] text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            {formatDistanceToNow(new Date(latestMention.created_at), { addSuffix: true })}
+                            {formatDistanceToNow(new Date(latestMention.created_at ?? Date.now()), { addSuffix: true })}
                           </span>
                           {avgSentiment !== null && (
                             <span className={cn('flex items-center gap-1', getSentimentColor(avgSentiment))}>

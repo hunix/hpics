@@ -197,7 +197,7 @@ export function ElicitationSessionRecorder({ profileId }: ElicitationSessionReco
                         <span className="font-medium text-sm">{session.conversation_notes || 'Session'}</span>
                         <Badge variant="secondary">{((session.extracted_intelligence as any[])?.length || 0)} extracted</Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">{new Date(session.created_at).toLocaleDateString()}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{new Date(session.created_at ?? Date.now()).toLocaleDateString()}</p>
                     </div>
                   ))}
                 </div>

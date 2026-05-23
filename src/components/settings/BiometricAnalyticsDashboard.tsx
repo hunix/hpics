@@ -124,7 +124,7 @@ export function BiometricAnalyticsDashboard() {
         matchesByDayMap.set(date, 0);
       }
       recentMatches.forEach(m => {
-        const date = format(new Date(m.created_at), 'yyyy-MM-dd');
+        const date = format(new Date(m.created_at ?? Date.now()), 'yyyy-MM-dd');
         matchesByDayMap.set(date, (matchesByDayMap.get(date) || 0) + 1);
       });
 

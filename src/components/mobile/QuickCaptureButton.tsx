@@ -518,7 +518,7 @@ export function QuickCaptureButton({ profileId, onCapture, className }: QuickCap
       
       for (let i = 0; i < batchPhotos.length; i++) {
         const photo = batchPhotos[i];
-        const blob = photo.blob || await fetch(photo.dataUrl).then(r => r.blob());
+        const blob: Blob = photo.blob ?? (await (await fetch(photo.dataUrl)).blob());
         const fileName = `batch-${Date.now()}-${i}.jpg`;
         const storagePath = `${user.id}/${profileId || 'general'}/media/${fileName}`;
         

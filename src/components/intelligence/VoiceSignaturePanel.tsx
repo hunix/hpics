@@ -267,7 +267,7 @@ export function VoiceSignaturePanel({ profileId, className }: VoiceSignaturePane
                       {Math.round((sig.quality_score || 0) * 100)}%
                     </Badge>
                     <p className="text-[10px] text-muted-foreground mt-1">
-                      {formatDistanceToNow(new Date(sig.created_at), { addSuffix: true })}
+                      {formatDistanceToNow(new Date(sig.created_at ?? Date.now()), { addSuffix: true })}
                     </p>
                   </div>
                 </div>

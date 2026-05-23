@@ -116,7 +116,7 @@ export function ForceGraphVisualization({
 
     // Draw nodes
     const node = g.append('g')
-      .selectAll('g')
+      .selectAll<SVGGElement, VisualizationNode>('g')
       .data(filteredNodes)
       .join('g')
       .attr('cursor', 'pointer')

@@ -78,7 +78,7 @@ export function useMetaLearning() {
         .from('meta_learning_models')
         .update({
           last_trained_at: new Date().toISOString(),
-          training_iterations: supabase.rpc ? 1 : 1, // Increment handled by trigger ideally
+          training_iterations: 1,
         } as never)
         .eq('id', modelId)
         .select()

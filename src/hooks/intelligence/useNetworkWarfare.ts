@@ -12,11 +12,11 @@ import { useAGISPhaseMiddleware } from './useAGISPhaseMiddleware';
 export interface InfluenceCascade {
   id: string;
   cascadeName: string;
-  originProfileId?: string;
+  originProfileId?: string | null;
   cascadeType: 'narrative' | 'behavioral' | 'emotional' | 'opinion';
   targetProfiles: string[];
   currentReach: number;
-  maxReach?: number;
+  maxReach?: number | null;
   propagationModel: 'sir' | 'bass' | 'threshold';
   propagationParams: Record<string, unknown>;
   currentPhase: string;
@@ -93,7 +93,7 @@ export function useNetworkWarfare() {
         recoveryRate: Number(c.recovery_rate) || 0,
         cascadeVelocity: Number(c.cascade_velocity) || 0,
         predictedPeakAt: c.predicted_peak_at ? new Date(c.predicted_peak_at) : undefined,
-        startedAt: new Date(c.started_at),
+        startedAt: new Date(c.started_at ?? Date.now()),
         completedAt: c.completed_at ? new Date(c.completed_at) : undefined,
       }));
     },

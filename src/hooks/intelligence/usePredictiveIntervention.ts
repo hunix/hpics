@@ -53,7 +53,7 @@ export interface ProactiveAction {
   expectedOutcome: Record<string, unknown>;
   actualOutcome?: Record<string, unknown>;
   outcomeMatchScore?: number;
-  preemptionSuccess?: boolean;
+  preemptionSuccess?: boolean | null;
   executedAt: Date | null;
 }
 
@@ -110,7 +110,7 @@ export function usePredictiveIntervention(profileId?: string | null) {
         autoActionConfig: o.auto_action_config as Record<string, unknown>,
         wasUtilized: o.was_utilized || false,
         utilizationOutcome: o.utilization_outcome as Record<string, unknown>,
-        detectedAt: new Date(o.detected_at),
+        detectedAt: new Date(o.detected_at ?? Date.now()),
       }));
     },
     enabled: !!user?.id,
@@ -183,7 +183,7 @@ export function usePredictiveIntervention(profileId?: string | null) {
         actualOutcome: a.actual_outcome as Record<string, unknown>,
         outcomeMatchScore: a.outcome_match_score ? Number(a.outcome_match_score) : undefined,
         preemptionSuccess: a.preemption_success,
-        executedAt: new Date(a.executed_at),
+        executedAt: new Date(a.executed_at ?? Date.now()),
       }));
     },
     enabled: !!user?.id,

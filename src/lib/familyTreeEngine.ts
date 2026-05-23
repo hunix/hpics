@@ -38,7 +38,7 @@ export interface RawRelationship {
   to_profile_id: string;
   relationship_label: string;
   inverse_label: string | null;
-  is_inferred?: boolean;
+  is_inferred?: boolean | null;
 }
 
 export interface FamilyGraph {
