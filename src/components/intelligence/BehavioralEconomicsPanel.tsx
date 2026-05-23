@@ -34,7 +34,7 @@ export function BehavioralEconomicsPanel({ profileId }: BehavioralEconomicsPanel
     if (profileId) {
       loadProfile(profileId).then((result) => {
         if (isMountedRef.current) {
-          setProfile(result);
+          setProfile(result ?? undefined);
         }
       });
     }

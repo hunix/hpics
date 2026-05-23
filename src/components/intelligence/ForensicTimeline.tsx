@@ -106,7 +106,7 @@ export function ForensicTimeline({ profileId }: { profileId?: string }) {
           title: e.title,
           description: e.event_type,
           timestamp: e.event_date,
-          profileId: e.profile_id,
+          profileId: e.profile_id ?? undefined,
           profileName: profile ? `${profile.first_name} ${profile.last_name}` : undefined,
           source: 'events',
           verified: true

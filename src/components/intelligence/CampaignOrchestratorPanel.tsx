@@ -162,7 +162,7 @@ export function CampaignOrchestratorPanel() {
                         <span className="font-medium">{chain.chain_name}</span>
                         <div className="flex items-center gap-2">
                           <Switch
-                            checked={chain.is_active}
+                            checked={!!chain.is_active}
                             onCheckedChange={(checked) => 
                               toggleChain({ id: chain.id, isActive: checked })
                             }

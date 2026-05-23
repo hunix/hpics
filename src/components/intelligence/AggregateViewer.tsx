@@ -93,7 +93,7 @@ export function AggregateViewer({ aggregates, isLoading }: AggregateViewerProps)
           Analysis Aggregates
         </CardTitle>
         <CardDescription>
-          Computed intelligence states derived from {aggregates.reduce((sum, a) => sum + a.total_events, 0)} events
+          Computed intelligence states derived from {aggregates.reduce((sum, a) => sum + (a.total_events ?? 0), 0)} events
         </CardDescription>
       </CardHeader>
       <CardContent>

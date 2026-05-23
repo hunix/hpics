@@ -112,7 +112,7 @@ export function AuditCompliancePanel() {
             <div className="p-4 rounded-lg border bg-card">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">Compliance Score</span>
-                <Badge variant={data?.complianceScore >= 80 ? 'default' : 'destructive'}>
+                <Badge variant={(data?.complianceScore ?? 0) >= 80 ? 'default' : 'destructive'}>
                   {data?.complianceScore}%
                 </Badge>
               </div>
