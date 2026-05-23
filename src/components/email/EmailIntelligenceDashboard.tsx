@@ -3,9 +3,7 @@
  * Aggregate stats and insights from all imported email intelligence
  */
 
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useEmailIntelligenceDashboard } from '@/hooks/email/useEmailIntelligenceDashboard';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -26,17 +24,6 @@ import {
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
-interface EmailInsight {
-  threadId: string;
-  summary: string;
-  sentiment: 'positive' | 'neutral' | 'negative';
-  urgency: 'high' | 'medium' | 'low';
-  topics: string[];
-  actionItems: string[];
-  keyPoints: string[];
-  relationshipImpact: string;
-}
-
 const SENTIMENT_COLORS = {
   positive: 'hsl(var(--chart-2))',
   neutral: 'hsl(var(--chart-3))',
@@ -50,99 +37,7 @@ const URGENCY_COLORS = {
 };
 
 export function EmailIntelligenceDashboard() {
-  const { user } = useAuth();
-
-  // Fetch all email analyses
-  const { data: analyses, isLoading } = useQuery({
-    queryKey: ['email-intelligence-dashboard', user?.id],
-    queryFn: async () => {
-      if (!user) return { insights: [], stats: null };
-
-      const { data, error } = await supabase
-        .from('ai_analyses')
-        .select(`
-          id,
-          profile_id,
-          result,
-          generated_at,
-          profiles (
-            first_name,
-            last_name
-          )
-        `)
-        .eq('user_id', user.id)
-        .eq('analysis_type', 'email_insight')
-        .order('generated_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Flatten all insights from analysis results
-      const allInsights: Array<EmailInsight & { profileId: string; contactName: string }> = [];
-      const profileCounts = new Map<string, number>();
-      
-      for (const analysis of data || []) {
-        const result = analysis.result as unknown as EmailInsight | EmailInsight[];
-        const profile = analysis.profiles as any;
-        const contactName = `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || 'Unknown';
-        
-        const insights = Array.isArray(result) ? result : result ? [result] : [];
-        
-        for (const insight of insights) {
-          allInsights.push({
-            ...insight,
-            profileId: analysis.profile_id || '',
-            contactName,
-          });
-        }
-
-        if (analysis.profile_id) {
-          profileCounts.set(
-            analysis.profile_id, 
-            (profileCounts.get(analysis.profile_id) || 0) + 1
-          );
-        }
-      }
-
-      // Calculate stats
-      const sentimentCounts = { positive: 0, neutral: 0, negative: 0 };
-      const urgencyCounts = { high: 0, medium: 0, low: 0 };
-      const topicCounts = new Map<string, number>();
-      const actionItems: string[] = [];
-
-      for (const insight of allInsights) {
-        if (insight.sentiment) sentimentCounts[insight.sentiment]++;
-        if (insight.urgency) urgencyCounts[insight.urgency]++;
-        
-        for (const topic of insight.topics || []) {
-          topicCounts.set(topic, (topicCounts.get(topic) || 0) + 1);
-        }
-        
-        for (const item of insight.actionItems || []) {
-          actionItems.push(item);
-        }
-      }
-
-      // Get top topics
-      const topTopics = Array.from(topicCounts.entries())
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10);
-
-      return {
-        insights: allInsights,
-        stats: {
-          totalInsights: allInsights.length,
-          uniqueContacts: profileCounts.size,
-          sentimentCounts,
-          urgencyCounts,
-          topTopics,
-          actionItems: actionItems.slice(0, 10),
-          highUrgencyInsights: allInsights.filter(i => i.urgency === 'high'),
-        },
-      };
-    },
-    enabled: !!user,
-    staleTime: 1000 * 60 * 5, // 5 min
-  });
+  const { data: analyses, isLoading } = useEmailIntelligenceDashboard();
 
   if (isLoading) {
     return (

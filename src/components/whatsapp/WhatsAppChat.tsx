@@ -1,8 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import {
+  useWhatsAppConfig,
+  useWhatsAppConversation,
+  useWhatsAppMessages,
+  useWhatsAppMessageSubscription,
+} from '@/hooks/whatsapp/useWhatsAppChat';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -25,89 +30,10 @@ export function WhatsAppChat({ profileId, profileName }: WhatsAppChatProps) {
   const [newMessage, setNewMessage] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Check if WhatsApp is configured
-  const { data: whatsappConfig } = useQuery({
-    queryKey: ['whatsapp-config', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('whatsapp_config')
-        .select('*')
-        .eq('user_id', user!.id)
-        .maybeSingle();
-      return data;
-    },
-    enabled: !!user,
-  });
-
-  // Get or create WhatsApp conversation
-  const { data: conversation, isLoading: convLoading } = useQuery({
-    queryKey: ['whatsapp-conversation', profileId],
-    queryFn: async () => {
-      const { data: existing } = await supabase
-        .from('conversations')
-        .select('*')
-        .eq('profile_id', profileId)
-        .eq('platform', 'whatsapp')
-        .maybeSingle();
-      
-      if (existing) return existing;
-
-      // Create new conversation
-      const { data: newConv, error } = await supabase
-        .from('conversations')
-        .insert({
-          user_id: user!.id,
-          profile_id: profileId,
-          platform: 'whatsapp',
-          title: `WhatsApp with ${profileName}`,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return newConv;
-    },
-    enabled: !!user && !!profileId,
-  });
-
-  // Fetch messages
-  const { data: messages, isLoading: msgLoading } = useQuery({
-    queryKey: ['whatsapp-messages', conversation?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversation!.id)
-        .order('sent_at', { ascending: true });
-      return data ?? [];
-    },
-    enabled: !!conversation?.id,
-  });
-
-  // Real-time subscription
-  useEffect(() => {
-    if (!conversation?.id) return;
-
-    const channel = supabase
-      .channel(`whatsapp-${conversation.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${conversation.id}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['whatsapp-messages', conversation.id] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [conversation?.id, queryClient]);
+  const { data: whatsappConfig } = useWhatsAppConfig();
+  const { data: conversation, isLoading: convLoading } = useWhatsAppConversation(profileId, profileName);
+  const { data: messages, isLoading: msgLoading } = useWhatsAppMessages(conversation?.id);
+  useWhatsAppMessageSubscription(conversation?.id);
 
   // Auto-scroll to bottom
   useEffect(() => {

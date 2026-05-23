@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { uploadRecording } from '@/hooks/recordings/useUploadRecording';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,7 +11,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Upload, Mic, Loader2, CheckCircle2, FileAudio } from 'lucide-react';
-import { invokeFunction } from '@/lib/api';
 
 interface RecordingUploadProps {
   open: boolean;
@@ -53,62 +52,29 @@ export function RecordingUpload({ open, onOpenChange, profileId, profileName, on
       setStatus('uploading');
       setUploadProgress(10);
 
-      // Upload file to storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-      
-      setUploadProgress(30);
-      
-      const { error: uploadError } = await supabase.storage
-        .from('recordings')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
+      const result = await uploadRecording({
+        userId: user.id,
+        profileId,
+        file,
+        title,
+        description,
+        folder,
+        onProgress: (pct) => {
+          setUploadProgress(pct);
+          if (pct >= 80) {
+            setStatus('transcribing');
+            setTranscribing(true);
+          }
+        },
+      });
 
-      if (uploadError) throw uploadError;
-
-      setUploadProgress(60);
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('recordings')
-        .getPublicUrl(fileName);
-
-      // Create database record
-      const { data: recording, error: insertError } = await supabase
-        .from('meeting_recordings')
-        .insert({
-          user_id: user.id,
-          profile_id: profileId || null,
-          title: title || file.name,
-          description,
-          folder,
-          file_url: publicUrl,
-          file_size: file.size,
-          mime_type: file.type,
-          status: 'pending',
-        })
-        .select()
-        .single();
-
-      if (insertError) throw insertError;
-
-      setUploadProgress(80);
-      setStatus('transcribing');
-      setTranscribing(true);
-
-      // Start transcription
-      const { error: transcribeError } = await invokeFunction('transcribe-audio', { recordingId: recording.id, fileUrl: publicUrl },);
-
-      if (transcribeError) {
-        console.error('Transcription error:', transcribeError);
+      if (result.transcribeError) {
+        console.error('Transcription error:', result.transcribeError);
         toast({
           title: 'Upload complete',
           description: 'Recording uploaded. Transcription will be processed in the background.',
         });
       } else {
-        setUploadProgress(100);
         setStatus('complete');
         toast({
           title: 'Success!',

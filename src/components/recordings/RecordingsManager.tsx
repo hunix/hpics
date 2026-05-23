@@ -1,8 +1,12 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import {
+  useContactRecordings,
+  useDeleteRecording,
+  useRetryTranscription,
+  type RetryTranscriptionInput,
+} from '@/hooks/recordings/useRecordings';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +19,6 @@ import {
   ChevronDown, Loader2, Users, RefreshCw
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { invokeFunction } from '@/lib/api';
 
 interface RecordingsManagerProps {
   profileId?: string;
@@ -23,67 +26,34 @@ interface RecordingsManagerProps {
 }
 
 export function RecordingsManager({ profileId, profileName }: RecordingsManagerProps) {
-  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [playingId, setPlayingId] = useState<string | null>(null);
 
-  const { data: recordings, isLoading } = useQuery({
-    queryKey: ['contact-recordings', profileId],
-    queryFn: async () => {
-      let query = supabase
-        .from('meeting_recordings')
-        .select('*')
-        .order('created_at', { ascending: false });
+  const { data: recordings, isLoading } = useContactRecordings(profileId);
 
-      if (profileId) {
-        query = query.eq('profile_id', profileId);
-      }
+  const deleteHook = useDeleteRecording(profileId);
+  const deleteMutation = {
+    mutate: (id: string) =>
+      deleteHook.mutate(id, {
+        onSuccess: () => toast({ title: 'Recording deleted' }),
+        onError: (error: Error) =>
+          toast({ title: 'Error', description: error.message, variant: 'destructive' }),
+      }),
+  };
 
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user,
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('meeting_recordings')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contact-recordings', profileId] });
-      toast({ title: 'Recording deleted' });
-    },
-    onError: (error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    },
-  });
-
-  const retryTranscription = useMutation({
-    mutationFn: async (recording: any) => {
-      await supabase
-        .from('meeting_recordings')
-        .update({ status: 'processing' })
-        .eq('id', recording.id);
-
-      const { error } = await invokeFunction('transcribe-audio', { recordingId: recording.id, fileUrl: recording.file_url },);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contact-recordings', profileId] });
-      toast({ title: 'Transcription started' });
-    },
-    onError: (error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    },
-  });
+  const retryHook = useRetryTranscription(profileId);
+  const retryTranscription = {
+    isPending: retryHook.isPending,
+    mutate: (recording: RetryTranscriptionInput) =>
+      retryHook.mutate(recording, {
+        onSuccess: () => toast({ title: 'Transcription started' }),
+        onError: (error: Error) =>
+          toast({ title: 'Error', description: error.message, variant: 'destructive' }),
+      }),
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {

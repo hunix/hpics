@@ -1,151 +1,24 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { 
-  Target, TrendingUp, TrendingDown, CheckCircle, XCircle, 
+import {
+  Target, TrendingUp, TrendingDown, CheckCircle, XCircle,
   AlertTriangle, BarChart3, Calendar
 } from 'lucide-react';
-import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, 
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, BarChart, Bar
 } from 'recharts';
-import { format, subDays } from 'date-fns';
-
-interface PredictionMetrics {
-  type: string;
-  totalPredictions: number;
-  verifiedPredictions: number;
-  accuracy: number;
-  precision: number;
-  recall: number;
-  trend: 'improving' | 'stable' | 'declining';
-}
-
-interface HistoricalAccuracy {
-  date: string;
-  churn: number;
-  network: number;
-  behavioral: number;
-}
+import { format } from 'date-fns';
+import { usePredictionAccuracy } from '@/hooks/testing/usePredictionAccuracy';
 
 export function PredictionAccuracyTracker() {
-  const { user } = useAuth();
   const [timeRange, setTimeRange] = useState('30');
-
-  const { data: metrics, isLoading } = useQuery({
-    queryKey: ['prediction-accuracy', user?.id, timeRange],
-    queryFn: async () => {
-      const days = parseInt(timeRange);
-      const startDate = subDays(new Date(), days).toISOString();
-
-      // Fetch churn predictions
-      const { data: churnPredictions } = await supabase
-        .from('churn_predictions')
-        .select('*')
-        .gte('created_at', startDate);
-
-      // Fetch behavioral predictions
-      const { data: behavioralPredictions } = await supabase
-        .from('behavioral_predictions')
-        .select('*')
-        .gte('created_at', startDate);
-
-      // Calculate churn accuracy
-      const verifiedChurn = (churnPredictions || []).filter(p => p.outcome_verified);
-      const correctChurn = verifiedChurn.filter(p => {
-        const predicted = (p.predicted_churn_probability ?? 0) > 0.5;
-        const actual = p.actual_outcome === 'churned';
-        return predicted === actual;
-      });
-
-      // Calculate behavioral accuracy
-      const verifiedBehavioral = (behavioralPredictions || []).filter(p => p.actual_outcome);
-      const correctBehavioral = verifiedBehavioral.filter(p => {
-        return p.accuracy_score && p.accuracy_score > 0.7;
-      });
-
-      const predictionMetrics: PredictionMetrics[] = [
-        {
-          type: 'Churn Risk',
-          totalPredictions: churnPredictions?.length || 0,
-          verifiedPredictions: verifiedChurn.length,
-          accuracy: verifiedChurn.length > 0 ? correctChurn.length / verifiedChurn.length : 0,
-          precision: 0.72,
-          recall: 0.68,
-          trend: 'improving',
-        },
-        {
-          type: 'Behavioral',
-          totalPredictions: behavioralPredictions?.length || 0,
-          verifiedPredictions: verifiedBehavioral.length,
-          accuracy: verifiedBehavioral.length > 0 ? correctBehavioral.length / verifiedBehavioral.length : 0,
-          precision: 0.78,
-          recall: 0.71,
-          trend: 'stable',
-        },
-        {
-          type: 'Network Growth',
-          totalPredictions: 45,
-          verifiedPredictions: 32,
-          accuracy: 0.69,
-          precision: 0.74,
-          recall: 0.65,
-          trend: 'improving',
-        },
-        {
-          type: 'Relationship Trajectory',
-          totalPredictions: 89,
-          verifiedPredictions: 67,
-          accuracy: 0.73,
-          precision: 0.76,
-          recall: 0.70,
-          trend: 'stable',
-        },
-      ];
-
-      // Generate historical accuracy data
-      const historicalAccuracy: HistoricalAccuracy[] = [];
-      for (let i = days; i >= 0; i -= Math.ceil(days / 10)) {
-        const date = format(subDays(new Date(), i), 'MMM dd');
-        historicalAccuracy.push({
-          date,
-          churn: 0.65 + Math.random() * 0.15,
-          network: 0.60 + Math.random() * 0.20,
-          behavioral: 0.70 + Math.random() * 0.12,
-        });
-      }
-
-      // Recent predictions with outcomes
-      const recentPredictions = (churnPredictions || [])
-        .filter(p => p.outcome_verified)
-        .slice(0, 10)
-        .map(p => ({
-          id: p.id,
-          type: 'Churn Risk',
-          profileId: p.profile_id,
-          predicted: (p.predicted_churn_probability ?? 0) > 0.5 ? 'High Risk' : 'Low Risk',
-          actual: p.actual_outcome || 'Unknown',
-          correct: ((p.predicted_churn_probability ?? 0) > 0.5) === (p.actual_outcome === 'churned'),
-          date: p.prediction_date,
-        }));
-
-      return {
-        metrics: predictionMetrics,
-        historical: historicalAccuracy,
-        recent: recentPredictions,
-        overallAccuracy: predictionMetrics.reduce((sum, m) => sum + m.accuracy, 0) / predictionMetrics.length,
-      };
-    },
-    enabled: !!user,
-    staleTime: 60000,
-  });
+  const { data: metrics, isLoading } = usePredictionAccuracy(timeRange);
 
   const getTrendIcon = (trend: string) => {
     switch (trend) {

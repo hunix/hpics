@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useWhatsAppConfig } from '@/hooks/whatsapp/useWhatsAppChat';
+import { useSaveWhatsAppConfig, useDeleteWhatsAppConfig } from '@/hooks/whatsapp/useWhatsAppSetup';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,9 +12,7 @@ import { Loader2, MessageCircle, CheckCircle2, XCircle, Copy, ExternalLink, Sett
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 export function WhatsAppSetup() {
-  const { user } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     phoneNumberId: '',
@@ -23,68 +20,31 @@ export function WhatsAppSetup() {
     displayPhoneNumber: '',
   });
 
-  const { data: config, isLoading } = useQuery({
-    queryKey: ['whatsapp-config', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('whatsapp_config')
-        .select('*')
-        .eq('user_id', user!.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user,
-  });
+  const { data: config, isLoading } = useWhatsAppConfig();
 
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      if (!user) throw new Error('Not authenticated');
+  const saveHook = useSaveWhatsAppConfig(config?.id);
+  const saveMutation = {
+    isPending: saveHook.isPending,
+    mutate: () =>
+      saveHook.mutate(formData, {
+        onSuccess: () => {
+          toast({ title: 'WhatsApp configuration saved' });
+          setIsDialogOpen(false);
+        },
+        onError: (error: Error) =>
+          toast({ title: 'Error', description: error.message, variant: 'destructive' }),
+      }),
+  };
 
-      const payload = {
-        user_id: user.id,
-        phone_number_id: formData.phoneNumberId,
-        business_account_id: formData.businessAccountId || null,
-        display_phone_number: formData.displayPhoneNumber || null,
-      };
-
-      if (config) {
-        const { error } = await supabase
-          .from('whatsapp_config')
-          .update(payload)
-          .eq('id', config.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('whatsapp_config')
-          .insert(payload);
-        if (error) throw error;
-      }
+  const deleteHook = useDeleteWhatsAppConfig();
+  const deleteMutation = {
+    mutate: () => {
+      if (!config?.id) return;
+      deleteHook.mutate(config.id, {
+        onSuccess: () => toast({ title: 'WhatsApp disconnected' }),
+      });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['whatsapp-config'] });
-      toast({ title: 'WhatsApp configuration saved' });
-      setIsDialogOpen(false);
-    },
-    onError: (error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      if (!config) return;
-      const { error } = await supabase
-        .from('whatsapp_config')
-        .delete()
-        .eq('id', config.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['whatsapp-config'] });
-      toast({ title: 'WhatsApp disconnected' });
-    },
-  });
+  };
 
   const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-webhook`;
 

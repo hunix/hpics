@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -62,25 +61,17 @@ export function EmailInsightsPanel({ profileId, contactName }: EmailInsightsPane
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['email-insights', profileId, user?.id],
     queryFn: async () => {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session.session?.access_token) throw new Error('Not authenticated');
-
-      const response = await invokeFunction('analyze-email-insights', { profileId }, { headers: { Authorization: `Bearer ${session.session.access_token}` } });
-
+      const response = await invokeFunction('analyze-email-insights', { profileId });
       if (response.error) throw response.error;
       return response.data as { insights: EmailInsight[] };
     },
     enabled: !!user,
-    staleTime: 1000 * 60 * 15, // 15 minutes
+    staleTime: 1000 * 60 * 15,
   });
 
   const analyzeMutation = useMutation({
     mutationFn: async () => {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session.session?.access_token) throw new Error('Not authenticated');
-
-      const response = await invokeFunction('analyze-email-insights', { profileId, analyzeAll: true }, { headers: { Authorization: `Bearer ${session.session.access_token}` } });
-
+      const response = await invokeFunction('analyze-email-insights', { profileId, analyzeAll: true });
       if (response.error) throw response.error;
       return response.data;
     },
@@ -88,7 +79,7 @@ export function EmailInsightsPanel({ profileId, contactName }: EmailInsightsPane
       queryClient.invalidateQueries({ queryKey: ['email-insights'] });
       toast.success('Email insights analyzed');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to analyze emails');
     },
   });
