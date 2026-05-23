@@ -19,7 +19,7 @@ import { useQuery } from '@tanstack/react-query';
 interface EnrollmentResult {
   profileId: string;
   profileName: string;
-  avatar?: string;
+  avatar?: string | null;
   status: 'pending' | 'processing' | 'success' | 'failed';
   error?: string;
 }

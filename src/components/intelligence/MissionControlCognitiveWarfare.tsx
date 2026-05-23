@@ -66,7 +66,7 @@ export function MissionControlCognitiveWarfare() {
         success: op.shift_progress || 0,
       },
     })),
-    ...(memeticCampaigns || []).map((c: { id: string; campaign_name?: string; status?: string; current_reach?: number; created_at?: string }) => ({
+    ...((memeticCampaigns || []) as Array<{ id: string; campaign_name?: string | null; status?: string | null; current_reach?: number | null; created_at?: string | null }>).map((c) => ({
       id: c.id,
       name: c.campaign_name || 'Untitled Campaign',
       type: 'memetic' as const,
@@ -77,7 +77,7 @@ export function MissionControlCognitiveWarfare() {
         reach: c.current_reach || 0,
       },
     })),
-    ...(consensusCampaigns || []).map((c: { id: string; campaign_name?: string; status?: string; perceived_consensus?: number; actual_consensus?: number; created_at?: string }) => ({
+    ...((consensusCampaigns || []) as Array<{ id: string; campaign_name?: string | null; status?: string | null; perceived_consensus?: number | null; actual_consensus?: number | null; created_at?: string | null }>).map((c) => ({
       id: c.id,
       name: c.campaign_name || 'Untitled Campaign',
       type: 'consensus' as const,

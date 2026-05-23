@@ -402,7 +402,7 @@ export function OSINTIntegrations() {
                 <Key className="h-4 w-4 mr-2" />
                 {status.configured ? 'Update API Key' : 'Add API Key'}
               </Button>
-              {status.usageCount > 0 && (
+              {(status.usageCount ?? 0) > 0 && (
                 <span className="text-xs text-muted-foreground ml-3">
                   Used {status.usageCount} times
                 </span>

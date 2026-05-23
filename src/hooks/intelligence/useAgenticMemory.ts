@@ -214,7 +214,7 @@ export function useMemoryGraph(profileId: string | null | undefined) {
         supabase
           .from('agentic_memory')
           .select('id, content, memory_tier, memory_type, keywords, confidence_score')
-          .eq('profile_id', profileId)
+          .eq('profile_id', profileId!)
           .gte('confidence_score', 0.3)
           .limit(100),
         supabase

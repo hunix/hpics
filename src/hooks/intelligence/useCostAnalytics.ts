@@ -69,7 +69,7 @@ export function useCostAnomalies() {
         .order('created_at', { ascending: false })
         .limit(10);
       if (error) throw error;
-      return ((data ?? []) as AnomalyRow[]).map(a => ({
+      return ((data ?? []) as unknown as AnomalyRow[]).map(a => ({
         id: a.id,
         type: a.anomaly_type,
         severity: a.severity,

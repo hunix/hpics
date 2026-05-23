@@ -135,7 +135,7 @@ export function useAutonomousOperations(profileId?: string | null) {
         effectivenessScore: Number(e.effectiveness_score) || 0,
         costCents: e.cost_cents || 0,
         executionTimeMs: e.execution_time_ms || 0,
-        executedAt: new Date(e.executed_at),
+        executedAt: new Date(e.executed_at ?? Date.now()),
       }));
     },
     enabled: !!user?.id,

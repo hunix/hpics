@@ -55,7 +55,7 @@ function TribunalConfigCard({ config, onUpdate }: { config: TribunalConfig; onUp
   };
   
   const handleSave = () => {
-    onUpdate({ id: config.id, ...localConfig });
+    onUpdate({ ...localConfig, id: config.id });
     setHasChanges(false);
   };
   

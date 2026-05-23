@@ -280,7 +280,7 @@ export function ScheduledReportsManager() {
               >
                 <div className="flex items-center gap-4">
                   <Switch
-                    checked={schedule.is_active}
+                    checked={!!schedule.is_active}
                     onCheckedChange={(checked) => 
                       toggleMutation.mutate({ id: schedule.id, isActive: checked })
                     }

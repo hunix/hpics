@@ -83,7 +83,7 @@ function ChamberConfigCard({
   };
   
   const handleSave = () => {
-    onUpdate({ id: config.id, ...localConfig });
+    onUpdate({ ...localConfig, id: config.id });
     setHasChanges(false);
   };
   
