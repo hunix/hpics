@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { invokeFunction } from '@/lib/api';
 import { 
   Brain, Network, Clock, Users, Layers, GitBranch, 
   Target, Activity, Zap, Database, RefreshCw, 
@@ -32,9 +32,7 @@ export default function FusionCommandCenter() {
 
     setIsRunning(prev => ({ ...prev, [engine]: true }));
     try {
-      const { data, error } = await supabase.functions.invoke(functionName, {
-        body: { profileId: selectedProfileId }
-      });
+      const { data, error } = await invokeFunction(functionName, { profileId: selectedProfileId });
 
       if (error) throw error;
       

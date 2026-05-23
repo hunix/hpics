@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/AppLayout';
+import { useCSVContactImport, type CSVRow as ImportCSVRow } from '@/hooks/import/useCSVImport';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,21 +25,11 @@ import { BulkEmailAnalyzer } from '@/components/email/BulkEmailAnalyzer';
 import { EmailIntelligenceDashboard } from '@/components/email/EmailIntelligenceDashboard';
 import { HardDrive, BarChart3 } from 'lucide-react';
 
-interface CSVRow {
-  first_name?: string;
-  last_name?: string;
-  email?: string;
-  phone?: string;
-  organization?: string;
-  job_title?: string;
-  relationship_type?: string;
-  notes?: string;
-}
+type CSVRow = ImportCSVRow;
 
 export default function Import() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<CSVRow[]>([]);
   const [importResult, setImportResult] = useState<{ success: number; failed: number } | null>(null);
@@ -141,69 +130,23 @@ export default function Import() {
     reader.readAsText(selectedFile);
   };
 
-  const importMutation = useMutation({
-    mutationFn: async (rows: CSVRow[]) => {
-      if (!user) throw new Error('Not authenticated');
-      
-      let success = 0;
-      let failed = 0;
-      
-      for (const row of rows) {
-        try {
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .insert({
-              user_id: user.id,
-              first_name: row.first_name!,
-              last_name: row.last_name || null,
-              organization: row.organization || null,
-              job_title: row.job_title || null,
-              relationship_type: (row.relationship_type as any) || 'other',
-              notes: row.notes || null,
-            })
-            .select()
-            .single();
-          
-          if (profileError) throw profileError;
-          
-          if (row.email) {
-            await supabase.from('contact_methods').insert({
-              profile_id: profile.id,
-              contact_type: 'email',
-              value: row.email,
-              is_primary: true,
-            });
-          }
-          
-          if (row.phone) {
-            await supabase.from('contact_methods').insert({
-              profile_id: profile.id,
-              contact_type: 'phone',
-              value: row.phone,
-            });
-          }
-          
-          success++;
-        } catch (error) {
-          failed++;
-        }
-      }
-      
-      return { success, failed };
-    },
-    onSuccess: (result) => {
-      setImportResult(result);
-      queryClient.invalidateQueries({ queryKey: ['contacts'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-      toast({ title: 'Import complete', description: `Successfully imported ${result.success} contacts` });
-      setFile(null);
-      setPreview([]);
-      setVcardText('');
-    },
-    onError: (error) => {
-      toast({ title: 'Import failed', description: error.message, variant: 'destructive' });
-    },
-  });
+  const importContacts = useCSVContactImport();
+  const importMutation = {
+    isPending: importContacts.isPending,
+    mutate: (rows: CSVRow[]) =>
+      importContacts.mutate(rows, {
+        onSuccess: (result) => {
+          setImportResult(result);
+          toast({ title: 'Import complete', description: `Successfully imported ${result.success} contacts` });
+          setFile(null);
+          setPreview([]);
+          setVcardText('');
+        },
+        onError: (error: Error) => {
+          toast({ title: 'Import failed', description: error.message, variant: 'destructive' });
+        },
+      }),
+  };
 
   const handleCSVImport = async () => {
     if (!file) return;

@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/AppLayout';
+import {
+  useTeamWorkspaces,
+  useSharedContacts,
+  useTeamActivity,
+  useCreateWorkspace,
+} from '@/hooks/team/useTeamDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -29,109 +33,31 @@ import { TeamActivityFeed } from '@/components/collaboration/TeamActivityFeed';
 
 export default function TeamDashboard() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [workspaceName, setWorkspaceName] = useState('');
 
-  const { data: workspaces = [] } = useQuery({
-    queryKey: ['team-workspaces'],
-    queryFn: async () => {
-      if (!user) return [];
-      
-      const { data, error } = await supabase
-        .from('workspaces')
-        .select(`
-          *,
-          workspace_members (
-            id,
-            user_id,
-            role,
-            accepted_at
-          )
-        `)
-        .or(`owner_id.eq.${user.id},workspace_members.user_id.eq.${user.id}`);
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user,
-  });
+  const { data: workspaces = [] } = useTeamWorkspaces();
+  const { data: sharedContacts = [] } = useSharedContacts(workspaces.map((w) => w.id));
+  const { data: recentActivity = [] } = useTeamActivity();
 
-  const { data: sharedContacts = [] } = useQuery({
-    queryKey: ['shared-contacts'],
-    queryFn: async () => {
-      if (!user) return [];
-      
-      const workspaceIds = workspaces.map(w => w.id);
-      if (workspaceIds.length === 0) return [];
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, organization, workspace_id')
-        .in('workspace_id', workspaceIds)
-        .order('created_at', { ascending: false })
-        .limit(10);
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: workspaces.length > 0,
-  });
-
-  const { data: recentActivity = [] } = useQuery({
-    queryKey: ['team-activity'],
-    queryFn: async () => {
-      if (!user) return [];
-      
-      const { data, error } = await supabase
-        .from('contact_activity_feed')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('occurred_at', { ascending: false })
-        .limit(10);
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user,
-  });
-
-  const totalMembers = workspaces.reduce((sum, w: any) => 
-    sum + (w.workspace_members?.length || 0), 0
+  const totalMembers = workspaces.reduce(
+    (sum, w) => sum + (w.workspace_members?.length || 0),
+    0
   );
 
-  const createWorkspaceMutation = useMutation({
-    mutationFn: async () => {
-      if (!user || !workspaceName.trim()) throw new Error('Name required');
-      
-      const { data: workspace, error } = await supabase
-        .from('workspaces')
-        .insert({ name: workspaceName.trim(), owner_id: user.id })
-        .select()
-        .single();
-      
-      if (error) throw error;
-
-      // Add owner as member
-      await supabase.from('workspace_members').insert({
-        workspace_id: workspace.id,
-        user_id: user.id,
-        role: 'owner',
-        accepted_at: new Date().toISOString(),
-      });
-
-      return workspace;
-    },
-    onSuccess: () => {
-      toast.success('Workspace created');
-      queryClient.invalidateQueries({ queryKey: ['team-workspaces'] });
-      setIsCreateDialogOpen(false);
-      setWorkspaceName('');
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
-  });
+  const createWorkspace = useCreateWorkspace();
+  const createWorkspaceMutation = {
+    isPending: createWorkspace.isPending,
+    mutate: () =>
+      createWorkspace.mutate(workspaceName, {
+        onSuccess: () => {
+          toast.success('Workspace created');
+          setIsCreateDialogOpen(false);
+          setWorkspaceName('');
+        },
+        onError: (error: Error) => toast.error(error.message),
+      }),
+  };
 
   return (
     <AppLayout title="Team Dashboard">

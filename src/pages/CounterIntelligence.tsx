@@ -6,9 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  useThreatAssessments,
+  useBehavioralAnomalies,
+  useIdentityConfidenceStats,
+  useDeceptionIndicators,
+  useResolveAnomaly,
+} from '@/hooks/counterintel/useCounterIntelData';
 import { 
   ShieldAlert, AlertTriangle, Eye, UserX, Activity, 
   TrendingDown, Clock, RefreshCw, CheckCircle, XCircle,
@@ -19,90 +24,12 @@ import { toast } from 'sonner';
 import { invokeFunction } from '@/lib/api';
 
 export default function CounterIntelligence() {
-  const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Fetch threat assessments
-  const { data: threats, isLoading: threatsLoading } = useQuery({
-    queryKey: ['threat-assessments', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('threat_assessments')
-        .select(`
-          *,
-          profiles (first_name, last_name, avatar_url)
-        `)
-        .order('overall_risk_score', { ascending: false })
-        .limit(50);
-      return data || [];
-    },
-    enabled: !!user,
-  });
-
-  // Fetch behavioral anomalies
-  const { data: anomalies, isLoading: anomaliesLoading } = useQuery({
-    queryKey: ['behavioral-anomalies', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('behavioral_anomalies')
-        .select(`
-          *,
-          profiles (first_name, last_name, avatar_url)
-        `)
-        .eq('is_resolved', false)
-        .order('detected_at', { ascending: false })
-        .limit(50);
-      return data || [];
-    },
-    enabled: !!user,
-  });
-
-  // Fetch identity confidence stats
-  const { data: identityStats, isLoading: identityLoading } = useQuery({
-    queryKey: ['identity-confidence-stats', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('contact_biometrics')
-        .select('identity_confidence, facial_confidence, voice_confidence, profile_id');
-      
-      const total = data?.length || 0;
-      const high = data?.filter(d => (d.identity_confidence || 0) >= 80).length || 0;
-      const medium = data?.filter(d => (d.identity_confidence || 0) >= 50 && (d.identity_confidence || 0) < 80).length || 0;
-      const low = data?.filter(d => (d.identity_confidence || 0) < 50).length || 0;
-      const unverified = data?.filter(d => !d.identity_confidence).length || 0;
-      
-      return { total, high, medium, low, unverified };
-    },
-    enabled: !!user,
-  });
-
-  // Fetch deception indicators from ai_analyses
-  const { data: deceptionData, isLoading: deceptionLoading } = useQuery({
-    queryKey: ['deception-indicators', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('ai_analyses')
-        .select(`
-          id,
-          profile_id,
-          result,
-          generated_at,
-          profiles (first_name, last_name)
-        `)
-        .eq('analysis_type', 'deception_analysis')
-        .order('generated_at', { ascending: false })
-        .limit(20);
-      return (data || []).map((d: any) => ({
-        id: d.id,
-        profile_id: d.profile_id,
-        profiles: d.profiles,
-        analyzed_at: d.generated_at,
-        deception_probability: d.result?.deception_probability || 0,
-        deception_indicators: d.result?.indicators || [],
-      }));
-    },
-    enabled: !!user,
-  });
+  const { data: threats, isLoading: threatsLoading } = useThreatAssessments(50);
+  const { data: anomalies, isLoading: anomaliesLoading } = useBehavioralAnomalies(50);
+  const { data: identityStats, isLoading: identityLoading } = useIdentityConfidenceStats();
+  const { data: deceptionData, isLoading: deceptionLoading } = useDeceptionIndicators(20);
 
   // Run threat scan mutation
   const runThreatScan = useMutation({
@@ -120,19 +47,11 @@ export default function CounterIntelligence() {
   });
 
   // Resolve anomaly mutation
-  const resolveAnomaly = useMutation({
-    mutationFn: async (anomalyId: string) => {
-      const { error } = await supabase
-        .from('behavioral_anomalies')
-        .update({ is_resolved: true, resolution_notes: 'Marked as resolved' })
-        .eq('id', anomalyId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['behavioral-anomalies'] });
-      toast.success('Anomaly resolved');
-    },
-  });
+  const resolveAnomalyHook = useResolveAnomaly();
+  const resolveAnomaly = {
+    mutate: (id: string) =>
+      resolveAnomalyHook.mutate(id, { onSuccess: () => toast.success('Anomaly resolved') }),
+  };
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
