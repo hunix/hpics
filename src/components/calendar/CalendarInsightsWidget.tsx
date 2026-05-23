@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCalendarInsightsEvents, useCalendarInsightsMap } from '@/hooks/calendar/useCalendarInsights';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,26 +20,7 @@ import { invokeFunction } from '@/lib/api';
 import { format, isToday, isTomorrow, addDays, startOfDay, endOfDay } from 'date-fns';
 import { toast } from 'sonner';
 
-interface CalendarEvent {
-  id: string;
-  title: string;
-  start_time: string;
-  end_time: string;
-  location?: string;
-  attendees?: any;
-  matched_profile_id?: string;
-  profiles?: { first_name: string; last_name: string };
-}
-
-interface CalendarInsight {
-  eventId: string;
-  prepNotes?: string;
-  suggestedTopics?: string[];
-  relationshipContext?: string;
-}
-
 export function CalendarInsightsWidget() {
-  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [selectedDay, setSelectedDay] = useState<'today' | 'tomorrow' | 'week'>('today');
 
@@ -56,66 +36,13 @@ export function CalendarInsightsWidget() {
     }
   };
 
-  const { data: events, isLoading } = useQuery({
-    queryKey: ['calendar-events-insights', user?.id, selectedDay],
-    queryFn: async () => {
-      const { start, end } = getDateRange();
-      
-      const { data, error } = await supabase
-        .from('synced_calendar_events')
-        .select(`
-          id,
-          title,
-          start_time,
-          end_time,
-          location,
-          attendees,
-          matched_profile_id,
-          profiles:matched_profile_id (first_name, last_name)
-        `)
-        .eq('user_id', user?.id ?? '')
-        .gte('start_time', start.toISOString())
-        .lte('start_time', end.toISOString())
-        .order('start_time', { ascending: true });
-
-      if (error) throw error;
-      return data as CalendarEvent[];
-    },
-    enabled: !!user,
-  });
-
-  const { data: insights } = useQuery({
-    queryKey: ['calendar-insights', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('ai_analyses')
-        .select('*')
-        .eq('user_id', user?.id ?? '')
-        .eq('analysis_type', 'meeting_prep')
-        .order('generated_at', { ascending: false })
-        .limit(20);
-
-      if (error) throw error;
-      
-      const insightMap = new Map<string, CalendarInsight>();
-      data?.forEach(a => {
-        const result = a.result as any;
-        if (result?.eventId) {
-          insightMap.set(result.eventId, result);
-        }
-      });
-      return insightMap;
-    },
-    enabled: !!user,
-  });
+  const { start, end } = getDateRange();
+  const { data: events, isLoading } = useCalendarInsightsEvents(start, end, selectedDay);
+  const { data: insights } = useCalendarInsightsMap();
 
   const generatePrepMutation = useMutation({
     mutationFn: async (eventId: string) => {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session.session?.access_token) throw new Error('Not authenticated');
-
-      const response = await invokeFunction('generate-meeting-prep', { eventId }, { headers: { Authorization: `Bearer ${session.session.access_token}` } });
-
+      const response = await invokeFunction('generate-meeting-prep', { eventId });
       if (response.error) throw response.error;
       return response.data;
     },
@@ -123,18 +50,14 @@ export function CalendarInsightsWidget() {
       queryClient.invalidateQueries({ queryKey: ['calendar-insights'] });
       toast.success('Meeting prep generated');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to generate prep');
     },
   });
 
   const syncMutation = useMutation({
     mutationFn: async () => {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session.session?.access_token) throw new Error('Not authenticated');
-
-      const response = await invokeFunction('sync-google-calendar', {}, { headers: { Authorization: `Bearer ${session.session.access_token}` } });
-
+      const response = await invokeFunction('sync-google-calendar', {});
       if (response.error) throw response.error;
       return response.data;
     },
@@ -142,7 +65,7 @@ export function CalendarInsightsWidget() {
       queryClient.invalidateQueries({ queryKey: ['calendar-events-insights'] });
       toast.success('Calendar synced');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to sync calendar');
     },
   });

@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import {
+  useConversationsList,
+  useCreateConversation,
+  useDeleteConversation,
+} from '@/hooks/conversations/useConversationsList';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -63,9 +65,7 @@ interface ConversationsManagerProps {
 }
 
 export function ConversationsManager({ profileId, profileName }: ConversationsManagerProps) {
-  const { user } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [isNewConvoOpen, setIsNewConvoOpen] = useState(false);
   const [newConvoData, setNewConvoData] = useState({
@@ -73,56 +73,29 @@ export function ConversationsManager({ profileId, profileName }: ConversationsMa
     title: '',
   });
 
-  const { data: conversations } = useQuery({
-    queryKey: ['conversations', profileId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('conversations')
-        .select('*')
-        .eq('profile_id', profileId)
-        .order('last_message_at', { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
+  const { data: conversations } = useConversationsList(profileId);
 
-  const createConversationMutation = useMutation({
-    mutationFn: async (data: typeof newConvoData) => {
-      const { data: convo, error } = await supabase
-        .from('conversations')
-        .insert({
-          user_id: user!.id,
-          profile_id: profileId,
-          platform: data.platform,
-          title: data.title || `${data.platform} conversation`,
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      return convo;
-    },
-    onSuccess: (convo) => {
-      queryClient.invalidateQueries({ queryKey: ['conversations', profileId] });
-      setIsNewConvoOpen(false);
-      navigate(`/contacts/${profileId}/conversations/${convo.id}`);
-      setNewConvoData({ platform: 'whatsapp', title: '' });
-      toast({ title: 'Conversation created' });
-    },
-    onError: (error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    },
-  });
+  const createHook = useCreateConversation(profileId);
+  const createConversationMutation = {
+    isPending: createHook.isPending,
+    mutate: (data: typeof newConvoData) =>
+      createHook.mutate(data, {
+        onSuccess: (convo) => {
+          setIsNewConvoOpen(false);
+          navigate(`/contacts/${profileId}/conversations/${convo.id}`);
+          setNewConvoData({ platform: 'whatsapp', title: '' });
+          toast({ title: 'Conversation created' });
+        },
+        onError: (error: Error) =>
+          toast({ title: 'Error', description: error.message, variant: 'destructive' }),
+      }),
+  };
 
-  const deleteConversationMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('conversations').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversations', profileId] });
-      toast({ title: 'Conversation deleted' });
-    },
-  });
+  const deleteHook = useDeleteConversation(profileId);
+  const deleteConversationMutation = {
+    mutate: (id: string) =>
+      deleteHook.mutate(id, { onSuccess: () => toast({ title: 'Conversation deleted' }) }),
+  };
 
   const handleConversationClick = (convoId: string) => {
     navigate(`/contacts/${profileId}/conversations/${convoId}`);

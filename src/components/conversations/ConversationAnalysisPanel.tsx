@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useConversationAnalysisRow, useConversationSummaryRow } from '@/hooks/conversations/useConversationAnalysis';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -86,37 +86,8 @@ export function ConversationAnalysisPanel({
   const [summaryOpen, setSummaryOpen] = useState(true);
   const [selectedModel, setSelectedModel] = useState('google/gemini-2.5-flash');
 
-  // Fetch existing analysis
-  const { data: analysis, isLoading: analysisLoading } = useQuery({
-    queryKey: ['conversation-analysis', conversationId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('conversation_analyses')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Fetch existing summary
-  const { data: summary, isLoading: summaryLoading } = useQuery({
-    queryKey: ['conversation-summary', conversationId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('conversation_summaries')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-  });
+  const { data: analysis, isLoading: analysisLoading } = useConversationAnalysisRow(conversationId);
+  const { data: summary, isLoading: summaryLoading } = useConversationSummaryRow(conversationId);
 
   // Run analysis mutation
   const analyzeMutation = useMutation({

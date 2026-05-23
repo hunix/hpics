@@ -5,9 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useUpcomingMeetingsPrep, useCachedMeetingBriefings, type MeetingPrepRow } from '@/hooks/calendar/useUpcomingMeetingsPrep';
 import { 
   Calendar, Clock, User, MessageSquare, AlertTriangle,
   Lightbulb, ChevronDown, RefreshCw, FileText, Target
@@ -16,60 +15,13 @@ import { format, formatDistanceToNow, addDays, isWithinInterval } from 'date-fns
 import { toast } from 'sonner';
 import { invokeFunction } from '@/lib/api';
 
-interface MeetingPrep {
-  eventId: string;
-  eventTitle: string;
-  eventDate: Date;
-  profileId: string;
-  profileName: string;
-  briefing?: {
-    recentCommunications: any[];
-    keyTopics: string[];
-    riskAlerts: string[];
-    talkingPoints: string[];
-    relationshipHealth: number;
-    lastContact?: Date;
-  };
-  isGenerating?: boolean;
-}
+type MeetingPrep = MeetingPrepRow;
 
 export function MeetingPrepWidget() {
-  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [expandedMeeting, setExpandedMeeting] = useState<string | null>(null);
 
-  // Fetch upcoming events with contacts
-  const { data: upcomingMeetings, isLoading } = useQuery({
-    queryKey: ['upcoming-meetings-prep', user?.id],
-    queryFn: async () => {
-      const now = new Date();
-      const weekFromNow = addDays(now, 7);
-      
-      const { data: events } = await supabase
-        .from('events')
-        .select(`
-          id,
-          title,
-          event_date,
-          profile_id,
-          profiles (id, first_name, last_name, avatar_url)
-        `)
-        .gte('event_date', now.toISOString())
-        .lte('event_date', weekFromNow.toISOString())
-        .not('profile_id', 'is', null)
-        .order('event_date', { ascending: true })
-        .limit(10);
-      
-      return (events || []).map((event: any) => ({
-        eventId: event.id,
-        eventTitle: event.title,
-        eventDate: new Date(event.event_date),
-        profileId: event.profile_id,
-        profileName: `${event.profiles?.first_name || ''} ${event.profiles?.last_name || ''}`.trim(),
-      })) as MeetingPrep[];
-    },
-    enabled: !!user,
-  });
+  const { data: upcomingMeetings, isLoading } = useUpcomingMeetingsPrep(7, 10);
 
   // Generate meeting prep
   const generatePrep = useMutation({
@@ -92,27 +44,27 @@ export function MeetingPrepWidget() {
     },
   });
 
-  // Fetch cached briefings
-  const { data: briefings } = useQuery({
-    queryKey: ['meeting-briefings', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('ai_analyses')
-        .select('*')
-        .eq('analysis_type', 'meeting_prep')
-        .gte('generated_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
-      
-      const briefingMap: Record<string, any> = {};
-      (data || []).forEach((b: any) => {
-        briefingMap[b.profile_id] = b.result;
-      });
-      return briefingMap;
-    },
-    enabled: !!user,
-  });
+  const { data: briefings } = useCachedMeetingBriefings();
 
-  const getMeetingBriefing = (profileId: string) => {
-    return briefings?.[profileId];
+  interface MeetingBriefing {
+    relationshipHealth: number;
+    lastContact?: string;
+    riskAlerts: string[];
+    talkingPoints: string[];
+    keyTopics: string[];
+    recentCommunications: unknown[];
+  }
+  const getMeetingBriefing = (profileId: string): MeetingBriefing | undefined => {
+    const raw = (briefings as Record<string, Partial<MeetingBriefing>> | undefined)?.[profileId];
+    if (!raw) return undefined;
+    return {
+      relationshipHealth: raw.relationshipHealth ?? 0,
+      lastContact: raw.lastContact,
+      riskAlerts: raw.riskAlerts ?? [],
+      talkingPoints: raw.talkingPoints ?? [],
+      keyTopics: raw.keyTopics ?? [],
+      recentCommunications: raw.recentCommunications ?? [],
+    };
   };
 
   const isToday = (date: Date) => {
