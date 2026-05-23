@@ -151,7 +151,7 @@ export function SystemHealthPanel({ health, isLoading }: SystemHealthPanelProps)
                     )}
                   </div>
                   
-                  {componentHealth?.metrics && typeof componentHealth.metrics === 'object' && !Array.isArray(componentHealth.metrics) && (
+                  {Boolean(componentHealth?.metrics) && typeof componentHealth?.metrics === 'object' && !Array.isArray(componentHealth.metrics) && (
                     <div className="mt-2 pt-2 border-t border-border/50">
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         {Object.entries(componentHealth.metrics).slice(0, 4).map(([key, value]) => (

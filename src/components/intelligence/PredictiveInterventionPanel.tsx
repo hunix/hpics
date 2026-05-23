@@ -337,7 +337,7 @@ function InterventionCard({ intervention, onExecute, onSchedule, isExecuted }: I
         <span>Optimal timing: {intervention.optimalTiming}</span>
       </div>
 
-      {intervention.context.talkingPoints && Array.isArray(intervention.context.talkingPoints) && (
+      {Boolean(intervention.context.talkingPoints) && Array.isArray(intervention.context.talkingPoints) && (
         <div className="bg-muted/30 rounded-lg p-3 mb-3">
           <p className="text-xs font-medium mb-2">Talking Points:</p>
           <ul className="text-xs text-muted-foreground space-y-1">

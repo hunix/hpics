@@ -86,7 +86,7 @@ export function IntelligenceStatsPanel({ className, compact = false }: Intellige
 
       (embeddingsResult.data || []).forEach(e => {
         embeddingsByType[e.source_type] = (embeddingsByType[e.source_type] || 0) + 1;
-        if (new Date(e.created_at).toDateString() === today) {
+        if (new Date(e.created_at ?? Date.now()).toDateString() === today) {
           recentCount++;
         }
       });

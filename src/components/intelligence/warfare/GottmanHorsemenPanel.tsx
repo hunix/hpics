@@ -92,7 +92,7 @@ export function GottmanHorsemenPanel({ profileId }: GottmanHorsemenPanelProps) {
 
         {prediction && (
           <div className="mt-4 p-3 rounded-lg bg-muted/30 border">
-            <div className="flex items-center justify-between text-sm"><span className="text-muted-foreground">Betrayal Risk:</span><Badge variant={prediction.defection_probability > 0.5 ? 'destructive' : 'secondary'}>{((prediction.defection_probability || 0) * 100).toFixed(0)}%</Badge></div>
+            <div className="flex items-center justify-between text-sm"><span className="text-muted-foreground">Betrayal Risk:</span><Badge variant={(prediction.defection_probability ?? 0) > 0.5 ? 'destructive' : 'secondary'}>{((prediction.defection_probability ?? 0) * 100).toFixed(0)}%</Badge></div>
           </div>
         )}
       </CardContent>

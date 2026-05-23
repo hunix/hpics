@@ -17,12 +17,13 @@ interface EntityMention {
   id: string;
   entity_type: string;
   entity_name: string;
-  source_type: string;
-  context: string;
+  source_type: string | null;
+  context: string | null;
   sentiment: number | null;
-  created_at: string;
+  created_at: string | null;
   mentioned_in_profile_id: string | null;
   profiles?: { full_name: string } | null;
+  [key: string]: unknown;
 }
 
 interface EntityMentionsPanelProps {

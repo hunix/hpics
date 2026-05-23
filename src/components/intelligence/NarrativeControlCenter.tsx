@@ -272,7 +272,7 @@ export function NarrativeControlCenter({ profileId }: NarrativeControlCenterProp
                         <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
                           <span>Amplification: {Math.round(node.amplificationScore * 100)}%</span>
                           <span>Authenticity: {Math.round(node.authenticityRating * 100)}%</span>
-                          <span>Created: {new Date(node.createdAt).toLocaleDateString()}</span>
+                          <span>Created: {new Date(node.createdAt ?? Date.now()).toLocaleDateString()}</span>
                         </div>
                       </div>
                     ))

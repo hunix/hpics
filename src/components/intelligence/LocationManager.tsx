@@ -92,8 +92,9 @@ export function LocationManager({ profileId, profileName, location, onBack }: Lo
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      if (!user?.id) throw new Error('not authenticated');
       const payload = {
-        user_id: user?.id,
+        user_id: user.id,
         profile_id: profileId,
         location_type: formData.location_type,
         location_name: formData.location_name || null,

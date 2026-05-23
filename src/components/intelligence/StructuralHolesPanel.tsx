@@ -66,7 +66,7 @@ export function StructuralHolesPanel() {
   const analysisResults = useMemo(() => {
     if (!networkData?.profiles.length) return null;
 
-    const nodes = networkData.profiles.map(p => ({ id: p.id, ...p }));
+    const nodes = networkData.profiles.map(p => ({ ...p, id: p.id }));
     const links = networkData.relationships.map(r => ({
       source: r.from_profile_id,
       target: r.to_profile_id,
