@@ -173,10 +173,10 @@ export function EnrichmentDashboard({ profileId, onEnrichmentComplete }: Enrichm
 
       return {
         ...source,
-        isAvailable: (isAvailable || isConfigured) && hasRequiredData,
+        isAvailable: Boolean((isAvailable || isConfigured) && hasRequiredData),
         hasRequiredData,
-        isConfigured: isAvailable || isConfigured,
-      };
+        isConfigured: Boolean(isAvailable || isConfigured),
+      } satisfies EnrichmentSource & { hasRequiredData: boolean; isConfigured: boolean };
     });
   };
 
@@ -365,7 +365,7 @@ export function EnrichmentDashboard({ profileId, onEnrichmentComplete }: Enrichm
                     <XCircle className="h-4 w-4 text-red-500" />
                   )}
                   <span className="text-sm">
-                    {new Date(job.created_at).toLocaleDateString()}
+                    {new Date(job.created_at ?? Date.now()).toLocaleDateString()}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">

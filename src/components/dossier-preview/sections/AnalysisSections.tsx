@@ -54,7 +54,7 @@ function Trust({ data }: { data: ExtendedDossierData }) {
         { label: 'Trajectory', value: String(trust.trust_trajectory || 'Stable') },
       ]} columns={2} />
       
-      {trust.trust_factors && (
+      {Boolean(trust.trust_factors) && (
         <>
           <SectionSubheader>Trust Factors</SectionSubheader>
           <div className="space-y-2">

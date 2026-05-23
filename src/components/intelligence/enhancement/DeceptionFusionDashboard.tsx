@@ -164,7 +164,7 @@ export function DeceptionFusionDashboard({ profileId }: DeceptionFusionDashboard
                       <div>
                         <p className="font-medium capitalize">{analysis.modality} Analysis</p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(analysis.createdAt).toLocaleString()}
+                          {new Date(analysis.createdAt ?? Date.now()).toLocaleString()}
                         </p>
                       </div>
                     </div>

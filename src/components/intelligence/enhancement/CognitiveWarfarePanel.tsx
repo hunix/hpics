@@ -179,7 +179,7 @@ export function CognitiveWarfarePanel({ profileId }: CognitiveWarfarePanelProps)
                             {op.operationType.replace(/_/g, ' ')}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            Created: {new Date(op.createdAt).toLocaleDateString()}
+                            Created: {new Date(op.createdAt ?? Date.now()).toLocaleDateString()}
                           </p>
                         </div>
                       </div>

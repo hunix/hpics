@@ -89,7 +89,7 @@ export function CognitiveWarfareAlerts() {
           description: `${profile?.full_name || 'Unknown contact'} shows ${Math.round((rel.defection_probability || 0) * 100)}% betrayal probability`,
           profileId: profile?.id,
           profileName: profile?.full_name,
-          timestamp: new Date(rel.updated_at),
+          timestamp: new Date(rel.updated_at ?? Date.now()),
           dismissed: false,
         });
       });
@@ -105,7 +105,7 @@ export function CognitiveWarfareAlerts() {
             description: `${profile?.full_name || 'Unknown'}: ${sign}`,
             profileId: profile?.id,
             profileName: profile?.full_name,
-            timestamp: new Date(warn.updated_at),
+            timestamp: new Date(warn.updated_at ?? Date.now()),
             dismissed: false,
           });
         });
