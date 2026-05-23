@@ -1,15 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ComposeEmailDialog } from '@/components/communications/ComposeEmailDialog';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/AppLayout';
+import {
+  useContactById,
+  useContactMethods,
+  useDeleteContact,
+  useToggleContactFavorite,
+  useToggleSelfProfile,
+} from '@/hooks/contacts/useContactDetail';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
 import { useComprehensiveScan } from '@/hooks/useComprehensiveScan';
 import { ArrowLeft, User, ChevronRight } from 'lucide-react';
 import { ContactDialog } from '@/components/contacts/ContactDialog';
@@ -34,9 +38,6 @@ export default function ContactDetail() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-  
   // Initialize section from URL or default to 'overview'
   const [activeSection, setActiveSection] = useState<SectionId>(() => {
     const urlSection = searchParams.get('section') as SectionId | null;
@@ -73,81 +74,33 @@ export default function ContactDetail() {
     }
   }, [searchParams, activeSection]);
 
-  const { data: contact, isLoading } = useQuery({
-    queryKey: ['contact', id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', id!)
-        .single();
-      if (error) throw error;
-      return data as Profile;
-    },
-    enabled: !!id,
-  });
+  const { data: contact, isLoading } = useContactById(id);
+  const { data: contactMethods } = useContactMethods(id);
 
-  const { data: contactMethods } = useQuery({
-    queryKey: ['contact-methods', id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('contact_methods')
-        .select('*')
-        .eq('profile_id', id!);
-      return data ?? [];
-    },
-    enabled: !!id,
-  });
+  const deleteHook = useDeleteContact(id);
+  const deleteMutation = {
+    mutate: () =>
+      deleteHook.mutate(undefined, {
+        onSuccess: () => {
+          toast({ title: 'Contact deleted' });
+          navigate('/contacts');
+        },
+        onError: (error: Error) =>
+          toast({ title: 'Error', description: error.message, variant: 'destructive' }),
+      }),
+  };
 
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from('profiles').delete().eq('id', id!);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contacts'] });
-      toast({ title: 'Contact deleted' });
-      navigate('/contacts');
-    },
-    onError: (error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    },
-  });
+  const toggleFavoriteHook = useToggleContactFavorite(id, contact?.is_favorite);
+  const toggleFavoriteMutation = { mutate: () => toggleFavoriteHook.mutate() };
 
-  const toggleFavoriteMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ is_favorite: !contact?.is_favorite })
-        .eq('id', id!);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contact', id] });
-      queryClient.invalidateQueries({ queryKey: ['contacts'] });
-      queryClient.invalidateQueries({ queryKey: ['family-relationships'] });
-    },
-  });
-
+  const toggleSelf = useToggleSelfProfile();
   const handleToggleSelfProfile = async () => {
-    if (!contact?.is_self_profile) {
-      await supabase
-        .from('profiles')
-        .update({ is_self_profile: false })
-        .eq('user_id', user!.id)
-        .eq('is_self_profile', true);
-    }
-    await supabase
-      .from('profiles')
-      .update({ is_self_profile: !contact?.is_self_profile })
-      .eq('id', id!);
-    queryClient.invalidateQueries({ queryKey: ['contact', id] });
-    queryClient.invalidateQueries({ queryKey: ['contacts'] });
-    queryClient.invalidateQueries({ queryKey: ['family-relationships'] });
-    toast({ 
-      title: contact?.is_self_profile 
-        ? 'Removed "This is me" marker' 
-        : 'Marked as "This is me"' 
+    if (!id) return;
+    await toggleSelf(id, contact?.is_self_profile ?? false);
+    toast({
+      title: contact?.is_self_profile
+        ? 'Removed "This is me" marker'
+        : 'Marked as "This is me"',
     });
   };
 
@@ -214,7 +167,7 @@ export default function ContactDetail() {
 
       {/* Header */}
       <ContactDetailHeader
-        contact={contact}
+        contact={contact as unknown as Profile}
         contactName={contactName}
         showAIPanel={showAIPanel}
         onToggleAIPanel={() => setShowAIPanel(!showAIPanel)}

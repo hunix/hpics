@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/components/AppLayout';
+import { useBulkDeleteContacts } from '@/hooks/contacts/useBulkDeleteContacts';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, User, AlertCircle, RefreshCw } from 'lucide-react';
@@ -136,63 +136,22 @@ export default function Contacts() {
   // Toggle favorite using domain hook
   const toggleFavoriteMutation = useToggleFavoriteById();
 
-  const bulkDeleteMutation = useMutation({
-    mutationFn: async (ids: string[]) => {
+  const bulkDeleteHook = useBulkDeleteContacts();
+  const bulkDeleteMutation = {
+    isPending: bulkDeleteHook.isPending,
+    mutate: (ids: string[]) => {
       trackBulkOperation('bulk_delete_contacts', ids.length);
-      
-      // Delete all related data for each contact
-      await supabase.from('ai_analyses').delete().in('profile_id', ids);
-      await supabase.from('behavioral_analyses').delete().in('profile_id', ids);
-      await supabase.from('body_language_analyses').delete().in('profile_id', ids);
-      await supabase.from('facial_analyses').delete().in('profile_id', ids);
-      await supabase.from('certifications').delete().in('profile_id', ids);
-      await supabase.from('communications').delete().in('profile_id', ids);
-      await supabase.from('contact_bank_accounts').delete().in('profile_id', ids);
-      await supabase.from('contact_devices').delete().in('profile_id', ids);
-      await supabase.from('contact_financial_history').delete().in('profile_id', ids);
-      await supabase.from('contact_graduations').delete().in('profile_id', ids);
-      await supabase.from('contact_group_members').delete().in('profile_id', ids);
-      await supabase.from('contact_identity_documents').delete().in('profile_id', ids);
-      await supabase.from('contact_interests').delete().in('profile_id', ids);
-      await supabase.from('contact_languages').delete().in('profile_id', ids);
-      await supabase.from('contact_methods').delete().in('profile_id', ids);
-      await supabase.from('contact_observations').delete().in('profile_id', ids);
-      await supabase.from('contact_payment_accounts').delete().in('profile_id', ids);
-      await supabase.from('contact_personal_info').delete().in('profile_id', ids);
-      await supabase.from('contact_properties').delete().in('profile_id', ids);
-      await supabase.from('contact_residences').delete().in('profile_id', ids);
-      await supabase.from('contact_skills').delete().in('profile_id', ids);
-      await supabase.from('contact_travel_history').delete().in('profile_id', ids);
-      await supabase.from('contact_vehicles').delete().in('profile_id', ids);
-      await supabase.from('conversations').delete().in('profile_id', ids);
-      await supabase.from('documents').delete().in('profile_id', ids);
-      await supabase.from('education').delete().in('profile_id', ids);
-      await supabase.from('events').delete().in('profile_id', ids);
-      await supabase.from('gift_ideas').delete().in('profile_id', ids);
-      await supabase.from('media').delete().in('profile_id', ids);
-      await supabase.from('meeting_recordings').delete().in('profile_id', ids);
-      await supabase.from('relationship_goals').delete().in('profile_id', ids);
-      await supabase.from('analysis_sessions').delete().in('profile_id', ids);
-      await supabase.from('contact_kids_schools').delete().in('profile_id', ids);
-      await supabase.from('contact_relationships').delete().in('from_profile_id', ids);
-      await supabase.from('contact_relationships').delete().in('to_profile_id', ids);
-
-      const { error } = await supabase.from('profiles').delete().in('id', ids);
-      if (error) throw error;
+      bulkDeleteHook.mutate(ids, {
+        onSuccess: () => {
+          toast.success(`Deleted ${ids.length} contact${ids.length > 1 ? 's' : ''} successfully`);
+          setSelectedIds(new Set());
+          setIsDeleteDialogOpen(false);
+        },
+        onError: (error: Error) => toast.error(`Delete failed: ${error.message}`),
+      });
     },
-    onSuccess: (_, ids) => {
-      toast.success(`Deleted ${ids.length} contact${ids.length > 1 ? 's' : ''} successfully`);
-      setSelectedIds(new Set());
-      setIsDeleteDialogOpen(false);
-      // Use domain query keys for invalidation
-      queryClient.invalidateQueries({ queryKey: profileKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-    },
-    onError: (error) => {
-      toast.error('Failed to delete contacts: ' + (error as Error).message);
-    },
-  });
-
+  };
+  // Suppress the old useMutation onSuccess inline tail — the hook handles invalidation.
   const handleSelectionChange = useCallback((id: string, selected: boolean) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
