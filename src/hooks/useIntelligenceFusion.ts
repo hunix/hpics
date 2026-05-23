@@ -132,7 +132,7 @@ export function useIntelligenceFusion() {
   // Trigger multi-modal fusion analysis
   const triggerFusion = useMutation({
     mutationFn: async (request: FusionAnalysisRequest) => {
-      const { data, error } = await invokeFunction('hardware-intelligence-fusion', request,);
+      const { data, error } = await invokeFunction('hardware-intelligence-fusion', request as unknown as Record<string, unknown>);
       if (error) throw error;
       return data;
     },

@@ -81,7 +81,7 @@ export function calculateLocalPriorityScore(insight: Insight, context?: UserCont
   score += insight.confidence * 25;
   
   // Recency score (0-20)
-  const ageHours = (Date.now() - new Date(insight.createdAt).getTime()) / (1000 * 60 * 60);
+  const ageHours = (Date.now() - new Date(insight.createdAt ?? Date.now()).getTime()) / (1000 * 60 * 60);
   if (ageHours < 1) score += 20;
   else if (ageHours < 24) score += 15;
   else if (ageHours < 72) score += 10;

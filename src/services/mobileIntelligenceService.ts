@@ -10,10 +10,10 @@ import { supabase } from '@/integrations/supabase/client';
 export interface LocationRecord {
   latitude: number;
   longitude: number;
-  accuracy: number;
+  accuracy: number | null;
   timestamp: string;
-  speed?: number;
-  heading?: number;
+  speed?: number | null;
+  heading?: number | null;
 }
 
 export interface ProximityRecord {

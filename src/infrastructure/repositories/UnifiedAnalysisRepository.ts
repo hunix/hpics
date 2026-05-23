@@ -124,11 +124,12 @@ export class UnifiedAnalysisRepository {
       }
 
       // Fallback to ai_analyses table
+      if (!input.profileId) throw new Error('profileId required for ai_analyses upsert');
       const { data, error } = await supabase
         .from('ai_analyses')
         .upsert({
           user_id: input.userId,
-          profile_id: input.profileId || null,
+          profile_id: input.profileId,
           analysis_type: `${input.domain}:${input.type}`,
           result: {
             ...input.result,

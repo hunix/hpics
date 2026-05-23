@@ -67,7 +67,9 @@ const ANCHOR_MULTIPLIERS = {
  * Calculate optimal anchor for negotiation
  */
 export function calculateOptimalAnchor(context: NegotiationContext): AnchorRecommendation {
-  const multiplier = ANCHOR_MULTIPLIERS[context.type][context.your_role];
+  const multiplier = context.your_role === 'neutral'
+    ? 1.0
+    : ANCHOR_MULTIPLIERS[context.type][context.your_role];
   const susceptibility = context.their_anchoring_susceptibility ?? 0.5;
   
   // Adjust multiplier based on relationship importance

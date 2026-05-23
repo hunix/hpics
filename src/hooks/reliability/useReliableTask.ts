@@ -121,11 +121,11 @@ export function useReliableTask<T extends Record<string, unknown>>({
           const checkpointData = checkpoint.data as Record<string, unknown>;
           setState(prev => ({
             ...prev,
-            taskId: checkpoint.task_id,
-            currentStep: checkpoint.current_step,
+            taskId: checkpoint.task_id ?? prev.taskId,
+            currentStep: checkpoint.current_step ?? prev.currentStep,
             status: 'recovering' as TaskStatus,
             data: checkpointData as T,
-            lastCheckpoint: checkpoint.updated_at,
+            lastCheckpoint: checkpoint.updated_at ?? prev.lastCheckpoint,
           }));
         }
       } catch (error) {

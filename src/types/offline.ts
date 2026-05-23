@@ -5,7 +5,7 @@
 export interface OfflineContact {
     id: string;
     first_name: string;
-    last_name: string;
+    last_name: string | null;
     avatar_url?: string | null;
     company?: string | null;
     job_title?: string | null;

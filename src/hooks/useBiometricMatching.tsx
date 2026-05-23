@@ -467,6 +467,7 @@ export function useBatchBiometricScan() {
       for (const media of mediaItems || []) {
         try {
           // Get signed URL
+          if (!media.storage_path) continue;
           const { data: signedData } = await supabase.storage
             .from('contact-media')
             .createSignedUrl(media.storage_path, 300);

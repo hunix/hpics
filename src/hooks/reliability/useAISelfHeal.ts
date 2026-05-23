@@ -388,7 +388,7 @@ export function useSimpleAISelfHeal<T>(
   );
 
   return {
-    execute: () => selfHeal.execute({}),
     ...selfHeal,
+    execute: () => selfHeal.execute({}),
   };
 }

@@ -62,7 +62,7 @@ export function useClearance() {
           return {
             role: 'viewer' as AppRole,
             clearance: 'uncleared' as ClearanceLevel,
-            compartments: [],
+            compartments: [] as string[],
           };
         }
         throw error;

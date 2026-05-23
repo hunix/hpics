@@ -60,8 +60,8 @@ export interface GeofenceConfig {
   latitude: number;
   longitude: number;
   radiusMeters: number;
-  notifyOnEntry: boolean;
-  notifyOnExit: boolean;
+  notifyOnEntry: boolean | null;
+  notifyOnExit: boolean | null;
   linkedProfileId?: string;
 }
 

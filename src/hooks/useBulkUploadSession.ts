@@ -132,6 +132,7 @@ export function useBulkUploadSession() {
       toast({ title: 'Error', description: 'Please sign in to upload files', variant: 'destructive' });
       return null;
     }
+    const userId = userIdRef.current;
 
     setIsPreparing(true);
 
@@ -188,15 +189,15 @@ export function useBulkUploadSession() {
       // Create database items
       const itemInserts = processed.map((p, i) => ({
         session_id: dbSession.id,
-        user_id: userIdRef.current,
+        user_id: userId,
         filename: p.filename,
-        original_path: p.originalPath,
+        original_path: p.originalPath ?? null,
         file_size: p.fileSize,
         mime_type: p.mimeType,
         file_type: p.category,
-        content_hash: p.contentHash,
+        content_hash: p.contentHash ?? null,
         status: p.isValid ? 'pending' : 'skipped',
-        error_message: p.validationError,
+        error_message: p.validationError ?? null,
         sort_order: i,
       }));
 

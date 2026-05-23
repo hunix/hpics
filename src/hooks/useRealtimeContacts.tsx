@@ -49,8 +49,8 @@ export function useRealtimeContacts(enabled = true) {
 
   // Debounced toast to prevent toast spam
   const debouncedToast = useMemo(
-    () => debounce((message: string) => {
-      toast.info(message);
+    () => debounce((...args: unknown[]) => {
+      toast.info(args[0] as string);
     }, 1000),
     []
   );

@@ -63,7 +63,7 @@ export function installInvokeProxy() {
     // If custom headers are passed (e.g., Authorization overrides), use original invoke
     // to avoid breaking auth patterns
     if (options?.headers) {
-      return originalInvoke(functionName, options as never);
+      return _originalInvoke(functionName, options as never);
     }
 
     const invokeFn = await loadRouter();

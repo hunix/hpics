@@ -134,7 +134,7 @@ export function useCreateDeceptionAnalysis() {
         linguistic_authenticity_score: analysis.linguistic_authenticity_score ?? null,
         deception_timeline: analysis.deception_timeline ?? null,
         peak_deception_moments: analysis.peak_deception_moments ?? null,
-        overall_confidence: analysis.overall_confidence ?? null,
+        overall_confidence: analysis.overall_confidence ?? 0,
         models_used: analysis.models_used ?? null,
         analysis_version: analysis.analysis_version ?? null,
         analyzed_at: new Date().toISOString(),

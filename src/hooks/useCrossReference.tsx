@@ -169,7 +169,11 @@ export function useCrossReference() {
         return [];
       }
 
-      return data || [];
+      return (data ?? []).map(d => ({
+        profile_id: d.profile_id ?? '',
+        confidence: d.confidence ?? 0,
+        source: d.source ?? '',
+      }));
     },
     [user]
   );

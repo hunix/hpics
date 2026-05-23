@@ -98,13 +98,14 @@ export function useComprehensiveScan(profileId: string) {
   // Cancel scan mutation
   const cancelMutation = useMutation({
     mutationFn: async () => {
-      if (!currentSessionId && !scanSession?.id) return;
-      
+      const targetId = currentSessionId ?? scanSession?.id;
+      if (!targetId) return;
+
       const { error } = await supabase
         .from('comprehensive_scan_sessions')
         .update({ status: 'cancelled' })
-        .eq('id', currentSessionId || scanSession?.id);
-      
+        .eq('id', targetId);
+
       if (error) throw error;
     },
     onSuccess: () => {

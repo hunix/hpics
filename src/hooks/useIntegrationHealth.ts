@@ -119,7 +119,7 @@ export function useIntegrationHealth() {
           s => secretStatusMap[s.key] || s.isOptional
         ).length;
         const secretsTotal = integration.secrets.length;
-        const isConfigured = secretsConfigured === secretsTotal || integration.isConnector;
+        const isConfigured = secretsConfigured === secretsTotal || Boolean(integration.isConnector);
         
         // Check enabled status
         const config = configMap.get(integration.id);

@@ -548,7 +548,7 @@ export function useVoiceBulkAnalysis(profileId?: string) {
         const { data: existingInsights, error: insightsError } = await supabase
           .from('voice_insights')
           .select('source_id')
-          .eq('profile_id', profileId);
+          .eq('profile_id', profileId!);
         
         if (insightsError) {
           console.error('[VoiceBulkAnalysis] Failed to check voice_insights:', insightsError);

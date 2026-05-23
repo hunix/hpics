@@ -256,7 +256,7 @@ export default function MemoryExplorer() {
                 {convergenceScore.gapCategories.length > 0 && (
                   <div className="mt-4 flex items-center gap-2 flex-wrap">
                     <span className="text-xs text-slate-500">Gaps:</span>
-                    {convergenceScore.gapCategories.map((g) => (
+                    {convergenceScore.gapCategories.map((g: string) => (
                       <Badge key={g} variant="outline" className="text-[10px] border-amber-500/30 text-amber-400">
                         {dimensionLabels[g] ?? g}
                       </Badge>

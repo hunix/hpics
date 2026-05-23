@@ -74,7 +74,7 @@ export function useIntelligenceQueue() {
   const fetchStats = useCallback(async () => {
     if (!user?.id) return;
 
-    const statuses: JobStatus[] = ['pending', 'processing', 'completed', 'failed'];
+    const statuses = ['pending', 'processing', 'completed', 'failed'] as const;
     const counts: Partial<QueueStats> = {};
 
     await Promise.all(

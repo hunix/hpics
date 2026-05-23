@@ -231,7 +231,7 @@ export default function CrossModalAnalysis() {
                           <div className="flex items-center justify-between mb-3">
                             <Badge>{correlation.correlationType}</Badge>
                             <span className="text-sm text-muted-foreground">
-                              {new Date(correlation.createdAt).toLocaleDateString()}
+                              {new Date(correlation.createdAt ?? Date.now()).toLocaleDateString()}
                             </span>
                           </div>
                           <div className="grid grid-cols-2 gap-2">

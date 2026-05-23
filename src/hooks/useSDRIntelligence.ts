@@ -71,7 +71,7 @@ export function useSDRIntelligence() {
   const startScan = useMutation({
     mutationFn: async (params: SpectrumScanParams) => {
       setIsScanning(true);
-      const { data, error } = await invokeFunction('sdr-intelligence/spectrum-scan', params,);
+      const { data, error } = await invokeFunction('sdr-intelligence/spectrum-scan', params as unknown as Record<string, unknown>);
       if (error) throw error;
       return data;
     },

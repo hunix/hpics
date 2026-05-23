@@ -136,6 +136,7 @@ export default function VideoAnalysis() {
       case 'facial': return facialModel;
       case 'body_language': return bodyLanguageModel;
       case 'vocal': return vocalModel;
+      default: return behavioralModel;
     }
   };
 

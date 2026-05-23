@@ -60,7 +60,7 @@ export function withCsrfToken<TVariables, TResult>(
   fn: (variables: TVariables, headers: Record<string, string>) => Promise<TResult>
 ): (variables: TVariables, csrfToken: string) => Promise<TResult> {
   return (variables: TVariables, csrfToken: string) => {
-    const headers = csrfToken ? { 'X-CSRF-Token': csrfToken } : {};
+    const headers: Record<string, string> = csrfToken ? { 'X-CSRF-Token': csrfToken } : {};
     return fn(variables, headers);
   };
 }

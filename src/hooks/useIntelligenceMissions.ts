@@ -121,10 +121,11 @@ export function useIntelligenceMissions() {
 
       if (error) throw error;
 
+      if (!user?.id) throw new Error('Not authenticated');
       // Create mission event
       await supabase.from('mission_events').insert({
         mission_id: missionId,
-        user_id: user?.id,
+        user_id: user.id,
         event_type: status === 'active' ? 'started' : status === 'paused' ? 'paused' : 'completed',
         event_data: { new_status: status },
         severity: 'info',

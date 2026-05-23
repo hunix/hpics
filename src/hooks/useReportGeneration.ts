@@ -98,7 +98,7 @@ export function useReportGeneration() {
 
   // Check report status
   const checkReportStatus = useCallback(async (reportId: string) => {
-    const { data, error } = await invokeFunction('generate-hardware-report', null, { headers: {
+    const { data, error } = await invokeFunction('generate-hardware-report', undefined, { headers: {
         'Content-Type': 'application/json',
       } });
 

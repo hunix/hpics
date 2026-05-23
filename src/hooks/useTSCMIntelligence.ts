@@ -68,7 +68,7 @@ export function useTSCMIntelligence() {
   // Start TSCM sweep
   const startSweep = useMutation({
     mutationFn: async (params: SweepParams) => {
-      const { data, error } = await invokeFunction('tscm-intelligence/start-sweep', params,);
+      const { data, error } = await invokeFunction('tscm-intelligence/start-sweep', params as unknown as Record<string, unknown>);
       if (error) throw error;
       return data.sweep;
     },

@@ -152,7 +152,7 @@ function OSINTStatusPanel({
   isCollecting: boolean;
 }) {
   const collectionTypes = ["news", "social_media", "regulatory", "domain"];
-  const byType = (status as Record<string, { collections_by_type: Record<string, { last_scan: string; mentions: number; status: string }> }>)?.collections_by_type ?? {};
+  const byType = (status as { collections_by_type?: Record<string, { last_scan: string; mentions: number; status: string }> } | null | undefined)?.collections_by_type ?? {};
 
   return (
     <div className="space-y-3">

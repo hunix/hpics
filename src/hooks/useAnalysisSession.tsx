@@ -323,10 +323,12 @@ export function useAnalysisSession({
     // Update session status to running
     setSession(prev => prev ? { ...prev, status: 'running', startedAt: prev.startedAt || new Date() } : prev);
     
-    await supabase
-      .from('analysis_sessions')
-      .update({ status: 'running', started_at: new Date().toISOString() })
-      .eq('id', sessionIdRef.current);
+    if (sessionIdRef.current) {
+      await supabase
+        .from('analysis_sessions')
+        .update({ status: 'running', started_at: new Date().toISOString() })
+        .eq('id', sessionIdRef.current);
+    }
 
     // Find first pending or failed job to run
     const pendingJobs = currentSession.jobs.filter(j => j.status === 'pending' || j.status === 'paused');

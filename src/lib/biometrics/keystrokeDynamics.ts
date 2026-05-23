@@ -210,8 +210,9 @@ class KeystrokeDynamicsAnalyzer {
     // Correction speed (time after backspace)
     const correctionTimes: number[] = [];
     for (let i = 0; i < this.keyPresses.length - 1; i++) {
-      if (this.keyPresses[i].key === 'Backspace' && this.keyPresses[i + 1].flightTime) {
-        correctionTimes.push(this.keyPresses[i + 1].flightTime);
+      const flight = this.keyPresses[i + 1].flightTime;
+      if (this.keyPresses[i].key === 'Backspace' && flight !== undefined) {
+        correctionTimes.push(flight);
       }
     }
     const correctionSpeed = correctionTimes.length > 0 ? this.mean(correctionTimes) : 0;
