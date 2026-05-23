@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
+import { useLogFollowup } from '@/hooks/communications/useLogFollowup';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,7 +35,6 @@ const actionIcons: Record<string, React.ReactNode> = {
 
 export function FollowUpSuggestions() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
 
   const { data: suggestions, isLoading, refetch, isFetching } = useQuery({
@@ -54,33 +53,14 @@ export function FollowUpSuggestions() {
     staleTime: 1000 * 60 * 30, // 30 minutes
   });
 
-  const logCommunicationMutation = useMutation({
-    mutationFn: async ({ contactId, channel }: { contactId: string; channel: string }) => {
-      const { error } = await supabase.from('communications').insert({
-        profile_id: contactId,
-        user_id: user!.id,
-        channel: channel as any,
-        direction: 'outbound',
-        subject: 'Follow-up',
-        occurred_at: new Date().toISOString(),
-      });
-      
-      if (error) throw error;
-      
-      // Update last contact date
-      await supabase.from('profiles').update({
-        last_contact_date: new Date().toISOString(),
-      }).eq('id', contactId);
-    },
-    onSuccess: () => {
-      toast.success('Interaction logged!');
-      queryClient.invalidateQueries({ queryKey: ['follow-up-suggestions'] });
-      queryClient.invalidateQueries({ queryKey: ['contacts'] });
-    },
-    onError: () => {
-      toast.error('Failed to log interaction');
-    },
-  });
+  const logFollowup = useLogFollowup();
+  const logCommunicationMutation = {
+    mutate: (input: { contactId: string; channel: string }) =>
+      logFollowup.mutate(input, {
+        onSuccess: () => toast.success('Interaction logged!'),
+        onError: () => toast.error('Failed to log interaction'),
+      }),
+  };
 
   const handleDismiss = (contactId: string) => {
     setDismissedIds(prev => [...prev, contactId]);

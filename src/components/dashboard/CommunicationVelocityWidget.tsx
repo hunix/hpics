@@ -1,123 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  TrendingUp, TrendingDown, Minus, Activity, RefreshCw, AlertTriangle 
+import {
+  TrendingUp, TrendingDown, Minus, Activity, RefreshCw, AlertTriangle
 } from "lucide-react";
-import { subDays, differenceInDays } from "date-fns";
-
-interface VelocityData {
-  profileId: string;
-  profileName: string;
-  currentRate: number; // messages per week
-  previousRate: number;
-  velocityChange: number; // percentage change
-  trend: "accelerating" | "decelerating" | "stable";
-  lastContact: Date | null;
-  totalMessages: number;
-}
+import { differenceInDays } from "date-fns";
+import { useCommunicationVelocity } from "@/hooks/communications/useCommunicationVelocity";
 
 export function CommunicationVelocityWidget() {
-  const { data: velocityData, isLoading } = useQuery({
-    queryKey: ["communication-velocity"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
-
-      const now = new Date();
-      const fourWeeksAgo = subDays(now, 28);
-      const eightWeeksAgo = subDays(now, 56);
-
-      // Get communications from last 8 weeks
-      const { data: comms, error } = await supabase
-        .from("communications")
-        .select("profile_id, occurred_at")
-        .eq("user_id", user.id)
-        .gte("occurred_at", eightWeeksAgo.toISOString())
-        .order("occurred_at", { ascending: false });
-
-      if (error) throw error;
-
-      // Get profile names
-      const profileIds = [...new Set(comms?.map(c => c.profile_id) || [])];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, first_name, last_name")
-        .in("id", profileIds);
-
-      const profileMap = new Map(profiles?.map(p => [p.id, `${p.first_name} ${p.last_name || ''}`.trim()]) || []);
-
-      // Calculate velocity per profile
-      const profileStats = new Map<string, {
-        recentCount: number;
-        previousCount: number;
-        lastContact: Date | null;
-        totalMessages: number;
-      }>();
-
-      comms?.forEach(c => {
-        const date = new Date(c.occurred_at);
-        const current = profileStats.get(c.profile_id) || {
-          recentCount: 0,
-          previousCount: 0,
-          lastContact: null,
-          totalMessages: 0
-        };
-
-        current.totalMessages++;
-        
-        if (!current.lastContact || date > current.lastContact) {
-          current.lastContact = date;
-        }
-
-        if (date >= fourWeeksAgo) {
-          current.recentCount++;
-        } else {
-          current.previousCount++;
-        }
-
-        profileStats.set(c.profile_id, current);
-      });
-
-      // Convert to velocity data
-      const velocities: VelocityData[] = [];
-
-      profileStats.forEach((stats, profileId) => {
-        const currentRate = stats.recentCount / 4; // per week
-        const previousRate = stats.previousCount / 4;
-        
-        let velocityChange = 0;
-        if (previousRate > 0) {
-          velocityChange = ((currentRate - previousRate) / previousRate) * 100;
-        } else if (currentRate > 0) {
-          velocityChange = 100; // New activity
-        }
-
-        let trend: "accelerating" | "decelerating" | "stable" = "stable";
-        if (velocityChange > 20) trend = "accelerating";
-        else if (velocityChange < -20) trend = "decelerating";
-
-        velocities.push({
-          profileId,
-          profileName: profileMap.get(profileId) || "Unknown",
-          currentRate,
-          previousRate,
-          velocityChange,
-          trend,
-          lastContact: stats.lastContact,
-          totalMessages: stats.totalMessages
-        });
-      });
-
-      // Sort by absolute velocity change (most significant changes first)
-      return velocities.sort((a, b) => 
-        Math.abs(b.velocityChange) - Math.abs(a.velocityChange)
-      );
-    },
-  });
+  const { data: velocityData, isLoading } = useCommunicationVelocity();
 
   const getTrendIcon = (trend: string) => {
     switch (trend) {

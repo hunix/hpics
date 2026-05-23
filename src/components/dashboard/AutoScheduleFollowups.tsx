@@ -1,141 +1,40 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CalendarClock, Bell, Clock, Users, Check } from 'lucide-react';
 import { toast } from 'sonner';
-import { format, addDays } from 'date-fns';
-
-interface ScheduledReminder {
-  contactId: string;
-  contactName: string;
-  scheduledDate: Date;
-  reason: string;
-  channel: string;
-}
+import { format } from 'date-fns';
+import {
+  usePendingFollowupSchedules,
+  useScheduleFollowup,
+  useScheduleAllFollowups,
+} from '@/hooks/dashboard/useAutoScheduleFollowups';
 
 export function AutoScheduleFollowups() {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const [autoScheduleEnabled, setAutoScheduleEnabled] = useState(false);
+  const { data: pendingSchedules, isLoading } = usePendingFollowupSchedules();
 
-  // Fetch contacts that need scheduling
-  const { data: pendingSchedules, isLoading } = useQuery({
-    queryKey: ['pending-schedules', user?.id],
-    queryFn: async () => {
-      // Get active contacts without upcoming follow-up events
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, relationship_type, last_contact_date')
-        .eq('user_id', user!.id)
-        .eq('is_active', true);
+  const scheduleHook = useScheduleFollowup();
+  const scheduleFollowupMutation = {
+    isPending: scheduleHook.isPending,
+    mutate: (contact: { contactId: string; contactName: string; suggestedDate: Date }) =>
+      scheduleHook.mutate(contact, {
+        onSuccess: () => toast.success('Follow-up scheduled!'),
+        onError: () => toast.error('Failed to schedule follow-up'),
+      }),
+  };
 
-      const { data: existingEvents } = await supabase
-        .from('events')
-        .select('profile_id')
-        .eq('user_id', user!.id)
-        .eq('event_type', 'follow_up')
-        .gte('event_date', new Date().toISOString());
-
-      const scheduledProfileIds = new Set((existingEvents || []).map(e => e.profile_id));
-      
-      const now = new Date();
-      const needsScheduling = (profiles || [])
-        .filter(p => !scheduledProfileIds.has(p.id))
-        .map(p => {
-          const lastContact = p.last_contact_date ? new Date(p.last_contact_date) : null;
-          const daysSince = lastContact 
-            ? Math.floor((now.getTime() - lastContact.getTime()) / (1000 * 60 * 60 * 24))
-            : 999;
-          
-          // Calculate suggested follow-up based on relationship type
-          let suggestedDays = 30;
-          switch (p.relationship_type) {
-            case 'family': suggestedDays = 7; break;
-            case 'friend': suggestedDays = 14; break;
-            case 'mentor':
-            case 'mentee': suggestedDays = 21; break;
-            case 'colleague':
-            case 'client': suggestedDays = 30; break;
-            default: suggestedDays = 45;
-          }
-
-          return {
-            contactId: p.id,
-            contactName: `${p.first_name} ${p.last_name || ''}`.trim(),
-            relationshipType: p.relationship_type || 'other',
-            daysSinceContact: daysSince,
-            suggestedDate: addDays(now, Math.max(1, suggestedDays - Math.min(daysSince, suggestedDays))),
-            priority: daysSince > suggestedDays ? 'overdue' : 'upcoming',
-          };
-        })
-        .filter(p => p.daysSinceContact > 7) // Only show those needing attention
-        .sort((a, b) => b.daysSinceContact - a.daysSinceContact)
-        .slice(0, 10);
-
-      return needsScheduling;
-    },
-    enabled: !!user,
-  });
-
-  const scheduleFollowupMutation = useMutation({
-    mutationFn: async (contact: { contactId: string; contactName: string; suggestedDate: Date }) => {
-      const { error } = await supabase.from('events').insert({
-        user_id: user!.id,
-        profile_id: contact.contactId,
-        title: `Follow up with ${contact.contactName}`,
-        event_type: 'follow_up',
-        event_date: contact.suggestedDate.toISOString(),
-        reminder_days_before: 1,
-        reminder_frequency: 'once',
-        is_active: true,
+  const scheduleAllHook = useScheduleAllFollowups();
+  const scheduleAllMutation = {
+    isPending: scheduleAllHook.isPending,
+    mutate: () => {
+      const list = pendingSchedules ?? [];
+      scheduleAllHook.mutate(list, {
+        onSuccess: () => toast.success(`Scheduled ${list.length} follow-ups!`),
+        onError: () => toast.error('Failed to schedule follow-ups'),
       });
-
-      if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pending-schedules'] });
-      queryClient.invalidateQueries({ queryKey: ['events'] });
-      toast.success('Follow-up scheduled!');
-    },
-    onError: () => {
-      toast.error('Failed to schedule follow-up');
-    },
-  });
-
-  const scheduleAllMutation = useMutation({
-    mutationFn: async () => {
-      if (!pendingSchedules) return;
-      
-      const inserts = pendingSchedules.map(contact => ({
-        user_id: user!.id,
-        profile_id: contact.contactId,
-        title: `Follow up with ${contact.contactName}`,
-        event_type: 'follow_up' as const,
-        event_date: contact.suggestedDate.toISOString(),
-        reminder_days_before: 1,
-        reminder_frequency: 'once' as const,
-        is_active: true,
-      }));
-
-      const { error } = await supabase.from('events').insert(inserts);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pending-schedules'] });
-      queryClient.invalidateQueries({ queryKey: ['events'] });
-      toast.success(`Scheduled ${pendingSchedules?.length} follow-ups!`);
-    },
-    onError: () => {
-      toast.error('Failed to schedule follow-ups');
-    },
-  });
+  };
 
   if (isLoading) {
     return (

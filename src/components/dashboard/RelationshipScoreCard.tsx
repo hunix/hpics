@@ -1,52 +1,18 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth';
 import { TrendingUp, TrendingDown, Minus, RefreshCw, Loader2, Heart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { invokeFunction } from '@/lib/api';
-
-type RelationshipScore = {
-  id: string;
-  profile_id: string;
-  overall_score: number;
-  frequency_score: number;
-  recency_score: number;
-  diversity_score: number;
-  sentiment_score: number;
-  decay_rate: number;
-  profiles: {
-    first_name: string;
-    last_name: string | null;
-    is_favorite: boolean;
-  };
-};
+import { useRelationshipScores } from '@/hooks/dashboard/useRelationshipScores';
 
 export function RelationshipScoreCard() {
-  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: scores, isLoading } = useQuery({
-    queryKey: ['relationship-scores', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('relationship_scores')
-        .select(`
-          *,
-          profiles (first_name, last_name, is_favorite)
-        `)
-        .order('overall_score', { ascending: true })
-        .limit(10);
-      if (error) throw error;
-      return data as RelationshipScore[];
-    },
-    enabled: !!user,
-  });
+  const { data: scores, isLoading } = useRelationshipScores(10);
 
   const recalculateMutation = useMutation({
     mutationFn: async () => {

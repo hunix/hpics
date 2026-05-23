@@ -4,10 +4,9 @@
  */
 
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { 
-  Users, Star, Calendar, AlertTriangle, 
+import {
+  Users, Star, Calendar, AlertTriangle,
   MessageSquare, Brain, Plus, Camera, Mic,
   ChevronRight, TrendingUp, Clock, Zap, Command
 } from 'lucide-react';
@@ -18,80 +17,25 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { hapticFeedback } from '@/lib/nativeFeatures';
 import { ClickableContactChip } from '@/components/contacts/ClickableContactChip';
 import { differenceInDays, format } from 'date-fns';
 import { MobileAGISCommandCard } from '@/components/mobile/agis/MobileAGISCommandCard';
 import { useAGISGlobalState } from '@/hooks/intelligence/useAGISGlobalState';
+import {
+  useMobileDashboardStats,
+  useMobileDecayContacts,
+  useMobileRecentContacts,
+} from '@/hooks/dashboard/useMobileDashboard';
 
 export function MobileDashboard() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { globalState } = useAGISGlobalState();
   const phaseHealthScores = globalState?.phaseHealthScores || {};
 
-  // Fetch dashboard stats
-  const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ['mobile-dashboard-stats', user?.id],
-    queryFn: async () => {
-      const [profilesRes, favoritesRes, eventsRes, capturesRes] = await Promise.all([
-        supabase.from('profiles').select('id', { count: 'exact' }).eq('is_active', true),
-        supabase.from('profiles').select('id', { count: 'exact' }).eq('is_favorite', true).eq('is_active', true),
-        supabase.from('events').select('id', { count: 'exact' })
-          .eq('is_active', true)
-          .gte('event_date', new Date().toISOString()),
-        supabase.from('device_captures').select('id', { count: 'exact' })
-          .eq('status', 'pending'),
-      ]);
-
-      return {
-        contacts: profilesRes.count ?? 0,
-        favorites: favoritesRes.count ?? 0,
-        upcomingEvents: eventsRes.count ?? 0,
-        pendingCaptures: capturesRes.count ?? 0,
-      };
-    },
-    enabled: !!user,
-  });
-
-  // Fetch contacts needing attention (decay)
-  const { data: needsAttention, isLoading: decayLoading } = useQuery({
-    queryKey: ['mobile-decay-contacts', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, avatar_url, last_contact_date, is_favorite')
-        .eq('user_id', user!.id)
-        .eq('is_active', true)
-        .order('last_contact_date', { ascending: true, nullsFirst: true })
-        .limit(10);
-
-      return (data || []).filter(p => {
-        if (!p.last_contact_date) return true;
-        const days = differenceInDays(new Date(), new Date(p.last_contact_date));
-        return p.is_favorite ? days > 30 : days > 60;
-      }).slice(0, 4);
-    },
-    enabled: !!user,
-  });
-
-  // Fetch recent contacts
-  const { data: recentContacts, isLoading: recentLoading } = useQuery({
-    queryKey: ['mobile-recent-contacts', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, avatar_url, organization')
-        .eq('user_id', user!.id)
-        .eq('is_active', true)
-        .order('updated_at', { ascending: false })
-        .limit(8);
-      return data || [];
-    },
-    enabled: !!user,
-  });
+  const { data: stats, isLoading: statsLoading } = useMobileDashboardStats();
+  const { data: needsAttention, isLoading: decayLoading } = useMobileDecayContacts();
+  const { data: recentContacts, isLoading: recentLoading } = useMobileRecentContacts();
 
   const handleQuickAction = async (action: string) => {
     await hapticFeedback('medium');
