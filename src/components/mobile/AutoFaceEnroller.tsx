@@ -176,7 +176,7 @@ export function AutoFaceEnroller({ className, onComplete }: AutoFaceEnrollerProp
                   )}
                 >
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={result.avatar} />
+                    <AvatarImage src={result.avatar ?? undefined} />
                     <AvatarFallback>{result.profileName[0]}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">

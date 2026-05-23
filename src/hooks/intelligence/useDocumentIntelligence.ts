@@ -14,8 +14,8 @@ export interface ExtractedContactInfo {
 export interface LinkedProfile {
   id: string;
   first_name: string;
-  last_name: string;
-  avatar_url: string;
+  last_name: string | null;
+  avatar_url: string | null;
   full_name: string;
 }
 

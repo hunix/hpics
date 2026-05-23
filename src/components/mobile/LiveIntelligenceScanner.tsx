@@ -170,7 +170,7 @@ export function LiveIntelligenceScanner({
             let bestMatch = { id: '', name: '', confidence: 0 };
             
             enrolledDescriptors.forEach((enrolled, id) => {
-              const distance = computeDescriptorDistance(face.descriptor, enrolled.descriptor);
+              const distance = computeDescriptorDistance(face.descriptor!, enrolled.descriptor);
               const confidence = 1 - distance;
               
               if (confidence > bestMatch.confidence && confidence > 0.6) {
