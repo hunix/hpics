@@ -123,7 +123,7 @@ export function ContactMediaManager({ profileId, contactName }: ContactMediaMana
         const { data, error } = await supabase.rpc('get_contact_media_paginated', {
           p_user_id: user!.id,
           p_profile_id: profileId,
-          p_search_query: searchQuery.trim() || null,
+          p_search_query: searchQuery.trim() || undefined,
           p_media_type: typeFilter,
           p_sort_by: sortField,
           p_sort_order: sortDirection,

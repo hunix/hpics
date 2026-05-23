@@ -65,7 +65,7 @@ export function ContactTimeline({ profileId }: ContactTimelineProps) {
           id: `event-${event.id}`,
           type: 'event',
           title: event.title,
-          description: event.description,
+          description: event.description ?? undefined,
           date: new Date(event.event_date),
           metadata: { eventType: event.event_type },
         });
@@ -169,9 +169,9 @@ export function ContactTimeline({ profileId }: ContactTimelineProps) {
                   <Badge variant="outline" className="text-xs capitalize">
                     {event.type}
                   </Badge>
-                  {event.metadata?.platform && (
+                  {Boolean(event.metadata?.platform) && (
                     <Badge variant="secondary" className="text-xs capitalize">
-                      {String(event.metadata.platform).replace('_', ' ')}
+                      {String(event.metadata?.platform).replace('_', ' ')}
                     </Badge>
                   )}
                 </div>

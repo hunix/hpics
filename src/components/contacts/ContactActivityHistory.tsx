@@ -178,7 +178,7 @@ export function ContactActivityHistory({ profileId, contactName }: ContactActivi
         id: analysis.id,
         type: 'media_analysis',
         subtype: analysis.analysis_depth || 'deep',
-        timestamp: analysis.created_at,
+        timestamp: analysis.created_at ?? '',
         status: 'completed',
         cost: null,
         model: analysis.model_used,

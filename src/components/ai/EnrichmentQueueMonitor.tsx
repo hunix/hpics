@@ -99,7 +99,7 @@ export function EnrichmentQueueMonitor() {
       };
       
       data?.forEach(item => {
-        if (item.status in stats) {
+        if (item.status && item.status in stats) {
           stats[item.status as keyof Omit<QueueStats, 'total'>]++;
         }
       });

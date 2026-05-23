@@ -117,7 +117,7 @@ export function BulkMetadataGenerator({ profileId, contactName, onProcessingChan
       // Use RPC function that counts ALL media
       const { data: countData, error: countError } = await supabase.rpc('get_contact_media_counts', {
         p_user_id: user!.id,
-        p_profile_id: profileId || null,
+        p_profile_id: profileId || undefined,
         p_skip_analyzed: skipProcessed
       });
       
@@ -282,7 +282,7 @@ export function BulkMetadataGenerator({ profileId, contactName, onProcessingChan
       while (true) {
         const { data, error } = await supabase.rpc('get_media_ids_for_analysis', {
           p_user_id: user!.id,
-          p_profile_id: profileId || null,
+          p_profile_id: profileId || undefined,
           p_media_types: mediaTypes,
           p_skip_analyzed: skipProcessed,
           p_limit: batchSize,
