@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRelationshipInferences } from '@/hooks/network/useRelationshipInferences';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,50 +12,11 @@ import { GitBranch, Users, Target, RefreshCw, Sparkles, ArrowRight } from 'lucid
 import { toast } from 'sonner';
 import { invokeFunction } from '@/lib/api';
 
-interface RelationshipInference {
-  id: string;
-  source_profile_id: string;
-  target_profile_id: string;
-  inference_type: string;
-  path_distance: number;
-  confidence_score: number;
-  opportunity_score: number;
-  opportunity_type: string;
-  evidence: Record<string, unknown>;
-  created_at: string;
-}
-
-interface ProfileInfo {
-  id: string | null;
-  first_name: string;
-  last_name: string | null;
-  organization: string | null;
-  avatar_url: string | null;
-}
-
 export function RelationshipGraphViewer() {
-  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('inferences');
 
-  const { data: inferences, isLoading } = useQuery({
-    queryKey: ['relationship-inferences', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('relationship_inferences')
-        .select(`
-          *,
-          source_profile:profiles!relationship_inferences_source_profile_id_fkey(id, first_name, last_name, organization, avatar_url),
-          target_profile:profiles!relationship_inferences_target_profile_id_fkey(id, first_name, last_name, organization, avatar_url)
-        `)
-        .order('opportunity_score', { ascending: false })
-        .limit(50);
-
-      if (error) throw error;
-      return (data || []) as unknown as (RelationshipInference & { source_profile: ProfileInfo | null; target_profile: ProfileInfo | null })[];
-    },
-    enabled: !!user,
-  });
+  const { data: inferences, isLoading } = useRelationshipInferences(50);
 
   const inferMutation = useMutation({
     mutationFn: async () => {

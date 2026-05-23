@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useSharedExperiences } from "@/hooks/network/useSharedExperiences";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,19 +9,10 @@ import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { invokeFunction } from '@/lib/api';
 
-interface SharedExperience {
-  id: string;
-  title: string;
-  milestone_type: string;
-  event_date: string | null;
-  related_contacts: string[];
-  participantNames?: string[];
-}
-
 interface ExperienceCluster {
   participants: string[];
   participantNames: string[];
-  events: SharedExperience[];
+  events: import('@/hooks/network/useSharedExperiences').SharedExperience[];
   count: number;
 }
 
@@ -30,48 +20,7 @@ export function SharedExperiencesMap() {
   const { toast } = useToast();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  const { data: experiences, isLoading, refetch } = useQuery({
-    queryKey: ["shared-experiences-map"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
-
-      // Get life milestones with multiple related contacts as shared experiences
-      const { data: milestones, error } = await supabase
-        .from("contact_life_milestones")
-        .select("id, title, milestone_type, event_date, related_contacts")
-        .eq("user_id", user.id)
-        .not("related_contacts", "is", null)
-        .order("event_date", { ascending: false })
-        .limit(50);
-
-      if (error) throw error;
-
-      // Filter to milestones with 2+ related contacts
-      const sharedEvents = (milestones || []).filter(
-        (e) => e.related_contacts && e.related_contacts.length >= 2
-      );
-
-      // Get profile names for participants
-      const allParticipantIds = [...new Set(sharedEvents.flatMap(e => e.related_contacts || []))];
-      
-      if (allParticipantIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("id, first_name, last_name")
-          .in("id", allParticipantIds);
-
-        const profileMap = new Map(profiles?.map(p => [p.id, `${p.first_name} ${p.last_name || ''}`.trim()]) || []);
-
-        return sharedEvents.map(e => ({
-          ...e,
-          participantNames: (e.related_contacts || []).map(id => profileMap.get(id) || "Unknown")
-        })) as SharedExperience[];
-      }
-
-      return sharedEvents as SharedExperience[];
-    },
-  });
+  const { data: experiences, isLoading, refetch } = useSharedExperiences();
 
   // Group experiences by participants to find networking clusters
   const participantClusters = experiences?.reduce((acc, exp) => {

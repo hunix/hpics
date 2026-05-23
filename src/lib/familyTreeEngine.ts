@@ -47,6 +47,42 @@ export interface FamilyGraph {
   generations: Map<number, string[]>; // generation level -> member ids
 }
 
+/**
+ * BFS over the relationship graph starting at startId, returning the
+ * set of profile ids reachable from it. Used to scope the family tree
+ * to the connected component of the self profile.
+ */
+export function getConnectedMembers(
+  relationships: { from_profile_id: string; to_profile_id: string }[],
+  startId: string
+): Set<string> {
+  const connected = new Set<string>();
+  const queue = [startId];
+
+  const adj = new Map<string, Set<string>>();
+  for (const r of relationships) {
+    if (!adj.has(r.from_profile_id)) adj.set(r.from_profile_id, new Set());
+    if (!adj.has(r.to_profile_id)) adj.set(r.to_profile_id, new Set());
+    adj.get(r.from_profile_id)!.add(r.to_profile_id);
+    adj.get(r.to_profile_id)!.add(r.from_profile_id);
+  }
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    if (connected.has(current)) continue;
+    connected.add(current);
+
+    const neighbors = adj.get(current);
+    if (neighbors) {
+      for (const neighbor of neighbors) {
+        if (!connected.has(neighbor)) queue.push(neighbor);
+      }
+    }
+  }
+
+  return connected;
+}
+
 // Maps relationship labels to their semantic type
 const PARENT_LABELS = new Set(['father', 'mother', 'parent', 'stepfather', 'stepmother']);
 const CHILD_LABELS = new Set(['son', 'daughter', 'child', 'stepson', 'stepdaughter']);
@@ -79,7 +115,7 @@ function isGrandchildLabel(label: string): boolean {
   return GRANDCHILD_LABELS.has(label.toLowerCase());
 }
 
-interface ProfileInfo {
+export interface ProfileInfo {
   id: string;
   first_name: string;
   last_name: string | null;

@@ -1,13 +1,12 @@
-import { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useState, useMemo } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAdvancedNetworkGraphData } from '@/hooks/network/useNetworkGraphData';
 import { 
   Share2, Users, TrendingUp, AlertTriangle, Zap, Link2, 
   RefreshCw, Loader2, Target, ShieldCheck, Lightbulb,
@@ -49,126 +48,97 @@ interface NetworkLink {
 }
 
 export function AdvancedNetworkDashboard() {
-  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
 
-  const { data: networkData, isLoading, refetch } = useQuery({
-    queryKey: ['advanced-network-data', user?.id],
-    queryFn: async () => {
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, organization, is_favorite')
-        .eq('user_id', user!.id)
-        .eq('is_active', true)
-        .limit(500);
+  const { data: rawNetwork, isLoading, refetch } = useAdvancedNetworkGraphData(500);
 
-      const profileIds = (profiles || []).map(p => p.id);
+  const networkData = useMemo(() => {
+    if (!rawNetwork) return null;
+    const nodes: NetworkNode[] = rawNetwork.profiles.map((p) => ({
+      id: p.id,
+      name: `${p.first_name} ${p.last_name || ''}`.trim(),
+      organization: p.organization,
+      isFavorite: p.is_favorite,
+    }));
+    const links: NetworkLink[] = rawNetwork.relationships.map((r) => ({
+      source: r.from_profile_id,
+      target: r.to_profile_id,
+      weight: 1,
+    }));
 
-      const { data: relationships } = await supabase
-        .from('contact_relationships')
-        .select('from_profile_id, to_profile_id, relationship_type')
-        .eq('user_id', user!.id)
-        .in('from_profile_id', profileIds)
-        .in('to_profile_id', profileIds);
+    const clusters = detectClusters(nodes, links);
+    const eigenvector = calculateEigenvectorCentrality(nodes, links);
+    const weakTies = detectWeakTies(nodes, links, clusters);
+    const predictions = predictLinks(nodes, links, 15);
+    const resilience = analyzeNetworkResilience(nodes, links);
+    const roles = classifyCommunityRoles(nodes, links, clusters);
+    const opportunities = identifyGrowthOpportunities(nodes, links, clusters);
 
-      const nodes: NetworkNode[] = (profiles || []).map(p => ({
-        id: p.id,
-        name: `${p.first_name} ${p.last_name || ''}`.trim(),
-        organization: p.organization,
-        isFavorite: p.is_favorite,
+    let gatfelpaResult: GatfelpaResult | null = null;
+    try {
+      gatfelpaResult = detectCommunitiesGATFELPA(nodes, links);
+    } catch (e) {
+      if (e instanceof Error) console.warn('[GATFELPA] Detection failed:', e.message);
+    }
+
+    const trustPredictions: TrustPrediction[] = [];
+    const topInfluencerIds = Array.from(eigenvector.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 15)
+      .map(([id]) => id);
+    for (const nodeId of topInfluencerIds) {
+      try {
+        trustPredictions.push(predictTrust(nodes, links, nodeId));
+      } catch (e) {
+        if (e instanceof Error) console.warn('[TrustGuard] Failed for', nodeId);
+      }
+    }
+
+    let influenceResult: TemporalInfluenceResult | null = null;
+    try {
+      influenceResult = maximizeTemporalInfluence(nodes, links, 5, 10);
+    } catch (e) {
+      if (e instanceof Error) console.warn('[TempRL-IM] Failed:', e.message);
+    }
+
+    const influencers = Array.from(eigenvector.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([id, score]) => ({
+        id,
+        name: nodes.find((n) => n.id === id)?.name || 'Unknown',
+        score,
+        trust: trustPredictions.find((t) => t.nodeId === id),
       }));
 
-      const links: NetworkLink[] = (relationships || []).map(r => ({
-        source: r.from_profile_id,
-        target: r.to_profile_id,
-        weight: 1,
-      }));
+    const roleDistribution = roles.reduce((acc, r) => {
+      acc[r.role] = (acc[r.role] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
 
-      // Classic algorithms
-      const clusters = detectClusters(nodes, links);
-      const eigenvector = calculateEigenvectorCentrality(nodes, links);
-      const weakTies = detectWeakTies(nodes, links, clusters);
-      const predictions = predictLinks(nodes, links, 15);
-      const resilience = analyzeNetworkResilience(nodes, links);
-      const roles = classifyCommunityRoles(nodes, links, clusters);
-      const opportunities = identifyGrowthOpportunities(nodes, links, clusters);
-
-      // === v10.0 Enhanced Engines ===
-      // GATFELPA Community Detection
-      let gatfelpaResult: GatfelpaResult | null = null;
-      try {
-        gatfelpaResult = detectCommunitiesGATFELPA(nodes, links);
-      } catch (e) {
-        if (e instanceof Error) console.warn('[GATFELPA] Detection failed:', e.message);
-      }
-
-      // TrustGuard Trust Predictions for top influencers
-      const trustPredictions: TrustPrediction[] = [];
-      const topInfluencerIds = Array.from(eigenvector.entries())
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 15)
-        .map(([id]) => id);
-      
-      for (const nodeId of topInfluencerIds) {
-        try {
-          const tp = predictTrust(nodes, links, nodeId);
-          trustPredictions.push(tp);
-        } catch (e) {
-          if (e instanceof Error) console.warn('[TrustGuard] Failed for', nodeId);
-        }
-      }
-
-      // TempRL-IM Influence Maximization
-      let influenceResult: TemporalInfluenceResult | null = null;
-      try {
-        influenceResult = maximizeTemporalInfluence(nodes, links, 5, 10);
-      } catch (e) {
-        if (e instanceof Error) console.warn('[TempRL-IM] Failed:', e.message);
-      }
-
-      // Get top influencers
-      const influencers = Array.from(eigenvector.entries())
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10)
-        .map(([id, score]) => ({
-          id,
-          name: nodes.find(n => n.id === id)?.name || 'Unknown',
-          score,
-          trust: trustPredictions.find(t => t.nodeId === id),
-        }));
-
-      const roleDistribution = roles.reduce((acc, r) => {
-        acc[r.role] = (acc[r.role] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-      return {
-        nodes,
-        links,
-        clusters,
-        influencers,
-        weakTies,
-        predictions,
-        resilience,
-        roles,
-        roleDistribution,
-        opportunities,
-        // v10.0 enhanced
-        gatfelpaResult,
-        trustPredictions,
-        influenceResult,
-        stats: {
-          totalNodes: nodes.length,
-          totalLinks: links.length,
-          communities: new Set(clusters.values()).size,
-          gatfelpaCommunities: gatfelpaResult?.communities.length || 0,
-          density: nodes.length > 1 ? (2 * links.length) / (nodes.length * (nodes.length - 1)) : 0,
-        },
-      };
-    },
-    enabled: !!user,
-    staleTime: 60000,
-  });
+    return {
+      nodes,
+      links,
+      clusters,
+      influencers,
+      weakTies,
+      predictions,
+      resilience,
+      roles,
+      roleDistribution,
+      opportunities,
+      gatfelpaResult,
+      trustPredictions,
+      influenceResult,
+      stats: {
+        totalNodes: nodes.length,
+        totalLinks: links.length,
+        communities: new Set(clusters.values()).size,
+        gatfelpaCommunities: gatfelpaResult?.communities.length || 0,
+        density: nodes.length > 1 ? (2 * links.length) / (nodes.length * (nodes.length - 1)) : 0,
+      },
+    };
+  }, [rawNetwork]);
 
   const analyzeNetworkMutation = useMutation({
     mutationFn: async () => {
