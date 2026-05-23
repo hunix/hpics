@@ -18,7 +18,7 @@ export interface InfiniteSynthesisOperation {
   synthesisPower: number;
   dimensionalReach: number;
   synthesisStatus: string;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useInfiniteSynthesis() {

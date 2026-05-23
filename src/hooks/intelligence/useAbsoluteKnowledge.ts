@@ -13,7 +13,7 @@ export interface AbsoluteKnowledge {
   universalApplicability: number;
   knowledgePayload: Record<string, unknown>;
   derivationChain: unknown[];
-  createdAt: string;
+  createdAt: string | null;
   updatedAt: string;
 }
 

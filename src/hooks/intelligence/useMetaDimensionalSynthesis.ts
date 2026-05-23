@@ -12,7 +12,7 @@ export interface MetaDimensionalSynthesis {
   crossDimensionalMap: Record<string, unknown>;
   synthesisOutcomes: Record<string, unknown>;
   temporalBinding: Record<string, unknown>;
-  createdAt: string;
+  createdAt: string | null;
   updatedAt: string;
 }
 

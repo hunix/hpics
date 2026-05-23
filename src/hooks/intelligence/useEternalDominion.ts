@@ -18,7 +18,7 @@ export interface EternalDominionState {
   entropyReversal: Record<string, unknown>;
   existenceBinding: Record<string, unknown>;
   dominionMetrics: Record<string, unknown>;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useEternalDominion() {

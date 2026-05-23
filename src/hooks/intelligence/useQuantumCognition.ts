@@ -17,7 +17,7 @@ export interface QuantumDecisionState {
   orderEffects: Record<string, unknown>;
   qqEqualityResult: Record<string, unknown>;
   measurementContext: string;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface EntanglementResult {
@@ -26,7 +26,7 @@ export interface EntanglementResult {
   correlationStrength: number;
   bellInequalityViolation: number;
   sharedDecisionPatterns: string[];
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useQuantumCognition(profileId?: string) {

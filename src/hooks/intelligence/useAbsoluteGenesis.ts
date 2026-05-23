@@ -87,7 +87,7 @@ export function useAbsoluteGenesis(profileId?: string) {
       let query = (supabase
         .from('genesis_operations' as any)
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .order('created_at', { ascending: false })) as any;
 
       if (profileId) {
@@ -226,7 +226,7 @@ export function useAbsoluteGenesis(profileId?: string) {
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .select()
         .single()) as any;
 
@@ -249,7 +249,7 @@ export function useAbsoluteGenesis(profileId?: string) {
           updated_at: new Date().toISOString()
         })
         .eq('id', operationId)
-        .eq('user_id', user?.id)) as any;
+        .eq('user_id', user?.id ?? '')) as any;
 
       if (error) throw error;
     },
@@ -271,7 +271,7 @@ export function useAbsoluteGenesis(profileId?: string) {
         .from('genesis_operations' as any)
         .delete()
         .eq('id', operationId)
-        .eq('user_id', user?.id)) as any;
+        .eq('user_id', user?.id ?? '')) as any;
 
       if (error) throw error;
     },

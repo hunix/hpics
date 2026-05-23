@@ -12,7 +12,7 @@ export interface ImplicitKnowledge {
   confidenceScore: number;
   sourcePatterns: string[];
   applicationDomains: string[];
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface AncestralPattern {
@@ -24,7 +24,7 @@ export interface AncestralPattern {
   manifestations: string[];
   strength: number;
   transformationPotential: number;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface HiddenConnection {
@@ -36,7 +36,7 @@ export interface HiddenConnection {
   connectionDescription: string;
   strength: number;
   exploitabilityScore: number;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useAkashicRecords(profileId?: string) {

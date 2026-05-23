@@ -19,7 +19,7 @@ export interface EternalInfluence {
   selfReinforcementLoops: string[];
   influenceStatus: string;
   profileId?: string;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface CausalAnchor {

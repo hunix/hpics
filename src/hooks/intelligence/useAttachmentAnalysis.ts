@@ -147,7 +147,7 @@ export function useAttachmentAnalysis() {
       }
 
       const profile: AttachmentProfile = {
-        profileId: data.profile_id,
+        profileId: data.profile_id ?? '',
         attachmentStyle: data.attachment_style as AttachmentStyle,
         confidence: 0.85,
         abandonmentSensitivity: data.abandonment_sensitivity || 0,
@@ -159,7 +159,7 @@ export function useAttachmentAnalysis() {
         triggerPhrases: data.trigger_phrases || [],
         exploitationPlaybook: (data.exploitation_playbook as any) || { approach: '', techniques: [], warnings: [], ethicalBoundaries: [] },
         evidenceBasis: { communicationPatterns: [], behavioralIndicators: [], historicalEvents: [] },
-        analyzedAt: new Date(data.updated_at)
+        analyzedAt: new Date(data.updated_at ?? Date.now())
       };
 
       setProfiles(prev => new Map(prev).set(profileId, profile));

@@ -17,7 +17,7 @@ export interface DigitalTwinRecord {
   simulationState: Record<string, unknown>;
   accuracyScore: number;
   lastSynced: string;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useDigitalTwin(profileId?: string) {

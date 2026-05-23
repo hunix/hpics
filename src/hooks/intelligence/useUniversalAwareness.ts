@@ -13,7 +13,7 @@ export interface UniversalAwareness {
   omniscientIndex: number;
   awarenessMatrix: Record<string, unknown>;
   consciousnessLinks: unknown[];
-  createdAt: string;
+  createdAt: string | null;
   updatedAt: string;
 }
 

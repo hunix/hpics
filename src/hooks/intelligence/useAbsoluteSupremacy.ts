@@ -12,7 +12,7 @@ export interface AbsoluteSupremacy {
   dominanceScore: number;
   sustainabilityRating: number;
   evolutionTrajectory: Record<string, unknown>;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useAbsoluteSupremacy() {
@@ -25,7 +25,7 @@ export function useAbsoluteSupremacy() {
       const { data, error } = await supabase
         .from('absolute_supremacy')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .order('created_at', { ascending: false });
       
       if (error) throw error;

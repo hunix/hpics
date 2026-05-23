@@ -41,7 +41,7 @@ export function useAbsoluteConvergence() {
       const { data, error } = await supabase
         .from('convergence_protocols')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .order('priority', { ascending: true });
       
       if (error) throw error;
@@ -68,7 +68,7 @@ export function useAbsoluteConvergence() {
       const { data, error } = await supabase
         .from('absolute_objectives')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .order('priority_score', { ascending: false });
       
       if (error) throw error;

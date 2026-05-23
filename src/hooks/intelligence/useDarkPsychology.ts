@@ -19,7 +19,7 @@ export interface DarkTetradResult {
   overallDarknessScore: number;
   riskLevel: string;
   markers: Record<string, unknown>;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface CoerciveControlResult {
@@ -29,7 +29,7 @@ export interface CoerciveControlResult {
   phase: string;
   tactics: string[];
   escalationRisk: number;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useDarkPsychology(profileId?: string) {

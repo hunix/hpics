@@ -12,7 +12,7 @@ export interface UniversalOmniscience {
   timelineAwareness: Record<string, unknown>;
   probabilityFields: Record<string, number>;
   transcendenceLevel: number;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useUniversalOmniscience() {
@@ -25,7 +25,7 @@ export function useUniversalOmniscience() {
       const { data, error } = await supabase
         .from('universal_omniscience')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .order('created_at', { ascending: false });
       
       if (error) throw error;

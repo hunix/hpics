@@ -22,7 +22,7 @@ export interface AGISGlobalState {
   totalOperationsCount: number;
   successRate: number;
   lastSynthesisAt: string | null;
-  createdAt: string;
+  createdAt: string | null;
   updatedAt: string;
 }
 

@@ -14,7 +14,7 @@ export interface TranscendentSynthesis {
   emergentPatterns: Array<{ pattern: string; strength: number }>;
   predictionHorizonDays: number;
   accuracyMetrics: Record<string, number>;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface UltimateOrchestration {

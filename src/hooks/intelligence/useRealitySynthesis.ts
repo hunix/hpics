@@ -14,7 +14,7 @@ export interface RealitySynthesis {
   causalDepth: number;
   synthesisTimestamp: string;
   validityWindow: { start: string; end: string };
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface OmniscientAwareness {

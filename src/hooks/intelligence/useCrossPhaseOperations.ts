@@ -18,7 +18,7 @@ export interface CrossPhaseOperation {
   startedAt: string | null;
   completedAt: string | null;
   outcomeAnalysis: Record<string, unknown> | null;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useCrossPhaseOperations() {

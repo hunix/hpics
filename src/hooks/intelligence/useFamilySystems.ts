@@ -37,7 +37,7 @@ export interface FamilySystemAnalysis {
     unspokenRules: string[];
   };
   vulnerabilities: string[];
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useFamilySystems() {

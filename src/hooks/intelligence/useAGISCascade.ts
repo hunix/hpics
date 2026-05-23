@@ -15,7 +15,7 @@ export interface CascadeEvent {
   executionLog: Array<{ phase: number; message: string; timestamp: string }>;
   startedAt: string;
   completedAt: string | null;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface CascadeRule {
@@ -32,7 +32,7 @@ export interface CascadeRule {
   cooldownMinutes: number;
   lastTriggeredAt: string | null;
   triggerCount: number;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface PhaseSynergy {

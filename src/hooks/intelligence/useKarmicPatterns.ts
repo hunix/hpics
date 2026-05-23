@@ -13,7 +13,7 @@ export interface KarmicCycle {
   lessonThemes: string[];
   completionProgress: number;
   breakthroughConditions: string[];
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface KarmicDebt {
@@ -26,7 +26,7 @@ export interface KarmicDebt {
   originPattern: string;
   resolutionPath: string[];
   repaymentProgress: number;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface KarmicOpportunity {
@@ -39,7 +39,7 @@ export interface KarmicOpportunity {
   alignmentRequirements: string[];
   windowOfOpportunity: string;
   captureStrategies: string[];
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useKarmicPatterns(profileId?: string) {

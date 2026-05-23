@@ -12,7 +12,7 @@ export interface RealityComprehension {
   comprehensionIndex: number;
   frameworkModel: Record<string, unknown>;
   paradoxResolution: Record<string, unknown>;
-  createdAt: string;
+  createdAt: string | null;
   updatedAt: string;
 }
 

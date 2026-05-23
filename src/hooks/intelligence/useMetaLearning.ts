@@ -15,7 +15,7 @@ export interface MetaLearningModel {
   lastTrainedAt: string | null;
   trainingIterations: number;
   isActive: boolean;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useMetaLearning() {

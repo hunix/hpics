@@ -15,7 +15,7 @@ export interface PredictiveSupremacy {
   accuracyHistory: Array<{ date: string; accuracy: number }>;
   validatedAt?: string;
   actualOutcome?: Record<string, unknown>;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface UnifiedControlMatrix {
@@ -42,7 +42,7 @@ export function usePredictiveSupremacy() {
       const { data, error } = await supabase
         .from('predictive_supremacy')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -71,7 +71,7 @@ export function usePredictiveSupremacy() {
       const { data, error } = await supabase
         .from('unified_control_matrix')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .order('created_at', { ascending: false });
       
       if (error) throw error;

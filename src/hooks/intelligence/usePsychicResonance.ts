@@ -13,7 +13,7 @@ export interface ResonanceConnection {
   bidirectional: boolean;
   dominantFrequency: string;
   vulnerabilityExposure: number;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface EmpathicVulnerability {
@@ -26,7 +26,7 @@ export interface EmpathicVulnerability {
   triggers: string[];
   exploitationVectors: string[];
   healingPotential: number;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface EmotionalCascade {
@@ -39,7 +39,7 @@ export interface EmotionalCascade {
   amplitude: number;
   estimatedDuration: string;
   interventionPoints: string[];
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function usePsychicResonance(profileId?: string) {

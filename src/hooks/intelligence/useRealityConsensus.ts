@@ -3,9 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { invokeFunction } from '@/lib/api';
 
-export interface ConsensusBubble { id: string; userId: string; bubbleName: string; bubbleType: string; memberCount: number; consensusStrength: number; coreBeliefs: string[]; boundaryPermeability: number; manipulationVectors: Record<string, unknown>[]; createdAt: string; }
-export interface RealityAnchor { id: string; userId: string; profileId?: string; anchorType: string; anchorStrength: number; anchorDescription: string; stabilityIndex: number; disruptionVulnerabilities: string[]; createdAt: string; }
-export interface RealityInjectionProtocol { id: string; userId: string; targetBubbleId?: string; injectionType: string; injectionContent: Record<string, unknown>; successProbability: number; requiredResources: string[]; expectedOutcome: string; createdAt: string; }
+export interface ConsensusBubble { id: string; userId: string; bubbleName: string; bubbleType: string; memberCount: number; consensusStrength: number; coreBeliefs: string[]; boundaryPermeability: number; manipulationVectors: Record<string, unknown>[]; createdAt: string | null; }
+export interface RealityAnchor { id: string; userId: string; profileId?: string; anchorType: string; anchorStrength: number; anchorDescription: string; stabilityIndex: number; disruptionVulnerabilities: string[]; createdAt: string | null; }
+export interface RealityInjectionProtocol { id: string; userId: string; targetBubbleId?: string; injectionType: string; injectionContent: Record<string, unknown>; successProbability: number; requiredResources: string[]; expectedOutcome: string; createdAt: string | null; }
 
 export function useRealityConsensus() {
   const { user } = useAuth();

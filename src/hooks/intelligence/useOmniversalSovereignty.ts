@@ -23,7 +23,7 @@ export interface SovereigntyOperation {
   effectivenessScore: number;
   operationStatus: string;
   profileId?: string;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface SovereigntyMetrics {

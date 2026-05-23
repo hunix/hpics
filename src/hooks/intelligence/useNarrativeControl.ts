@@ -24,7 +24,7 @@ export interface NarrativeCampaign {
   status: string;
   startedAt?: string;
   completedAt?: string;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface NarrativeNode {
@@ -39,7 +39,7 @@ export interface NarrativeNode {
   authenticityRating: number;
   connections: Array<{ nodeId: string; strength: number; type: string }>;
   isActive: boolean;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface PerceptionTracking {
@@ -69,7 +69,7 @@ export interface SyntheticRelationship {
   influenceAchieved: Record<string, unknown>;
   objectives: Array<{ objective: string; progress: number; status: string }>;
   isActive: boolean;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useNarrativeControl(profileId?: string) {

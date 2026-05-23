@@ -33,7 +33,7 @@ export interface MemoryIntervention {
   ethicalConsiderations: string[];
   successProbability: number;
   status: 'planned' | 'in_progress' | 'completed' | 'failed';
-  createdAt: string;
+  createdAt: string | null;
   completedAt?: string;
 }
 

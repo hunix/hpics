@@ -14,7 +14,7 @@ export interface DetectedEgregore {
   ritualPatterns: Record<string, unknown>[];
   influenceRadius: number;
   lifecyclePhase: string;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface EgregoreCultivation {
@@ -26,7 +26,7 @@ export interface EgregoreCultivation {
   growthProtocols: Record<string, unknown>[];
   targetOutcomes: string[];
   progressMetrics: Record<string, unknown>;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useEgregoreCultivation() {

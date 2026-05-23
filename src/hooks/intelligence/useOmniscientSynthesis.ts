@@ -12,7 +12,7 @@ export interface OmniscientSynthesis {
   synthesisPower: number;
   universalIntegration: Record<string, unknown>;
   omniscienceMetrics: Record<string, unknown>;
-  createdAt: string;
+  createdAt: string | null;
   updatedAt: string;
 }
 

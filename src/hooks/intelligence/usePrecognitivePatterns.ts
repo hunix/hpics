@@ -12,7 +12,7 @@ export interface PrecursorSignature {
   temporalOffset: string;
   confidenceScore: number;
   historicalAccuracy: number;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface TimelineProbability {
@@ -24,7 +24,7 @@ export interface TimelineProbability {
   timeframe: string;
   precursorChain: string[];
   interventionWindows: Record<string, unknown>[];
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function usePrecognitivePatterns(profileId?: string) {

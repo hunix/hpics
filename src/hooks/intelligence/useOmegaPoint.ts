@@ -18,7 +18,7 @@ export interface OmegaPointOperation {
   transcendencePath: unknown[];
   omegaProximity: number;
   operationStatus: string;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useOmegaPoint() {

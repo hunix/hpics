@@ -12,7 +12,7 @@ export interface ConsciousnessIntegration {
   latencyMs: number;
   enhancementMetrics: Record<string, number>;
   sessionDurationSeconds: number;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface StrategicOmnipotence {
@@ -39,7 +39,7 @@ export function useConsciousnessIntegration() {
       const { data, error } = await supabase
         .from('consciousness_integration')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -65,7 +65,7 @@ export function useConsciousnessIntegration() {
       const { data, error } = await supabase
         .from('strategic_omnipotence')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .order('created_at', { ascending: false });
       
       if (error) throw error;

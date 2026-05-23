@@ -12,7 +12,7 @@ export interface MorphicField {
   influencedBehaviors: string[];
   fieldRadius: number;
   harmonicFrequency: string;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useMorphicResonance() {

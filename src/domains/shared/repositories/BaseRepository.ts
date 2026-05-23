@@ -159,11 +159,11 @@ export abstract class BaseRepository<TEntity extends BaseEntity, TId = string>
 
     return [...items].sort((a, b) => {
       for (const sort of sorts) {
-        const aVal = (a as Record<string, unknown>)[sort.field as string];
-        const bVal = (b as Record<string, unknown>)[sort.field as string];
-        
+        const aVal = (a as Record<string, unknown>)[sort.field as string] as number | string;
+        const bVal = (b as Record<string, unknown>)[sort.field as string] as number | string;
+
         if (aVal === bVal) continue;
-        
+
         const comparison = aVal < bVal ? -1 : 1;
         return sort.direction === 'asc' ? comparison : -comparison;
       }

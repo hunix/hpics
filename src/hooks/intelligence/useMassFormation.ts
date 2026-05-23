@@ -13,7 +13,7 @@ export interface MassFormationIndicator {
   propagationVectors: Record<string, unknown>[];
   tippingPointProximity: number;
   interventionOpportunities: string[];
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface NarrativeCrystallization {
@@ -25,7 +25,7 @@ export interface NarrativeCrystallization {
   resistanceFactors: string[];
   amplificationChannels: string[];
   decayRate: number;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useMassFormation() {

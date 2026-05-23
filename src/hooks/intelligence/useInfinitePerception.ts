@@ -11,7 +11,7 @@ export interface InfinitePerception {
   perceptionIntensity: number;
   extrasensoryMap: Record<string, unknown>;
   perceptionHistory: unknown[];
-  createdAt: string;
+  createdAt: string | null;
   updatedAt: string;
 }
 

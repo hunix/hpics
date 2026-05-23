@@ -21,7 +21,7 @@ export interface MicroExpressionReading {
   intensityScore: number;
   context?: string;
   frameData: Record<string, unknown>;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface DeceptionSignature {

@@ -13,7 +13,7 @@ export interface RealityManipulation {
   consensusEngineering: Record<string, unknown>;
   effectivenessScore: number;
   stabilityRating: number;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useRealityManipulation(profileId?: string) {
@@ -26,7 +26,7 @@ export function useRealityManipulation(profileId?: string) {
       let query = supabase
         .from('reality_manipulation')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .order('created_at', { ascending: false });
       
       if (profileId) {

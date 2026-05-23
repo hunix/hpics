@@ -16,7 +16,7 @@ export interface NetworkIntelligenceResult {
   influenceNodes: string[];
   cascadePredictions: Record<string, unknown>;
   propagandaIndicators: Record<string, unknown>;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface CommunityResult {

@@ -19,7 +19,7 @@ export interface DeceptionAnalysisRecord {
   cognitiveLoadScore: number;
   markers: Record<string, unknown>;
   riskLevel: string;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useMultimodalDeception(profileId?: string) {

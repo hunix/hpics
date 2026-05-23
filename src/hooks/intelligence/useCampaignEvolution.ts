@@ -22,7 +22,7 @@ export interface CampaignGenome {
   survivalCount: number;
   mutationHistory: Array<{ type: string; timestamp: string; effect: number }>;
   isActive: boolean;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface EvolutionRun {
@@ -38,7 +38,7 @@ export interface EvolutionRun {
   crossoversPerformed: number;
   selectionPressure: number;
   completedAt?: string;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface StrategyMutation {
@@ -87,7 +87,7 @@ export function useCampaignEvolution() {
         id: g.id,
         genomeName: g.genome_name,
         generation: g.generation || 1,
-        parentGenomeId: g.parent_genome_id,
+        parentGenomeId: g.parent_genome_id ?? undefined,
         strategyDna: (g.strategy_dna as any) || {},
         tacticsGenes: (g.tactics_genes as any) || [],
         timingPatterns: (g.timing_patterns as any) || {},
@@ -126,7 +126,7 @@ export function useCampaignEvolution() {
         mutationsApplied: (r.mutations_applied as any) || [],
         crossoversPerformed: r.crossovers_performed || 0,
         selectionPressure: Number(r.selection_pressure) || 0.5,
-        completedAt: r.completed_at,
+        completedAt: r.completed_at ?? undefined,
         createdAt: r.created_at,
       }));
     },

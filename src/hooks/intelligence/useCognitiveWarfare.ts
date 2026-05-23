@@ -16,7 +16,7 @@ export interface CognitiveOperation {
   payloads: Record<string, unknown>[];
   successIndicators: Record<string, unknown>;
   status: string;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useCognitiveWarfare(profileId?: string) {

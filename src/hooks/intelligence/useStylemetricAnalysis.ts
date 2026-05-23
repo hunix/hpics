@@ -25,7 +25,7 @@ export interface StylometricRecord {
   analysis: StylometricAnalysis;
   llmDetection: LLMDetectionResult;
   authorshipMatches: AuthorshipMatch[];
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useStylemetricAnalysis(profileId?: string) {

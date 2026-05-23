@@ -38,7 +38,7 @@ export function useInfiniteAwareness() {
       const { data, error } = await supabase
         .from('infinite_awareness')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .order('awareness_score', { ascending: false });
       
       if (error) throw error;
@@ -64,7 +64,7 @@ export function useInfiniteAwareness() {
       const { data, error } = await supabase
         .from('omnipresent_control')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .order('control_strength', { ascending: false });
       
       if (error) throw error;

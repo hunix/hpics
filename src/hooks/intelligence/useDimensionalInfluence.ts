@@ -12,7 +12,7 @@ export interface DimensionalInfluence {
   decayRate: number;
   propagationModel: Record<string, unknown>;
   measuredImpact: Record<string, number>;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface AbsoluteMastery {
@@ -38,7 +38,7 @@ export function useDimensionalInfluence() {
       const { data, error } = await supabase
         .from('dimensional_influence')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -64,7 +64,7 @@ export function useDimensionalInfluence() {
       const { data, error } = await supabase
         .from('absolute_mastery')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .order('competency_level', { ascending: false });
       
       if (error) throw error;

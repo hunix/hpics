@@ -12,7 +12,7 @@ export interface ArchetypalActivation {
   manifestationPatterns: Record<string, unknown>[];
   shadowAspects: string[];
   integrationLevel: number;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface ShadowProjection {
@@ -24,7 +24,7 @@ export interface ShadowProjection {
   projectionIntensity: number;
   projectedContent: Record<string, unknown>;
   integrationOpportunities: string[];
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useCollectiveUnconscious(profileId?: string) {

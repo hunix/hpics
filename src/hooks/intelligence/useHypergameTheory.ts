@@ -39,7 +39,7 @@ export interface HypergameRecord {
   analysis: HypergameAnalysis;
   quantumResult?: QuantumGameResult;
   persuasionAnalysis?: PersuasionAnalysis;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useHypergameTheory(profileIds?: string[]) {

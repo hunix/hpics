@@ -15,7 +15,7 @@ export interface GeospatialDominion {
   strategicValue: number;
   resourceDensity: Record<string, unknown>;
   threatAssessment: Record<string, unknown>;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface TerritorialAsset {
@@ -29,7 +29,7 @@ export interface TerritorialAsset {
   assetValue: number;
   protectionLevel: number;
   vulnerabilities: string[];
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface MovementPattern {
@@ -41,7 +41,7 @@ export interface MovementPattern {
   frequencyAnalysis: Record<string, unknown>;
   predictabilityScore: number;
   interceptPoints: Record<string, unknown>[];
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useGeospatialSupremacy() {

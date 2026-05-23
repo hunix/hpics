@@ -26,7 +26,7 @@ export interface ObjectiveTracking {
   achievedOutcomes: Array<{ outcome: string; achievedAt: string }>;
   blockers: Array<{ blocker: string; phase: number }>;
   isActive: boolean;
-  createdAt: string;
+  createdAt: string | null;
   completedAt: string | null;
 }
 

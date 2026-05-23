@@ -14,7 +14,7 @@ export interface ActiveOperation {
   target?: string;
   status: 'active' | 'paused' | 'pending' | 'completed';
   progress?: number;
-  createdAt: string;
+  createdAt: string | null;
   updatedAt: string;
 }
 

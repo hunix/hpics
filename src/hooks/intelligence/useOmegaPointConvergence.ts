@@ -11,7 +11,7 @@ export interface ConvergenceMetric {
   trajectoryVector: Record<string, unknown>;
   convergenceContribution: number;
   accelerationFactor: number;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface PhaseTransitionIndicator {
@@ -24,7 +24,7 @@ export interface PhaseTransitionIndicator {
   catalystConditions: string[];
   barrierFactors: string[];
   estimatedTimeframe: string;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface OmegaProximity {
@@ -35,7 +35,7 @@ export interface OmegaProximity {
   convergenceVelocity: number;
   singularityFactors: string[];
   transcendenceReadiness: number;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useOmegaPointConvergence() {

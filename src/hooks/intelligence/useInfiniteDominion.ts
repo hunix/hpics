@@ -43,7 +43,7 @@ export function useInfiniteDominion() {
       const { data, error } = await supabase
         .from('infinite_protocols')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .order('priority', { ascending: true });
       
       if (error) throw error;
@@ -71,7 +71,7 @@ export function useInfiniteDominion() {
       const { data, error } = await supabase
         .from('dominion_objectives')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .order('progress_percentage', { ascending: false });
       
       if (error) throw error;

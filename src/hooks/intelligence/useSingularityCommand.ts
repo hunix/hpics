@@ -17,7 +17,7 @@ export interface SingularityObjective {
   estimatedCompletion: string | null;
   resourceRequirements: Record<string, unknown>;
   status: string;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface StrategicSynthesis {
@@ -33,7 +33,7 @@ export interface StrategicSynthesis {
   alternativeStrategies: unknown[];
   recommendationRank: number | null;
   status: string;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface SystemEvolution {
@@ -48,7 +48,7 @@ export interface SystemEvolution {
   approvedAt: string | null;
   appliedAt: string | null;
   rollbackAvailable: boolean;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useSingularityCommand() {

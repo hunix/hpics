@@ -30,7 +30,7 @@ export interface ChoiceArchitectureResult {
   };
   status: 'draft' | 'active' | 'completed' | 'paused';
   conversionRate?: number;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface NudgeCampaign {

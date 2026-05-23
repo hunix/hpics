@@ -17,7 +17,7 @@ export interface CrossModalCorrelation {
   synthesizedInsights: Array<{ insight: string; confidence: number; sources: string[] }>;
   predictionAccuracy: number;
   lastCorrelationAt: string;
-  createdAt: string;
+  createdAt: string | null;
   updatedAt: string;
 }
 
