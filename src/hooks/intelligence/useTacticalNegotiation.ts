@@ -111,8 +111,8 @@ export function useTacticalNegotiation() {
         status: 'planning',
         strategy,
         notes: [],
-        createdAt: new Date(sessionData.created_at),
-        updatedAt: new Date(sessionData.updated_at)
+        createdAt: new Date(sessionData.created_at ?? Date.now()),
+        updatedAt: new Date(sessionData.updated_at ?? Date.now())
       };
 
       setCurrentSession(session);

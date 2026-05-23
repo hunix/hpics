@@ -77,8 +77,9 @@ export function useDeviceHealthMonitoring() {
         .order('created_at', { ascending: false });
 
       const checksMap = (latestChecks || []).reduce((acc, check) => {
-        if (!acc[check.device_id]) {
-          acc[check.device_id] = check;
+        const key = check.device_id;
+        if (key && !acc[key]) {
+          acc[key] = check;
         }
         return acc;
       }, {} as Record<string, any>);

@@ -178,7 +178,7 @@ export function useSessionReviews(sessionId: string | undefined) {
       const { data, error } = await supabase
         .from('decision_reviews')
         .select('*')
-        .eq('review_session_id', sessionId)
+        .eq('review_session_id', sessionId!)
         .order('stage_order');
 
       if (error) throw error;
@@ -198,7 +198,7 @@ export function useCampaignDecisions(campaignId: string | undefined) {
       const { data, error } = await supabase
         .from('chamber_decisions')
         .select('*')
-        .eq('campaign_id', campaignId)
+        .eq('campaign_id', campaignId!)
         .order('created_at', { ascending: false });
 
       if (error) throw error;

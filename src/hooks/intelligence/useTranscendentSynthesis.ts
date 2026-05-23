@@ -41,7 +41,7 @@ export function useTranscendentSynthesis() {
       const { data, error } = await supabase
         .from('transcendent_synthesis')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -69,7 +69,7 @@ export function useTranscendentSynthesis() {
       const { data, error } = await supabase
         .from('ultimate_orchestration')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .order('performance_score', { ascending: false });
       
       if (error) throw error;
