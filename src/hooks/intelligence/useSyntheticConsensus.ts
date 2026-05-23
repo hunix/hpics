@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export function useSyntheticConsensus() {
   const { user } = useAuth();
@@ -32,14 +33,12 @@ export function useSyntheticConsensus() {
     mutationFn: async (params: { narrative: string; targetAudience: string[]; objective: string }) => {
       if (!user?.id) throw new Error('Not authenticated');
       
-      const { data, error } = await supabase.functions.invoke('synthetic-consensus-generator', {
-        body: {
+      const { data, error } = await invokeFunction('synthetic-consensus-generator', {
           narrative: params.narrative,
           targetAudience: params.targetAudience,
           objective: params.objective,
           analysisType: 'strategy',
-        },
-      });
+        },);
       
       if (error) throw error;
       return data;

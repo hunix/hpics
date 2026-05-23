@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface EntityLink {
   id: string;
@@ -77,15 +78,10 @@ export function useCrossReference() {
 
       setIsAnalyzing(true);
       try {
-        const { data, error } = await supabase.functions.invoke(
-          'cross-reference-analysis',
-          {
-            body: {
+        const { data, error } = await invokeFunction('cross-reference-analysis', {
               profile_id: profileId,
               full_scan: fullScan,
-            },
-          }
-        );
+            },);
 
         if (error) throw error;
 

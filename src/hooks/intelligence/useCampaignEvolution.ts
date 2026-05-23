@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export interface CampaignGenome {
   id: string;
@@ -143,13 +144,11 @@ export function useCampaignEvolution() {
 
   const evolveGeneration = useMutation({
     mutationFn: async (params: { selectionPressure?: number; mutationRate?: number }) => {
-      const { data, error } = await supabase.functions.invoke('campaign-evolution-engine', {
-        body: { 
+      const { data, error } = await invokeFunction('campaign-evolution-engine', { 
           action: 'evolve_generation',
           selectionPressure: params.selectionPressure || 0.5,
           mutationRate: params.mutationRate || 0.1,
-        },
-      });
+        },);
       if (error) throw error;
       return data;
     },
@@ -191,12 +190,10 @@ export function useCampaignEvolution() {
 
   const detectAdversarial = useMutation({
     mutationFn: async (params: { profileId?: string; communicationData: unknown }) => {
-      const { data, error } = await supabase.functions.invoke('counter-adversarial-detector', {
-        body: { 
+      const { data, error } = await invokeFunction('counter-adversarial-detector', { 
           profileId: params.profileId,
           communicationData: params.communicationData,
-        },
-      });
+        },);
       if (error) throw error;
       return data;
     },

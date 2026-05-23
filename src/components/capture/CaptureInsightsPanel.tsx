@@ -18,6 +18,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { invokeFunction } from '@/lib/api';
 
 interface CaptureInsight {
   entities?: {
@@ -93,9 +94,7 @@ export function CaptureInsightsPanel({
   const runDeepAnalysis = async () => {
     setIsAnalyzing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('deep-analyze-capture', {
-        body: { captureId, analysisMode: 'full' },
-      });
+      const { data, error } = await invokeFunction('deep-analyze-capture', { captureId, analysisMode: 'full' },);
 
       if (error) throw error;
 

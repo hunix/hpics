@@ -18,6 +18,7 @@ import { format } from 'date-fns';
 import { useAIConfirmationContext } from '@/contexts/AIConfirmationContext';
 import { useAIModelPreference } from '@/hooks/useAIModelPreference';
 import { calculateCostCents } from '@/lib/aiPricing';
+import { invokeFunction } from '@/lib/api';
 
 interface VocalAnalysisProps {
   profileId: string;
@@ -80,15 +81,13 @@ export function VocalAnalysis({ profileId, profileName }: VocalAnalysisProps) {
         e.model_type === 'audio' || e.model_type === 'vocal' || e.model_type === 'general'
       )?.endpoint_url;
 
-      const { data, error } = await supabase.functions.invoke('analyze-vocal', {
-        body: {
+      const { data, error } = await invokeFunction('analyze-vocal', {
           profileId,
           userId: user?.id,
           recordingId: selectedRecording,
           audioUrl: recording?.file_url,
           localEndpoint,
-        },
-      });
+        },);
       if (error) throw error;
       return data;
     },

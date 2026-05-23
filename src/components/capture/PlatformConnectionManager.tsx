@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import { invokeFunction } from '@/lib/api';
 
 // Platform icons (reusing from other components)
 const TikTokIcon = ({ className }: { className?: string }) => (
@@ -165,9 +166,7 @@ export function PlatformConnectionManager({ className }: PlatformConnectionManag
   const runIdentityLinking = async () => {
     setIsLinking(true);
     try {
-      const { data, error } = await supabase.functions.invoke('link-social-identities', {
-        body: { runForAll: true },
-      });
+      const { data, error } = await invokeFunction('link-social-identities', { runForAll: true },);
 
       if (error) throw error;
 

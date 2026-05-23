@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { invokeFunction } from '@/lib/api';
 
 export interface ArchetypalActivation {
   id: string;
@@ -90,13 +91,11 @@ export function useCollectiveUnconscious(profileId?: string) {
 
   const mineUnconscious = useMutation({
     mutationFn: async (input: { profileId: string; miningDepth?: 'surface' | 'deep' | 'abyssal' }) => {
-      const { data, error } = await supabase.functions.invoke('collective-unconscious-miner', {
-        body: {
+      const { data, error } = await invokeFunction('collective-unconscious-miner', {
           userId: user!.id,
           profileId: input.profileId,
           miningDepth: input.miningDepth || 'deep'
-        }
-      });
+        });
       if (error) throw error;
       return data;
     },

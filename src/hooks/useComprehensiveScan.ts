@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { invokeFunction } from '@/lib/api';
 
 interface ScanSession {
   id: string;
@@ -69,13 +70,11 @@ export function useComprehensiveScan(profileId: string) {
   // Start scan mutation
   const startMutation = useMutation({
     mutationFn: async (deviceType: 'mobile' | 'desktop') => {
-      const { data, error } = await supabase.functions.invoke('comprehensive-contact-scan', {
-        body: { 
+      const { data, error } = await invokeFunction('comprehensive-contact-scan', { 
           profileId, 
           deviceType,
           action: 'start'
-        }
-      });
+        });
       if (error) throw error;
       return data;
     },

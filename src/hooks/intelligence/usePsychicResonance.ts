@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { invokeFunction } from '@/lib/api';
 
 export interface ResonanceConnection {
   id: string;
@@ -137,13 +138,11 @@ export function usePsychicResonance(profileId?: string) {
 
   const mapResonance = useMutation({
     mutationFn: async (input: { profileId: string; mappingDepth?: 'surface' | 'deep' | 'abyssal' }) => {
-      const { data, error } = await supabase.functions.invoke('psychic-resonance-mapper', {
-        body: {
+      const { data, error } = await invokeFunction('psychic-resonance-mapper', {
           userId: user!.id,
           profileId: input.profileId,
           mappingDepth: input.mappingDepth || 'deep'
-        }
-      });
+        });
       if (error) throw error;
       return data;
     },

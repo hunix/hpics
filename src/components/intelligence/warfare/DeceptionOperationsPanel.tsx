@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
+import { invokeFunction } from '@/lib/api';
 
 interface DeceptionAsset {
   id: string;
@@ -48,13 +49,11 @@ export function DeceptionOperationsPanel() {
   // Create new deception asset
   const createAssetMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('active-defense-orchestrator', {
-        body: {
+      const { data, error } = await invokeFunction('active-defense-orchestrator', {
           action: 'create_deception_asset',
           assetType: newAssetType,
           assetName: newAssetName,
-        },
-      });
+        },);
       if (error) throw error;
       return data;
     },
@@ -71,11 +70,9 @@ export function DeceptionOperationsPanel() {
   // Counter-surveillance check
   const counterSurveillanceMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('active-defense-orchestrator', {
-        body: {
+      const { data, error } = await invokeFunction('active-defense-orchestrator', {
           action: 'counter_surveillance_scan',
-        },
-      });
+        },);
       if (error) throw error;
       return data;
     },

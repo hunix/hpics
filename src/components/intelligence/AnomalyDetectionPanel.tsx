@@ -20,6 +20,7 @@ import {
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { vttAnomalyDetector, type TimeSeriesPoint, type AnomalyDetectionResult } from '@/lib/ml/vttAnomalyDetector';
+import { invokeFunction } from '@/lib/api';
 
 interface Anomaly {
   id: string;
@@ -109,9 +110,7 @@ export function AnomalyDetectionPanel() {
   const runAnomalyScan = async () => {
     setIsScanning(true);
     try {
-      const { error } = await supabase.functions.invoke('detect-communication-anomalies', {
-        body: { scanAll: true },
-      });
+      const { error } = await invokeFunction('detect-communication-anomalies', { scanAll: true },);
       if (error) throw error;
       toast.success('Anomaly scan completed');
       queryClient.invalidateQueries({ queryKey: ['anomalies'] });

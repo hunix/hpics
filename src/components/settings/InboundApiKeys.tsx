@@ -25,6 +25,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeFunction } from '@/lib/api';
 
 const GATEWAY_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/hoc-gateway`;
 
@@ -65,9 +66,7 @@ export function InboundApiKeys() {
   const { data: clients, isLoading } = useQuery({
     queryKey: ['hpics-api-clients', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('manage-api-clients', {
-        body: { action: 'list' },
-      });
+      const { data, error } = await invokeFunction('manage-api-clients', { action: 'list' },);
       if (error) throw error;
       return (data?.data as ApiClient[]) || [];
     },
@@ -78,9 +77,7 @@ export function InboundApiKeys() {
   const { data: usageStats } = useQuery({
     queryKey: ['hpics-api-usage', user?.id, usageClientId],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('manage-api-clients', {
-        body: { action: 'usage', client_id: usageClientId },
-      });
+      const { data, error } = await invokeFunction('manage-api-clients', { action: 'usage', client_id: usageClientId },);
       if (error) throw error;
       return data?.data as UsageStats;
     },
@@ -90,9 +87,7 @@ export function InboundApiKeys() {
   // Generate key mutation
   const generateMutation = useMutation({
     mutationFn: async (name: string) => {
-      const { data, error } = await supabase.functions.invoke('manage-api-clients', {
-        body: { action: 'generate', name },
-      });
+      const { data, error } = await invokeFunction('manage-api-clients', { action: 'generate', name },);
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || 'Failed to generate key');
       return data;
@@ -110,9 +105,7 @@ export function InboundApiKeys() {
   // Revoke mutation
   const revokeMutation = useMutation({
     mutationFn: async (clientId: string) => {
-      const { data, error } = await supabase.functions.invoke('manage-api-clients', {
-        body: { action: 'revoke', client_id: clientId },
-      });
+      const { data, error } = await invokeFunction('manage-api-clients', { action: 'revoke', client_id: clientId },);
       if (error) throw error;
       return data;
     },

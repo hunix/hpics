@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Users, RefreshCw, ArrowRight, Lightbulb } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 type IntroductionSuggestion = {
   contact1Id: string;
@@ -26,7 +27,7 @@ export function IntroductionSuggestions() {
   const { data: introductions, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['introduction-suggestions', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('suggest-introductions');
+      const { data, error } = await invokeFunction('suggest-introductions');
       
       if (error) {
         console.error('Error fetching introductions:', error);

@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays, isBefore, isAfter, parseISO } from "date-fns";
+import { invokeFunction } from '@/lib/api';
 
 interface UpcomingOccasion {
   id: string;
@@ -97,14 +98,12 @@ export function GiftCalendarWidget() {
   const generateGiftsMutation = useMutation({
     mutationFn: async (occasion: UpcomingOccasion) => {
       setGeneratingFor(occasion.id);
-      const { data, error } = await supabase.functions.invoke('generate-gift-suggestions', {
-        body: {
+      const { data, error } = await invokeFunction('generate-gift-suggestions', {
           profileId: occasion.profileId,
           occasionType: occasion.occasionType,
           interests: occasion.interests || [],
           budget: budgetRange[0]
-        }
-      });
+        });
       if (error) throw error;
       return { occasionId: occasion.id, suggestions: data.suggestions };
     },

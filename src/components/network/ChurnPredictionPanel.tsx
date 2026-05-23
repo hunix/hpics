@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertTriangle, TrendingDown, Clock, MessageSquare, RefreshCw, Loader2, Lightbulb, Brain, Cpu } from 'lucide-react';
 import { toast } from 'sonner';
 import { ccpNetEngine, type CcpNetPrediction, type ChurnFeatureVector } from '@/lib/ml/ccpNetChurn';
+import { invokeFunction } from '@/lib/api';
 
 interface ChurnPrediction {
   profile_id: string;
@@ -56,9 +57,7 @@ export function ChurnPredictionPanel() {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['churn-predictions', user?.id],
     queryFn: async () => {
-      const { data: result, error } = await supabase.functions.invoke('predict-churn', {
-        body: { includeAllContacts: true },
-      });
+      const { data: result, error } = await invokeFunction('predict-churn', { includeAllContacts: true },);
       if (error) throw error;
       return result as {
         predictions: ChurnPrediction[];
@@ -101,9 +100,7 @@ export function ChurnPredictionPanel() {
 
   const refreshMutation = useMutation({
     mutationFn: async () => {
-      const { data: result, error } = await supabase.functions.invoke('predict-churn', {
-        body: { includeAllContacts: true },
-      });
+      const { data: result, error } = await invokeFunction('predict-churn', { includeAllContacts: true },);
       if (error) throw error;
       return result;
     },

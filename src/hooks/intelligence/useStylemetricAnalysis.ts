@@ -16,6 +16,7 @@ import {
   type AuthorshipMatch,
 } from '@/lib/linguistics/stylometricAnalyzer';
 import { detectLLMGenerated, type LLMDetectionResult } from '@/lib/linguistics/llmDetectionEngine';
+import { invokeFunction } from '@/lib/api';
 
 export interface StylometricRecord {
   id: string;
@@ -110,14 +111,12 @@ export function useStylemetricAnalysis(profileId?: string) {
       profileId?: string;
       compareToProfiles?: string[];
     }) => {
-      const { data, error } = await supabase.functions.invoke('stylometric-fingerprinter', {
-        body: {
+      const { data, error } = await invokeFunction('stylometric-fingerprinter', {
           userId: user!.id,
           profileId: input.profileId,
           text: input.text,
           compareToProfiles: input.compareToProfiles,
-        },
-      });
+        },);
 
       if (error) throw error;
       return data;

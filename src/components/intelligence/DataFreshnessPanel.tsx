@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { RefreshCw, Clock, AlertTriangle, CheckCircle, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { invokeFunction } from '@/lib/api';
 
 interface ProfileFreshness {
   id: string;
@@ -81,9 +82,7 @@ export function DataFreshnessPanel() {
     mutationFn: async (profileId: string) => {
       setRefreshingIds(prev => new Set(prev).add(profileId));
       
-      const { error } = await supabase.functions.invoke('auto-enrich-contact', {
-        body: { profileId, priority: 'high' }
-      });
+      const { error } = await invokeFunction('auto-enrich-contact', { profileId, priority: 'high' });
       
       if (error) throw error;
     },
@@ -111,9 +110,7 @@ export function DataFreshnessPanel() {
       const staleProfiles = freshnessData?.filter(p => p.needsRefresh).slice(0, 10) || [];
       
       for (const profile of staleProfiles) {
-        await supabase.functions.invoke('auto-enrich-contact', {
-          body: { profileId: profile.id, priority: 'medium' }
-        });
+        await invokeFunction('auto-enrich-contact', { profileId: profile.id, priority: 'medium' });
       }
       
       return staleProfiles.length;

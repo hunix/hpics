@@ -7,10 +7,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export interface FuturePrediction {
   id: string;
-  profileId?: string;
+  profileId?: string | null;
   predictionType: string;
   predictedEvent: string;
   probabilityScore: number;
@@ -26,7 +27,7 @@ export interface FuturePrediction {
 
 export interface DecisionWindow {
   id: string;
-  profileId?: string;
+  profileId?: string | null;
   windowType: string;
   windowName: string;
   startsAt?: string;
@@ -55,7 +56,7 @@ export interface PredictionModel {
   createdAt: string;
 }
 
-export function useFutureTimeline(profileId?: string) {
+export function useFutureTimeline(profileId?: string | null) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -161,14 +162,12 @@ export function useFutureTimeline(profileId?: string) {
   });
 
   const generatePredictions = useMutation({
-    mutationFn: async (params: { profileId: string; horizonMonths?: number }) => {
-      const { data, error } = await supabase.functions.invoke('future-timeline-engine', {
-        body: { 
+    mutationFn: async (params: { profileId: string | null; horizonMonths?: number }) => {
+      const { data, error } = await invokeFunction('future-timeline-engine', { 
           profileId: params.profileId, 
           horizonMonths: params.horizonMonths || 12,
           action: 'generate_predictions'
-        },
-      });
+        },);
       if (error) throw error;
       return data;
     },

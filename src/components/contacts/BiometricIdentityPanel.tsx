@@ -128,7 +128,7 @@ export function BiometricIdentityPanel({
                 <span className="text-sm text-muted-foreground">Identity Confidence:</span>
                 <Badge 
                   variant="secondary"
-                  className={getConfidenceColor(biometrics?.identity_confidence)}
+                  className={getConfidenceColor(biometrics?.identity_confidence ?? null)}
                 >
                   {biometrics?.identity_confidence 
                     ? `${Math.round(biometrics.identity_confidence * 100)}%`
@@ -186,12 +186,12 @@ export function BiometricIdentityPanel({
                 )}
 
                 {/* Show multi-angle data if available */}
-                {(biometrics?.facial_multi_angle_data as any) && (
+                {biometrics && Boolean(biometrics.facial_multi_angle_data) && (
                   <div className="text-sm space-y-2">
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground">Angles captured:</span>
                       <div className="flex gap-1 flex-wrap">
-                        {((biometrics.facial_multi_angle_data as any)?.angles_captured || []).map((angle: string) => (
+                        {((biometrics.facial_multi_angle_data as { angles_captured?: string[] })?.angles_captured || []).map((angle: string) => (
                           <Badge key={angle} variant="outline" className="text-xs">
                             {angle}
                           </Badge>

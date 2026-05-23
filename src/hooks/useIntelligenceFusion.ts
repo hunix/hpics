@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export type FusionEventType = 
   | 'multi_source_correlation'
@@ -131,9 +132,7 @@ export function useIntelligenceFusion() {
   // Trigger multi-modal fusion analysis
   const triggerFusion = useMutation({
     mutationFn: async (request: FusionAnalysisRequest) => {
-      const { data, error } = await supabase.functions.invoke('hardware-intelligence-fusion', {
-        body: request,
-      });
+      const { data, error } = await invokeFunction('hardware-intelligence-fusion', request,);
       if (error) throw error;
       return data;
     },
@@ -199,9 +198,7 @@ export function useIntelligenceFusion() {
   // Analyze cross-source patterns
   const analyzePatterns = useCallback(async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('hardware-intelligence-fusion/analyze-patterns', {
-        body: { timeframe_hours: 24 },
-      });
+      const { data, error } = await invokeFunction('hardware-intelligence-fusion/analyze-patterns', { timeframe_hours: 24 },);
       if (error) throw error;
       return data?.patterns || [];
     } catch (error) {
@@ -213,9 +210,7 @@ export function useIntelligenceFusion() {
   // Get threat assessment
   const getThreatAssessment = useCallback(async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('hardware-intelligence-fusion/threat-assessment', {
-        body: {},
-      });
+      const { data, error } = await invokeFunction('hardware-intelligence-fusion/threat-assessment', {},);
       if (error) throw error;
       return data;
     } catch (error) {

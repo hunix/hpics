@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import { TSCMSweep, ThreatLevel } from '@/types/hardware';
+import { invokeFunction } from '@/lib/api';
 
 interface TSCMFinding {
   type: string;
@@ -57,7 +58,7 @@ export function useTSCMIntelligence() {
   const { data: threatProtocols = {} } = useQuery<Record<string, ThreatProtocol>>({
     queryKey: ['tscm-threat-protocols'],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('tscm-intelligence/threat-protocols');
+      const { data, error } = await invokeFunction('tscm-intelligence/threat-protocols');
       if (error) throw error;
       return data.protocols || {};
     },
@@ -67,9 +68,7 @@ export function useTSCMIntelligence() {
   // Start TSCM sweep
   const startSweep = useMutation({
     mutationFn: async (params: SweepParams) => {
-      const { data, error } = await supabase.functions.invoke('tscm-intelligence/start-sweep', {
-        body: params,
-      });
+      const { data, error } = await invokeFunction('tscm-intelligence/start-sweep', params,);
       if (error) throw error;
       return data.sweep;
     },
@@ -94,9 +93,7 @@ export function useTSCMIntelligence() {
       findingType: 'rf' | 'thermal' | 'acoustic' | 'visual';
       finding: TSCMFinding;
     }) => {
-      const { error } = await supabase.functions.invoke('tscm-intelligence/add-finding', {
-        body: { sweep_id: sweepId, finding_type: findingType, finding },
-      });
+      const { error } = await invokeFunction('tscm-intelligence/add-finding', { sweep_id: sweepId, finding_type: findingType, finding },);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -110,9 +107,7 @@ export function useTSCMIntelligence() {
   // Complete sweep
   const completeSweep = useMutation({
     mutationFn: async (sweepId: string) => {
-      const { data, error } = await supabase.functions.invoke('tscm-intelligence/complete-sweep', {
-        body: { sweep_id: sweepId },
-      });
+      const { data, error } = await invokeFunction('tscm-intelligence/complete-sweep', { sweep_id: sweepId },);
       if (error) throw error;
       return data;
     },
@@ -134,9 +129,7 @@ export function useTSCMIntelligence() {
   // Analyze RF environment
   const analyzeRFEnvironment = useCallback(async (captures: Array<Record<string, unknown>>) => {
     try {
-      const { data, error } = await supabase.functions.invoke('tscm-intelligence/analyze-rf-environment', {
-        body: { captures },
-      });
+      const { data, error } = await invokeFunction('tscm-intelligence/analyze-rf-environment', { captures },);
       if (error) throw error;
       return data.analysis;
     } catch (error) {
@@ -151,9 +144,7 @@ export function useTSCMIntelligence() {
     currentReadings: Array<Record<string, unknown>>
   ) => {
     try {
-      const { data, error } = await supabase.functions.invoke('tscm-intelligence/detect-anomalies', {
-        body: { baseline_id: baselineId, current_readings: currentReadings },
-      });
+      const { data, error } = await invokeFunction('tscm-intelligence/detect-anomalies', { baseline_id: baselineId, current_readings: currentReadings },);
       if (error) throw error;
       return data.anomalies;
     } catch (error) {
@@ -165,9 +156,7 @@ export function useTSCMIntelligence() {
   // Generate report
   const generateReport = useCallback(async (sweepId: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('tscm-intelligence/generate-report', {
-        body: { sweep_id: sweepId },
-      });
+      const { data, error } = await invokeFunction('tscm-intelligence/generate-report', { sweep_id: sweepId },);
       if (error) throw error;
       return data.report;
     } catch (error) {

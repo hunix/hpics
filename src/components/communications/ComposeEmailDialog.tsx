@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Send, Paperclip, ChevronDown, ChevronUp } from 'lucide-react';
 import { ContactPicker } from '@/components/contacts/ContactPicker';
+import { invokeFunction } from '@/lib/api';
 
 interface ComposeEmailDialogProps {
   open: boolean;
@@ -49,8 +50,7 @@ export function ComposeEmailDialog({
 
   const sendEmailMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('send-email', {
-        body: {
+      const { data, error } = await invokeFunction('send-email', {
           to,
           cc: cc || undefined,
           bcc: bcc || undefined,
@@ -58,8 +58,7 @@ export function ComposeEmailDialog({
           body,
           profileId,
           userId: user?.id,
-        },
-      });
+        },);
 
       if (error) throw error;
       return data;

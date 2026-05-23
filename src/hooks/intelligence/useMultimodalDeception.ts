@@ -7,6 +7,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { invokeFunction } from '@/lib/api';
 
 export interface DeceptionAnalysisRecord {
   id: string;
@@ -64,15 +65,13 @@ export function useMultimodalDeception(profileId?: string) {
       content?: string;
     }) => {
       // Call edge function for analysis
-      const { data, error } = await supabase.functions.invoke('multimodal-deception-analyzer', {
-        body: {
+      const { data, error } = await invokeFunction('multimodal-deception-analyzer', {
           userId: user!.id,
           sourceId: input.sourceId,
           profileId: input.profileId,
           modality: input.modality,
           content: input.content
-        }
-      });
+        });
 
       if (error) throw error;
       return data;

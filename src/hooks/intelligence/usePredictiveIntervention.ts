@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 export interface OpportunityWindow {
   id: string;
-  profileId?: string;
+  profileId?: string | null;
   opportunityType: 'influence' | 'extraction' | 'recruitment' | 'intervention';
   windowStart: Date;
   windowEnd: Date;
@@ -28,7 +28,7 @@ export interface OpportunityWindow {
 
 export interface TrajectoryIntercept {
   id: string;
-  profileId?: string;
+  profileId?: string | null;
   trajectoryType: 'relationship' | 'career' | 'emotional' | 'financial';
   currentTrajectory: Record<string, unknown>;
   predictedTrajectory: Record<string, unknown>;
@@ -38,12 +38,12 @@ export interface TrajectoryIntercept {
   currentDeviation: number;
   correctionProgress: number;
   interceptStatus: 'monitoring' | 'intervening' | 'corrected' | 'failed';
-  nextInterceptAt?: Date;
+  nextInterceptAt?: Date | null;
 }
 
 export interface ProactiveAction {
   id: string;
-  profileId?: string;
+  profileId?: string | null;
   actionType: string;
   triggerPrediction: string;
   predictionConfidence: number;
@@ -59,7 +59,7 @@ export interface ProactiveAction {
 
 export interface InterventionTrigger {
   id: string;
-  profileId?: string;
+  profileId?: string | null;
   triggerName: string;
   triggerType: 'threshold' | 'pattern' | 'prediction' | 'schedule';
   triggerConfig: Record<string, unknown>;
@@ -73,7 +73,7 @@ export interface InterventionTrigger {
   successCount: number;
 }
 
-export function usePredictiveIntervention(profileId?: string) {
+export function usePredictiveIntervention(profileId?: string | null) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 

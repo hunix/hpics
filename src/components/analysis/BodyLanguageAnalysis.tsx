@@ -19,6 +19,7 @@ import { format } from 'date-fns';
 import { useAIConfirmationContext } from '@/contexts/AIConfirmationContext';
 import { useAIModelPreference } from '@/hooks/useAIModelPreference';
 import { calculateCostCents } from '@/lib/aiPricing';
+import { invokeFunction } from '@/lib/api';
 
 interface BodyLanguageAnalysisProps {
   profileId: string;
@@ -79,15 +80,13 @@ export function BodyLanguageAnalysis({ profileId, profileName }: BodyLanguageAna
         e.model_type === 'vision' || e.model_type === 'body_language' || e.model_type === 'general'
       )?.endpoint_url;
 
-      const { data, error } = await supabase.functions.invoke('analyze-body-language', {
-        body: {
+      const { data, error } = await invokeFunction('analyze-body-language', {
           profileId,
           userId: user?.id,
           videoUrl: videoUrl || undefined,
           recordingId: selectedRecording || undefined,
           localEndpoint,
-        },
-      });
+        },);
       if (error) throw error;
       return data;
     },

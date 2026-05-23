@@ -7,9 +7,12 @@
  */
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import {
+  useAIUsageLogs,
+  useCostAnomalies,
+  type CostAnomaly,
+  type CostTimeRange,
+} from '@/hooks/intelligence/useCostAnalytics';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -47,71 +50,13 @@ interface DailySpend {
   calls: number;
 }
 
-interface CostAnomaly {
-  id: string;
-  type: string;
-  severity: string;
-  title: string;
-  description: string;
-  value: number;
-  threshold: number;
-  detectedAt: string;
-}
-
 export function CostAnalyticsDashboard() {
-  const { user } = useAuth();
-  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
-  
+  const [timeRange, setTimeRange] = useState<CostTimeRange>('30d');
+
+  const { data: usageLogs, isLoading } = useAIUsageLogs(timeRange);
+  const { data: anomalies } = useCostAnomalies();
+
   const days = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
-  const startDate = startOfDay(subDays(new Date(), days)).toISOString();
-  const endDate = endOfDay(new Date()).toISOString();
-
-  // Fetch usage logs
-  const { data: usageLogs, isLoading } = useQuery({
-    queryKey: ['cost-analytics', user?.id, timeRange],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('ai_usage_logs')
-        .select('*')
-        .eq('user_id', user!.id)
-        .gte('created_at', startDate)
-        .lte('created_at', endDate)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!user,
-  });
-
-  // Fetch cost anomalies
-  const { data: anomalies } = useQuery({
-    queryKey: ['cost-anomalies', user?.id],
-    queryFn: async () => {
-       const { data, error } = await (supabase as any)
-        .from('cost_anomaly_alerts')
-        .select('*')
-        .eq('user_id', user!.id)
-        .eq('resolved', false)
-        .order('created_at', { ascending: false })
-        .limit(10);
-      
-      if (error) throw error;
-      return (data || []).map((a: any): CostAnomaly => ({
-        id: a.id,
-        type: a.anomaly_type,
-        severity: a.severity,
-        title: a.title,
-        description: a.description,
-        value: a.anomaly_value,
-        threshold: a.threshold_value,
-        detectedAt: a.created_at,
-      }));
-    },
-    enabled: !!user,
-  });
-
-  // Calculate aggregated metrics
   const metrics = usageLogs ? calculateMetrics(usageLogs) : null;
   const modelBreakdown = usageLogs ? calculateModelBreakdown(usageLogs) : [];
   const functionBreakdown = usageLogs ? calculateFunctionBreakdown(usageLogs) : [];

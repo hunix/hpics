@@ -14,6 +14,7 @@ import { Shield, AlertTriangle, AlertCircle, Info, TrendingDown, Clock, RefreshC
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface RiskRadarProps {
   compact?: boolean;
@@ -42,12 +43,10 @@ export function RiskRadar({ compact = false }: RiskRadarProps) {
   // Mutation to scan for risks using deception analysis
   const scanForRisks = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('cross-modal-deception-v2', {
-        body: {
+      const { data, error } = await invokeFunction('cross-modal-deception-v2', {
           userId: user?.id,
           analysisType: 'network_scan'
-        }
-      });
+        });
       if (error) throw error;
       return data;
     },

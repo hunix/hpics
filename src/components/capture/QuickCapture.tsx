@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { invokeFunction } from '@/lib/api';
 
 interface QuickCaptureProps {
   profileId?: string;
@@ -33,14 +34,12 @@ export function QuickCapture({ profileId, onCaptureComplete, className, variant 
         profileUrl = `https://${profileUrl}`;
       }
 
-      const { data, error } = await supabase.functions.invoke('scrape-social-profile', {
-        body: {
+      const { data, error } = await invokeFunction('scrape-social-profile', {
           profileUrl,
           profileId,
           includeRecentPosts: true,
           maxPosts: 5,
-        },
-      });
+        },);
 
       if (error) throw error;
       if (data.error) throw new Error(data.error);

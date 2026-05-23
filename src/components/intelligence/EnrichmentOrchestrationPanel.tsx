@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Database, Play, Pause, RefreshCw, CheckCircle, XCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { invokeFunction } from '@/lib/api';
 
 interface EnrichmentJob {
   id: string;
@@ -81,9 +82,7 @@ export function EnrichmentOrchestrationPanel() {
 
       const results = await Promise.allSettled(
         profiles.map(p => 
-          supabase.functions.invoke('enrichment-orchestrator', {
-            body: { profileId: p.id, sources: ['web', 'social', 'osint'] }
-          })
+          invokeFunction('enrichment-orchestrator', { profileId: p.id, sources: ['web', 'social', 'osint'] })
         )
       );
 
@@ -103,9 +102,7 @@ export function EnrichmentOrchestrationPanel() {
       const job = jobsData?.jobs.find(j => j.id === jobId);
       if (!job) throw new Error('Job not found');
 
-      await supabase.functions.invoke('enrichment-orchestrator', {
-        body: { profileId: job.profileId, sources: job.sources }
-      });
+      await invokeFunction('enrichment-orchestrator', { profileId: job.profileId, sources: job.sources });
     },
     onSuccess: () => {
       toast.success('Job restarted');

@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Upload, Mic, Loader2, CheckCircle2, FileAudio } from 'lucide-react';
+import { invokeFunction } from '@/lib/api';
 
 interface RecordingUploadProps {
   open: boolean;
@@ -98,9 +99,7 @@ export function RecordingUpload({ open, onOpenChange, profileId, profileName, on
       setTranscribing(true);
 
       // Start transcription
-      const { error: transcribeError } = await supabase.functions.invoke('transcribe-audio', {
-        body: { recordingId: recording.id, fileUrl: publicUrl },
-      });
+      const { error: transcribeError } = await invokeFunction('transcribe-audio', { recordingId: recording.id, fileUrl: publicUrl },);
 
       if (transcribeError) {
         console.error('Transcription error:', transcribeError);

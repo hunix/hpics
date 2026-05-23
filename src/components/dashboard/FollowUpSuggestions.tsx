@@ -9,6 +9,7 @@ import { Sparkles, RefreshCw, Mail, Phone, MessageSquare, Calendar, Check } from
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+import { invokeFunction } from '@/lib/api';
 
 type FollowUpSuggestion = {
   contactId: string;
@@ -40,7 +41,7 @@ export function FollowUpSuggestions() {
   const { data: suggestions, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['follow-up-suggestions', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('suggest-followups');
+      const { data, error } = await invokeFunction('suggest-followups');
       
       if (error) {
         console.error('Error fetching suggestions:', error);

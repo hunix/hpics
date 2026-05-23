@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar, Users, MapPin, RefreshCw, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { invokeFunction } from '@/lib/api';
 
 interface SharedExperience {
   id: string;
@@ -93,9 +94,7 @@ export function SharedExperiencesMap() {
   const analyzeNetworkingOpportunities = async () => {
     setIsAnalyzing(true);
     try {
-      const { error } = await supabase.functions.invoke("detect-cross-contact-patterns", {
-        body: { includeSharedExperiences: true }
-      });
+      const { error } = await invokeFunction("detect-cross-contact-patterns", { includeSharedExperiences: true });
 
       if (error) throw error;
 

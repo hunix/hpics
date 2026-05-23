@@ -7,6 +7,7 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export type ChronotypeType = 'lion' | 'bear' | 'wolf' | 'dolphin';
 
@@ -75,14 +76,12 @@ export function useChronotypeAnalysis() {
     setIsAnalyzing(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('chronotype-analyzer', {
-        body: {
+      const { data, error } = await invokeFunction('chronotype-analyzer', {
           userId: user.id,
           profileId,
           behavioralData,
           action: 'analyze'
-        }
-      });
+        });
 
       if (error) throw error;
 

@@ -7,6 +7,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { invokeFunction } from '@/lib/api';
 
 export type TranscendentAnalysisType = 'full' | 'quantum' | 'morphic' | 'collective' | 'omniscience';
 
@@ -38,13 +39,11 @@ export function useTranscendentAnalysis() {
     }): Promise<TranscendentAnalysisResult> => {
       if (!user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase.functions.invoke('transcendent-analysis', {
-        body: { 
+      const { data, error } = await invokeFunction('transcendent-analysis', { 
           userId: user.id, 
           profileId, 
           analysisType 
-        },
-      });
+        },);
 
       if (error) throw error;
       return data as TranscendentAnalysisResult;

@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeFunction } from '@/lib/api';
 
 export interface BiometricReading {
   type: 'heart_rate' | 'stress' | 'steps' | 'sleep' | 'activity';
@@ -242,12 +243,10 @@ export function useBiometricStream() {
 
   // Sync wearable data via edge function
   const syncFromWearable = useCallback(async (deviceType: string) => {
-    const { data, error } = await supabase.functions.invoke('sync-wearable-data', {
-      body: {
+    const { data, error } = await invokeFunction('sync-wearable-data', {
         deviceType,
         syncType: 'full',
-      },
-    });
+      },);
 
     if (error) {
       console.error('Failed to sync wearable:', error);

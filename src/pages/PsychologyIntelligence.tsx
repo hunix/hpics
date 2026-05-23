@@ -15,33 +15,15 @@ import { Input } from '@/components/ui/input';
 import { DarkPsychologyDashboard } from '@/components/intelligence/DarkPsychologyDashboard';
 import { InfluencePlaybookPanel } from '@/components/intelligence/InfluencePlaybookPanel';
 import { Brain, Target, Shield, Search, Users, Activity } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useProfilePicker } from '@/hooks/profiles/useProfilePicker';
 import { PsychologyAssessmentsTab } from '@/components/intelligence/PsychologyAssessmentsTab';
 
 export default function PsychologyIntelligence() {
-  const { user } = useAuth();
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('overview');
 
-  // Fetch profiles for selection
-  const { data: profiles = [] } = useQuery({
-    queryKey: ['profiles-for-psychology', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, avatar_url, relationship_type')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .order('first_name');
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!user?.id,
-  });
+  const { data: profiles = [] } = useProfilePicker({ queryKeyHint: 'psychology' });
 
   const getDisplayName = (profile: { first_name: string | null; last_name: string | null }) => {
     return [profile.first_name, profile.last_name].filter(Boolean).join(' ') || 'Unknown';

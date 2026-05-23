@@ -3,6 +3,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export type InsightPriority = 'low' | 'medium' | 'high' | 'critical';
 export type InsightStatus = 'pending' | 'viewed' | 'acted' | 'dismissed' | 'snoozed';
@@ -130,9 +131,7 @@ export function useProactiveInsights(filters?: InsightFilters) {
     if (!user?.id) return false;
 
     try {
-      const { error } = await supabase.functions.invoke('generate-proactive-insights', {
-        body: { profileId },
-      });
+      const { error } = await invokeFunction('generate-proactive-insights', { profileId },);
 
       if (error) throw error;
       

@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Search, FileText, User, Sparkles, CreditCard, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
+import { invokeFunction } from '@/lib/api';
 
 interface SearchResult {
   id: string;
@@ -39,13 +40,11 @@ export function DocumentRAGSearch({ profileId, onResultClick }: DocumentRAGSearc
 
   const searchMutation = useMutation({
     mutationFn: async (searchQuery: string) => {
-      const { data, error } = await supabase.functions.invoke('search-documents', {
-        body: {
+      const { data, error } = await invokeFunction('search-documents', {
           query: searchQuery,
           profileId: profileId || null,
           limit: 10,
-        },
-      });
+        },);
 
       if (error) throw error;
       return data;

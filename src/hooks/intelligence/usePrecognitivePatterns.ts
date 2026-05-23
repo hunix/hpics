@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { invokeFunction } from '@/lib/api';
 
 export interface PrecursorSignature {
   id: string;
@@ -90,13 +91,11 @@ export function usePrecognitivePatterns(profileId?: string) {
 
   const analyzePrecognition = useMutation({
     mutationFn: async (input: { profileId: string; predictionHorizon?: '3_months' | '6_months' | '12_months' }) => {
-      const { data, error } = await supabase.functions.invoke('precognitive-pattern-engine', {
-        body: {
+      const { data, error } = await invokeFunction('precognitive-pattern-engine', {
           userId: user!.id,
           profileId: input.profileId,
           predictionHorizon: input.predictionHorizon || '6_months'
-        }
-      });
+        });
       if (error) throw error;
       return data;
     },

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export interface FaceScanJob {
   id: string;
@@ -170,9 +171,7 @@ export function useFaceScanJob(jobId?: string) {
       if (error) throw error;
 
       // Trigger the edge function to process the job
-      const { error: fnError } = await supabase.functions.invoke('execute-face-scan-job', {
-        body: { jobId: jobIdToStart },
-      });
+      const { error: fnError } = await invokeFunction('execute-face-scan-job', { jobId: jobIdToStart },);
 
       if (fnError) {
         // Revert status if edge function fails
@@ -246,9 +245,7 @@ export function useFaceScanJob(jobId?: string) {
       if (error) throw error;
 
       // Trigger the edge function to continue processing
-      const { error: fnError } = await supabase.functions.invoke('execute-face-scan-job', {
-        body: { jobId: jobIdToResume, resume: true },
-      });
+      const { error: fnError } = await invokeFunction('execute-face-scan-job', { jobId: jobIdToResume, resume: true },);
 
       if (fnError) {
         await supabase
@@ -290,9 +287,7 @@ export function useFaceScanJob(jobId?: string) {
       if (error) throw error;
 
       // Trigger the edge function to retry failed items
-      const { error: fnError } = await supabase.functions.invoke('execute-face-scan-job', {
-        body: { jobId: jobIdToRetry, retryFailedOnly: true },
-      });
+      const { error: fnError } = await invokeFunction('execute-face-scan-job', { jobId: jobIdToRetry, retryFailedOnly: true },);
 
       if (fnError) throw fnError;
 

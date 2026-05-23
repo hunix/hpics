@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { invokeFunction } from '@/lib/api';
 
 interface CrossIdDashboardProps {
   profileId: string;
@@ -91,13 +92,11 @@ export function CrossIdDashboard({ profileId, profileName }: CrossIdDashboardPro
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase.functions.invoke('cross-identify-biometrics', {
-        body: { 
+      const { data, error } = await invokeFunction('cross-identify-biometrics', { 
           sourceProfileId: profileId,
           searchScope: 'all',
           mediaTypes: ['images', 'audio', 'video']
-        }
-      });
+        });
 
       if (error) throw error;
       if (!data.success) throw new Error(data.error || 'Scan failed');

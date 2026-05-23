@@ -13,6 +13,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { invokeFunction } from '@/lib/api';
 
 interface NarrativeWarfarePanelProps {
   profileId?: string;
@@ -60,14 +61,12 @@ export function NarrativeWarfarePanel({ profileId, profileName }: NarrativeWarfa
   // Run narrative analysis
   const analyzeMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('cognitive-warfare-engine', {
-        body: {
+      const { data, error } = await invokeFunction('cognitive-warfare-engine', {
           profileId,
           operationType: 'narrative_analysis',
           targetNarrative,
           deploymentContext,
-        },
-      });
+        },);
       if (error) throw error;
       return data;
     },

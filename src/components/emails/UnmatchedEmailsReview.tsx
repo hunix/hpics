@@ -35,6 +35,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { invokeFunction } from '@/lib/api';
 
 interface MatchSuggestion {
   email: string;
@@ -56,9 +57,7 @@ export function UnmatchedEmailsReview() {
   const { data: matchData, isLoading, refetch } = useQuery({
     queryKey: ['email-match-suggestions', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('match-emails-to-contacts', {
-        body: { batchSize: 100, useAI: true },
-      });
+      const { data, error } = await invokeFunction('match-emails-to-contacts', { batchSize: 100, useAI: true },);
       if (error) throw error;
       return data as {
         suggestions: MatchSuggestion[];

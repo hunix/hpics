@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import { RFSignalCapture } from '@/types/hardware';
+import { invokeFunction } from '@/lib/api';
 
 interface SpectrumScanParams {
   device_id: string;
@@ -39,7 +40,7 @@ export function useSDRIntelligence() {
   const { data: knownFrequencies = [] } = useQuery<FrequencyInfo[]>({
     queryKey: ['sdr-known-frequencies'],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('sdr-intelligence/known-frequencies');
+      const { data, error } = await invokeFunction('sdr-intelligence/known-frequencies');
       if (error) throw error;
       return data.frequencies || [];
     },
@@ -70,9 +71,7 @@ export function useSDRIntelligence() {
   const startScan = useMutation({
     mutationFn: async (params: SpectrumScanParams) => {
       setIsScanning(true);
-      const { data, error } = await supabase.functions.invoke('sdr-intelligence/spectrum-scan', {
-        body: params,
-      });
+      const { data, error } = await invokeFunction('sdr-intelligence/spectrum-scan', params,);
       if (error) throw error;
       return data;
     },
@@ -89,9 +88,7 @@ export function useSDRIntelligence() {
   // Analyze signal
   const analyzeSignal = useCallback(async (captureId: string, signalData: Record<string, unknown>) => {
     try {
-      const { data, error } = await supabase.functions.invoke('sdr-intelligence/analyze-signal', {
-        body: { capture_id: captureId, signal_data: signalData },
-      });
+      const { data, error } = await invokeFunction('sdr-intelligence/analyze-signal', { capture_id: captureId, signal_data: signalData },);
       
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ['rf-captures', user?.id] });
@@ -105,9 +102,7 @@ export function useSDRIntelligence() {
   // Detect frequency hopping
   const detectFrequencyHopping = useCallback(async (captures: RFSignalCapture[], timeWindowMs = 1000) => {
     try {
-      const { data, error } = await supabase.functions.invoke('sdr-intelligence/frequency-hopping-detect', {
-        body: { captures, time_window_ms: timeWindowMs },
-      });
+      const { data, error } = await invokeFunction('sdr-intelligence/frequency-hopping-detect', { captures, time_window_ms: timeWindowMs },);
       
       if (error) throw error;
       return data.analysis;

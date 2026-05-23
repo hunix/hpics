@@ -2,7 +2,7 @@
 // Provides consistent logging, error handling, and cost tracking
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { checkRateLimit, createRateLimitResponse, type RateLimitResult } from './rate-limiter.ts';
+import { checkRateLimitAsync, createRateLimitResponse, type RateLimitResult } from './rate-limiter.ts';
 
 export interface AIMessage {
   role: 'system' | 'user' | 'assistant';
@@ -185,7 +185,7 @@ export async function callAI(options: AIRequestOptions): Promise<AIResponse> {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   // Server-side rate limiting check
-  const rateLimitResult = checkRateLimit(options.userId, options.functionName);
+  const rateLimitResult = await checkRateLimitAsync(options.userId, options.functionName);
   if (!rateLimitResult.allowed) {
     throw new RateLimitError((rateLimitResult.retryAfter || 60) * 1000);
   }

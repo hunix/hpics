@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { handleAIError } from '@/lib/aiErrorHandler';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface BiometricProfile {
   id: string;
@@ -146,9 +147,7 @@ export function useExtractFacialBiometrics() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase.functions.invoke('extract-facial-biometrics', {
-        body: { imageUrl, profileId, sourceType, sourceId }
-      });
+      const { data, error } = await invokeFunction('extract-facial-biometrics', { imageUrl, profileId, sourceType, sourceId });
 
       if (error) throw error;
       if (!data.success) throw new Error(data.error || 'Extraction failed');
@@ -187,9 +186,7 @@ export function useExtractVoiceBiometrics() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase.functions.invoke('extract-voice-biometrics', {
-        body: { audioUrl, profileId, sourceType, sourceId, transcription }
-      });
+      const { data, error } = await invokeFunction('extract-voice-biometrics', { audioUrl, profileId, sourceType, sourceId, transcription });
 
       if (error) throw error;
       if (!data.success) throw new Error(data.error || 'Extraction failed');
@@ -230,9 +227,7 @@ export function useMatchBiometrics() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase.functions.invoke('match-biometrics', {
-        body: { mediaUrl, matchType, sourceType, sourceId, autoTag, autoTagThreshold }
-      });
+      const { data, error } = await invokeFunction('match-biometrics', { mediaUrl, matchType, sourceType, sourceId, autoTag, autoTagThreshold });
 
       if (error) throw error;
       if (!data.success) throw new Error(data.error || 'Matching failed');
@@ -360,9 +355,7 @@ export function useGenerateFacialEmbedding() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase.functions.invoke('generate-facial-embedding', {
-        body: { profileId, imageUrls, regenerate }
-      });
+      const { data, error } = await invokeFunction('generate-facial-embedding', { profileId, imageUrls, regenerate });
 
       if (error) throw error;
       if (!data.success) throw new Error(data.error || 'Embedding generation failed');
@@ -414,16 +407,14 @@ export function useLocalBiometricMatch() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase.functions.invoke('local-biometric-match', {
-        body: { 
+      const { data, error } = await invokeFunction('local-biometric-match', { 
           imageUrl, 
           sourceType, 
           sourceId,
           autoTagHighConfidence,
           highConfidenceThreshold,
           mediumConfidenceThreshold
-        }
-      });
+        });
 
       if (error) throw error;
       if (!data.success) throw new Error(data.error || 'Matching failed');
@@ -483,14 +474,12 @@ export function useBatchBiometricScan() {
           if (!signedData?.signedUrl) continue;
 
           // Call local matching
-          const { data, error } = await supabase.functions.invoke('local-biometric-match', {
-            body: { 
+          const { data, error } = await invokeFunction('local-biometric-match', { 
               imageUrl: signedData.signedUrl, 
               sourceType: 'media', 
               sourceId: media.id,
               autoTagHighConfidence
-            }
-          });
+            });
 
           if (!error && data?.success) {
             results.push({

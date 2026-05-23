@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { invokeFunction } from '@/lib/api';
 
 interface QueueItem {
   id: string;
@@ -110,9 +111,7 @@ export function EnrichmentQueueMonitor() {
 
   const processNowMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('process-enrichment-queue', {
-        body: { manual: true }
-      });
+      const { data, error } = await invokeFunction('process-enrichment-queue', { manual: true });
       if (error) throw error;
       return data;
     },

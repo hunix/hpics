@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Network, RefreshCw, Users, Building2, Calendar, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { handleAIError } from "@/lib/aiErrorHandler";
+import { invokeFunction } from '@/lib/api';
 
 interface CrossPattern {
   id: string;
@@ -126,7 +127,7 @@ export function CrossContactPatternPanel() {
   const runAnalysisMutation = useMutation({
     mutationFn: async () => {
       setIsAnalyzing(true);
-      const { data, error } = await supabase.functions.invoke("detect-cross-contact-patterns");
+      const { data, error } = await invokeFunction("detect-cross-contact-patterns");
       if (error) throw error;
       return data;
     },

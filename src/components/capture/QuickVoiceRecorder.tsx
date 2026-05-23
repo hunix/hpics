@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface QuickVoiceRecorderProps {
   open: boolean;
@@ -204,9 +205,7 @@ export function QuickVoiceRecorder({
       if (insertError) throw insertError;
 
       // Trigger transcription
-      const { error: transcribeError } = await supabase.functions.invoke('transcribe-voice-note', {
-        body: { voiceNoteId: voiceNote.id, audioUrl: publicUrl }
-      });
+      const { error: transcribeError } = await invokeFunction('transcribe-voice-note', { voiceNoteId: voiceNote.id, audioUrl: publicUrl });
 
       if (transcribeError) {
         console.warn('Transcription queued but may have issues:', transcribeError);

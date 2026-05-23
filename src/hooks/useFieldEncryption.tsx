@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useClearance, ClearanceLevel } from './useClearance';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface EncryptionResult {
   encrypted_value: string;
@@ -35,14 +36,12 @@ export function useFieldEncryption() {
 
       setIsEncrypting(true);
       try {
-        const { data, error } = await supabase.functions.invoke('encrypt-field', {
-          body: {
+        const { data, error } = await invokeFunction('encrypt-field', {
             value,
             table_name: tableName,
             column_name: columnName,
             classification,
-          },
-        });
+          },);
 
         if (error) throw error;
 
@@ -78,13 +77,11 @@ export function useFieldEncryption() {
 
       setIsDecrypting(true);
       try {
-        const { data, error } = await supabase.functions.invoke('decrypt-field', {
-          body: {
+        const { data, error } = await invokeFunction('decrypt-field', {
             encrypted_value: encryptedValue,
             table_name: tableName,
             column_name: columnName,
-          },
-        });
+          },);
 
         if (error) {
           if (error.message?.includes('Insufficient clearance')) {

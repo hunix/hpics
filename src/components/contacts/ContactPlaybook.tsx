@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { BookOpen, Save, Sparkles, Loader2, ThumbsUp, ThumbsDown, MessageSquare, AlertTriangle, Heart, CheckCircle } from 'lucide-react';
+import { invokeFunction } from '@/lib/api';
 
 interface ContactPlaybookProps {
   profileId: string;
@@ -111,9 +112,7 @@ export function ContactPlaybook({ profileId, contactName }: ContactPlaybookProps
 
   const generateMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('generate-playbook', {
-        body: { profile_id: profileId },
-      });
+      const { data, error } = await invokeFunction('generate-playbook', { profile_id: profileId },);
       if (error) throw error;
       return data;
     },

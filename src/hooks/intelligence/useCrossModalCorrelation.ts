@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { invokeFunction } from '@/lib/api';
 
 export interface CrossModalCorrelation {
   id: string;
@@ -161,15 +162,13 @@ export function useCrossModalCorrelation(profileId?: string) {
       timeWindow?: { start: string; end: string };
     }) => {
       // Call edge function to run AI-powered correlation analysis
-      const { data: result, error } = await supabase.functions.invoke('cross-modal-correlator', {
-        body: {
+      const { data: result, error } = await invokeFunction('cross-modal-correlator', {
           userId: user!.id,
           profileId: input.profileId,
           modalities: input.modalities,
           correlationType: input.correlationType,
           timeWindow: input.timeWindow,
-        },
-      });
+        },);
 
       if (error) throw error;
 
@@ -205,14 +204,12 @@ export function useCrossModalCorrelation(profileId?: string) {
   // Detect anomalies across modalities
   const detectAnomalies = useMutation({
     mutationFn: async (input: { profileId: string; sensitivity: 'low' | 'medium' | 'high' }) => {
-      const { data, error } = await supabase.functions.invoke('anomaly-detector', {
-        body: {
+      const { data, error } = await invokeFunction('anomaly-detector', {
           userId: user!.id,
           profileId: input.profileId,
           sensitivity: input.sensitivity,
           crossModal: true,
-        },
-      });
+        },);
 
       if (error) throw error;
       return data;

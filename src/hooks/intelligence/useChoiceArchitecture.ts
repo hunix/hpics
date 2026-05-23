@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export interface NudgeTechnique {
   id: string;
@@ -61,9 +62,7 @@ export function useChoiceArchitecture() {
   ): Promise<ChoiceArchitectureResult | null> => {
     setIsProcessing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('choice-architecture-optimizer', {
-        body: { profileId, targetBehavior, context, selectedNudges }
-      });
+      const { data, error } = await invokeFunction('choice-architecture-optimizer', { profileId, targetBehavior, context, selectedNudges });
 
       if (error) throw error;
 

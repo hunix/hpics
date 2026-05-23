@@ -15,6 +15,7 @@ import {
   ChevronDown, Loader2, Users, RefreshCw
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { invokeFunction } from '@/lib/api';
 
 interface RecordingsManagerProps {
   profileId?: string;
@@ -72,9 +73,7 @@ export function RecordingsManager({ profileId, profileName }: RecordingsManagerP
         .update({ status: 'processing' })
         .eq('id', recording.id);
 
-      const { error } = await supabase.functions.invoke('transcribe-audio', {
-        body: { recordingId: recording.id, fileUrl: recording.file_url },
-      });
+      const { error } = await invokeFunction('transcribe-audio', { recordingId: recording.id, fileUrl: recording.file_url },);
       if (error) throw error;
     },
     onSuccess: () => {

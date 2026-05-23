@@ -34,6 +34,7 @@ import {
   type TrustPrediction,
   type TemporalInfluenceResult,
 } from '@/lib/network';
+import { invokeFunction } from '@/lib/api';
 
 interface NetworkNode {
   id: string;
@@ -171,7 +172,7 @@ export function AdvancedNetworkDashboard() {
 
   const analyzeNetworkMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('analyze-network-intelligence');
+      const { data, error } = await invokeFunction('analyze-network-intelligence');
       if (error) throw error;
       return data;
     },

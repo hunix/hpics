@@ -16,6 +16,7 @@ import {
 import { useAGISPhaseMiddleware } from './useAGISPhaseMiddleware';
 
 import type { MICEAssessment } from '@/types/database-helpers';
+import { invokeFunction } from '@/lib/api';
 
 export function useMICEAnalysis(profileId?: string) {
   const { user } = useAuth();
@@ -74,12 +75,10 @@ export function useMICEAnalysis(profileId?: string) {
     mutationFn: async (targetProfileId: string) => {
       if (!user?.id) throw new Error('Not authenticated');
       
-      const { data, error } = await supabase.functions.invoke('mice-recruitment-analyzer', {
-        body: {
+      const { data, error } = await invokeFunction('mice-recruitment-analyzer', {
           profileId: targetProfileId,
           analysisDepth: 'comprehensive',
-        },
-      });
+        },);
       
       if (error) throw error;
       return data;

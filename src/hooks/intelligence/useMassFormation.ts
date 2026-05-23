@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { invokeFunction } from '@/lib/api';
 
 export interface MassFormationIndicator {
   id: string;
@@ -84,13 +85,11 @@ export function useMassFormation() {
 
   const analyzeMassFormation = useMutation({
     mutationFn: async (input: { populationSegment?: string; analysisDepth?: 'standard' | 'deep' }) => {
-      const { data, error } = await supabase.functions.invoke('mass-formation-analyzer', {
-        body: {
+      const { data, error } = await invokeFunction('mass-formation-analyzer', {
           userId: user!.id,
           populationSegment: input.populationSegment || 'network',
           analysisDepth: input.analysisDepth || 'standard'
-        }
-      });
+        });
       if (error) throw error;
       return data;
     },

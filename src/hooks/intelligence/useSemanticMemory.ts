@@ -14,6 +14,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { invokeFunction } from '@/lib/api';
 
 // ─────────────────────────────────────────────────────────── Types ────────────
 
@@ -106,9 +107,7 @@ export interface SemanticFact {
 // ─────────────────────────────────────────────────────── Core Invoker ─────────
 
 async function invokeMemoryRouter(action: string, payload: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke("intelligence-memory-router", {
-    body: { action, ...payload },
-  });
+  const { data, error } = await invokeFunction("intelligence-memory-router", { action, ...payload },);
   if (error) throw new Error(error.message);
   if (data?.error) throw new Error(data.error);
   return data;

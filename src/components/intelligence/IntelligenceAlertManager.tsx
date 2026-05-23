@@ -1,7 +1,15 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import {
+  useIntelligenceAlerts,
+  useIntelligenceAlertRules,
+  useAcknowledgeAlert,
+  useDismissAlert,
+  useCreateAlertRule,
+  useToggleAlertRule,
+  useProcessAlertRules,
+  type IntelligenceAlert as Alert,
+  type IntelligenceAlertRule as AlertRule,
+} from '@/hooks/intelligence/useIntelligenceAlerts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -29,34 +37,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-interface Alert {
-  id: string;
-  rule_id: string | null;
-  profile_id: string | null;
-  alert_type: string;
-  severity: string;
-  title: string;
-  description: string | null;
-  evidence: Record<string, any>;
-  is_acknowledged: boolean;
-  acknowledged_at: string | null;
-  is_dismissed: boolean;
-  created_at: string;
-  profile?: { first_name: string; last_name: string | null };
-}
-
-interface AlertRule {
-  id: string;
-  name: string;
-  description: string | null;
-  rule_type: string;
-  conditions: Record<string, any>;
-  severity: string;
-  is_active: boolean;
-  trigger_count: number;
-  last_triggered_at: string | null;
-}
-
 const severityConfig: Record<string, { icon: any; color: string; bg: string }> = {
   critical: { icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-500/10' },
   high: { icon: AlertCircle, color: 'text-orange-600', bg: 'bg-orange-500/10' },
@@ -74,15 +54,13 @@ const ruleTypeIcons: Record<string, any> = {
 };
 
 export function IntelligenceAlertManager() {
-  const { user } = useAuth();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const [isCreatingRule, setIsCreatingRule] = useState(false);
   const [newRule, setNewRule] = useState<{
     name: string;
     rule_type: string;
     severity: string;
-    conditions: Record<string, any>;
+    conditions: Record<string, unknown>;
   }>({
     name: '',
     rule_type: 'silence',
@@ -90,115 +68,24 @@ export function IntelligenceAlertManager() {
     conditions: { days_silent: 14 },
   });
 
-  const { data: alerts, isLoading: alertsLoading } = useQuery({
-    queryKey: ['intelligence-alerts', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('intelligence_alerts')
-        .select(`
-          *,
-          profile:profiles(first_name, last_name)
-        `)
-        .eq('user_id', user!.id)
-        .eq('is_dismissed', false)
-        .order('created_at', { ascending: false })
-        .limit(50);
+  const { data: alerts, isLoading: alertsLoading } = useIntelligenceAlerts();
+  const { data: rules, isLoading: rulesLoading } = useIntelligenceAlertRules();
+  const acknowledgeMutation = useAcknowledgeAlert();
+  const dismissMutation = useDismissAlert();
+  const createRuleMutation = useCreateAlertRule();
+  const toggleRuleMutation = useToggleAlertRule();
+  const processRulesMutation = useProcessAlertRules();
 
-      if (error) throw error;
-      return data as Alert[];
-    },
-    enabled: !!user,
-  });
-
-  const { data: rules, isLoading: rulesLoading } = useQuery({
-    queryKey: ['intelligence-rules', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('intelligence_alert_rules')
-        .select('*')
-        .eq('user_id', user!.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as AlertRule[];
-    },
-    enabled: !!user,
-  });
-
-  const acknowledgeMutation = useMutation({
-    mutationFn: async (alertId: string) => {
-      const { error } = await supabase
-        .from('intelligence_alerts')
-        .update({ is_acknowledged: true, acknowledged_at: new Date().toISOString() })
-        .eq('id', alertId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['intelligence-alerts'] });
-      toast.success('Alert acknowledged');
-    },
-  });
-
-  const dismissMutation = useMutation({
-    mutationFn: async (alertId: string) => {
-      const { error } = await supabase
-        .from('intelligence_alerts')
-        .update({ is_dismissed: true })
-        .eq('id', alertId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['intelligence-alerts'] });
-      toast.success('Alert dismissed');
-    },
-  });
-
-  const createRuleMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from('intelligence_alert_rules').insert({
-        user_id: user!.id,
-        name: newRule.name,
-        rule_type: newRule.rule_type,
-        severity: newRule.severity,
-        conditions: newRule.conditions,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['intelligence-rules'] });
-      setIsCreatingRule(false);
-      setNewRule({ name: '', rule_type: 'silence', severity: 'medium', conditions: { days_silent: 14 } });
-      toast.success('Alert rule created');
-    },
-  });
-
-  const toggleRuleMutation = useMutation({
-    mutationFn: async ({ ruleId, isActive }: { ruleId: string; isActive: boolean }) => {
-      const { error } = await supabase
-        .from('intelligence_alert_rules')
-        .update({ is_active: isActive })
-        .eq('id', ruleId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['intelligence-rules'] });
-    },
-  });
-
-  const processRulesMutation = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('process-alert-rules');
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['intelligence-alerts'] });
-      toast.success(`Processed ${data.rules_processed} rules, triggered ${data.alerts_triggered} alerts`);
-    },
-    onError: (error) => {
-      toast.error('Failed to process rules: ' + error.message);
-    },
-  });
+  const handleCreateRule = async () => {
+    await createRuleMutation.mutateAsync({
+      name: newRule.name,
+      rule_type: newRule.rule_type,
+      severity: newRule.severity,
+      conditions: newRule.conditions,
+    });
+    setIsCreatingRule(false);
+    setNewRule({ name: '', rule_type: 'silence', severity: 'medium', conditions: { days_silent: 14 } });
+  };
 
   const unacknowledgedAlerts = alerts?.filter(a => !a.is_acknowledged) || [];
   const acknowledgedAlerts = alerts?.filter(a => a.is_acknowledged) || [];
@@ -337,7 +224,7 @@ export function IntelligenceAlertManager() {
                     Cancel
                   </Button>
                   <Button 
-                    onClick={() => createRuleMutation.mutate()}
+                    onClick={handleCreateRule}
                     disabled={!newRule.name || createRuleMutation.isPending}
                   >
                     Create Rule

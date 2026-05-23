@@ -16,6 +16,7 @@ import { format } from 'date-fns';
 import { useAIConfirmationContext } from '@/contexts/AIConfirmationContext';
 import { useAIModelPreference } from '@/hooks/useAIModelPreference';
 import { calculateCostCents } from '@/lib/aiPricing';
+import { invokeFunction } from '@/lib/api';
 
 interface BehavioralAnalysisProps {
   profileId: string;
@@ -70,14 +71,12 @@ export function BehavioralAnalysis({ profileId, profileName }: BehavioralAnalysi
         e.model_type === 'behavioral' || e.model_type === 'general'
       )?.endpoint_url;
 
-      const { data, error } = await supabase.functions.invoke('analyze-behavioral', {
-        body: {
+      const { data, error } = await invokeFunction('analyze-behavioral', {
           profileId,
           userId: user?.id,
           analysisType,
           localEndpoint,
-        },
-      });
+        },);
       
       const responseTime = Date.now() - startTime;
       

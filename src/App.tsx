@@ -67,30 +67,9 @@ const PsychologyIntelligence = lazyWithRetry(() => import("./pages/PsychologyInt
 const DeceptionAnalysis = lazyWithRetry(() => import("./pages/DeceptionAnalysis"));
 const BiometricHub = lazyWithRetry(() => import("./pages/BiometricHub"));
 const HardwareCommand = lazyWithRetry(() => import("./pages/HardwareCommand"));
-const Supremacy = lazyWithRetry(() => import("./pages/Supremacy"));
-const SupremacyV2 = lazyWithRetry(() => import("./pages/SupremacyV2Page"));
-const CognitiveWarfare = lazyWithRetry(() => import("./pages/CognitiveWarfarePage"));
 const WarfarePage = lazyWithRetry(() => import("./pages/WarfarePage"));
-const DominionPage = lazyWithRetry(() => import("./pages/DominionPage"));
-const OmniscientCommandCenter = lazyWithRetry(() => import("./pages/OmniscientCommandCenter"));
-const TranscendentCommandCenter = lazyWithRetry(() => import("./pages/TranscendentCommandCenter"));
-const SingularityCommandCenter = lazyWithRetry(() => import("./pages/SingularityCommandCenter"));
-const AbsoluteConvergenceCenter = lazyWithRetry(() => import("./pages/AbsoluteConvergenceCenter"));
-const InfiniteDominionCenter = lazyWithRetry(() => import("./pages/InfiniteDominionCenter"));
-const UltimateTranscendenceCenter = lazyWithRetry(() => import("./pages/UltimateTranscendenceCenter"));
-const OmniversalSovereigntyCenter = lazyWithRetry(() => import("./pages/OmniversalSovereigntyCenter"));
-const AbsoluteEternityCenter = lazyWithRetry(() => import("./pages/AbsoluteEternityCenter"));
-const AbsoluteInfinityCenter = lazyWithRetry(() => import("./pages/AbsoluteInfinityCenter"));
-const PrimordialGenesisCenter = lazyWithRetry(() => import("./pages/PrimordialGenesisCenter"));
-const CosmicOmnipotenceCenter = lazyWithRetry(() => import("./pages/CosmicOmnipotenceCenter"));
-const EternalSupremacyCenter = lazyWithRetry(() => import("./pages/EternalSupremacyCenter"));
-const AbsoluteTotalityCenter = lazyWithRetry(() => import("./pages/AbsoluteTotalityCenter"));
-const UltimateOmegaCenter = lazyWithRetry(() => import("./pages/UltimateOmegaCenter"));
 const AGISCommandCenter = lazyWithRetry(() => import("./pages/AGISCommandCenter"));
 const AGISAnalytics = lazyWithRetry(() => import("./pages/AGISAnalytics"));
-const TranscendentConsciousnessCenter = lazyWithRetry(() => import("./pages/TranscendentConsciousnessCenter"));
-const UniversalOmniscienceCenter = lazyWithRetry(() => import("./pages/UniversalOmniscienceCenter"));
-const AbsoluteGenesisCenter = lazyWithRetry(() => import("./pages/AbsoluteGenesisCenter"));
 const AICostDashboard = lazyWithRetry(() => import("./pages/AICostDashboard"));
 const CrossModalAnalysis = lazyWithRetry(() => import("./pages/CrossModalAnalysis"));
 const ComprehensiveSystemHealthDashboard = lazyWithRetry(() => import("./pages/ComprehensiveSystemHealthDashboard"));
@@ -102,6 +81,7 @@ const DataCollectionGuide = lazyWithRetry(() => import("./pages/DataCollectionGu
 const EnhancementSuite = lazyWithRetry(() => import("./pages/EnhancementSuite"));
 const MemoryExplorer = lazyWithRetry(() => import("./pages/MemoryExplorer"));
 const AgentConsole = lazyWithRetry(() => import("./pages/AgentConsole"));
+const IntelAgent = lazyWithRetry(() => import("./pages/IntelAgent"));
 const IntelligenceFeed = lazyWithRetry(() => import("./pages/IntelligenceFeed"));
 const BiometricStudio = lazyWithRetry(() => import("./pages/BiometricStudio"));
 const AutonomyDashboard = lazyWithRetry(() => import("./pages/AutonomyDashboard"));
@@ -194,30 +174,9 @@ const App = () => (
                           <Route path="/deception-analysis" element={<DeceptionAnalysis />} />
                           <Route path="/biometric-hub" element={<BiometricHub />} />
                           <Route path="/hardware-command" element={<HardwareCommand />} />
-                          <Route path="/supremacy" element={<Supremacy />} />
-                          <Route path="/supremacy-v2" element={<SupremacyV2 />} />
-                          <Route path="/cognitive-warfare" element={<CognitiveWarfare />} />
                           <Route path="/defense-grid" element={<WarfarePage />} />
-                          <Route path="/dominion" element={<DominionPage />} />
-                          <Route path="/omniscient-command" element={<OmniscientCommandCenter />} />
-                          <Route path="/transcendent-command" element={<TranscendentCommandCenter />} />
-                          <Route path="/singularity-command" element={<SingularityCommandCenter />} />
-                          <Route path="/absolute-convergence" element={<AbsoluteConvergenceCenter />} />
-                          <Route path="/infinite-dominion" element={<InfiniteDominionCenter />} />
-                          <Route path="/ultimate-transcendence" element={<UltimateTranscendenceCenter />} />
-                          <Route path="/omniversal-sovereignty" element={<OmniversalSovereigntyCenter />} />
-                          <Route path="/absolute-eternity" element={<AbsoluteEternityCenter />} />
-                          <Route path="/absolute-infinity" element={<AbsoluteInfinityCenter />} />
-                          <Route path="/primordial-genesis" element={<PrimordialGenesisCenter />} />
-                          <Route path="/cosmic-omnipotence" element={<CosmicOmnipotenceCenter />} />
-                          <Route path="/eternal-supremacy" element={<EternalSupremacyCenter />} />
-                          <Route path="/absolute-totality" element={<AbsoluteTotalityCenter />} />
-                          <Route path="/ultimate-omega" element={<UltimateOmegaCenter />} />
                           <Route path="/agis-command" element={<AGISCommandCenter />} />
                           <Route path="/agis-analytics" element={<AGISAnalytics />} />
-                          <Route path="/transcendent-consciousness" element={<TranscendentConsciousnessCenter />} />
-                          <Route path="/universal-omniscience" element={<UniversalOmniscienceCenter />} />
-                          <Route path="/absolute-genesis" element={<AbsoluteGenesisCenter />} />
                           <Route path="/ai-cost-dashboard" element={<AICostDashboard />} />
                           <Route path="/cross-modal-analysis" element={<CrossModalAnalysis />} />
                           <Route path="/system-health-dashboard" element={<ComprehensiveSystemHealthDashboard />} />
@@ -228,6 +187,7 @@ const App = () => (
                           <Route path="/enhancement-suite" element={<EnhancementSuite />} />
                           <Route path="/memory-explorer" element={<MemoryExplorer />} />
                            <Route path="/agent-console" element={<AgentConsole />} />
+                           <Route path="/intel-agent" element={<IntelAgent />} />
                            <Route path="/intelligence-feed" element={<IntelligenceFeed />} />
                            <Route path="/biometric-studio" element={<BiometricStudio />} />
                            <Route path="/autonomy" element={<AutonomyDashboard />} />

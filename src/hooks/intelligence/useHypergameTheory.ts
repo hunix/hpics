@@ -31,6 +31,7 @@ import {
   type ReceiverType,
   type TrustConstraint,
 } from '@/lib/gameTheory/bayesianPersuader';
+import { invokeFunction } from '@/lib/api';
 
 export interface HypergameRecord {
   id: string;
@@ -120,14 +121,12 @@ export function useHypergameTheory(profileIds?: string[]) {
       gameType?: 'hypergame' | 'quantum' | 'persuasion';
       entanglementLevel?: number;
     }) => {
-      const { data, error } = await supabase.functions.invoke('hypergame-solver', {
-        body: {
+      const { data, error } = await invokeFunction('hypergame-solver', {
           userId: user!.id,
           profileIds: input.profileIds,
           gameType: input.gameType || 'hypergame',
           entanglementLevel: input.entanglementLevel,
-        },
-      });
+        },);
 
       if (error) throw error;
       return data;

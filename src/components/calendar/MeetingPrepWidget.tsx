@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { format, formatDistanceToNow, addDays, isWithinInterval } from 'date-fns';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface MeetingPrep {
   eventId: string;
@@ -73,14 +74,12 @@ export function MeetingPrepWidget() {
   // Generate meeting prep
   const generatePrep = useMutation({
     mutationFn: async (meeting: MeetingPrep) => {
-      const { data, error } = await supabase.functions.invoke('generate-meeting-prep', {
-        body: { 
+      const { data, error } = await invokeFunction('generate-meeting-prep', { 
           profileId: meeting.profileId,
           eventId: meeting.eventId,
           eventTitle: meeting.eventTitle,
           eventDate: meeting.eventDate.toISOString()
-        }
-      });
+        });
       if (error) throw error;
       return data;
     },

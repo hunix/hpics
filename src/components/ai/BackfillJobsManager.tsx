@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { MosaicBatchScanner } from '@/components/biometrics/MosaicBatchScanner';
+import { invokeFunction } from '@/lib/api';
 
 interface BatchJob {
   id: string;
@@ -220,9 +221,7 @@ export function BackfillJobsManager() {
   // Start job mutation
   const startJobMutation = useMutation({
     mutationFn: async (jobType: string) => {
-      const { data, error } = await supabase.functions.invoke('batch-intelligence-init', {
-        body: { jobType, action: 'start' },
-      });
+      const { data, error } = await invokeFunction('batch-intelligence-init', { jobType, action: 'start' },);
       if (error) throw error;
       return data;
     },
@@ -238,9 +237,7 @@ export function BackfillJobsManager() {
   // Cancel job mutation
   const cancelJobMutation = useMutation({
     mutationFn: async (jobId: string) => {
-      const { data, error } = await supabase.functions.invoke('batch-intelligence-init', {
-        body: { jobId, action: 'cancel' },
-      });
+      const { data, error } = await invokeFunction('batch-intelligence-init', { jobId, action: 'cancel' },);
       if (error) throw error;
       return data;
     },

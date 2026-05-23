@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Search, Linkedin, Globe, Sparkles, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface ContactEnrichmentProps {
   profileId: string;
@@ -49,9 +50,7 @@ export function ContactEnrichment({ profileId, profileName, linkedinUrl, onEnric
         payload.searchQuery = searchQuery;
       }
 
-      const { data, error } = await supabase.functions.invoke('enrich-contact', {
-        body: payload,
-      });
+      const { data, error } = await invokeFunction('enrich-contact', payload,);
 
       if (error) throw error;
       return data as EnrichmentResult;

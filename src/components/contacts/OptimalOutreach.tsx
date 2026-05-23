@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Clock, Calendar, MessageSquare, Sparkles, RefreshCw, TrendingUp } from 'lucide-react';
+import { invokeFunction } from '@/lib/api';
 
 interface OptimalOutreachProps {
   profileId: string;
@@ -46,9 +47,7 @@ export function OptimalOutreach({ profileId, contactName }: OptimalOutreachProps
   const { data: timing, isLoading, refetch } = useQuery<OutreachTiming>({
     queryKey: ['outreach-timing', profileId],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('suggest-outreach-timing', {
-        body: { profileId }
-      });
+      const { data, error } = await invokeFunction('suggest-outreach-timing', { profileId });
       if (error) throw error;
       return data;
     },

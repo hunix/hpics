@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { invokeFunction } from '@/lib/api';
 
 export interface GoProDevice {
   id: string;
@@ -44,9 +45,7 @@ export function useGoProIntelligence() {
       serial_number?: string;
       firmware_version?: string;
     }) => {
-      const response = await supabase.functions.invoke('gopro-intelligence', {
-        body: { action: 'register_gopro', ...params }
-      });
+      const response = await invokeFunction('gopro-intelligence', { action: 'register_gopro', ...params });
 
       if (response.error) throw response.error;
       return response.data;
@@ -79,9 +78,7 @@ export function useGoProIntelligence() {
         stabilization?: boolean;
       };
     }) => {
-      const response = await supabase.functions.invoke('gopro-intelligence', {
-        body: { action: 'start_recording', ...params }
-      });
+      const response = await invokeFunction('gopro-intelligence', { action: 'start_recording', ...params });
 
       if (response.error) throw response.error;
       return response.data;
@@ -105,9 +102,7 @@ export function useGoProIntelligence() {
   // Stop recording
   const stopRecording = useMutation({
     mutationFn: async (deviceId: string) => {
-      const response = await supabase.functions.invoke('gopro-intelligence', {
-        body: { action: 'stop_recording', device_id: deviceId }
-      });
+      const response = await invokeFunction('gopro-intelligence', { action: 'stop_recording', device_id: deviceId });
 
       if (response.error) throw response.error;
       return response.data;
@@ -137,9 +132,7 @@ export function useGoProIntelligence() {
         mode?: string;
       };
     }) => {
-      const response = await supabase.functions.invoke('gopro-intelligence', {
-        body: { action: 'capture_photo', ...params }
-      });
+      const response = await invokeFunction('gopro-intelligence', { action: 'capture_photo', ...params });
 
       if (response.error) throw response.error;
       return response.data;
@@ -168,9 +161,7 @@ export function useGoProIntelligence() {
         bitrate?: number;
       };
     }) => {
-      const response = await supabase.functions.invoke('gopro-intelligence', {
-        body: { action: 'start_livestream', ...params }
-      });
+      const response = await invokeFunction('gopro-intelligence', { action: 'start_livestream', ...params });
 
       if (response.error) throw response.error;
       return response.data;
@@ -197,9 +188,7 @@ export function useGoProIntelligence() {
       device_id: string;
       media_list: GoProMedia[];
     }) => {
-      const response = await supabase.functions.invoke('gopro-intelligence', {
-        body: { action: 'sync_media', ...params }
-      });
+      const response = await invokeFunction('gopro-intelligence', { action: 'sync_media', ...params });
 
       if (response.error) throw response.error;
       return response.data;
@@ -222,9 +211,7 @@ export function useGoProIntelligence() {
 
   // Get device status
   const getStatus = async (deviceId: string) => {
-    const response = await supabase.functions.invoke('gopro-intelligence', {
-      body: { action: 'get_status', device_id: deviceId }
-    });
+    const response = await invokeFunction('gopro-intelligence', { action: 'get_status', device_id: deviceId });
 
     if (response.error) throw response.error;
     return response.data;
@@ -236,9 +223,7 @@ export function useGoProIntelligence() {
       media_id: string;
       analysis_type: 'scene' | 'faces' | 'objects' | 'activity' | 'comprehensive';
     }) => {
-      const response = await supabase.functions.invoke('gopro-intelligence', {
-        body: { action: 'analyze_footage', ...params }
-      });
+      const response = await invokeFunction('gopro-intelligence', { action: 'analyze_footage', ...params });
 
       if (response.error) throw response.error;
       return response.data;

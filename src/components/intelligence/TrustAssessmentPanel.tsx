@@ -18,6 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { invokeFunction } from '@/lib/api';
 
 interface TrustAssessmentPanelProps {
   profileId: string;
@@ -66,9 +67,7 @@ export function TrustAssessmentPanel({ profileId }: TrustAssessmentPanelProps) {
 
   const assessMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('assess-trust', {
-        body: { profile_id: profileId },
-      });
+      const { data, error } = await invokeFunction('assess-trust', { profile_id: profileId },);
       if (error) throw error;
       return data;
     },

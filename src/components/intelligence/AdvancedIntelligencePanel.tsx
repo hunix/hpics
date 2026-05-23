@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import { invokeFunction } from '@/lib/api';
 
 interface AdvancedIntelligencePanelProps {
   profileId: string;
@@ -60,9 +61,7 @@ export function AdvancedIntelligencePanel({ profileId, profileName, className }:
   // Run analysis mutation
   const runAnalysisMutation = useMutation({
     mutationFn: async (analysisType: AnalysisType) => {
-      const { data, error } = await supabase.functions.invoke('deep-intelligence-engine', {
-        body: { profileId, profileName, userId: user!.id, analysisType },
-      });
+      const { data, error } = await invokeFunction('deep-intelligence-engine', { profileId, profileName, userId: user!.id, analysisType },);
       if (error) throw error;
       return data;
     },

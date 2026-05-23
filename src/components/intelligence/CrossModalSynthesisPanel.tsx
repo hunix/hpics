@@ -12,6 +12,7 @@ import {
   TrendingUp, TrendingDown, Minus, RefreshCw, Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface CrossModalSynthesisPanelProps {
   profileId: string;
@@ -130,9 +131,7 @@ export function CrossModalSynthesisPanel({ profileId }: CrossModalSynthesisPanel
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const response = await supabase.functions.invoke('cross-modal-synthesis', {
-        body: { profileId },
-      });
+      const response = await invokeFunction('cross-modal-synthesis', { profileId },);
 
       if (response.error) throw response.error;
       return response.data;

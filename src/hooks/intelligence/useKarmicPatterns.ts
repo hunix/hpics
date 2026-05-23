@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { invokeFunction } from '@/lib/api';
 
 export interface KarmicCycle {
   id: string;
@@ -137,13 +138,11 @@ export function useKarmicPatterns(profileId?: string) {
 
   const calculateKarma = useMutation({
     mutationFn: async (input: { profileId: string; calculationType?: 'cycles' | 'debts' | 'opportunities' | 'comprehensive' }) => {
-      const { data, error } = await supabase.functions.invoke('karmic-pattern-calculator', {
-        body: {
+      const { data, error } = await invokeFunction('karmic-pattern-calculator', {
           userId: user!.id,
           profileId: input.profileId,
           calculationType: input.calculationType || 'comprehensive'
-        }
-      });
+        });
       if (error) throw error;
       return data;
     },

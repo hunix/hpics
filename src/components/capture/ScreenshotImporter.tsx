@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { invokeFunction } from '@/lib/api';
 
 interface ScreenshotImporterProps {
   profileId?: string;
@@ -122,14 +123,12 @@ export function ScreenshotImporter({ profileId, onComplete }: ScreenshotImporter
       }
 
       // Call the parse function
-      const { data, error } = await supabase.functions.invoke('parse-screenshot-profile', {
-        body: {
+      const { data, error } = await invokeFunction('parse-screenshot-profile', {
           imageUrls: uploadedUrls,
           sourceType,
           profileId,
           deviceSource: detectDevice(),
-        },
-      });
+        },);
 
       if (error) throw error;
 

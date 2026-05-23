@@ -6,16 +6,26 @@ The ESLint rule in `eslint.config.js` warns on every remaining call site so the
 backlog surfaces in CI.
 
 ## Rule
+
 - `src/components/**` and `src/pages/**` must not import the Supabase client.
 - Data access lives in a hook under `src/hooks/<domain>/...` or
   `src/domains/<domain>/hooks/`.
 - Mutation hooks own their `queryClient.invalidateQueries` calls so callers
   don't repeat them.
 
-## Worked example
-`src/components/intelligence/DocumentIntelligencePanel.tsx` →
-`src/hooks/intelligence/useDocumentIntelligence.ts`. Component dropped from 591
-to 433 lines; 3 queries + 3 mutations now testable in isolation.
+## Worked examples
+
+- `src/components/intelligence/DocumentIntelligencePanel.tsx` →
+  `src/hooks/intelligence/useDocumentIntelligence.ts`. Component dropped from 591
+  to 433 lines; 3 queries + 3 mutations now testable in isolation.
+- `src/pages/IntelAgent.tsx` (new) → `src/hooks/intelligence/useIntelAgent.ts`.
+  No legacy Supabase access; demonstrates the target pattern for new code.
+
+## Next up
+
+`src/components/intelligence/IntelligenceAlertManager.tsx` (529 lines,
+~10 query/mutation touchpoints) is the highest-ROI remaining god-component to
+extract.
 
 ## Counts (snapshot 2026-05-22)
 
@@ -24,6 +34,7 @@ Total legacy files: **348**
 Pages: 30 files (one per page, almost always a single page-level query).
 
 Components by area:
+
 | Area | Files |
 | --- | --- |
 | components/intelligence | 77 |
@@ -47,6 +58,7 @@ Components by area:
 | ...other 1-3 each | ~22 |
 
 ## Suggested batch order
+
 1. **Pages first** (30 files). Each is a single page-level query — easy wins,
    no cross-component coordination.
 2. **components/contacts** (62) — high traffic, well-bounded.
@@ -57,6 +69,7 @@ Components by area:
 5. **Long tail** (~50) — squash as encountered.
 
 ## Definition of done per file
+
 - Component no longer imports `@/integrations/supabase/client`.
 - A hook (new or existing) owns the query / mutation.
 - Query keys live alongside the hook.

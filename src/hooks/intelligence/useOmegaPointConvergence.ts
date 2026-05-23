@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { invokeFunction } from '@/lib/api';
 
 export interface ConvergenceMetric {
   id: string;
@@ -122,12 +123,10 @@ export function useOmegaPointConvergence() {
 
   const trackConvergence = useMutation({
     mutationFn: async (input: { trackingMode?: 'metrics' | 'transitions' | 'proximity' | 'comprehensive' }) => {
-      const { data, error } = await supabase.functions.invoke('omega-point-tracker', {
-        body: {
+      const { data, error } = await invokeFunction('omega-point-tracker', {
           userId: user!.id,
           trackingMode: input.trackingMode || 'comprehensive'
-        }
-      });
+        });
       if (error) throw error;
       return data;
     },

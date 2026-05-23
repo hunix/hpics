@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export interface MicroExpressionReading {
   id: string;
@@ -85,17 +86,17 @@ export function useMicroExpressionAnalysis(profileId?: string) {
 
       return (data || []).map((r): MicroExpressionReading => ({
         id: r.id,
-        profileId: r.profile_id,
-        sessionId: r.session_id,
+        profileId: r.profile_id ?? undefined,
+        sessionId: r.session_id ?? undefined,
         timestampMs: r.timestamp_ms || 0,
-        facsActionUnits: (r.facs_action_units as any) || {},
-        detectedEmotions: (r.detected_emotions as any) || [],
-        microExpressions: (r.micro_expressions as any) || [],
+        facsActionUnits: (r.facs_action_units as Record<string, number>) || {},
+        detectedEmotions: (r.detected_emotions as MicroExpressionReading['detectedEmotions']) || [],
+        microExpressions: (r.micro_expressions as MicroExpressionReading['microExpressions']) || [],
         durationMs: r.duration_ms || 0,
         intensityScore: Number(r.intensity_score) || 0,
-        context: r.context,
-        frameData: (r.frame_data as any) || {},
-        createdAt: r.created_at,
+        context: r.context ?? undefined,
+        frameData: (r.frame_data as Record<string, unknown>) || {},
+        createdAt: r.created_at ?? '',
       }));
     },
     enabled: !!user?.id,
@@ -119,15 +120,15 @@ export function useMicroExpressionAnalysis(profileId?: string) {
 
       return (data || []).map((d): DeceptionSignature => ({
         id: d.id,
-        profileId: d.profile_id,
-        signatureType: d.signature_type,
-        signaturePattern: (d.signature_pattern as any) || {},
-        baselineComparison: (d.baseline_comparison as any) || {},
+        profileId: d.profile_id ?? undefined,
+        signatureType: d.signature_type ?? '',
+        signaturePattern: (d.signature_pattern as Record<string, unknown>) || {},
+        baselineComparison: (d.baseline_comparison as Record<string, unknown>) || {},
         confidenceScore: Number(d.confidence_score) || 0,
         occurrenceCount: d.occurrence_count || 1,
-        contextTriggers: (d.context_triggers as any) || [],
+        contextTriggers: (d.context_triggers as string[]) || [],
         detectionAccuracy: Number(d.detection_accuracy) || 0,
-        lastDetectedAt: d.last_detected_at,
+        lastDetectedAt: d.last_detected_at ?? undefined,
       }));
     },
     enabled: !!user?.id,
@@ -152,16 +153,16 @@ export function useMicroExpressionAnalysis(profileId?: string) {
 
       return (data || []).map((s): StressIndicator => ({
         id: s.id,
-        profileId: s.profile_id,
-        indicatorType: s.indicator_type,
+        profileId: s.profile_id ?? undefined,
+        indicatorType: s.indicator_type ?? '',
         measurementValue: Number(s.measurement_value) || 0,
         baselineValue: Number(s.baseline_value) || 0,
         deviationPercent: Number(s.deviation_percent) || 0,
-        trendDirection: s.trend_direction,
-        associatedTriggers: (s.associated_triggers as any) || [],
-        healthImplications: (s.health_implications as any) || {},
-        recommendations: (s.recommendations as any) || [],
-        measuredAt: s.measured_at,
+        trendDirection: s.trend_direction ?? undefined,
+        associatedTriggers: (s.associated_triggers as string[]) || [],
+        healthImplications: (s.health_implications as Record<string, unknown>) || {},
+        recommendations: (s.recommendations as string[]) || [],
+        measuredAt: s.measured_at ?? '',
       }));
     },
     enabled: !!user?.id,
@@ -185,14 +186,14 @@ export function useMicroExpressionAnalysis(profileId?: string) {
 
       return (data || []).map((f): BehavioralFingerprint => ({
         id: f.id,
-        profileId: f.profile_id,
-        fingerprintType: f.fingerprint_type,
-        fingerprintData: (f.fingerprint_data as any) || {},
+        profileId: f.profile_id ?? undefined,
+        fingerprintType: f.fingerprint_type ?? '',
+        fingerprintData: (f.fingerprint_data as Record<string, unknown>) || {},
         uniquenessScore: Number(f.uniqueness_score) || 0,
         stabilityScore: Number(f.stability_score) || 0,
-        components: (f.components as any) || [],
+        components: (f.components as BehavioralFingerprint['components']) || [],
         verificationSamples: f.verification_samples || 0,
-        lastVerifiedAt: f.last_verified_at,
+        lastVerifiedAt: f.last_verified_at ?? undefined,
       }));
     },
     enabled: !!user?.id,
@@ -205,15 +206,13 @@ export function useMicroExpressionAnalysis(profileId?: string) {
       context?: string;
       sessionId?: string;
     }) => {
-      const { data, error } = await supabase.functions.invoke('microexpression-analyzer', {
-        body: { 
+      const { data, error } = await invokeFunction('microexpression-analyzer', { 
           profileId: params.profileId,
           frameData: params.frameData,
           context: params.context,
           sessionId: params.sessionId,
           action: 'analyze_frame',
-        },
-      });
+        },);
       if (error) throw error;
       return data;
     },
@@ -225,13 +224,11 @@ export function useMicroExpressionAnalysis(profileId?: string) {
 
   const buildBaseline = useMutation({
     mutationFn: async (params: { profileId: string; sessionData: unknown[] }) => {
-      const { data, error } = await supabase.functions.invoke('microexpression-analyzer', {
-        body: { 
+      const { data, error } = await invokeFunction('microexpression-analyzer', { 
           profileId: params.profileId,
           sessionData: params.sessionData,
           action: 'build_baseline',
-        },
-      });
+        },);
       if (error) throw error;
       return data;
     },
@@ -247,13 +244,11 @@ export function useMicroExpressionAnalysis(profileId?: string) {
 
   const detectDeception = useMutation({
     mutationFn: async (params: { profileId: string; recentReadings: string[] }) => {
-      const { data, error } = await supabase.functions.invoke('microexpression-analyzer', {
-        body: { 
+      const { data, error } = await invokeFunction('microexpression-analyzer', { 
           profileId: params.profileId,
           recentReadings: params.recentReadings,
           action: 'detect_deception',
-        },
-      });
+        },);
       if (error) throw error;
       return data;
     },

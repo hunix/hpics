@@ -228,7 +228,7 @@ export function DocumentIntelligencePanel({ profileId }: DocumentIntelligencePan
                               className="h-6 px-2 ml-auto"
                               onClick={() => acceptSuggestionMutation.mutate({
                                 docId: doc.id,
-                                profileId: doc.suggested_profile.id
+                                profileId: doc.suggested_profile!.id
                               })}
                             >
                               Accept

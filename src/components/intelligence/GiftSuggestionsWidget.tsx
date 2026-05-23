@@ -9,6 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Gift, Sparkles, RefreshCw, DollarSign, Heart, Briefcase, Home, Utensils, Music } from 'lucide-react';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface GiftSuggestion {
   title: string;
@@ -61,9 +62,7 @@ export function GiftSuggestionsWidget({ profileId, profileName }: GiftSuggestion
 
   const suggestMutation = useMutation({
     mutationFn: async () => {
-      const response = await supabase.functions.invoke('suggest-gifts', {
-        body: { profileId, occasion, priceRange },
-      });
+      const response = await invokeFunction('suggest-gifts', { profileId, occasion, priceRange },);
 
       if (response.error) throw response.error;
       return response.data as { gifts: GiftSuggestion[] };

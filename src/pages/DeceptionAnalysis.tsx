@@ -16,32 +16,14 @@ import { DeceptionDetectionConsole } from '@/components/intelligence/DeceptionDe
 import { MicroExpressionTimeline } from '@/components/intelligence/MicroExpressionTimeline';
 import { VoiceStressPanel } from '@/components/intelligence/VoiceStressPanel';
 import { Eye, Mic, MessageSquare, Search, Users, AlertTriangle } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useProfilePicker } from '@/hooks/profiles/useProfilePicker';
 
 export default function DeceptionAnalysis() {
-  const { user } = useAuth();
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('console');
 
-  // Fetch profiles
-  const { data: profiles = [] } = useQuery({
-    queryKey: ['profiles-for-deception', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, avatar_url, relationship_type')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .order('first_name');
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!user?.id,
-  });
+  const { data: profiles = [] } = useProfilePicker({ queryKeyHint: 'deception' });
 
   const getDisplayName = (profile: { first_name: string | null; last_name: string | null }) => {
     return [profile.first_name, profile.last_name].filter(Boolean).join(' ') || 'Unknown';

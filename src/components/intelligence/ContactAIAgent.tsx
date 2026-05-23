@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { useStreamContactAIAnswer, useSaveAIInsight } from '@/hooks/intelligence/useContactAIAgent';
 import { cn } from '@/lib/utils';
 
 interface Message {
@@ -55,6 +55,8 @@ export function ContactAIAgent({ profileId, contactName, className, defaultExpan
   });
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const streamAnswer = useStreamContactAIAnswer();
+  const saveInsight = useSaveAIInsight();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -76,119 +78,25 @@ export function ContactAIAgent({ profileId, contactName, className, defaultExpan
     setInput('');
     setIsLoading(true);
 
+    const assistantId = `assistant-${Date.now()}`;
+    setMessages(prev => [...prev, {
+      id: assistantId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+    }]);
+
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        throw new Error('Not authenticated');
-      }
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/contact-ai-agent`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            profileId,
-            question: question.trim(),
-            conversationHistory: messages.map(m => ({
-              role: m.role,
-              content: m.content,
-            })),
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Request failed: ${response.status}`);
-      }
-
-      // Handle streaming response
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error('No response body');
-
-      const decoder = new TextDecoder();
-      let assistantContent = '';
-      const assistantId = `assistant-${Date.now()}`;
-
-      // Add empty assistant message
-      setMessages(prev => [...prev, {
-        id: assistantId,
-        role: 'assistant',
-        content: '',
-        timestamp: new Date(),
-      }]);
-
-      let buffer = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-
-        // Process SSE lines
-        let newlineIndex: number;
-        while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
-          let line = buffer.slice(0, newlineIndex);
-          buffer = buffer.slice(newlineIndex + 1);
-
-          if (line.endsWith('\r')) line = line.slice(0, -1);
-          if (line.startsWith(':') || line.trim() === '') continue;
-          if (!line.startsWith('data: ')) continue;
-
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === '[DONE]') continue;
-
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              assistantContent += content;
-              setMessages(prev => 
-                prev.map(m => 
-                  m.id === assistantId 
-                    ? { ...m, content: assistantContent }
-                    : m
-                )
-              );
-            }
-          } catch {
-            // Incomplete JSON, put back
-            buffer = line + '\n' + buffer;
-            break;
-          }
-        }
-      }
-
-      // Process any remaining buffer
-      if (buffer.trim()) {
-        for (const raw of buffer.split('\n')) {
-          if (!raw || raw.startsWith(':') || !raw.startsWith('data: ')) continue;
-          const jsonStr = raw.slice(6).trim();
-          if (jsonStr === '[DONE]') continue;
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              assistantContent += content;
-            }
-          } catch {
-            // Ignore JSON parsing errors for incomplete/malformed chunks
-          }
-        }
-        // Final update
-        setMessages(prev => 
-          prev.map(m => 
-            m.id === assistantId 
-              ? { ...m, content: assistantContent }
-              : m
-          )
-        );
-      }
-
+      await streamAnswer({
+        profileId,
+        question: question.trim(),
+        conversationHistory: messages.map(m => ({ role: m.role, content: m.content })),
+        onDelta: (partial) => {
+          setMessages(prev =>
+            prev.map(m => (m.id === assistantId ? { ...m, content: partial } : m))
+          );
+        },
+      });
     } catch (error) {
       console.error('AI Agent error:', error);
       toast({
@@ -207,26 +115,18 @@ export function ContactAIAgent({ profileId, contactName, className, defaultExpan
     if (!selectedMessage) return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) throw new Error('Not authenticated');
-
-      // Find the question that prompted this answer
       const messageIndex = messages.findIndex(m => m.id === selectedMessage.id);
       const question = messageIndex > 0 ? messages[messageIndex - 1].content : '';
 
-      const { data, error } = await supabase.functions.invoke('save-ai-insight', {
-        body: {
-          profileId,
-          content: selectedMessage.content,
-          question,
-          saveAs: saveConfig.saveAs,
-          category: saveConfig.category || undefined,
-          importance: saveConfig.importance,
-          tags: saveConfig.tags ? saveConfig.tags.split(',').map(t => t.trim()) : undefined,
-        },
+      await saveInsight({
+        profileId,
+        question,
+        content: selectedMessage.content,
+        saveAs: saveConfig.saveAs,
+        category: saveConfig.category || undefined,
+        importance: saveConfig.importance,
+        tags: saveConfig.tags ? saveConfig.tags.split(',').map(t => t.trim()) : undefined,
       });
-
-      if (error) throw error;
 
       // Mark message as saved
       setMessages(prev => 

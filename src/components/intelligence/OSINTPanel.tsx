@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+import { invokeFunction } from '@/lib/api';
 
 interface OSINTPanelProps {
   profileId: string;
@@ -73,13 +74,11 @@ export function OSINTPanel({ profileId, contactName }: OSINTPanelProps) {
 
   const scanMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('osint-scan', {
-        body: { 
+      const { data, error } = await invokeFunction('osint-scan', { 
           profileId, 
           scanTypes,
           deepScan
-        },
-      });
+        },);
       if (error) throw error;
       return data;
     },

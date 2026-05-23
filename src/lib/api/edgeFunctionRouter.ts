@@ -564,9 +564,14 @@ export async function invokeFn(
  * @param options - Additional options
  * @returns Function response
  */
-export async function invokeFunction<T = unknown>(
+// The default `any` matches the legacy `supabase.functions.invoke` shape so
+// the rest of the codebase (which assumes `data` is `any`) keeps compiling.
+// Pass an explicit type parameter to opt into stricter narrowing.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function invokeFunction<T = any>(
   functionName: string,
   body: Record<string, unknown> = {},
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   options: { signal?: AbortSignal } = {}
 ): Promise<{ data: T | null; error: Error | null }> {
   const result = await invokeFn(functionName, { body });

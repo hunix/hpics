@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface FortuneTrajectoryPanelProps {
   profileId: string;
@@ -77,9 +78,7 @@ export function FortuneTrajectoryPanel({ profileId, profileName }: FortuneTrajec
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { data: result, error } = await supabase.functions.invoke('fortune-trajectory-engine', {
-        body: { profileId, userId: user.id, forecastHorizon: 'extended' }
-      });
+      const { data: result, error } = await invokeFunction('fortune-trajectory-engine', { profileId, userId: user.id, forecastHorizon: 'extended' });
 
       if (!isMountedRef.current) return;
       if (error) throw error;

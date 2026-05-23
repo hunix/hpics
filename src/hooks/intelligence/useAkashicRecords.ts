@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { invokeFunction } from '@/lib/api';
 
 export interface ImplicitKnowledge {
   id: string;
@@ -116,14 +117,12 @@ export function useAkashicRecords(profileId?: string) {
 
   const queryAkashic = useMutation({
     mutationFn: async (input: { profileId: string; queryType?: 'comprehensive' | 'focused'; queryFocus?: string }) => {
-      const { data, error } = await supabase.functions.invoke('akashic-query-engine', {
-        body: {
+      const { data, error } = await invokeFunction('akashic-query-engine', {
           userId: user!.id,
           profileId: input.profileId,
           queryType: input.queryType || 'comprehensive',
           queryFocus: input.queryFocus
-        }
-      });
+        });
       if (error) throw error;
       return data;
     },

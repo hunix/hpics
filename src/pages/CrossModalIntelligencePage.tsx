@@ -7,30 +7,11 @@ import { ModalityCorrelationMatrix } from '@/components/ai/ModalityCorrelationMa
 import { DeceptionAnalysisPanel } from '@/components/intelligence/DeceptionAnalysisPanel';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useProfilePicker } from '@/hooks/profiles/useProfilePicker';
 
 export default function CrossModalIntelligencePage() {
-  const { user } = useAuth();
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
-
-  const { data: profiles } = useQuery({
-    queryKey: ['profiles-for-correlation', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, is_favorite, updated_at')
-        .eq('user_id', user!.id)
-        .eq('is_active', true)
-        .order('is_favorite', { ascending: false })
-        .order('updated_at', { ascending: false, nullsFirst: false })
-        .order('first_name')
-        .limit(200);
-      return data ?? [];
-    },
-    enabled: !!user,
-  });
+  const { data: profiles } = useProfilePicker({ queryKeyHint: 'correlation' });
 
   return (
     <AppLayout title="Cross-Modal Intelligence">

@@ -164,6 +164,11 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
 
     setIsGenerating(true);
     const targetProfileId = profileId || selectedProfile;
+    if (!targetProfileId) {
+      toast.error('No profile selected');
+      setIsGenerating(false);
+      return;
+    }
 
     try {
       // Fetch contact data
@@ -178,7 +183,10 @@ export function PDFDossierGenerator({ profileId, profileName }: PDFDossierGenera
       const contactName = `${profile.first_name} ${profile.last_name || ''}`.trim();
 
       // Use modular data fetching hook
-      const rawData = await fetchAllDossierData(targetProfileId!);
+      const rawData = await fetchAllDossierData(targetProfileId);
+      if (!rawData) {
+        throw new Error('Dossier data fetch returned no results');
+      }
 
       // Create PDF with modular helper
       const { doc, context } = createPDFDocument();

@@ -6,6 +6,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 // Types
 interface VerificationStage {
@@ -218,15 +219,13 @@ export function useInvokeVerification() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase.functions.invoke('warfare-verification-chamber', {
-        body: {
+      const { data, error } = await invokeFunction('warfare-verification-chamber', {
           userId: user.id,
           profileId: request.profileId,
           campaignId: request.campaignId,
           chamberType: request.chamberType || 'warfare_campaign',
           campaignData: request.campaignData,
-        },
-      });
+        },);
 
       if (error) throw error;
       if (!data.success) throw new Error(data.error || 'Verification failed');

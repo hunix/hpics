@@ -9,6 +9,7 @@ import {
   evaluateMemeticFitness,
   predictCampaignTrajectory,
 } from '@/lib/warfare/memeticPropagationEngine';
+import { invokeFunction } from '@/lib/api';
 
 export function useMemeticEngineering() {
   const { user } = useAuth();
@@ -37,14 +38,12 @@ export function useMemeticEngineering() {
     mutationFn: async (params: { content: string; format: string; targetEmotion: string }) => {
       if (!user?.id) throw new Error('Not authenticated');
       
-      const { data, error } = await supabase.functions.invoke('memetic-propagation-engine', {
-        body: {
+      const { data, error } = await invokeFunction('memetic-propagation-engine', {
           content: params.content,
           format: params.format,
           targetEmotion: params.targetEmotion,
           analysisType: 'fitness',
-        },
-      });
+        },);
       
       if (error) throw error;
       return data;

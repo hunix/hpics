@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export interface FamilyRole {
   role: string;
@@ -49,9 +50,7 @@ export function useFamilySystems() {
   ): Promise<FamilySystemAnalysis | null> => {
     setIsAnalyzing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('family-systems-analyzer', {
-        body: { profileId, additionalContext }
-      });
+      const { data, error } = await invokeFunction('family-systems-analyzer', { profileId, additionalContext });
 
       if (error) throw error;
 

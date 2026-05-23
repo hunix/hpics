@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Crown, TrendingUp, TrendingDown, Minus, Users, ChevronRight, RefreshCw, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface PowerMatrixProps {
   compact?: boolean;
@@ -56,12 +57,10 @@ export function PowerMatrix({ compact = false }: PowerMatrixProps) {
   // Mutation to trigger power network analysis
   const analyzeNetwork = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('power-network-analyzer', {
-        body: { 
+      const { data, error } = await invokeFunction('power-network-analyzer', { 
           userId: user?.id, 
           analysisType: 'full_network' 
-        }
-      });
+        });
       if (error) throw error;
       return data;
     },

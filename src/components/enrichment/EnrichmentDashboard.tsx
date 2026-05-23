@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { SourceStatusCard } from './SourceStatusCard';
 import { EnrichmentCostEstimator } from './EnrichmentCostEstimator';
+import { invokeFunction } from '@/lib/api';
 
 interface EnrichmentSource {
   id: string;
@@ -122,15 +123,13 @@ export function EnrichmentDashboard({ profileId, onEnrichmentComplete }: Enrichm
     mutationFn: async () => {
       if (!profileId) throw new Error('No profile selected');
       
-      const { data, error } = await supabase.functions.invoke('enrichment-orchestrator', {
-        body: {
+      const { data, error } = await invokeFunction('enrichment-orchestrator', {
           profileId,
           sources: selectedSources,
           maxCostCents: maxBudget,
           depth,
           forceRefresh,
-        },
-      });
+        },);
 
       if (error) throw error;
       return data;

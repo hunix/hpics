@@ -13,6 +13,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useMutation } from '@tanstack/react-query';
+import { invokeFunction } from '@/lib/api';
 
 interface ReverseEngineeringPanelProps {
   profileId?: string;
@@ -64,14 +65,12 @@ export function ReverseEngineeringPanel({ profileId, profileName }: ReverseEngin
   // Generate proportional response
   const responseMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('proportional-response-engine', {
-        body: {
+      const { data, error } = await invokeFunction('proportional-response-engine', {
           profileId,
           adversaryContext,
           responseLevel,
           operationType: 'generate_response',
-        },
-      });
+        },);
       if (error) throw error;
       return data;
     },

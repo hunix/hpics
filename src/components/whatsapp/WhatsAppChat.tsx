@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Send, MessageCircle, Check, CheckCheck, Clock, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { invokeFunction } from '@/lib/api';
 
 interface WhatsAppChatProps {
   profileId: string;
@@ -119,14 +120,12 @@ export function WhatsAppChat({ profileId, profileName }: WhatsAppChatProps) {
     mutationFn: async () => {
       if (!newMessage.trim() || !conversation) return;
 
-      const { data, error } = await supabase.functions.invoke('whatsapp-send', {
-        body: {
+      const { data, error } = await invokeFunction('whatsapp-send', {
           userId: user!.id,
           profileId,
           conversationId: conversation.id,
           message: newMessage.trim(),
-        },
-      });
+        },);
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);

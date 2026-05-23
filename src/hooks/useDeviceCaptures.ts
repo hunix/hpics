@@ -3,6 +3,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export type DeviceType = 'chrome_extension' | 'mobile_app' | 'wearable' | 'voice_recorder' | 'other';
 export type CaptureType = 'social_profile' | 'health_data' | 'voice_sample' | 'photo' | 'document' | 'other';
@@ -60,9 +61,7 @@ export function useDeviceCaptures(profileId?: string) {
     setIsProcessing(true);
 
     try {
-      const { error } = await supabase.functions.invoke('process-device-capture', {
-        body: { captureId },
-      });
+      const { error } = await invokeFunction('process-device-capture', { captureId },);
 
       if (error) throw error;
       

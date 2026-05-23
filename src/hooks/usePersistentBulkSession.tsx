@@ -6,6 +6,7 @@ import { generateMetadataMosaic, getMosaicPreviewInfo, type MediaItem as MosaicM
 import { deduplicateImages } from "@/lib/imageHashingService";
 import type { MosaicFailureState } from "@/components/analysis/MosaicFailureDialog";
 import { createModuleLogger } from "@/lib/logger";
+import { invokeFunction } from '@/lib/api';
 
 const logger = createModuleLogger('BulkSession');
 
@@ -229,7 +230,7 @@ export function usePersistentBulkSession({
 
         // Auto-cancel stale pending sessions (pending for > 5 minutes without starting)
         if (dbSession.status === 'pending' && dbSession.started_at === null) {
-          const createdAt = new Date(dbSession.created_at);
+          const createdAt = new Date(dbSession.created_at ?? Date.now());
           const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
 
           if (createdAt < fiveMinutesAgo) {
@@ -543,10 +544,7 @@ export function usePersistentBulkSession({
         imageDataUrlLength: mosaic.imageDataUrl?.length || 0,
       });
 
-      const { data: analysisResult, error: analysisError } = await supabase.functions.invoke(
-        "generate-media-metadata-mosaic",
-        {
-          body: {
+      const { data: analysisResult, error: analysisError } = await invokeFunction("generate-media-metadata-mosaic", {
             mosaicImageUrl: mosaic.imageDataUrl, // Send base64 data URL directly
             mosaicId: mosaic.mosaicId,
             cells: mosaic.cells,
@@ -556,9 +554,7 @@ export function usePersistentBulkSession({
             sessionId: activeSession.id, // Include session ID for logging/diagnostics
             bulkSessionId: activeSession.id, // For counter updates in background processing
             analysisModes: activeSession.analysisModes || ['mosaic_metadata'], // Pass actual modes for tracking
-          },
-        }
-      );
+          },);
 
       if (analysisError) throw analysisError;
 
@@ -907,7 +903,7 @@ export function usePersistentBulkSession({
           logger.info('Processing mosaic batch', { batchNum: i / BATCH_SIZE + 1, totalBatches: Math.ceil(imageItems.length / BATCH_SIZE), batchSize: batch.length });
 
           try {
-            await processBatchWithMosaic(batch, activeSession);
+            await processBatchWithMosaic(batch as Parameters<typeof processBatchWithMosaic>[0], activeSession);
           } catch (mosaicError) {
             // Check if user intervention is required
             if (mosaicError instanceof Error && mosaicError.message === "MOSAIC_INTERVENTION_REQUIRED") {
@@ -965,7 +961,7 @@ export function usePersistentBulkSession({
           if (
             currentSession?.max_cost_cents &&
             currentSession.stop_on_budget_exceeded &&
-            currentSession.current_cost_cents >= currentSession.max_cost_cents
+            (currentSession.current_cost_cents ?? 0) >= currentSession.max_cost_cents
           ) {
             await pause();
             toast({
@@ -1028,7 +1024,7 @@ export function usePersistentBulkSession({
         const { data: signedUrlData } = await supabase.storage
           .from(bucket)
           .createSignedUrl(item.storage_path, 3600);
-        mediaUrl = signedUrlData?.signedUrl;
+        mediaUrl = signedUrlData?.signedUrl ?? null;
       }
 
       if (!mediaUrl) throw new Error("Could not get media URL");
@@ -1038,10 +1034,7 @@ export function usePersistentBulkSession({
       // Call analysis function
       logger.debug('Calling analyze-media-deep for', { fileName: item.file_name });
 
-      const { data: analysisResult, error: analysisError } = await supabase.functions.invoke(
-        "analyze-media-deep",
-        {
-          body: {
+      const { data: analysisResult, error: analysisError } = await invokeFunction("analyze-media-deep", {
             mediaUrl,
             mediaType: item.media_type,
             profileId: item.profile_id,
@@ -1050,9 +1043,7 @@ export function usePersistentBulkSession({
             depth: activeSession.analysisDepth,
             mediaId: item.media_id,
             documentId: item.document_id,
-          },
-        }
-      );
+          },);
 
       const processingTimeMs = Date.now() - startTime;
 
@@ -1095,7 +1086,7 @@ export function usePersistentBulkSession({
         .eq("id", itemId)
         .single();
 
-      const shouldRetry = item && item.retry_count < item.max_retries;
+      const shouldRetry = !!item && (item.retry_count ?? 0) < (item.max_retries ?? 0);
 
       await supabase
         .from("bulk_analysis_items")
@@ -1169,12 +1160,10 @@ export function usePersistentBulkSession({
     setProcessingStatus("Continuing in background...");
 
     try {
-      const { data, error } = await supabase.functions.invoke('process-bulk-session-runner', {
-        body: {
+      const { data, error } = await invokeFunction('process-bulk-session-runner', {
           sessionId: activeSession.id,
           action: 'continue'
-        }
-      });
+        });
 
       if (error) throw error;
 
@@ -1278,7 +1267,7 @@ export function usePersistentBulkSession({
     await supabase
       .from("bulk_analysis_sessions")
       .update({ skipped_items: session?.skippedItems ? session.skippedItems + 1 : 1 })
-      .eq("id", session?.id);
+      .eq("id", session?.id ?? '');
   }, [session]);
 
   // Retry a failed item

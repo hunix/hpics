@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export interface NarrativeCampaign {
   id: string;
@@ -88,20 +89,20 @@ export function useNarrativeControl(profileId?: string) {
 
       return (data || []).map((c): NarrativeCampaign => ({
         id: c.id,
-        campaignName: c.campaign_name,
-        campaignType: c.campaign_type,
-        targetNarrative: c.target_narrative,
-        counterNarratives: (c.counter_narratives as any) || [],
-        deploymentChannels: (c.deployment_channels as any) || [],
-        contentStrategy: (c.content_strategy as any) || {},
-        amplificationConfig: (c.amplification_config as any) || {},
-        successMetrics: (c.success_metrics as any) || {},
+        campaignName: c.campaign_name ?? '',
+        campaignType: c.campaign_type ?? '',
+        targetNarrative: c.target_narrative ?? '',
+        counterNarratives: (c.counter_narratives as NarrativeCampaign['counterNarratives']) || [],
+        deploymentChannels: (c.deployment_channels as NarrativeCampaign['deploymentChannels']) || [],
+        contentStrategy: (c.content_strategy as Record<string, unknown>) || {},
+        amplificationConfig: (c.amplification_config as Record<string, unknown>) || {},
+        successMetrics: (c.success_metrics as Record<string, unknown>) || {},
         currentReach: c.current_reach || 0,
         sentimentShift: Number(c.sentiment_shift) || 0,
         status: c.status || 'planning',
-        startedAt: c.started_at,
-        completedAt: c.completed_at,
-        createdAt: c.created_at,
+        startedAt: c.started_at ?? undefined,
+        completedAt: c.completed_at ?? undefined,
+        createdAt: c.created_at ?? '',
       }));
     },
     enabled: !!user?.id,
@@ -121,17 +122,17 @@ export function useNarrativeControl(profileId?: string) {
 
       return (data || []).map((n): NarrativeNode => ({
         id: n.id,
-        campaignId: n.campaign_id,
-        nodeType: n.node_type,
-        content: n.content,
-        personaConfig: (n.persona_config as any) || {},
-        platform: n.platform,
-        engagementMetrics: (n.engagement_metrics as any) || {},
+        campaignId: n.campaign_id ?? '',
+        nodeType: n.node_type ?? '',
+        content: n.content ?? '',
+        personaConfig: (n.persona_config as Record<string, unknown>) || {},
+        platform: n.platform ?? undefined,
+        engagementMetrics: (n.engagement_metrics as Record<string, number>) || {},
         amplificationScore: Number(n.amplification_score) || 0,
         authenticityRating: Number(n.authenticity_rating) || 0,
-        connections: (n.connections as any) || [],
+        connections: (n.connections as NarrativeNode['connections']) || [],
         isActive: n.is_active ?? true,
-        createdAt: n.created_at,
+        createdAt: n.created_at ?? '',
       }));
     },
     enabled: !!user?.id,
@@ -155,17 +156,17 @@ export function useNarrativeControl(profileId?: string) {
 
       return (data || []).map((p): PerceptionTracking => ({
         id: p.id,
-        profileId: p.profile_id,
-        campaignId: p.campaign_id,
-        perceptionDimension: p.perception_dimension,
+        profileId: p.profile_id ?? undefined,
+        campaignId: p.campaign_id ?? undefined,
+        perceptionDimension: p.perception_dimension ?? '',
         baselineValue: Number(p.baseline_value) || 0,
         currentValue: Number(p.current_value) || 0,
         targetValue: Number(p.target_value) || 0,
-        measurementMethod: p.measurement_method,
-        dataSources: (p.data_sources as any) || [],
-        trendAnalysis: (p.trend_analysis as any) || {},
-        influencingFactors: (p.influencing_factors as any) || [],
-        measuredAt: p.measured_at,
+        measurementMethod: p.measurement_method ?? undefined,
+        dataSources: (p.data_sources as string[]) || [],
+        trendAnalysis: (p.trend_analysis as Record<string, unknown>) || {},
+        influencingFactors: (p.influencing_factors as PerceptionTracking['influencingFactors']) || [],
+        measuredAt: p.measured_at ?? '',
       }));
     },
     enabled: !!user?.id,
@@ -190,17 +191,17 @@ export function useNarrativeControl(profileId?: string) {
 
       return (data || []).map((r): SyntheticRelationship => ({
         id: r.id,
-        profileId: r.profile_id,
-        personaName: r.persona_name,
-        personaConfig: (r.persona_config as any) || {},
-        relationshipType: r.relationship_type,
+        profileId: r.profile_id ?? undefined,
+        personaName: r.persona_name ?? '',
+        personaConfig: (r.persona_config as Record<string, unknown>) || {},
+        relationshipType: r.relationship_type ?? '',
         relationshipDepth: r.relationship_depth || 'acquaintance',
-        interactionHistory: (r.interaction_history as any) || [],
+        interactionHistory: (r.interaction_history as SyntheticRelationship['interactionHistory']) || [],
         trustLevel: Number(r.trust_level) || 0,
-        influenceAchieved: (r.influence_achieved as any) || {},
-        objectives: (r.objectives as any) || [],
+        influenceAchieved: (r.influence_achieved as Record<string, unknown>) || {},
+        objectives: (r.objectives as SyntheticRelationship['objectives']) || [],
         isActive: r.is_active ?? true,
-        createdAt: r.created_at,
+        createdAt: r.created_at ?? '',
       }));
     },
     enabled: !!user?.id,
@@ -236,12 +237,10 @@ export function useNarrativeControl(profileId?: string) {
 
   const deployCampaign = useMutation({
     mutationFn: async (params: { campaignId: string }) => {
-      const { data, error } = await supabase.functions.invoke('narrative-control-engine', {
-        body: { 
+      const { data, error } = await invokeFunction('narrative-control-engine', { 
           campaignId: params.campaignId,
           action: 'deploy',
-        },
-      });
+        },);
       if (error) throw error;
       return data;
     },
@@ -287,13 +286,11 @@ export function useNarrativeControl(profileId?: string) {
 
   const measurePerception = useMutation({
     mutationFn: async (params: { profileId?: string; campaignId?: string }) => {
-      const { data, error } = await supabase.functions.invoke('narrative-control-engine', {
-        body: { 
+      const { data, error } = await invokeFunction('narrative-control-engine', { 
           profileId: params.profileId,
           campaignId: params.campaignId,
           action: 'measure_perception',
-        },
-      });
+        },);
       if (error) throw error;
       return data;
     },

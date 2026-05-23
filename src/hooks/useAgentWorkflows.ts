@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useMemo, useCallback } from 'react';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export interface WorkflowState {
   name: string;
@@ -230,14 +231,12 @@ export function useAgentWorkflows() {
       input: Record<string, unknown>;
       profileId?: string;
     }) => {
-      const { data, error } = await supabase.functions.invoke('workflow-executor', {
-        body: {
+      const { data, error } = await invokeFunction('workflow-executor', {
           workflowKey,
           input,
           profileId,
           userId: user?.id
-        }
-      });
+        });
 
       if (error) throw error;
       return data;

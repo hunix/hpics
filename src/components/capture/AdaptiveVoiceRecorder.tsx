@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { QuickVoiceRecorder } from './QuickVoiceRecorder';
+import { invokeFunction } from '@/lib/api';
 
 interface AdaptiveVoiceRecorderProps {
   open: boolean;
@@ -262,9 +263,7 @@ function MobileVoiceRecorder({
 
       if (withTranscription && voiceNote) {
         toast.success('Saved! Transcription started...');
-        supabase.functions.invoke('process-voice-recording', {
-          body: { recordingId: voiceNote.id, audioUrl: publicUrl }
-        }).catch(console.error);
+        invokeFunction('process-voice-recording', { recordingId: voiceNote.id, audioUrl: publicUrl }).catch(console.error);
       } else {
         toast.success('Voice note saved!');
       }

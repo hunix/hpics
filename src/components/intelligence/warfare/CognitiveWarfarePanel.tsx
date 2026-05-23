@@ -12,6 +12,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { invokeFunction } from '@/lib/api';
 
 interface CognitiveWarfarePanelProps {
   profileId?: string;
@@ -87,12 +88,10 @@ export function CognitiveWarfarePanel({ profileId, profileName }: CognitiveWarfa
   // Run analysis
   const analyzeMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('cognitive-warfare-engine', {
-        body: {
+      const { data, error } = await invokeFunction('cognitive-warfare-engine', {
           profileId,
           operationType: 'full_analysis',
-        },
-      });
+        },);
       if (error) throw error;
       return data;
     },
@@ -108,9 +107,7 @@ export function CognitiveWarfarePanel({ profileId, profileName }: CognitiveWarfa
   // Detect vulnerability windows
   const windowMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('vulnerability-window-detector', {
-        body: { profileId },
-      });
+      const { data, error } = await invokeFunction('vulnerability-window-detector', { profileId },);
       if (error) throw error;
       return data;
     },

@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export interface MemoryIntervention {
   id: string;
@@ -47,9 +48,7 @@ export function useMemoryReconsolidation() {
   ): Promise<MemoryIntervention | null> => {
     setIsProcessing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('memory-reconsolidation-engine', {
-        body: { profileId, targetMemory, desiredModification }
-      });
+      const { data, error } = await invokeFunction('memory-reconsolidation-engine', { profileId, targetMemory, desiredModification });
 
       if (error) throw error;
 

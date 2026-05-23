@@ -72,10 +72,13 @@ function createEnrichmentHandler(enrichmentType: string, prompt: string) {
 // ─── Real API + AI Fallback Handlers ────────────────────────────────────────
 
 // Auto-enrich: tries PDL → Hunter → AI fallback
+// Auto-enrichment waterfall: try providers in priority order and short-circuit
+// on the first one that returns substantive data. Only after every provider
+// has failed do we fall back to multi-source OSINT search and finally the AI
+// model. Body field `force: "fanout"` reverts to the old parallel behavior.
 const handleAutoEnrich = withHandler(async (c: Context) => {
   const { userId, profileId, supabase, body } = getRouterContext(c);
 
-  // Gather profile data for external API calls
   const { data: profile } = await supabase
     .from('profiles')
     .select('first_name, last_name, organization, job_title, city, country')
@@ -88,44 +91,127 @@ const handleAutoEnrich = withHandler(async (c: Context) => {
     .eq('profile_id', profileId)
     .limit(10);
 
-  const email = contactMethods?.find(cm => cm.contact_type === 'email')?.value;
-  const phone = contactMethods?.find(cm => cm.contact_type === 'phone')?.value;
+  const email    = contactMethods?.find(cm => cm.contact_type === 'email')?.value;
+  const phone    = contactMethods?.find(cm => cm.contact_type === 'phone')?.value;
   const linkedin = contactMethods?.find(cm => cm.contact_type === 'linkedin')?.value;
+  const name     = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : undefined;
 
-  const sources: Array<{ source: string; data: Record<string, unknown> }> = [];
-  const name = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : undefined;
+  const isSubstantive = (result: { data: Record<string, unknown> } | null | undefined): boolean => {
+    if (!result || !result.data) return false;
+    const keys = Object.keys(result.data);
+    if (keys.length === 0) return false;
+    // Some providers wrap an empty payload in { results: [] } or { found: false }
+    const v = result.data as Record<string, unknown>;
+    if (v.found === false) return false;
+    if (Array.isArray(v.results) && (v.results as unknown[]).length === 0) return false;
+    return true;
+  };
 
-  // Try real APIs in parallel
-  const [pdlResult, hunterResult, proxycurlResult] = await Promise.allSettled([
-    enrichWithPDL(userId, { email: email || undefined, name, linkedin: linkedin || undefined, company: profile?.organization || undefined }),
-    enrichWithHunter(userId, { email: email || undefined, domain: profile?.organization ? undefined : undefined }),
-    linkedin ? enrichWithProxycurl(userId, { linkedinUrl: linkedin }) : Promise.resolve(null),
-  ]);
+  type Step = {
+    name: string;
+    enabled: boolean;
+    run: () => Promise<{ source: string; data: Record<string, unknown> } | null>;
+  };
 
-  if (pdlResult.status === 'fulfilled' && pdlResult.value) sources.push(pdlResult.value);
-  if (hunterResult.status === 'fulfilled' && hunterResult.value) sources.push(hunterResult.value);
-  if (proxycurlResult.status === 'fulfilled' && proxycurlResult.value) sources.push(proxycurlResult.value);
+  const steps: Step[] = [
+    {
+      name: 'proxycurl',
+      enabled: !!linkedin,
+      run: () => enrichWithProxycurl(userId, { linkedinUrl: linkedin! }),
+    },
+    {
+      name: 'hunter',
+      enabled: !!email,
+      run: () => enrichWithHunter(userId, { email }),
+    },
+    {
+      name: 'pdl',
+      enabled: !!(email || linkedin || name),
+      run: () => enrichWithPDL(userId, {
+        email: email || undefined,
+        name,
+        linkedin: linkedin || undefined,
+        company: profile?.organization || undefined,
+      }),
+    },
+  ];
 
-  // If we got real data, merge and return
-  if (sources.length > 0) {
-    const merged = sources.reduce((acc, s) => ({ ...acc, [s.source]: s.data }), {} as Record<string, unknown>);
-    return c.json({
-      success: true,
-      profileId,
-      enrichmentType: 'auto_enrichment',
-      result: merged,
-      sources: sources.map(s => s.source),
-      source: 'external_api',
-      timestamp: new Date().toISOString(),
-    });
+  const tried: string[] = [];
+  const forceFanout = body.force === 'fanout';
+
+  if (!forceFanout) {
+    for (const step of steps) {
+      if (!step.enabled) continue;
+      tried.push(step.name);
+      try {
+        const result = await step.run();
+        if (isSubstantive(result)) {
+          return c.json({
+            success: true,
+            profileId,
+            enrichmentType: 'auto_enrichment',
+            result: { [result!.source]: result!.data },
+            sources: [result!.source],
+            tried,
+            source: 'external_api',
+            mode: 'waterfall',
+            timestamp: new Date().toISOString(),
+          });
+        }
+      } catch (err) {
+        console.warn(`[auto-enrich] ${step.name} failed`, err);
+      }
+    }
+  } else {
+    const settled = await Promise.allSettled(steps.filter(s => s.enabled).map(s => s.run()));
+    const sources = settled
+      .map((r, i) => r.status === 'fulfilled' && r.value ? r.value : null)
+      .filter((v): v is { source: string; data: Record<string, unknown> } => !!v && isSubstantive(v));
+    if (sources.length > 0) {
+      const merged = sources.reduce((acc, s) => ({ ...acc, [s.source]: s.data }), {} as Record<string, unknown>);
+      return c.json({
+        success: true,
+        profileId,
+        enrichmentType: 'auto_enrichment',
+        result: merged,
+        sources: sources.map(s => s.source),
+        tried: steps.filter(s => s.enabled).map(s => s.name),
+        source: 'external_api',
+        mode: 'fanout',
+        timestamp: new Date().toISOString(),
+      });
+    }
   }
 
-  // Fallback to AI
+  // No external provider returned data; widen to a multi-source OSINT search
+  // before the LLM fallback so we attempt actual evidence first.
+  if (name) {
+    try {
+      const osint = await multiSourceOSINT(userId, `${name} ${profile?.organization || ''}`.trim());
+      if (osint && Object.keys(osint).length > 0) {
+        return c.json({
+          success: true,
+          profileId,
+          enrichmentType: 'auto_enrichment',
+          result: { osint },
+          sources: ['osint'],
+          tried: [...tried, 'osint'],
+          source: 'osint_search',
+          mode: 'waterfall',
+          timestamp: new Date().toISOString(),
+        });
+      }
+    } catch (err) {
+      console.warn('[auto-enrich] osint search failed', err);
+    }
+  }
+
+  // Final fallback: LLM synthesis from whatever profile data we already have.
   const aiResult = await aiEnrich(
     { ...body, profile, contactMethods, email, phone, linkedin },
     'Auto-enrich contact with all available sources. Provide comprehensive data.',
     'auto_enrichment',
-    profileId
+    profileId,
   );
 
   return c.json({
@@ -133,7 +219,9 @@ const handleAutoEnrich = withHandler(async (c: Context) => {
     profileId,
     enrichmentType: 'auto_enrichment',
     result: aiResult,
+    tried: [...tried, 'osint', 'ai'],
     source: 'ai_fallback',
+    mode: 'waterfall',
     timestamp: new Date().toISOString(),
   });
 });

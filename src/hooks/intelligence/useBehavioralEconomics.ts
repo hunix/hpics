@@ -7,6 +7,7 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export interface CognitiveBias {
   name: string;
@@ -99,14 +100,12 @@ export function useBehavioralEconomics() {
     setIsAnalyzing(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('behavioral-economics-engine', {
-        body: {
+      const { data, error } = await invokeFunction('behavioral-economics-engine', {
           userId: user.id,
           profileId,
           context,
           action: 'analyze_profile'
-        }
-      });
+        });
 
       if (error) throw error;
 
@@ -148,15 +147,13 @@ export function useBehavioralEconomics() {
     if (!user) return null;
 
     try {
-      const { data, error } = await supabase.functions.invoke('behavioral-economics-engine', {
-        body: {
+      const { data, error } = await invokeFunction('behavioral-economics-engine', {
           userId: user.id,
           profileId,
           targetValue,
           context,
           action: 'generate_anchor'
-        }
-      });
+        });
 
       if (error) throw error;
       return data?.anchor as AnchorRecommendation;
@@ -211,15 +208,13 @@ export function useBehavioralEconomics() {
     if (!user) return null;
 
     try {
-      const { data, error } = await supabase.functions.invoke('behavioral-economics-engine', {
-        body: {
+      const { data, error } = await invokeFunction('behavioral-economics-engine', {
           userId: user.id,
           profileId,
           biasType,
           context,
           action: 'exploit_bias'
-        }
-      });
+        });
 
       if (error) throw error;
       return data;

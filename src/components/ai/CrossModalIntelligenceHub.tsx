@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ModalityCorrelationMatrix } from './ModalityCorrelationMatrix';
+import { invokeFunction } from '@/lib/api';
 
 interface ModalityData {
   type: 'vocal' | 'facial' | 'body_language' | 'behavioral' | 'text';
@@ -169,9 +170,7 @@ export function CrossModalIntelligenceHub() {
 
   const synthesizeMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('cross-modal-synthesis', {
-        body: { profileId: selectedProfile },
-      });
+      const { data, error } = await invokeFunction('cross-modal-synthesis', { profileId: selectedProfile },);
       if (error) throw error;
       return data;
     },

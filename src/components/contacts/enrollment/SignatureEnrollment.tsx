@@ -13,6 +13,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface SignatureEnrollmentProps {
   profileId: string;
@@ -57,13 +58,11 @@ export function SignatureEnrollment({
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase.functions.invoke('extract-signature-biometrics', {
-        body: { 
+      const { data, error } = await invokeFunction('extract-signature-biometrics', { 
           profileId, 
           signatureUrls,
           model: model === 'premium' ? 'google/gemini-3-pro-preview' : 'google/gemini-2.5-flash'
-        }
-      });
+        });
 
       if (error) throw error;
       if (!data.success) throw new Error(data.error || 'Extraction failed');

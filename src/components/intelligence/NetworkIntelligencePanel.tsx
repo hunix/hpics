@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface NetworkAnalysis {
   total_profiles: number;
@@ -104,7 +105,7 @@ export function NetworkIntelligencePanel() {
 
   const analyzeMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('analyze-network-intelligence');
+      const { data, error } = await invokeFunction('analyze-network-intelligence');
       if (error) throw error;
       return data;
     },

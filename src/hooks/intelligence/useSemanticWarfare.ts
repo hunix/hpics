@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import type { SemanticOperation } from '@/types/database-helpers';
+import { invokeFunction } from '@/lib/api';
 
 export function useSemanticWarfare() {
   const { user } = useAuth();
@@ -33,13 +34,11 @@ export function useSemanticWarfare() {
     mutationFn: async (params: { term: string; context: string }) => {
       if (!user?.id) throw new Error('Not authenticated');
       
-      const { data, error } = await supabase.functions.invoke('semantic-warfare-engine', {
-        body: {
+      const { data, error } = await invokeFunction('semantic-warfare-engine', {
           term: params.term,
           context: params.context,
           analysisType: 'full',
-        },
-      });
+        },);
       
       if (error) throw error;
       return data;

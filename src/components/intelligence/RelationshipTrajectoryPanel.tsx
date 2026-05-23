@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface TrajectoryPrediction {
   profileId: string;
@@ -53,9 +54,7 @@ export function RelationshipTrajectoryPanel({ profileId }: RelationshipTrajector
   const { data: predictions, isLoading, error } = useQuery({
     queryKey: ['relationship-trajectory', user?.id, profileId],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('predict-relationship-trajectory', {
-        body: profileId ? { profileId } : undefined
-      });
+      const { data, error } = await invokeFunction('predict-relationship-trajectory', profileId ? { profileId } : undefined);
       if (error) throw error;
       const results = data.predictions as TrajectoryPrediction[];
       // Filter by profileId if provided
@@ -67,7 +66,7 @@ export function RelationshipTrajectoryPanel({ profileId }: RelationshipTrajector
 
   const refreshMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('predict-relationship-trajectory');
+      const { data, error } = await invokeFunction('predict-relationship-trajectory');
       if (error) throw error;
       return data;
     },

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+import { invokeFunction } from '@/lib/api';
 
 interface ThreatAssessmentTabProps {
   profileId: string;
@@ -61,9 +62,7 @@ export function ThreatAssessmentTab({ profileId, contactName }: ThreatAssessment
 
   const assessMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('assess-threat', {
-        body: { profileId },
-      });
+      const { data, error } = await invokeFunction('assess-threat', { profileId },);
       if (error) throw error;
       return data;
     },

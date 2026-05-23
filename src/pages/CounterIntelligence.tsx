@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export default function CounterIntelligence() {
   const { user } = useAuth();
@@ -106,9 +107,7 @@ export default function CounterIntelligence() {
   // Run threat scan mutation
   const runThreatScan = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.functions.invoke('batch-intelligence-init', {
-        body: { jobType: 'threat_assessment' }
-      });
+      const { error } = await invokeFunction('batch-intelligence-init', { jobType: 'threat_assessment' });
       if (error) throw error;
     },
     onSuccess: () => {

@@ -10,6 +10,7 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Cake, Users, Bell,
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, subMonths, addWeeks, subWeeks, parseISO, setYear, getYear } from 'date-fns';
+import { invokeFunction } from '@/lib/api';
 
 type CalendarEvent = {
   id: string;
@@ -151,7 +152,7 @@ export default function Calendar() {
   // Sync mutations
   const syncGoogleMutation = useMutation({
     mutationFn: async () => {
-      const response = await supabase.functions.invoke('sync-google-calendar');
+      const response = await invokeFunction('sync-google-calendar');
       if (response.error) throw new Error(response.error.message);
       return response.data;
     },
@@ -166,7 +167,7 @@ export default function Calendar() {
 
   const syncOutlookMutation = useMutation({
     mutationFn: async () => {
-      const response = await supabase.functions.invoke('sync-outlook-calendar');
+      const response = await invokeFunction('sync-outlook-calendar');
       if (response.error) throw new Error(response.error.message);
       return response.data;
     },

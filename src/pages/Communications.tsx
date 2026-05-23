@@ -1,39 +1,19 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Plus, Phone, Mail, Video, Users, MessageSquare, 
+import {
+  Plus, Phone, Mail, Video, Users, MessageSquare,
   ArrowUpRight, ArrowDownLeft, Clock
 } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
 import { CommunicationDialog } from '@/components/communications/CommunicationDialog';
 import { formatDistanceToNow, format } from 'date-fns';
-import type { Communication as BaseCommunication } from '@/types/database-helpers';
-
-type Communication = BaseCommunication & {
-  profiles: { first_name: string; last_name: string | null } | null;
-};
+import { useCommunicationsList, type CommunicationWithProfile as Communication } from '@/hooks/communications/useCommunicationsList';
 
 export default function Communications() {
-  const { user } = useAuth();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-
-  const { data: communications, isLoading } = useQuery({
-    queryKey: ['communications', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('communications')
-        .select('*, profiles(first_name, last_name)')
-        .order('occurred_at', { ascending: false });
-      if (error) throw error;
-      return data as Communication[];
-    },
-    enabled: !!user,
-  });
+  const { data: communications, isLoading } = useCommunicationsList();
 
   const getChannelIcon = (channel: string) => {
     switch (channel) {

@@ -7,6 +7,7 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { invokeFunction } from '@/lib/api';
 
 export interface DataSource {
   id: string;
@@ -245,9 +246,7 @@ export function useDataFusion(profileId?: string) {
     mutationFn: async () => {
       if (!profileId || !user?.id) throw new Error('Missing profileId or user');
 
-      const response = await supabase.functions.invoke('cross-domain-correlator', {
-        body: { profileId, mode: 'full' },
-      });
+      const response = await invokeFunction('cross-domain-correlator', { profileId, mode: 'full' },);
 
       if (response.error) throw response.error;
       return response.data;

@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useConfigValue } from '@/hooks/usePlatformConfig';
 import { useMemo, useCallback } from 'react';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export type GenesisOperationType = 
   | 'reality_creation'
@@ -197,13 +198,11 @@ export function useAbsoluteGenesis(profileId?: string) {
   // Initiate manifestation
   const initiateManifestion = useMutation({
     mutationFn: async (operationId: string) => {
-      const { data, error } = await supabase.functions.invoke('genesis-engine', {
-        body: {
+      const { data, error } = await invokeFunction('genesis-engine', {
           operation: 'initiate',
           operationId,
           userId: user?.id
-        }
-      });
+        });
 
       if (error) throw error;
       return data;
@@ -287,14 +286,12 @@ export function useAbsoluteGenesis(profileId?: string) {
     operationType: GenesisOperationType,
     params: Record<string, unknown>
   ) => {
-    const { data, error } = await supabase.functions.invoke('genesis-engine', {
-      body: {
+    const { data, error } = await invokeFunction('genesis-engine', {
         operation: operationType,
         params,
         userId: user?.id,
         config: genesisConfig
-      }
-    });
+      });
 
     if (error) throw error;
     return data;

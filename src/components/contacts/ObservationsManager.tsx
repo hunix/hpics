@@ -27,6 +27,7 @@ import {
   Eye
 } from "lucide-react";
 import { format } from "date-fns";
+import { invokeFunction } from '@/lib/api';
 
 interface ObservationsManagerProps {
   profileId: string;
@@ -145,15 +146,13 @@ export function ObservationsManager({ profileId, contactName }: ObservationsMana
   const handleValidateWithAI = async (observation: Observation) => {
     setIsValidating(observation.id);
     try {
-      const { data, error } = await supabase.functions.invoke('validate-observation', {
-        body: {
+      const { data, error } = await invokeFunction('validate-observation', {
           observationId: observation.id,
           profileId,
           category: observation.category,
           observation: observation.observation,
           contactName,
-        },
-      });
+        },);
 
       if (error) throw error;
 

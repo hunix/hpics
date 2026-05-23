@@ -16,6 +16,7 @@ import {
   RefreshCw, CheckCircle, AlertTriangle, Lightbulb, Database
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { invokeFunction } from '@/lib/api';
 
 const SavedBadge = ({ generatedAt }: { generatedAt: string }) => (
   <div className="flex items-center gap-2">
@@ -78,9 +79,7 @@ export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps
     mutationFn: async ({ analysisType, logId }: { analysisType: string; logId: string }) => {
       const startTime = Date.now();
       
-      const { data, error } = await supabase.functions.invoke('analyze-profile', {
-        body: { profileId, analysisType }
-      });
+      const { data, error } = await invokeFunction('analyze-profile', { profileId, analysisType });
       
       const responseTime = Date.now() - startTime;
       

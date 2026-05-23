@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { invokeFunction } from '@/lib/api';
 
 interface SearchResult {
   id: string;
@@ -121,16 +122,14 @@ export function EnhancedSemanticSearch() {
   // Search mutation
   const searchMutation = useMutation({
     mutationFn: async (searchQuery: string) => {
-      const { data, error } = await supabase.functions.invoke('rag-query-v2', {
-        body: {
+      const { data, error } = await invokeFunction('rag-query-v2', {
           query: searchQuery,
           searchMode,
           sourceTypes: sourceTypeFilter.length > 0 ? sourceTypeFilter : undefined,
           maxResults: 15,
           includeAnswer: true,
           rerank: true,
-        },
-      });
+        },);
 
       if (error) throw error;
       return data as RAGResponse;

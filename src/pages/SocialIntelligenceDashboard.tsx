@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 const PLATFORM_ICONS: Record<string, React.ReactNode> = {
   instagram: <Instagram className="h-4 w-4" />,
@@ -122,15 +123,13 @@ export default function SocialIntelligenceDashboard() {
   // Scrape mutation
   const scrapeMutation = useMutation({
     mutationFn: async ({ profileId, platform, username }: { profileId: string; platform: string; username: string }) => {
-      const { data, error } = await supabase.functions.invoke('scrape-comprehensive-social', {
-        body: {
+      const { data, error } = await invokeFunction('scrape-comprehensive-social', {
           profileId,
           platform,
           username,
           scrapeType: 'full',
           maxItems: 100,
-        },
-      });
+        },);
 
       if (error) throw error;
       return data;
@@ -153,9 +152,7 @@ export default function SocialIntelligenceDashboard() {
       for (const profile of profiles || []) {
         if (profile.instagram_handle) {
           tasks.push(
-            supabase.functions.invoke('scrape-social-rapidapi', {
-              body: { profileId: profile.id, platform: 'all' },
-            })
+            invokeFunction('scrape-social-rapidapi', { profileId: profile.id, platform: 'all' },)
           );
         }
       }

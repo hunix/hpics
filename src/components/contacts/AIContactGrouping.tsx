@@ -13,6 +13,7 @@ import {
   Sparkles, Users, Check, X, RefreshCw, Brain, 
   ChevronRight, Loader2
 } from 'lucide-react';
+import { invokeFunction } from '@/lib/api';
 
 interface GroupSuggestion {
   id: string;
@@ -52,7 +53,7 @@ export function AIContactGrouping() {
   const generateMutation = useMutation({
     mutationFn: async () => {
       setIsGenerating(true);
-      const { data, error } = await supabase.functions.invoke('suggest-contact-groups');
+      const { data, error } = await invokeFunction('suggest-contact-groups');
       if (error) throw error;
       return data;
     },

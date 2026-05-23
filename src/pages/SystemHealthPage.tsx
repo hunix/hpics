@@ -6,27 +6,12 @@ import { PredictionAccuracyTracker } from '@/components/testing/PredictionAccura
 import { CronJobManager } from '@/components/settings/CronJobManager';
 import { FusionHealthDashboard } from '@/components/intelligence/FusionHealthDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useRecentEdgeFunctionLogs } from '@/hooks/intelligence/useEdgeFunctionLogs';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 
 function EdgeFunctionStatus() {
-  const { user } = useAuth();
-
-  const { data: recentLogs } = useQuery({
-    queryKey: ['edge-function-logs', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('ai_usage_logs')
-        .select('function_name, status, created_at, response_time_ms')
-        .order('created_at', { ascending: false })
-        .limit(20);
-      return data ?? [];
-    },
-    enabled: !!user,
-  });
+  const { data: recentLogs } = useRecentEdgeFunctionLogs(20);
 
   const functionStats = recentLogs?.reduce((acc, log) => {
     if (!acc[log.function_name]) {

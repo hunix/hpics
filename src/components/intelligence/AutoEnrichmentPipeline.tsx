@@ -26,6 +26,7 @@ import {
   TrendingUp, AlertTriangle, Play, Pause, Settings, Calendar
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
+import { invokeFunction } from '@/lib/api';
 
 interface EnrichmentSource {
   id: string;
@@ -146,13 +147,11 @@ export function AutoEnrichmentPipeline() {
       setIsRunning(true);
       const enabledSources = sources.filter(s => s.enabled).map(s => s.id);
       
-      const { data, error } = await supabase.functions.invoke('auto-enrichment-pipeline', {
-        body: { 
+      const { data, error } = await invokeFunction('auto-enrichment-pipeline', { 
           profileIds, 
           sources: enabledSources,
           userId: user!.id,
-        },
-      });
+        },);
       
       if (error) throw error;
       return data;

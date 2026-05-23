@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Globe, ExternalLink, RefreshCw, Plus, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { invokeFunction } from '@/lib/api';
 
 interface WebMention {
   id: string;
@@ -68,9 +69,7 @@ export function WebMonitoringPanel() {
   const refreshMentions = useMutation({
     mutationFn: async () => {
       setRefreshing(true);
-      const { error } = await supabase.functions.invoke('monitor-web-mentions', {
-        body: { action: 'check_all' }
-      });
+      const { error } = await invokeFunction('monitor-web-mentions', { action: 'check_all' });
       if (error) throw error;
     },
     onSuccess: () => {

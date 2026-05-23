@@ -10,6 +10,7 @@ import {
   calculateMoralFoundations,
   MORAL_FOUNDATIONS,
 } from '@/lib/warfare/sacredValuesMapper';
+import { invokeFunction } from '@/lib/api';
 
 export function useSacredValues(profileId?: string) {
   const { user } = useAuth();
@@ -65,12 +66,10 @@ export function useSacredValues(profileId?: string) {
     mutationFn: async (targetProfileId: string) => {
       if (!user?.id) throw new Error('Not authenticated');
       
-      const { data, error } = await supabase.functions.invoke('sacred-values-mapper', {
-        body: {
+      const { data, error } = await invokeFunction('sacred-values-mapper', {
           profileId: targetProfileId,
           analysisDepth: 'comprehensive',
-        },
-      });
+        },);
       
       if (error) throw error;
       return data;

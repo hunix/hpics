@@ -7,6 +7,7 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export type AttachmentStyle = 'secure' | 'anxious' | 'avoidant' | 'disorganized';
 
@@ -69,14 +70,12 @@ export function useAttachmentAnalysis() {
     setIsAnalyzing(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('attachment-vulnerability-analyzer', {
-        body: {
+      const { data, error } = await invokeFunction('attachment-vulnerability-analyzer', {
           userId: user.id,
           profileId,
           additionalContext,
           action: 'analyze'
-        }
-      });
+        });
 
       if (error) throw error;
 
@@ -117,13 +116,11 @@ export function useAttachmentAnalysis() {
     if (!user) return null;
 
     try {
-      const { data, error } = await supabase.functions.invoke('attachment-vulnerability-analyzer', {
-        body: {
+      const { data, error } = await invokeFunction('attachment-vulnerability-analyzer', {
           userId: user.id,
           profileId,
           action: 'check_vulnerability_window'
-        }
-      });
+        });
 
       if (error) throw error;
       return data;

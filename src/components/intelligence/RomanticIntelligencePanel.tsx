@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Heart, Sparkles, Shield, Target, TrendingUp, AlertTriangle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface RomanticIntelligencePanelProps {
   profileId: string;
@@ -62,9 +63,7 @@ export function RomanticIntelligencePanel({ profileId, profileName }: RomanticIn
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase.functions.invoke('analyze-romantic-intelligence', {
-        body: { profileId, userId: user.id, depth: 'deep' }
-      });
+      const { data, error } = await invokeFunction('analyze-romantic-intelligence', { profileId, userId: user.id, depth: 'deep' });
 
       if (error) throw error;
       setAnalysis(data.analysis);

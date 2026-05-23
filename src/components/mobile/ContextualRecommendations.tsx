@@ -18,6 +18,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { invokeFunction } from '@/lib/api';
 
 interface ContextualRecommendationsProps {
   className?: string;
@@ -67,7 +68,7 @@ export function ContextualRecommendations({ className, maxItems = 5 }: Contextua
   const { data: suggestions = [], isLoading, refetch } = useQuery({
     queryKey: ['contextual-followup-suggestions'],
     queryFn: async () => {
-      const { data } = await supabase.functions.invoke('suggest-followups');
+      const { data } = await invokeFunction('suggest-followups');
       return (data?.suggestions || []) as FollowUpSuggestion[];
     },
     staleTime: 1000 * 60 * 30, // 30 minutes

@@ -14,6 +14,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { toast } from "sonner";
+import { invokeFunction } from '@/lib/api';
 
 interface Pattern {
   type: 'shared_employer' | 'event_overlap' | 'mutual_connection' | 'geographic_cluster' | 'same_industry';
@@ -29,7 +30,7 @@ export function CrossContactPatternsWidget() {
   const { data: patterns, isLoading, refetch } = useQuery({
     queryKey: ['cross-contact-patterns'],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('detect-cross-contact-patterns');
+      const { data, error } = await invokeFunction('detect-cross-contact-patterns');
       if (error) throw error;
       return data.patterns as Pattern[];
     }
@@ -37,7 +38,7 @@ export function CrossContactPatternsWidget() {
 
   const refreshMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('detect-cross-contact-patterns');
+      const { data, error } = await invokeFunction('detect-cross-contact-patterns');
       if (error) throw error;
       return data;
     },

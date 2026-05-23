@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { MediaType, AnalysisContext } from '@/lib/analysisTypes';
+import { invokeFunction } from '@/lib/api';
 
 export type BulkItemStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
 export type BulkSessionStatus = 'idle' | 'running' | 'paused' | 'completed' | 'failed';
@@ -188,8 +189,7 @@ export function useBulkAnalysisSession({
       });
 
       // Call the analysis edge function
-      const response = await supabase.functions.invoke('analyze-media-deep', {
-        body: {
+      const response = await invokeFunction('analyze-media-deep', {
           media_id: item.documentId ? null : item.mediaId,
           document_id: item.documentId || null,
           profile_id: profileId,
@@ -198,8 +198,7 @@ export function useBulkAnalysisSession({
           analysis_modes: analysisModes,
           analysis_context: context,
           analysis_depth: depth,
-        },
-      });
+        },);
 
       if (response.error) throw response.error;
 

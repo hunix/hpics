@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { invokeFunction } from '@/lib/api';
 
 export interface GeospatialDominion {
   id: string;
@@ -74,13 +75,11 @@ export function useGeospatialSupremacy() {
 
   const analyzeGeospatial = useMutation({
     mutationFn: async (input: { action?: 'map_dominion' | 'analyze_movements' | 'identify_assets' | 'export_kml'; targetArea?: { lat: number; lng: number; radius: number } }) => {
-      const { data, error } = await supabase.functions.invoke('geospatial-supremacy-engine', {
-        body: {
+      const { data, error } = await invokeFunction('geospatial-supremacy-engine', {
           userId: user!.id,
           action: input.action || 'map_dominion',
           targetArea: input.targetArea
-        }
-      });
+        });
       if (error) throw error;
       return data;
     },
@@ -93,12 +92,10 @@ export function useGeospatialSupremacy() {
 
   const exportToKml = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('geospatial-supremacy-engine', {
-        body: {
+      const { data, error } = await invokeFunction('geospatial-supremacy-engine', {
           userId: user!.id,
           action: 'export_kml'
-        }
-      });
+        });
       if (error) throw error;
       return data;
     }

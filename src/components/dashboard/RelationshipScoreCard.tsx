@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { TrendingUp, TrendingDown, Minus, RefreshCw, Loader2, Heart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { invokeFunction } from '@/lib/api';
 
 type RelationshipScore = {
   id: string;
@@ -49,9 +50,7 @@ export function RelationshipScoreCard() {
 
   const recalculateMutation = useMutation({
     mutationFn: async () => {
-      const response = await supabase.functions.invoke('calculate-relationship-scores', {
-        body: { recalculateAll: true },
-      });
+      const response = await invokeFunction('calculate-relationship-scores', { recalculateAll: true },);
       if (response.error) throw response.error;
       return response.data;
     },

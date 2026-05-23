@@ -16,6 +16,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
+import { invokeFunction } from '@/lib/api';
 
 interface PreferencePredictionsPanelProps {
   profileId: string;
@@ -103,9 +104,7 @@ export function PreferencePredictionsPanel({
   // Regenerate preferences mutation
   const regenerateMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('predict-contact-preferences', {
-        body: { profileId, regenerate: true }
-      });
+      const { data, error } = await invokeFunction('predict-contact-preferences', { profileId, regenerate: true });
       if (error) throw error;
       return data;
     },

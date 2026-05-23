@@ -15,6 +15,7 @@ import { Brain, Calendar, Sparkles, RefreshCw, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, addDays } from 'date-fns';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface PredictionFeedProps {
   compact?: boolean;
@@ -43,14 +44,12 @@ export function PredictionFeed({ compact = false }: PredictionFeedProps) {
   // Mutation to generate new predictions
   const generatePrediction = useMutation({
     mutationFn: async (profileId?: string) => {
-      const { data, error } = await supabase.functions.invoke('behavioral-future-modeler', {
-        body: {
+      const { data, error } = await invokeFunction('behavioral-future-modeler', {
           profileId,
           userId: user?.id,
           scenarioType: 'general',
           stimulus: 'relationship_forecast'
-        }
-      });
+        });
       if (error) throw error;
       return data;
     },

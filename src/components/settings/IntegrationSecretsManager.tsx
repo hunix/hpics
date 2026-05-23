@@ -30,6 +30,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { invokeFunction } from '@/lib/api';
 
 interface IntegrationSecret {
   name: string;
@@ -109,9 +110,7 @@ export function IntegrationSecretsManager() {
   // Save secret mutation
   const saveSecretMutation = useMutation({
     mutationFn: async ({ secretName, secretValue }: { secretName: string; secretValue: string }) => {
-      const { error } = await supabase.functions.invoke('save-integration-secret', {
-        body: { secretName, secretValue },
-      });
+      const { error } = await invokeFunction('save-integration-secret', { secretName, secretValue },);
       if (error) throw error;
     },
     onSuccess: (_, variables) => {

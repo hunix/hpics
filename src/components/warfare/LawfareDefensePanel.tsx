@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Scale, AlertTriangle, Shield, FileText, DollarSign, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeFunction } from '@/lib/api';
 
 interface LegalAnalysis {
   threatType: string;
@@ -44,9 +45,7 @@ export function LawfareDefensePanel() {
 
     setIsAnalyzing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('lawfare-defense-analyzer', {
-        body: { threatDetails, adversaryInfo, jurisdiction }
-      });
+      const { data, error } = await invokeFunction('lawfare-defense-analyzer', { threatDetails, adversaryInfo, jurisdiction });
 
       if (error) throw error;
 

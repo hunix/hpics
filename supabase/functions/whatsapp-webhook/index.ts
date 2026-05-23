@@ -51,27 +51,33 @@ serve(async (req) => {
     if (req.method === 'POST') {
       const rawBody = await req.text();
 
-      // Verify Meta webhook signature (X-Hub-Signature-256)
+      // Verify Meta webhook signature (X-Hub-Signature-256). Fail closed:
+      // a missing app secret in production is a deployment error, not a
+      // reason to accept unsigned payloads.
       const appSecret = Deno.env.get('WHATSAPP_APP_SECRET');
-      if (appSecret) {
-        const signature = req.headers.get('X-Hub-Signature-256');
-        if (!signature) {
-          console.error('Missing X-Hub-Signature-256 header');
-          return new Response('Forbidden', { status: 403 });
-        }
-        const key = await crypto.subtle.importKey(
-          'raw',
-          new TextEncoder().encode(appSecret),
-          { name: 'HMAC', hash: 'SHA-256' },
-          false,
-          ['sign']
-        );
-        const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(rawBody));
-        const expected = 'sha256=' + Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
-        if (signature !== expected) {
-          console.error('Invalid webhook signature');
-          return new Response('Forbidden', { status: 403 });
-        }
+      if (!appSecret) {
+        console.error('WHATSAPP_APP_SECRET not configured; rejecting webhook');
+        return new Response('Server misconfigured', { status: 500 });
+      }
+      const signature = req.headers.get('X-Hub-Signature-256');
+      if (!signature) {
+        console.error('Missing X-Hub-Signature-256 header');
+        return new Response('Forbidden', { status: 403 });
+      }
+      const key = await crypto.subtle.importKey(
+        'raw',
+        new TextEncoder().encode(appSecret),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign'],
+      );
+      const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(rawBody));
+      const expected = 'sha256=' + Array.from(new Uint8Array(sig))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
+      if (signature !== expected) {
+        console.error('Invalid webhook signature');
+        return new Response('Forbidden', { status: 403 });
       }
 
       const body = JSON.parse(rawBody);

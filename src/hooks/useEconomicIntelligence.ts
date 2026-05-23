@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export interface NewsItem {
   id: string;
@@ -109,9 +110,7 @@ export function useEconomicIntelligence() {
   const { data: dashboardData, isLoading: isDashboardLoading, refetch: refetchDashboard } = useQuery({
     queryKey: ['economic-intelligence-dashboard', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('investment-opportunity-predictor', {
-        body: { action: 'get_dashboard_data' },
-      });
+      const { data, error } = await invokeFunction('investment-opportunity-predictor', { action: 'get_dashboard_data' },);
       if (error) throw error;
       return data as DashboardData;
     },
@@ -123,9 +122,7 @@ export function useEconomicIntelligence() {
   const { data: opportunities, isLoading: isOpportunitiesLoading } = useQuery({
     queryKey: ['investment-opportunities', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('investment-opportunity-predictor', {
-        body: { action: 'get_active_opportunities' },
-      });
+      const { data, error } = await invokeFunction('investment-opportunity-predictor', { action: 'get_active_opportunities' },);
       if (error) throw error;
       return data.opportunities as InvestmentOpportunity[];
     },
@@ -192,37 +189,27 @@ export function useEconomicIntelligence() {
       toast.info('Starting intelligence pipeline...');
       
       // Step 1: Fetch news
-      const { error: fetchError } = await supabase.functions.invoke('economic-intelligence-engine', {
-        body: { 
+      const { error: fetchError } = await invokeFunction('economic-intelligence-engine', { 
           action: 'fetch_news',
           ...options,
-        },
-      });
+        },);
       if (fetchError) throw fetchError;
       toast.success('News fetched successfully');
 
       // Step 2: Correlate news
-      const { error: correlateError } = await supabase.functions.invoke('economic-intelligence-engine', {
-        body: { action: 'correlate_news' },
-      });
+      const { error: correlateError } = await invokeFunction('economic-intelligence-engine', { action: 'correlate_news' },);
       if (correlateError) console.warn('Correlation warning:', correlateError);
 
       // Step 3: Generate signals
-      const { error: signalError } = await supabase.functions.invoke('economic-intelligence-engine', {
-        body: { action: 'generate_signals' },
-      });
+      const { error: signalError } = await invokeFunction('economic-intelligence-engine', { action: 'generate_signals' },);
       if (signalError) console.warn('Signal generation warning:', signalError);
 
       // Step 4: Track geopolitical events
-      const { error: geoError } = await supabase.functions.invoke('economic-intelligence-engine', {
-        body: { action: 'track_geopolitical' },
-      });
+      const { error: geoError } = await invokeFunction('economic-intelligence-engine', { action: 'track_geopolitical' },);
       if (geoError) console.warn('Geo tracking warning:', geoError);
 
       // Step 5: Snapshot sentiment
-      const { error: sentimentError } = await supabase.functions.invoke('economic-intelligence-engine', {
-        body: { action: 'snapshot_sentiment' },
-      });
+      const { error: sentimentError } = await invokeFunction('economic-intelligence-engine', { action: 'snapshot_sentiment' },);
       if (sentimentError) console.warn('Sentiment snapshot warning:', sentimentError);
 
       toast.success('Intelligence pipeline completed!');
@@ -245,9 +232,7 @@ export function useEconomicIntelligence() {
   // Generate opportunities mutation
   const generateOpportunitiesMutation = useMutation({
     mutationFn: async (options: { assetClass?: string; sector?: string; riskTolerance?: string; timeHorizon?: string }) => {
-      const { data, error } = await supabase.functions.invoke('investment-opportunity-predictor', {
-        body: { action: 'generate_opportunities', ...options },
-      });
+      const { data, error } = await invokeFunction('investment-opportunity-predictor', { action: 'generate_opportunities', ...options },);
       if (error) throw error;
       return data;
     },
@@ -265,9 +250,7 @@ export function useEconomicIntelligence() {
   // Correlate with contacts mutation
   const correlateContactsMutation = useMutation({
     mutationFn: async (profileId?: string) => {
-      const { data, error } = await supabase.functions.invoke('economic-intelligence-engine', {
-        body: { action: 'correlate_contacts', profileId },
-      });
+      const { data, error } = await invokeFunction('economic-intelligence-engine', { action: 'correlate_contacts', profileId },);
       if (error) throw error;
       return data;
     },
@@ -283,9 +266,7 @@ export function useEconomicIntelligence() {
   // Record outcome mutation
   const recordOutcomeMutation = useMutation({
     mutationFn: async ({ opportunityId, outcome }: { opportunityId: string; outcome: any }) => {
-      const { data, error } = await supabase.functions.invoke('investment-opportunity-predictor', {
-        body: { action: 'record_outcome', opportunityId, outcome },
-      });
+      const { data, error } = await invokeFunction('investment-opportunity-predictor', { action: 'record_outcome', opportunityId, outcome },);
       if (error) throw error;
       return data;
     },

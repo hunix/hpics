@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { invokeFunction } from '@/lib/api';
 
 interface NFCTag {
   id: string;
@@ -260,12 +261,10 @@ export function NFCTagManager({ className, onTagTapped }: NFCTagManagerProps) {
 
   const simulateTap = async (tag: NFCTag) => {
     try {
-      const { data, error } = await supabase.functions.invoke('process-nfc-tap', {
-        body: {
+      const { data, error } = await invokeFunction('process-nfc-tap', {
           tagId: tag.tag_id,
           location: null, // Could use geolocation here
-        },
-      });
+        },);
 
       if (error) throw error;
 

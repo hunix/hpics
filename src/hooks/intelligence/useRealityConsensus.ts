@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { invokeFunction } from '@/lib/api';
 
 export interface ConsensusBubble { id: string; userId: string; bubbleName: string; bubbleType: string; memberCount: number; consensusStrength: number; coreBeliefs: string[]; boundaryPermeability: number; manipulationVectors: Record<string, unknown>[]; createdAt: string; }
 export interface RealityAnchor { id: string; userId: string; profileId?: string; anchorType: string; anchorStrength: number; anchorDescription: string; stabilityIndex: number; disruptionVulnerabilities: string[]; createdAt: string; }
@@ -58,7 +59,7 @@ export function useRealityConsensus() {
 
   const analyzeConsensus = useMutation({
     mutationFn: async (input: { action?: 'map' | 'analyze_anchors' | 'generate_protocols'; targetPopulation?: string }) => {
-      const { data, error } = await supabase.functions.invoke('reality-consensus-engine', { body: { userId: user!.id, action: input.action || 'map', targetPopulation: input.targetPopulation || 'network' } });
+      const { data, error } = await invokeFunction('reality-consensus-engine', { userId: user!.id, action: input.action || 'map', targetPopulation: input.targetPopulation || 'network' });
       if (error) throw error;
       return data;
     },

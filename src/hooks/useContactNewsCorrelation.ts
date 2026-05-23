@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { invokeFunction } from '@/lib/api';
 
 interface Alert {
   id: string;
@@ -52,9 +53,7 @@ export function useContactNewsCorrelation(profileId?: string) {
   const { data: alertsData, isLoading: alertsLoading, refetch: refetchAlerts } = useQuery({
     queryKey: ['contact-news-alerts', profileId],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('contact-news-correlator', {
-        body: { action: 'get_alerts', profileId },
-      });
+      const { data, error } = await invokeFunction('contact-news-correlator', { action: 'get_alerts', profileId },);
       if (error) throw error;
       return data as { alerts: Alert[]; unreadCount: number };
     },
@@ -64,9 +63,7 @@ export function useContactNewsCorrelation(profileId?: string) {
   const { data: predictionsData, isLoading: predictionsLoading, refetch: refetchPredictions } = useQuery({
     queryKey: ['contact-behavior-predictions', profileId],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('contact-news-correlator', {
-        body: { action: 'get_predictions', profileId },
-      });
+      const { data, error } = await invokeFunction('contact-news-correlator', { action: 'get_predictions', profileId },);
       if (error) throw error;
       return data as { predictions: Prediction[] };
     },
@@ -89,9 +86,7 @@ export function useContactNewsCorrelation(profileId?: string) {
   const correlateAllMutation = useMutation({
     mutationFn: async (days: number = 7) => {
       setIsCorrelating(true);
-      const { data, error } = await supabase.functions.invoke('contact-news-correlator', {
-        body: { action: 'correlate_all', days },
-      });
+      const { data, error } = await invokeFunction('contact-news-correlator', { action: 'correlate_all', days },);
       if (error) throw error;
       return data;
     },
@@ -118,9 +113,7 @@ export function useContactNewsCorrelation(profileId?: string) {
   // Correlate specific contact
   const correlateContactMutation = useMutation({
     mutationFn: async ({ profileId, days = 7 }: { profileId: string; days?: number }) => {
-      const { data, error } = await supabase.functions.invoke('contact-news-correlator', {
-        body: { action: 'correlate_contact', profileId, days },
-      });
+      const { data, error } = await invokeFunction('contact-news-correlator', { action: 'correlate_contact', profileId, days },);
       if (error) throw error;
       return data;
     },
@@ -142,9 +135,7 @@ export function useContactNewsCorrelation(profileId?: string) {
   // Predict contact behavior
   const predictBehaviorMutation = useMutation({
     mutationFn: async (profileId: string) => {
-      const { data, error } = await supabase.functions.invoke('contact-news-correlator', {
-        body: { action: 'predict_behavior', profileId },
-      });
+      const { data, error } = await invokeFunction('contact-news-correlator', { action: 'predict_behavior', profileId },);
       if (error) throw error;
       return data;
     },
@@ -167,9 +158,7 @@ export function useContactNewsCorrelation(profileId?: string) {
   // Update industry tracking
   const updateIndustriesMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('contact-news-correlator', {
-        body: { action: 'update_industries' },
-      });
+      const { data, error } = await invokeFunction('contact-news-correlator', { action: 'update_industries' },);
       if (error) throw error;
       return data;
     },
@@ -185,9 +174,7 @@ export function useContactNewsCorrelation(profileId?: string) {
   // Mark alert as read
   const markAlertReadMutation = useMutation({
     mutationFn: async (alertId: string) => {
-      const { data, error } = await supabase.functions.invoke('contact-news-correlator', {
-        body: { action: 'mark_alert_read', newsItemId: alertId },
-      });
+      const { data, error } = await invokeFunction('contact-news-correlator', { action: 'mark_alert_read', newsItemId: alertId },);
       if (error) throw error;
       return data;
     },

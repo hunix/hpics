@@ -19,6 +19,7 @@ import {
   Quote
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { invokeFunction } from '@/lib/api';
 
 interface SearchResult {
   type: 'contact' | 'document' | 'message' | 'observation' | 'analysis';
@@ -57,13 +58,11 @@ export function SemanticSearch() {
 
   const searchMutation = useMutation({
     mutationFn: async (searchQuery: string) => {
-      const { data, error } = await supabase.functions.invoke('rag-query', {
-        body: { 
+      const { data, error } = await invokeFunction('rag-query', { 
           query: searchQuery,
           mode: 'search',
           maxCitations: 10
-        }
-      });
+        });
       if (error) throw error;
       return data as RAGResponse;
     },

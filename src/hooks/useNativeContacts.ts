@@ -8,6 +8,7 @@ import { Capacitor } from '@capacitor/core';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 // Contact types
 interface PhoneContact {
@@ -408,12 +409,10 @@ export function useNativeContacts(): UseNativeContactsReturn {
     const photo = await getContactPhoto(phoneContactId);
     if (photo) {
       try {
-        await supabase.functions.invoke('enroll-from-contact-photo', {
-          body: {
+        await invokeFunction('enroll-from-contact-photo', {
             profileId: data.id,
             photoBase64: photo
-          }
-        });
+          });
       } catch (e) {
         console.log('Face enrollment skipped');
       }

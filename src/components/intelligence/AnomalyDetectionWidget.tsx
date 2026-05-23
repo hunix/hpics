@@ -13,6 +13,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface Anomaly {
   id: string;
@@ -69,7 +70,7 @@ export function AnomalyDetectionWidget() {
 
   const detectMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('detect-anomalies');
+      const { data, error } = await invokeFunction('detect-anomalies');
       if (error) throw error;
       return data;
     },

@@ -7,6 +7,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { invokeFunction } from '@/lib/api';
 
 export interface DarkTetradResult {
   id: string;
@@ -104,12 +105,10 @@ export function useDarkPsychology(profileId?: string) {
 
   const analyzeDarkTetrad = useMutation({
     mutationFn: async (input: { profileId: string }) => {
-      const { data, error } = await supabase.functions.invoke('dark-tetrad-profiler', {
-        body: {
+      const { data, error } = await invokeFunction('dark-tetrad-profiler', {
           userId: user!.id,
           profileId: input.profileId
-        }
-      });
+        });
 
       if (error) throw error;
       return data;
@@ -121,13 +120,11 @@ export function useDarkPsychology(profileId?: string) {
 
   const detectCoerciveControl = useMutation({
     mutationFn: async (input: { profileId: string; communications?: string[] }) => {
-      const { data, error } = await supabase.functions.invoke('coercive-control-detector', {
-        body: {
+      const { data, error } = await invokeFunction('coercive-control-detector', {
           userId: user!.id,
           profileId: input.profileId,
           communications: input.communications
-        }
-      });
+        });
 
       if (error) throw error;
       return data;

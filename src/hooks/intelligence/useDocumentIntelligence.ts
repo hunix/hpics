@@ -25,15 +25,17 @@ export interface ExtractedDocument {
   profile_id: string | null;
   suggested_profile_id: string | null;
   document_type: string;
+  document_subtype: string | null;
   linked_status: 'pending' | 'auto_linked' | 'manually_linked' | 'ignored' | string;
   linked_at: string | null;
   raw_text: string | null;
+  match_confidence: number | null;
+  structured_data: Record<string, unknown> | null;
   created_at: string;
   extracted_contact_info: unknown;
   extracted_contact: ExtractedContactInfo | null;
   linked_profile_data: LinkedProfile | null;
   suggested_profile: { id: string; full_name: string } | null;
-  [key: string]: unknown;
 }
 
 const documentKeys = {

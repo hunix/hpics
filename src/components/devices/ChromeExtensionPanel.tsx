@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { ExtensionTokenDialog } from './ExtensionTokenDialog';
+import { invokeFunction } from '@/lib/api';
 
 interface ExtensionSession {
   id: string;
@@ -166,9 +167,7 @@ export function ChromeExtensionPanel({ className }: ChromeExtensionPanelProps) {
 
   const triggerIdentityLinking = async () => {
     try {
-      const { error } = await supabase.functions.invoke('link-social-identities', {
-        body: { runForAll: true },
-      });
+      const { error } = await invokeFunction('link-social-identities', { runForAll: true },);
       
       if (error) throw error;
       

@@ -20,6 +20,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface FamilySystemsPanelProps {
   profileId: string;
@@ -44,13 +45,11 @@ export function FamilySystemsPanel({ profileId }: FamilySystemsPanelProps) {
     setIsAnalyzing(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('family-systems-analyzer', {
-        body: {
+      const { data, error } = await invokeFunction('family-systems-analyzer', {
           userId: user.id,
           profileId,
           action: 'analyze'
-        }
-      });
+        });
 
       if (error) throw error;
       setAnalysis(data?.analysis);

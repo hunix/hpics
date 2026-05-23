@@ -15,6 +15,7 @@ import { Target, Clock, Zap, TrendingUp, CheckCircle2, RefreshCw, Sparkles, Play
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface OpportunityQueueProps {
   compact?: boolean;
@@ -41,12 +42,10 @@ export function OpportunityQueue({ compact = false }: OpportunityQueueProps) {
   // Mutation to generate new opportunities
   const generateOpportunities = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('action-recommendation-engine', {
-        body: {
+      const { data, error } = await invokeFunction('action-recommendation-engine', {
           type: 'generate_opportunities',
           userId: user?.id
-        }
-      });
+        });
       if (error) throw error;
       return data;
     },

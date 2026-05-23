@@ -35,11 +35,11 @@ export function useServerSideMessages({
 
       const { data, error } = await supabase.rpc('search_messages_v2', {
         p_user_id: user.id,
-        p_conversation_id: conversationId || null,
-        p_profile_id: profileId || null,
-        p_search_query: searchQuery || null,
+        p_conversation_id: conversationId || undefined,
+        p_profile_id: profileId || undefined,
+        p_search_query: searchQuery || undefined,
         p_limit: pageSize,
-        p_cursor_time: pageParam || null,
+        p_cursor_time: pageParam || undefined,
       });
 
       if (error) throw error;
@@ -72,7 +72,7 @@ export function useGlobalMessageSearch(searchQuery: string, enabled = true) {
         p_user_id: user.id,
         p_search_query: searchQuery,
         p_limit: 50,
-        p_cursor_time: pageParam || null,
+        p_cursor_time: (pageParam as string | null) || undefined,
       });
 
       if (error) throw error;

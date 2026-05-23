@@ -3,7 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { handleAIError } from '@/lib/aiErrorHandler';
-import type { 
+import { invokeFunction } from '@/lib/api';
+import type {
   GoalType
 } from '@/lib/influenceTypes';
 
@@ -77,9 +78,7 @@ export function useAnalyzeInfluenceProfile() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const response = await supabase.functions.invoke('analyze-influence-profile', {
-        body: { profileId, modelKey }
-      });
+      const response = await invokeFunction('analyze-influence-profile', { profileId, modelKey });
 
       if (response.error) throw response.error;
       if (!response.data.success) throw new Error(response.data.error);
@@ -142,9 +141,7 @@ export function useGenerateStrategy() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const response = await supabase.functions.invoke('generate-influence-strategy', {
-        body: { profileId, goalType, goalDescription, context, modelKey }
-      });
+      const response = await invokeFunction('generate-influence-strategy', { profileId, goalType, goalDescription, context, modelKey });
 
       if (response.error) throw response.error;
       if (!response.data.success) throw new Error(response.data.error);

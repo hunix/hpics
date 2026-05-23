@@ -14,6 +14,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+import { invokeFunction } from '@/lib/api';
 
 interface InferredConnectionsPanelProps {
   profileId: string;
@@ -69,9 +70,7 @@ export function InferredConnectionsPanel({ profileId, contactName }: InferredCon
 
   const inferMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('infer-relationships', {
-        body: { mode: 'contact', profileId },
-      });
+      const { data, error } = await invokeFunction('infer-relationships', { mode: 'contact', profileId },);
       if (error) throw error;
       return data;
     },

@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { invokeFunction } from '@/lib/api';
 
 interface VoiceNotesManagerProps {
   profileId: string;
@@ -146,9 +147,7 @@ export function VoiceNotesManager({ profileId }: VoiceNotesManagerProps) {
       if (dbError) throw dbError;
 
       // Trigger transcription
-      await supabase.functions.invoke('transcribe-voice-note', {
-        body: { voiceNoteId: voiceNote.id, audioUrl: urlData.publicUrl },
-      });
+      await invokeFunction('transcribe-voice-note', { voiceNoteId: voiceNote.id, audioUrl: urlData.publicUrl },);
 
       return voiceNote;
     },

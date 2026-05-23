@@ -12,6 +12,7 @@ import {
   type IntegrationDefinition,
   type IntegrationCategory,
 } from '@/lib/integrations/registry';
+import { invokeFunction } from '@/lib/api';
 
 export interface IntegrationTestRecord {
   id: string;
@@ -55,9 +56,7 @@ export function useIntegrationHealth() {
   const { data: secretStatus, isLoading: isLoadingSecrets } = useQuery({
     queryKey: ['secret-status', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('check-secrets', {
-        body: { secrets: getAllSecretKeys() }
-      });
+      const { data, error } = await invokeFunction('check-secrets', { secrets: getAllSecretKeys() });
       if (error) {
         console.warn('Could not check secret status:', error);
         return {};

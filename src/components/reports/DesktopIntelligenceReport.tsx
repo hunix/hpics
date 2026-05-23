@@ -177,11 +177,11 @@ export function DesktopIntelligenceReport({
                 <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
                   <span className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
-                    {format(new Date(reportData.lastScan.completed_at), 'PPP')}
+                    {format(new Date(reportData.lastScan.completed_at as string), 'PPP')}
                   </span>
                   <span className="flex items-center gap-1">
                     <Clock className="h-4 w-4" />
-                    {format(new Date(reportData.lastScan.completed_at), 'p')}
+                    {format(new Date(reportData.lastScan.completed_at as string), 'p')}
                   </span>
                 </div>
               )}
@@ -341,7 +341,7 @@ export function DesktopIntelligenceReport({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {reportData?.preferences?.length > 0 ? (
+              {(reportData?.preferences?.length ?? 0) > 0 ? (
                 <ScrollArea className="h-[200px]">
                   <div className="space-y-2">
                     {reportData.preferences.slice(0, 10).map((pref: any) => (
@@ -424,7 +424,7 @@ export function DesktopIntelligenceReport({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {reportData?.predictions?.length > 0 ? (
+              {(reportData?.predictions?.length ?? 0) > 0 ? (
                 <div className="space-y-2">
                   {reportData.predictions.slice(0, 5).map((pred: any) => (
                     <div
@@ -466,7 +466,7 @@ export function DesktopIntelligenceReport({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {reportData?.behavioralAnalyses?.length > 0 ? (
+              {(reportData?.behavioralAnalyses?.length ?? 0) > 0 ? (
                 <ScrollArea className="h-[150px]">
                   <div className="space-y-2">
                     {reportData.behavioralAnalyses.slice(0, 5).map((analysis: any, idx: number) => (
@@ -564,7 +564,7 @@ function ScoreCard({
   );
 }
 
-function TrustMetric({ label, value }: { label: string; value?: number }) {
+function TrustMetric({ label, value }: { label: string; value?: number | null }) {
   return (
     <div>
       <div className="flex justify-between text-muted-foreground">
@@ -576,7 +576,7 @@ function TrustMetric({ label, value }: { label: string; value?: number }) {
   );
 }
 
-function InfluenceBar({ label, value }: { label: string; value?: number }) {
+function InfluenceBar({ label, value }: { label: string; value?: number | null }) {
   return (
     <div>
       <div className="flex justify-between text-sm mb-1">

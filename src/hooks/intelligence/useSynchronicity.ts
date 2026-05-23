@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { invokeFunction } from '@/lib/api';
 
 export interface SynchronisticEvent { id: string; userId: string; profileId?: string; eventType: string; meaningfulnessScore: number; connectedElements: string[]; temporalProximity: string; causalityAnalysis: Record<string, unknown>; exploitationPotential: number; createdAt: string; }
 export interface CoincidenceCluster { id: string; userId: string; clusterType: string; clusterSize: number; significanceScore: number; memberEvents: string[]; emergentPattern: Record<string, unknown>; interventionRecommendations: string[]; createdAt: string; }
@@ -44,7 +45,7 @@ export function useSynchronicity(profileId?: string) {
 
   const analyzeSynchronicity = useMutation({
     mutationFn: async (input: { profileId: string; timeWindowDays?: number }) => {
-      const { data, error } = await supabase.functions.invoke('synchronicity-engine', { body: { userId: user!.id, profileId: input.profileId, timeWindowDays: input.timeWindowDays || 30 } });
+      const { data, error } = await invokeFunction('synchronicity-engine', { userId: user!.id, profileId: input.profileId, timeWindowDays: input.timeWindowDays || 30 });
       if (error) throw error;
       return data;
     },

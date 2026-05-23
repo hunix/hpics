@@ -30,6 +30,7 @@ import {
   Sparkles,
   Zap,
 } from 'lucide-react';
+import { invokeFunction } from '@/lib/api';
 
 interface Integration {
   id: string;
@@ -183,9 +184,7 @@ export function OSINTIntegrations() {
   const { data: secretStatus } = useQuery({
     queryKey: ['secret-status', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('check-secrets', {
-        body: { secrets: INTEGRATIONS.map(i => i.secretKey) }
-      });
+      const { data, error } = await invokeFunction('check-secrets', { secrets: INTEGRATIONS.map(i => i.secretKey) });
       if (error) {
         console.warn('Could not check secret status:', error);
         return {};
@@ -224,12 +223,10 @@ export function OSINTIntegrations() {
 
     setSavingKey(integration.id);
     try {
-      const { error } = await supabase.functions.invoke('save-integration-secret', {
-        body: { 
+      const { error } = await invokeFunction('save-integration-secret', { 
           secretName: integration.secretKey,
           secretValue: keyValue.trim(),
-        }
-      });
+        });
 
       if (error) throw error;
 

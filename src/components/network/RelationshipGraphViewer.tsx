@@ -11,6 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GitBranch, Users, Target, RefreshCw, Sparkles, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface RelationshipInference {
   id: string;
@@ -59,9 +60,7 @@ export function RelationshipGraphViewer() {
 
   const inferMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('infer-relationships', {
-        body: { fullScan: true, maxDepth: 3 },
-      });
+      const { data, error } = await invokeFunction('infer-relationships', { fullScan: true, maxDepth: 3 },);
       if (error) throw error;
       return data;
     },

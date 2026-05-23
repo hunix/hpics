@@ -7,6 +7,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { invokeFunction } from '@/lib/api';
 
 export interface NetworkIntelligenceResult {
   id: string;
@@ -75,14 +76,12 @@ export function useNetworkIntelligence() {
       algorithm?: 'TAS-Com' | 'Leiden' | 'Louvain';
       minCommunitySize?: number;
     }) => {
-      const { data, error } = await supabase.functions.invoke('tas-com-detector', {
-        body: {
+      const { data, error } = await invokeFunction('tas-com-detector', {
           userId: user!.id,
           networkId: input.networkId,
           algorithm: input.algorithm || 'TAS-Com',
           minCommunitySize: input.minCommunitySize || 3
-        }
-      });
+        });
 
       if (error) throw error;
       return data;
@@ -98,14 +97,12 @@ export function useNetworkIntelligence() {
       topK?: number;
       method?: 'bandit' | 'centrality' | 'pagerank';
     }) => {
-      const { data, error } = await supabase.functions.invoke('influence-max-bandit', {
-        body: {
+      const { data, error } = await invokeFunction('influence-max-bandit', {
           userId: user!.id,
           networkId: input.networkId,
           topK: input.topK || 10,
           method: input.method || 'bandit'
-        }
-      });
+        });
 
       if (error) throw error;
       return data;
@@ -117,12 +114,10 @@ export function useNetworkIntelligence() {
 
   const detectPropaganda = useMutation({
     mutationFn: async (input: { cascadeId: string }) => {
-      const { data, error } = await supabase.functions.invoke('propaganda-analyzer', {
-        body: {
+      const { data, error } = await invokeFunction('propaganda-analyzer', {
           userId: user!.id,
           cascadeId: input.cascadeId
-        }
-      });
+        });
 
       if (error) throw error;
       return data;

@@ -11,6 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Sparkles, CheckCircle, XCircle, Linkedin, Play, Square } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 type EnrichmentResult = {
   profileId: string;
@@ -126,9 +127,7 @@ export function BulkEnrichment() {
           payload.searchQuery = `${contact?.first_name} ${contact?.last_name} ${contact?.organization || ''}`.trim();
         }
 
-        const { data, error } = await supabase.functions.invoke('enrich-contact', {
-          body: payload,
-        });
+        const { data, error } = await invokeFunction('enrich-contact', payload,);
 
         if (error) throw error;
         if (data?.error) throw new Error(data.error);

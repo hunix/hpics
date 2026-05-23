@@ -7,6 +7,7 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export interface LifeEvent {
   type: string;
@@ -107,14 +108,12 @@ export function useLifeTrajectory() {
     setIsAnalyzing(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('life-sequence-predictor', {
-        body: {
+      const { data, error } = await invokeFunction('life-sequence-predictor', {
           userId: user.id,
           profileId,
           context,
           action: 'predict'
-        }
-      });
+        });
 
       if (error) throw error;
 

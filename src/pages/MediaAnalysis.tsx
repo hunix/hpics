@@ -49,6 +49,7 @@ import { useAutoAggregateOnCompletion } from "@/hooks/useAutoAggregateOnCompleti
 import { estimateBulkCost } from "@/lib/bulkAnalysisPrioritization";
 import { useMutation } from "@tanstack/react-query";
 import { getSignedUrls } from "@/hooks/useSignedUrl";
+import { invokeFunction } from '@/lib/api';
 
 const mediaTypeConfig = {
   image: { icon: Image, label: 'Images', color: 'text-blue-500' },
@@ -172,7 +173,7 @@ export default function MediaAnalysis() {
   // Calculate cost estimate when items or modes change
   const costEstimate = selectedItems.length > 0 && selectedModes.length > 0
     ? estimateBulkCost(
-        selectedItems.map(item => ({ mediaType: item.type, fileSize: item.size })),
+        selectedItems.map(item => ({ mediaType: item.type, fileSize: item.size ?? undefined })),
         selectedModes,
         depth
       )
@@ -239,8 +240,7 @@ export default function MediaAnalysis() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const response = await supabase.functions.invoke('analyze-media-deep', {
-        body: {
+      const response = await invokeFunction('analyze-media-deep', {
           media_id: mediaType !== 'document' ? selectedMedia.id : null,
           document_id: mediaType === 'document' ? selectedMedia.id : null,
           profile_id: selectedContact || null,
@@ -249,8 +249,7 @@ export default function MediaAnalysis() {
           analysis_modes: selectedModes,
           analysis_context: context,
           analysis_depth: depth,
-        },
-      });
+        },);
 
       if (response.error) throw response.error;
       return response.data;
@@ -353,7 +352,7 @@ export default function MediaAnalysis() {
         url: item.url,
         storagePath: item.storagePath,
         name: item.name,
-        size: item.size,
+        size: item.size ?? undefined,
         createdAt: item.created_at,
       })),
       {
@@ -405,7 +404,7 @@ export default function MediaAnalysis() {
   const availableModes = MEDIA_ANALYSIS_MODES[mediaType];
   const MediaIcon = mediaTypeConfig[mediaType].icon;
 
-  const showBulkProgress = bulkSession.session && bulkSession.session.status !== 'idle';
+  const showBulkProgress = !!bulkSession.session && bulkSession.session.status !== 'idle';
 
   return (
     <AppLayout>
@@ -528,12 +527,10 @@ export default function MediaAnalysis() {
             onRetryAllFailed={bulkSession.retryAllFailed}
             onContinueInBackground={async () => {
               try {
-                await supabase.functions.invoke('process-bulk-session-runner', {
-                  body: { 
+                await invokeFunction('process-bulk-session-runner', { 
                     sessionId: bulkSession.session?.id,
                     action: 'continue'
-                  }
-                });
+                  });
                 toast.success('Analysis will continue in background. You can safely close this page.');
               } catch (error) {
                 toast.error('Failed to start background processing');

@@ -19,6 +19,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface CollectiveBehaviorMonitorProps {
   className?: string;
@@ -119,15 +120,13 @@ export function CollectiveBehaviorMonitor({ className }: CollectiveBehaviorMonit
   // Run simulation mutation
   const simulationMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('cascade-predictor', {
-        body: {
+      const { data, error } = await invokeFunction('cascade-predictor', {
           userId: user?.id,
           model: selectedModel,
           transmissionRate: transmissionRate[0],
           networkSize: 500,
           initialInfected: 3,
-        },
-      });
+        },);
       
       if (error) throw error;
       return data;

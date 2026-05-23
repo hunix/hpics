@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { invokeFunction } from '@/lib/api';
 
 export interface IntelligenceSession {
   id: string;
@@ -266,9 +267,7 @@ export function useIntelligenceSession(profileId: string): UseIntelligenceSessio
     try {
       console.log('[processBatch] Processing batch for session:', sessionId);
       
-      const { data, error } = await supabase.functions.invoke('intelligence-session-runner', {
-        body: { action: 'process', sessionId, batchSize: 3 }
-      });
+      const { data, error } = await invokeFunction('intelligence-session-runner', { action: 'process', sessionId, batchSize: 3 });
 
       if (error) {
         console.error('[processBatch] Error:', error);
@@ -338,9 +337,7 @@ export function useIntelligenceSession(profileId: string): UseIntelligenceSessio
     try {
       toast.info('Starting intelligence generation...');
       
-      const { data, error } = await supabase.functions.invoke('intelligence-session-runner', {
-        body: { action: 'start', profileId, forceRefresh }
-      });
+      const { data, error } = await invokeFunction('intelligence-session-runner', { action: 'start', profileId, forceRefresh });
 
       if (error) throw error;
 
@@ -362,9 +359,7 @@ export function useIntelligenceSession(profileId: string): UseIntelligenceSessio
     try {
       toast.info('Resuming generation...');
       
-      const { error } = await supabase.functions.invoke('intelligence-session-runner', {
-        body: { action: 'resume', sessionId: session.id }
-      });
+      const { error } = await invokeFunction('intelligence-session-runner', { action: 'resume', sessionId: session.id });
 
       if (error) throw error;
       toast.success('Generation resumed');
@@ -379,9 +374,7 @@ export function useIntelligenceSession(profileId: string): UseIntelligenceSessio
     if (!session?.id) return;
 
     try {
-      const { error } = await supabase.functions.invoke('intelligence-session-runner', {
-        body: { action: 'pause', sessionId: session.id }
-      });
+      const { error } = await invokeFunction('intelligence-session-runner', { action: 'pause', sessionId: session.id });
 
       if (error) throw error;
       toast.info('Generation paused');
@@ -396,9 +389,7 @@ export function useIntelligenceSession(profileId: string): UseIntelligenceSessio
     if (!session?.id) return;
 
     try {
-      const { error } = await supabase.functions.invoke('intelligence-session-runner', {
-        body: { action: 'cancel', sessionId: session.id }
-      });
+      const { error } = await invokeFunction('intelligence-session-runner', { action: 'cancel', sessionId: session.id });
 
       if (error) throw error;
       toast.info('Generation cancelled');
@@ -415,9 +406,7 @@ export function useIntelligenceSession(profileId: string): UseIntelligenceSessio
     try {
       toast.info('Retrying failed tasks...');
       
-      const { data, error } = await supabase.functions.invoke('intelligence-session-runner', {
-        body: { action: 'retry_failed', sessionId: session.id }
-      });
+      const { data, error } = await invokeFunction('intelligence-session-runner', { action: 'retry_failed', sessionId: session.id });
 
       if (error) throw error;
       toast.success(`Retrying ${data.tasksReset} failed tasks`);
@@ -430,9 +419,7 @@ export function useIntelligenceSession(profileId: string): UseIntelligenceSessio
 
   const retryTask = useCallback(async (taskId: string) => {
     try {
-      const { error } = await supabase.functions.invoke('intelligence-session-runner', {
-        body: { action: 'retry_task', taskId }
-      });
+      const { error } = await invokeFunction('intelligence-session-runner', { action: 'retry_task', taskId });
 
       if (error) throw error;
       toast.info('Retrying task...');

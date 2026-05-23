@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { TrendingUp, Target, Users, Lightbulb, Link2, Building, Globe, RefreshCw, Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface GrowthSuggestion {
   type: 'diversity' | 'reactivation' | 'expansion' | 'relationship';
@@ -45,9 +46,7 @@ export function NetworkGrowthOptimizer() {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['network-growth', user?.id],
     queryFn: async () => {
-      const { data: result, error } = await supabase.functions.invoke('suggest-network-growth', {
-        body: {},
-      });
+      const { data: result, error } = await invokeFunction('suggest-network-growth', {},);
 
       if (error) throw error;
       return result as GrowthData;
@@ -58,9 +57,7 @@ export function NetworkGrowthOptimizer() {
 
   const refreshMutation = useMutation({
     mutationFn: async () => {
-      const { data: result, error } = await supabase.functions.invoke('suggest-network-growth', {
-        body: {},
-      });
+      const { data: result, error } = await invokeFunction('suggest-network-growth', {},);
       if (error) throw error;
       return result;
     },

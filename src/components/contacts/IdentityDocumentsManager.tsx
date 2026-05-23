@@ -24,6 +24,7 @@ import {
 import { Loader2, Plus, Trash2, CreditCard, Eye, EyeOff, Upload, Sparkles, Download, Calendar, FileText, AlertCircle, CheckCircle } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface IdentityDocumentsManagerProps {
   profileId: string;
@@ -102,13 +103,11 @@ export function IdentityDocumentsManager({ profileId }: IdentityDocumentsManager
       setIsParsing(true);
 
       // Parse the document with AI
-      const { data, error } = await supabase.functions.invoke('parse-identity-document', {
-        body: {
+      const { data, error } = await invokeFunction('parse-identity-document', {
           profileId,
           storagePath: fileName,
           fileUrl: urlData.publicUrl,
-        },
-      });
+        },);
 
       if (error) throw error;
 

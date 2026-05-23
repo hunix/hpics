@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, formatDistanceToNow, addDays } from "date-fns";
+import { invokeFunction } from '@/lib/api';
 
 interface MeetingIntel {
   id: string;
@@ -90,9 +91,7 @@ export function MeetingIntelligencePanel() {
 
   const generateBriefing = useMutation({
     mutationFn: async (eventId: string) => {
-      const { error } = await supabase.functions.invoke('generate-meeting-prep', {
-        body: { eventId }
-      });
+      const { error } = await invokeFunction('generate-meeting-prep', { eventId });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -105,9 +104,7 @@ export function MeetingIntelligencePanel() {
 
   const generateFollowUp = useMutation({
     mutationFn: async (eventId: string) => {
-      const { error } = await supabase.functions.invoke('generate-meeting-followup', {
-        body: { eventId }
-      });
+      const { error } = await invokeFunction('generate-meeting-followup', { eventId });
       if (error) throw error;
     },
     onSuccess: () => {

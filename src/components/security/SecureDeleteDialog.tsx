@@ -8,6 +8,7 @@ import { AlertTriangle, Trash2, Shield, FileKey } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCSRFToken } from "@/hooks/security/useCSRFToken";
 import { toast } from "sonner";
+import { invokeFunction } from '@/lib/api';
 
 interface SecureDeleteDialogProps {
   open: boolean;
@@ -58,15 +59,13 @@ export function SecureDeleteDialog({
       console.log('[CSRF] SecureDelete using token:', validToken.substring(0, 8) + '...');
 
       // Call crypto-shred edge function with CSRF token
-      const response = await supabase.functions.invoke('crypto-shred', {
-        body: {
+      const response = await invokeFunction('crypto-shred', {
           recordType,
           recordId,
           recordSummary,
           shreddingPasses: 3,
           csrfToken: validToken
-        }
-      });
+        });
 
       if (response.error) throw response.error;
 

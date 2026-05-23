@@ -29,6 +29,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
+import { invokeFunction } from '@/lib/api';
 
 interface AutopilotAction {
   id: string;
@@ -154,9 +155,7 @@ export function IntelligenceAutopilotPanel() {
         'full_sweep': 'full_sweep',
       };
 
-      const { data, error } = await supabase.functions.invoke('autonomous-intelligence-orchestrator', {
-        body: { action: actionMap[actionId] || actionId },
-      });
+      const { data, error } = await invokeFunction('autonomous-intelligence-orchestrator', { action: actionMap[actionId] || actionId },);
 
       if (error) throw error;
       return data;
@@ -186,9 +185,7 @@ export function IntelligenceAutopilotPanel() {
   // Cascade analysis for a specific profile
   const cascadeAnalysis = useMutation({
     mutationFn: async (profileId: string) => {
-      const { data, error } = await supabase.functions.invoke('autonomous-intelligence-orchestrator', {
-        body: { action: 'cascade_analysis', profileId },
-      });
+      const { data, error } = await invokeFunction('autonomous-intelligence-orchestrator', { action: 'cascade_analysis', profileId },);
       if (error) throw error;
       return data;
     },

@@ -12,6 +12,7 @@ import {
   type BetrayalProfile,
 } from '@/lib/warfare/betrayalPredictor';
 import { useAGISPhaseMiddleware } from './useAGISPhaseMiddleware';
+import { invokeFunction } from '@/lib/api';
 
 interface BetrayalPredictionRecord {
   id: string;
@@ -91,22 +92,15 @@ export function useBetrayalPrediction(profileId?: string) {
       if (!user?.id) throw new Error('Not authenticated');
       
       // First run the Gottman analyzer
-      const { data: gottmanData, error: gottmanError } = await supabase.functions.invoke(
-        'gottman-relationship-analyzer',
-        {
-          body: { profileId: targetProfileId },
-        }
-      );
+      const { data: gottmanData, error: gottmanError } = await invokeFunction('gottman-relationship-analyzer', { profileId: targetProfileId },);
       
       if (gottmanError) throw gottmanError;
       
       // Then run the betrayal scorer
-      const { data, error } = await supabase.functions.invoke('betrayal-likelihood-scorer', {
-        body: {
+      const { data, error } = await invokeFunction('betrayal-likelihood-scorer', {
           profileId: targetProfileId,
           gottmanAnalysis: gottmanData,
-        },
-      });
+        },);
       
       if (error) throw error;
       return data;

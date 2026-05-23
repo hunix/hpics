@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { invokeFunction } from '@/lib/api';
 
 interface VoiceRecorderProps {
   profileId?: string;
@@ -228,14 +229,12 @@ export function VoiceRecorder({ profileId, onComplete }: VoiceRecorderProps) {
       if (sessionError) throw sessionError;
 
       // Process the recording
-      const { data, error } = await supabase.functions.invoke('process-voice-recording', {
-        body: {
+      const { data, error } = await invokeFunction('process-voice-recording', {
           recordingId: sessionData.id,
           recordingType,
           extractSignature,
           deviceSource: detectDevice(),
-        },
-      });
+        },);
 
       if (error) throw error;
 

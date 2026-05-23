@@ -14,6 +14,7 @@ import {
   ChevronRight, Loader2, AlertCircle, Zap, ArrowRight 
 } from 'lucide-react';
 import { AIModelSelector } from '@/components/ai/AIModelSelector';
+import { invokeFunction } from '@/lib/api';
 
 interface AnalysisWorkflowWidgetProps {
   profileId: string;
@@ -88,16 +89,14 @@ export function AnalysisWorkflowWidget({
     mutationFn: async (model: string) => {
       if (!conversationId) throw new Error('No conversation selected');
       
-      const { data, error } = await supabase.functions.invoke('analyze-conversation-deep', {
-        body: { 
+      const { data, error } = await invokeFunction('analyze-conversation-deep', { 
           conversationId,
           profileId,
           includeMediaIntelligence,
           anonymize: true,
           userId: user!.id,
           model
-        },
-      });
+        },);
       if (error) throw error;
       return data;
     },

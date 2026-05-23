@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FileText, Sparkles, Copy, RefreshCw, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface MessageTemplatesProps {
   profileId: string;
@@ -62,9 +63,7 @@ export function MessageTemplates({ profileId, contactName }: MessageTemplatesPro
         recentTopics: contactData.recentComms.map(c => c.subject).filter(Boolean),
       };
 
-      const { data, error } = await supabase.functions.invoke('generate-message-templates', {
-        body: { profileId, context }
-      });
+      const { data, error } = await invokeFunction('generate-message-templates', { profileId, context });
 
       if (error) throw error;
       

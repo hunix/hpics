@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface Suggestion {
   id: string;
@@ -102,14 +103,12 @@ export function ConversationCopilot() {
 
     setIsGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('action-recommendation-engine', {
-        body: {
+      const { data, error } = await invokeFunction('action-recommendation-engine', {
           type: 'conversation_suggestions',
           context,
           objective,
           profileId: selectedContact || undefined
-        }
-      });
+        });
 
       if (error) throw error;
 

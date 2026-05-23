@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { nativeIntelligence } from '@/lib/mobile/nativeIntelligence';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 // Trigger types
 type TriggerType = 
@@ -224,12 +225,10 @@ export function useSmartTriggers(): UseSmartTriggersReturn {
 
         case 'trigger_analysis':
           if (user && context.profileId) {
-            await supabase.functions.invoke('analyze-profile', {
-              body: {
+            await invokeFunction('analyze-profile', {
                 profileId: context.profileId,
                 analysisType: rule.actionConfig.analysisType || 'comprehensive'
-              }
-            });
+              });
           }
           return { success: true };
 

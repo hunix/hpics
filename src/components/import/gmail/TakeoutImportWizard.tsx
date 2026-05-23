@@ -26,6 +26,7 @@ import {
   AlertDescription,
   AlertTitle,
 } from '@/components/ui/alert';
+import { invokeFunction } from '@/lib/api';
 
 type ImportStep = 'instructions' | 'upload' | 'processing' | 'matching' | 'complete';
 
@@ -128,14 +129,12 @@ export function TakeoutImportWizard() {
       }
 
       // Trigger processing
-      const { data, error } = await supabase.functions.invoke('import-mbox-emails', {
-        body: { 
+      const { data, error } = await invokeFunction('import-mbox-emails', { 
           sessionId,
           fileName: file.name,
           fileSize: file.size,
           totalChunks,
-        },
-      });
+        },);
 
       if (error) throw error;
       return data;

@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Search, FileText, MessageSquare, Brain, ChevronDown, Loader2, ExternalLink, Quote, Eye, Mail } from 'lucide-react';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface RAGResult {
   source_type: string;
@@ -59,14 +60,12 @@ export function RAGQueryInterface() {
     setSearchState(prev => ({ ...prev, isSearching: true, results: [], answer: '', citations: [] }));
 
     try {
-      const { data, error } = await supabase.functions.invoke('rag-query', {
-        body: {
+      const { data, error } = await invokeFunction('rag-query', {
           query: searchState.query,
           sourceTypes: selectedSources,
           maxResults: 10,
           includeAnswer: true,
-        },
-      });
+        },);
 
       if (error) throw error;
 

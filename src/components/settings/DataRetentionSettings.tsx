@@ -32,6 +32,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
+import { invokeFunction } from '@/lib/api';
 
 // Data category definitions with metadata
 const DATA_CATEGORIES = [
@@ -211,9 +212,7 @@ export function DataRetentionSettings() {
   const executeRetention = async (dryRun: boolean, category?: string) => {
     setIsRunning(true);
     try {
-      const { data, error } = await supabase.functions.invoke('execute-data-retention', {
-        body: { userId: user!.id, dryRun, category },
-      });
+      const { data, error } = await invokeFunction('execute-data-retention', { userId: user!.id, dryRun, category },);
 
       if (error) throw error;
 

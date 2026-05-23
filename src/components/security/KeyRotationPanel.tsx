@@ -9,6 +9,7 @@ import { Key, RotateCcw, Clock, Shield, AlertTriangle, Check } from "lucide-reac
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, addDays, isPast } from "date-fns";
+import { invokeFunction } from '@/lib/api';
 
 interface KeySchedule {
   id: string;
@@ -66,9 +67,7 @@ export function KeyRotationPanel() {
   const handleRotateNow = async (keyName: string) => {
     setIsRotating(keyName);
     try {
-      const { data, error } = await supabase.functions.invoke('rotate-encryption-keys', {
-        body: { keyName }
-      });
+      const { data, error } = await invokeFunction('rotate-encryption-keys', { keyName });
 
       if (error) throw error;
 

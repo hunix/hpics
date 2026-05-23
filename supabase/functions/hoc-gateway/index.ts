@@ -35,7 +35,7 @@ function json(data: unknown, status = 200) {
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_RPM = 60;
 
-function checkRateLimit(key: string): boolean {
+function await checkRateLimitAsync(key: string): boolean {
   const now = Date.now();
   const entry = rateLimits.get(key);
   if (entry && entry.resetAt > now) {
@@ -640,7 +640,7 @@ serve(async (req: Request) => {
 
   // ── Rate limit ──
   const rateLimitKey = authenticatedClientId;
-  if (!checkRateLimit(rateLimitKey)) {
+  if (!await checkRateLimitAsync(rateLimitKey)) {
     return json({ success: false, error: `Rate limit exceeded (${clientRateLimit} req/min)` }, 429);
   }
 

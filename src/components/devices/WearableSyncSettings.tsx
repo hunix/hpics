@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { invokeFunction } from '@/lib/api';
 
 interface WearableDevice {
   id: string;
@@ -153,8 +154,7 @@ export function WearableSyncSettings({ className }: WearableSyncSettingsProps) {
   const triggerSync = async () => {
     setIsSyncing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('sync-wearable-data', {
-        body: {
+      const { data, error } = await invokeFunction('sync-wearable-data', {
           dataTypes: [
             settings.heartRate && 'heart_rate',
             settings.location && 'location',
@@ -164,8 +164,7 @@ export function WearableSyncSettings({ className }: WearableSyncSettingsProps) {
           ].filter(Boolean),
           startDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // Last 24 hours
           endDate: new Date().toISOString(),
-        },
-      });
+        },);
 
       if (error) throw error;
 

@@ -7,6 +7,7 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export interface StructuralHole {
   id: string;
@@ -96,14 +97,12 @@ export function useNetworkBrokerage() {
     setIsAnalyzing(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('network-brokerage-analyzer', {
-        body: {
+      const { data, error } = await invokeFunction('network-brokerage-analyzer', {
           userId: user.id,
           profileId,
           networkContext,
           action: 'analyze_position'
-        }
-      });
+        });
 
       if (error) throw error;
 
@@ -152,12 +151,10 @@ export function useNetworkBrokerage() {
     if (!user) return [];
 
     try {
-      const { data, error } = await supabase.functions.invoke('network-brokerage-analyzer', {
-        body: {
+      const { data, error } = await invokeFunction('network-brokerage-analyzer', {
           userId: user.id,
           action: 'find_structural_holes'
-        }
-      });
+        });
 
       if (error) throw error;
       return data?.structuralHoles || [];
@@ -173,13 +170,11 @@ export function useNetworkBrokerage() {
     if (!user) return [];
 
     try {
-      const { data, error } = await supabase.functions.invoke('network-brokerage-analyzer', {
-        body: {
+      const { data, error } = await invokeFunction('network-brokerage-analyzer', {
           userId: user.id,
           minValue,
           action: 'get_opportunities'
-        }
-      });
+        });
 
       if (error) throw error;
       

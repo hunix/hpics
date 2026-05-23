@@ -7,10 +7,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export interface DarkWebMention {
   id: string;
-  profileId?: string;
+  profileId?: string | null;
   mentionSource: string;
   sourceType: string;
   contentSnippet?: string;
@@ -26,7 +27,7 @@ export interface DarkWebMention {
 
 export interface CredentialExposure {
   id: string;
-  profileId?: string;
+  profileId?: string | null;
   exposureType: string;
   affectedService?: string;
   exposureSeverity: string;
@@ -35,13 +36,13 @@ export interface CredentialExposure {
   breachDate?: string;
   dataExposed: Record<string, unknown>;
   remediationStatus: string;
-  remediationActions: Array<{ action: string; completedAt?: string; status: string }>;
+  remediationActions: Array<{ action: string; completedAt?: string | null; status: string }>;
   discoveredAt: string;
 }
 
 export interface ThreatIntelligence {
   id: string;
-  profileId?: string;
+  profileId?: string | null;
   threatType: string;
   threatName?: string;
   threatLevel: string;
@@ -57,7 +58,7 @@ export interface ThreatIntelligence {
 
 export interface UndergroundActivity {
   id: string;
-  profileId?: string;
+  profileId?: string | null;
   activityType: string;
   platform?: string;
   activityDetails: Record<string, unknown>;
@@ -68,7 +69,7 @@ export interface UndergroundActivity {
   lastActivityAt?: string;
 }
 
-export function useDarkWebIntelligence(profileId?: string) {
+export function useDarkWebIntelligence(profileId?: string | null) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -90,18 +91,18 @@ export function useDarkWebIntelligence(profileId?: string) {
 
       return (data || []).map((m): DarkWebMention => ({
         id: m.id,
-        profileId: m.profile_id,
-        mentionSource: m.mention_source,
+        profileId: m.profile_id ?? undefined,
+        mentionSource: m.mention_source ?? '',
         sourceType: m.source_type || 'forum',
-        contentSnippet: m.content_snippet,
-        fullContent: m.full_content,
+        contentSnippet: m.content_snippet ?? undefined,
+        fullContent: m.full_content ?? undefined,
         threatScore: Number(m.threat_score) || 0,
         relevanceScore: Number(m.relevance_score) || 0,
-        entitiesMentioned: (m.entities_mentioned as any) || [],
-        contextAnalysis: (m.context_analysis as any) || {},
+        entitiesMentioned: (m.entities_mentioned as DarkWebMention['entitiesMentioned']) || [],
+        contextAnalysis: (m.context_analysis as Record<string, unknown>) || {},
         sourceCredibility: Number(m.source_credibility) || 0,
-        firstSeenAt: m.first_seen_at,
-        lastSeenAt: m.last_seen_at,
+        firstSeenAt: m.first_seen_at ?? '',
+        lastSeenAt: m.last_seen_at ?? '',
       }));
     },
     enabled: !!user?.id,
@@ -125,17 +126,17 @@ export function useDarkWebIntelligence(profileId?: string) {
 
       return (data || []).map((e): CredentialExposure => ({
         id: e.id,
-        profileId: e.profile_id,
-        exposureType: e.exposure_type,
-        affectedService: e.affected_service,
+        profileId: e.profile_id ?? undefined,
+        exposureType: e.exposure_type ?? '',
+        affectedService: e.affected_service ?? undefined,
         exposureSeverity: e.exposure_severity || 'medium',
-        credentialTypes: (e.credential_types as any) || [],
-        breachSource: e.breach_source,
-        breachDate: e.breach_date,
-        dataExposed: (e.data_exposed as any) || {},
+        credentialTypes: (e.credential_types as string[]) || [],
+        breachSource: e.breach_source ?? undefined,
+        breachDate: e.breach_date ?? undefined,
+        dataExposed: (e.data_exposed as Record<string, unknown>) || {},
         remediationStatus: e.remediation_status || 'unresolved',
-        remediationActions: (e.remediation_actions as any) || [],
-        discoveredAt: e.discovered_at,
+        remediationActions: (e.remediation_actions as CredentialExposure['remediationActions']) || [],
+        discoveredAt: e.discovered_at ?? '',
       }));
     },
     enabled: !!user?.id,
@@ -160,32 +161,30 @@ export function useDarkWebIntelligence(profileId?: string) {
 
       return (data || []).map((t): ThreatIntelligence => ({
         id: t.id,
-        profileId: t.profile_id,
-        threatType: t.threat_type,
-        threatName: t.threat_name,
+        profileId: t.profile_id ?? undefined,
+        threatType: t.threat_type ?? '',
+        threatName: t.threat_name ?? undefined,
         threatLevel: t.threat_level || 'medium',
-        threatVector: (t.threat_vector as any) || {},
-        indicatorsOfCompromise: (t.indicators_of_compromise as any) || [],
-        attackPatterns: (t.attack_patterns as any) || [],
-        mitigationStrategies: (t.mitigation_strategies as any) || [],
-        intelSources: (t.intel_sources as any) || [],
+        threatVector: (t.threat_vector as Record<string, unknown>) || {},
+        indicatorsOfCompromise: (t.indicators_of_compromise as ThreatIntelligence['indicatorsOfCompromise']) || [],
+        attackPatterns: (t.attack_patterns as ThreatIntelligence['attackPatterns']) || [],
+        mitigationStrategies: (t.mitigation_strategies as ThreatIntelligence['mitigationStrategies']) || [],
+        intelSources: (t.intel_sources as string[]) || [],
         confidenceScore: Number(t.confidence_score) || 0,
         isActive: t.is_active ?? true,
-        firstDetectedAt: t.first_detected_at,
+        firstDetectedAt: t.first_detected_at ?? '',
       }));
     },
     enabled: !!user?.id,
   });
 
   const scanDarkWeb = useMutation({
-    mutationFn: async (params: { profileId?: string; searchTerms?: string[] }) => {
-      const { data, error } = await supabase.functions.invoke('dark-web-monitor', {
-        body: { 
+    mutationFn: async (params: { profileId?: string | null; searchTerms?: string[] }) => {
+      const { data, error } = await invokeFunction('dark-web-monitor', { 
           profileId: params.profileId,
           searchTerms: params.searchTerms,
           action: 'scan',
-        },
-      });
+        },);
       if (error) throw error;
       return data;
     },

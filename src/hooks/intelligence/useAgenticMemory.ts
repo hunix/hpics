@@ -70,7 +70,7 @@ interface ReconsolidationEvent {
 }
 
 interface IngestRequest {
-  profileId?: string;
+  profileId?: string | null;
   content: string;
   tier?: MemoryTier;
   memoryType?: MemoryType;
@@ -81,7 +81,7 @@ interface IngestRequest {
 }
 
 interface QueryRequest {
-  profileId?: string;
+  profileId?: string | null;
   queryText: string;
   limit?: number;
 }
@@ -107,17 +107,17 @@ const memoryKeys = {
   all: ['agentic-memory'] as const,
   list: () => [...memoryKeys.all, 'list'] as const,
   memory: (id: string) => [...memoryKeys.all, 'memory', id] as const,
-  profile: (profileId: string) => [...memoryKeys.all, 'profile', profileId] as const,
+  profile: (profileId: string | null) => [...memoryKeys.all, 'profile', profileId] as const,
   links: (memoryId: string) => [...memoryKeys.all, 'links', memoryId] as const,
   configs: () => [...memoryKeys.all, 'configs'] as const,
   reconsolidations: () => [...memoryKeys.all, 'reconsolidations'] as const,
-  graph: (profileId: string) => [...memoryKeys.all, 'graph', profileId] as const,
+  graph: (profileId: string | null) => [...memoryKeys.all, 'graph', profileId] as const,
 };
 
 /**
  * Fetch memories for a profile
  */
-export function useProfileMemories(profileId: string | undefined, options?: { tier?: MemoryTier; limit?: number }) {
+export function useProfileMemories(profileId: string | null | undefined, options?: { tier?: MemoryTier; limit?: number }) {
   return useQuery({
     queryKey: [...memoryKeys.profile(profileId || ''), options?.tier, options?.limit],
     queryFn: async () => {
@@ -205,7 +205,7 @@ export function useMemoryConfigs() {
 /**
  * Fetch memory graph for visualization
  */
-export function useMemoryGraph(profileId: string | undefined) {
+export function useMemoryGraph(profileId: string | null | undefined) {
   return useQuery({
     queryKey: memoryKeys.graph(profileId || ''),
     queryFn: async () => {
@@ -377,7 +377,7 @@ export function useReconsolidateMemories() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ memoryIds, profileId }: { memoryIds: string[]; profileId?: string }): Promise<MemoryOperationResponse> => {
+    mutationFn: async ({ memoryIds, profileId }: { memoryIds: string[]; profileId?: string | null }): Promise<MemoryOperationResponse> => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 

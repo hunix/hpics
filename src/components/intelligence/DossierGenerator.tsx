@@ -27,6 +27,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { invokeFunction } from '@/lib/api';
 
 interface DossierGeneratorProps {
   profileId: string;
@@ -92,9 +93,7 @@ export function DossierGenerator({ profileId, profileName }: DossierGeneratorPro
 
   const generateMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('generate-dossier', {
-        body: { profile_id: profileId, dossier_type: dossierType },
-      });
+      const { data, error } = await invokeFunction('generate-dossier', { profile_id: profileId, dossier_type: dossierType },);
       if (error) throw error;
       return data;
     },

@@ -27,6 +27,7 @@ import { ScheduledReportsManager } from '@/components/reports/ScheduledReportsMa
 import { IntelligenceAutopilotPanel } from '@/components/reports/IntelligenceAutopilotPanel';
 import { ErrorBoundaryWithRecovery } from '@/components/ErrorBoundaryWithRecovery';
 import { APP_VERSION, BUILD_TIMESTAMP } from '@/lib/appVersion';
+import { invokeFunction } from '@/lib/api';
 
 // Build stamp for debugging cache issues
 const BUILD_STAMP = `v${APP_VERSION} @ ${BUILD_TIMESTAMP.slice(0, 16)}`;
@@ -76,9 +77,7 @@ export default function Reports() {
 
   const generateSummaryMutation = useMutation({
     mutationFn: async (timePeriod: string) => {
-      const response = await supabase.functions.invoke('generate-executive-summary', {
-        body: { timePeriod },
-      });
+      const response = await invokeFunction('generate-executive-summary', { timePeriod },);
       if (response.error) throw new Error(response.error.message);
       return response.data;
     },
@@ -93,9 +92,7 @@ export default function Reports() {
 
   const generateHealthReportMutation = useMutation({
     mutationFn: async () => {
-      const response = await supabase.functions.invoke('calculate-relationship-scores', {
-        body: { generateReport: true },
-      });
+      const response = await invokeFunction('calculate-relationship-scores', { generateReport: true },);
       if (response.error) throw new Error(response.error.message);
       return response.data;
     },
@@ -110,9 +107,7 @@ export default function Reports() {
 
   const generateNetworkReportMutation = useMutation({
     mutationFn: async () => {
-      const response = await supabase.functions.invoke('analyze-network-intelligence', {
-        body: { generateReport: true },
-      });
+      const response = await invokeFunction('analyze-network-intelligence', { generateReport: true },);
       if (response.error) throw new Error(response.error.message);
       return response.data;
     },

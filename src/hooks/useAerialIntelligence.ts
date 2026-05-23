@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { invokeFunction } from '@/lib/api';
 
 export interface Waypoint {
   latitude: number;
@@ -82,9 +83,7 @@ export function useAerialIntelligence() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return [];
 
-      const response = await supabase.functions.invoke('aerial-intelligence', {
-        body: { action: 'get_missions', limit: 50 }
-      });
+      const response = await invokeFunction('aerial-intelligence', { action: 'get_missions', limit: 50 });
 
       if (response.error) throw response.error;
       return (response.data?.missions || []) as AerialMission[];
@@ -96,9 +95,7 @@ export function useAerialIntelligence() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return [];
 
-    const response = await supabase.functions.invoke('aerial-intelligence', {
-      body: { action: 'get_captures', aerial_mission_id: missionId }
-    });
+    const response = await invokeFunction('aerial-intelligence', { action: 'get_captures', aerial_mission_id: missionId });
 
     if (response.error) throw response.error;
     return response.data?.captures || [];
@@ -112,9 +109,7 @@ export function useAerialIntelligence() {
       plan: MissionPlan 
     }) => {
       setIsCreating(true);
-      const response = await supabase.functions.invoke('aerial-intelligence', {
-        body: { action: 'create_mission', ...params }
-      });
+      const response = await invokeFunction('aerial-intelligence', { action: 'create_mission', ...params });
 
       if (response.error) throw response.error;
       return response.data;
@@ -140,9 +135,7 @@ export function useAerialIntelligence() {
   // Start a mission
   const startMission = useMutation({
     mutationFn: async (aerialMissionId: string) => {
-      const response = await supabase.functions.invoke('aerial-intelligence', {
-        body: { action: 'start_mission', aerial_mission_id: aerialMissionId }
-      });
+      const response = await invokeFunction('aerial-intelligence', { action: 'start_mission', aerial_mission_id: aerialMissionId });
 
       if (response.error) throw response.error;
       return response.data;
@@ -166,9 +159,7 @@ export function useAerialIntelligence() {
   // Complete a mission
   const completeMission = useMutation({
     mutationFn: async (params: { aerial_mission_id: string; telemetry_log?: Record<string, unknown> }) => {
-      const response = await supabase.functions.invoke('aerial-intelligence', {
-        body: { action: 'complete_mission', ...params }
-      });
+      const response = await invokeFunction('aerial-intelligence', { action: 'complete_mission', ...params });
 
       if (response.error) throw response.error;
       return response.data;
@@ -204,9 +195,7 @@ export function useAerialIntelligence() {
         captured_at: string;
       };
     }) => {
-      const response = await supabase.functions.invoke('aerial-intelligence', {
-        body: { action: 'upload_capture', ...params }
-      });
+      const response = await invokeFunction('aerial-intelligence', { action: 'upload_capture', ...params });
 
       if (response.error) throw response.error;
       return response.data;
@@ -232,9 +221,7 @@ export function useAerialIntelligence() {
       capture_id: string;
       analysis_types: ('crowd' | 'vehicle' | 'structure' | 'perimeter')[];
     }) => {
-      const response = await supabase.functions.invoke('aerial-intelligence', {
-        body: { action: 'analyze_capture', ...params }
-      });
+      const response = await invokeFunction('aerial-intelligence', { action: 'analyze_capture', ...params });
 
       if (response.error) throw response.error;
       return response.data;

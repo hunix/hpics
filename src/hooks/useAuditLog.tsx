@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useClearance, ClearanceLevel } from './useClearance';
+import { invokeFunction } from '@/lib/api';
 
 interface AuditLogEntry {
   id: string;
@@ -39,9 +40,7 @@ export function useAuditLog() {
       if (!user || !session) return null;
 
       try {
-        const { data, error } = await supabase.functions.invoke('log-audit-event', {
-          body: event,
-        });
+        const { data, error } = await invokeFunction('log-audit-event', event,);
 
         if (error) throw error;
 

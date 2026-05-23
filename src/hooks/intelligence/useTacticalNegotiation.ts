@@ -7,6 +7,7 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export interface NegotiationTactic {
   type: 'mirror' | 'label' | 'calibrated_question' | 'accusation_audit' | 'tactical_empathy';
@@ -75,15 +76,13 @@ export function useTacticalNegotiation() {
     setIsAnalyzing(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('tactical-negotiation-engine', {
-        body: {
+      const { data, error } = await invokeFunction('tactical-negotiation-engine', {
           userId: user.id,
           profileId,
           negotiationType,
           context,
           action: 'generate_strategy'
-        }
-      });
+        });
 
       if (error) throw error;
 
@@ -137,15 +136,13 @@ export function useTacticalNegotiation() {
     if (!user || !currentSession) return null;
 
     try {
-      const { data, error } = await supabase.functions.invoke('tactical-negotiation-engine', {
-        body: {
+      const { data, error } = await invokeFunction('tactical-negotiation-engine', {
           userId: user.id,
           sessionId,
           currentSituation,
           existingStrategy: currentSession.strategy,
           action: 'suggest_tactic'
-        }
-      });
+        });
 
       if (error) throw error;
       return data?.tactic as NegotiationTactic;

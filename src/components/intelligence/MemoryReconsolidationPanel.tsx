@@ -23,6 +23,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface MemoryReconsolidationPanelProps {
   profileId: string;
@@ -40,15 +41,13 @@ export function MemoryReconsolidationPanel({ profileId }: MemoryReconsolidationP
     setIsProcessing(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('memory-reconsolidation-engine', {
-        body: {
+      const { data, error } = await invokeFunction('memory-reconsolidation-engine', {
           userId: user.id,
           profileId,
           targetMemory,
           desiredModification,
           action: 'generate_intervention'
-        }
-      });
+        });
 
       if (error) throw error;
       setResult(data?.intervention);

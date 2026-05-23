@@ -22,6 +22,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface ChoiceArchitecturePanelProps {
   profileId: string;
@@ -58,16 +59,14 @@ export function ChoiceArchitecturePanel({ profileId }: ChoiceArchitecturePanelPr
     setIsProcessing(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('choice-architecture-optimizer', {
-        body: {
+      const { data, error } = await invokeFunction('choice-architecture-optimizer', {
           userId: user.id,
           profileId,
           targetBehavior,
           context,
           nudgeTypes: selectedNudges,
           action: 'optimize'
-        }
-      });
+        });
 
       if (error) throw error;
       setResult(data?.optimization);

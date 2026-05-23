@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { differenceInDays } from 'date-fns';
+import { invokeFunction } from '@/lib/api';
 
 interface ContextualAction {
   id: string;
@@ -60,7 +61,7 @@ export function ContextualActions({ profileId, profileName, onAction, className 
   const { data: aiSuggestion, refetch: refetchSuggestion, isFetching: isFetchingAI } = useQuery({
     queryKey: ['ai-followup-suggestion', profileId],
     queryFn: async () => {
-      const { data } = await supabase.functions.invoke('suggest-followups');
+      const { data } = await invokeFunction('suggest-followups');
       const suggestions = (data?.suggestions || []) as Array<{
         contactId: string;
         contactName: string;

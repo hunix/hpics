@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dna, Brain, Repeat, Fingerprint, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface BehavioralDNAPanelProps {
   profileId: string;
@@ -62,9 +63,7 @@ export function BehavioralDNAPanel({ profileId, profileName }: BehavioralDNAPane
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase.functions.invoke('behavioral-dna-sequencer', {
-        body: { profileId, userId: user.id }
-      });
+      const { data, error } = await invokeFunction('behavioral-dna-sequencer', { profileId, userId: user.id });
 
       if (error) throw error;
       setDna(data.analysis);

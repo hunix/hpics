@@ -2,7 +2,11 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- Content Security Policy. wasm-unsafe-eval is required by tfjs / mediapipe; 'unsafe-inline' on style is required by Radix UI runtime styles. -->
+    <!-- Content Security Policy. wasm-unsafe-eval required by tfjs / mediapipe;
+         'unsafe-inline' on style required by Radix UI runtime styles.
+         connect-src lists every origin the client may call directly. Server-
+         side fetches (edge functions calling OpenAI, Tavily, Perplexity, etc.)
+         are not constrained by CSP. -->
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
       script-src 'self' 'wasm-unsafe-eval';
@@ -10,7 +14,14 @@
       style-src 'self' 'unsafe-inline';
       img-src 'self' data: blob: https:;
       font-src 'self' data:;
-      connect-src 'self' https://*.supabase.co wss://*.supabase.co https://lovable.dev;
+      connect-src 'self'
+        https://*.supabase.co wss://*.supabase.co
+        https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com
+        https://login.microsoftonline.com https://graph.microsoft.com
+        https://api.openai.com https://api.anthropic.com
+        https://api.tavily.com https://api.perplexity.ai
+        https://api.huggingface.co https://*.huggingface.co
+        https://cdn.jsdelivr.net https://*.hcaptcha.com https://*.cloudflareinsights.com;
       media-src 'self' blob:;
       object-src 'none';
       base-uri 'self';

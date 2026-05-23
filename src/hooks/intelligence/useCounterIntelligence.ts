@@ -12,7 +12,7 @@ export interface ThreatActor {
   id: string;
   actorName: string;
   actorType: 'individual' | 'organization' | 'state' | 'unknown';
-  profileId?: string;
+  profileId?: string | null;
   threatLevel: 'low' | 'medium' | 'high' | 'critical' | 'unknown';
   capabilities: Record<string, unknown>;
   knownTactics: string[];
@@ -27,7 +27,7 @@ export interface ThreatActor {
 export interface ManipulationDetection {
   id: string;
   detectedInProfileId: string;
-  sourceActorId?: string;
+  sourceActorId?: string | null;
   manipulationType: string;
   detectionConfidence: number;
   evidence: Record<string, unknown>;
@@ -37,12 +37,12 @@ export interface ManipulationDetection {
   counterMeasures: Record<string, unknown>;
   isOngoing: boolean;
   detectedAt: Date;
-  resolvedAt?: Date;
+  resolvedAt?: Date | null;
 }
 
 export interface DefensivePosture {
   id: string;
-  profileId?: string;
+  profileId?: string | null;
   postureType: 'information_control' | 'social_shielding' | 'counter_narrative';
   threatModel: Record<string, unknown>;
   activeDefenses: Record<string, unknown>;
@@ -57,7 +57,7 @@ export interface DefensivePosture {
 export interface CounterOperation {
   id: string;
   operationName: string;
-  targetThreatId?: string;
+  targetThreatId?: string | null;
   operationType: 'neutralize' | 'deceive' | 'redirect' | 'expose';
   objective: string;
   tactics: Record<string, unknown>;
@@ -70,7 +70,7 @@ export interface CounterOperation {
   isActive: boolean;
 }
 
-export function useCounterIntelligence(profileId?: string) {
+export function useCounterIntelligence(profileId?: string | null) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 

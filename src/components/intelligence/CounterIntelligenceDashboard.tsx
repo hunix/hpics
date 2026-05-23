@@ -12,6 +12,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSecurityMonitor } from '@/hooks/useSecurityMonitor';
+import { invokeFunction } from '@/lib/api';
 
 interface CounterIntelligenceDashboardProps {
   userId: string;
@@ -64,9 +65,7 @@ export function CounterIntelligenceDashboard({ userId }: CounterIntelligenceDash
   const runCounterIntelScan = async () => {
     setLoading(true);
     try {
-      const { data: result, error } = await supabase.functions.invoke('counter-intelligence-monitor', {
-        body: { userId, scanType: 'full' }
-      });
+      const { data: result, error } = await invokeFunction('counter-intelligence-monitor', { userId, scanType: 'full' });
 
       if (!isMountedRef.current) return;
       if (error) throw error;

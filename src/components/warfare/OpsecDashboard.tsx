@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Shield, AlertTriangle, Eye, Lock, Wifi, Smartphone, Globe, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeFunction } from '@/lib/api';
 
 interface OpsecScore {
   overall: number;
@@ -34,9 +35,7 @@ export function OpsecDashboard({ profileId }: { profileId?: string }) {
   const runOpsecAnalysis = async () => {
     setIsAnalyzing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('opsec-vulnerability-analyzer', {
-        body: { profileId }
-      });
+      const { data, error } = await invokeFunction('opsec-vulnerability-analyzer', { profileId });
 
       if (error) throw error;
 

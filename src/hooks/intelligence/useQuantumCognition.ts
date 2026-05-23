@@ -7,6 +7,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { invokeFunction } from '@/lib/api';
 
 export interface QuantumDecisionState {
   id: string;
@@ -93,14 +94,12 @@ export function useQuantumCognition(profileId?: string) {
       decisionContext: string;
       previousChoices?: string[];
     }) => {
-      const { data, error } = await supabase.functions.invoke('quantum-decision-modeler', {
-        body: {
+      const { data, error } = await invokeFunction('quantum-decision-modeler', {
           userId: user!.id,
           profileId: input.profileId,
           decisionContext: input.decisionContext,
           previousChoices: input.previousChoices || []
-        }
-      });
+        });
 
       if (error) throw error;
       return data;
@@ -112,12 +111,10 @@ export function useQuantumCognition(profileId?: string) {
 
   const detectEntanglement = useMutation({
     mutationFn: async (input: { profileIds: string[] }) => {
-      const { data, error } = await supabase.functions.invoke('mental-entanglement-detector', {
-        body: {
+      const { data, error } = await invokeFunction('mental-entanglement-detector', {
           userId: user!.id,
           profileIds: input.profileIds
-        }
-      });
+        });
 
       if (error) throw error;
       return data;
@@ -132,13 +129,11 @@ export function useQuantumCognition(profileId?: string) {
       profileId: string;
       questionPairs: [string, string][];
     }) => {
-      const { data, error } = await supabase.functions.invoke('qq-equality-tester', {
-        body: {
+      const { data, error } = await invokeFunction('qq-equality-tester', {
           userId: user!.id,
           profileId: input.profileId,
           questionPairs: input.questionPairs
-        }
-      });
+        });
 
       if (error) throw error;
       return data;

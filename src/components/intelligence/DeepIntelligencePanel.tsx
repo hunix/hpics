@@ -23,6 +23,7 @@ import { PredictionsPanel } from './PredictionsPanel';
 import { RelationshipDynamicsPanel } from './RelationshipDynamicsPanel';
 import type { PsychologicalProfile } from '@/lib/psychologicalAnalysis';
 import { getConfidenceLabel, getConfidenceColor } from '@/lib/psychologicalAnalysis';
+import { invokeFunction } from '@/lib/api';
 
 interface DeepIntelligencePanelProps {
   profileId: string;
@@ -59,12 +60,10 @@ export function DeepIntelligencePanel({ profileId, profileName }: DeepIntelligen
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const response = await supabase.functions.invoke('deep-psychological-analysis', {
-        body: { 
+      const response = await invokeFunction('deep-psychological-analysis', { 
           profile_id: profileId,
           analysis_depth: 'comprehensive',
-        },
-      });
+        },);
 
       if (response.error) throw response.error;
       return response.data;

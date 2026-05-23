@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { invokeFunction } from '@/lib/api';
 
 export interface MorphicField {
   id: string;
@@ -45,12 +46,10 @@ export function useMorphicResonance() {
 
   const detectResonance = useMutation({
     mutationFn: async (input: { analysisScope?: 'network' | 'individual' | 'collective' }) => {
-      const { data, error } = await supabase.functions.invoke('morphic-resonance-detector', {
-        body: {
+      const { data, error } = await invokeFunction('morphic-resonance-detector', {
           userId: user!.id,
           analysisScope: input.analysisScope || 'network'
-        }
-      });
+        });
       if (error) throw error;
       return data;
     },

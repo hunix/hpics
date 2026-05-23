@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 export interface TestResult {
   success: boolean;
@@ -23,9 +24,7 @@ export function useTestIntegration() {
   
   return useMutation({
     mutationFn: async ({ integrationId, apiKey, additionalParams, secretKey }: TestIntegrationParams): Promise<TestResult> => {
-      const { data, error } = await supabase.functions.invoke('test-integration', {
-        body: { integrationId, apiKey, additionalParams },
-      });
+      const { data, error } = await invokeFunction('test-integration', { integrationId, apiKey, additionalParams },);
       
       if (error) {
         throw new Error(error.message || 'Failed to test integration');

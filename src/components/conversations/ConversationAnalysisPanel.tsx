@@ -37,6 +37,7 @@ import {
   ScatterChart, Scatter, ZAxis
 } from 'recharts';
 import { AIModelSelector } from '@/components/ai/AIModelSelector';
+import { invokeFunction } from '@/lib/api';
 
 interface ConversationAnalysisPanelProps {
   conversationId: string;
@@ -120,14 +121,12 @@ export function ConversationAnalysisPanel({
   // Run analysis mutation
   const analyzeMutation = useMutation({
     mutationFn: async (model: string) => {
-      const { data, error } = await supabase.functions.invoke('analyze-conversation', {
-        body: { 
+      const { data, error } = await invokeFunction('analyze-conversation', { 
           conversationId, 
           anonymize: anonymizeData,
           userId: user!.id,
           model
-        },
-      });
+        },);
       if (error) throw error;
       return data;
     },
@@ -144,14 +143,12 @@ export function ConversationAnalysisPanel({
   // Quick summary mutation
   const summaryMutation = useMutation({
     mutationFn: async (model: string) => {
-      const { data, error } = await supabase.functions.invoke('summarize-conversation', {
-        body: { 
+      const { data, error } = await invokeFunction('summarize-conversation', { 
           conversationId, 
           userId: user!.id,
           recentOnly: false,
           model
-        },
-      });
+        },);
       if (error) throw error;
       return data;
     },

@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { Layers, Eye, Mic, Brain, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface SynthesisResult {
   id: string;
@@ -83,9 +84,7 @@ export function CrossModalSynthesisPanel() {
   const synthesizeMutation = useMutation({
     mutationFn: async () => {
       if (!selectedProfile) throw new Error('Select a contact first');
-      const { data, error } = await supabase.functions.invoke('cross-modal-synthesis', {
-        body: { profileId: selectedProfile },
-      });
+      const { data, error } = await invokeFunction('cross-modal-synthesis', { profileId: selectedProfile },);
       if (error) throw error;
       return data;
     },

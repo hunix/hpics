@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useEffect } from 'react';
+import { invokeFunction } from '@/lib/api';
 
 export type RuleType = 'threshold' | 'pattern' | 'anomaly' | 'schedule';
 
@@ -206,9 +207,7 @@ export function useAlertRules() {
       device_type: string;
       metrics: Record<string, number>;
     }) => {
-      const { data, error } = await supabase.functions.invoke('alert-service', {
-        body: telemetry,
-      });
+      const { data, error } = await invokeFunction('alert-service', telemetry,);
 
       if (error) throw error;
       return data;

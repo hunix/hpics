@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Eye, EyeOff, Network, AlertTriangle, Loader2, ZoomIn, ZoomOut } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface ShadowNetworkGraphProps {
   userId: string;
@@ -60,9 +61,7 @@ export function ShadowNetworkGraph({ userId, profileId }: ShadowNetworkGraphProp
   const detectShadowNetworks = async () => {
     setLoading(true);
     try {
-      const { data: result, error } = await supabase.functions.invoke('detect-shadow-networks', {
-        body: { userId, profileId, analysisDepth: 'deep' }
-      });
+      const { data: result, error } = await invokeFunction('detect-shadow-networks', { userId, profileId, analysisDepth: 'deep' });
 
       if (!isMountedRef.current) return;
       if (error) throw error;

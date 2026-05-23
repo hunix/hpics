@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { invokeFunction } from '@/lib/api';
 
 export interface DetectedEgregore {
   id: string;
@@ -86,13 +87,11 @@ export function useEgregoreCultivation() {
 
   const detectEgregores = useMutation({
     mutationFn: async (input: { action?: 'detect' | 'cultivate' | 'destroy'; egregoreName?: string }) => {
-      const { data, error } = await supabase.functions.invoke('egregore-cultivation-engine', {
-        body: {
+      const { data, error } = await invokeFunction('egregore-cultivation-engine', {
           userId: user!.id,
           action: input.action || 'detect',
           egregoreName: input.egregoreName
-        }
-      });
+        });
       if (error) throw error;
       return data;
     },

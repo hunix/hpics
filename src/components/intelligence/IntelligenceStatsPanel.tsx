@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { invokeFunction } from '@/lib/api';
 
 interface IntelligenceStatsPanelProps {
   className?: string;
@@ -143,9 +144,7 @@ export function IntelligenceStatsPanel({ className, compact = false }: Intellige
   const triggerEmbeddingProcessor = async () => {
     setIsProcessing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('universal-embedding-processor', {
-        body: { mode: 'full' },
-      });
+      const { data, error } = await invokeFunction('universal-embedding-processor', { mode: 'full' },);
 
       if (error) throw error;
 

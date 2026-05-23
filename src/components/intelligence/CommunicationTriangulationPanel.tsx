@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface CommunicationNode {
   id: string;
@@ -59,9 +60,7 @@ export function CommunicationTriangulationPanel({ profileId }: CommunicationTria
   const { data: analysis, isLoading, error } = useQuery({
     queryKey: ['communication-triangulation', user?.id, profileId],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('analyze-communication-triangulation', {
-        body: profileId ? { profileId } : undefined
-      });
+      const { data, error } = await invokeFunction('analyze-communication-triangulation', profileId ? { profileId } : undefined);
       if (error) throw error;
       return data.analysis as TriangulationAnalysis;
     },
@@ -71,7 +70,7 @@ export function CommunicationTriangulationPanel({ profileId }: CommunicationTria
 
   const refreshMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('analyze-communication-triangulation');
+      const { data, error } = await invokeFunction('analyze-communication-triangulation');
       if (error) throw error;
       return data;
     },

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+import { invokeFunction } from '@/lib/api';
 
 interface BehavioralPredictionsPanelProps {
   profileId: string;
@@ -58,9 +59,7 @@ export function BehavioralPredictionsPanel({ profileId, contactName }: Behaviora
 
   const trainMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('train-behavior-model', {
-        body: { profileId },
-      });
+      const { data, error } = await invokeFunction('train-behavior-model', { profileId },);
       if (error) throw error;
       return data;
     },

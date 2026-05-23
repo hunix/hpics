@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
+import { invokeFunction } from '@/lib/api';
 
 interface FaceMultiViewEnrollmentProps {
   profileId: string;
@@ -186,13 +187,11 @@ export function FaceMultiViewEnrollment({
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase.functions.invoke('enroll-from-tagged-faces', {
-        body: { 
+      const { data, error } = await invokeFunction('enroll-from-tagged-faces', { 
           profileId,
           model: model === 'premium' ? 'google/gemini-3-pro-preview' : 'google/gemini-2.5-flash',
           limit: 20
-        }
-      });
+        });
 
       if (error) throw error;
       if (!data.success) throw new Error(data.error || 'Enrollment failed');
@@ -214,13 +213,11 @@ export function FaceMultiViewEnrollment({
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase.functions.invoke('extract-facial-multiview', {
-        body: { 
+      const { data, error } = await invokeFunction('extract-facial-multiview', { 
           profileId, 
           imageUrls,
           model: model === 'premium' ? 'google/gemini-3-pro-preview' : 'google/gemini-2.5-flash'
-        }
-      });
+        });
 
       if (error) throw error;
       if (!data.success) throw new Error(data.error || 'Extraction failed');

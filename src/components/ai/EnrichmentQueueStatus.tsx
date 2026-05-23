@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Zap, FileText, MessageSquare, Eye, RefreshCw, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface QueueStats {
   pending: number;
@@ -57,7 +58,7 @@ export function EnrichmentQueueStatus() {
 
   const processMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('process-enrichment-queue');
+      const { data, error } = await invokeFunction('process-enrichment-queue');
       if (error) throw error;
       return data;
     },

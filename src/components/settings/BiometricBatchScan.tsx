@@ -21,6 +21,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface ScanProgress {
   total: number;
@@ -143,14 +144,12 @@ export function BiometricBatchScan() {
             }
 
             if (imageUrl && item.profile_id) {
-              await supabase.functions.invoke('extract-facial-biometrics', {
-                body: { 
+              await invokeFunction('extract-facial-biometrics', { 
                   imageUrl, 
                   profileId: item.profile_id, 
                   sourceType: 'media', 
                   sourceId: item.id 
-                }
-              });
+                });
               successful++;
             } else {
               failed++;
@@ -166,14 +165,12 @@ export function BiometricBatchScan() {
             }
 
             if (audioUrl && item.profile_id) {
-              await supabase.functions.invoke('extract-voice-biometrics', {
-                body: { 
+              await invokeFunction('extract-voice-biometrics', { 
                   audioUrl, 
                   profileId: item.profile_id, 
                   sourceType: 'media', 
                   sourceId: item.id
-                }
-              });
+                });
               successful++;
             } else {
               failed++;

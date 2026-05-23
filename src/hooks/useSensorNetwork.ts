@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { SensorNode } from '@/types/hardware';
+import { invokeFunction } from '@/lib/api';
 
 interface SensorReading {
   id: string;
@@ -57,7 +58,7 @@ export function useSensorNetwork() {
   const { data: zoneStatus = {} } = useQuery<Record<string, ZoneStatus>>({
     queryKey: ['sensor-zone-status', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('sensor-network/zone-status');
+      const { data, error } = await invokeFunction('sensor-network/zone-status');
       if (error) throw error;
       return data.zones || {};
     },
@@ -69,9 +70,7 @@ export function useSensorNetwork() {
   const { data: readings = [], isLoading: readingsLoading } = useQuery<SensorReading[]>({
     queryKey: ['sensor-readings', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('sensor-network/readings', {
-        body: {},
-      });
+      const { data, error } = await invokeFunction('sensor-network/readings', {},);
       if (error) throw error;
       return data.readings || [];
     },
@@ -108,9 +107,7 @@ export function useSensorNetwork() {
   // Register new sensor node
   const registerNode = useMutation({
     mutationFn: async (nodeData: Partial<SensorNode>) => {
-      const { data, error } = await supabase.functions.invoke('sensor-network/register-node', {
-        body: nodeData,
-      });
+      const { data, error } = await invokeFunction('sensor-network/register-node', nodeData,);
       if (error) throw error;
       return data.node;
     },
@@ -126,9 +123,7 @@ export function useSensorNetwork() {
   // Set alert rules for a node
   const setAlertRules = useMutation({
     mutationFn: async ({ nodeId, rules }: { nodeId: string; rules: AlertRule[] }) => {
-      const { error } = await supabase.functions.invoke('sensor-network/set-alerts', {
-        body: { node_id: nodeId, rules },
-      });
+      const { error } = await invokeFunction('sensor-network/set-alerts', { node_id: nodeId, rules },);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -148,7 +143,7 @@ export function useSensorNetwork() {
       if (sensorType) params.set('sensor_type', sensorType);
       params.set('hours', hours.toString());
 
-      const { data, error } = await supabase.functions.invoke(`sensor-network/aggregate?${params}`);
+      const { data, error } = await invokeFunction(`sensor-network/aggregate?${params}`);
       if (error) throw error;
       return data.aggregates;
     } catch (error) {

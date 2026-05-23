@@ -22,22 +22,33 @@ const ALERT_TYPES = [
   { id: 'birthday_reminder', label: 'Birthdays', description: 'Upcoming birthdays' },
 ];
 
+interface NotificationPreferencesForm {
+  push_enabled?: boolean | null;
+  email_enabled?: boolean | null;
+  alert_types_enabled?: string[] | null;
+  min_severity?: string | null;
+  quiet_hours_start?: string | null;
+  quiet_hours_end?: string | null;
+  digest_frequency?: string | null;
+  [key: string]: unknown;
+}
+
 export function NotificationPreferences() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: preferences, isLoading } = useQuery({
     queryKey: ['notification-preferences', user?.id],
-    queryFn: async () => {
+    queryFn: async (): Promise<NotificationPreferencesForm> => {
       const { data, error } = await supabase
         .from('notification_preferences')
         .select('*')
         .eq('user_id', user!.id)
         .single();
-      
+
       if (error && error.code !== 'PGRST116') throw error;
-      
-      return data || {
+
+      return (data as NotificationPreferencesForm | null) || {
         push_enabled: false,
         email_enabled: true,
         alert_types_enabled: ['relationship_decay', 'anomaly_detected', 'action_required', 'opportunity_identified'],
@@ -50,7 +61,7 @@ export function NotificationPreferences() {
     enabled: !!user,
   });
 
-  const [formData, setFormData] = useState(preferences);
+  const [formData, setFormData] = useState<NotificationPreferencesForm | undefined>(preferences);
 
   const saveMutation = useMutation({
     mutationFn: async (data: typeof formData) => {

@@ -1,6 +1,7 @@
 // Health Check System - Real-time monitoring of system components
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeFunction } from '@/lib/api';
 
 export type HealthStatus = 'healthy' | 'degraded' | 'unhealthy' | 'unknown';
 
@@ -232,9 +233,7 @@ export function useHealthCheck(options: HealthCheckOptions = {}) {
     const startTime = Date.now();
     try {
       // Try to invoke a health check endpoint if it exists
-      const { error } = await supabase.functions.invoke('health-check', {
-        body: { ping: true },
-      });
+      const { error } = await invokeFunction('health-check', { ping: true },);
       
       const latency = Date.now() - startTime;
 

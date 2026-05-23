@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useSpeechRecognition } from './useSpeechRecognition';
 import { toast } from 'sonner';
+import { invokeFunction } from '@/lib/api';
 
 interface MeetingParticipant {
   id: string;
@@ -292,15 +293,13 @@ export function useMeetingIntelligence(
       // Generate AI summary if enabled
       let summary: string | undefined;
       if (generateSummary && transcript.length > 100) {
-        const { data } = await supabase.functions.invoke('analyze-meeting', {
-          body: {
+        const { data } = await invokeFunction('analyze-meeting', {
             meetingId: currentMeeting.id,
             transcript,
             participants: finalMeeting.participants,
             insights: finalMeeting.insights,
             generateSummary: true
-          }
-        });
+          });
 
         if (data?.summary) {
           summary = data.summary;
@@ -416,9 +415,7 @@ export function useMeetingIntelligence(
     if (!user) return null;
 
     try {
-      const { data, error } = await supabase.functions.invoke('generate-meeting-followup', {
-        body: { meetingId, userId: user.id }
-      });
+      const { data, error } = await invokeFunction('generate-meeting-followup', { meetingId, userId: user.id });
 
       if (error) throw error;
       return data?.followUpMessage || null;

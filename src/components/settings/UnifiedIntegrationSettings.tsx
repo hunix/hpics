@@ -34,6 +34,7 @@ import {
 import { cn } from '@/lib/utils';
 import { IntegrationHelpModal } from './IntegrationHelpModal';
 import { useTestIntegration } from '@/hooks/useTestIntegration';
+import { invokeFunction } from '@/lib/api';
 
 // ============================================================================
 // INTELLIGENCE READINESS SCORE
@@ -399,9 +400,7 @@ export function UnifiedIntegrationSettings() {
   const { data: secretStatus, isLoading: isLoadingSecrets } = useQuery({
     queryKey: ['secret-status', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('check-secrets', {
-        body: { secrets: getAllSecretKeys() }
-      });
+      const { data, error } = await invokeFunction('check-secrets', { secrets: getAllSecretKeys() });
       if (error) {
         console.warn('Could not check secret status:', error);
         return {};
@@ -438,9 +437,7 @@ export function UnifiedIntegrationSettings() {
   const saveSecret = async (secretKey: string, value: string) => {
     setSavingKey(secretKey);
     try {
-      const { error } = await supabase.functions.invoke('save-integration-secret', {
-        body: { secretName: secretKey, secretValue: value }
-      });
+      const { error } = await invokeFunction('save-integration-secret', { secretName: secretKey, secretValue: value });
       if (error) throw error;
       
       toast.success('Configuration saved', {

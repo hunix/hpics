@@ -7,10 +7,14 @@
  */
 
 import { useState, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
+import {
+  useNetworkGraphML,
+  useAnalyzeNetworkML,
+  type NetworkNode,
+  type NetworkEdge,
+  type NetworkCommunity as Community,
+  type NetworkPattern as PatternDetection,
+} from '@/hooks/intelligence/useNetworkGraphML';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -26,105 +30,13 @@ import {
   Shield, AlertTriangle, Eye, Sparkles
 } from 'lucide-react';
 
-interface NetworkNode {
-  id: string;
-  name: string;
-  type: 'contact' | 'organization' | 'group' | 'hub';
-  centrality: number;
-  betweenness: number;
-  community: number;
-  influence: number;
-  connections: number;
-}
-
-interface NetworkEdge {
-  source: string;
-  target: string;
-  weight: number;
-  type: 'professional' | 'personal' | 'inferred';
-}
-
-interface Community {
-  id: number;
-  name: string;
-  members: string[];
-  cohesion: number;
-  bridgeNodes: string[];
-  dominantTrait: string;
-}
-
-interface PatternDetection {
-  type: string;
-  description: string;
-  confidence: number;
-  affectedNodes: string[];
-  recommendation: string;
-}
-
 export function NetworkGraphMLPanel() {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  
   const [minCentrality, setMinCentrality] = useState(0.1);
   const [showInferred, setShowInferred] = useState(true);
   const [selectedCommunity, setSelectedCommunity] = useState<number | null>(null);
 
-  // Fetch network data
-  const { data: networkData, isLoading } = useQuery({
-    queryKey: ['network-graph-ml', user?.id],
-    queryFn: async () => {
-      // Fetch profiles
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, employer, job_title, is_active')
-        .eq('user_id', user!.id)
-        .eq('is_active', true);
-
-      // Fetch relationships
-      const { data: relationships } = await supabase
-        .from('contact_relationships')
-        .select('*')
-        .eq('user_id', user!.id);
-
-      // Fetch groups
-      const { data: groups } = await supabase
-        .from('contact_groups')
-        .select('id, name')
-        .eq('user_id', user!.id);
-
-      // Fetch group memberships
-      const { data: memberships } = await supabase
-        .from('contact_group_members')
-        .select('group_id, profile_id') as { data: any };
-
-
-      // Fetch network metrics if available
-      // Network metrics table doesn't exist - derive from relationships
-      const metrics: any[] = [];
-
-      return processNetworkData(profiles || [], relationships || [], groups || [], memberships || [], metrics || []);
-    },
-    enabled: !!user,
-  });
-
-  // Run ML analysis
-  const analysisMutation = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('analyze-network-ml', {
-        body: { userId: user!.id, analysisTypes: ['community', 'centrality', 'patterns'] },
-      });
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['network-graph-ml'] });
-      toast({ title: 'Network analysis complete' });
-    },
-    onError: (error) => {
-      toast({ title: 'Analysis failed', description: error.message, variant: 'destructive' });
-    },
-  });
+  const { data: networkData, isLoading } = useNetworkGraphML();
+  const analysisMutation = useAnalyzeNetworkML();
 
   // Filter nodes based on settings
   const filteredNodes = useMemo(() => {
@@ -553,82 +465,6 @@ export function NetworkGraphMLPanel() {
       </Tabs>
     </div>
   );
-}
-
-// Helper functions
-function processNetworkData(
-  profiles: any[], 
-  relationships: any[], 
-  groups: any[], 
-  memberships: any[],
-  metrics: any[]
-): { nodes: NetworkNode[]; edges: NetworkEdge[]; communities: Community[]; patterns: PatternDetection[] } {
-  // Build nodes from profiles
-  const nodes: NetworkNode[] = profiles.map(p => {
-    const metric = metrics.find(m => m.profile_id === p.id);
-    const connectionCount = relationships.filter(r => r.source_profile_id === p.id || r.target_profile_id === p.id).length;
-    const centrality = metric?.centrality_score || Math.min(connectionCount / 10, 1);
-    
-    return {
-      id: p.id,
-      name: `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Unknown',
-      type: centrality > 0.7 ? 'hub' : 'contact',
-      centrality,
-      betweenness: metric?.betweenness_centrality || centrality * 0.8,
-      community: metric?.community_id || 0,
-      influence: metric?.influence_score || centrality * 0.9,
-      connections: connectionCount,
-    };
-  });
-
-  // Build edges from relationships
-  const edges: NetworkEdge[] = relationships.map(r => ({
-    source: r.source_profile_id,
-    target: r.target_profile_id,
-    weight: r.relationship_strength || 1,
-    type: r.relationship_type === 'inferred' ? 'inferred' : 'professional',
-  }));
-
-  // Build communities from groups or detected clusters
-  const communities: Community[] = groups.map((g, idx) => {
-    const memberIds = memberships.filter(m => m.group_id === g.id).map(m => m.profile_id);
-    return {
-      id: idx,
-      name: g.name,
-      members: memberIds,
-      cohesion: 0.7 + Math.random() * 0.3,
-      bridgeNodes: memberIds.slice(0, Math.floor(memberIds.length * 0.2)),
-      dominantTrait: 'Professional Network',
-    };
-  });
-
-  // Generate sample patterns (in production, these come from ML analysis)
-  const patterns: PatternDetection[] = [];
-  
-  // Detect hub-and-spoke pattern
-  const hubs = nodes.filter(n => n.type === 'hub');
-  if (hubs.length > 0) {
-    patterns.push({
-      type: 'hub_and_spoke',
-      description: `Detected ${hubs.length} hub node(s) with high centrality scores`,
-      confidence: 0.85,
-      affectedNodes: hubs.map(h => h.id),
-      recommendation: 'Consider strengthening connections between hubs for network resilience',
-    });
-  }
-
-  // Detect isolated clusters
-  if (communities.length >= 2) {
-    patterns.push({
-      type: 'cluster_isolation',
-      description: 'Some communities have limited inter-cluster connections',
-      confidence: 0.72,
-      affectedNodes: communities.flatMap(c => c.bridgeNodes),
-      recommendation: 'Identify bridge-building opportunities between clusters',
-    });
-  }
-
-  return { nodes, edges, communities, patterns };
 }
 
 function getCommunityColor(id: number): string {
