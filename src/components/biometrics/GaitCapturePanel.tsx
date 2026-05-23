@@ -176,17 +176,26 @@ export function GaitCapturePanel({ profileId, profileName, onCapture }: GaitCapt
       // Update contact biometrics
       const { data: existing } = await supabase
         .from('contact_biometrics')
-        .select('id, gait_samples_count')
+        .select('id, gait_samples_count, gait_confidence')
         .eq('user_id', user.id)
         .eq('profile_id', profileId)
         .maybeSingle();
 
+      // Use the gait analyzer's measured quality_score as the
+      // canonical per-sample confidence. When multiple samples have
+      // already been captured, blend the rolling confidence so it
+      // stays representative rather than swinging with the last sample.
       if (existing) {
+        const priorCount = existing.gait_samples_count || 0;
+        const blendedConfidence = priorCount > 0
+          ? ((existing.gait_confidence ?? profile.qualityScore) * priorCount + profile.qualityScore) / (priorCount + 1)
+          : profile.qualityScore;
+
         await supabase
           .from('contact_biometrics')
           .update({
-            gait_samples_count: (existing.gait_samples_count || 0) + 1,
-            gait_confidence: Math.min(0.95, 0.4 + capturedProfiles.length * 0.15),
+            gait_samples_count: priorCount + 1,
+            gait_confidence: blendedConfidence,
             updated_at: new Date().toISOString()
           })
           .eq('id', existing.id);
@@ -197,7 +206,7 @@ export function GaitCapturePanel({ profileId, profileName, onCapture }: GaitCapt
             user_id: user.id,
             profile_id: profileId,
             gait_samples_count: 1,
-            gait_confidence: 0.4
+            gait_confidence: profile.qualityScore,
           }]);
       }
 

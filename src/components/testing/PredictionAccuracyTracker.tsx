@@ -78,11 +78,13 @@ export function PredictionAccuracyTracker() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <div className="text-2xl font-bold">{(m.accuracy * 100).toFixed(0)}%</div>
-                <Progress value={m.accuracy * 100} className="h-2" />
+                <div className="text-2xl font-bold">
+                  {m.verifiedPredictions > 0 ? `${(m.accuracy * 100).toFixed(0)}%` : '—'}
+                </div>
+                <Progress value={m.verifiedPredictions > 0 ? m.accuracy * 100 : 0} className="h-2" />
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>P: {(m.precision * 100).toFixed(0)}%</span>
-                  <span>R: {(m.recall * 100).toFixed(0)}%</span>
+                  <span>P: {m.precision !== null ? `${(m.precision * 100).toFixed(0)}%` : '—'}</span>
+                  <span>R: {m.recall !== null ? `${(m.recall * 100).toFixed(0)}%` : '—'}</span>
                   <span>{m.verifiedPredictions}/{m.totalPredictions}</span>
                 </div>
               </div>
@@ -178,29 +180,38 @@ export function PredictionAccuracyTracker() {
               <CardDescription>Compare predicted probabilities vs actual frequencies</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart 
-                    data={[
-                      { bin: '0-20%', predicted: 0.1, actual: 0.12 },
-                      { bin: '20-40%', predicted: 0.3, actual: 0.28 },
-                      { bin: '40-60%', predicted: 0.5, actual: 0.52 },
-                      { bin: '60-80%', predicted: 0.7, actual: 0.65 },
-                      { bin: '80-100%', predicted: 0.9, actual: 0.85 },
-                    ]}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="bin" className="text-xs" />
-                    <YAxis tickFormatter={(v) => `${(v * 100).toFixed(0)}%`} className="text-xs" />
-                    <Tooltip formatter={(v: number) => `${(v * 100).toFixed(1)}%`} />
-                    <Bar dataKey="predicted" name="Predicted" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="actual" name="Actual" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              <p className="text-sm text-muted-foreground mt-4 text-center">
-                Well-calibrated models show predicted and actual bars at similar heights
-              </p>
+              {metrics?.calibration && metrics.calibration.some((c) => c.sampleCount > 0) ? (
+                <>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={metrics.calibration}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis dataKey="bin" className="text-xs" />
+                        <YAxis tickFormatter={(v) => `${(v * 100).toFixed(0)}%`} className="text-xs" />
+                        <Tooltip
+                          formatter={(v, name) => {
+                            if (v === null || v === undefined) return ['no samples', name as string];
+                            return [`${(Number(v) * 100).toFixed(1)}%`, name as string];
+                          }}
+                          labelFormatter={(label, payload) => {
+                            const sample = (payload?.[0]?.payload as { sampleCount?: number } | undefined)?.sampleCount ?? 0;
+                            return `${label} · ${sample} sample${sample === 1 ? '' : 's'}`;
+                          }}
+                        />
+                        <Bar dataKey="predicted" name="Predicted" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="actual" name="Actual" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-4 text-center">
+                    Well-calibrated models show predicted and actual bars at similar heights
+                  </p>
+                </>
+              ) : (
+                <div className="py-8 text-center text-sm text-muted-foreground">
+                  No verified churn predictions in this window yet — calibration plot will populate once outcomes are recorded.
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

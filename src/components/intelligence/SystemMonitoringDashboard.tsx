@@ -1,53 +1,58 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  Activity, AlertTriangle, CheckCircle, XCircle, 
-  RefreshCw, Shield, Zap, Database, Cpu, Clock
+import {
+  Activity, AlertTriangle, CheckCircle, XCircle,
+  RefreshCw, Shield, Database, Cpu, Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { 
-  getAllCircuitBreakerStats, 
+import {
+  getAllCircuitBreakerStats,
   resetAllCircuitBreakers,
   type CircuitBreakerStats,
-  type CircuitState 
+  type CircuitState
 } from '@/lib/circuitBreaker';
-
-interface SystemMetric {
-  name: string;
-  value: number;
-  unit: string;
-  status: 'healthy' | 'warning' | 'critical';
-  trend?: 'up' | 'down' | 'stable';
-}
 
 export function SystemMonitoringDashboard() {
   const [circuitStats, setCircuitStats] = useState<Record<string, CircuitBreakerStats>>({});
-  const [systemMetrics, setSystemMetrics] = useState<SystemMetric[]>([]);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
   useEffect(() => {
     const updateStats = () => {
       setCircuitStats(getAllCircuitBreakerStats());
       setLastUpdate(new Date());
-      
-      // Simulate system metrics (in production, these would come from actual monitoring)
-      setSystemMetrics([
-        { name: 'API Latency', value: Math.random() * 200 + 50, unit: 'ms', status: 'healthy', trend: 'stable' },
-        { name: 'Error Rate', value: Math.random() * 2, unit: '%', status: 'healthy', trend: 'down' },
-        { name: 'Queue Depth', value: Math.floor(Math.random() * 50), unit: 'items', status: 'healthy', trend: 'stable' },
-        { name: 'Memory Usage', value: 60 + Math.random() * 20, unit: '%', status: 'healthy', trend: 'up' },
-        { name: 'Active Connections', value: Math.floor(Math.random() * 100 + 20), unit: '', status: 'healthy', trend: 'stable' },
-      ]);
     };
 
     updateStats();
     const interval = setInterval(updateStats, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  // Real metrics derived from the in-memory circuit-breaker registry.
+  // No fake latency/memory/queue numbers — we don't have a metrics
+  // pipeline yet, so we don't pretend to.
+  const realMetrics = useMemo(() => {
+    const all = Object.values(circuitStats);
+    const totalRequests = all.reduce((sum, s) => sum + s.totalRequests, 0);
+    const totalFailures = all.reduce((sum, s) => sum + s.failures, 0);
+    const totalSuccesses = all.reduce((sum, s) => sum + s.successes, 0);
+    const openCount = all.filter((s) => s.state === 'open').length;
+    const halfOpenCount = all.filter((s) => s.state === 'half-open').length;
+    const closedCount = all.filter((s) => s.state === 'closed').length;
+    const overallFailureRate = totalRequests > 0 ? totalFailures / totalRequests : 0;
+    return {
+      totalRequests,
+      totalFailures,
+      totalSuccesses,
+      openCount,
+      halfOpenCount,
+      closedCount,
+      overallFailureRate,
+      hasData: all.length > 0,
+    };
+  }, [circuitStats]);
 
   const getStateColor = (state: CircuitState) => {
     switch (state) {
@@ -65,19 +70,10 @@ export function SystemMonitoringDashboard() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'healthy': return 'text-green-500';
-      case 'warning': return 'text-yellow-500';
-      case 'critical': return 'text-red-500';
-      default: return 'text-muted-foreground';
-    }
-  };
-
-  const overallHealth = Object.values(circuitStats).every(s => s.state === 'closed') 
-    ? 'healthy' 
-    : Object.values(circuitStats).some(s => s.state === 'open') 
-      ? 'critical' 
+  const overallHealth = Object.values(circuitStats).every(s => s.state === 'closed')
+    ? 'healthy'
+    : Object.values(circuitStats).some(s => s.state === 'open')
+      ? 'critical'
       : 'warning';
 
   return (
@@ -111,23 +107,53 @@ export function SystemMonitoringDashboard() {
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* System Metrics Grid */}
-        <div className="grid grid-cols-5 gap-4">
-          {systemMetrics.map((metric) => (
-            <Card key={metric.name} className="p-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-muted-foreground">{metric.name}</span>
-                {metric.trend === 'up' && <Activity className="h-3 w-3 text-yellow-500" />}
-                {metric.trend === 'down' && <Activity className="h-3 w-3 text-green-500 rotate-180" />}
-                {metric.trend === 'stable' && <Activity className="h-3 w-3 text-muted-foreground" />}
+        {/* Real metrics derived from the local circuit-breaker registry */}
+        {realMetrics.hasData ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card className="p-3">
+              <div className="text-xs text-muted-foreground mb-1">Total Requests</div>
+              <div className="text-lg font-bold">{realMetrics.totalRequests.toLocaleString()}</div>
+            </Card>
+            <Card className="p-3">
+              <div className="text-xs text-muted-foreground mb-1">Failure Rate</div>
+              <div className={cn(
+                'text-lg font-bold',
+                realMetrics.overallFailureRate >= 0.2 ? 'text-red-500'
+                  : realMetrics.overallFailureRate >= 0.05 ? 'text-yellow-500'
+                  : 'text-green-500'
+              )}>
+                {(realMetrics.overallFailureRate * 100).toFixed(2)}%
               </div>
-              <div className={cn("text-lg font-bold", getStatusColor(metric.status))}>
-                {metric.value.toFixed(metric.unit === '%' || metric.unit === 'ms' ? 1 : 0)}
-                <span className="text-xs font-normal ml-1">{metric.unit}</span>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                {realMetrics.totalFailures.toLocaleString()} failed
               </div>
             </Card>
-          ))}
-        </div>
+            <Card className="p-3">
+              <div className="text-xs text-muted-foreground mb-1">Successful</div>
+              <div className="text-lg font-bold text-green-500">
+                {realMetrics.totalSuccesses.toLocaleString()}
+              </div>
+            </Card>
+            <Card className="p-3">
+              <div className="text-xs text-muted-foreground mb-1">Breaker Health</div>
+              <div className="text-sm font-medium">
+                <span className="text-green-500">{realMetrics.closedCount} closed</span>
+                {realMetrics.halfOpenCount > 0 && (
+                  <span className="text-yellow-500"> · {realMetrics.halfOpenCount} half</span>
+                )}
+                {realMetrics.openCount > 0 && (
+                  <span className="text-red-500"> · {realMetrics.openCount} open</span>
+                )}
+              </div>
+            </Card>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+            <Activity className="h-6 w-6 mx-auto mb-2 opacity-50" />
+            No circuit-breaker traffic recorded yet. Metrics will appear here once
+            outbound calls go through the breaker wrappers.
+          </div>
+        )}
 
         {/* Circuit Breakers */}
         <div>

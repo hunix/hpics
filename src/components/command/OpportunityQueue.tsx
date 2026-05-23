@@ -28,8 +28,8 @@ interface Opportunity {
   profileName: string;
   profileId: string;
   priority: 'critical' | 'high' | 'medium' | 'low';
-  successProbability: number;
-  optimalTiming: Date;
+  successProbability: number | null;
+  optimalTiming: Date | null;
   expiresAt: Date;
   principleType: string;
   status: 'pending' | 'in_progress' | 'completed';
@@ -124,15 +124,17 @@ export function OpportunityQueue({ compact = false }: OpportunityQueueProps) {
         id: rec.id,
         title: rec.title,
         description: rec.description,
-        profileName: rec.profiles 
-          ? `${rec.profiles.first_name || ''} ${rec.profiles.last_name || ''}`.trim() 
+        profileName: rec.profiles
+          ? `${rec.profiles.first_name || ''} ${rec.profiles.last_name || ''}`.trim()
           : 'Unknown',
         profileId: rec.profile_id || '',
-        priority: rec.priority_score > 80 ? 'critical' : 
-                  rec.priority_score > 60 ? 'high' : 
+        priority: rec.priority_score > 80 ? 'critical' :
+                  rec.priority_score > 60 ? 'high' :
                   rec.priority_score > 40 ? 'medium' : 'low',
-        successProbability: rec.success_probability || Math.random() * 100,
-        optimalTiming: new Date(Date.now() + Math.random() * 86400000),
+        // Null when the recommendation engine hasn't scored this row yet;
+        // the UI shows "—" rather than a fabricated percentage.
+        successProbability: rec.success_probability ?? null,
+        optimalTiming: null,
         expiresAt: rec.expires_at ? new Date(rec.expires_at) : new Date(Date.now() + 86400000 * 7),
         principleType: rec.recommendation_type || 'reciprocity',
         status: (rec.status as Opportunity['status']) || 'pending'
@@ -242,14 +244,18 @@ export function OpportunityQueue({ compact = false }: OpportunityQueueProps) {
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {formatDistanceToNow(opp.optimalTiming, { addSuffix: true })}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <TrendingUp className="h-3 w-3" />
-                        {opp.successProbability.toFixed(0)}% success
-                      </span>
+                      {opp.optimalTiming && (
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {formatDistanceToNow(opp.optimalTiming, { addSuffix: true })}
+                        </span>
+                      )}
+                      {opp.successProbability !== null && (
+                        <span className="flex items-center gap-1">
+                          <TrendingUp className="h-3 w-3" />
+                          {opp.successProbability.toFixed(0)}% success
+                        </span>
+                      )}
                     </div>
                     {opp.status === 'completed' ? (
                       <CheckCircle2 className="h-4 w-4 text-emerald-500" />
@@ -276,7 +282,7 @@ export function OpportunityQueue({ compact = false }: OpportunityQueueProps) {
                     )}
                   </div>
 
-                  {!compact && (
+                  {!compact && opp.successProbability !== null && (
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs">
                         <span className="text-muted-foreground">Success Probability</span>

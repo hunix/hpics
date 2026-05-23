@@ -117,7 +117,11 @@ export function BiometricCommandCenter({ profileId, profileName }: BiometricComm
     },
     {
       id: 'body', name: 'Body Biometrics', icon: UserSquare2, color: 'text-purple-500', bgColor: 'bg-purple-500/10',
-      sampleCount: biometrics?.body_measurements ? 1 : 0, confidence: biometrics?.body_measurements ? 0.7 : null,
+      sampleCount: biometrics?.body_measurements ? 1 : 0,
+      // No dedicated confidence column on contact_biometrics for body
+      // measurements — we don't fabricate a 0.7 fallback. Display "—"
+      // until a real confidence field is added and populated.
+      confidence: null,
       isEnrolled: !!biometrics?.body_measurements
     },
     {
@@ -132,7 +136,10 @@ export function BiometricCommandCenter({ profileId, profileName }: BiometricComm
     },
     {
       id: 'fingerprint', name: 'Fingerprints', icon: Fingerprint, color: 'text-red-500', bgColor: 'bg-red-500/10',
-      sampleCount: biometrics?.fingerprint_samples_count || 0, confidence: biometrics?.fingerprint_data ? 0.9 : null,
+      sampleCount: biometrics?.fingerprint_samples_count || 0,
+      // Same as body — no fingerprint_confidence column exists. Hide
+      // rather than display the old hardcoded 0.9.
+      confidence: null,
       isEnrolled: !!biometrics?.fingerprint_data
     },
     {

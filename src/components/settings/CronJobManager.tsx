@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { invokeFunction } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Play, Clock, Calendar, Bell, FileText, Brain, Zap } from 'lucide-react';
+import { useAppSetting, useSaveAppSetting } from '@/hooks/settings/useUserPreferences';
 
 interface CronJob {
   id: string;
@@ -72,28 +73,47 @@ export function CronJobManager() {
   const { toast } = useToast();
   const [runningJobs, setRunningJobs] = useState<Set<string>>(new Set());
 
-  // This would typically fetch from a cron_jobs table if you have one
-  // For now, we'll use local state
-  const [jobStates, setJobStates] = useState<Record<string, boolean>>(() => {
-    const saved = localStorage.getItem('cronJobStates');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return {};
-      }
+  // Cron toggle state persists to app_settings (one row per user, JSON
+  // payload). Defaults all jobs to enabled until the user changes them.
+  const { data: settingRow } = useAppSetting('cron_job_states');
+  const saveSetting = useSaveAppSetting();
+  const [jobStates, setJobStates] = useState<Record<string, boolean>>(() =>
+    defaultJobs.reduce((acc, job) => ({ ...acc, [job.id]: true }), {})
+  );
+
+  useEffect(() => {
+    const rawSettingValue = (settingRow as { setting_value?: string | null } | null)?.setting_value;
+    if (!rawSettingValue) return;
+    try {
+      const parsed = JSON.parse(rawSettingValue) as Record<string, boolean>;
+      setJobStates((prev) => ({ ...prev, ...parsed }));
+    } catch {
+      // Ignore malformed payloads; defaults stay.
     }
-    return defaultJobs.reduce((acc, job) => ({ ...acc, [job.id]: true }), {});
-  });
+  }, [settingRow]);
 
   const toggleJob = (jobId: string) => {
     const newStates = { ...jobStates, [jobId]: !jobStates[jobId] };
     setJobStates(newStates);
-    localStorage.setItem('cronJobStates', JSON.stringify(newStates));
-    toast({
-      title: newStates[jobId] ? 'Job enabled' : 'Job disabled',
-      description: `${defaultJobs.find(j => j.id === jobId)?.name} has been ${newStates[jobId] ? 'enabled' : 'disabled'}`,
-    });
+    saveSetting.mutate(
+      { key: 'cron_job_states', value: newStates },
+      {
+        onSuccess: () =>
+          toast({
+            title: newStates[jobId] ? 'Job enabled' : 'Job disabled',
+            description: `${defaultJobs.find((j) => j.id === jobId)?.name} has been ${newStates[jobId] ? 'enabled' : 'disabled'}`,
+          }),
+        onError: (error: Error) => {
+          // Roll back on failure so the toggle reflects DB truth.
+          setJobStates(jobStates);
+          toast({
+            title: 'Failed to save',
+            description: error.message,
+            variant: 'destructive',
+          });
+        },
+      }
+    );
   };
 
   const runJobNow = async (job: Omit<CronJob, 'enabled'>) => {

@@ -79,3 +79,24 @@ export function useAppSetting(settingKey: string) {
     },
   });
 }
+
+export function useSaveAppSetting() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ key, value }: { key: string; value: unknown }) => {
+      if (!user?.id) throw new Error('Not authenticated');
+      const { error } = await supabase
+        .from('app_settings')
+        .upsert({
+          user_id: user.id,
+          setting_key: key,
+          setting_value: typeof value === 'string' ? value : JSON.stringify(value),
+        });
+      if (error) throw error;
+    },
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['app-settings', vars.key] });
+    },
+  });
+}

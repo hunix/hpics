@@ -53,7 +53,86 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       case "analyze_capture": {
-        return new Response(JSON.stringify({ captureId: body.capture_id, analysis: { objects: [], threats: [], confidence: 0.85 } }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (!body.capture_id) {
+          return new Response(JSON.stringify({ error: "capture_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        const { data: capture, error: capErr } = await supabase
+          .from("aerial_captures")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("id", body.capture_id)
+          .single();
+        if (capErr || !capture) {
+          return new Response(JSON.stringify({ error: "Capture not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        if (!capture.media_url) {
+          return new Response(JSON.stringify({ error: "Capture has no media_url to analyze" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        const apiKey = Deno.env.get("LOVABLE_API_KEY");
+        if (!apiKey) {
+          return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured — cannot run vision analysis" }), { status: 501, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        const visionPrompt = `Analyze this aerial/drone image and identify:
+1. Distinct objects (vehicles, people, structures, equipment) with approximate counts.
+2. Anything that looks like a threat or security concern (weapons, surveillance equipment, unauthorized presence, fire, hazards).
+3. The overall scene context (urban, rural, industrial, etc).
+
+Respond ONLY with a JSON object of the form:
+{
+  "objects": [{ "label": string, "count": number, "confidence": 0..1 }],
+  "threats": [{ "type": string, "severity": "low"|"medium"|"high", "confidence": 0..1, "description": string }],
+  "scene": string,
+  "confidence": 0..1
+}`;
+
+        const visionRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-pro",
+            messages: [
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: visionPrompt },
+                  { type: "image_url", image_url: { url: capture.media_url } },
+                ],
+              },
+            ],
+          }),
+        });
+
+        if (!visionRes.ok) {
+          const errText = await visionRes.text();
+          return new Response(JSON.stringify({ error: `Vision model error: ${visionRes.status}`, detail: errText }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        const visionJson = await visionRes.json();
+        const rawContent = visionJson?.choices?.[0]?.message?.content ?? "";
+        // Strip code fences if the model wrapped JSON in them.
+        const cleaned = rawContent.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
+
+        let analysis: Record<string, unknown>;
+        try {
+          analysis = JSON.parse(cleaned);
+        } catch {
+          return new Response(JSON.stringify({ error: "Vision model returned non-JSON output", raw: rawContent.slice(0, 500) }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        // Persist the analysis on the capture row for later retrieval.
+        await supabase
+          .from("aerial_captures")
+          .update({ analysis: { ...analysis, analyzed_at: new Date().toISOString() } })
+          .eq("id", body.capture_id)
+          .eq("user_id", user.id);
+
+        return new Response(JSON.stringify({ captureId: body.capture_id, analysis }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       default:
         return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });

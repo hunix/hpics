@@ -36,32 +36,13 @@ export function MicroExpressionAnalyzer({ profileId, mediaUrl }: MicroExpression
     totalReadings
   } = useMicroExpressionAnalysis(profileId);
 
-  // SpotFormer enhanced analysis on existing readings
-  const spotFormerResults = useMemo((): SpotFormerResult | null => {
-    if (readings.length < 3) return null;
-    try {
-      // Convert readings to optical flow frames for SpotFormer
-      const frames = readings.slice(0, 20).map((r, i) => ({
-        timestamp: r.timestampMs || i * 33,
-        flowMagnitude: r.intensityScore || 0,
-        flowDirection: Math.random() * Math.PI * 2,
-        facialRegions: {
-          upperFace: (r.facsActionUnits && Object.keys(r.facsActionUnits).filter(k => parseInt(k) <= 7).length > 0) ? 0.7 : 0.2,
-          lowerFace: (r.facsActionUnits && Object.keys(r.facsActionUnits).filter(k => parseInt(k) > 7).length > 0) ? 0.7 : 0.2,
-          eyeRegion: 0.5,
-          mouthRegion: 0.4,
-        },
-      }));
-      return spotFormerEngine.analyzeFrameSequence(frames.map(f => ({
-        landmarks: [[f.facialRegions.upperFace, f.facialRegions.lowerFace, f.facialRegions.eyeRegion, f.facialRegions.mouthRegion]],
-        timestamp: f.timestamp,
-        features: [f.flowMagnitude, f.flowDirection],
-      })), 30);
-    } catch (e) {
-      if (e instanceof Error) console.warn('[SpotFormer] Analysis failed:', e.message);
-      return null;
-    }
-  }, [readings]);
+  // SpotFormer requires per-frame optical-flow direction that we don't
+  // currently persist on the readings. Skip the enhanced analysis until
+  // an actual flow-extraction pipeline lands — better than feeding the
+  // model fabricated direction data and presenting the result as
+  // "real-time deception detection".
+  const spotFormerResults = null as SpotFormerResult | null;
+  void spotFormerEngine;
 
   // Transformer emotion recognition on latest reading
   const granularEmotions = useMemo((): EmotionAnalysisResult | null => {

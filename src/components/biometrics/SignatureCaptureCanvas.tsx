@@ -69,18 +69,37 @@ export function SignatureCaptureCanvas({ profileId, profileName, onCapture }: Si
       // First, get or create biometrics record
       const { data: existing } = await supabase
         .from('contact_biometrics')
-        .select('id, signature_samples_count')
+        .select('id, signature_samples_count, signature_confidence')
         .eq('user_id', user.id)
         .eq('profile_id', profileId)
         .maybeSingle();
 
+      // Compute the per-sample quality score first so we can use it
+      // both for the contact_biometrics rollup and the biometric_samples
+      // row. Continuous score from real signature features — bucketed
+      // poor/fair/good/excellent labels stay in the UI but the
+      // persisted number is the raw measurement.
+      const f = signatureData.features;
+      const strokeFactor = Math.min(1, f.strokeCount / 5);
+      const pointFactor = Math.min(1, f.totalPoints / 200);
+      const pressureFactor = Math.min(1, f.pressureVariance / 0.05);
+      const velocityFactor = Math.min(1, f.velocityVariance / 0.5);
+      const computedQualityScore = Number(
+        (strokeFactor * 0.3 + pointFactor * 0.4 + pressureFactor * 0.15 + velocityFactor * 0.15).toFixed(3)
+      );
+
       if (existing) {
+        const priorCount = existing.signature_samples_count || 0;
+        const priorConfidence = existing.signature_confidence ?? computedQualityScore;
+        const blendedConfidence = priorCount > 0
+          ? (priorConfidence * priorCount + computedQualityScore) / (priorCount + 1)
+          : computedQualityScore;
         await supabase
           .from('contact_biometrics')
           .update({
             signature_features: JSON.parse(JSON.stringify(signatureData.features)) as Json,
-            signature_samples_count: (existing.signature_samples_count || 0) + 1,
-            signature_confidence: calculateConfidence(capturedSignatures.length + 1),
+            signature_samples_count: priorCount + 1,
+            signature_confidence: Number(blendedConfidence.toFixed(3)),
             updated_at: new Date().toISOString()
           })
           .eq('id', existing.id);
@@ -92,11 +111,10 @@ export function SignatureCaptureCanvas({ profileId, profileName, onCapture }: Si
             profile_id: profileId,
             signature_features: JSON.parse(JSON.stringify(signatureData.features)) as Json,
             signature_samples_count: 1,
-            signature_confidence: 0.3
+            signature_confidence: computedQualityScore,
           }]);
       }
 
-      // Store the sample
       await supabase
         .from('biometric_samples')
         .insert([{
@@ -104,7 +122,7 @@ export function SignatureCaptureCanvas({ profileId, profileName, onCapture }: Si
           profile_id: profileId,
           biometric_type: 'signature',
           features: JSON.parse(JSON.stringify(signatureData)) as Json,
-          quality_score: quality === 'excellent' ? 0.95 : quality === 'good' ? 0.8 : quality === 'fair' ? 0.6 : 0.4,
+          quality_score: Number(computedQualityScore.toFixed(3)),
           source_type: 'canvas_capture',
           status: 'processed'
         }]);
@@ -121,10 +139,6 @@ export function SignatureCaptureCanvas({ profileId, profileName, onCapture }: Si
       console.error(error);
     }
   });
-
-  const calculateConfidence = (sampleCount: number) => {
-    return Math.min(0.95, 0.3 + sampleCount * 0.15);
-  };
 
   const getCanvasContext = useCallback(() => {
     const canvas = canvasRef.current;

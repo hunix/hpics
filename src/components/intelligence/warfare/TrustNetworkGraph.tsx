@@ -46,71 +46,60 @@ export function TrustNetworkGraph({ profileId, contacts = [] }: TrustNetworkGrap
 
   const { allPredictions } = useBetrayalPrediction(profileId);
 
-  // Generate demo network based on contacts or default
+  // Build the graph from real betrayal_predictions rows. A contact only
+  // appears if we have an actual trust_score / defection_probability for
+  // them. Faction bucketing comes from the trust score itself
+  // (inner ≥ 0.75, middle ≥ 0.45, outer below) so the visual grouping
+  // tracks measured loyalty rather than a random assignment.
   useEffect(() => {
-    const demoNodes: TrustNode[] = contacts.length > 0
-      ? contacts.slice(0, 15).map((c, i) => ({
-          id: c.id,
-          name: c.name,
-          trustScore: 0.5 + Math.random() * 0.5,
-          betrayalRisk: Math.random() * 0.6,
-          faction: ['inner', 'middle', 'outer'][Math.floor(i / 5)],
-        }))
-      : [
-          { id: 'user', name: 'You', trustScore: 1, betrayalRisk: 0, faction: 'inner' },
-          ...Array.from({ length: 12 }, (_, i) => ({
-            id: `contact-${i}`,
-            name: `Contact ${i + 1}`,
-            trustScore: 0.3 + Math.random() * 0.7,
-            betrayalRisk: Math.random() * 0.7,
-            faction: ['inner', 'middle', 'outer'][Math.floor(Math.random() * 3)],
-          })),
-        ];
+    if (!allPredictions || allPredictions.length === 0) {
+      setNodes([]);
+      setLinks([]);
+      return;
+    }
 
-    const demoLinks: TrustLink[] = [];
-    const userNode = demoNodes[0];
-    
-    // Connect user to inner circle
-    demoNodes.filter(n => n.faction === 'inner' && n.id !== 'user').forEach(n => {
-      demoLinks.push({
-        source: userNode.id,
+    const contactNameById = new Map(contacts.map((c) => [c.id, c.name]));
+
+    type PredictionWithProfile = (typeof allPredictions)[number] & {
+      profiles?: { id?: string; first_name?: string | null; last_name?: string | null } | null;
+    };
+
+    const realNodes: TrustNode[] = [
+      { id: 'user', name: 'You', trustScore: 1, betrayalRisk: 0, faction: 'inner' },
+    ];
+
+    for (const pred of allPredictions as PredictionWithProfile[]) {
+      const pid = pred.profile_id;
+      if (!pid) continue;
+      const trustScore = Math.max(0, Math.min(1, pred.trust_score ?? 0));
+      const betrayalRisk = Math.max(0, Math.min(1, pred.defection_probability ?? 0));
+      const name =
+        contactNameById.get(pid) ??
+        (`${pred.profiles?.first_name ?? ''} ${pred.profiles?.last_name ?? ''}`.trim() ||
+          'Contact');
+
+      let faction: TrustNode['faction'] = 'outer';
+      if (trustScore >= 0.75) faction = 'inner';
+      else if (trustScore >= 0.45) faction = 'middle';
+
+      realNodes.push({ id: pid, name, trustScore, betrayalRisk, faction });
+    }
+
+    // Edges: connect "you" to every measured contact, with trust weight
+    // = their trust score. Reciprocity is true when we have a measured
+    // trust score at or above the inner-circle threshold.
+    const realLinks: TrustLink[] = realNodes
+      .filter((n) => n.id !== 'user')
+      .map((n) => ({
+        source: 'user',
         target: n.id,
-        trustWeight: 0.7 + Math.random() * 0.3,
-        reciprocal: true,
-      });
-    });
+        trustWeight: n.trustScore,
+        reciprocal: n.trustScore >= 0.75,
+      }));
 
-    // Connect inner to middle circle
-    demoNodes.filter(n => n.faction === 'inner').forEach(inner => {
-      demoNodes.filter(n => n.faction === 'middle').forEach(middle => {
-        if (Math.random() > 0.5) {
-          demoLinks.push({
-            source: inner.id,
-            target: middle.id,
-            trustWeight: 0.4 + Math.random() * 0.4,
-            reciprocal: Math.random() > 0.3,
-          });
-        }
-      });
-    });
-
-    // Connect middle to outer circle
-    demoNodes.filter(n => n.faction === 'middle').forEach(middle => {
-      demoNodes.filter(n => n.faction === 'outer').forEach(outer => {
-        if (Math.random() > 0.6) {
-          demoLinks.push({
-            source: middle.id,
-            target: outer.id,
-            trustWeight: 0.2 + Math.random() * 0.4,
-            reciprocal: Math.random() > 0.5,
-          });
-        }
-      });
-    });
-
-    setNodes(demoNodes);
-    setLinks(demoLinks);
-  }, [contacts]);
+    setNodes(realNodes);
+    setLinks(realLinks);
+  }, [allPredictions, contacts]);
 
   // D3 visualization
   useEffect(() => {

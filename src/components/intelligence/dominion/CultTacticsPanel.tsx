@@ -95,14 +95,11 @@ export function CultTacticsPanel({ profileId }: CultTacticsPanelProps) {
     information: biteMetrics.informationControl / 100,
     thought: biteMetrics.thoughtControl / 100,
     emotional: biteMetrics.emotionalControl / 100,
-  } : {
-    behavior: 0.65,
-    information: 0.72,
-    thought: 0.58,
-    emotional: 0.80,
-  };
+  } : null;
 
-  const overallControl = Object.values(biteScores).reduce((a, b) => a + b, 0) / 4;
+  const overallControl = biteScores
+    ? Object.values(biteScores).reduce((a, b) => a + b, 0) / 4
+    : 0;
   const phaseInfo = getPhaseInfo(totalControlScore || overallControl * 100);
 
   const getControlLevel = (score: number) => {
@@ -120,6 +117,24 @@ export function CultTacticsPanel({ profileId }: CultTacticsPanelProps) {
       <Card className="border-orange-500/30 bg-gradient-to-br from-orange-950/20 to-background">
         <CardContent className="flex items-center justify-center py-12">
           <div className="animate-pulse text-muted-foreground">Loading BITE metrics...</div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!biteScores) {
+    return (
+      <Card className="border-orange-500/30 bg-gradient-to-br from-orange-950/20 to-background">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-orange-400">
+            <Users className="h-5 w-5" />
+            BITE Model Control Framework
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-center py-8 text-sm text-muted-foreground">
+          No BITE measurements recorded for this profile yet. Run a tactical
+          assessment to populate behavior, information, thought, and emotional
+          control scores.
         </CardContent>
       </Card>
     );
@@ -213,14 +228,14 @@ export function CultTacticsPanel({ profileId }: CultTacticsPanelProps) {
                       
                       <div className="space-y-1">
                         {category.tactics.map((tactic, index) => {
-                          const matchingTactic = categoryTactics.find(t => t.isActive);
+                          const isActive = categoryTactics.some((t) => t.isActive);
                           return (
-                            <div 
+                            <div
                               key={index}
                               className="flex items-center gap-2 text-xs text-muted-foreground"
                             >
                               <div className={`w-1.5 h-1.5 rounded-full ${
-                                matchingTactic?.isActive || Math.random() > 0.3 ? 'bg-green-500' : 'bg-muted'
+                                isActive ? 'bg-green-500' : 'bg-muted'
                               }`} />
                               <span>{tactic}</span>
                             </div>

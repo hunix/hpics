@@ -88,30 +88,36 @@ export function PowerMatrix({ compact = false }: PowerMatrixProps) {
 
       if (!profiles) return [];
 
-      // Use power analysis data if available, otherwise calculate
+      // Only include contacts where the power analysis run produced
+      // real scores. Contacts without an analysis are omitted rather
+      // than shown with fabricated metrics.
       const analysisResults = (powerAnalysis as Record<string, unknown> | null)?.network_metrics as Record<string, unknown> | undefined;
-      const contactScores = (analysisResults?.contact_scores as Record<string, { power: number; vulnerability: number }>) || {};
+      const contactScores = (analysisResults?.contact_scores as Record<string, { power: number; vulnerability: number; trend?: 'rising' | 'stable' | 'falling' }>) || {};
 
-      return profiles.map((profile: { id: string; first_name: string | null; last_name: string | null }) => {
-        const scores = contactScores[profile.id];
-        const powerScore = scores?.power ?? Math.random() * 100;
-        const vulnerabilityScore = scores?.vulnerability ?? Math.random() * 100;
-        
-        let quadrant: PowerContact['quadrant'] = 'monitor';
-        if (powerScore > 50 && vulnerabilityScore > 50) quadrant = 'leverage';
-        else if (powerScore > 50 && vulnerabilityScore <= 50) quadrant = 'nurture';
-        else if (powerScore <= 50 && vulnerabilityScore > 50) quadrant = 'defend';
-        
-        return {
-          id: profile.id,
-          name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown',
-          powerScore,
-          vulnerabilityScore,
-          influenceLevel: powerScore > 70 ? 'high' : powerScore > 40 ? 'medium' : 'low',
-          trend: Math.random() > 0.6 ? 'rising' : Math.random() > 0.3 ? 'stable' : 'falling',
-          quadrant
-        } as PowerContact;
-      });
+      return profiles
+        .map((profile: { id: string; first_name: string | null; last_name: string | null }) => {
+          const scores = contactScores[profile.id];
+          if (!scores) return null;
+
+          const powerScore = scores.power;
+          const vulnerabilityScore = scores.vulnerability;
+
+          let quadrant: PowerContact['quadrant'] = 'monitor';
+          if (powerScore > 50 && vulnerabilityScore > 50) quadrant = 'leverage';
+          else if (powerScore > 50 && vulnerabilityScore <= 50) quadrant = 'nurture';
+          else if (powerScore <= 50 && vulnerabilityScore > 50) quadrant = 'defend';
+
+          return {
+            id: profile.id,
+            name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown',
+            powerScore,
+            vulnerabilityScore,
+            influenceLevel: powerScore > 70 ? 'high' : powerScore > 40 ? 'medium' : 'low',
+            trend: scores.trend ?? 'stable',
+            quadrant,
+          } as PowerContact;
+        })
+        .filter((c): c is PowerContact => c !== null);
     },
     enabled: !!user?.id
   });
@@ -209,6 +215,13 @@ export function PowerMatrix({ compact = false }: PowerMatrixProps) {
 
         {/* Contact List */}
         <ScrollArea className={cn(compact ? 'h-[140px]' : 'h-[400px]')}>
+          {contacts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center text-sm text-muted-foreground">
+              <Crown className="h-8 w-8 mb-2 opacity-50" />
+              <p>No power-scored contacts yet.</p>
+              <p className="text-xs mt-1">Run "Analyze" to compute power and vulnerability for your network.</p>
+            </div>
+          ) : (
           <div className="space-y-2">
             {filteredContacts.map(contact => (
               <div
@@ -240,6 +253,7 @@ export function PowerMatrix({ compact = false }: PowerMatrixProps) {
               </div>
             ))}
           </div>
+          )}
         </ScrollArea>
       </CardContent>
     </Card>
