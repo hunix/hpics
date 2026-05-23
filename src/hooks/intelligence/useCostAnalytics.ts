@@ -19,7 +19,14 @@ export type CostTimeRange = '7d' | '30d' | '90d';
 const keys = {
   usage: (userId?: string, range?: CostTimeRange) => ['cost-analytics', userId, range] as const,
   anomalies: (userId?: string) => ['cost-anomalies', userId] as const,
+  cache: (userId?: string) => ['ai-cache-stats', userId] as const,
 };
+
+export interface AICacheStats {
+  totalHits: number;
+  costSaved: number;
+  tokensSaved: number;
+}
 
 interface AnomalyRow {
   id: string;
@@ -51,6 +58,29 @@ export function useAIUsageLogs(timeRange: CostTimeRange) {
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data ?? [];
+    },
+  });
+}
+
+export function useAICacheStats() {
+  const { user } = useAuth();
+  return useQuery<AICacheStats>({
+    queryKey: keys.cache(user?.id),
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ai_request_cache')
+        .select('hit_count, cost_saved_cents, tokens_saved')
+        .eq('user_id', user!.id);
+      if (error) throw error;
+      return (data ?? []).reduce<AICacheStats>(
+        (acc, item) => ({
+          totalHits: acc.totalHits + (item.hit_count || 0),
+          costSaved: acc.costSaved + (item.cost_saved_cents || 0),
+          tokensSaved: acc.tokensSaved + (item.tokens_saved || 0),
+        }),
+        { totalHits: 0, costSaved: 0, tokensSaved: 0 }
+      );
     },
   });
 }

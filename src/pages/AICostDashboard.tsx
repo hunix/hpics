@@ -1,8 +1,6 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { useAIBudget } from '@/hooks/useAIBudget';
+import { useAIUsageLogs, useAICacheStats, type CostTimeRange } from '@/hooks/intelligence/useCostAnalytics';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
@@ -15,7 +13,7 @@ import {
   Cpu, Brain, Database, RefreshCw
 } from 'lucide-react';
 import { formatCentsToUSD, AI_MODEL_PRICING, getProviderColor } from '@/lib/aiPricing';
-import { format, subDays, startOfDay, endOfDay, startOfWeek, startOfMonth } from 'date-fns';
+import { format } from 'date-fns';
 import { 
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, 
   Tooltip, AreaChart, Area, BarChart, Bar, PieChart as RechartsPie, 
@@ -26,46 +24,11 @@ const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accen
                 '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
 export default function AICostDashboard() {
-  const { user } = useAuth();
   const budget = useAIBudget();
-  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
+  const [timeRange, setTimeRange] = useState<CostTimeRange>('30d');
 
-  const { data: usageLogs, isLoading: logsLoading, refetch } = useQuery({
-    queryKey: ['ai-usage-dashboard', user?.id, timeRange],
-    queryFn: async () => {
-      const days = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
-      const startDate = startOfDay(subDays(new Date(), days)).toISOString();
-      
-      const { data, error } = await supabase
-        .from('ai_usage_logs')
-        .select('*')
-        .eq('user_id', user!.id)
-        .gte('created_at', startDate)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!user,
-  });
-
-  const { data: cacheStats } = useQuery({
-    queryKey: ['ai-cache-stats', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('ai_request_cache')
-        .select('hit_count, cost_saved_cents, tokens_saved')
-        .eq('user_id', user!.id);
-      
-      if (error) throw error;
-      return data?.reduce((acc, item) => ({
-        totalHits: acc.totalHits + (item.hit_count || 0),
-        costSaved: acc.costSaved + (item.cost_saved_cents || 0),
-        tokensSaved: acc.tokensSaved + (item.tokens_saved || 0),
-      }), { totalHits: 0, costSaved: 0, tokensSaved: 0 });
-    },
-    enabled: !!user,
-  });
+  const { data: usageLogs, isLoading: logsLoading, refetch } = useAIUsageLogs(timeRange);
+  const { data: cacheStats } = useAICacheStats();
 
   // Process data for charts
   const processedData = usageLogs?.reduce((acc, log) => {

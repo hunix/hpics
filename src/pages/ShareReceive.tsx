@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { useShareContacts, useCreateDeviceCapture, type ShareContact } from '@/hooks/share/useShareReceive';
 import { cn } from '@/lib/utils';
 import { hapticFeedback } from '@/lib/nativeFeatures';
 
@@ -24,13 +24,7 @@ interface SharedContent {
   files?: File[];
 }
 
-interface Contact {
-  id: string;
-  first_name: string;
-  last_name: string | null;
-  avatar_url: string | null;
-  organization: string | null;
-}
+type Contact = ShareContact;
 
 // Detect platform from URL
 function detectPlatform(url: string): { platform: string; icon: typeof Instagram } | null {
@@ -60,11 +54,12 @@ export default function ShareReceive() {
   
   const [sharedContent, setSharedContent] = useState<SharedContent>({});
   const [searchQuery, setSearchQuery] = useState('');
-  const [contacts, setContacts] = useState<Contact[]>([]);
   const [filteredContacts, setFilteredContacts] = useState<Contact[]>([]);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  const { data: contacts = [], isLoading } = useShareContacts();
+  const createCapture = useCreateDeviceCapture();
   
   // Get shared content from URL params or service worker cache
   useEffect(() => {
@@ -95,37 +90,13 @@ export default function ShareReceive() {
     }
   }, [searchParams]);
   
-  // Fetch contacts
-  useEffect(() => {
-    if (!user) return;
-    
-    const fetchContacts = async () => {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, avatar_url, organization')
-        .eq('user_id', user.id)
-        .order('first_name');
-      
-      if (error) {
-        console.error('Error fetching contacts:', error);
-      } else {
-        setContacts(data || []);
-        setFilteredContacts(data || []);
-      }
-      setIsLoading(false);
-    };
-    
-    fetchContacts();
-  }, [user]);
-  
   // Filter contacts based on search
   useEffect(() => {
     if (!searchQuery.trim()) {
       setFilteredContacts(contacts);
       return;
     }
-    
+
     const query = searchQuery.toLowerCase();
     const filtered = contacts.filter(contact => {
       const fullName = `${contact.first_name} ${contact.last_name || ''}`.toLowerCase();
@@ -154,29 +125,23 @@ export default function ShareReceive() {
     setIsSaving(true);
     
     try {
-      // Detect platform and content type
       const platform = sharedContent.url ? detectPlatform(sharedContent.url) : null;
-      
-      // Save to device_captures table
-      const { error } = await supabase.from('device_captures').insert({
-        user_id: user.id,
-        profile_id: selectedContact.id,
-        capture_type: sharedContent.url ? 'url' : 'text',
-        source_app: platform?.platform || 'share_intent',
-        raw_content: JSON.stringify({
+
+      await createCapture.mutateAsync({
+        profileId: selectedContact.id,
+        captureType: sharedContent.url ? 'url' : 'text',
+        sourceApp: platform?.platform || 'share_intent',
+        rawContent: JSON.stringify({
           title: sharedContent.title,
           text: sharedContent.text,
           url: sharedContent.url,
         }),
-        status: 'pending',
         metadata: {
           platform: platform?.platform,
           shared_at: new Date().toISOString(),
         },
       });
-      
-      if (error) throw error;
-      
+
       toast({
         title: 'Content saved!',
         description: `Added to ${selectedContact.first_name}'s profile for processing.`,

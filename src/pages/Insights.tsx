@@ -1,11 +1,9 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Brain, Sparkles, TrendingUp, Users, Zap, ArrowRight, DollarSign, Shield, Network, FileText, AlertTriangle, Triangle, Eye, Clock, Search, Share2, Scale, Activity, Layers, Grid3x3 } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useRecentAIAnalyses, useInsightsContacts, useActiveProfilesForMatrix } from '@/hooks/insights/useInsightsData';
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -28,34 +26,8 @@ import { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function Insights() {
-  const { user } = useAuth();
-
-  const { data: recentAnalyses } = useQuery({
-    queryKey: ['recent-analyses', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('ai_analyses')
-        .select('*, profiles(first_name, last_name)')
-        .order('generated_at', { ascending: false })
-        .limit(10);
-      return data ?? [];
-    },
-    enabled: !!user,
-  });
-
-  const { data: contacts } = useQuery({
-    queryKey: ['contacts-for-insights', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, relationship_type')
-        .eq('is_active', true)
-        .order('updated_at', { ascending: false })
-        .limit(6);
-      return data ?? [];
-    },
-    enabled: !!user,
-  });
+  const { data: recentAnalyses } = useRecentAIAnalyses(10);
+  const { data: contacts } = useInsightsContacts(6);
 
   const analysisTypeLabels: Record<string, string> = {
     personality: 'Personality Profile',
@@ -72,19 +44,7 @@ export default function Insights() {
   };
 
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
-
-  const { data: profilesForMatrix } = useQuery({
-    queryKey: ['profiles-for-matrix', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name')
-        .eq('is_active', true)
-        .order('first_name');
-      return data ?? [];
-    },
-    enabled: !!user,
-  });
+  const { data: profilesForMatrix } = useActiveProfilesForMatrix();
 
   return (
     <AppLayout title="AI Insights">
@@ -237,7 +197,7 @@ export default function Insights() {
               <CardContent>
                 {recentAnalyses && recentAnalyses.length > 0 ? (
                   <div className="space-y-3">
-                    {recentAnalyses.map((analysis: any) => (
+                    {recentAnalyses.map((analysis) => (
                       <div key={analysis.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                         <div className="flex items-center gap-3">
                           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-medium text-sm">

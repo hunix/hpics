@@ -1,7 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/components/AppLayout';
+import {
+  usePaginatedMedia,
+  useMeetingRecordings,
+  useDeleteMedia,
+  useDeleteRecording,
+  type MediaWithProfile,
+  type RecordingWithProfile,
+} from '@/hooks/media/useMediaPage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,7 +18,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Plus, Image as ImageIcon, Images, Trash2, Mic, Play, Pause, FileAudio, FolderOpen, Clock, User, Search, Grid3X3, List, FileText, Music, Video, X, LayoutGrid, Upload } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { MediaUpload } from '@/components/uploads/MediaUpload';
@@ -23,18 +29,10 @@ import { useFileViewPreferences, type MainViewMode, type ViewMode } from '@/hook
 import { ContactFolderCard } from '@/components/files/ContactFolderCard';
 import { FolderBreadcrumb } from '@/components/files/FolderBreadcrumb';
 import { FilePagination } from '@/components/contacts/FilePagination';
-import type { Media as BaseMedia, MeetingRecording } from '@/types/database-helpers';
-
-type Media = BaseMedia & {
-  profiles: { first_name: string; last_name: string | null } | null;
-};
-
-type Recording = MeetingRecording & {
-  profiles: { first_name: string; last_name: string | null } | null;
-};
+type Media = MediaWithProfile;
+type Recording = RecordingWithProfile;
 
 export default function MediaPage() {
-  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -73,55 +71,17 @@ export default function MediaPage() {
     );
   }, [folders, folderSearchQuery]);
 
-  // Fetch paginated media for selected contact
-  const { data: paginatedMedia, isLoading: mediaLoading } = useQuery({
-    queryKey: ['media-paginated', user?.id, selectedContactId, searchQuery, typeFilter, sortBy, currentPage, itemsPerPage],
-    queryFn: async () => {
-      let query = supabase
-        .from('media')
-        .select('*, profiles(first_name, last_name)', { count: 'exact' });
-      
-      if (selectedContactId) {
-        query = query.eq('profile_id', selectedContactId);
-      }
-      
-      if (searchQuery) {
-        query = query.ilike('caption', `%${searchQuery}%`);
-      }
-      
-      if (typeFilter !== 'all') {
-        query = query.ilike('mime_type', `${typeFilter}/%`);
-      }
-      
-      // Sorting
-      const ascending = sortBy === 'oldest' || sortBy === 'name-asc';
-      const column = sortBy.startsWith('name') ? 'caption' : 'created_at';
-      query = query.order(column, { ascending });
-      
-      // Pagination
-      const from = (currentPage - 1) * itemsPerPage;
-      const to = from + itemsPerPage - 1;
-      query = query.range(from, to);
-
-      const { data, error, count } = await query;
-      if (error) throw error;
-      return { items: data as Media[], totalCount: count || 0 };
-    },
-    enabled: !!user && (selectedContactId !== null || viewMode !== 'folders'),
+  const { data: paginatedMedia, isLoading: mediaLoading } = usePaginatedMedia({
+    selectedContactId,
+    searchQuery,
+    typeFilter,
+    sortBy,
+    currentPage,
+    itemsPerPage,
+    enabled: selectedContactId !== null || viewMode !== 'folders',
   });
 
-  const { data: recordings, isLoading: recordingsLoading } = useQuery({
-    queryKey: ['recordings', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('meeting_recordings')
-        .select('*, profiles(first_name, last_name)')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data as Recording[];
-    },
-    enabled: !!user,
-  });
+  const { data: recordings, isLoading: recordingsLoading } = useMeetingRecordings();
 
   // Fetch signed URLs for visible media items
   useEffect(() => {
@@ -147,28 +107,17 @@ export default function MediaPage() {
     return signedUrls.get(path) || null;
   };
 
-  const deleteMediaMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('media').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['media-paginated'] });
-      queryClient.invalidateQueries({ queryKey: ['media-folders'] });
-      toast({ title: 'Media deleted' });
-    },
-  });
+  const deleteMedia = useDeleteMedia();
+  const deleteMediaMutation = {
+    mutate: (id: string) =>
+      deleteMedia.mutate(id, { onSuccess: () => toast({ title: 'Media deleted' }) }),
+  };
 
-  const deleteRecordingMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('meeting_recordings').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recordings'] });
-      toast({ title: 'Recording deleted' });
-    },
-  });
+  const deleteRecording = useDeleteRecording();
+  const deleteRecordingMutation = {
+    mutate: (id: string) =>
+      deleteRecording.mutate(id, { onSuccess: () => toast({ title: 'Recording deleted' }) }),
+  };
 
   const handlePlayRecording = async (recording: Recording) => {
     const path = recording.file_url;

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/components/AppLayout';
+import { useUserPreferences, useSaveUserPreferences, useAppSetting } from '@/hooks/settings/useUserPreferences';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,39 +53,15 @@ export default function Settings() {
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const [activeSection, setActiveSection] = useState('appearance');
   const [emailReminders, setEmailReminders] = useState(true);
   const [reminderEmail, setReminderEmail] = useState('');
 
-  const { data: preferences } = useQuery({
-    queryKey: ['user-preferences', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('user_preferences')
-        .select('*')
-        .eq('user_id', user!.id)
-        .maybeSingle();
-      return data;
-    },
-    enabled: !!user,
-  });
+  const { data: preferences } = useUserPreferences();
+  const { data: vapidConfig } = useAppSetting('vapid_public_key');
 
-  const { data: vapidConfig } = useQuery({
-    queryKey: ['app-settings', 'vapid', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('app_settings')
-        .select('*')
-        .eq('user_id', user!.id)
-        .eq('setting_key', 'vapid_public_key')
-        .maybeSingle();
-      return data;
-    },
-    enabled: !!user,
-  });
-
-  const vapidPublicKey = vapidConfig?.setting_value || '';
+  const vapidPublicKey = (vapidConfig as { setting_value?: string } | null)?.setting_value || '';
   const isVapidConfigured = vapidPublicKey.length > 60;
 
   useEffect(() => {
@@ -97,30 +73,26 @@ export default function Settings() {
     }
   }, [preferences, user]);
 
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      const data = {
-        user_id: user!.id,
-        email_reminders: emailReminders,
-        reminder_email: reminderEmail || null,
-        theme,
-      };
-      if (preferences) {
-        const { error } = await supabase.from('user_preferences').update(data).eq('user_id', user!.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from('user_preferences').insert(data);
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-preferences'] });
-      toast({ title: 'Settings saved' });
-    },
-    onError: (error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    },
-  });
+  const savePreferences = useSaveUserPreferences();
+  const saveMutation = {
+    isPending: savePreferences.isPending,
+    mutate: () =>
+      savePreferences.mutate(
+        {
+          existing: !!preferences,
+          patch: {
+            email_reminders: emailReminders,
+            reminder_email: reminderEmail || null,
+            theme,
+          },
+        },
+        {
+          onSuccess: () => toast({ title: 'Settings saved' }),
+          onError: (error: Error) =>
+            toast({ title: 'Error', description: error.message, variant: 'destructive' }),
+        }
+      ),
+  };
 
   const handleVapidSave = () => {
     queryClient.invalidateQueries({ queryKey: ['app-settings', 'vapid'] });
