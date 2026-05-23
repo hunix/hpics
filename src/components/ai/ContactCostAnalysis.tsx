@@ -43,7 +43,7 @@ export function ContactCostAnalysis() {
       if (usageError) throw usageError;
 
       // Get profile details
-      const profileIds = [...new Set(usageLogs?.map(l => l.profile_id).filter(Boolean))];
+      const profileIds = [...new Set(usageLogs?.map(l => l.profile_id).filter((v): v is string => v !== null))];
       const { data: profiles, error: profileError } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, avatar_url')

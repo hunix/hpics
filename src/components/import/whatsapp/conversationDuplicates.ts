@@ -74,7 +74,7 @@ export async function deleteConversationMessages(
     .not('media_id', 'is', null);
 
   if (messages && messages.length > 0) {
-    const mediaIds = messages.map(m => m.media_id).filter(Boolean);
+    const mediaIds = messages.map(m => m.media_id).filter((v): v is string => v !== null);
     if (mediaIds.length > 0) {
       await supabase
         .from('media')

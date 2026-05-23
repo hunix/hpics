@@ -52,7 +52,7 @@ export function VirtualizedContactSelect({
     queryFn: async () => {
       if (!user) return [];
       
-      const allContacts: (Contact & { is_favorite?: boolean; is_active?: boolean; updated_at?: string })[] = [];
+      const allContacts: (Contact & { is_favorite?: boolean | null; is_active?: boolean | null; updated_at?: string })[] = [];
       const pageSize = 1000;
       let page = 0;
       let hasMore = true;

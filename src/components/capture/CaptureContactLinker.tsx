@@ -16,10 +16,10 @@ import { cn } from '@/lib/utils';
 interface Contact {
   id: string;
   first_name: string;
-  last_name: string;
-  organization?: string;
-  avatar_url?: string;
-  bio?: string;
+  last_name: string | null;
+  organization?: string | null;
+  avatar_url?: string | null;
+  bio?: string | null;
 }
 
 interface CaptureContactLinkerProps {

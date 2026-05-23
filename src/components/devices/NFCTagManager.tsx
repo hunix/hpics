@@ -35,7 +35,7 @@ interface NFCTagManagerProps {
 
 export function NFCTagManager({ className, onTagTapped }: NFCTagManagerProps) {
   const [tags, setTags] = useState<NFCTag[]>([]);
-  const [contacts, setContacts] = useState<Array<{ id: string; first_name: string; last_name: string }>>([]);
+  const [contacts, setContacts] = useState<Array<{ id: string; first_name: string; last_name: string | null }>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isScanning, setIsScanning] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);

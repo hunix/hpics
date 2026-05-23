@@ -328,7 +328,7 @@ export function KeywordWatchlistManager() {
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{watchlist.name}</span>
-                      <Badge variant={getPriorityColor(watchlist.priority)}>
+                      <Badge variant={getPriorityColor(watchlist.priority ?? '')}>
                         {watchlist.priority}
                       </Badge>
                       {watchlist.notify_on_match && (
@@ -342,7 +342,7 @@ export function KeywordWatchlistManager() {
                         </Badge>
                       )}
                       <Switch
-                        checked={watchlist.is_active}
+                        checked={!!watchlist.is_active}
                         onCheckedChange={(checked) => toggleMutation.mutate({ id: watchlist.id, isActive: checked })}
                       />
                       <AlertDialog>
