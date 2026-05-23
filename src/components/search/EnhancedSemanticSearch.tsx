@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useState, useCallback } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { useSavedSearches, useQuerySuggestions, useRecordSearchFeedback } from '@/hooks/search/useEnhancedSemanticSearch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -57,16 +56,6 @@ interface RAGResponse {
   };
 }
 
-interface SavedSearch {
-  id: string;
-  name: string;
-  query_text: string;
-  filters: Record<string, unknown>;
-  is_pinned: boolean;
-  use_count: number;
-  last_used_at: string | null;
-}
-
 const SOURCE_TYPE_CONFIG: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
   message: { icon: <MessageSquare className="h-4 w-4" />, label: 'Message', color: 'bg-blue-500/10 text-blue-700' },
   document: { icon: <FileText className="h-4 w-4" />, label: 'Document', color: 'bg-green-500/10 text-green-700' },
@@ -76,48 +65,14 @@ const SOURCE_TYPE_CONFIG: Record<string, { icon: React.ReactNode; label: string;
 };
 
 export function EnhancedSemanticSearch() {
-  const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [searchMode, setSearchMode] = useState<'hybrid' | 'semantic' | 'keyword'>('hybrid');
   const [sourceTypeFilter, setSourceTypeFilter] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null);
 
-  // Fetch saved searches
-  const { data: savedSearches } = useQuery({
-    queryKey: ['saved-searches', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('saved_searches')
-        .select('*')
-        .order('is_pinned', { ascending: false })
-        .order('use_count', { ascending: false })
-        .limit(10);
-      
-      if (error) throw error;
-      return data as SavedSearch[];
-    },
-    enabled: !!user,
-  });
-
-  // Fetch query suggestions
-  const { data: suggestions } = useQuery({
-    queryKey: ['query-suggestions', user?.id, query],
-    queryFn: async () => {
-      if (!query || query.length < 2) return [];
-      
-      const { data, error } = await supabase
-        .from('query_suggestions')
-        .select('suggestion_text, suggestion_type, use_count')
-        .ilike('suggestion_text', `%${query}%`)
-        .order('use_count', { ascending: false })
-        .limit(5);
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user && query.length >= 2,
-  });
+  const { data: savedSearches } = useSavedSearches(10);
+  const { data: suggestions } = useQuerySuggestions(query);
 
   // Search mutation
   const searchMutation = useMutation({
@@ -140,19 +95,15 @@ export function EnhancedSemanticSearch() {
   });
 
   // Feedback mutation
-  const feedbackMutation = useMutation({
-    mutationFn: async ({ queryId, feedback }: { queryId: string; feedback: 'helpful' | 'not_helpful' }) => {
-      const { error } = await supabase
-        .from('rag_query_logs')
-        .update({ user_feedback: feedback })
-        .eq('id', queryId);
-      
-      if (error) throw error;
-    },
-    onSuccess: (_, { feedback }) => {
-      toast.success(feedback === 'helpful' ? 'Thanks for the feedback!' : 'We\'ll improve our results');
-    },
-  });
+  const feedbackHook = useRecordSearchFeedback();
+  const feedbackMutation = {
+    mutate: (vars: { queryId: string; feedback: 'helpful' | 'not_helpful' }) =>
+      feedbackHook.mutate(vars, {
+        onSuccess: () => toast.success(
+          vars.feedback === 'helpful' ? 'Thanks for the feedback!' : "We'll improve our results"
+        ),
+      }),
+  };
 
   const handleSearch = useCallback(() => {
     if (!query.trim()) return;
