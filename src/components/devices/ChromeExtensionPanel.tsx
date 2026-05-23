@@ -13,23 +13,16 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { ExtensionTokenDialog } from './ExtensionTokenDialog';
 import { invokeFunction } from '@/lib/api';
-
-interface ExtensionSession {
-  id: string;
-  platform: string;
-  profile_url: string | null;
-  pages_captured: number | null;
-  posts_captured: number | null;
-  comments_captured: number | null;
-  status: string | null;
-  created_at: string | null;
-}
+import {
+  fetchExtensionStatus,
+  fetchExtensionSessions,
+  type ExtensionSession,
+} from '@/hooks/devices/useChromeExtensionStatus';
 
 interface ChromeExtensionPanelProps {
   className?: string;
@@ -97,38 +90,9 @@ export function ChromeExtensionPanel({ className }: ChromeExtensionPanelProps) {
   const checkExtensionStatus = useCallback(async () => {
     setIsChecking(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setIsConnected(false);
-        setLastSeen(null);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('device_presence')
-        .select('last_seen_at')
-        .eq('user_id', user.id)
-        .eq('device_type', 'chrome_extension')
-        .maybeSingle();
-
-      if (error) {
-        console.error('Failed to check extension status:', error);
-        setIsConnected(false);
-        setLastSeen(null);
-        return;
-      }
-
-      if (data?.last_seen_at) {
-        const lastPingTime = new Date(data.last_seen_at);
-        const now = new Date();
-        const isActive = (now.getTime() - lastPingTime.getTime()) < CONNECTION_THRESHOLD_MS;
-        
-        setIsConnected(isActive);
-        setLastSeen(lastPingTime);
-      } else {
-        setIsConnected(false);
-        setLastSeen(null);
-      }
+      const { isActive, lastSeen } = await fetchExtensionStatus(CONNECTION_THRESHOLD_MS);
+      setIsConnected(isActive);
+      setLastSeen(lastSeen);
     } catch (error) {
       console.error('Extension status check failed:', error);
       setIsConnected(false);
@@ -148,18 +112,7 @@ export function ChromeExtensionPanel({ className }: ChromeExtensionPanelProps) {
 
   const loadSessions = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('extension_scrape_sessions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (error) throw error;
-      setSessions(data || []);
+      setSessions(await fetchExtensionSessions(10));
     } catch (error) {
       console.error('Failed to load extension sessions:', error);
     }

@@ -13,9 +13,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { getExtensionSession } from '@/hooks/devices/useExtensionSession';
 
 interface ExtensionTokenDialogProps {
   children?: React.ReactNode;
@@ -39,12 +39,7 @@ export function ExtensionTokenDialog({ children }: ExtensionTokenDialogProps) {
   const fetchToken = async () => {
     setIsLoading(true);
     try {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        throw error;
-      }
-      
+      const session = await getExtensionSession();
       if (!session) {
         toast({
           title: "Not signed in",
@@ -53,13 +48,10 @@ export function ExtensionTokenDialog({ children }: ExtensionTokenDialogProps) {
         });
         return;
       }
-      
-      const expiresAt = new Date(session.expires_at! * 1000);
       const endpoint = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chrome-extension-bridge`;
-      
       setTokenData({
-        token: session.access_token,
-        expiresAt,
+        token: session.token,
+        expiresAt: session.expiresAt,
         endpoint,
       });
     } catch (error) {
