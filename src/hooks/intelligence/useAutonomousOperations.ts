@@ -11,7 +11,7 @@ import { useAGISPhaseMiddleware } from './useAGISPhaseMiddleware';
 
 export interface AutonomousCampaign {
   id: string;
-  profileId?: string;
+  profileId?: string | null;
   campaignName: string;
   campaignType: 'influence' | 'extraction' | 'destabilization' | 'conditioning';
   objective: string;
@@ -28,12 +28,12 @@ export interface AutonomousCampaign {
   totalActions: number;
   successRate: number;
   lastActionAt?: Date;
-  nextActionAt?: Date;
+  nextActionAt?: Date | null;
 }
 
 export interface AgentExecution {
   id: string;
-  campaignId: string;
+  campaignId: string | null;
   agentType: 'influence' | 'extraction' | 'monitor' | 'intervene';
   actionTaken: string;
   actionParams: Record<string, unknown>;
@@ -44,7 +44,7 @@ export interface AgentExecution {
   effectivenessScore: number;
   costCents: number;
   executionTimeMs: number;
-  executedAt: Date;
+  executedAt: Date | null;
 }
 
 export interface OutcomeLearning {
@@ -60,7 +60,7 @@ export interface OutcomeLearning {
   appliedToFuture: boolean;
 }
 
-export function useAutonomousOperations(profileId?: string) {
+export function useAutonomousOperations(profileId?: string | null) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const phaseMiddleware = useAGISPhaseMiddleware();
@@ -173,7 +173,8 @@ export function useAutonomousOperations(profileId?: string) {
   });
 
   const toggleCampaignMutation = useMutation({
-    mutationFn: async ({ campaignId, isActive }: { campaignId: string; isActive: boolean }) => {
+    mutationFn: async ({ campaignId, isActive }: { campaignId: string | null; isActive: boolean }) => {
+      if (!campaignId) throw new Error('campaignId required');
       const { error } = await supabase
         .from('autonomous_campaigns')
         .update({ is_active: isActive, updated_at: new Date().toISOString() })
@@ -187,7 +188,8 @@ export function useAutonomousOperations(profileId?: string) {
   });
 
   const executeActionMutation = useMutation({
-    mutationFn: async ({ campaignId, action, params }: { campaignId: string; action: string; params: Record<string, unknown> }) => {
+    mutationFn: async ({ campaignId, action, params }: { campaignId: string | null; action: string; params: Record<string, unknown> }) => {
+      if (!campaignId) throw new Error('campaignId required');
       if (!user?.id) throw new Error('Not authenticated');
 
       const startTime = Date.now();

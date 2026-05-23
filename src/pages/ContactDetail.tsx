@@ -79,7 +79,7 @@ export default function ContactDetail() {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', id)
+        .eq('id', id!)
         .single();
       if (error) throw error;
       return data as Profile;
@@ -93,7 +93,7 @@ export default function ContactDetail() {
       const { data } = await supabase
         .from('contact_methods')
         .select('*')
-        .eq('profile_id', id);
+        .eq('profile_id', id!);
       return data ?? [];
     },
     enabled: !!id,
@@ -140,7 +140,7 @@ export default function ContactDetail() {
     await supabase
       .from('profiles')
       .update({ is_self_profile: !contact?.is_self_profile })
-      .eq('id', id);
+      .eq('id', id!);
     queryClient.invalidateQueries({ queryKey: ['contact', id] });
     queryClient.invalidateQueries({ queryKey: ['contacts'] });
     queryClient.invalidateQueries({ queryKey: ['family-relationships'] });

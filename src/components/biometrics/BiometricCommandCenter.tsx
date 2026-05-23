@@ -107,12 +107,12 @@ export function BiometricCommandCenter({ profileId, profileName }: BiometricComm
   const modalities: BiometricModality[] = [
     {
       id: 'face', name: 'Facial Recognition', icon: Camera, color: 'text-blue-500', bgColor: 'bg-blue-500/10',
-      sampleCount: biometrics?.facial_sample_count || 0, confidence: biometrics?.facial_confidence,
+      sampleCount: biometrics?.facial_sample_count || 0, confidence: biometrics?.facial_confidence ?? null,
       isEnrolled: (biometrics?.facial_sample_count || 0) > 0, engine: 'ArcFace v2'
     },
     {
       id: 'voice', name: 'Voice Print', icon: Mic, color: 'text-green-500', bgColor: 'bg-green-500/10',
-      sampleCount: biometrics?.voice_sample_count || 0, confidence: biometrics?.voice_confidence,
+      sampleCount: biometrics?.voice_sample_count || 0, confidence: biometrics?.voice_confidence ?? null,
       isEnrolled: (biometrics?.voice_sample_count || 0) > 0, engine: 'ECAPA-TDNN'
     },
     {
@@ -122,12 +122,12 @@ export function BiometricCommandCenter({ profileId, profileName }: BiometricComm
     },
     {
       id: 'signature', name: 'Signature', icon: Hand, color: 'text-pink-500', bgColor: 'bg-pink-500/10',
-      sampleCount: biometrics?.signature_samples_count || 0, confidence: biometrics?.signature_confidence,
+      sampleCount: biometrics?.signature_samples_count || 0, confidence: biometrics?.signature_confidence ?? null,
       isEnrolled: (biometrics?.signature_samples_count || 0) > 0
     },
     {
       id: 'handwriting', name: 'Handwriting', icon: PenTool, color: 'text-orange-500', bgColor: 'bg-orange-500/10',
-      sampleCount: biometrics?.handwriting_samples_count || 0, confidence: biometrics?.handwriting_confidence,
+      sampleCount: biometrics?.handwriting_samples_count || 0, confidence: biometrics?.handwriting_confidence ?? null,
       isEnrolled: (biometrics?.handwriting_samples_count || 0) > 0
     },
     {

@@ -26,7 +26,7 @@ export interface ThreatActor {
 
 export interface ManipulationDetection {
   id: string;
-  detectedInProfileId: string;
+  detectedInProfileId: string | null;
   sourceActorId?: string | null;
   manipulationType: string;
   detectionConfidence: number;

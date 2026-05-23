@@ -22,7 +22,7 @@ export interface FuturePrediction {
   interventionOpportunities: Array<{ action: string; timing: string; expectedImpact: number }>;
   status: string;
   outcomeRecorded?: Record<string, unknown>;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface DecisionWindow {
@@ -39,7 +39,7 @@ export interface DecisionWindow {
   status: string;
   interventionTaken?: Record<string, unknown>;
   outcome?: Record<string, unknown>;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export interface PredictionModel {
@@ -53,7 +53,7 @@ export interface PredictionModel {
   predictionCount: number;
   successfulPredictions: number;
   isActive: boolean;
-  createdAt: string;
+  createdAt: string | null;
 }
 
 export function useFutureTimeline(profileId?: string | null) {
@@ -117,8 +117,8 @@ export function useFutureTimeline(profileId?: string | null) {
         profileId: w.profile_id,
         windowType: w.window_type,
         windowName: w.window_name,
-        startsAt: w.starts_at,
-        endsAt: w.ends_at,
+        startsAt: w.starts_at ?? undefined,
+        endsAt: w.ends_at ?? undefined,
         urgencyScore: Number(w.urgency_score) || 0,
         influencePotential: Number(w.influence_potential) || 0,
         recommendedActions: (w.recommended_actions as any) || [],
@@ -151,7 +151,7 @@ export function useFutureTimeline(profileId?: string | null) {
         modelConfig: (m.model_config as any) || {},
         trainingDataStats: (m.training_data_stats as any) || {},
         accuracyMetrics: (m.accuracy_metrics as any) || { precision: 0, recall: 0, f1Score: 0 },
-        lastTrainedAt: m.last_trained_at,
+        lastTrainedAt: m.last_trained_at ?? undefined,
         predictionCount: m.prediction_count || 0,
         successfulPredictions: m.successful_predictions || 0,
         isActive: m.is_active ?? true,

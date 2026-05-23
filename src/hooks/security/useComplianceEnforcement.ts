@@ -25,7 +25,7 @@ interface ComplianceViolation {
   severity: ViolationSeverity;
   description: string;
   status: ViolationStatus;
-  detectedAt: string;
+  detectedAt: string | null;
   resolvedAt?: string;
   resolutionNotes?: string;
 }
@@ -215,7 +215,7 @@ export function useComplianceEnforcement(customRules?: ComplianceRule[]) {
           resolution_notes: notes,
         })
         .eq('user_id', user.id)
-        .eq('rule_id', state.violations.find(v => v.id === violationId)?.ruleId);
+        .eq('rule_id', state.violations.find(v => v.id === violationId)?.ruleId ?? '');
     } catch (error) {
       console.error('Failed to update violation:', error);
     }
@@ -237,7 +237,7 @@ export function useComplianceEnforcement(customRules?: ComplianceRule[]) {
         .from('compliance_violations')
         .update({ status: 'acknowledged' })
         .eq('user_id', user.id)
-        .eq('rule_id', state.violations.find(v => v.id === violationId)?.ruleId);
+        .eq('rule_id', state.violations.find(v => v.id === violationId)?.ruleId ?? '');
     } catch (error) {
       console.error('Failed to update violation:', error);
     }
@@ -259,7 +259,7 @@ export function useComplianceEnforcement(customRules?: ComplianceRule[]) {
         .from('compliance_violations')
         .update({ status: 'ignored' })
         .eq('user_id', user.id)
-        .eq('rule_id', state.violations.find(v => v.id === violationId)?.ruleId);
+        .eq('rule_id', state.violations.find(v => v.id === violationId)?.ruleId ?? '');
     } catch (error) {
       console.error('Failed to update violation:', error);
     }

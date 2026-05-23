@@ -175,7 +175,7 @@ export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <SavedBadge generatedAt={personalityAnalysis.generated_at} />
+          <SavedBadge generatedAt={personalityAnalysis!.generated_at} />
           <Button 
             variant="ghost" 
             size="sm"
@@ -253,7 +253,7 @@ export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <SavedBadge generatedAt={sentimentAnalysis.generated_at} />
+          <SavedBadge generatedAt={sentimentAnalysis!.generated_at} />
           <Button 
             variant="ghost" 
             size="sm"
@@ -343,7 +343,7 @@ export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <SavedBadge generatedAt={playbookAnalysis.generated_at} />
+          <SavedBadge generatedAt={playbookAnalysis!.generated_at} />
           <Button 
             variant="ghost" 
             size="sm"
@@ -466,7 +466,7 @@ export function AIAnalysisPanel({ profileId, profileName }: AIAnalysisPanelProps
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <SavedBadge generatedAt={scoreAnalysis.generated_at} />
+          <SavedBadge generatedAt={scoreAnalysis!.generated_at} />
           <Button 
             variant="ghost" 
             size="sm"

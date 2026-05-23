@@ -94,6 +94,7 @@ export function PushNotifications({ vapidPublicKey }: PushNotificationsProps) {
           applicationServerKey: appServerKey.buffer as ArrayBuffer
         });
 
+        if (!sub) throw new Error('push subscription failed');
         endpoint = sub.endpoint;
         const p256dhKey = sub.getKey('p256dh');
         const authKey = sub.getKey('auth');

@@ -49,13 +49,14 @@ export function SensorDashboard() {
   // Listen to device motion
   useEffect(() => {
     const handleMotion = (e: DeviceMotionEvent) => {
-      if (e.accelerationIncludingGravity) {
+      const a = e.accelerationIncludingGravity;
+      if (a) {
         setSensorData(prev => ({
           ...prev,
           acceleration: {
-            x: e.accelerationIncludingGravity.x ?? 0,
-            y: e.accelerationIncludingGravity.y ?? 0,
-            z: e.accelerationIncludingGravity.z ?? 0
+            x: a.x ?? 0,
+            y: a.y ?? 0,
+            z: a.z ?? 0
           }
         }));
       }

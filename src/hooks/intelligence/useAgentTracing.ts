@@ -80,7 +80,7 @@ const traceKeys = {
   all: ['agent-tracing'] as const,
   sessions: () => [...traceKeys.all, 'sessions'] as const,
   session: (id: string) => [...traceKeys.sessions(), id] as const,
-  spans: (sessionId: string) => [...traceKeys.all, 'spans', sessionId] as const,
+  spans: (sessionId: string | null) => [...traceKeys.all, 'spans', sessionId] as const,
   spanTypes: () => [...traceKeys.all, 'span-types'] as const,
   configs: () => [...traceKeys.all, 'configs'] as const,
   stats: (period: string) => [...traceKeys.all, 'stats', period] as const,
@@ -120,13 +120,13 @@ export function useTraceSessions(options?: { limit?: number; status?: string; se
 /**
  * Fetch a specific trace session with its spans
  */
-export function useTraceSessionWithSpans(sessionId: string | undefined) {
+export function useTraceSessionWithSpans(sessionId: string | null | undefined) {
   return useQuery({
     queryKey: traceKeys.session(sessionId || ''),
     queryFn: async () => {
       const [sessionResult, spansResult] = await Promise.all([
-        supabase.from('agent_trace_sessions').select('*').eq('id', sessionId).single(),
-        supabase.from('agent_spans').select('*').eq('trace_session_id', sessionId).order('started_at'),
+        supabase.from('agent_trace_sessions').select('*').eq('id', sessionId!).single(),
+        supabase.from('agent_spans').select('*').eq('trace_session_id', sessionId!).order('started_at'),
       ]);
 
       if (sessionResult.error) throw sessionResult.error;
@@ -143,14 +143,14 @@ export function useTraceSessionWithSpans(sessionId: string | undefined) {
 /**
  * Fetch spans for a session
  */
-export function useSessionSpans(sessionId: string | undefined) {
+export function useSessionSpans(sessionId: string | null | undefined) {
   return useQuery({
     queryKey: traceKeys.spans(sessionId || ''),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('agent_spans')
         .select('*')
-        .eq('trace_session_id', sessionId)
+        .eq('trace_session_id', sessionId!)
         .order('started_at');
 
       if (error) throw error;

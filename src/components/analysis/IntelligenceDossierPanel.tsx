@@ -370,14 +370,14 @@ export function IntelligenceDossierPanel({ profileId, profileName, className }: 
               <ScrollArea className="h-[400px]">
                 <div className="space-y-4">
                   {/* Leverage Points */}
-                  {dossier.actionable_intelligence?.leverage_points?.length > 0 && (
+                  {(dossier.actionable_intelligence?.leverage_points?.length ?? 0) > 0 && (
                     <div>
                       <h4 className="font-medium mb-2 flex items-center gap-2">
                         <Target className="h-4 w-4" />
                         Leverage Points
                       </h4>
                       <div className="space-y-2">
-                        {dossier.actionable_intelligence.leverage_points.map((lp, i) => (
+                        {dossier.actionable_intelligence!.leverage_points!.map((lp, i) => (
                           <div key={i} className="p-3 rounded-lg bg-muted">
                             <div className="flex items-center justify-between mb-1">
                               <Badge variant="outline">{lp.type}</Badge>
@@ -396,14 +396,14 @@ export function IntelligenceDossierPanel({ profileId, profileName, className }: 
                   )}
 
                   {/* Vulnerability Windows */}
-                  {dossier.actionable_intelligence?.vulnerability_windows?.length > 0 && (
+                  {(dossier.actionable_intelligence?.vulnerability_windows?.length ?? 0) > 0 && (
                     <div>
                       <h4 className="font-medium mb-2 flex items-center gap-2">
                         <Crosshair className="h-4 w-4" />
                         Vulnerability Windows
                       </h4>
                       <div className="space-y-2">
-                        {dossier.actionable_intelligence.vulnerability_windows.map((vw, i) => (
+                        {dossier.actionable_intelligence!.vulnerability_windows!.map((vw, i) => (
                           <div key={i} className="p-3 rounded-lg bg-muted">
                             <div className="font-medium text-sm">{vw.trigger}</div>
                             <p className="text-xs text-muted-foreground">{vw.predicted_timing}</p>

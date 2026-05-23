@@ -54,7 +54,7 @@ export interface ProactiveAction {
   actualOutcome?: Record<string, unknown>;
   outcomeMatchScore?: number;
   preemptionSuccess?: boolean;
-  executedAt: Date;
+  executedAt: Date | null;
 }
 
 export interface InterventionTrigger {
