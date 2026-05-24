@@ -74,12 +74,14 @@ export function useLearnedHelplessness(profileId?: string) {
       if (!dependency) return null;
 
       const emotionalScore = (dependency.emotional_dependency as number) || 0;
-      const helplessnessScore = emotionalScore * 0.8 + Math.random() * 20;
+      // Deterministic derivation from the measured emotional
+      // dependency score (no Math.random padding).
+      const helplessnessScore = Math.min(100, emotionalScore * 0.8);
 
       return {
         id: dependency.id as string,
         profileId,
-        helplessnessScore: Math.min(100, helplessnessScore),
+        helplessnessScore,
         indicators: {
           initiativeSuppression: emotionalScore * 0.9,
           decisionParalysis: emotionalScore * 0.85,
@@ -89,10 +91,11 @@ export function useLearnedHelplessness(profileId?: string) {
           escapeSuccessRate: Math.max(0, 50 - emotionalScore * 0.5),
         },
         inductionPhase: getPhaseFromScore(helplessnessScore),
+        // No technique-deployment table yet; report not-active / 0.
         activeTechniques: DEFAULT_TECHNIQUES.map(t => ({
           ...t,
-          isActive: Math.random() > 0.5,
-          effectiveness: Math.random() * 100,
+          isActive: false,
+          effectiveness: 0,
         })),
         escapeAttempts: [],
         lastUpdated: new Date(dependency.updated_at as string || Date.now()),

@@ -81,11 +81,15 @@ export function useCultTactics(profileId?: string) {
           overallControlIndex: (behaviorControl + informationControl + thoughtControl + emotionalControl) / 4,
         },
         phase: getPhaseFromScore(baseScore),
+        // No tactical-deployment table exists yet, so tactics report
+        // zero deployments and zero effectiveness rather than random
+        // values. UI consumers should display "not deployed" for any
+        // tactic where deploymentCount === 0.
         activeTactics: DEFAULT_TACTICS.map(t => ({
           ...t,
-          isActive: Math.random() > 0.6,
-          effectiveness: Math.random() * 100,
-          deploymentCount: Math.floor(Math.random() * 15),
+          isActive: false,
+          effectiveness: 0,
+          deploymentCount: 0,
         })),
         isolationProgress: informationControl * 0.9,
         thoughtReformProgress: thoughtControl * 0.85,

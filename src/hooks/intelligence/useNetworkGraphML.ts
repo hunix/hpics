@@ -110,11 +110,27 @@ function processNetworkData(
 
   const communities: NetworkCommunity[] = groups.map((g, idx) => {
     const memberIds = memberships.filter((m) => m.group_id === g.id).map((m) => m.profile_id);
+    // Real cohesion: ratio of intra-group edges to the maximum
+    // possible (n choose 2). No Math.random base.
+    let intraEdges = 0;
+    for (let i = 0; i < memberIds.length; i++) {
+      for (let j = i + 1; j < memberIds.length; j++) {
+        if (relationships.some((r) =>
+          (r.from_profile_id === memberIds[i] && r.to_profile_id === memberIds[j]) ||
+          (r.from_profile_id === memberIds[j] && r.to_profile_id === memberIds[i])
+        )) {
+          intraEdges++;
+        }
+      }
+    }
+    const possibleEdges = (memberIds.length * (memberIds.length - 1)) / 2;
+    const cohesion = possibleEdges > 0 ? intraEdges / possibleEdges : 0;
+
     return {
       id: idx,
       name: g.name,
       members: memberIds,
-      cohesion: 0.7 + Math.random() * 0.3,
+      cohesion,
       bridgeNodes: memberIds.slice(0, Math.floor(memberIds.length * 0.2)),
       dominantTrait: 'Professional Network',
     };

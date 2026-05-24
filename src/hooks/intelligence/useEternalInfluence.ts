@@ -114,12 +114,16 @@ export function useEternalInfluence() {
   }, [user?.id, toast]);
 
   const createCausalAnchor = useCallback((anchorType: string): CausalAnchor => {
+    // Anchor metadata that isn't computed yet (stabilityScore /
+    // influenceRadius depend on downstream graph analysis that hasn't
+    // landed). Return 0 sentinels so consumers can distinguish
+    // "uncomputed" from a real measurement.
     return {
       id: `anchor-${Date.now()}`,
       anchorType,
       temporalPosition: new Date().toISOString(),
-      stabilityScore: Math.random() * 0.5 + 0.5,
-      influenceRadius: Math.floor(Math.random() * 100)
+      stabilityScore: 0,
+      influenceRadius: 0,
     };
   }, []);
 

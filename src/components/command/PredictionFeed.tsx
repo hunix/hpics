@@ -88,47 +88,32 @@ export function PredictionFeed({ compact = false }: PredictionFeedProps) {
         .order('created_at', { ascending: false })
         .limit(compact ? 5 : 15);
 
-      if (!data || data.length === 0) {
-        // Return sample predictions for demonstration
-        return [
-          {
-            id: 'pred-1',
-            type: 'behavior' as const,
-            title: 'Likely to accept meeting request',
-            description: 'Based on past patterns, high probability of positive response to meeting invite this week',
-            profileName: 'Sample Contact',
-            profileId: '',
-            confidence: 85,
-            predictedDate: addDays(new Date(), 2),
-            outcome: { positive: 85, neutral: 10, negative: 5 }
-          },
-          {
-            id: 'pred-2',
-            type: 'opportunity' as const,
-            title: 'Career transition opportunity',
-            description: 'Signals suggest upcoming job change - optimal time for networking',
-            profileName: 'Another Contact',
-            profileId: '',
-            confidence: 72,
-            predictedDate: addDays(new Date(), 7),
-            outcome: { positive: 72, neutral: 18, negative: 10 }
-          }
-        ];
-      }
+      // Real predictions only — no "sample" placeholders. An empty
+      // list yields an empty array (the component renders an empty
+      // state for it).
+      if (!data) return [];
 
       return data.map(p => {
-        const response = p.predicted_response as Record<string, unknown> || {};
+        const response = (p.predicted_response as Record<string, unknown>) || {};
+        // Use the row's own predicted_at / expires_at when available;
+        // fall back to the created_at timestamp instead of fabricating
+        // a future date with Math.random.
+        const predictedDateRaw =
+          (response.predicted_date as string | undefined) ??
+          (p as { predicted_at?: string | null }).predicted_at ??
+          p.created_at;
+
         return {
           id: p.id,
-          type: p.scenario_type as Prediction['type'] || 'behavior',
+          type: (p.scenario_type as Prediction['type']) || 'behavior',
           title: p.stimulus || 'Behavioral Prediction',
           description: (response.summary as string) || 'AI-generated prediction based on behavioral patterns',
-          profileName: p.profiles 
+          profileName: p.profiles
             ? `${p.profiles.first_name || ''} ${p.profiles.last_name || ''}`.trim()
             : 'Unknown',
           profileId: p.profile_id,
           confidence: p.confidence_score * 100,
-          predictedDate: addDays(new Date(), Math.floor(Math.random() * 14)),
+          predictedDate: predictedDateRaw ? new Date(predictedDateRaw) : new Date(),
           outcome: {
             positive: (p.response_probability || 0.5) * 100,
             neutral: (1 - (p.response_probability || 0.5)) * 50,

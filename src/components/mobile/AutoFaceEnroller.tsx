@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { faceDetectionService } from '@/lib/faceDetection';
 
 interface EnrollmentResult {
   profileId: string;
@@ -52,11 +53,11 @@ export function AutoFaceEnroller({ className, onComplete }: AutoFaceEnrollerProp
   });
 
   const startEnrollment = useCallback(async () => {
-    if (!contacts || contacts.length === 0) return;
-    
+    if (!contacts || contacts.length === 0 || !user?.id) return;
+
     setIsProcessing(true);
     setCurrentIndex(0);
-    
+
     const initialResults: EnrollmentResult[] = contacts.map(c => ({
       profileId: c.id,
       profileName: `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unknown',
@@ -65,30 +66,96 @@ export function AutoFaceEnroller({ className, onComplete }: AutoFaceEnrollerProp
     }));
     setResults(initialResults);
 
-    // Process each contact
+    // Load face models once before the batch.
+    const modelsLoaded = await faceDetectionService.loadModels();
+    if (!modelsLoaded) {
+      setResults(prev => prev.map(r => ({ ...r, status: 'failed', error: 'Face models unavailable' })));
+      setIsProcessing(false);
+      return;
+    }
+
     for (let i = 0; i < contacts.length; i++) {
       setCurrentIndex(i);
-      setResults(prev => prev.map((r, idx) => 
-        idx === i ? { ...r, status: 'processing' } : r
-      ));
+      setResults(prev => prev.map((r, idx) => idx === i ? { ...r, status: 'processing' } : r));
 
-      // Simulate processing delay
-      await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
+      const contact = contacts[i];
+      try {
+        if (!contact.avatar_url) {
+          setResults(prev => prev.map((r, idx) =>
+            idx === i ? { ...r, status: 'failed', error: 'No avatar URL' } : r
+          ));
+          continue;
+        }
 
-      // Simulate success/failure
-      const success = Math.random() > 0.1;
-      setResults(prev => prev.map((r, idx) => 
-        idx === i ? { 
-          ...r, 
-          status: success ? 'success' : 'failed',
-          error: success ? undefined : 'Face not detected'
-        } : r
-      ));
+        const faces = await faceDetectionService.detectFacesFromUrl(contact.avatar_url);
+        if (faces.length === 0) {
+          setResults(prev => prev.map((r, idx) =>
+            idx === i ? { ...r, status: 'failed', error: 'No face detected' } : r
+          ));
+          continue;
+        }
+
+        // Persist the best (first) descriptor onto the contact's biometric row.
+        const best = faces[0];
+        if (!best.descriptor) {
+          setResults(prev => prev.map((r, idx) =>
+            idx === i ? { ...r, status: 'failed', error: 'Face detected but descriptor unavailable' } : r
+          ));
+          continue;
+        }
+        const serialized = faceDetectionService.serializeDescriptor(best.descriptor);
+
+        const { data: existing } = await supabase
+          .from('contact_biometrics')
+          .select('id, facial_sample_count, facial_confidence')
+          .eq('user_id', user.id)
+          .eq('profile_id', contact.id)
+          .maybeSingle();
+
+        if (existing) {
+          const priorCount = existing.facial_sample_count || 0;
+          const priorConf = existing.facial_confidence ?? best.confidence;
+          const blended = priorCount > 0
+            ? (priorConf * priorCount + best.confidence) / (priorCount + 1)
+            : best.confidence;
+          await supabase
+            .from('contact_biometrics')
+            .update({
+              facial_embedding: serialized,
+              facial_sample_count: priorCount + 1,
+              facial_confidence: Number(blended.toFixed(3)),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existing.id);
+        } else {
+          await supabase
+            .from('contact_biometrics')
+            .insert({
+              user_id: user.id,
+              profile_id: contact.id,
+              facial_embedding: serialized,
+              facial_sample_count: 1,
+              facial_confidence: best.confidence,
+            });
+        }
+
+        setResults(prev => prev.map((r, idx) =>
+          idx === i ? { ...r, status: 'success' } : r
+        ));
+      } catch (e) {
+        setResults(prev => prev.map((r, idx) =>
+          idx === i ? {
+            ...r,
+            status: 'failed',
+            error: e instanceof Error ? e.message : 'Enrollment error',
+          } : r
+        ));
+      }
     }
 
     setIsProcessing(false);
     onComplete?.(results);
-  }, [contacts, results, onComplete]);
+  }, [contacts, results, onComplete, user?.id]);
 
   const stopEnrollment = useCallback(() => {
     setIsProcessing(false);

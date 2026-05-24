@@ -57,12 +57,10 @@ export function SDRPanel() {
   };
 
   const handleQuickAnalyze = async (captureId: string, freq: number) => {
-    const result = await analyzeSignal(captureId, {
-      frequency: freq,
-      power: -60 + Math.random() * 30,
-      bandwidth: 20,
-      modulation: 'unknown',
-    });
+    // The capture row already holds the measured signal_strength_dbm,
+    // bandwidth_hz, and modulation — let the edge function read them
+    // off the row rather than hand it a fabricated power value.
+    const result = await analyzeSignal(captureId, { frequency: freq });
     if (result) {
       setAnalysisResult(result);
     }

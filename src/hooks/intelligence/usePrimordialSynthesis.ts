@@ -112,14 +112,26 @@ export function usePrimordialSynthesis() {
   }, [user?.id, toast]);
 
   const harnessFundamentalForce = useCallback((forceName: string): FundamentalForce => {
-    const forceTypes: Array<'creative' | 'destructive' | 'transformative' | 'stabilizing'> = 
-      ['creative', 'destructive', 'transformative', 'stabilizing'];
+    // Deterministic force type from the name (hash → bucket). Potency
+    // and controlLevel default to 0 until a real evaluator exists —
+    // the UI displays "—" so users don't see fabricated numbers.
+    const forceTypes: Array<'creative' | 'destructive' | 'transformative' | 'stabilizing'> = [
+      'creative',
+      'destructive',
+      'transformative',
+      'stabilizing',
+    ];
+    let hash = 0;
+    for (let i = 0; i < forceName.length; i++) {
+      hash = (hash * 31 + forceName.charCodeAt(i)) | 0;
+    }
+    const forceType = forceTypes[Math.abs(hash) % forceTypes.length];
     return {
       id: `force-${Date.now()}`,
       forceName,
-      forceType: forceTypes[Math.floor(Math.random() * forceTypes.length)],
-      potency: Math.random() * 100,
-      controlLevel: Math.random() * 0.5 + 0.3
+      forceType,
+      potency: 0,
+      controlLevel: 0,
     };
   }, []);
 

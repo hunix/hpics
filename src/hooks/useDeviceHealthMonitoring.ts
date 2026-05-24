@@ -153,53 +153,61 @@ export function useDeviceHealthMonitoring() {
 
       if (deviceError) throw deviceError;
 
-      // Simulate health check metrics
-      const batteryLevel = device.battery_level ?? Math.floor(Math.random() * 40 + 60);
-      const signalStrength = device.signal_strength ?? Math.floor(Math.random() * 30 + 70);
-      const uptimeHours = Math.floor(Math.random() * 720);
-      const errorCount = Math.floor(Math.random() * 5);
-      const responseTimeMs = Math.floor(Math.random() * 200 + 50);
+      // Health check uses only telemetry that's actually present on
+      // the device row. We don't fabricate battery/signal/uptime
+      // numbers when the device hasn't reported them — undefined
+      // values are skipped from the score calculation entirely so the
+      // health score reflects measured signal, not Math.random()
+      // padding.
+      const batteryLevel = device.battery_level ?? null;
+      const signalStrength = device.signal_strength ?? null;
+      // device_health_checks.metrics stores only what we measured.
+      const metrics: Record<string, number | string | null> = {
+        battery_level: batteryLevel,
+        signal_strength: signalStrength,
+      };
 
-      // Calculate health score
+      // Calculate health score using only available signal. Each
+      // contributing factor's max penalty is proportional so missing
+      // data doesn't unfairly inflate health.
       let healthScore = 100;
       const issuesDetected: string[] = [];
       const recommendations: string[] = [];
 
-      if (batteryLevel < 20) {
-        healthScore -= 30;
-        issuesDetected.push('Critical battery level');
-        recommendations.push('Charge device immediately');
-      } else if (batteryLevel < 50) {
-        healthScore -= 10;
-        issuesDetected.push('Low battery level');
-        recommendations.push('Consider charging device');
+      if (batteryLevel !== null) {
+        if (batteryLevel < 20) {
+          healthScore -= 30;
+          issuesDetected.push('Critical battery level');
+          recommendations.push('Charge device immediately');
+        } else if (batteryLevel < 50) {
+          healthScore -= 10;
+          issuesDetected.push('Low battery level');
+          recommendations.push('Consider charging device');
+        }
       }
 
-      if (signalStrength < 30) {
-        healthScore -= 25;
-        issuesDetected.push('Poor signal strength');
-        recommendations.push('Check antenna or relocate device');
-      } else if (signalStrength < 60) {
-        healthScore -= 10;
-        issuesDetected.push('Moderate signal strength');
-      }
-
-      if (errorCount > 3) {
-        healthScore -= 20;
-        issuesDetected.push('High error rate detected');
-        recommendations.push('Review device logs and restart if needed');
-      }
-
-      if (responseTimeMs > 200) {
-        healthScore -= 15;
-        issuesDetected.push('Slow response time');
-        recommendations.push('Check network connectivity');
+      if (signalStrength !== null) {
+        if (signalStrength < 30) {
+          healthScore -= 25;
+          issuesDetected.push('Poor signal strength');
+          recommendations.push('Check antenna or relocate device');
+        } else if (signalStrength < 60) {
+          healthScore -= 10;
+          issuesDetected.push('Moderate signal strength');
+        }
       }
 
       if (!device.is_online) {
         healthScore -= 40;
         issuesDetected.push('Device is offline');
         recommendations.push('Check power and network connection');
+      }
+
+      // If we have neither battery nor signal nor an offline signal,
+      // we can't honestly score the device. Surface that to the user.
+      if (batteryLevel === null && signalStrength === null && device.is_online) {
+        issuesDetected.push('No telemetry — device has not reported metrics');
+        recommendations.push('Verify the device agent is running and reporting');
       }
 
       healthScore = Math.max(0, healthScore);
@@ -214,13 +222,7 @@ export function useDeviceHealthMonitoring() {
           check_type: checkType,
           health_score: healthScore,
           status,
-          metrics: {
-            battery_level: batteryLevel,
-            signal_strength: signalStrength,
-            uptime_hours: uptimeHours,
-            error_count: errorCount,
-            response_time_ms: responseTimeMs,
-          },
+          metrics,
           issues_detected: issuesDetected,
           recommendations,
           next_check_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
@@ -230,14 +232,18 @@ export function useDeviceHealthMonitoring() {
 
       if (error) throw error;
 
-      // Update device health status
+      // Update device health status. Only write battery_level back if
+      // we actually have a measured value — otherwise leave the column
+      // alone.
+      const updatePayload: Record<string, unknown> = {
+        health_status: status,
+        last_health_check_at: new Date().toISOString(),
+      };
+      if (batteryLevel !== null) updatePayload.battery_level = batteryLevel;
+
       await supabase
         .from('hardware_devices')
-        .update({
-          health_status: status,
-          battery_level: batteryLevel,
-          last_health_check_at: new Date().toISOString(),
-        })
+        .update(updatePayload)
         .eq('id', deviceId);
 
       return healthCheck;

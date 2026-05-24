@@ -74,10 +74,14 @@ export function useStockholmSyndrome(profileId?: string) {
       const attachmentScore = (dependency?.attachment_dependency as number) || 0;
       const bondingScore = (emotionalScore + attachmentScore) / 2;
 
-      const kindnessEvents = Math.floor(Math.random() * 20) + 5;
-      const crueltyEvents = Math.floor(Math.random() * 15) + 3;
-      const currentRatio = crueltyEvents > 0 ? kindnessEvents / crueltyEvents : kindnessEvents;
-      
+      // kindness/cruelty events should come from the
+      // emotional_manipulation_events table once that pipeline exists.
+      // Until then both counts are 0 and the ratio reads as "not yet
+      // measured" in the UI.
+      const kindnessEvents = 0;
+      const crueltyEvents = 0;
+      const currentRatio = 0;
+
       return {
         id: (dependency?.id as string) || profileId,
         profileId,
@@ -94,14 +98,17 @@ export function useStockholmSyndrome(profileId?: string) {
         kindnessCrueltyRatio: {
           kindnessEvents,
           crueltyEvents,
-          currentRatio: Math.round(currentRatio * 10) / 10,
+          currentRatio,
           optimalRatio: 3.5,
-          recommendation: currentRatio < 3 ? 'Increase kindness events' : currentRatio > 5 ? 'Introduce controlled cruelty' : 'Maintain current balance',
+          recommendation: 'No kindness/cruelty events recorded yet',
         },
+        // No per-indicator measurement source exists; flag every
+        // indicator as not present with strength 0 rather than
+        // pretending half of them are real.
         indicators: DEFAULT_INDICATORS.map(ind => ({
           ...ind,
-          isPresent: bondingScore > 30 && Math.random() > 0.5,
-          strength: Math.random() * bondingScore,
+          isPresent: false,
+          strength: 0,
         })),
       };
     },

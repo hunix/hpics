@@ -82,25 +82,30 @@ export function useIdentityDestabilization(profileId?: string) {
         .eq('user_id', user.id)
         .maybeSingle();
 
+      // Until a real destabilization scorer exists we derive every
+      // metric deterministically from baseScore (presence of a
+      // psych_profile row → 50, else 20). No Math.random padding on
+      // the score or cognitive flexibility, and the technique catalog
+      // reports zero deployments instead of fabricated counts.
       const baseScore = psych ? 50 : 20;
-      
+
       return {
         id: profileId,
         profileId,
-        destabilizationScore: baseScore + Math.random() * 30,
+        destabilizationScore: baseScore,
         metrics: {
           realityTestingStrength: 100 - baseScore,
           selfConceptStability: 100 - baseScore * 0.8,
           memoryConfidence: 100 - baseScore * 0.6,
           perceptionReliability: 100 - baseScore * 0.7,
           socialValidationNeed: baseScore * 1.2,
-          cognitiveFlexibility: 50 + Math.random() * 30,
+          cognitiveFlexibility: psych ? 65 : 50,
         },
         phase: getPhaseFromScore(baseScore),
         activeTechniques: DEFAULT_TECHNIQUES.map(t => ({
           ...t,
-          effectiveness: Math.random() * 100,
-          deploymentCount: Math.floor(Math.random() * 10),
+          effectiveness: 0,
+          deploymentCount: 0,
         })),
         gaslightingScripts: [],
         timelineManipulations: [],
@@ -136,13 +141,14 @@ export function useIdentityDestabilization(profileId?: string) {
 
   const generateGaslightingScriptMutation = useMutation({
     mutationFn: async (trigger: string): Promise<GaslightingScript> => {
-      // This would call an edge function in production
+      // No backend script generator exists yet; return a stub with
+      // effectiveness=0 so the UI doesn't display a fake percentage.
       return {
         id: crypto.randomUUID(),
         trigger,
         script: `When they mention "${trigger}", respond with subtle doubt about their recollection...`,
         expectedResponse: 'Self-doubt, hesitation, seeking validation',
-        effectiveness: Math.random() * 100,
+        effectiveness: 0,
       };
     },
   });

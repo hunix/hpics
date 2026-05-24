@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -198,14 +197,11 @@ export function IntelligenceAutopilotPanel() {
     },
   });
 
-  // Simulate progress for running actions
+  // The action mutations don't stream real progress, so we show an
+  // indeterminate spinner via the running Badge rather than a fake
+  // progress bar that crawls upward via Math.random.
   useEffect(() => {
-    if (currentAction) {
-      const interval = setInterval(() => {
-        setActionProgress(prev => Math.min(prev + Math.random() * 15, 95));
-      }, 500);
-      return () => clearInterval(interval);
-    }
+    if (!currentAction) setActionProgress(0);
   }, [currentAction]);
 
   const getStatusBadge = (status: AutopilotAction['status']) => {
@@ -294,7 +290,8 @@ export function IntelligenceAutopilotPanel() {
             </div>
           </div>
 
-          {/* Action Progress */}
+          {/* Action Progress — indeterminate bar (the underlying
+              mutations don't stream progress yet). */}
           {currentAction && (
             <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
               <div className="flex items-center gap-2 mb-2">
@@ -303,7 +300,9 @@ export function IntelligenceAutopilotPanel() {
                   Running: {currentAction.replace(/_/g, ' ')}
                 </span>
               </div>
-              <Progress value={actionProgress} className="h-2" />
+              <div className="h-2 w-full overflow-hidden rounded-full bg-blue-100 dark:bg-blue-900/40">
+                <div className="h-full w-1/3 animate-[pulse_1.5s_ease-in-out_infinite] rounded-full bg-blue-500" />
+              </div>
             </div>
           )}
 

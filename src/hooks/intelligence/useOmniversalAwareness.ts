@@ -112,12 +112,15 @@ export function useOmniversalAwareness() {
   }, [user?.id, toast]);
 
   const perceiveDimension = useCallback((dimensionId: string): DimensionalPerception => {
+    // No real dimensional-perception engine exists yet. Return zero
+    // sentinels so consumers can render "—" instead of plotting
+    // randomly-generated clarity, density, and causal-chain counts.
     return {
       dimensionId,
-      perceptionClarity: Math.random() * 0.5 + 0.5,
-      informationDensity: Math.random() * 100,
-      temporalRange: { past: Math.floor(Math.random() * 1000), future: Math.floor(Math.random() * 500) },
-      causalChains: Math.floor(Math.random() * 50)
+      perceptionClarity: 0,
+      informationDensity: 0,
+      temporalRange: { past: 0, future: 0 },
+      causalChains: 0,
     };
   }, []);
 

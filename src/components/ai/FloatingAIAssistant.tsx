@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { invokeFunction } from '@/lib/api';
 
 interface Message {
   id: string;
@@ -84,39 +85,55 @@ export function FloatingAIAssistant() {
   
   const handleSend = useCallback(async () => {
     if (!input.trim() || isLoading) return;
-    
+
     const userMessage: Message = {
       id: `user-${Date.now()}`,
       role: 'user',
       content: input,
       timestamp: new Date(),
     };
-    
+
+    const conversationHistory = messages.map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
+
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
-    
-    // Simulate AI response (in production, this would call an edge function)
-    setTimeout(() => {
-      const responses = [
-        'I can help you with that! Let me analyze your data...',
-        'Based on your contact history, I recommend focusing on these relationships.',
-        'I found some interesting patterns in your communication data.',
-        'Here are some suggestions based on your current context.',
-      ];
-      
+
+    try {
+      const { data, error } = await invokeFunction('ai-chat-query', {
+        message: input,
+        conversationHistory,
+      });
+
+      if (error) throw error;
+
+      const response = data as { reply?: string; content?: string; suggestions?: string[] } | null;
+      const replyText = response?.reply ?? response?.content;
+      if (!replyText) throw new Error('Empty response from AI');
+
       const assistantMessage: Message = {
         id: `assistant-${Date.now()}`,
         role: 'assistant',
-        content: responses[Math.floor(Math.random() * responses.length)],
+        content: replyText,
         timestamp: new Date(),
-        suggestions: ['Tell me more', 'Show details', 'Take action'],
+        suggestions: response?.suggestions,
       };
-      
       setMessages(prev => [...prev, assistantMessage]);
+    } catch (e) {
+      const errorMessage: Message = {
+        id: `assistant-${Date.now()}`,
+        role: 'assistant',
+        content: `Couldn't reach the AI assistant: ${e instanceof Error ? e.message : 'unknown error'}`,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1000);
-  }, [input, isLoading]);
+    }
+  }, [input, isLoading, messages]);
   
   const handleSuggestionClick = (suggestion: ContextualSuggestion) => {
     setInput(suggestion.text);

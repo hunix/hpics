@@ -191,8 +191,11 @@ export function useBehavioralEconomics() {
           rationale: 'Certainty effect increases perceived value'
         };
       case 'probability':
+        // Fixed framing language; the actual probability should be
+        // computed by the caller from real prior data and passed in.
+        // Stop fabricating a "70-100%" number every time.
         return {
-          frame: `${Math.round(Math.random() * 30 + 70)}% chance of ${value > 0 ? 'gaining' : 'losing'} $${Math.abs(value).toFixed(2)}`,
+          frame: `High-likelihood scenario for ${value > 0 ? 'gaining' : 'losing'} $${Math.abs(value).toFixed(2)}`,
           rationale: 'Probability weighting can increase perceived expected value'
         };
       default:

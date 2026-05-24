@@ -38,34 +38,37 @@ export function CrossModalFusionViewer({ profileId, modalities }: CrossModalFusi
     [modalities]
   );
 
-  // Simulate cross-modal correlations
+  // Cross-modal correlations derived from each modality's measured
+  // confidence. A real correlation engine would compute these from
+  // joint feature embeddings — until that exists, the pair score is
+  // the deterministic average of the two confidences. No Math.random
+  // jitter (which gave the chart fake variability between renders).
   const correlations = useMemo((): CorrelationPair[] => {
     const pairs: CorrelationPair[] = [];
-    
+
     for (let i = 0; i < enrolledModalities.length; i++) {
       for (let j = i + 1; j < enrolledModalities.length; j++) {
         const m1 = enrolledModalities[i];
         const m2 = enrolledModalities[j];
-        
-        // Simulate correlation based on confidence scores
-        const baseCorrelation = ((m1.confidence || 0) + (m2.confidence || 0)) / 2;
-        const variance = (Math.random() - 0.5) * 0.2;
-        const correlation = Math.max(0, Math.min(1, baseCorrelation + variance));
-        
+
+        const c1 = m1.confidence ?? 0;
+        const c2 = m2.confidence ?? 0;
+        const correlation = Math.max(0, Math.min(1, (c1 + c2) / 2));
+
         let status: CorrelationPair['status'] = 'weak';
         if (correlation >= 0.8) status = 'strong';
         else if (correlation >= 0.6) status = 'moderate';
         else if (correlation < 0.3) status = 'conflict';
-        
+
         pairs.push({
           modality1: m1.name,
           modality2: m2.name,
           correlation,
-          status
+          status,
         });
       }
     }
-    
+
     return pairs.sort((a, b) => b.correlation - a.correlation);
   }, [enrolledModalities]);
 
