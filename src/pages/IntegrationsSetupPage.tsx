@@ -405,39 +405,48 @@ function AdvancedTab({ userId }: AdvancedTabProps) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Telegram channels — table may not exist yet; handle gracefully
-    supabase
-      .from('telegram_watch_channels' as Parameters<typeof supabase.from>[0])
-      .select('id, channel_name, channel_id')
-      .eq('user_id', userId)
-      .then(({ data }) => {
-        setChannels((data as TelegramChannel[] | null) ?? []);
+    (async () => {
+      // Telegram channels — table may not exist yet; handle gracefully
+      try {
+        const { data } = await supabase
+          .from('telegram_watch_channels' as Parameters<typeof supabase.from>[0])
+          .select('id, channel_name, channel_id')
+          .eq('user_id', userId);
+        setChannels(((data as unknown) as TelegramChannel[] | null) ?? []);
+      } catch {
+        /* table not yet created */
+      } finally {
         setChannelsLoading(false);
-      })
-      .catch(() => setChannelsLoading(false));
+      }
 
-    // Monitor preferences — also may not exist yet
-    supabase
-      .from('monitor_preferences' as Parameters<typeof supabase.from>[0])
-      .select('breach_monitor_enabled, last_check_at')
-      .eq('user_id', userId)
-      .maybeSingle()
-      .then(({ data }) => {
+      // Monitor preferences — also may not exist yet
+      try {
+        const { data } = await supabase
+          .from('monitor_preferences' as Parameters<typeof supabase.from>[0])
+          .select('breach_monitor_enabled, last_check_at')
+          .eq('user_id', userId)
+          .maybeSingle();
         if (data) {
-          setBreachEnabled(!!(data as Record<string, unknown>).breach_monitor_enabled);
-          setBreachLastCheck((data as Record<string, unknown>).last_check_at as string | null);
+          const row = data as unknown as Record<string, unknown>;
+          setBreachEnabled(!!row.breach_monitor_enabled);
+          setBreachLastCheck((row.last_check_at as string | null) ?? null);
         }
-      })
-      .catch(() => {/* table not yet created */});
+      } catch {
+        /* table not yet created */
+      }
+    })();
   }, [userId]);
 
   async function handleToggleBreach() {
     const next = !breachEnabled;
     setBreachEnabled(next);
-    await supabase
-      .from('monitor_preferences' as Parameters<typeof supabase.from>[0])
-      .upsert({ user_id: userId, breach_monitor_enabled: next }, { onConflict: 'user_id' })
-      .catch(() => {/* ignore if table missing */});
+    try {
+      await supabase
+        .from('monitor_preferences' as Parameters<typeof supabase.from>[0])
+        .upsert({ user_id: userId, breach_monitor_enabled: next }, { onConflict: 'user_id' });
+    } catch {
+      /* ignore if table missing */
+    }
   }
 
   async function handleRenewAll() {
