@@ -87,11 +87,11 @@ export function WhatsAppPersonalBridge() {
           const c = data as PersonalConfig & { user_id: string };
           setConfig(c);
           setBridgeUrl(c.bridge_url ?? DEFAULT_BRIDGE_URL);
-          setBridgeSecret((data as Record<string, string>).bridge_secret ?? '');
+          setBridgeSecret(((data as unknown as Record<string, string | null>).bridge_secret) ?? '');
           setPhone(c.linked_phone ?? '');
           setStatus(c.status as BridgeStatus);
           if (c.status === 'waiting_qr') {
-            startPolling(c.bridge_url ?? DEFAULT_BRIDGE_URL, (data as Record<string, string>).bridge_secret ?? '');
+            startPolling(c.bridge_url ?? DEFAULT_BRIDGE_URL, ((data as unknown as Record<string, string | null>).bridge_secret) ?? '');
           }
         }
         setLoadingConfig(false);

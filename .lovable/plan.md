@@ -1,74 +1,32 @@
-## Audit & Migration Plan — Functions + DB Objects
+## Plan: WhatsApp Bridge + Continuous Ingestion rollout
 
-### Measured state (today)
+Run the two SQL migrations, deploy the six new edge functions, and add the one missing secret. I'll patch a few gaps in your SQL before running it so the tables are actually reachable from the app.
 
-| Surface | Count | Note |
-|---|---|---|
-| Direct `supabase.functions.invoke()` sites | **393 across 250 files** | bypass router adapter, miss circuit breakers |
-| Standalone edge functions | **109** (outside 15 routers + `_shared`) | sprawl, no health/metrics aggregation |
-| Supabase linter warnings | **95** | 1 permissive RLS, 1 public-bucket listing, ~93 SECURITY DEFINER callable by `authenticated` |
-| App version | 3.9.56 | will bump on completion |
+### Required fixes to your SQL (before running)
 
-The work is large and partially destructive. I'll execute it in **4 sequenced batches** and report after each. You can stop at any batch boundary.
+Per project rules, every new public-schema table needs explicit `GRANT`s (RLS alone isn't enough — PostgREST returns permission errors). Your SQL is also missing some policies and `WITH CHECK` clauses. I'll add the following to each migration in the same transaction:
 
----
+**Migration 1 (WhatsApp Bridge)**
+- `whatsapp_bridge_sessions`, `whatsapp_personal_messages`, `whatsapp_personal_contacts`: bridge-managed (service role only). Add `GRANT ALL ... TO service_role` only — no anon/authenticated grants, no policies (RLS stays on, locked down by default).
+- `whatsapp_personal_config`: add `GRANT SELECT, INSERT, UPDATE, DELETE TO authenticated` + `GRANT ALL TO service_role`. Split your single policy into explicit SELECT/INSERT/UPDATE/DELETE policies scoped to `auth.uid() = user_id` with proper `WITH CHECK`.
 
-### Batch 1 — DB / Security closeout (low risk, ship first)
+**Migration 2 (Continuous Ingestion)** — for every new table (`instagram_profile`, `instagram_connections`, `instagram_messages`, `instagram_activity`, `linkedin_profile`, `linkedin_connections`, `linkedin_messages`, `linkedin_positions`, `linkedin_education`, `linkedin_skills`, `sms_messages`, `source_health_log`):
+- Add `GRANT SELECT, INSERT, UPDATE, DELETE ON public.<table> TO authenticated;`
+- Add `GRANT ALL ON public.<table> TO service_role;`
+- Expand each `USING (auth.uid() = user_id)` policy to also cover INSERT/UPDATE/DELETE with matching `WITH CHECK` (your current `CREATE POLICY ... USING (...)` defaults to ALL but lacks WITH CHECK, so inserts/updates would fail).
 
-Goal: zero out the linter for everything that is not intentional public surface.
+No structural changes to columns, indexes, or constraints — only grants and policy completeness.
 
-1. **Permissive RLS** — find the one remaining write policy with `USING(true)`/`WITH CHECK(true)` and replace with `service_role`/`auth.uid()` guard.
-2. **Public bucket listing** — restrict the over-broad `storage.objects` SELECT policy on the offending public bucket (likely `avatars`) so anonymous can read individual files but cannot list the bucket.
-3. **~93 SECURITY DEFINER callable** — programmatic `REVOKE EXECUTE … FROM authenticated, anon, PUBLIC` for every function not on the intentional client-RPC allowlist; keep allowlist functions (`has_role`, `has_clearance`, `get_user_clearance`, `track_navigation_access`, `check_api_keys`, `delete_api_key`, `toggle_contact_active_status`, `log_*_access`, `match_documents_v2`, `search_contacts_v5`, `search_messages_v2`, `get_contact_*`, `get_storage_*`, `get_document_folders`) callable.
-4. Re-run `supabase--linter`; document remaining intentional surface in `security--update_memory`.
+### Steps
 
-Deliverable: 1 migration, linter goes from 95 → ~10–15 (intentional only).
+1. **Migration 1** — run your WhatsApp Bridge SQL with the grants/policies added above.
+2. **Migration 2** — run your Continuous Ingestion SQL with the grants/policies added above.
+3. **Add secret** `GOOGLE_CLOUD_PROJECT_ID` via the secrets tool (prompts you for the value).
+4. **Deploy edge functions**: `setup-gmail-push`, `gmail-push-handler`, `renew-webhook-subscriptions`, `import-instagram-export`, `import-linkedin-export`, `import-sms-backup`.
+5. **Verify**: run the Supabase linter, confirm no new RLS-disabled or permission warnings, and confirm the 6 functions deploy cleanly.
 
----
+### Notes / open items
 
-### Batch 2 — Invoke adapter codemod (392 sites → `invokeFunction()`)
-
-1. Write `scripts/codemod-invoke.ts` (ts-morph) — matches `CallExpression` where callee is `supabase.functions.invoke`, rewrites to `invokeFunction(name, body)`; preserves `headers` overrides by leaving original call untouched; skips `src/lib/api/**`, `src/main.tsx`.
-2. Run codemod in 5 chunks (~50 files each) to keep diffs reviewable; build between chunks.
-3. Promote `no-restricted-syntax` ESLint rule that already exists from advisory to **CI-blocking error** with zero exceptions outside the adapter.
-
-Deliverable: 393 → 0 direct invokes; circuit-breakers observe 100% of traffic.
-
----
-
-### Batch 3 — Edge function consolidation (109 standalone → ~15 routers)
-
-Migrate **27 high-traffic / domain-aligned** functions first into existing routers:
-
-- **warfare-router** (`/red-team`, `/vulnerability-window`, `/opsec-vuln`, `/tactical-negotiation`, `/threat-actor-profile`, `/trauma-exploitation`, `/zero-day-anomaly`)
-- **intelligence-router** (`/agent-workflow`, `/autonomy`, `/deep-research`, `/agentic-rag`, `/agis-orchestrator`, `/cross-modal`, `/future-timeline`, `/synchronicity`, `/transcendent`, `/synthetic-consensus`, `/synthetic-memory`)
-- **security-router** (`/device-security-scanner`, `/vulnerability-intel`, `/tscm-sweep`, `/threat-actor-profile`)
-- **voice-router** (`/voice-stress-correlator`, `/transcribe-audio`, `/transcribe-voice-note`, `/identify-speakers`)
-- **utility-router** (`/suggest-*` family — 8 functions, `/summarize-conversation`, `/trigger-*`)
-- **network-router** (`/analyze-network-intelligence`, `/tas-com-community-detector`, `/track-community-evolution`, `/suggest-network-growth`)
-
-For each: add route handler in target router, update `ROUTE_MAP` + `hoc-gateway` workflow registry, then `supabase--delete_edge_functions` for the standalone version. Leave OAuth (`gmail-oauth`, `outlook-oauth`, `google-calendar-oauth`), webhooks (`whatsapp-webhook`, `webhook-receiver`, `chrome-extension-*`), and long-running sync jobs (`sync-*`, `process-bulk-*`, `process-enrichment-queue`) as standalone — they have special `verify_jwt`/timeout needs.
-
-Deliverable: 109 → ~50 standalone; ROUTE_MAP + HoC gateway in sync.
-
----
-
-### Batch 4 — Release v4.0.0
-
-1. Bump `APP_VERSION` to `4.0.0`, add `3.9.56` to `FORCE_CLEAR_VERSIONS`.
-2. Update `docs/QUICK_REFERENCE_CARD.md` + HoC Integration page workflow registry.
-3. Add audit-record migration to `error_logs`/audit table.
-
----
-
-### Technical notes
-
-- All DB changes via `supabase--migration`; no direct edits to `supabase/migrations/*`.
-- Codemod will be added under `scripts/` and run locally — not committed as a build step.
-- Each deleted edge function gets called via `supabase--delete_edge_functions`.
-- Router migration pattern follows existing `voice-router` / `utility-router` shape (each route is a `createXHandler(type, prompt)` factory).
-- Will check `cloud_status` before each migration batch.
-
----
-
-**Recommended start:** Batch 1 (DB security). Reply with "go batch 1" to proceed, or pick a different starting batch.
+- `gmail-push-handler` is a public Pub/Sub endpoint. It already lives in `supabase/functions/` and the existing code returns 200 on all paths. I'll leave `verify_jwt` at the project default unless deploy fails — flag if you want it explicitly set to `false` in `config.toml`.
+- `whatsapp_bridge_sessions/messages/contacts` are only written by the bridge service (using the service role key), so I'm intentionally not granting `authenticated` access. If the frontend needs to read messages directly, tell me and I'll add scoped policies joining through `whatsapp_personal_config.user_id`.
+- I'll create one combined migration file per logical migration (not one per table) so they run atomically.
