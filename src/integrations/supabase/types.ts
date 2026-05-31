@@ -40202,6 +40202,30 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_bridge_sessions: {
+        Row: {
+          created_at: string
+          creds: Json
+          keys: Json
+          session_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creds?: Json
+          keys?: Json
+          session_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creds?: Json
+          keys?: Json
+          session_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       whatsapp_config: {
         Row: {
           business_account_id: string | null
@@ -40355,6 +40379,151 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_personal_config: {
+        Row: {
+          bridge_secret: string | null
+          bridge_url: string
+          created_at: string
+          last_seen_at: string | null
+          linked_phone: string | null
+          message_count: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bridge_secret?: string | null
+          bridge_url?: string
+          created_at?: string
+          last_seen_at?: string | null
+          linked_phone?: string | null
+          message_count?: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bridge_secret?: string | null
+          bridge_url?: string
+          created_at?: string
+          last_seen_at?: string | null
+          linked_phone?: string | null
+          message_count?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      whatsapp_personal_contacts: {
+        Row: {
+          created_at: string
+          is_business: boolean
+          jid: string
+          last_seen_at: string | null
+          name: string | null
+          phone_number: string | null
+          profile_photo_url: string | null
+          session_id: string
+          status_text: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          is_business?: boolean
+          jid: string
+          last_seen_at?: string | null
+          name?: string | null
+          phone_number?: string | null
+          profile_photo_url?: string | null
+          session_id: string
+          status_text?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          is_business?: boolean
+          jid?: string
+          last_seen_at?: string | null
+          name?: string | null
+          phone_number?: string | null
+          profile_photo_url?: string | null
+          session_id?: string
+          status_text?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_personal_contacts_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_bridge_sessions"
+            referencedColumns: ["session_id"]
+          },
+        ]
+      }
+      whatsapp_personal_messages: {
+        Row: {
+          body: string | null
+          chat_jid: string
+          chat_name: string | null
+          id: string
+          is_from_me: boolean
+          is_group: boolean
+          media_url: string | null
+          message_type: string
+          raw_payload: Json
+          sender_jid: string | null
+          sender_name: string | null
+          sender_phone: string | null
+          session_id: string
+          synced_at: string
+          timestamp_ms: number
+        }
+        Insert: {
+          body?: string | null
+          chat_jid: string
+          chat_name?: string | null
+          id: string
+          is_from_me?: boolean
+          is_group?: boolean
+          media_url?: string | null
+          message_type?: string
+          raw_payload?: Json
+          sender_jid?: string | null
+          sender_name?: string | null
+          sender_phone?: string | null
+          session_id: string
+          synced_at?: string
+          timestamp_ms: number
+        }
+        Update: {
+          body?: string | null
+          chat_jid?: string
+          chat_name?: string | null
+          id?: string
+          is_from_me?: boolean
+          is_group?: boolean
+          media_url?: string | null
+          message_type?: string
+          raw_payload?: Json
+          sender_jid?: string | null
+          sender_name?: string | null
+          sender_phone?: string | null
+          session_id?: string
+          synced_at?: string
+          timestamp_ms?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_personal_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_bridge_sessions"
+            referencedColumns: ["session_id"]
           },
         ]
       }
