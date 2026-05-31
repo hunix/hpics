@@ -753,6 +753,16 @@ export const navigationItems: NavItem[] = [
     keywords: ['mobile', 'ecosystem', 'bluetooth', 'location', 'ambient'],
   },
   {
+    id: 'android-data-sync',
+    title: 'Android Data Sync',
+    url: '/android-sync',
+    icon: Smartphone,
+    description: 'Samsung Galaxy S26 Ultra data hub — WhatsApp bridge, SMS, Instagram, LinkedIn, Contacts',
+    badge: 'new',
+    category: 'system',
+    keywords: ['android', 'samsung', 'galaxy', 'whatsapp', 'sms', 'instagram', 'linkedin', 'contacts', 'sync', 'import', 'bridge'],
+  },
+  {
     id: 'system-health',
     title: 'System Health',
     url: '/system-health',
