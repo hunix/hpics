@@ -24,6 +24,7 @@ import { OutlookContactsImport } from '@/components/import/outlook/OutlookContac
 import { BulkEmailAnalyzer } from '@/components/email/BulkEmailAnalyzer';
 import { EmailIntelligenceDashboard } from '@/components/email/EmailIntelligenceDashboard';
 import { HardDrive, BarChart3 } from 'lucide-react';
+import { IntegrationSetupBanner } from '@/components/shared/IntegrationSetupBanner';
 
 type CSVRow = ImportCSVRow;
 
@@ -191,6 +192,16 @@ export default function Import() {
   return (
     <AppLayout title="Import Data">
       <div className="w-full space-y-6">
+        {localStorage.getItem('setup-banner-social-import') !== 'dismissed' && (
+          <IntegrationSetupBanner
+            title="Import Instagram & LinkedIn Exports"
+            description="Upload your data export ZIPs to import all connections, messages, and activity."
+            linkTo="/integrations?tab=social"
+            linkLabel="Import Social Data"
+            storageKey="setup-banner-social-import"
+            icon={Upload}
+          />
+        )}
         <Tabs defaultValue="quick" className="w-full">
           <TabsList className="w-full h-auto p-2 grid grid-cols-5 gap-2">
             <TabsTrigger value="quick" className="flex items-center justify-center gap-2 px-4 py-2.5">

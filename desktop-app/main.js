@@ -1,5 +1,6 @@
 const { app, BrowserWindow, Tray, Menu, globalShortcut, Notification, ipcMain, nativeImage } = require('electron');
 const path = require('path');
+const { spawn } = require('child_process');
 const Store = require('electron-store');
 
 // Initialize persistent storage
@@ -15,6 +16,7 @@ const store = new Store({
 let mainWindow = null;
 let tray = null;
 let syncInterval = null;
+let waBridgeProcess = null;
 
 // App URL - points to the deployed web app
 const APP_URL = 'https://d84a1d41-b6a8-4c7d-a30a-5f4baa19a16d.lovableproject.com';
@@ -177,6 +179,64 @@ function triggerSync() {
   }
 }
 
+// ── WhatsApp Personal Bridge ──────────────────────────────────────────────────
+// The bridge service (services/whatsapp-bridge/) runs as a child process so the
+// user gets continuous WhatsApp sync without opening a terminal.
+
+function startWABridge() {
+  if (waBridgeProcess) return; // already running
+
+  // Resolve bridge path relative to desktop-app/../services/whatsapp-bridge
+  const bridgePath = path.resolve(__dirname, '..', 'services', 'whatsapp-bridge');
+  const bridgeEntry = path.join(bridgePath, 'dist', 'index.js');
+  const bridgeEntryDev = path.join(bridgePath, 'src', 'index.ts');
+
+  // Prefer compiled dist; fall back to tsx for dev
+  const fs = require('fs');
+  let cmd, args;
+  if (fs.existsSync(bridgeEntry)) {
+    cmd = 'node';
+    args = [bridgeEntry];
+  } else if (fs.existsSync(bridgeEntryDev)) {
+    cmd = 'npx';
+    args = ['tsx', bridgeEntryDev];
+  } else {
+    console.log('[WA Bridge] Service not found at', bridgePath, '— skipping auto-start');
+    return;
+  }
+
+  const env = {
+    ...process.env,
+    SUPABASE_URL: store.get('wabridge.supabaseUrl', process.env.SUPABASE_URL || ''),
+    SUPABASE_SERVICE_ROLE_KEY: store.get('wabridge.serviceRoleKey', process.env.SUPABASE_SERVICE_ROLE_KEY || ''),
+    AUTH_SECRET: store.get('wabridge.authSecret', 'hpics-local-secret'),
+    PORT: '3001',
+  };
+
+  waBridgeProcess = spawn(cmd, args, { cwd: bridgePath, env, stdio: 'pipe' });
+
+  waBridgeProcess.stdout.on('data', (d) => console.log('[WA Bridge]', d.toString().trim()));
+  waBridgeProcess.stderr.on('data', (d) => console.error('[WA Bridge ERR]', d.toString().trim()));
+
+  waBridgeProcess.on('exit', (code) => {
+    console.log('[WA Bridge] exited with code', code);
+    waBridgeProcess = null;
+    // Auto-restart after 5 s unless app is quitting
+    if (!app.isQuitting) {
+      setTimeout(startWABridge, 5000);
+    }
+  });
+
+  console.log('[WA Bridge] started (pid', waBridgeProcess.pid, ')');
+}
+
+function stopWABridge() {
+  if (waBridgeProcess) {
+    waBridgeProcess.kill('SIGTERM');
+    waBridgeProcess = null;
+  }
+}
+
 function startBackgroundSync() {
   const interval = store.get('syncInterval');
   
@@ -213,12 +273,31 @@ ipcMain.handle('show-notification', (event, title, body) => {
   }
 });
 
+ipcMain.handle('wa-bridge-status', () => ({
+  running: waBridgeProcess !== null,
+  pid: waBridgeProcess?.pid ?? null,
+}));
+
+ipcMain.handle('wa-bridge-restart', () => {
+  stopWABridge();
+  setTimeout(startWABridge, 500);
+  return { ok: true };
+});
+
+ipcMain.handle('wa-bridge-set-config', (event, config) => {
+  if (config.supabaseUrl)    store.set('wabridge.supabaseUrl', config.supabaseUrl);
+  if (config.serviceRoleKey) store.set('wabridge.serviceRoleKey', config.serviceRoleKey);
+  if (config.authSecret)     store.set('wabridge.authSecret', config.authSecret);
+  return { ok: true };
+});
+
 // App lifecycle
 app.whenReady().then(() => {
   createWindow();
   createTray();
   registerGlobalShortcuts();
   startBackgroundSync();
+  startWABridge();
   
   // Set auto-start based on saved preference
   app.setLoginItemSettings({ openAtLogin: store.get('autoStart') });
@@ -241,9 +320,9 @@ app.on('window-all-closed', () => {
 });
 
 app.on('will-quit', () => {
-  // Unregister all shortcuts
   globalShortcut.unregisterAll();
   stopBackgroundSync();
+  stopWABridge();
 });
 
 app.on('before-quit', () => {

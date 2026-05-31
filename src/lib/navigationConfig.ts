@@ -1,11 +1,11 @@
-import { 
-  Users, MessageSquare, FileText, Image, Calendar, Brain, LayoutDashboard, 
-  Upload, Settings, Network, CalendarDays, Video, Scan, BarChart3, FileBarChart, 
-  UsersRound, Download, Shield, Waypoints, Sparkles, ShieldAlert, Activity, 
+import {
+  Users, MessageSquare, FileText, Image, Calendar, Brain, LayoutDashboard,
+  Upload, Settings, Network, CalendarDays, Video, Scan, BarChart3, FileBarChart,
+  UsersRound, Download, Shield, Waypoints, Sparkles, ShieldAlert, Activity,
   Layers, Cpu, DollarSign, Home, Briefcase, Eye, AlertTriangle, Lock,
-  Zap, Compass, Smartphone, Crown, Swords, Orbit, TrendingUp, Search, 
+  Zap, Compass, Smartphone, Crown, Swords, Orbit, TrendingUp, Search,
   GitBranch, Lightbulb, Target, LayoutGrid, Fingerprint, CircleDot, Atom,
-  Workflow,
+  Workflow, Plug,
   type LucideIcon
 } from 'lucide-react';
 import type { AppRole, ClearanceLevel } from '@/hooks/useClearance';
@@ -840,6 +840,15 @@ export const navigationItems: NavItem[] = [
     description: 'Install as mobile app',
     category: 'system',
     keywords: ['install', 'pwa', 'app', 'mobile'],
+  },
+  {
+    id: 'integrations',
+    title: 'Integrations',
+    url: '/integrations',
+    icon: Plug,
+    description: 'Connect data sources and manage integrations',
+    category: 'system',
+    keywords: ['integrations', 'connect', 'whatsapp', 'gmail', 'instagram', 'linkedin', 'social', 'email', 'setup'],
   },
   {
     id: 'settings',

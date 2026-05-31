@@ -119,4 +119,41 @@ CREATE TRIGGER trg_wbs_updated_at
   BEFORE UPDATE ON public.whatsapp_bridge_sessions
   FOR EACH ROW EXECUTE FUNCTION public.whatsapp_bridge_sessions_set_updated_at();
 
+-- ---- Personal bridge UI config per user ------------------------------------
+-- Stores per-user settings for the WhatsApp Personal Bridge:
+-- the bridge URL (defaults to localhost:3001), the auth secret, link status,
+-- and the linked phone number shown in the UI after pairing.
+
+CREATE TABLE IF NOT EXISTS public.whatsapp_personal_config (
+  user_id       UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+  bridge_url    TEXT        NOT NULL DEFAULT 'http://localhost:3001',
+  bridge_secret TEXT,
+  status        TEXT        NOT NULL DEFAULT 'disconnected'
+                  CHECK (status IN ('disconnected','waiting_qr','connected')),
+  linked_phone  TEXT,
+  message_count BIGINT      NOT NULL DEFAULT 0,
+  last_seen_at  TIMESTAMPTZ,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.whatsapp_personal_config ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY wpc_owner ON public.whatsapp_personal_config
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE OR REPLACE FUNCTION public.whatsapp_personal_config_set_updated_at()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN NEW.updated_at = now(); RETURN NEW; END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_wpconfig_updated_at ON public.whatsapp_personal_config;
+CREATE TRIGGER trg_wpconfig_updated_at
+  BEFORE UPDATE ON public.whatsapp_personal_config
+  FOR EACH ROW EXECUTE FUNCTION public.whatsapp_personal_config_set_updated_at();
+
+COMMENT ON TABLE public.whatsapp_personal_config IS
+  'Per-user configuration for the personal WhatsApp bridge (baileys).';
+
 COMMIT;

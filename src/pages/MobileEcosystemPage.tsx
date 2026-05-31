@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { useBackgroundLocation } from '@/hooks/useBackgroundLocation';
 import { useContextEngine } from '@/hooks/useContextEngine';
 import { AppLayout } from '@/components/AppLayout';
+import { IntegrationSetupBanner } from '@/components/shared/IntegrationSetupBanner';
 
 interface EcosystemService {
   id: string;
@@ -135,6 +136,18 @@ export default function MobileEcosystemPage() {
   return (
     <AppLayout title="Mobile Ecosystem">
       <div className="space-y-6">
+
+        {localStorage.getItem('setup-banner-android-sync') !== 'dismissed' && (
+          <IntegrationSetupBanner
+            title="Samsung Galaxy S26 Ultra Detected"
+            description="Sync your SMS, WhatsApp, Instagram and LinkedIn data from your Android device."
+            linkTo="/android-sync"
+            linkLabel="Open Android Data Sync"
+            storageKey="setup-banner-android-sync"
+            icon={Smartphone}
+            variant="info"
+          />
+        )}
 
         {/* Ecosystem Progress */}
         <Card className="border-border/50">

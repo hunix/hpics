@@ -5,11 +5,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Plus, Phone, Mail, Video, Users, MessageSquare,
-  ArrowUpRight, ArrowDownLeft, Clock
+  ArrowUpRight, ArrowDownLeft, Clock, MessageCircle
 } from 'lucide-react';
 import { CommunicationDialog } from '@/components/communications/CommunicationDialog';
 import { formatDistanceToNow, format } from 'date-fns';
 import { useCommunicationsList, type CommunicationWithProfile as Communication } from '@/hooks/communications/useCommunicationsList';
+import { IntegrationSetupBanner } from '@/components/shared/IntegrationSetupBanner';
 
 export default function Communications() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -38,6 +39,27 @@ export default function Communications() {
   return (
     <AppLayout title="Communications">
       <div className="space-y-6">
+        {localStorage.getItem('setup-banner-whatsapp') !== 'dismissed' && (
+          <IntegrationSetupBanner
+            title="Connect Personal WhatsApp"
+            description="Sync all your chats automatically — no phone needed after pairing."
+            linkTo="/integrations?tab=whatsapp"
+            linkLabel="Link WhatsApp"
+            storageKey="setup-banner-whatsapp"
+            icon={MessageCircle}
+          />
+        )}
+        {localStorage.getItem('setup-banner-email-push') !== 'dismissed' && (
+          <IntegrationSetupBanner
+            title="Enable Real-time Email"
+            description="Activate Gmail push notifications for instant email sync instead of polling."
+            linkTo="/integrations?tab=email"
+            linkLabel="Set Up Email Push"
+            storageKey="setup-banner-email-push"
+            icon={Mail}
+            variant="warning"
+          />
+        )}
         <div className="flex justify-between items-center">
           <p className="text-muted-foreground">
             Track all your interactions and conversations

@@ -11,7 +11,8 @@ import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Sun, Bell, Mail, Loader2, Smartphone, RefreshCw, Trash2 } from 'lucide-react';
+import { Moon, Sun, Bell, Mail, Loader2, Smartphone, RefreshCw, Trash2, Settings2 } from 'lucide-react';
+import { IntegrationSetupBanner } from '@/components/shared/IntegrationSetupBanner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { APP_VERSION, BUILD_TIMESTAMP, forceAppUpdate, clearAllCaches } from '@/lib/appVersion';
 import { SettingsLayout } from '@/components/settings/SettingsLayout';
@@ -337,9 +338,21 @@ export default function Settings() {
 
   return (
     <AppLayout title="Settings">
-      <SettingsLayout activeSection={activeSection} onSectionChange={setActiveSection}>
-        {renderContent()}
-      </SettingsLayout>
+      <div className="space-y-4">
+        {localStorage.getItem('setup-banner-integrations-hub') !== 'dismissed' && (
+          <IntegrationSetupBanner
+            title="Manage All Integrations"
+            description="Connect WhatsApp, Gmail push, Instagram exports, and more from one place."
+            linkTo="/integrations"
+            linkLabel="Open Integrations Hub"
+            storageKey="setup-banner-integrations-hub"
+            icon={Settings2}
+          />
+        )}
+        <SettingsLayout activeSection={activeSection} onSectionChange={setActiveSection}>
+          {renderContent()}
+        </SettingsLayout>
+      </div>
     </AppLayout>
   );
 }

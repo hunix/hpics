@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle,
 } from '@/components/ui/card';
@@ -13,12 +13,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   MessageCircle, Smartphone, Users, Activity,
-  CheckCircle2, XCircle, Loader2, QrCode, RefreshCw,
+  CheckCircle2, XCircle, Loader2,
   Upload, Globe, Share2,
 } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { SmsBridge } from '@/components/android/SmsBridge';
 import { DataExportImporter } from '@/components/integrations/DataExportImporter';
+import { WhatsAppPersonalBridge } from '@/components/whatsapp/WhatsAppPersonalBridge';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
@@ -26,172 +27,11 @@ import { cn } from '@/lib/utils';
 // Types
 // ---------------------------------------------------------------------------
 
-type BridgeStatus = 'disconnected' | 'waiting_qr' | 'connected';
-
-interface BridgeHealth {
-  status: BridgeStatus;
-  phone?: string;
-  messageCount?: number;
-}
-
 interface SourceHealthRow {
   source: string;
   lastSync: string;
   records: number;
   status: 'ok' | 'stale' | 'error' | 'never';
-}
-
-// ---------------------------------------------------------------------------
-// WhatsApp Bridge Section
-// ---------------------------------------------------------------------------
-
-function WhatsAppBridgeSection() {
-  const bridgeUrl = import.meta.env.VITE_WA_BRIDGE_URL as string | undefined;
-  const bridgeSecret = import.meta.env.VITE_WA_BRIDGE_SECRET as string | undefined;
-
-  const [health, setHealth] = useState<BridgeHealth>({ status: 'disconnected' });
-  const [loadingHealth, setLoadingHealth] = useState(false);
-  const [qrVisible, setQrVisible] = useState(false);
-  const [qrTimestamp, setQrTimestamp] = useState(Date.now());
-
-  async function fetchHealth() {
-    if (!bridgeUrl) return;
-    setLoadingHealth(true);
-    try {
-      const res = await fetch(`${bridgeUrl}/health`, { signal: AbortSignal.timeout(5000) });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = (await res.json()) as { status?: string; phone?: string; messageCount?: number };
-      const mapped: BridgeStatus =
-        json.status === 'connected' ? 'connected'
-        : json.status === 'waiting_qr' ? 'waiting_qr'
-        : 'disconnected';
-      setHealth({ status: mapped, phone: json.phone, messageCount: json.messageCount });
-    } catch {
-      setHealth({ status: 'disconnected' });
-    } finally {
-      setLoadingHealth(false);
-    }
-  }
-
-  useEffect(() => {
-    fetchHealth();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const qrSrc = bridgeUrl
-    ? `${bridgeUrl}/qr/image${bridgeSecret ? `?secret=${encodeURIComponent(bridgeSecret)}` : ''}&t=${qrTimestamp}`
-    : null;
-
-  const statusBadge: Record<BridgeStatus, { label: string; variant: 'default' | 'secondary' | 'destructive'; icon: React.ElementType }> = {
-    connected:     { label: 'Connected',    variant: 'default',     icon: CheckCircle2 },
-    waiting_qr:    { label: 'Waiting QR',   variant: 'secondary',   icon: QrCode },
-    disconnected:  { label: 'Disconnected', variant: 'destructive', icon: XCircle },
-  };
-  const sb = statusBadge[health.status];
-  const StatusIcon = sb.icon;
-
-  return (
-    <div className="space-y-4">
-      <Alert className="border-border/50">
-        <MessageCircle className="h-4 w-4 text-green-500" />
-        <AlertTitle>WhatsApp Personal Bridge</AlertTitle>
-        <AlertDescription className="text-sm">
-          Run the open-source WhatsApp bridge on your computer or a VPS, then scan the QR code with
-          your Samsung Galaxy. All your personal chats stream directly into PICS.
-        </AlertDescription>
-      </Alert>
-
-      <Card className="border-border/50">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <MessageCircle className="h-4 w-4 text-green-500" />
-              Bridge Status
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              <Badge variant={sb.variant} className="flex items-center gap-1">
-                <StatusIcon className="h-3 w-3" />
-                {sb.label}
-              </Badge>
-              {bridgeUrl && (
-                <Button variant="ghost" size="icon" onClick={fetchHealth} disabled={loadingHealth}>
-                  <RefreshCw className={cn('h-4 w-4', loadingHealth && 'animate-spin')} />
-                </Button>
-              )}
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {!bridgeUrl ? (
-            <Alert variant="destructive">
-              <XCircle className="h-4 w-4" />
-              <AlertTitle>Bridge URL not configured</AlertTitle>
-              <AlertDescription>
-                Set <code className="bg-muted px-1 rounded text-xs">VITE_WA_BRIDGE_URL</code> in your
-                environment to connect to a running WhatsApp bridge instance.
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <>
-              {health.status === 'connected' && health.phone && (
-                <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-                    Connected as {health.phone}
-                  </span>
-                  {health.messageCount !== undefined && (
-                    <Badge variant="secondary">{health.messageCount.toLocaleString()} messages</Badge>
-                  )}
-                </div>
-              )}
-
-              <div className="flex gap-2 flex-wrap">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setQrTimestamp(Date.now());
-                    setQrVisible(v => !v);
-                  }}
-                >
-                  <QrCode className="h-4 w-4 mr-2" />
-                  {qrVisible ? 'Hide QR Code' : 'Show QR Code'}
-                </Button>
-                <Button variant="outline" size="sm" onClick={fetchHealth} disabled={loadingHealth}>
-                  <RefreshCw className={cn('h-4 w-4 mr-2', loadingHealth && 'animate-spin')} />
-                  Refresh Status
-                </Button>
-              </div>
-
-              {qrVisible && qrSrc && (
-                <div className="flex flex-col items-center gap-3 p-4 bg-white rounded-lg border">
-                  <img
-                    src={qrSrc}
-                    alt="WhatsApp QR Code"
-                    className="w-48 h-48 object-contain"
-                    onError={e => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                  <p className="text-xs text-muted-foreground text-center">
-                    Open WhatsApp on your Samsung Galaxy → Linked Devices → Link a Device
-                  </p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setQrTimestamp(Date.now())}
-                  >
-                    <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-                    Refresh QR
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -547,7 +387,7 @@ export default function AndroidDataSyncPage() {
 
           {/* WhatsApp Bridge */}
           <TabsContent value="whatsapp" className="mt-4">
-            <WhatsAppBridgeSection />
+            <WhatsAppPersonalBridge />
           </TabsContent>
 
           {/* SMS */}
